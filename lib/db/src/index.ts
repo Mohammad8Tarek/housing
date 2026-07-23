@@ -58,9 +58,11 @@ if (!globalThis.__sunrise_pg_pool__) {
     // Don't crash — the pool will create a new connection on next query
   });
 
-  globalThis.__sunrise_pg_pool__.on("connect", (_client) => {
-    // Uncomment for debugging:
-    // console.debug("[DB Pool] New connection established");
+  globalThis.__sunrise_pg_pool__.on("connect", (client) => {
+    // Force search_path to public for all new connections to fix Neon Pooler empty search_path bug
+    client.query("SET search_path TO public").catch((err) => {
+      console.error("[DB Pool] Failed to set search_path on connect:", err);
+    });
   });
 }
 
