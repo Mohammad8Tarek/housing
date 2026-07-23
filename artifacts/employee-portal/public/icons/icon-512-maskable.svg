@@ -1,0 +1,35 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0a500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e05c2a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full background (for maskable) -->
+  <rect width="512" height="512" fill="url(#grad1)"/>
+
+  <!-- House icon - centered and scaled for mask -->
+  <g transform="translate(156, 140)">
+    <!-- Roof -->
+    <polygon points="100,0 0,85 15,85 15,180 185,180 185,85 200,85" fill="white" opacity="0.98"/>
+
+    <!-- House body -->
+    <rect x="15" y="85" width="170" height="95" fill="white" opacity="0.95"/>
+
+    <!-- Door -->
+    <rect x="80" y="125" width="40" height="60" fill="#0d0f14" opacity="0.2"/>
+
+    <!-- Door knob -->
+    <circle cx="120" cy="155" r="5" fill="white" opacity="0.8"/>
+
+    <!-- Window left -->
+    <rect x="35" y="105" width="25" height="25" fill="white" opacity="0.4" rx="3"/>
+
+    <!-- Window right -->
+    <rect x="140" y="105" width="25" height="25" fill="white" opacity="0.4" rx="3"/>
+
+    <!-- Chimney -->
+    <rect x="165" y="30" width="15" height="35" fill="white" opacity="0.6"/>
+  </g>
+</svg>

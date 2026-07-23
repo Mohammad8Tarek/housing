@@ -1,0 +1,8 @@
+{
+  "name": "@workspace/api-spec",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "orval": "^8.5.3"
+  }
+}

@@ -1,0 +1,21 @@
+FROM node:22-alpine
+RUN npm install -g pnpm
+
+WORKDIR /app
+COPY pnpm-workspace.yaml package.json tsconfig.json tsconfig.base.json pnpm-lock.yaml ./
+COPY lib/db/package.json ./lib/db/
+COPY lib/api-zod/package.json ./lib/api-zod/
+COPY lib/api-client-react/package.json ./lib/api-client-react/
+COPY artifacts/api-server/package.json ./artifacts/api-server/
+COPY artifacts/housing/package.json ./housing/
+RUN pnpm install
+
+COPY lib/ ./lib/
+COPY artifacts/api-server/ ./artifacts/api-server/
+RUN cd artifacts/api-server && node ./build.mjs
+
+EXPOSE 4000
+ENV NODE_ENV=production
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- http://localhost:4000/api/healthz || exit 1
+CMD ["node", "--enable-source-maps", "./artifacts/api-server/dist/index.mjs"]

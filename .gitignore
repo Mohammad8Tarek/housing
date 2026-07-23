@@ -1,0 +1,38 @@
+# Root ignore file for generated artifacts and sensitive local files
+
+# Dependency folders
+**/node_modules/
+
+# Build output
+dist/
+build/
+.artifacts/
+*.tsbuildinfo
+
+# Backups directory
+backups/
+
+# Sensitive runtime files (session data, PIDs, cookies)
+*.pid
+cookies.txt
+
+# Scratch/test scripts (should live in dedicated test folders)
+scratch_*.ts
+test-*.ts
+
+# Logs
+*.log
+*.log.new
+*.err.txt
+*.out.txt
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE / OS files
+.vscode/
+.DS_Store
+Thumbs.db
+

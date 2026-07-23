@@ -1,0 +1,2526 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Sunrise Staff Housing Management System API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: properties
+    description: Property management
+  - name: buildings
+    description: Building management
+  - name: floors
+    description: Floor management
+  - name: rooms
+    description: Room management
+  - name: employees
+    description: Employee management
+  - name: assignments
+    description: Room assignment management
+  - name: reservations
+    description: Guest reservation management
+  - name: hostings
+    description: Employee guest hosting management
+  - name: maintenance
+    description: Maintenance request management
+  - name: users
+    description: User management
+  - name: activity-logs
+    description: Activity audit log
+  - name: settings
+    description: System settings
+  - name: dashboard
+    description: Dashboard analytics
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/change-password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordBody"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # PROPERTIES
+  /properties:
+    get:
+      operationId: listProperties
+      tags: [properties]
+      summary: List all properties
+      responses:
+        "200":
+          description: List of properties
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Property"
+    post:
+      operationId: createProperty
+      tags: [properties]
+      summary: Create property
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePropertyBody"
+      responses:
+        "201":
+          description: Property created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+
+  /properties/{id}:
+    get:
+      operationId: getProperty
+      tags: [properties]
+      summary: Get property
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Property
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+    patch:
+      operationId: updateProperty
+      tags: [properties]
+      summary: Update property
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePropertyBody"
+      responses:
+        "200":
+          description: Updated property
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+    delete:
+      operationId: deleteProperty
+      tags: [properties]
+      summary: Delete property
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # BUILDINGS
+  /buildings:
+    get:
+      operationId: listBuildings
+      tags: [buildings]
+      summary: List buildings
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of buildings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Building"
+    post:
+      operationId: createBuilding
+      tags: [buildings]
+      summary: Create building
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBuildingBody"
+      responses:
+        "201":
+          description: Building created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Building"
+
+  /buildings/{id}:
+    patch:
+      operationId: updateBuilding
+      tags: [buildings]
+      summary: Update building
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBuildingBody"
+      responses:
+        "200":
+          description: Updated building
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Building"
+    delete:
+      operationId: deleteBuilding
+      tags: [buildings]
+      summary: Delete building
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # FLOORS
+  /floors:
+    get:
+      operationId: listFloors
+      tags: [floors]
+      summary: List floors
+      parameters:
+        - name: buildingId
+          in: query
+          schema:
+            type: integer
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of floors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Floor"
+    post:
+      operationId: createFloor
+      tags: [floors]
+      summary: Create floor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFloorBody"
+      responses:
+        "201":
+          description: Floor created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Floor"
+
+  /floors/{id}:
+    patch:
+      operationId: updateFloor
+      tags: [floors]
+      summary: Update floor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFloorBody"
+      responses:
+        "200":
+          description: Updated floor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Floor"
+    delete:
+      operationId: deleteFloor
+      tags: [floors]
+      summary: Delete floor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ROOMS
+  /rooms:
+    get:
+      operationId: listRooms
+      tags: [rooms]
+      summary: List rooms
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: buildingId
+          in: query
+          schema:
+            type: integer
+        - name: floorId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+    post:
+      operationId: createRoom
+      tags: [rooms]
+      summary: Create room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomBody"
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+
+  /rooms/{id}:
+    get:
+      operationId: getRoom
+      tags: [rooms]
+      summary: Get room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+    patch:
+      operationId: updateRoom
+      tags: [rooms]
+      summary: Update room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoomBody"
+      responses:
+        "200":
+          description: Updated room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+    delete:
+      operationId: deleteRoom
+      tags: [rooms]
+      summary: Delete room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # EMPLOYEES
+  /employees:
+    get:
+      operationId: listEmployees
+      tags: [employees]
+      summary: List employees
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: department
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+    post:
+      operationId: createEmployee
+      tags: [employees]
+      summary: Create employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEmployeeBody"
+      responses:
+        "201":
+          description: Employee created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+
+  /employees/{id}:
+    get:
+      operationId: getEmployee
+      tags: [employees]
+      summary: Get employee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+    patch:
+      operationId: updateEmployee
+      tags: [employees]
+      summary: Update employee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEmployeeBody"
+      responses:
+        "200":
+          description: Updated employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+    delete:
+      operationId: deleteEmployee
+      tags: [employees]
+      summary: Delete employee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ASSIGNMENTS
+  /assignments:
+    get:
+      operationId: listAssignments
+      tags: [assignments]
+      summary: List assignments
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: employeeId
+          in: query
+          schema:
+            type: integer
+        - name: roomId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
+    post:
+      operationId: createAssignment
+      tags: [assignments]
+      summary: Create assignment (check-in employee)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssignmentBody"
+      responses:
+        "201":
+          description: Assignment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+
+  /assignments/{id}:
+    get:
+      operationId: getAssignment
+      tags: [assignments]
+      summary: Get assignment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+    patch:
+      operationId: updateAssignment
+      tags: [assignments]
+      summary: Update assignment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssignmentBody"
+      responses:
+        "200":
+          description: Updated assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+
+  /assignments/{id}/checkout:
+    post:
+      operationId: checkoutAssignment
+      tags: [assignments]
+      summary: Check out employee from room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutBody"
+      responses:
+        "200":
+          description: Checked out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+
+  /assignments/{id}/transfer:
+    post:
+      operationId: transferAssignment
+      tags: [assignments]
+      summary: Transfer employee to another room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferBody"
+      responses:
+        "200":
+          description: Transferred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+
+  # RESERVATIONS
+  /reservations:
+    get:
+      operationId: listReservations
+      tags: [reservations]
+      summary: List reservations
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of reservations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reservation"
+    post:
+      operationId: createReservation
+      tags: [reservations]
+      summary: Create reservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReservationBody"
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+
+  /reservations/{id}:
+    get:
+      operationId: getReservation
+      tags: [reservations]
+      summary: Get reservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+    patch:
+      operationId: updateReservation
+      tags: [reservations]
+      summary: Update reservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReservationBody"
+      responses:
+        "200":
+          description: Updated reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+    delete:
+      operationId: deleteReservation
+      tags: [reservations]
+      summary: Delete reservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /reservations/{id}/checkin:
+    post:
+      operationId: checkinReservation
+      tags: [reservations]
+      summary: Check in a reservation guest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReservationCheckinBody"
+      responses:
+        "200":
+          description: Checked in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+
+  # HOSTINGS
+  /hostings:
+    get:
+      operationId: listHostings
+      tags: [hostings]
+      summary: List employee hostings
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of hostings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Hosting"
+    post:
+      operationId: createHosting
+      tags: [hostings]
+      summary: Create hosting request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHostingBody"
+      responses:
+        "201":
+          description: Hosting created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hosting"
+
+  /hostings/{id}:
+    patch:
+      operationId: updateHosting
+      tags: [hostings]
+      summary: Update hosting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHostingBody"
+      responses:
+        "200":
+          description: Updated hosting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hosting"
+    delete:
+      operationId: deleteHosting
+      tags: [hostings]
+      summary: Delete hosting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /hostings/{id}/approve:
+    post:
+      operationId: approveHosting
+      tags: [hostings]
+      summary: Approve hosting request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hosting"
+
+  /hostings/{id}/checkin:
+    post:
+      operationId: checkinHosting
+      tags: [hostings]
+      summary: Check in hosting guest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HostingCheckinBody"
+      responses:
+        "200":
+          description: Checked in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hosting"
+
+  /hostings/{id}/checkout:
+    post:
+      operationId: checkoutHosting
+      tags: [hostings]
+      summary: Check out hosting guest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Checked out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hosting"
+
+  # MAINTENANCE
+  /maintenance:
+    get:
+      operationId: listMaintenance
+      tags: [maintenance]
+      summary: List maintenance requests
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of maintenance requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaintenanceRequest"
+    post:
+      operationId: createMaintenance
+      tags: [maintenance]
+      summary: Create maintenance request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMaintenanceBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceRequest"
+
+  /maintenance/{id}:
+    get:
+      operationId: getMaintenance
+      tags: [maintenance]
+      summary: Get maintenance request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Maintenance request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceRequest"
+    patch:
+      operationId: updateMaintenance
+      tags: [maintenance]
+      summary: Update maintenance request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMaintenanceBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceRequest"
+    delete:
+      operationId: deleteMaintenance
+      tags: [maintenance]
+      summary: Delete maintenance request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # USERS
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ACTIVITY LOGS
+  /activity-logs:
+    get:
+      operationId: listActivityLogs
+      tags: [activity-logs]
+      summary: List activity logs
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: module
+          in: query
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of activity logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityLog"
+
+  # SETTINGS
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get system settings
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSettings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update system settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsBody"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSettings"
+
+  # DASHBOARD
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/departure-alerts:
+    get:
+      operationId: getDepartureAlerts
+      tags: [dashboard]
+      summary: Get upcoming departure alerts
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: threshold
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Departure alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DepartureAlert"
+
+  /dashboard/arrival-alerts:
+    get:
+      operationId: getArrivalAlerts
+      tags: [dashboard]
+      summary: Get upcoming arrival alerts
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: threshold
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Arrival alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ArrivalAlert"
+
+  /dashboard/occupancy-by-building:
+    get:
+      operationId: getOccupancyByBuilding
+      tags: [dashboard]
+      summary: Get occupancy breakdown by building
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Occupancy by building
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OccupancyByBuilding"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityLog"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    LoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        propertyCode:
+          type: ["string", "null"]
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    ChangePasswordBody:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+      required:
+        - currentPassword
+        - newPassword
+
+    Property:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        logo:
+          type: ["string", "null"]
+        primaryColor:
+          type: string
+        defaultLanguage:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - code
+        - primaryColor
+        - defaultLanguage
+        - status
+        - createdAt
+
+    CreatePropertyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        logo:
+          type: ["string", "null"]
+        primaryColor:
+          type: string
+        defaultLanguage:
+          type: string
+        adminUsername:
+          type: string
+        adminPassword:
+          type: string
+      required:
+        - name
+        - code
+        - primaryColor
+        - defaultLanguage
+        - adminUsername
+        - adminPassword
+
+    UpdatePropertyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        logo:
+          type: ["string", "null"]
+        primaryColor:
+          type: string
+        defaultLanguage:
+          type: string
+        status:
+          type: string
+
+    Building:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        name:
+          type: string
+        location:
+          type: string
+        capacity:
+          type: integer
+        status:
+          type: string
+      required:
+        - id
+        - propertyId
+        - name
+        - location
+        - capacity
+        - status
+
+    CreateBuildingBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        name:
+          type: string
+        location:
+          type: string
+        capacity:
+          type: integer
+        status:
+          type: string
+      required:
+        - propertyId
+        - name
+        - location
+        - capacity
+
+    UpdateBuildingBody:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        capacity:
+          type: integer
+        status:
+          type: string
+
+    Floor:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        buildingId:
+          type: integer
+        floorNumber:
+          type: string
+        description:
+          type: string
+      required:
+        - id
+        - propertyId
+        - buildingId
+        - floorNumber
+        - description
+
+    CreateFloorBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        buildingId:
+          type: integer
+        floorNumber:
+          type: string
+        description:
+          type: string
+      required:
+        - propertyId
+        - buildingId
+        - floorNumber
+
+    UpdateFloorBody:
+      type: object
+      properties:
+        floorNumber:
+          type: string
+        description:
+          type: string
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        buildingId:
+          type: integer
+        floorId:
+          type: integer
+        roomNumber:
+          type: string
+        roomType:
+          type: string
+        capacity:
+          type: integer
+        currentOccupancy:
+          type: integer
+        status:
+          type: string
+        gender:
+          type: ["string", "null"]
+      required:
+        - id
+        - propertyId
+        - buildingId
+        - floorId
+        - roomNumber
+        - roomType
+        - capacity
+        - currentOccupancy
+        - status
+
+    CreateRoomBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        buildingId:
+          type: integer
+        floorId:
+          type: integer
+        roomNumber:
+          type: string
+        roomType:
+          type: string
+        capacity:
+          type: integer
+        status:
+          type: string
+        gender:
+          type: ["string", "null"]
+      required:
+        - propertyId
+        - buildingId
+        - floorId
+        - roomNumber
+        - roomType
+        - capacity
+
+    UpdateRoomBody:
+      type: object
+      properties:
+        roomNumber:
+          type: string
+        roomType:
+          type: string
+        capacity:
+          type: integer
+        status:
+          type: string
+        gender:
+          type: ["string", "null"]
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        employeeId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        nationalId:
+          type: string
+        nationality:
+          type: string
+        address:
+          type: string
+        jobTitle:
+          type: string
+        level:
+          type: string
+        phone:
+          type: string
+        department:
+          type: string
+        status:
+          type: string
+        hireDate:
+          type: string
+        gender:
+          type: string
+        idImage:
+          type: ["string", "null"]
+      required:
+        - id
+        - propertyId
+        - employeeId
+        - firstName
+        - lastName
+        - nationalId
+        - nationality
+        - address
+        - jobTitle
+        - level
+        - phone
+        - department
+        - status
+        - hireDate
+        - gender
+
+    CreateEmployeeBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        employeeId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        nationalId:
+          type: string
+        nationality:
+          type: string
+        address:
+          type: string
+        jobTitle:
+          type: string
+        level:
+          type: string
+        phone:
+          type: string
+        department:
+          type: string
+        status:
+          type: string
+        hireDate:
+          type: string
+        gender:
+          type: string
+        idImage:
+          type: ["string", "null"]
+      required:
+        - propertyId
+        - employeeId
+        - firstName
+        - lastName
+        - nationalId
+        - nationality
+        - address
+        - jobTitle
+        - level
+        - phone
+        - department
+        - hireDate
+        - gender
+
+    UpdateEmployeeBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        nationalId:
+          type: string
+        nationality:
+          type: string
+        address:
+          type: string
+        jobTitle:
+          type: string
+        level:
+          type: string
+        phone:
+          type: string
+        department:
+          type: string
+        status:
+          type: string
+        gender:
+          type: string
+        idImage:
+          type: ["string", "null"]
+
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        employeeId:
+          type: integer
+        roomId:
+          type: integer
+        bedNumber:
+          type: ["integer", "null"]
+        checkInDate:
+          type: string
+        expectedCheckOutDate:
+          type: ["string", "null"]
+        checkOutDate:
+          type: ["string", "null"]
+        notes:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - propertyId
+        - employeeId
+        - roomId
+        - checkInDate
+        - notes
+        - status
+        - createdAt
+
+    CreateAssignmentBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        employeeId:
+          type: integer
+        roomId:
+          type: integer
+        bedNumber:
+          type: ["integer", "null"]
+        checkInDate:
+          type: string
+        expectedCheckOutDate:
+          type: ["string", "null"]
+        notes:
+          type: string
+      required:
+        - propertyId
+        - employeeId
+        - roomId
+        - checkInDate
+
+    UpdateAssignmentBody:
+      type: object
+      properties:
+        expectedCheckOutDate:
+          type: ["string", "null"]
+        notes:
+          type: string
+
+    CheckoutBody:
+      type: object
+      properties:
+        checkOutDate:
+          type: string
+        notes:
+          type: string
+      required:
+        - checkOutDate
+
+    TransferBody:
+      type: object
+      properties:
+        newRoomId:
+          type: integer
+        newBedNumber:
+          type: integer
+        transferReason:
+          type: string
+        transferDate:
+          type: string
+      required:
+        - newRoomId
+        - transferDate
+
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        roomId:
+          type: ["integer", "null"]
+        roomType:
+          type: ["string", "null"]
+        firstName:
+          type: string
+        lastName:
+          type: string
+        checkInDate:
+          type: string
+        checkOutDate:
+          type: ["string", "null"]
+        notes:
+          type: string
+        guestIdCardNumber:
+          type: string
+        guestPhone:
+          type: string
+        jobTitle:
+          type: string
+        department:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - propertyId
+        - firstName
+        - lastName
+        - checkInDate
+        - notes
+        - guestIdCardNumber
+        - guestPhone
+        - jobTitle
+        - department
+        - status
+        - createdAt
+
+    CreateReservationBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        roomId:
+          type: ["integer", "null"]
+        roomType:
+          type: ["string", "null"]
+        firstName:
+          type: string
+        lastName:
+          type: string
+        checkInDate:
+          type: string
+        checkOutDate:
+          type: ["string", "null"]
+        notes:
+          type: string
+        guestIdCardNumber:
+          type: string
+        guestPhone:
+          type: string
+        jobTitle:
+          type: string
+        department:
+          type: string
+      required:
+        - propertyId
+        - firstName
+        - lastName
+        - checkInDate
+        - guestIdCardNumber
+        - guestPhone
+        - jobTitle
+        - department
+
+    UpdateReservationBody:
+      type: object
+      properties:
+        roomId:
+          type: ["integer", "null"]
+        checkInDate:
+          type: string
+        checkOutDate:
+          type: ["string", "null"]
+        notes:
+          type: string
+        status:
+          type: string
+
+    ReservationCheckinBody:
+      type: object
+      properties:
+        roomId:
+          type: integer
+        actualCheckInDate:
+          type: string
+      required:
+        - roomId
+        - actualCheckInDate
+
+    Hosting:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        employeeId:
+          type: integer
+        hostingType:
+          type: string
+        guestsCount:
+          type: integer
+        expectedFrom:
+          type: string
+        expectedTo:
+          type: string
+        actualCheckIn:
+          type: ["string", "null"]
+        actualCheckOut:
+          type: ["string", "null"]
+        roomId:
+          type: ["integer", "null"]
+        roomType:
+          type: ["string", "null"]
+        status:
+          type: string
+        notes:
+          type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+        companions:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              idNumber:
+                type: ["string", "null"]
+              documentType:
+                type: ["string", "null"]
+              documentImage:
+                type: ["string", "null"]
+              documentFileName:
+                type: ["string", "null"]
+              relation:
+                type: ["string", "null"]
+              isChild:
+                type: integer
+              age:
+                type: ["integer", "null"]
+            required:
+              - name
+      required:
+        - id
+        - propertyId
+        - employeeId
+        - hostingType
+        - guestsCount
+        - expectedFrom
+        - expectedTo
+        - status
+        - notes
+        - createdBy
+        - createdAt
+        - companions
+
+    CreateHostingBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        employeeId:
+          type: integer
+        hostingType:
+          type: string
+        guestsCount:
+          type: integer
+        expectedFrom:
+          type: string
+        expectedTo:
+          type: string
+        roomId:
+          type: ["integer", "null"]
+        roomType:
+          type: ["string", "null"]
+        notes:
+          type: string
+        createdBy:
+          type: string
+        companions:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              idNumber:
+                type: ["string", "null"]
+              documentType:
+                type: ["string", "null"]
+              documentImage:
+                type: ["string", "null"]
+              documentFileName:
+                type: ["string", "null"]
+              relation:
+                type: ["string", "null"]
+              isChild:
+                type: integer
+              age:
+                type: ["integer", "null"]
+            required:
+              - name
+      required:
+        - propertyId
+        - employeeId
+        - hostingType
+        - guestsCount
+        - expectedFrom
+        - expectedTo
+        - createdBy
+
+    UpdateHostingBody:
+      type: object
+      properties:
+        expectedFrom:
+          type: string
+        expectedTo:
+          type: string
+        roomId:
+          type: ["integer", "null"]
+        notes:
+          type: string
+        status:
+          type: string
+
+    HostingCheckinBody:
+      type: object
+      properties:
+        actualCheckIn:
+          type: string
+        roomId:
+          type: ["integer", "null"]
+      required:
+        - actualCheckIn
+
+    MaintenanceRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        roomId:
+          type: integer
+        problemType:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        reportedAt:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+      required:
+        - id
+        - propertyId
+        - roomId
+        - problemType
+        - description
+        - status
+        - priority
+        - reportedAt
+
+    CreateMaintenanceBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        roomId:
+          type: integer
+        problemType:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+      required:
+        - propertyId
+        - roomId
+        - problemType
+        - description
+        - priority
+
+    UpdateMaintenanceBody:
+      type: object
+      properties:
+        status:
+          type: string
+        priority:
+          type: string
+        description:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        username:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+      required:
+        - id
+        - propertyId
+        - username
+        - roles
+        - permissions
+        - status
+
+    CreateUserBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        propertyIds:
+          type: array
+          items:
+            type: integer
+        username:
+          type: string
+        password:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        jobTitle:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+      required:
+        - propertyId
+        - username
+        - password
+        - roles
+
+
+
+    UpdateUserBody:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        roles:
+          type: array
+          items:
+            type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        password:
+          type: ["string", "null"]
+        jobTitle:
+          type: ["string", "null"]
+        propertyIds:
+          type: array
+          items:
+            type: integer
+        propertyId:
+          type: integer
+
+
+
+    ActivityLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        username:
+          type: string
+        userId:
+          type: ["integer", "null"]
+        userRole:
+          type: ["string", "null"]
+        action:
+          type: string
+        actionType:
+          type: string
+        module:
+          type: string
+        severity:
+          type: string
+        timestamp:
+          type: string
+        entityType:
+          type: ["string", "null"]
+        entityId:
+          type: ["integer", "null"]
+      required:
+        - id
+        - propertyId
+        - username
+        - action
+        - actionType
+        - module
+        - severity
+        - timestamp
+
+    AppSettings:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        systemName:
+          type: string
+        systemLogo:
+          type: ["string", "null"]
+        defaultLanguage:
+          type: string
+        primaryColor:
+          type: string
+        sidebarColor:
+          type: string
+        buttonColor:
+          type: string
+        departureAlertsEnabled:
+          type: boolean
+        departureAlertThreshold:
+          type: integer
+        reportFooter:
+          type: string
+      required:
+        - id
+        - propertyId
+        - systemName
+        - defaultLanguage
+        - primaryColor
+        - sidebarColor
+        - buttonColor
+        - departureAlertsEnabled
+        - departureAlertThreshold
+        - reportFooter
+
+    UpdateSettingsBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        systemName:
+          type: string
+        systemLogo:
+          type: ["string", "null"]
+        defaultLanguage:
+          type: string
+        primaryColor:
+          type: string
+        sidebarColor:
+          type: string
+        buttonColor:
+          type: string
+        departureAlertsEnabled:
+          type: boolean
+        departureAlertThreshold:
+          type: integer
+        reportFooter:
+          type: string
+
+    DashboardStats:
+      type: object
+      properties:
+        totalEmployees:
+          type: integer
+        activeEmployees:
+          type: integer
+        unhousedEmployees:
+          type: integer
+        totalRooms:
+          type: integer
+        occupiedRooms:
+          type: integer
+        availableRooms:
+          type: integer
+        occupancyRate:
+          type: integer
+        totalBuildings:
+          type: integer
+        openMaintenance:
+          type: integer
+        overdueMaintenance:
+          type: integer
+        upcomingReservations:
+          type: integer
+        totalReservations:
+          type: integer
+      required:
+        - totalEmployees
+        - activeEmployees
+        - unhousedEmployees
+        - totalRooms
+        - occupiedRooms
+        - availableRooms
+        - occupancyRate
+        - totalBuildings
+        - openMaintenance
+        - overdueMaintenance
+        - upcomingReservations
+        - totalReservations
+
+    DepartureAlert:
+      type: object
+      properties:
+        assignmentId:
+          type: integer
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+        roomId:
+          type: integer
+        roomNumber:
+          type: string
+        buildingName:
+          type: string
+        expectedCheckOutDate:
+          type: string
+        daysRemaining:
+          type: integer
+        alertStatus:
+          type: string
+      required:
+        - assignmentId
+        - employeeId
+        - employeeName
+        - roomId
+        - roomNumber
+        - buildingName
+        - expectedCheckOutDate
+        - daysRemaining
+        - alertStatus
+
+    ArrivalAlert:
+      type: object
+      properties:
+        reservationId:
+          type: integer
+        guestName:
+          type: string
+        roomId:
+          type: ["integer", "null"]
+        roomNumber:
+          type: ["string", "null"]
+        checkInDate:
+          type: string
+        daysUntilArrival:
+          type: integer
+        alertStatus:
+          type: string
+      required:
+        - reservationId
+        - guestName
+        - checkInDate
+        - daysUntilArrival
+        - alertStatus
+
+    OccupancyByBuilding:
+      type: object
+      properties:
+        buildingId:
+          type: integer
+        buildingName:
+          type: string
+        totalCapacity:
+          type: integer
+        currentOccupancy:
+          type: integer
+        occupancyRate:
+          type: integer
+      required:
+        - buildingId
+        - buildingName
+        - totalCapacity
+        - currentOccupancy
+        - occupancyRate

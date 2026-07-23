@@ -1,0 +1,39 @@
+{
+  "name": "hr-sync-interface",
+  "version": "1.0.0",
+  "description": "Sunrise Housing - HR System Synchronization Interface",
+  "main": "dist/index.js",
+  "bin": {
+    "hr-sync": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "pkg:win": "npm run build && pkg dist/index.js --targets node18-win-x64 --output dist/HRSyncInterface.exe",
+    "pkg:all": "npm run build && pkg dist/index.js --targets node18-win-x64,node18-macos-x64,node18-linux-x64 --output dist/HRSyncInterface"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "chalk": "4.1.2",
+    "chokidar": "^3.6.0",
+    "cli-table3": "^0.6.5",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "mssql": "^11.0.1",
+    "node-cron": "^3.0.3",
+    "ora": "5.4.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/mssql": "^9.1.5",
+    "@types/node": "^20.14.0",
+    "@types/node-cron": "^3.0.11",
+    "pkg": "^5.8.1",
+    "tsx": "^4.15.0",
+    "typescript": "^5.4.5"
+  },
+  "pkg": {
+    "assets": ["dist/**/*", "config.json"],
+    "targets": ["node18-win-x64"]
+  }
+}

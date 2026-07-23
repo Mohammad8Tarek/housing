@@ -1,0 +1,10 @@
+**/.git
+**/.env
+**/node_modules
+**/dist
+**/.agents
+**/mockup-sandbox
+replit.md
+*.md
+*.rar
+*.txt

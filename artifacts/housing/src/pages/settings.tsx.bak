@@ -1,0 +1,870 @@
+// @ts-nocheck
+import { useEffect, useRef, useState } from "react";
+import { applyBrandColors } from "@/lib/brand-colors";
+import { useGetSettings, useUpdateSettings } from "@workspace/api-client-react";
+import { useProperty } from "@/context/PropertyContext";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, Building2, Briefcase, BedDouble, Upload, X, Image, Pencil, ToggleLeft, ToggleRight, Check, Shield, KeyRound, RefreshCw, Wifi, WifiOff, Database, Globe } from "lucide-react";
+import {
+  useLookupValues, useCreateLookupValue, useDeleteLookupValue,
+  LOOKUP_CATEGORIES, type LookupValue
+} from "@/hooks/use-lookup-values";
+import { useLanguage } from "@/context/LanguageContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEncoderStatus, useConnectEncoder, useDisconnectEncoder } from "@workspace/api-client-react";
+
+const settingsSchema = z.object({
+  systemName: z.string().min(1),
+  defaultLanguage: z.string(),
+  primaryColor: z.string(),
+  buttonColor: z.string(),
+  departureAlertThreshold: z.coerce.number().min(1).max(30),
+  departureAlertsEnabled: z.boolean(),
+  reportFooter: z.string(),
+  // ─── Password Policy ─────────────────────────────────────────────
+  passwordMinLength: z.coerce.number().min(4).max(32).default(8),
+  passwordRequireUppercase: z.boolean().default(true),
+  passwordRequireLowercase: z.boolean().default(true),
+  passwordRequireNumber: z.boolean().default(true),
+  passwordRequireSymbol: z.boolean().default(false),
+  passwordExpiryDays: z.coerce.number().min(0).max(365).default(90),
+  passwordHistoryCount: z.coerce.number().min(0).max(50).default(5),
+  // ─── Account Lockout ─────────────────────────────────────────────
+  lockoutThreshold: z.coerce.number().min(1).max(20).default(5),
+  lockoutDurationMinutes: z.coerce.number().min(1).max(1440).default(15),
+});
+
+// ─── Lookup Section Component ───────────────────────────────────────────────
+function LookupSection({
+  propertyId,
+  category,
+  label,
+  description,
+  parentCategory,
+  parentLabel,
+  showCapacity,
+}: {
+  propertyId: number;
+  category: string;
+  label: string;
+  description: string;
+  parentCategory?: string;
+  parentLabel?: string;
+  showCapacity?: boolean;
+}) {
+  const [newValue, setNewValue] = useState("");
+  const [newCapacity, setNewCapacity] = useState<number>(2);
+  const [selectedParent, setSelectedParent] = useState<string>("__all__");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [editCapacity, setEditCapacity] = useState<number>(2);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: values = [], isLoading } = useLookupValues(propertyId, category, true);
+  const { data: parentValues = [] } = useLookupValues(
+    parentCategory ? propertyId : undefined,
+    parentCategory,
+    true
+  );
+  const createMutation = useCreateLookupValue(propertyId);
+  const deleteMutation = useDeleteLookupValue(propertyId, category);
+
+  const filteredValues = (selectedParent && selectedParent !== "__all__")
+    ? values.filter(v => v.parentValue === selectedParent)
+    : values;
+
+  const handleAdd = async () => {
+    const trimmed = newValue.trim();
+    if (!trimmed) return;
+    try {
+      await createMutation.mutateAsync({
+        category,
+        value: trimmed,
+        parentValue: showCapacity
+          ? String(newCapacity)
+          : parentCategory ? (selectedParent && selectedParent !== "__all__" ? selectedParent : undefined) : undefined,
+      });
+      setNewValue("");
+      if (showCapacity) setNewCapacity(2);
+      toast({ title: `${label} added` });
+    } catch (err: any) {
+      toast({ title: err.message || "Error", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: number, val: string) => {
+    if (!confirm(`Delete "${val}"?`)) return;
+    await deleteMutation.mutateAsync(id);
+    toast({ title: `${label} deleted` });
+  };
+
+  const startEdit = (v: LookupValue) => {
+    setEditingId(v.id);
+    setEditValue(v.value);
+    setEditCapacity(showCapacity && v.parentValue ? Number(v.parentValue) : 2);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async (v: LookupValue) => {
+    const trimmed = editValue.trim();
+    if (!trimmed) return;
+    try {
+      const resp = await fetch(`/api/lookup-values/${v.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          value: trimmed,
+          parentValue: showCapacity ? String(editCapacity) : (v.parentValue ?? null),
+        }),
+      });
+      if (!resp.ok) throw new Error("Failed");
+      await queryClient.invalidateQueries({ queryKey: ["lookup-values", propertyId, category] });
+      setEditingId(null);
+      toast({ title: `${label} updated` });
+    } catch {
+      toast({ title: "Update failed", variant: "destructive" });
+    }
+  };
+
+  const toggleDisable = async (v: LookupValue) => {
+    const currentDisabled = (v as any).disabled ?? false;
+    try {
+      const resp = await fetch(`/api/lookup-values/${v.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ disabled: !currentDisabled }),
+      });
+      if (!resp.ok) throw new Error("Failed");
+      await queryClient.invalidateQueries({ queryKey: ["lookup-values", propertyId, category] });
+      toast({ title: currentDisabled ? `${label} enabled` : `${label} disabled` });
+    } catch {
+      toast({ title: "Update failed", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+
+      {parentCategory && parentValues.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">{parentLabel}:</span>
+          <Select value={selectedParent} onValueChange={setSelectedParent}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder={`All ${parentLabel}s`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All</SelectItem>
+              {parentValues.map(p => (
+                <SelectItem key={p.id} value={p.value}>{p.value}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="flex gap-2 items-center">
+        {parentCategory && (
+          <Select value={selectedParent} onValueChange={setSelectedParent}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder={`Select ${parentLabel}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {parentValues.map(p => (
+                <SelectItem key={p.id} value={p.value}>{p.value}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        <Input
+          placeholder={`New ${label}...`}
+          value={newValue}
+          onChange={e => setNewValue(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleAdd()}
+          className="flex-1"
+        />
+        {showCapacity && (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <BedDouble className="w-4 h-4 text-muted-foreground" />
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              value={newCapacity}
+              onChange={e => setNewCapacity(Math.max(1, Number(e.target.value)))}
+              className="w-16 text-center"
+              title="Number of beds"
+            />
+          </div>
+        )}
+        <Button onClick={handleAdd} disabled={createMutation.isPending || !newValue.trim()}>
+          <Plus className="w-4 h-4 mr-1" /> Add
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+        </div>
+      ) : filteredValues.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6 border rounded-md">
+          No {label.toLowerCase()}s added yet
+        </p>
+      ) : (
+        <div className="border rounded-md divide-y">
+          {filteredValues.map(v => {
+            const isDisabled = (v as any).disabled ?? false;
+            const isEditing = editingId === v.id;
+            return (
+              <div key={v.id} className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 ${isDisabled ? "bg-muted/20" : ""}`}>
+                {isEditing ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") saveEdit(v); if (e.key === "Escape") cancelEdit(); }}
+                      className="h-7 text-sm flex-1"
+                      autoFocus
+                    />
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => saveEdit(v)}>
+                      <Check className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}>
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-medium ${isDisabled ? "line-through text-muted-foreground" : ""}`}>{v.value}</span>
+                      {showCapacity && v.parentValue && (
+                         <Badge variant="secondary" className="text-xs gap-1">
+                           <BedDouble className="w-3 h-3" />
+                           {v.parentValue} beds
+                         </Badge>
+                      )}
+                      {isDisabled && <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 border-amber-200">Disabled</Badge>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-500" onClick={() => startEdit(v)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                          variant="ghost" size="icon"
+                          className={`h-7 w-7 ${isDisabled ? "text-muted-foreground hover:bg-muted" : "text-green-500 hover:bg-green-50"}`}
+                          onClick={() => toggleDisable(v)}
+                        >
+                          {isDisabled ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(v.id, v.value)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── HR Sync Section ──────────────────────────────────────────────────────────
+function HrSyncSection({ propertyId, language }: { propertyId: number | null; language: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [apiUrl, setApiUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [fieldMapping, setFieldMapping] = useState("");
+  const [isActive, setIsActive] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const ar = language === "ar";
+
+  useEffect(() => {
+    if (!propertyId) return;
+    fetch(`/api/hr-sync/config?propertyId=${propertyId}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d) {
+          setApiUrl(d.apiUrl || "");
+          setApiKey(d.apiKey || "");
+          setFieldMapping(d.fieldMapping ? JSON.stringify(d.fieldMapping, null, 2) : "");
+          setIsActive(d.isActive ?? false);
+        }
+      })
+      .catch(() => {});
+  }, [propertyId]);
+
+  const saveConfig = async () => {
+    if (!propertyId) return;
+    try {
+      let fm: any = undefined;
+      if (fieldMapping.trim()) {
+        try { fm = JSON.parse(fieldMapping); } catch { toast({ title: ar ? "JSON غير صحيح" : "Invalid JSON", variant: "destructive" }); return; }
+      }
+      const resp = await fetch("/api/hr-sync/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          propertyId,
+          apiUrl: apiUrl.trim() || undefined,
+          apiKey: apiKey.trim() || undefined,
+          fieldMapping: fm,
+          isActive,
+        }),
+      });
+      if (!resp.ok) throw new Error((await resp.json()).message);
+      toast({ title: ar ? "تم حفظ إعدادات HR" : "HR sync config saved" });
+    } catch (err: any) {
+      toast({ title: err.message || "Error", variant: "destructive" });
+    }
+  };
+
+  const triggerSync = async () => {
+    if (!propertyId) return;
+    setSyncing(true);
+    try {
+      const resp = await fetch("/api/hr-sync/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ propertyId }),
+      });
+      if (!resp.ok) throw new Error((await resp.json()).message);
+      const d = await resp.json();
+      toast({ title: ar ? `تمت المزامنة: ${d.created || 0} جديد، ${d.updated || 0} تحديث` : `Sync complete: ${d.created || 0} created, ${d.updated || 0} updated` });
+    } catch (err: any) {
+      toast({ title: err.message || "Sync failed", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><RefreshCw className="w-4 h-4 text-primary" />{ar ? "مزامنة HR" : "HR Sync"}</CardTitle>
+        <CardDescription>{ar ? "ربط نظام HR الخارجي لجلب بيانات الموظفين تلقائياً" : "Connect external HR system to automatically import employee data"}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">{ar ? "الحالة:" : "Status:"}</span>
+          <Badge variant={isActive ? "default" : "secondary"}>{isActive ? (ar ? "نشط" : "Active") : (ar ? "متوقف" : "Disabled")}</Badge>
+          <Switch checked={isActive} onCheckedChange={setIsActive} />
+        </div>
+
+        <div className="grid gap-4">
+          <div>
+            <label className="text-sm font-medium mb-1 block">{ar ? "رابط API" : "API URL"}</label>
+            <Input value={apiUrl} onChange={e => setApiUrl(e.target.value)} placeholder={ar ? "https://hr-system.com/api/employees" : "https://hr-system.com/api/employees"} />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{ar ? "مفتاح API" : "API Key"}</label>
+            <Input value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="••••••••" type="password" />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{ar ? "تطابق الحقول (JSON)" : "Field Mapping (JSON)"}</label>
+            <Textarea value={fieldMapping} onChange={e => setFieldMapping(e.target.value)} rows={4}
+              placeholder={ar ? '{"firstName": "name_first", "lastName": "name_last"}' : '{"firstName": "name_first", "lastName": "name_last"}'} />
+            <p className="text-xs text-muted-foreground mt-1">{ar ? "تطابق أسماء حقول النظام مع حقول HR" : "Map your DB fields to HR system field names"}</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <Button onClick={saveConfig}>{ar ? "حفظ الإعدادات" : "Save Config"}</Button>
+          <Button variant="secondary" onClick={triggerSync} disabled={syncing || !isActive}>
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? (ar ? "جارٍ المزامنة..." : "Syncing...") : (ar ? "مزامنة الآن" : "Sync Now")}
+          </Button>
+        </div>
+
+        <Separator />
+        <div className="pt-2">
+          <h4 className="text-sm font-medium mb-2">{ar ? "نظام HR الخارجي يرسل البيانات عن طريق:" : "External HR system pushes data via:"}</h4>
+          <div className="bg-muted/30 rounded-lg p-3 text-xs font-mono">
+            <p className="mb-1"><span className="text-primary font-bold">POST</span> /api/hr-sync/receive</p>
+            <p className="mb-1">Header: <span className="text-amber-600">x-api-key: {apiKey || "&lt;your-api-key&gt;"}</span></p>
+            <pre className="text-muted-foreground mt-2">{JSON.stringify({
+              propertyId,
+              employees: [{
+                employeeId: "EMP001",
+                firstName: "Mohamed",
+                lastName: "Ali",
+                nationalId: "1234567890",
+                department: "IT",
+                jobTitle: "Developer",
+                phone: "0501234567",
+                email: "m@example.com",
+              }],
+            }, null, 2)}</pre>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Door Locks Section ──────────────────────────────────────────────────────
+function DoorLocksSection({ language }: { language: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const ar = language === "ar";
+  const [encType, setEncType] = useState<"smart" | "ip" | "usb">("smart");
+  const [smartHost, setSmartHost] = useState("127.0.0.1");
+  const [smartPort, setSmartPort] = useState("5000");
+
+  const { data: status, refetch: refetchStatus } = useEncoderStatus(encType, {
+    query: { refetchInterval: 5000 },
+  });
+
+  const connectMut = useConnectEncoder({
+    mutation: {
+      onSuccess: () => { toast({ title: ar ? "تم الاتصال" : "Connected" }); refetchStatus(); },
+      onError: (err: any) => toast({ title: err.message || "Connection failed", variant: "destructive" }),
+    },
+  });
+
+  const disconnectMut = useDisconnectEncoder({
+    mutation: {
+      onSuccess: () => { toast({ title: ar ? "تم قطع الاتصال" : "Disconnected" }); refetchStatus(); },
+      onError: (err: any) => toast({ title: err.message || "Error", variant: "destructive" }),
+    },
+  });
+
+  const connected = status?.connected ?? false;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><KeyRound className="w-4 h-4 text-primary" />{ar ? "إعدادات الأقفال الذكية" : "Door Lock Settings"}</CardTitle>
+        <CardDescription>{ar ? "إدارة الاتصال بخادم Hotek SMART" : "Manage connection to Hotek SMART lock server"}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">{ar ? "نوع المشفر:" : "Encoder Type:"}</span>
+          <Select value={encType} onValueChange={(v: any) => setEncType(v)}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="smart">SMART Server</SelectItem>
+              <SelectItem value="ip">IP Encoder</SelectItem>
+              <SelectItem value="usb">USB Encoder</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">{ar ? "حالة الاتصال:" : "Status:"}</span>
+          {connected ? (
+            <Badge variant="default" className="bg-green-600 gap-1"><Wifi className="w-3 h-3" />{ar ? "متصل" : "Connected"}</Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1"><WifiOff className="w-3 h-3" />{ar ? "غير متصل" : "Disconnected"}</Badge>
+          )}
+        </div>
+
+        {(encType === "smart" || encType === "ip") && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">{ar ? "المضيف" : "Host"}</label>
+              <Input value={smartHost} onChange={e => setSmartHost(e.target.value)}
+                placeholder={encType === "smart" ? "127.0.0.1" : "192.168.1.100"} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{ar ? "المنفذ" : "Port"}</label>
+              <Input value={smartPort} onChange={e => setSmartPort(e.target.value)} placeholder="5000" />
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          {connected ? (
+            <Button variant="destructive" onClick={() => disconnectMut.mutate(encType)} disabled={disconnectMut.isPending}>
+              {ar ? "قطع الاتصال" : "Disconnect"}
+            </Button>
+          ) : (
+            <Button onClick={() => connectMut.mutate({
+              type: encType,
+              host: (encType === "smart" || encType === "ip") ? smartHost : undefined,
+              port: (encType === "smart" || encType === "ip") ? Number(smartPort) : undefined,
+            })} disabled={connectMut.isPending}>
+              <Wifi className="w-4 h-4 mr-1.5" />{ar ? "اتصال" : "Connect"}
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => refetchStatus()}>
+            <RefreshCw className="w-4 h-4 mr-1.5" />{ar ? "تحديث" : "Refresh"}
+          </Button>
+        </div>
+
+        {status && (
+          <div className="bg-muted/30 rounded-lg p-3 text-xs space-y-1">
+            <p><span className="font-medium">{ar ? "النوع:" : "Type:"}</span> {status.type}</p>
+            <p><span className="font-medium">{ar ? "المضيف:" : "Host:"}</span> {status.host || "—"}</p>
+            {status.port && <p><span className="font-medium">{ar ? "المنفذ:" : "Port:"}</span> {status.port}</p>}
+            {status.lastActivity && <p><span className="font-medium">{ar ? "آخر نشاط:" : "Last activity:"}</span> {new Date(status.lastActivity).toLocaleString()}</p>}
+          </div>
+        )}
+
+        <Separator />
+        <div className="pt-2">
+          <p className="text-xs text-muted-foreground">{ar
+            ? "تأكد من تشغيل Hotek SMART Server قبل الاتصال. الإعدادات الافتراضية: المضيف 127.0.0.1، المنفذ 5000."
+            : "Ensure Hotek SMART Server is running before connecting. Default: host 127.0.0.1, port 5000."}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main Settings Page ──────────────────────────────────────────────────────
+export default function Settings() {
+  const { activePropertyId } = useProperty();
+  const { toast } = useToast();
+  const { language, setLanguage } = useLanguage();
+  const queryClient = useQueryClient();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+
+  const { data: settings, isLoading } = useGetSettings(
+    { propertyId: activePropertyId },
+    { query: { enabled: !!activePropertyId } }
+  );
+
+  const form = useForm({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      systemName: "",
+      defaultLanguage: "en",
+      primaryColor: "#0F2A44",
+      buttonColor: "#C9A24D",
+      departureAlertThreshold: 3,
+      departureAlertsEnabled: true,
+      reportFooter: "",
+      passwordMinLength: 8,
+      passwordRequireUppercase: true,
+      passwordRequireLowercase: true,
+      passwordRequireNumber: true,
+      passwordRequireSymbol: false,
+      passwordExpiryDays: 90,
+      passwordHistoryCount: 5,
+      lockoutThreshold: 5,
+      lockoutDurationMinutes: 15,
+    }
+  });
+
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (settings && !initRef.current) {
+      initRef.current = true;
+      form.reset({
+        systemName: settings.systemName ?? "",
+        defaultLanguage: settings.defaultLanguage ?? "en",
+        primaryColor: settings.primaryColor ?? "#0F2A44",
+        buttonColor: (settings as any).buttonColor ?? "#C9A24D",
+        departureAlertThreshold: settings.departureAlertThreshold ?? 3,
+        departureAlertsEnabled: settings.departureAlertsEnabled ?? true,
+        reportFooter: settings.reportFooter ?? "",
+        passwordMinLength: (settings as any).passwordMinLength ?? 8,
+        passwordRequireUppercase: (settings as any).passwordRequireUppercase ?? true,
+        passwordRequireLowercase: (settings as any).passwordRequireLowercase ?? true,
+        passwordRequireNumber: (settings as any).passwordRequireNumber ?? true,
+        passwordRequireSymbol: (settings as any).passwordRequireSymbol ?? false,
+        passwordExpiryDays: (settings as any).passwordExpiryDays ?? 90,
+        passwordHistoryCount: (settings as any).passwordHistoryCount ?? 5,
+        lockoutThreshold: (settings as any).lockoutThreshold ?? 5,
+        lockoutDurationMinutes: (settings as any).lockoutDurationMinutes ?? 15,
+      });
+      applyBrandColors(settings.primaryColor, (settings as any).buttonColor);
+    }
+  }, [settings, form]);
+
+  const updateMutation = useUpdateSettings({
+    mutation: {
+      onSuccess: () => {
+        toast({ title: language === "ar" ? "تم حفظ الإعدادات" : "Settings saved successfully" });
+        queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      },
+      onError: () => toast({ title: "Error saving settings", variant: "destructive" }),
+    }
+  });
+
+  const onSubmit = (data: z.infer<typeof settingsSchema>) => {
+    updateMutation.mutate({ data: { ...data, propertyId: activePropertyId! } as any }, {
+      onSuccess: () => {
+        applyBrandColors(data.primaryColor, data.buttonColor);
+        if (data.defaultLanguage === "en" || data.defaultLanguage === "ar") {
+          setLanguage(data.defaultLanguage);
+        }
+      }
+    });
+  };
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const resized = await resizeImage(file, 300);
+      setLogoPreview(resized);
+      await updateMutation.mutateAsync({ data: { systemLogo: resized, propertyId: activePropertyId! } as any });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    } catch {
+      toast({ title: "Failed to upload logo", variant: "destructive" });
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  function resizeImage(file: File, maxW: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(maxW / img.width, 1);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const ctx = c.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL("image/webp", 0.8));
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  const handleRemoveLogo = async () => {
+    setLogoPreview(null);
+    await updateMutation.mutateAsync({ data: { systemLogo: null, propertyId: activePropertyId! } as any });
+    queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+  };
+
+  const currentLogo = logoPreview ?? settings?.systemLogo ?? null;
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  // تم تغيير max-w-4xl لـ w-full وإضافة min-h-screen و pb-20
+  return (
+    <div className="space-y-6 w-full min-h-screen pb-20 px-1">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">
+          {language === "ar" ? "الإعدادات" : "Settings"}
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {language === "ar" ? "إدارة إعدادات النظام والقوائم المنسدلة" : "Manage system configuration and dropdown lists"}
+        </p>
+      </div>
+
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-7 mb-6">
+          <TabsTrigger value="general">{language === "ar" ? "عام" : "General"}</TabsTrigger>
+          <TabsTrigger value="departments"><Building2 className="w-3.5 h-3.5 mr-1.5" />{language === "ar" ? "الأقسام" : "Depts"}</TabsTrigger>
+          <TabsTrigger value="job-titles"><Briefcase className="w-3.5 h-3.5 mr-1.5" />{language === "ar" ? "المسميات" : "Jobs"}</TabsTrigger>
+          <TabsTrigger value="room-types"><BedDouble className="w-3.5 h-3.5 mr-1.5" />{language === "ar" ? "الغرف" : "Rooms"}</TabsTrigger>
+          <TabsTrigger value="security"><Shield className="w-3.5 h-3.5 mr-1.5" />{language === "ar" ? "الأمان" : "Security"}</TabsTrigger>
+          <TabsTrigger value="hr-sync"><RefreshCw className="w-3.5 h-3.5 mr-1.5" />{language === "ar" ? "HR" : "HR Sync"}</TabsTrigger>
+          <TabsTrigger value="door-locks"><KeyRound className="w-3.5 h-3.5 mr-1.5" />{language === "ar" ? "الأقفال" : "Locks"}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Image className="w-4 h-4 text-primary" />{language === "ar" ? "شعار النظام" : "System Logo"}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                {currentLogo ? (
+                  <div className="relative group">
+                    <img src={currentLogo} className="w-16 h-16 rounded-xl object-contain border bg-muted/30" />
+                    <button onClick={handleRemoveLogo} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3.5" /></button>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-xl border-2 border-dashed flex items-center justify-center bg-muted/20"><Image className="w-6 h-6 text-muted-foreground/40" /></div>
+                )}
+                <div className="space-y-2">
+                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                  <Button type="button" variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}>
+                    <Upload className="w-3.5 h-3.5 mr-2" />{logoUploading ? "Uploading..." : "Upload Logo"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>{language === "ar" ? "الإعدادات العامة" : "General Configuration"}</CardTitle></CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <FormField control={form.control} name="systemName" render={({ field }) => (
+                      <FormItem><FormLabel>System Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                    )} />
+                    <FormField control={form.control} name="defaultLanguage" render={({ field }) => (
+                      <FormItem><FormLabel>Default Language</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="ar">العربية</SelectItem></SelectContent>
+                        </Select>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="primaryColor" render={({ field }) => (
+                      <FormItem><FormLabel>Primary Color</FormLabel><FormControl><div className="flex items-center gap-2"><input type="color" {...field} className="h-10 w-12 rounded cursor-pointer" /><Input {...field} /></div></FormControl></FormItem>
+                    )} />
+                    <FormField control={form.control} name="buttonColor" render={({ field }) => (
+                      <FormItem><FormLabel>Button Color</FormLabel><FormControl><div className="flex items-center gap-2"><input type="color" {...field} className="h-10 w-12 rounded cursor-pointer" /><Input {...field} /></div></FormControl></FormItem>
+                    )} />
+                  </div>
+                  <div className="flex justify-end pt-4">
+                    <Button type="submit" disabled={updateMutation.isPending}>{updateMutation.isPending ? "Saving..." : "Save Settings"}</Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="departments">
+          <Card><CardContent className="pt-6">
+            {activePropertyId && <LookupSection propertyId={activePropertyId} category={LOOKUP_CATEGORIES.DEPARTMENT} label="Department" description="Manage departments list" />}
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="job-titles">
+          <Card><CardContent className="pt-6">
+            {activePropertyId && <LookupSection propertyId={activePropertyId} category={LOOKUP_CATEGORIES.JOB_TITLE} label="Job Title" description="Manage job titles" parentCategory={LOOKUP_CATEGORIES.DEPARTMENT} parentLabel="Department" />}
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="room-types">
+          <Card><CardContent className="pt-6">
+            {activePropertyId && <LookupSection propertyId={activePropertyId} category={LOOKUP_CATEGORIES.ROOM_TYPE} label="Room Type" description="Manage room types" showCapacity />}
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Shield className="w-4 h-4 text-primary" />{language === "ar" ? "سياسة كلمة المرور" : "Password Policy"}</CardTitle>
+              <CardDescription>{language === "ar" ? "تحكم في متطلبات كلمة المرور للمستخدمين" : "Control password requirements for users"}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <FormField control={form.control} name="passwordMinLength" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "ar" ? "الحد الأدنى للطول" : "Min Length"}</FormLabel>
+                        <FormControl><Input type="number" min={4} max={32} {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="passwordExpiryDays" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "ar" ? "انتهاء الصلاحية (أيام)" : "Expiry (days)"}</FormLabel>
+                        <FormControl><Input type="number" min={0} max={365} {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="passwordHistoryCount" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "ar" ? "عدد كلمات المرور المحفوظة" : "Password History"}</FormLabel>
+                        <FormControl><Input type="number" min={0} max={50} {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
+                  <Separator />
+                  <p className="text-sm font-medium text-muted-foreground">{language === "ar" ? "متطلبات التعقيد" : "Complexity Requirements"}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <FormField control={form.control} name="passwordRequireUppercase" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <FormLabel className="text-sm cursor-pointer">{language === "ar" ? "حرف كبير" : "Uppercase"}</FormLabel>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="passwordRequireLowercase" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <FormLabel className="text-sm cursor-pointer">{language === "ar" ? "حرف صغير" : "Lowercase"}</FormLabel>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="passwordRequireNumber" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <FormLabel className="text-sm cursor-pointer">{language === "ar" ? "رقم" : "Number"}</FormLabel>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="passwordRequireSymbol" render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <FormLabel className="text-sm cursor-pointer">{language === "ar" ? "رمز خاص" : "Symbol"}</FormLabel>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
+                  <Separator className="my-2" />
+                  <CardTitle className="text-lg mt-4">{language === "ar" ? "قفل الحساب" : "Account Lockout"}</CardTitle>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2">
+                    <FormField control={form.control} name="lockoutThreshold" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "ar" ? "عدد المحاولات الفاشلة المسموحة" : "Failed Attempts Threshold"}</FormLabel>
+                        <FormControl><Input type="number" min={1} max={20} {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="lockoutDurationMinutes" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "ar" ? "مدة القفل (دقائق)" : "Lockout Duration (minutes)"}</FormLabel>
+                        <FormControl><Input type="number" min={1} max={1440} {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
+                  <div className="flex justify-end pt-4">
+                    <Button type="submit" disabled={updateMutation.isPending}>{updateMutation.isPending ? "Saving..." : "Save Security Settings"}</Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="hr-sync" className="space-y-4">
+          <HrSyncSection propertyId={activePropertyId} language={language} />
+        </TabsContent>
+
+        <TabsContent value="door-locks" className="space-y-4">
+          <DoorLocksSection language={language} />
+        </TabsContent>
+
+      </Tabs>
+    </div>
+  );
+}

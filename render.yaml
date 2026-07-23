@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sunrise-api
+    env: node
+    buildCommand: pnpm install && pnpm build
+    startCommand: cd artifacts/api-server && pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false

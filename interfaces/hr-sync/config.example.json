@@ -1,0 +1,114 @@
+{
+  "_comment": "Sunrise Housing - HR Sync Interface Configuration File",
+  "_instructions": "Copy this file to 'config.json' and fill in your settings.",
+
+  "housing_api": {
+    "url": "http://localhost:4000",
+    "api_key": "YOUR_HOUSING_API_KEY_HERE",
+    "property_id": 1
+  },
+
+  "sync": {
+    "mode": "rest_api",
+    "_mode_options": ["rest_api", "sql_server", "csv_excel"],
+    "interval_minutes": 10,
+    "auto_start": true,
+    "dry_run": false,
+    "_dry_run_note": "If true, will only log what would be synced but NOT send to Housing system"
+  },
+
+  "rest_api": {
+    "url": "https://your-hr-system.com/api/employees",
+    "method": "GET",
+    "auth_type": "bearer",
+    "_auth_type_options": ["bearer", "basic", "api_key", "none"],
+    "token": "YOUR_HR_API_TOKEN_HERE",
+    "basic_user": "",
+    "basic_pass": "",
+    "api_key_header": "X-Api-Key",
+    "api_key_value": "",
+    "response_path": "data.employees",
+    "_response_path_note": "Dot-notation path to the array of employees in the response (e.g. 'data.employees' or 'result.list' or leave empty if root is array)",
+    "field_map": {
+      "_note": "Map HR system field names to Housing system field names",
+      "employeeId": "employee_no",
+      "firstName": "first_name",
+      "lastName": "last_name",
+      "email": "email",
+      "phone": "mobile",
+      "department": "department",
+      "jobTitle": "job_title",
+      "nationality": "nationality",
+      "nationalId": "national_id",
+      "gender": "gender",
+      "status": "status",
+      "hireDate": "hire_date"
+    }
+  },
+
+  "sql_server": {
+    "server": "YOUR_SQL_SERVER\\INSTANCE",
+    "database": "HRDatabase",
+    "user": "hr_reader",
+    "password": "YOUR_PASSWORD",
+    "port": 1433,
+    "encrypt": false,
+    "trust_server_certificate": true,
+    "query": "SELECT EmployeeNo, FirstName, LastName, Email, Mobile, Department, JobTitle, Nationality, NationalId, Gender, Status, HireDate FROM HR_Employees WHERE Status = 'Active'",
+    "field_map": {
+      "employeeId": "EmployeeNo",
+      "firstName": "FirstName",
+      "lastName": "LastName",
+      "email": "Email",
+      "phone": "Mobile",
+      "department": "Department",
+      "jobTitle": "JobTitle",
+      "nationality": "Nationality",
+      "nationalId": "NationalId",
+      "gender": "Gender",
+      "status": "Status",
+      "hireDate": "HireDate"
+    }
+  },
+
+  "csv_excel": {
+    "file_path": "C:\\HR\\employees_export.xlsx",
+    "_file_path_note": "Path to the CSV or Excel file. Can also watch a folder for new files.",
+    "watch_folder": "",
+    "_watch_folder_note": "If set, will watch this folder for new files matching the pattern below",
+    "file_pattern": "employees_*.xlsx",
+    "sheet_name": "Sheet1",
+    "_sheet_name_note": "Only for Excel files. Leave empty to use first sheet.",
+    "has_header_row": true,
+    "field_map": {
+      "employeeId": "Employee No",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "department": "Department",
+      "jobTitle": "Job Title",
+      "nationality": "Nationality",
+      "nationalId": "National ID",
+      "gender": "Gender",
+      "status": "Status",
+      "hireDate": "Hire Date"
+    }
+  },
+
+  "logging": {
+    "level": "info",
+    "_level_options": ["debug", "info", "warn", "error"],
+    "log_file": "logs/hr-sync.log",
+    "max_log_size_mb": 10,
+    "keep_logs_days": 30
+  },
+
+  "notifications": {
+    "enabled": false,
+    "on_error": true,
+    "on_success": false,
+    "webhook_url": "",
+    "_webhook_url_note": "Optional: Send notifications to a Webhook URL (e.g. Microsoft Teams, Slack) on sync completion"
+  }
+}

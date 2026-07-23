@@ -1,0 +1,94 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sunrise-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required — set it in .env or in your shell}
+      POSTGRES_DB:       ${POSTGRES_DB:-staff-housing}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backup_clean.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-staff-housing}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: sunrise-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-staff-housing}
+      PORT:         4000
+      NODE_ENV:     production
+      NODE_OPTIONS: --max-old-space-size=512
+      HOTEK_SMART_HOST:    ${HOTEK_SMART_HOST:-172.110.6.12}
+      HOTEK_SMART_PORT:    ${HOTEK_SMART_PORT:-5000}
+      HOTEK_SMART_TIMEOUT: ${HOTEK_SMART_TIMEOUT:-20000}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: nginx:alpine
+    container_name: sunrise-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-9000}:9000"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./artifacts/housing/dist/public:/usr/share/nginx/html
+    depends_on:
+      - backend
+
+  portal:
+    image: nginx:alpine
+    container_name: sunrise-portal
+    restart: unless-stopped
+    ports:
+      - "${PORTAL_PORT:-10000}:80"
+    volumes:
+      - ./docker/nginx-portal.conf:/etc/nginx/conf.d/default.conf
+      - ./artifacts/employee-portal/dist:/usr/share/nginx/html
+    depends_on:
+      - backend
+
+  nginx-ssl:
+    profiles: ["ssl"]
+    image: nginx:alpine
+    container_name: sunrise-nginx-ssl
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx-ssl.conf:/etc/nginx/conf.d/default.conf
+      - ./artifacts/housing/dist/public:/usr/share/nginx/html/admin
+      - ./artifacts/employee-portal/dist:/usr/share/nginx/html/portal
+      - certbot-www:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    depends_on:
+      - backend
+
+  certbot:
+    profiles: ["ssl"]
+    image: certbot/certbot
+    container_name: sunrise-certbot
+    restart: unless-stopped
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["trap exit TERM; while :; do sleep 12h & wait $!; certbot renew; done"]
+
+volumes:
+  postgres_data:
+  certbot-www:
+  certbot-certs:
