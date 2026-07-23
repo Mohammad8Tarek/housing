@@ -321,7 +321,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: isProduction || process.env["TRUST_PROXY"] === "true",
-      sameSite: "strict",
+      sameSite: "none",
       maxAge: SESSION_TIMEOUT_MS,
     },
   }),

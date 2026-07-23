@@ -345,6 +345,11 @@ export async function customFetch<T = unknown>(
     headers.set("content-type", "application/json");
   }
 
+  // Ensure cookies are sent cross-origin
+  if (!init.credentials) {
+    init.credentials = "include";
+  }
+
   if (responseType === "json" && !headers.has("accept")) {
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
