@@ -5,6 +5,12 @@ import "./mobile-additions.css";
 import App from "./App.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 
+import { setBaseUrl } from "@workspace/api-client-react";
+
+if (import.meta.env.VITE_API_URL) {
+  setBaseUrl(import.meta.env.VITE_API_URL);
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
