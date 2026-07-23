@@ -130,10 +130,26 @@ export function useWebSocket(): { isConnected: boolean } {
       return;
     }
 
-    const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const hostname = window.location.hostname;
-    const apiPort = Number(import.meta.env.VITE_API_PORT) || 4000;
-    const wsUrl = `${proto}://${hostname}:${apiPort}/ws?propertyId=${currentPropertyId}`;
+    let wsUrl = "";
+    if (import.meta.env.VITE_API_URL) {
+      try {
+        const url = new URL(import.meta.env.VITE_API_URL);
+        url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+        url.pathname = "/ws";
+        url.search = `?propertyId=${currentPropertyId}`;
+        wsUrl = url.toString();
+      } catch (e) {
+        // Ignored
+      }
+    }
+    
+    if (!wsUrl) {
+      const proto = window.location.protocol === "https:" ? "wss" : "ws";
+      const hostname = window.location.hostname;
+      const apiPort = Number(import.meta.env.VITE_API_PORT) || 4000;
+      wsUrl = `${proto}://${hostname}:${apiPort}/ws?propertyId=${currentPropertyId}`;
+    }
+
     console.info("[WS] Attempting connection:", wsUrl.replace(/\?.*/, "?***"));
 
     try {
