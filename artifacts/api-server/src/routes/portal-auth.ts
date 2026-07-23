@@ -30,7 +30,7 @@ function generateTemporaryPassword(): string {
   return defaultEmployeePortalPassword();
 }
 
-function portalSession(req: any) {
+export function portalSession(req: any) {
   return req.session?.portal as
     | {
         employeeDbId: number;
@@ -41,7 +41,7 @@ function portalSession(req: any) {
     | undefined;
 }
 
-async function requirePortalAuth(req: any, res: any, next: any) {
+export async function requirePortalAuth(req: any, res: any, next: any) {
   const sess = portalSession(req);
   if (!sess) {
     // Native app fallback: restore session from X-Session-Id header
@@ -274,6 +274,7 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       module: "employees",
       entityType: "employee",
       entityId: employee.id,
+    });
   req.session.regenerate((err: any) => {
     if (err) {
       res.status(500).json({ success: false, message: "Session error" });
@@ -308,6 +309,10 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       });
     });
   });
+  } catch (error: any) {
+    console.error("Portal login error:", error);
+    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
+  }
 });
 
 // GET /employees — دليل الموظفين (للمحادثة)
@@ -921,5 +926,4 @@ router.post(
   },
 );
 
-export { requirePortalAuth, portalSession };
 export default router;
