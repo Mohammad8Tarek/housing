@@ -7,7 +7,9 @@ import ErrorBoundary from "./components/ErrorBoundary.tsx";
 
 import { setBaseUrl } from "@workspace/api-client-react";
 
-if (import.meta.env.VITE_API_URL) {
+import { Capacitor } from "@capacitor/core";
+
+if (import.meta.env.VITE_API_URL && Capacitor.isNativePlatform()) {
   setBaseUrl(import.meta.env.VITE_API_URL);
 }
 
