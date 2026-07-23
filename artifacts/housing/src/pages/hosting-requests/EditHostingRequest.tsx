@@ -39,6 +39,7 @@ export default function EditHostingRequest() {
     clockNumber: "",
     visitHotelId: "",
     numberOfRooms: "",
+    assignedRoomNumber: "",
     familyMembersCount: "",
     familyMembersIncluded: "",
     fromDate: "",
