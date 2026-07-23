@@ -19,6 +19,10 @@ import { portalLoginRateLimit } from "../middlewares/rate-limit.js";
 
 const router: Router = Router();
 
+router.get("/ping", (req, res) => {
+  res.json({ success: true, message: "pong_deployed" });
+});
+
 const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
 
