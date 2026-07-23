@@ -128,20 +128,25 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
 
     const results = await Promise.all(
       properties.map(async (p) => {
-        return withTenant(p.id, async (tenantDb) => {
-          const [emp] = await tenantDb
-            .select()
-            .from(employeesTable)
-            .where(eq(employeesTable.employeeId, employeeId.trim()))
-            .limit(1);
-          if (!emp) return null;
-          const [acc] = await tenantDb
-            .select()
-            .from(employeePortalAccountsTable)
-            .where(eq(employeePortalAccountsTable.employeeId, employeeId.trim()))
-            .limit(1);
-          return { emp, acc, propertyId: p.id };
-        });
+        try {
+          return await withTenant(p.id, async (tenantDb) => {
+            const [emp] = await tenantDb
+              .select()
+              .from(employeesTable)
+              .where(eq(employeesTable.employeeId, employeeId.trim()))
+              .limit(1);
+            if (!emp) return null;
+            const [acc] = await tenantDb
+              .select()
+              .from(employeePortalAccountsTable)
+              .where(eq(employeePortalAccountsTable.employeeId, employeeId.trim()))
+              .limit(1);
+            return { emp, acc, propertyId: p.id };
+          });
+        } catch (error: any) {
+          console.warn(`[Portal Login] Skipping property ${p.id} due to error:`, error.message);
+          return null;
+        }
       }),
     );
 
