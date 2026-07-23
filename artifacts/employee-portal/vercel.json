@@ -1,12 +1,8 @@
 {
   "framework": "vite",
-  "buildCommand": "pnpm run build",
-  "outputDirectory": "dist/public",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://sunrise-api.onrender.com/api/:path*"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
