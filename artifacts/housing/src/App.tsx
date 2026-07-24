@@ -17,6 +17,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const Properties = lazy(() => import("@/pages/properties"));
 const Housing = lazy(() => import("@/pages/housing"));
@@ -287,6 +288,7 @@ function App() {
           </LanguageProvider>
         </ThemeProvider>
       </QueryClientProvider>
+      <SpeedInsights />
     </ErrorBoundary>
   );
 }
