@@ -130,8 +130,6 @@ app.use(
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
         mediaSrc: ["'none'"],
-        // Disallow Flash/PDF/etc.
-        pluginTypes: ["'none'"],
       },
     },
     crossOriginEmbedderPolicy: false,
@@ -339,6 +337,11 @@ app.use(
     },
   }),
 );
+
+// Ignore favicon requests on API domain
+app.get("/favicon.ico", (_req, res) => {
+  res.status(204).end();
+});
 
 // Session debug endpoint (before auth, so we can test session state)
 app.get("/api/debug/session", (req, res) => {
