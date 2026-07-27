@@ -70,6 +70,7 @@ import app from "./app.js";
 import { logger } from "./lib/logger.js";
 import { initWebSocket, closeWebSocket } from "./lib/websocket.js";
 import { runMigrations } from "./lib/migrations.js";
+import { runAutoSeeder } from "./lib/seeder.js";
 import { pool, healthCheck } from "@workspace/db";
 import { startAllPmsServers } from "./lib/pms-server.js";
 
@@ -258,6 +259,9 @@ async function start(): Promise<void> {
 
   // تشغيل الـ Migrations تلقائياً لتحديث الجداول[cite: 1]
   await runMigrations();
+
+  // Seed initial data if seed-data.json exists and hasn't been applied yet
+  await runAutoSeeder();
 
   server.listen(PORT, () => {
     logger.info({ port: PORT }, "🚀 Sunrise Housing API is Live");
