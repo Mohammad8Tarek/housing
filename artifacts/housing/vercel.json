@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://housing-api-server-fjozsbva7-mohammad8tareks-projects.vercel.app/api/:path*"
+      "destination": "https://sunrise-api-production-b3f9.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",
