@@ -332,6 +332,37 @@ app.use(
   }),
 );
 
+// Session debug endpoint (before auth, so we can test session state)
+app.get("/api/debug/session", (req, res) => {
+  const store = req.sessionStore as any;
+  const sid = req.sessionID;
+  if (sid) {
+    store.get(sid, (err: any, sess: any) => {
+      res.json({
+        sessionID: sid,
+        cookie: req.headers["cookie"],
+        storeFound: !!sess,
+        storeError: err?.message,
+        sessionData: sess ? { portal: sess.portal, cookie: sess.cookie } : null,
+        secure: req.secure,
+        protocol: req.protocol,
+        "x-forwarded-proto": req.headers["x-forwarded-proto"],
+        trustProxy: app.get("trust proxy"),
+      });
+    });
+  } else {
+    res.json({ sessionID: null, cookie: req.headers["cookie"] });
+  }
+});
+
+// Test: set a session value directly
+app.get("/api/debug/session-set", (req, res) => {
+  (req.session as any).testValue = "hello-" + Date.now();
+  req.session.save((err: any) => {
+    res.json({ saved: !err, sessionID: req.sessionID, error: err?.message });
+  });
+});
+
 // 7. الـ API Routes والـ Middlewares الخاصة بها
 app.use("/api", apiRateLimit);
 app.use("/api", auditLogMiddleware);

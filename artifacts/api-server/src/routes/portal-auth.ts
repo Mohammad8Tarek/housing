@@ -46,12 +46,26 @@ export async function requirePortalAuth(req: any, res: any, next: any) {
   if (!sess) {
     // Native app fallback: restore session from X-Session-Id header
     const xSid = req.headers["x-session-id"] as string | undefined;
+
+    // DEBUG: log why auth failed
+    const debugInfo: any = {
+      sessionID: req.sessionID,
+      hasCookie: !!req.headers["cookie"],
+      portalInSession: !!(req.session as any)?.portal,
+    };
+
     if (!xSid) {
+      console.warn("[portal-auth] 401 — no portal session, no X-Session-Id", debugInfo);
       res.status(401).json({ success: false, message: "Not authenticated" });
       return;
     }
 
     req.sessionStore.get(xSid, (err: any, storedSess: any) => {
+      debugInfo.xSid = xSid;
+      debugInfo.storeError = err?.message;
+      debugInfo.storeFound = !!storedSess;
+      debugInfo.storeHasPortal = !!storedSess?.portal;
+      console.warn("[portal-auth] 401 — X-Session-Id fallback", debugInfo);
       if (err || !storedSess) {
         res.status(401).json({ success: false, message: "Not authenticated" });
         return;
