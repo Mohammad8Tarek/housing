@@ -6,4 +6,6 @@ export * from "./hooks/smart-lock";
 
 export * from "./hooks/portal";
 
+export * from "./hooks/chat";
+
 export * from "./pagination.types";
