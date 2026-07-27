@@ -298,18 +298,26 @@ const SESSION_TIMEOUT_MS = parseInt(
   process.env["SESSION_TIMEOUT_MS"] ?? String(30 * 60 * 1000),
   10,
 );
-const PgSessionStore = connectPgSimple(session);
-const sessionStore =
-  process.env["SESSION_STORE"]?.toLowerCase() === "memory"
-    ? undefined
-    : new PgSessionStore({
-        pool,
-        tableName: process.env["SESSION_TABLE"] ?? "user_sessions",
-        createTableIfMissing: true,
-        pruneSessionInterval: 15 * 60,
-        disableTouch: false, // 🚀 OPTIMIZATION: Enable touch for efficient session updates
-        ttl: SESSION_TIMEOUT_MS / 1000, // Convert to seconds
-      });
+
+let sessionStore: any = undefined;
+const sessionStoreType = process.env["SESSION_STORE"]?.toLowerCase() || "memory";
+if (sessionStoreType !== "memory") {
+  const PgSessionStore = connectPgSimple(session);
+  sessionStore = new PgSessionStore({
+    pool,
+    tableName: process.env["SESSION_TABLE"] ?? "user_sessions",
+    createTableIfMissing: true,
+    pruneSessionInterval: 15 * 60,
+    disableTouch: false,
+    ttl: SESSION_TIMEOUT_MS / 1000,
+    errorLog: (msg: any, ...args: any[]) => {
+      console.error("[PgSessionStore]", msg, ...args);
+    },
+  });
+  console.log("[Session] Using PostgreSQL store (user_sessions table)");
+} else {
+  console.log("[Session] Using MemoryStore");
+}
 
 app.use(
   session({
