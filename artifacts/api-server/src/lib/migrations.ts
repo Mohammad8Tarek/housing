@@ -976,6 +976,24 @@ const TENANT_MIGRATIONS = [
     name: "push_subscriptions_employee",
     q: "CREATE INDEX IF NOT EXISTS idx_push_subscriptions_employee ON push_subscriptions (employee_id)",
   },
+
+  // === User Sessions for connect-pg-simple ===
+  {
+    name: "user_sessions_table",
+    q: `CREATE TABLE IF NOT EXISTS user_sessions (
+      "sid" varchar NOT NULL COLLATE "default",
+      "sess" json NOT NULL,
+      "expire" timestamp(6) NOT NULL
+    )`,
+  },
+  {
+    name: "user_sessions_pkey",
+    q: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_sessions_pkey') THEN ALTER TABLE user_sessions ADD CONSTRAINT user_sessions_pkey PRIMARY KEY ("sid"); END IF; END $$`,
+  },
+  {
+    name: "user_sessions_expire_index",
+    q: `CREATE INDEX IF NOT EXISTS idx_user_sessions_expire ON user_sessions ("expire")`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {

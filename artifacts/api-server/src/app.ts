@@ -52,13 +52,10 @@ function parseTrustProxy(value: string | undefined): boolean | number | string {
   return Number.isFinite(asNumber) ? asNumber : value;
 }
 
-// Auto-trust proxy when X-Forwarded-Proto is present (e.g. Vercel, Railway)
+// Auto-trust proxy when not explicitly configured (Vercel, Railway)
 const trustProxy = process.env["TRUST_PROXY"]
   ? parseTrustProxy(process.env["TRUST_PROXY"])
-  : (req: any) => {
-      const proto = req.headers["x-forwarded-proto"];
-      return proto === "https" || proto === "http";
-    };
+  : true;
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();
@@ -322,7 +319,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     rolling: true, // 🚀 OPTIMIZATION: Only refresh when user is active
-    proxy: typeof trustProxy === "function" ? trustProxy : Boolean(trustProxy),
+    proxy: undefined, // Falls back to app.set("trust proxy")
     genid: () => {
       return crypto.randomUUID();
     },
