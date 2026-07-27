@@ -495,6 +495,8 @@ export function stopAllPmsServers(): void {
 export async function startAllPmsServers(app?: any): Promise<void> {
   if (app) _app = app;
 
+  const mainPort = Number(process.env.PORT) || 4000;
+
   try {
     const { pool } = await import("@workspace/db");
     const result = await pool.query(
@@ -503,6 +505,10 @@ export async function startAllPmsServers(app?: any): Promise<void> {
 
     for (const row of result.rows) {
       if (row.port) {
+        if (row.port === mainPort) {
+          console.warn(`[PMS-Bridge] Skipping PMS server on port ${row.port} (same as main API server)`);
+          continue;
+        }
         startPmsServerForProperty(row.property_id, row.port);
       }
     }
