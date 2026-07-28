@@ -323,8 +323,6 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
         department: employee.department,
       },
     });
-      });
-    });
   } catch (error: any) {
     console.error("Portal login error:", error);
     res
