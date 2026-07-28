@@ -112,6 +112,7 @@ const netServer = net.createServer({ pauseOnConnect: true }, (socket) => {
       httpServer.emit("connection", socket);
     }
   });
+  socket.resume(); // Resume after pauseOnConnect so data flows
 });
 
 // ==========================================
