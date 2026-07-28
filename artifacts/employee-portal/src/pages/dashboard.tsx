@@ -33,7 +33,7 @@ import TabRoommates from "../components/TabRoommates";
 import TabNotifications from "../components/TabNotifications";
 import TabFood from "../components/TabFood";
 import TabTransport from "../components/TabTransport";
-import TabChat from "../components/TabChat";
+import TabChat from "../components/chat/TabChat";
 import { getPortalTabFromUrl, normalizePortalTab } from "../lib/portal-tabs";
 
 interface Employee {
@@ -879,7 +879,12 @@ export default function Dashboard() {
           )}
           {activeTab === "food" && <TabFood />}
           {activeTab === "transport" && <TabTransport />}
-          {activeTab === "chat" && <TabChat />}
+          {activeTab === "chat" && (
+            <TabChat
+              myEmployeeId={employee?.id}
+              contacts={contacts}
+            />
+          )}
         </div>
       </div>
 

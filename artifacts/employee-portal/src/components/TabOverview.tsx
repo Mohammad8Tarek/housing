@@ -14,6 +14,7 @@ import {
   Users,
   Calendar,
   Star,
+  Home,
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { useState, useEffect } from "react";
@@ -46,9 +47,12 @@ export default function TabOverview({
   const { t, lang } = useTheme();
   const isRtl = lang === "ar";
   const Chevron = isRtl ? ChevronLeft : ChevronRight;
-  const room = portalData?.room;
+  const room = portalData?.room as
+    | { roomNumber?: string; building?: string }
+    | undefined;
   const assignments = portalData?.assignments || [];
   const firstName = employee.fullName?.split(" ")[0] || "Employee";
+  const empAddress = employee.address as string | undefined;
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [docCount, setDocCount] = useState(0);
@@ -129,6 +133,38 @@ export default function TabOverview({
           </p>
         </div>
       </div>
+
+      {/* Room Info Card */}
+      {room && (
+        <div className="rounded-2xl bg-card border border-border2 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent2/10 flex items-center justify-center flex-shrink-0">
+              <Home className="w-5 h-5 text-accent2" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] text-muted2 font-medium uppercase tracking-wide">
+                {isRtl ? "السكن" : "Accommodation"}
+              </div>
+              <div className="text-[15px] font-bold text-foreground mt-0.5 leading-tight">
+                {isRtl ? "غرفة رقم" : "Room"}{" "}
+                <span className="text-accent2">{room.roomNumber}</span>
+              </div>
+              {room.building && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-muted2" />
+                  <span className="text-[12px] text-muted2">{room.building}</span>
+                </div>
+              )}
+              {empAddress && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <MapPin className="w-3.5 h-3.5 text-muted2" />
+                  <span className="text-[12px] text-muted2">{empAddress}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stat Cards - Stitch exact match */}
       <div className="grid grid-cols-3 gap-2.5">
