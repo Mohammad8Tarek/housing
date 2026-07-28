@@ -2,6 +2,7 @@ import * as net from "net";
 
 const STX = 0x02;
 const ETX = 0x03;
+const MAIN_PORT_KEY = -1;
 
 interface PendingCmd {
   resolve: (val: HotekCmdResult) => void;
@@ -480,6 +481,81 @@ export function stopPmsServerForProperty(propertyId: number): void {
   }
 }
 
+// ─── Main port sharing (HTTP + FIAS on same port) ─────────────────────────
+
+export function registerMainPortProperty(propertyId: number): void {
+  if (!portServers.has(MAIN_PORT_KEY)) {
+    portServers.set(MAIN_PORT_KEY, {
+      port: MAIN_PORT_KEY,
+      server: null,
+      socket: null,
+      pendingCmd: null,
+      activePropertyIds: new Set(),
+    });
+  }
+  const pms = portServers.get(MAIN_PORT_KEY)!;
+  pms.activePropertyIds.add(propertyId);
+  propertyPorts.set(propertyId, MAIN_PORT_KEY);
+}
+
+export function handleMainPortConnection(
+  socket: net.Socket,
+  data: Buffer,
+): void {
+  const addr = `${socket.remoteAddress}:${socket.remotePort}`;
+  const pms = portServers.get(MAIN_PORT_KEY);
+  if (!pms) return;
+
+  if (pms.socket && !pms.socket.destroyed) {
+    pms.socket.destroy();
+  }
+  pms.socket = socket;
+
+  syncStatusToDb(MAIN_PORT_KEY, true, addr);
+
+  socket.setKeepAlive(true, 5000);
+  socket.setNoDelay(true);
+  socket.setTimeout(300000);
+
+  const pingInterval = setInterval(() => {
+    if (pms && pms.socket && !pms.socket.destroyed) {
+      const la = `LA|DA${formatFiasDate(new Date())}|TI${formatFiasTime(new Date())}|`;
+      pms.socket.write(buildFiasFrame(la));
+    }
+  }, 20000);
+
+  let buffer: Buffer = Buffer.alloc(0);
+  buffer = Buffer.concat([buffer, data]);
+  buffer = handleHotekData(buffer, MAIN_PORT_KEY);
+
+  socket.on("data", (chunk: Buffer) => {
+    buffer = Buffer.concat([buffer, chunk]);
+    buffer = handleHotekData(buffer, MAIN_PORT_KEY);
+  });
+
+  socket.on("error", (err: Error) => {
+    console.error(`[PMS-Bridge - Main Port] Hotek socket error:`, err.message);
+    if (pms.pendingCmd) {
+      pms.pendingCmd.reject(
+        new Error(`Hotek connection error: ${err.message}`),
+      );
+      pms.pendingCmd = null;
+    }
+  });
+
+  socket.on("close", () => {
+    clearInterval(pingInterval);
+    if (pms.socket === socket) {
+      pms.socket = null;
+    }
+    if (pms.pendingCmd) {
+      pms.pendingCmd.reject(new Error("Hotek disconnected"));
+      pms.pendingCmd = null;
+    }
+    syncStatusToDb(MAIN_PORT_KEY, false);
+  });
+}
+
 /** Stop all PMS servers (used during graceful shutdown) */
 export function stopAllPmsServers(): void {
   for (const [port, pms] of portServers) {
@@ -510,22 +586,11 @@ export async function startAllPmsServers(app?: any): Promise<void> {
     for (const row of result.rows) {
       if (row.port) {
         if (row.port === mainPort) {
-          const newPort = mainPort + 1;
           console.warn(
-            `[PMS-Bridge] Hotek server on port ${row.port} conflicts with main API — migrating to ${newPort}`,
+            `[PMS-Bridge] Property ${row.property_id} uses main API port ${row.port} — registering on shared server`,
           );
-          try {
-            await pool.query(
-              `UPDATE public.property_hotek_servers SET port = $1, updated_at = NOW() WHERE property_id = $2 AND port = $3 AND is_active = true`,
-              [newPort, row.property_id, mainPort],
-            );
-            row.port = newPort;
-          } catch (err: any) {
-            console.error(
-              `[PMS-Bridge] Failed to migrate port: ${err.message}`,
-            );
-            continue;
-          }
+          registerMainPortProperty(row.property_id);
+          continue;
         }
         startPmsServerForProperty(row.property_id, row.port);
       }
