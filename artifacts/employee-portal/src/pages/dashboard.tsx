@@ -880,10 +880,7 @@ export default function Dashboard() {
           {activeTab === "food" && <TabFood />}
           {activeTab === "transport" && <TabTransport />}
           {activeTab === "chat" && (
-            <TabChat
-              myEmployeeId={employee?.id}
-              contacts={contacts}
-            />
+            <TabChat myEmployeeId={employee?.id} contacts={contacts} />
           )}
         </div>
       </div>

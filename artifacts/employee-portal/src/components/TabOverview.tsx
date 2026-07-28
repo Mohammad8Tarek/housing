@@ -152,7 +152,9 @@ export default function TabOverview({
               {room.building && (
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Building2 className="w-3.5 h-3.5 text-muted2" />
-                  <span className="text-[12px] text-muted2">{room.building}</span>
+                  <span className="text-[12px] text-muted2">
+                    {room.building}
+                  </span>
                 </div>
               )}
               {empAddress && (

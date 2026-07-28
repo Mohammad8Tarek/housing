@@ -712,8 +712,6 @@ export function TabChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-
-
   /* ── Open conversation ── */
   const openConversation = async (conv: Conversation) => {
     setActiveConv(conv);
