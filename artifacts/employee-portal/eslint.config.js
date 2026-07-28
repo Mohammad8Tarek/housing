@@ -21,6 +21,7 @@ export default defineConfig([
     rules: {
       "no-empty": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
       "react-hooks/set-state-in-effect": "off",
       "react-refresh/only-export-components": [
         "warn",

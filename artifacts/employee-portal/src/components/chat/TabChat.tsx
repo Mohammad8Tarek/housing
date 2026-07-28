@@ -712,16 +712,7 @@ export function TabChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* ── Auto-open chat ── */
-  useEffect(() => {
-    if (autoOpenChatWith && conversations.length > 0) {
-      const existing = conversations.find(
-        (c) => !c.isGroup && c.participantIds.includes(autoOpenChatWith),
-      );
-      if (existing) openConversation(existing);
-      if (onClearAutoOpen) onClearAutoOpen();
-    }
-  }, [autoOpenChatWith, conversations]);
+
 
   /* ── Open conversation ── */
   const openConversation = async (conv: Conversation) => {
@@ -752,6 +743,17 @@ export function TabChat({
       prev.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c)),
     );
   };
+
+  /* ── Auto-open chat ── */
+  useEffect(() => {
+    if (autoOpenChatWith && conversations.length > 0) {
+      const existing = conversations.find(
+        (c) => !c.isGroup && c.participantIds.includes(autoOpenChatWith),
+      );
+      if (existing) openConversation(existing);
+      if (onClearAutoOpen) onClearAutoOpen();
+    }
+  }, [autoOpenChatWith, conversations]);
 
   /* ── Poll messages when in a conversation (every 3s) ── */
   useEffect(() => {
