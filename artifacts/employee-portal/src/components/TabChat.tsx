@@ -131,9 +131,7 @@ export default function TabChat() {
   }, [messages]);
 
   useEffect(() => {
-    const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const host = window.location.host;
-    const wsUrl = `${proto}://${host}/ws`;
+    const wsUrl = `wss://sunrise-api-production-b3f9.up.railway.app/ws`;
 
     const connect = () => {
       if (wsRef.current?.readyState === WebSocket.OPEN) return;
