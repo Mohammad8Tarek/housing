@@ -25,7 +25,13 @@ export default function TabProfile({ photoUrl }: Props) {
   const isRtl = lang === "ar";
   const [, setLocation] = useLocation();
   const [employee, setEmployee] = useState<any>(null);
-  const [form, setForm] = useState({ phone: "", address: "", photo: "", email: "", emergencyContact: "" });
+  const [form, setForm] = useState({
+    phone: "",
+    address: "",
+    photo: "",
+    email: "",
+    emergencyContact: "",
+  });
   const [preview, setPreview] = useState(photoUrl || "");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -61,7 +67,7 @@ export default function TabProfile({ photoUrl }: Props) {
       .catch(() => {});
   }, []);
 
-    const saveProfileData = async (dataToSave: any) => {
+  const saveProfileData = async (dataToSave: any) => {
     setStatus("loading");
     setMsg("");
     try {
@@ -93,7 +99,9 @@ export default function TabProfile({ photoUrl }: Props) {
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
       setStatus("error");
-      setMsg(isRtl ? "يجب أن يكون الحجم أقل من 2MB" : "Image must be under 2MB");
+      setMsg(
+        isRtl ? "يجب أن يكون الحجم أقل من 2MB" : "Image must be under 2MB",
+      );
       return;
     }
     const reader = new FileReader();
@@ -214,9 +222,7 @@ export default function TabProfile({ photoUrl }: Props) {
     <div className="px-4 pt-4 pb-4 space-y-5">
       {/* Profile Card */}
       <div className="bg-card border border-border2 rounded-2xl overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-[#1A2B4C] to-[#2A3B5C] relative">
-          
-        </div>
+        <div className="h-24 bg-gradient-to-r from-[#1A2B4C] to-[#2A3B5C] relative"></div>
         <div className="px-5 pb-5 -mt-12">
           <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-[#C9A24D] to-[#E0C070] p-0.5 shadow-lg">
             <div className="w-full h-full rounded-[calc(1.5rem-2px)] bg-[#1A2B4C] flex items-center justify-center overflow-hidden">
@@ -282,7 +288,13 @@ export default function TabProfile({ photoUrl }: Props) {
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface border border-border2 text-foreground text-[12px] font-bold hover:bg-card transition-all active:scale-[0.98]"
         >
           <MaterialIcon icon={editing ? "close" : "edit"} size={16} />
-          {isRtl ? (editing ? "إلغاء التعديل" : "تعديل البيانات") : (editing ? "Cancel Editing" : "Edit Profile")}
+          {isRtl
+            ? editing
+              ? "إلغاء التعديل"
+              : "تعديل البيانات"
+            : editing
+              ? "Cancel Editing"
+              : "Edit Profile"}
         </button>
       </div>
 
@@ -408,7 +420,7 @@ export default function TabProfile({ photoUrl }: Props) {
               className="w-full bg-surface border border-border2 text-foreground rounded-xl py-2.5 px-3 text-[13px] focus:outline-none focus:border-accent2/50"
             />
           </div>
-                    <div>
+          <div>
             <label className="text-[10px] font-semibold uppercase tracking-wider text-muted2 block mb-1">
               {isRtl ? "العنوان" : "Address"}
             </label>
@@ -460,7 +472,6 @@ export default function TabProfile({ photoUrl }: Props) {
               )}
               {isRtl ? "حفظ التغييرات" : "Save Changes"}
             </button>
-            
           </div>
         </form>
       )}

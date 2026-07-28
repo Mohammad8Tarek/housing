@@ -254,7 +254,9 @@ export default function TicketDetailModal({
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as "details" | "comments" | "activity")}
+                  onClick={() =>
+                    setActiveTab(tab.key as "details" | "comments" | "activity")
+                  }
                   className={`px-4 py-3 font-medium border-b-2 transition-colors flex items-center gap-2 ${
                     activeTab === tab.key
                       ? "border-primary text-primary"
@@ -733,9 +735,7 @@ export default function TicketDetailModal({
                   {ar ? "المرفقات" : "Attachments"}
                 </h3>
                 {ticket.photoUrl ? (
-                  <div className="space-y-3">
-                    
-                  </div>
+                  <div className="space-y-3"></div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Paperclip className="w-8 h-8 mx-auto mb-2 opacity-30" />

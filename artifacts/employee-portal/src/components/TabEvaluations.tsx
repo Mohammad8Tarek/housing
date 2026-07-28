@@ -289,8 +289,12 @@ export default function TabEvaluations({ evaluations, onCommentAdded }: Props) {
                   ? "الكل"
                   : "All"
                 : status === "pending"
-                  ? isRtl ? "قيد الانتظار" : "Pending"
-                  : isRtl ? "مكتمل" : "Completed"}
+                  ? isRtl
+                    ? "قيد الانتظار"
+                    : "Pending"
+                  : isRtl
+                    ? "مكتمل"
+                    : "Completed"}
             </button>
           ))}
         </div>

@@ -51,7 +51,32 @@ export default function TabChat() {
   const [myId, setMyId] = useState<number | null>(null);
   const [msgSearch, setMsgSearch] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
-  const EMOJIS = ["😀","😂","🤣","😊","😍","🥰","😘","😜","😎","🤩","😢","😭","😡","👍","👎","🙏","👏","🤝","🔥","✨","💯","🎉","❤️","💔"];
+  const EMOJIS = [
+    "😀",
+    "😂",
+    "🤣",
+    "😊",
+    "😍",
+    "🥰",
+    "😘",
+    "😜",
+    "😎",
+    "🤩",
+    "😢",
+    "😭",
+    "😡",
+    "👍",
+    "👎",
+    "🙏",
+    "👏",
+    "🤝",
+    "🔥",
+    "✨",
+    "💯",
+    "🎉",
+    "❤️",
+    "💔",
+  ];
   const [input, setInput] = useState("");
   const [showNewConv, setShowNewConv] = useState(false);
   const [search, setSearch] = useState("");
@@ -441,55 +466,76 @@ export default function TabChat() {
         <div className="p-3 border-t border-border2 bg-surface relative">
           {showEmojis && (
             <div className="absolute bottom-full left-4 mb-2 bg-card border border-border2 shadow-lg rounded-2xl p-2 w-64 max-h-48 overflow-y-auto grid grid-cols-6 gap-2">
-               {EMOJIS.map(emoji => (
-                  <button
-                     key={emoji}
-                     type="button"
-                     className="text-xl hover:bg-surface rounded p-1 transition-colors"
-                     onClick={() => {
-                        setInput(prev => prev + emoji);
-                        setShowEmojis(false);
-                     }}
-                  >
-                     {emoji}
-                  </button>
-               ))}
+              {EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="text-xl hover:bg-surface rounded p-1 transition-colors"
+                  onClick={() => {
+                    setInput((prev) => prev + emoji);
+                    setShowEmojis(false);
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
           )}
           <div className="flex items-end gap-2">
             <div className="flex-1 bg-card border border-border2 rounded-3xl flex items-center px-2 py-1 shadow-sm">
-              <button type="button" onClick={() => setShowEmojis(!showEmojis)} className={`p-2 transition-colors ${showEmojis ? "text-accent2" : "text-muted2 hover:text-foreground"}`} title="Emojis">
-                 <Smile className="w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => setShowEmojis(!showEmojis)}
+                className={`p-2 transition-colors ${showEmojis ? "text-accent2" : "text-muted2 hover:text-foreground"}`}
+                title="Emojis"
+              >
+                <Smile className="w-5 h-5" />
               </button>
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") sendMessage();
+                }}
                 placeholder={isRtl ? "اكتب رسالة..." : "Type a message..."}
                 className="w-full bg-transparent py-2 px-2 text-[13px] outline-none placeholder:text-muted2"
               />
-              <label className="p-2 text-muted2 hover:text-foreground transition-colors cursor-pointer" title="Attach Image">
-                 <Paperclip className="w-5 h-5" />
-                 <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+              <label
+                className="p-2 text-muted2 hover:text-foreground transition-colors cursor-pointer"
+                title="Attach Image"
+              >
+                <Paperclip className="w-5 h-5" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     const reader = new FileReader();
                     reader.onload = async (ev) => {
-                       const url = ev.target?.result as string;
-                       setSending(true);
-                       try {
-                         await apiFetch(`/api/portal-chat/conversations/${activeConv.id}/messages`, {
-                           method: "POST",
-                           credentials: "include",
-                           headers: { "Content-Type": "application/json" },
-                           body: JSON.stringify({ content: url, contentType: "image" }),
-                         });
-                       } finally {
-                         setSending(false);
-                       }
+                      const url = ev.target?.result as string;
+                      setSending(true);
+                      try {
+                        await apiFetch(
+                          `/api/portal-chat/conversations/${activeConv.id}/messages`,
+                          {
+                            method: "POST",
+                            credentials: "include",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              content: url,
+                              contentType: "image",
+                            }),
+                          },
+                        );
+                      } finally {
+                        setSending(false);
+                      }
                     };
                     reader.readAsDataURL(file);
-                 }} />
+                  }}
+                />
               </label>
             </div>
             <button
@@ -528,7 +574,10 @@ export default function TabChat() {
           }`}
           title={isRtl ? "محادثة جديدة" : "New Conversation"}
         >
-          <MaterialIcon icon={showNewConv ? "close" : "add_comment"} size={20} />
+          <MaterialIcon
+            icon={showNewConv ? "close" : "add_comment"}
+            size={20}
+          />
         </button>
       </div>
 
@@ -544,7 +593,9 @@ export default function TabChat() {
               value={search}
               onChange={(e) => searchEmployees(e.target.value)}
               placeholder={
-                isRtl ? "ابحث عن زميل..." : "Search colleague by name or department..."
+                isRtl
+                  ? "ابحث عن زميل..."
+                  : "Search colleague by name or department..."
               }
               className="w-full bg-surface border border-border2 rounded-xl py-2.5 ps-9 pe-3 text-[12px] outline-none focus:border-accent2/50"
             />
@@ -596,7 +647,6 @@ export default function TabChat() {
               <span className="text-[11px] font-bold text-accent2 flex-1">
                 {selectedEmp.firstName} {selectedEmp.lastName}
               </span>
-              
             </div>
           )}
           <div className="flex gap-2">
@@ -641,7 +691,9 @@ export default function TabChat() {
               {isRtl ? "لا توجد محادثات" : "No conversations"}
             </p>
             <p className="text-[12px] text-muted2 mt-1">
-              {isRtl ? "ابدأ محادثة مع زملائك" : "Tap the edit icon to start a conversation with a colleague"}
+              {isRtl
+                ? "ابدأ محادثة مع زملائك"
+                : "Tap the edit icon to start a conversation with a colleague"}
             </p>
           </div>
         </div>

@@ -141,8 +141,10 @@ export function DoorLocksSection({
           null;
         setSelectedServerId(nextServer?.id ?? null);
       } catch (err: any) {
-        toast.error(err.message ||
-            (ar ? "تعذر تحميل إعدادات Hotek" : "Failed to load Hotek config"));
+        toast.error(
+          err.message ||
+            (ar ? "تعذر تحميل إعدادات Hotek" : "Failed to load Hotek config"),
+        );
       } finally {
         setLoadingConfig(false);
       }
@@ -209,8 +211,10 @@ export function DoorLocksSection({
       toast.success(ar ? "تم حفظ إعدادات Hotek" : "Hotek server saved");
       await loadConfig(data.server?.id);
     } catch (err: any) {
-      toast.error(err.message ||
-          (ar ? "فشل حفظ إعدادات Hotek" : "Failed to save Hotek server"));
+      toast.error(
+        err.message ||
+          (ar ? "فشل حفظ إعدادات Hotek" : "Failed to save Hotek server"),
+      );
     } finally {
       setSavingServer(false);
     }
@@ -228,13 +232,17 @@ export function DoorLocksSection({
         },
       );
       const data = await readApiResponse(resp);
-      toast.success(data.message ||
-          (data.connected ? "Hotek connected" : "Waiting for Hotek"));
+      toast.success(
+        data.message ||
+          (data.connected ? "Hotek connected" : "Waiting for Hotek"),
+      );
       await refetchStatus();
       await loadConfig(selectedServer.id);
     } catch (err: any) {
-      toast.error(err.message ||
-          (ar ? "فشل فحص حالة Hotek" : "Failed to check Hotek status"));
+      toast.error(
+        err.message ||
+          (ar ? "فشل فحص حالة Hotek" : "Failed to check Hotek status"),
+      );
     } finally {
       setTestingServer(false);
     }

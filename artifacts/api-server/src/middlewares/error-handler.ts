@@ -15,12 +15,10 @@ function getLang(req: Request): boolean {
 
 export function notFoundHandler(req: Request, res: Response): void {
   const ar = getLang(req);
-  res
-    .status(404)
-    .json({
-      success: false,
-      message: ar ? "المسار غير موجود" : "Route not found",
-    });
+  res.status(404).json({
+    success: false,
+    message: ar ? "المسار غير موجود" : "Route not found",
+  });
 }
 
 export function errorHandler(

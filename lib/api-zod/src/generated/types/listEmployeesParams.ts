@@ -7,8 +7,8 @@
  */
 
 export type ListEmployeesParams = {
-propertyId?: number;
-status?: string;
-department?: string;
-search?: string;
+  propertyId?: number;
+  status?: string;
+  department?: string;
+  search?: string;
 };

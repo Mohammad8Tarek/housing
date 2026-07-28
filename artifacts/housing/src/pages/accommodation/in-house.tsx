@@ -164,12 +164,12 @@ export default function InHouse() {
       },
     },
   );
-  
 
   const { data: _eDataWrapper } = useListEmployees(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } }
-  );  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+    { query: { enabled: !!activePropertyId } },
+  );
+  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
   const { data: _rData } = useListRooms(
     { propertyId: activePropertyId, limit: 1000 },
     { query: { enabled: !!activePropertyId, staleTime: 60000 } },
@@ -202,7 +202,6 @@ export default function InHouse() {
     { propertyId: targetPropId } as any,
     { query: { enabled: !!targetPropId, staleTime: 30000 } },
   );
-  
 
   // Compute occupied beds for transfer target room
   const targetOccupiedBeds = new Set<number>(
@@ -288,8 +287,8 @@ export default function InHouse() {
             description = body.error;
           }
         } catch {}
-        toast.error(description || (ar ? "خطأ" : "Error"))
-    },
+        toast.error(description || (ar ? "خطأ" : "Error"));
+      },
     },
   });
 
@@ -667,7 +666,9 @@ export default function InHouse() {
                     {isIHVisible("employee") && (
                       <TableCell className="font-medium whitespace-nowrap">
                         <div className="flex flex-col">
-                          <span>{emp?.firstName ?? ""} {emp?.lastName ?? ""}</span>
+                          <span>
+                            {emp?.firstName ?? ""} {emp?.lastName ?? ""}
+                          </span>
                           {emp?.employeeId && (
                             <span className="text-[10px] text-muted-foreground font-mono">
                               #{emp.employeeId}

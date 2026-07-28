@@ -7,6 +7,6 @@
  */
 
 export type GetDepartureAlertsParams = {
-propertyId?: number;
-threshold?: number;
+  propertyId?: number;
+  threshold?: number;
 };

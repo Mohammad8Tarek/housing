@@ -1,6 +1,7 @@
 async function run() {
-  const url = "https://sunrise-api-production-b3f9.up.railway.app/api/portal-auth/ping";
-  
+  const url =
+    "https://sunrise-api-production-b3f9.up.railway.app/api/portal-auth/ping";
+
   try {
     const res = await fetch(url);
     const text = await res.text();

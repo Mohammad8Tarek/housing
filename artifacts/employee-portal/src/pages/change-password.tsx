@@ -178,7 +178,11 @@ export default function ChangePassword() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute end-4 top-1/2 -translate-y-1/2 text-muted2 hover:text-foreground transition-colors p-1"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>

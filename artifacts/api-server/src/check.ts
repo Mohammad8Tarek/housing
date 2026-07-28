@@ -1,4 +1,10 @@
-import { db, propertiesTable, withTenant, employeesTable, employeePortalAccountsTable } from "@workspace/db";
+import {
+  db,
+  propertiesTable,
+  withTenant,
+  employeesTable,
+  employeePortalAccountsTable,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 async function check() {
@@ -6,10 +12,21 @@ async function check() {
   for (const p of properties) {
     try {
       await withTenant(p.id, async (tenantDb) => {
-        const [emp] = await tenantDb.select().from(employeesTable).where(eq(employeesTable.employeeId, "10575"));
+        const [emp] = await tenantDb
+          .select()
+          .from(employeesTable)
+          .where(eq(employeesTable.employeeId, "10575"));
         if (emp) {
-          console.log(`Found in prop_${p.id}:`, emp.firstName, emp.lastName, emp.status);
-          const [acc] = await tenantDb.select().from(employeePortalAccountsTable).where(eq(employeePortalAccountsTable.employeeId, "10575"));
+          console.log(
+            `Found in prop_${p.id}:`,
+            emp.firstName,
+            emp.lastName,
+            emp.status,
+          );
+          const [acc] = await tenantDb
+            .select()
+            .from(employeePortalAccountsTable)
+            .where(eq(employeePortalAccountsTable.employeeId, "10575"));
           console.log(`Account in prop_${p.id}:`, acc ? "Exists" : "MISSING!");
         }
       });

@@ -25,27 +25,34 @@ function parseFile(filePath: string, cfg: CsvExcelConfig): any[] {
     const workbook = XLSX.readFile(filePath);
     const sheetName = cfg.sheet_name || workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    if (!sheet) throw new Error(`[Excel] Sheet '${sheetName}' not found in file.`);
+    if (!sheet)
+      throw new Error(`[Excel] Sheet '${sheetName}' not found in file.`);
     const records = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-    log.info(`[Excel] Parsed ${records.length} rows from sheet '${sheetName}'.`);
+    log.info(
+      `[Excel] Parsed ${records.length} rows from sheet '${sheetName}'.`,
+    );
     return records;
   } else {
     throw new Error(`[CSV/Excel] Unsupported file format: ${ext}`);
   }
 }
 
-export async function fetchFromCsvExcel(cfg: CsvExcelConfig): Promise<HousingEmployee[]> {
+export async function fetchFromCsvExcel(
+  cfg: CsvExcelConfig,
+): Promise<HousingEmployee[]> {
   const filePath = cfg.file_path;
   if (!fs.existsSync(filePath)) {
     throw new Error(`[CSV/Excel] File not found: ${filePath}`);
   }
   const records = parseFile(filePath, cfg);
-  return records.map((row: any) => mapFields(row, cfg.field_map)) as HousingEmployee[];
+  return records.map((row: any) =>
+    mapFields(row, cfg.field_map),
+  ) as HousingEmployee[];
 }
 
 export function watchFolder(
   cfg: CsvExcelConfig,
-  onNewFile: (employees: HousingEmployee[]) => void
+  onNewFile: (employees: HousingEmployee[]) => void,
 ): void {
   if (!cfg.watch_folder) return;
   const pattern = path.join(cfg.watch_folder, cfg.file_pattern || "*.*");
@@ -59,7 +66,9 @@ export function watchFolder(
       await new Promise((r) => setTimeout(r, 1000));
       try {
         const records = parseFile(filePath, cfg);
-        const employees = records.map((row: any) => mapFields(row, cfg.field_map)) as HousingEmployee[];
+        const employees = records.map((row: any) =>
+          mapFields(row, cfg.field_map),
+        ) as HousingEmployee[];
         onNewFile(employees);
       } catch (err: any) {
         log.error(`[CSV/Excel] Failed to parse new file: ${err.message}`);

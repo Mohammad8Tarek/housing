@@ -190,7 +190,9 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   // ✅ Session Regeneration — prevents Session Fixation Attack
   const roles = (user.roles ?? []).map(normalizeRole);
   const isSystemAdmin =
-    roles.includes("super_admin") || roles.includes("system_admin") || roles.includes("admin");
+    roles.includes("super_admin") ||
+    roles.includes("system_admin") ||
+    roles.includes("admin");
 
   const sessionData = {
     userId: user.id,
@@ -299,7 +301,9 @@ router.get("/auth/me", async (req, res): Promise<void> => {
 
   const roles = (user.roles ?? []).map(normalizeRole);
   const isSystemAdmin =
-    roles.includes("super_admin") || roles.includes("system_admin") || roles.includes("admin");
+    roles.includes("super_admin") ||
+    roles.includes("system_admin") ||
+    roles.includes("admin");
 
   const session = req.session as any;
   const passwordExpired = session?.passwordExpired ?? false;

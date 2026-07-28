@@ -28,7 +28,11 @@ import { useState } from "react";
 export default function PortalCategoriesAndTags() {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
-  const [deleteCatDialog, setDeleteCatDialog] = useState<{open: boolean, id: number, name: string}>({open: false, id: 0, name: ""});
+  const [deleteCatDialog, setDeleteCatDialog] = useState<{
+    open: boolean;
+    id: number;
+    name: string;
+  }>({ open: false, id: 0, name: "" });
   const ar = language === "ar";
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -246,7 +250,13 @@ export default function PortalCategoriesAndTags() {
                       variant="ghost"
                       size="icon"
                       className="opacity-0 group-hover:opacity-100"
-                      onClick={() => setDeleteCatDialog({open: true, id: category.id, name: category.name})}
+                      onClick={() =>
+                        setDeleteCatDialog({
+                          open: true,
+                          id: category.id,
+                          name: category.name,
+                        })
+                      }
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -330,13 +340,22 @@ export default function PortalCategoriesAndTags() {
 
       <AnimatedConfirmModal
         open={deleteCatDialog.open}
-        onOpenChange={(open) => setDeleteCatDialog(prev => ({...prev, open}))}
-        title={ar ? `حذف "${deleteCatDialog.name}"؟` : `Delete "${deleteCatDialog.name}"?`}
-        description={ar ? "هل أنت متأكد من الحذف؟" : "Are you sure you want to delete this category?"}
+        onOpenChange={(open) =>
+          setDeleteCatDialog((prev) => ({ ...prev, open }))
+        }
+        title={
+          ar
+            ? `حذف "${deleteCatDialog.name}"؟`
+            : `Delete "${deleteCatDialog.name}"?`
+        }
+        description={
+          ar
+            ? "هل أنت متأكد من الحذف؟"
+            : "Are you sure you want to delete this category?"
+        }
         variant="destructive"
         onConfirm={() => deleteCategoryMutation.mutate(deleteCatDialog.id)}
       />
-      
     </div>
   );
 }

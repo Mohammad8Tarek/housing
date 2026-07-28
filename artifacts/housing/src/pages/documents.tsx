@@ -98,7 +98,9 @@ export default function Documents() {
 
   const handleUpload = async () => {
     if (!titleAr.trim() || !fileData) {
-      toast.error(ar ? "يرجى ملء الحقول المطلوبة" : "Please fill required fields");
+      toast.error(
+        ar ? "يرجى ملء الحقول المطلوبة" : "Please fill required fields",
+      );
       return;
     }
     setUploading(true);
@@ -129,8 +131,8 @@ export default function Documents() {
       resetForm();
     } catch (err: any) {
       toast.error(ar ? "فشل الرفع" : "Upload failed", {
-          description: err.message
-        });
+        description: err.message,
+      });
     } finally {
       setUploading(false);
     }
@@ -148,8 +150,8 @@ export default function Documents() {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
     } catch (err: any) {
       toast.error(ar ? "فشل الحذف" : "Delete failed", {
-          description: err.message
-        });
+        description: err.message,
+      });
     }
   };
 
@@ -405,13 +407,20 @@ export default function Documents() {
 
       <AnimatedConfirmModal
         open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog(prev => ({...prev, open}))}
-        title={ar ? `حذ�? "${deleteDialog.title}"؟` : `Delete "${deleteDialog.title}"?`}
-        description={ar ? "هل أنت متأكد؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure? This action cannot be undone."}
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
+        title={
+          ar
+            ? `حذ�? "${deleteDialog.title}"؟`
+            : `Delete "${deleteDialog.title}"?`
+        }
+        description={
+          ar
+            ? "هل أنت متأكد؟ لا يمكن التراجع عن هذا الإجراء."
+            : "Are you sure? This action cannot be undone."
+        }
         variant="destructive"
         onConfirm={performDelete}
       />
     </div>
   );
 }
-

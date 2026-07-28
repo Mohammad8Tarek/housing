@@ -2,11 +2,25 @@ import { exportExcel, exportPDF, exportAnalyticsPDF } from "../utils/export";
 import { getGuestNames } from "../utils/helpers";
 
 export function useReportExport({
-  activeTab, canExportReports, currentData, properties, propId, activePropertyId,
-  dateFrom, dateTo, search, settings, analytics, rooms, employees, evalStats,
-  floorMap, buildingMap, empMap, roomMap
+  activeTab,
+  canExportReports,
+  currentData,
+  properties,
+  propId,
+  activePropertyId,
+  dateFrom,
+  dateTo,
+  search,
+  settings,
+  analytics,
+  rooms,
+  employees,
+  evalStats,
+  floorMap,
+  buildingMap,
+  empMap,
+  roomMap,
 }: any) {
-
   const toExcelRows = (): Record<string, any>[] => {
     const data = currentData();
     switch (activeTab) {
@@ -41,7 +55,9 @@ export function useReportExport({
           const emp = empMap[a.employeeId];
           const room = roomMap[a.roomId];
           return {
-            Employee: emp ? `${emp.firstName} ${emp.lastName}` : `#${a.employeeId}`,
+            Employee: emp
+              ? `${emp.firstName} ${emp.lastName}`
+              : `#${a.employeeId}`,
             "Room No": room?.roomNumber ?? `#${a.roomId}`,
             Building: room ? (buildingMap[room.buildingId] ?? "—") : "—",
             "Check-In": a.checkInDate,
@@ -72,7 +88,9 @@ export function useReportExport({
       case "reservations":
         return data.map((r: any) => ({
           Name: `${r.firstName} ${r.lastName}`,
-          "Room No": r.roomId ? (roomMap[r.roomId]?.roomNumber ?? `#${r.roomId}`) : "—",
+          "Room No": r.roomId
+            ? (roomMap[r.roomId]?.roomNumber ?? `#${r.roomId}`)
+            : "—",
           "Room Type": r.roomType ?? "—",
           Department: r.department ?? "—",
           "Check-In": r.checkInDate,
@@ -85,7 +103,9 @@ export function useReportExport({
           const room = h.roomId ? roomMap[h.roomId] : undefined;
           const names = getGuestNames(h);
           return {
-            Employee: emp ? `${emp.firstName} ${emp.lastName}` : `#${h.employeeId}`,
+            Employee: emp
+              ? `${emp.firstName} ${emp.lastName}`
+              : `#${h.employeeId}`,
             Code: emp?.employeeCode ?? "—",
             Dept: emp?.department ?? "—",
             Room: room?.roomNumber ?? (h.roomId ? `#${h.roomId}` : "—"),

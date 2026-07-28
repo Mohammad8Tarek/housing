@@ -88,8 +88,9 @@ export default function MaintenanceDetails() {
 
   const { data: _eDataWrapper } = useListEmployees(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } }
-  );  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+    { query: { enabled: !!activePropertyId } },
+  );
+  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
 
   const updateMutation = useUpdateMaintenance({
     mutation: {
@@ -98,7 +99,7 @@ export default function MaintenanceDetails() {
       },
       onError: (e) =>
         toast.error(ar ? "خطأ" : "Error", {
-          description: e.message
+          description: e.message,
         }),
     },
   });
@@ -177,7 +178,11 @@ export default function MaintenanceDetails() {
           <div className="col-span-1">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               {ticket.photoUrl ? (
-                <img src={ticket.photoUrl} alt="Ticket" className="w-full h-80 object-cover" />
+                <img
+                  src={ticket.photoUrl}
+                  alt="Ticket"
+                  className="w-full h-80 object-cover"
+                />
               ) : (
                 <div className="w-full h-80 bg-gray-100 flex items-center justify-center">
                   <span className="text-gray-400">
@@ -432,4 +437,3 @@ export default function MaintenanceDetails() {
     </div>
   );
 }
-

@@ -516,10 +516,7 @@ export default function ActivityLog() {
         </div>
       </div>
 
-      <div className="inline-flex rounded-lg border bg-muted/30 p-1">
-        
-        
-      </div>
+      <div className="inline-flex rounded-lg border bg-muted/30 p-1"></div>
 
       {activeView === "activity" ? (
         <>

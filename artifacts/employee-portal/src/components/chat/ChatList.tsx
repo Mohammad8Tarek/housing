@@ -65,20 +65,35 @@ export function ChatList({
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center text-[hsl(var(--muted2))]">
         <div className="w-16 h-16 bg-[hsl(var(--card-hover))] rounded-full flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <svg
+            className="w-8 h-8 opacity-50"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
           </svg>
         </div>
         <p>{isRtl ? "لا توجد محادثات حتى الآن" : "No conversations yet"}</p>
         <p className="text-sm mt-2 opacity-70">
-          {isRtl ? "اضغط على أيقونة جهات الاتصال لبدء محادثة" : "Tap a contact to start messaging"}
+          {isRtl
+            ? "اضغط على أيقونة جهات الاتصال لبدء محادثة"
+            : "Tap a contact to start messaging"}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col divide-y divide-[hsl(var(--border2))] overflow-y-auto" style={{ paddingBottom: '80px' }}>
+    <div
+      className="flex flex-col divide-y divide-[hsl(var(--border2))] overflow-y-auto"
+      style={{ paddingBottom: "80px" }}
+    >
       {conversations.map((conv) => {
         // Determine display name and photo
         // For 1-on-1, it's the other participant. For group, it's the subject or "Group"
@@ -116,7 +131,7 @@ export function ChatList({
               )}
               {conv.unreadCount > 0 && (
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-[hsl(var(--background))] flex items-center justify-center text-[10px] text-white font-bold">
-                  {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                  {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
                 </div>
               )}
             </div>
@@ -140,7 +155,8 @@ export function ChatList({
                     : "text-[hsl(var(--muted2))]"
                 }`}
               >
-                {conv.lastMessage?.content || (isRtl ? "بدأت المحادثة" : "Conversation started")}
+                {conv.lastMessage?.content ||
+                  (isRtl ? "بدأت المحادثة" : "Conversation started")}
               </p>
             </div>
           </div>

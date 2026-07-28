@@ -25,7 +25,9 @@ export function UnlockUserDialog({ user, onClose }: UnlockUserDialogProps) {
       });
       if (!res.ok)
         throw new Error((await res.json()).error || "Failed to unlock");
-      toast.success(ar ? "تم فتح قفل الحساب بنجاح" : "Account unlocked successfully");
+      toast.success(
+        ar ? "تم فتح قفل الحساب بنجاح" : "Account unlocked successfully",
+      );
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
       onClose();
     } catch (e: any) {
@@ -36,11 +38,14 @@ export function UnlockUserDialog({ user, onClose }: UnlockUserDialogProps) {
   return (
     <AnimatedConfirmModal
       open
-      onOpenChange={(open) => { if (!open) onClose(); }}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
       title={ar ? "فتح قفل الحساب" : "Unlock Account"}
-      description={ar
-        ? `هل أنت متأكد من فتح قفل حساب "${user.username}"؟ سيتم مسح محاولات تسجيل الدخول الفاشلة وفتح الحساب فوراً.`
-        : `Are you sure you want to unlock "${user.username}"? Failed login attempts will be cleared and the account will be unlocked immediately.`
+      description={
+        ar
+          ? `هل أنت متأكد من فتح قفل حساب "${user.username}"؟ سيتم مسح محاولات تسجيل الدخول الفاشلة وفتح الحساب فوراً.`
+          : `Are you sure you want to unlock "${user.username}"? Failed login attempts will be cleared and the account will be unlocked immediately.`
       }
       confirmLabel={ar ? "فتح القفل" : "Unlock"}
       cancelLabel={ar ? "إلغاء" : "Cancel"}

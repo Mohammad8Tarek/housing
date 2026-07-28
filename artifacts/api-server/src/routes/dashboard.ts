@@ -309,62 +309,76 @@ router.get(
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
-      res.status(400).json({ success: false, message: "propertyId is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "propertyId is required" });
       return;
     }
 
     const today = new Date().toISOString().split("T")[0]!;
-    const future = new Date(Date.now() + 3 * 86_400_000).toISOString().split("T")[0]!;
+    const future = new Date(Date.now() + 3 * 86_400_000)
+      .toISOString()
+      .split("T")[0]!;
 
     const result = await withTenant(propertyId, async (tenantDb) => {
       const checkOuts = await safeSelect(() =>
-        tenantDb.select({
-          assignment: assignmentsTable,
-          employee: employeesTable,
-          room: roomsTable,
-        })
-        .from(assignmentsTable)
-        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
-        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
-        .where(
-          and(
-            statusEq(assignmentsTable.status, "active"),
-            gte(assignmentsTable.expectedCheckOutDate, today),
-            lte(assignmentsTable.expectedCheckOutDate, future),
-          ),
-        )
-        .limit(20)
+        tenantDb
+          .select({
+            assignment: assignmentsTable,
+            employee: employeesTable,
+            room: roomsTable,
+          })
+          .from(assignmentsTable)
+          .leftJoin(
+            employeesTable,
+            eq(assignmentsTable.employeeId, employeesTable.id),
+          )
+          .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+          .where(
+            and(
+              statusEq(assignmentsTable.status, "active"),
+              gte(assignmentsTable.expectedCheckOutDate, today),
+              lte(assignmentsTable.expectedCheckOutDate, future),
+            ),
+          )
+          .limit(20),
       );
 
       const checkIns = await safeSelect(() =>
-        tenantDb.select()
-        .from(reservationsTable)
-        .where(
-          and(
-            statusEq(reservationsTable.status, "upcoming"),
-            gte(reservationsTable.checkInDate, today),
-            lte(reservationsTable.checkInDate, future),
-          ),
-        )
-        .limit(20)
+        tenantDb
+          .select()
+          .from(reservationsTable)
+          .where(
+            and(
+              statusEq(reservationsTable.status, "upcoming"),
+              gte(reservationsTable.checkInDate, today),
+              lte(reservationsTable.checkInDate, future),
+            ),
+          )
+          .limit(20),
       );
 
       const maintenanceRequests = await safeSelect(() =>
-        tenantDb.select()
-        .from(maintenanceTable)
-        .where(statusEq(maintenanceTable.status, "open"))
-        .limit(20)
+        tenantDb
+          .select()
+          .from(maintenanceTable)
+          .where(statusEq(maintenanceTable.status, "open"))
+          .limit(20),
       );
 
       return { checkOuts, checkIns, maintenanceRequests };
     });
 
     res.json({
-      checkOuts: result.checkOuts.map(r => ({ ...r.assignment, employeeName: r.employee?.firstName, roomNumber: r.room?.roomNumber })),
+      checkOuts: result.checkOuts.map((r) => ({
+        ...r.assignment,
+        employeeName: r.employee?.firstName,
+        roomNumber: r.room?.roomNumber,
+      })),
       checkIns: result.checkIns,
-      maintenanceRequests: result.maintenanceRequests
+      maintenanceRequests: result.maintenanceRequests,
     });
-  }
+  },
 );
 
 // ─── GET /dashboard/recent-activity ──────────────────────────────────────

@@ -346,11 +346,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   {open ? (
                     <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-60" />
                   ) : (
-                    <ChevronRight className={`h-3.5 w-3.5 flex-shrink-0 opacity-60 ${ar ? "rotate-180" : ""}`} />
+                    <ChevronRight
+                      className={`h-3.5 w-3.5 flex-shrink-0 opacity-60 ${ar ? "rotate-180" : ""}`}
+                    />
                   )}
                 </button>
                 {open && (
-                  <div className={`mt-0.5 ${ar ? "mr-4 pr-3 border-r" : "ml-4 pl-3 border-l"} border-sidebar-border/60 flex flex-col gap-0.5`}>
+                  <div
+                    className={`mt-0.5 ${ar ? "mr-4 pr-3 border-r" : "ml-4 pl-3 border-l"} border-sidebar-border/60 flex flex-col gap-0.5`}
+                  >
                     {item.subItems.map((sub, sIdx) => (
                       <Link
                         key={sIdx}
@@ -624,13 +628,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 ? `/hosting-requests/${n.entityId}`
                                 : n.type === "OPEN_MAINTENANCE"
                                   ? "/maintenance"
-                                : n.type === "NEW_SURVEY"
-                                  ? "/portal"
-                                  : n.type === "NEW_DOCUMENT"
+                                  : n.type === "NEW_SURVEY"
                                     ? "/portal"
-                                    : n.type === "NEW_ACTIVITY"
+                                    : n.type === "NEW_DOCUMENT"
                                       ? "/portal"
-                                      : "/dashboard";
+                                      : n.type === "NEW_ACTIVITY"
+                                        ? "/portal"
+                                        : "/dashboard";
                       return (
                         <DropdownMenuItem
                           key={n.id}
@@ -793,7 +797,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         ? "أنت تتصفح جميع الفروع حالياً. يرجى اختيار فرع محدد من قائمة الفروع للوصول إلى هذه الصفحة."
                         : "You are currently viewing all properties. Please select a specific property from the dropdown to access this page."}
                     </p>
-                    
                   </div>
                 )}
               {children}

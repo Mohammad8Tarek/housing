@@ -38,7 +38,10 @@ function useUserSignature(userId: number) {
     queryFn: async () => {
       const res = await fetch(`/api/users/${userId}/signature`);
       if (!res.ok) throw new Error("Failed to fetch signature");
-      return res.json() as Promise<{ signatureImageUrl: string | null; uploadedAt: string | null }>;
+      return res.json() as Promise<{
+        signatureImageUrl: string | null;
+        uploadedAt: string | null;
+      }>;
     },
     enabled: !!userId,
     staleTime: 30_000,
@@ -60,7 +63,11 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
     jobTitle: user.jobTitle || "none",
   });
 
-  const { data: sigData, isLoading: sigLoading, refetch: refetchSig } = useUserSignature(user.id);
+  const {
+    data: sigData,
+    isLoading: sigLoading,
+    refetch: refetchSig,
+  } = useUserSignature(user.id);
 
   const isSelf = currentUser?.id === user.id;
   const canUploadSignature = isSystemAdmin || isSelf;
@@ -72,18 +79,24 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast.success(ar ? "تم تحديث البيانات بنجاح" : "User data updated successfully");
+        toast.success(
+          ar ? "تم تحديث البيانات بنجاح" : "User data updated successfully",
+        );
         onClose();
       },
       onError: (e: any) =>
-        toast.error(e.message || (ar ? "فشل تحديث البيانات" : "Failed to update user data")),
+        toast.error(
+          e.message ||
+            (ar ? "فشل تحديث البيانات" : "Failed to update user data"),
+        ),
     },
   });
 
-
   const handleSignatureUpload = async (file: File) => {
     if (!["image/png", "image/jpeg"].includes(file.type)) {
-      toast.error(ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image");
+      toast.error(
+        ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image",
+      );
       return;
     }
     setIsUploadingSig(true);
@@ -94,14 +107,18 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
         reader.onerror = () => reject(new Error("Failed to read file"));
         reader.readAsDataURL(file);
       });
-      const endpoint = isSelf ? "/api/users/me/signature" : `/api/users/${user.id}/signature`;
+      const endpoint = isSelf
+        ? "/api/users/me/signature"
+        : `/api/users/${user.id}/signature`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ signatureImage: base64 }),
       });
       if (!res.ok) throw new Error("Upload failed");
-      toast.success(ar ? "تم حفظ التوقيع بنجاح" : "Signature saved successfully");
+      toast.success(
+        ar ? "تم حفظ التوقيع بنجاح" : "Signature saved successfully",
+      );
       refetchSig();
     } catch (err: any) {
       toast.error(ar ? "فشل الرفع" : "Upload failed");
@@ -202,57 +219,60 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
             />
           </div>
 
-          
-            {/* Role / Position */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {ar ? "صلاحية النظام" : "System Role"}
-              </Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) => setFormData({ ...formData, role: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SYSTEM_ROLES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {ar ? r.labelAr : r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Role / Position */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {ar ? "صلاحية النظام" : "System Role"}
+            </Label>
+            <Select
+              value={formData.role}
+              onValueChange={(value) =>
+                setFormData({ ...formData, role: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SYSTEM_ROLES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {ar ? r.labelAr : r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Workflow Role */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {ar ? "منصب الاعتماد (Workflow Role)" : "Workflow Role (Manager)"}
-              </Label>
-              <Select
-                value={formData.jobTitle}
-                onValueChange={(value) => setFormData({ ...formData, jobTitle: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {WORKFLOW_ROLES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {ar ? r.labelAr : r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Workflow Role */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {ar ? "منصب الاعتماد (Workflow Role)" : "Workflow Role (Manager)"}
+            </Label>
+            <Select
+              value={formData.jobTitle}
+              onValueChange={(value) =>
+                setFormData({ ...formData, jobTitle: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {WORKFLOW_ROLES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {ar ? r.labelAr : r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Signature */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {ar ? "توقيع المستخدم" : "User Signature"}
-              </Label>
-              <div className="flex flex-col gap-2">
+          {/* Signature */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {ar ? "توقيع المستخدم" : "User Signature"}
+            </Label>
+            <div className="flex flex-col gap-2">
               <div className="flex items-center gap-4">
                 {sigLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -271,9 +291,15 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
                       variant="outline"
                       size="sm"
                       disabled={isUploadingSig || !canUploadSignature}
-                      onClick={() => document.getElementById('sig-upload')?.click()}
+                      onClick={() =>
+                        document.getElementById("sig-upload")?.click()
+                      }
                     >
-                      {isUploadingSig ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                      {isUploadingSig ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4 mr-2" />
+                      )}
                       {ar ? "استبدال" : "Replace"}
                     </Button>
                   </div>
@@ -283,9 +309,15 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
                     variant="outline"
                     size="sm"
                     disabled={isUploadingSig || !canUploadSignature}
-                    onClick={() => document.getElementById('sig-upload')?.click()}
+                    onClick={() =>
+                      document.getElementById("sig-upload")?.click()
+                    }
                   >
-                    {isUploadingSig ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    {isUploadingSig ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
                     {ar ? "رفع صورة التوقيع" : "Upload Signature"}
                   </Button>
                 )}
@@ -330,9 +362,9 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
                 </p>
               )}
             </div>
-            </div>
+          </div>
 
-            {/* Status */}
+          {/* Status */}
           <div className="space-y-2">
             <Label htmlFor="status" className="text-sm font-medium">
               {ar ? "الحالة" : "Status"}

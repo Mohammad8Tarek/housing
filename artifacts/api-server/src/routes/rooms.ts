@@ -28,75 +28,87 @@ import { requirePermission } from "../middlewares/permissions.js";
 
 const router: Router = Router();
 
-router.get(
-  "/rooms/by-number",
-  async (req, res) => {
-    try {
-      const propertyId = getTenantId(req);
-      if (!propertyId) {
-        res.status(400).json({ error: "propertyId is required" });
-        return;
-      }
-
-      const { number } = req.query;
-      if (!number || typeof number !== "string") {
-        res.status(400).json({ error: "number query parameter is required" });
-        return;
-      }
-
-      const roomDetails = await withTenant(propertyId, async (tenantDb) => {
-        const rows = await tenantDb
-          .select({
-            id: roomsTable.id,
-            roomNumber: roomsTable.roomNumber,
-            roomType: roomsTable.roomType,
-            building: buildingsTable.name,
-            floor: floorsTable.floorNumber,
-          })
-          .from(roomsTable)
-          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
-          .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
-          .where(eq(roomsTable.roomNumber, number.trim()))
-          .limit(1);
-        const room = rows[0];
-        if (!room) return null;
-
-        const assignmentsList = await tenantDb
-          .select({ id: assignmentsTable.id })
-          .from(assignmentsTable)
-          .where(and(eq(assignmentsTable.roomId, room.id), eq(assignmentsTable.status, "ACTIVE")))
-          .limit(1);
-
-        const hostingsList = await tenantDb
-          .select({ id: hostingsTable.id })
-          .from(hostingsTable)
-          .where(and(eq(hostingsTable.roomId, room.id), eq(hostingsTable.status, "ACTIVE")))
-          .limit(1);
-
-        const reservationsList = await tenantDb
-          .select({ id: reservationsTable.id })
-          .from(reservationsTable)
-          .where(and(eq(reservationsTable.roomId, room.id), eq(reservationsTable.status, "UPCOMING")))
-          .limit(1);
-
-        return {
-          ...room,
-          isOccupied: assignmentsList.length > 0 || hostingsList.length > 0,
-          isReserved: reservationsList.length > 0,
-        };
-      });
-
-      if (!roomDetails) {
-        res.status(404).json({ error: "Room not found" });
-        return;
-      }
-
-      res.json(roomDetails);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+router.get("/rooms/by-number", async (req, res) => {
+  try {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
     }
+
+    const { number } = req.query;
+    if (!number || typeof number !== "string") {
+      res.status(400).json({ error: "number query parameter is required" });
+      return;
+    }
+
+    const roomDetails = await withTenant(propertyId, async (tenantDb) => {
+      const rows = await tenantDb
+        .select({
+          id: roomsTable.id,
+          roomNumber: roomsTable.roomNumber,
+          roomType: roomsTable.roomType,
+          building: buildingsTable.name,
+          floor: floorsTable.floorNumber,
+        })
+        .from(roomsTable)
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+        .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
+        .where(eq(roomsTable.roomNumber, number.trim()))
+        .limit(1);
+      const room = rows[0];
+      if (!room) return null;
+
+      const assignmentsList = await tenantDb
+        .select({ id: assignmentsTable.id })
+        .from(assignmentsTable)
+        .where(
+          and(
+            eq(assignmentsTable.roomId, room.id),
+            eq(assignmentsTable.status, "ACTIVE"),
+          ),
+        )
+        .limit(1);
+
+      const hostingsList = await tenantDb
+        .select({ id: hostingsTable.id })
+        .from(hostingsTable)
+        .where(
+          and(
+            eq(hostingsTable.roomId, room.id),
+            eq(hostingsTable.status, "ACTIVE"),
+          ),
+        )
+        .limit(1);
+
+      const reservationsList = await tenantDb
+        .select({ id: reservationsTable.id })
+        .from(reservationsTable)
+        .where(
+          and(
+            eq(reservationsTable.roomId, room.id),
+            eq(reservationsTable.status, "UPCOMING"),
+          ),
+        )
+        .limit(1);
+
+      return {
+        ...room,
+        isOccupied: assignmentsList.length > 0 || hostingsList.length > 0,
+        isReserved: reservationsList.length > 0,
+      };
+    });
+
+    if (!roomDetails) {
+      res.status(404).json({ error: "Room not found" });
+      return;
+    }
+
+    res.json(roomDetails);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-);
+});
 
 router.get(
   "/rooms",
@@ -112,7 +124,10 @@ router.get(
       const query = ListRoomsQueryParams.safeParse(req.query);
       const conditions: SQL[] = [];
       let page = Math.max(1, parseInt(req.query.page as string) || 1);
-      let limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 25));
+      let limit = Math.min(
+        1000,
+        Math.max(1, parseInt(req.query.limit as string) || 25),
+      );
 
       if (query.success) {
         if (query.data.buildingId)
@@ -122,17 +137,25 @@ router.get(
         if (query.data.status)
           conditions.push(eq(roomsTable.status, query.data.status));
       }
-      
+
       const offset = (page - 1) * limit;
 
       const { data, total } = await withTenant(propertyId, async (tenantDb) => {
-        let countQuery = tenantDb.select({ count: sql<number>`count(*)` }).from(roomsTable) as any;
-        if (conditions.length > 0) countQuery = countQuery.where(and(...conditions));
+        let countQuery = tenantDb
+          .select({ count: sql<number>`count(*)` })
+          .from(roomsTable) as any;
+        if (conditions.length > 0)
+          countQuery = countQuery.where(and(...conditions));
         const countResult = await countQuery;
         const totalCount = Number(countResult[0]?.count ?? 0);
 
-        let baseQuery = tenantDb.select().from(roomsTable).limit(limit).offset(offset) as any;
-        if (conditions.length > 0) baseQuery = baseQuery.where(and(...conditions));
+        let baseQuery = tenantDb
+          .select()
+          .from(roomsTable)
+          .limit(limit)
+          .offset(offset) as any;
+        if (conditions.length > 0)
+          baseQuery = baseQuery.where(and(...conditions));
 
         const rows = await baseQuery;
         return { data: rows, total: totalCount };
@@ -146,8 +169,8 @@ router.get(
           total,
           totalPages: Math.ceil(total / limit),
           hasNextPage: page < Math.ceil(total / limit),
-          hasPrevPage: page > 1
-        }
+          hasPrevPage: page > 1,
+        },
       });
     } catch (err: any) {
       console.error("[rooms/list] Error:", err.message);
@@ -295,12 +318,10 @@ router.post(
           .where(eq(roomsTable.roomNumber, parsed.data.roomNumber));
       });
       if (existingRoom.length > 0) {
-        res
-          .status(409)
-          .json({
-            error: `Room ${parsed.data.roomNumber} already exists in this property`,
-            code: "ROOM_DUPLICATE",
-          });
+        res.status(409).json({
+          error: `Room ${parsed.data.roomNumber} already exists in this property`,
+          code: "ROOM_DUPLICATE",
+        });
         return;
       }
 
@@ -401,12 +422,10 @@ router.patch(
       });
       const conflict = existingRoom.find((r) => r.id !== params.data.id);
       if (conflict) {
-        res
-          .status(409)
-          .json({
-            error: `Room ${parsed.data.roomNumber} already exists in this property`,
-            code: "ROOM_DUPLICATE",
-          });
+        res.status(409).json({
+          error: `Room ${parsed.data.roomNumber} already exists in this property`,
+          code: "ROOM_DUPLICATE",
+        });
         return;
       }
     }

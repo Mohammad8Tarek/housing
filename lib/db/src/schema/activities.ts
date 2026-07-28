@@ -1,4 +1,12 @@
-import { pgTable, text, serial, integer, timestamp, date, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  timestamp,
+  date,
+  boolean,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -20,9 +28,14 @@ export const activitiesTable = pgTable("activities", {
   isPublished: boolean("is_published").notNull().default(false),
   targetDepartments: text("target_departments").array().notNull().default([]),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const insertActivitySchema = createInsertSchema(activitiesTable).omit({ id: true, createdAt: true });
+export const insertActivitySchema = createInsertSchema(activitiesTable).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activitiesTable.$inferSelect;

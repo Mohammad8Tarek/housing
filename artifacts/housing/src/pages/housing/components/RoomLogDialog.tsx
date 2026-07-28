@@ -23,7 +23,12 @@ type Props = {
   employees: any[];
 };
 
-export function RoomLogDialog({ room, onClose, assignments, employees }: Props) {
+export function RoomLogDialog({
+  room,
+  onClose,
+  assignments,
+  employees,
+}: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
 

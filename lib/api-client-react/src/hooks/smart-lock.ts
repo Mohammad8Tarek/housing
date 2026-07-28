@@ -5,15 +5,26 @@ import { customFetch } from "../custom-fetch";
 export type EncoderType = "ip" | "usb" | "smart";
 
 // ─── Encoder Status ───
-export const getEncoderStatusUrl = (type: EncoderType = "ip") => `/api/encoder/status?type=${type}`;
-export const getEncoderStatus = async (type: EncoderType = "ip", options?: { signal?: AbortSignal }) => {
-  return customFetch<{ connected: boolean; host: string; port: number; lastActivity?: string; type: EncoderType }>(
-    getEncoderStatusUrl(type),
-    { signal: options?.signal }
-  );
+export const getEncoderStatusUrl = (type: EncoderType = "ip") =>
+  `/api/encoder/status?type=${type}`;
+export const getEncoderStatus = async (
+  type: EncoderType = "ip",
+  options?: { signal?: AbortSignal },
+) => {
+  return customFetch<{
+    connected: boolean;
+    host: string;
+    port: number;
+    lastActivity?: string;
+    type: EncoderType;
+  }>(getEncoderStatusUrl(type), { signal: options?.signal });
 };
-export const getEncoderStatusQueryKey = (type: EncoderType = "ip") => ["/api/encoder/status", type] as const;
-export const getEncoderStatusQueryOptions = (type: EncoderType = "ip", options?: any) => {
+export const getEncoderStatusQueryKey = (type: EncoderType = "ip") =>
+  ["/api/encoder/status", type] as const;
+export const getEncoderStatusQueryOptions = (
+  type: EncoderType = "ip",
+  options?: any,
+) => {
   const { query: queryOptions } = options ?? {};
   const queryKey = queryOptions?.queryKey ?? getEncoderStatusQueryKey(type);
   const queryFn = ({ signal }: any) => getEncoderStatus(type, { signal });
@@ -21,19 +32,36 @@ export const getEncoderStatusQueryOptions = (type: EncoderType = "ip", options?:
 };
 export function useEncoderStatus(type: EncoderType = "ip", options?: any) {
   const queryOptions = getEncoderStatusQueryOptions(type, options);
-  return useQuery<{ connected: boolean; host: string; port: number; lastActivity?: string; type: EncoderType }>(queryOptions);
+  return useQuery<{
+    connected: boolean;
+    host: string;
+    port: number;
+    lastActivity?: string;
+    type: EncoderType;
+  }>(queryOptions);
 }
 
 // ─── Connect Encoder ───
-export const connectEncoder = async (data: { type: EncoderType; host?: string; port?: number }) => {
-  return customFetch<{ success: boolean; status: any; type: EncoderType }>("/api/encoder/connect", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+export const connectEncoder = async (data: {
+  type: EncoderType;
+  host?: string;
+  port?: number;
+}) => {
+  return customFetch<{ success: boolean; status: any; type: EncoderType }>(
+    "/api/encoder/connect",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+  );
 };
 export const useConnectEncoder = (options?: any) => {
-  return useMutation<unknown, Error, { type: EncoderType; host?: string; port?: number }>({
+  return useMutation<
+    unknown,
+    Error,
+    { type: EncoderType; host?: string; port?: number }
+  >({
     mutationKey: ["connectEncoder"],
     mutationFn: connectEncoder,
     ...options,
@@ -105,15 +133,19 @@ export const encodeCard = async (data: {
   });
 };
 export const useEncodeCard = (options?: any) => {
-  return useMutation<unknown, Error, {
-    type: EncoderType;
-    roomNumber: string;
-    checkIn: string;
-    checkOut: string;
-    cardType?: string;
-    ejectionType?: string;
-    user?: string;
-  }>({
+  return useMutation<
+    unknown,
+    Error,
+    {
+      type: EncoderType;
+      roomNumber: string;
+      checkIn: string;
+      checkOut: string;
+      cardType?: string;
+      ejectionType?: string;
+      user?: string;
+    }
+  >({
     mutationKey: ["encodeCard"],
     mutationFn: encodeCard,
     ...options,
@@ -122,7 +154,9 @@ export const useEncodeCard = (options?: any) => {
 
 // ─── List Serial Ports ───
 export const getSerialPorts = async () => {
-  return customFetch<{ path: string; manufacturer?: string; serialNumber?: string }[]>("/api/encoder/serial-ports");
+  return customFetch<
+    { path: string; manufacturer?: string; serialNumber?: string }[]
+  >("/api/encoder/serial-ports");
 };
 export const useSerialPorts = (options?: any) => {
   return useQuery({
@@ -141,7 +175,8 @@ export const getKeysUrl = (propertyId: number, roomId?: number) => {
 export const getKeys = async (propertyId: number, roomId?: number) => {
   return customFetch<any[]>(getKeysUrl(propertyId, roomId));
 };
-export const getKeysQueryKey = (propertyId: number, roomId?: number) => ["/api/keys", propertyId, roomId] as const;
+export const getKeysQueryKey = (propertyId: number, roomId?: number) =>
+  ["/api/keys", propertyId, roomId] as const;
 export const useKeys = (propertyId: number, roomId?: number, options?: any) => {
   return useQuery<any[]>({
     queryKey: getKeysQueryKey(propertyId, roomId),
@@ -168,7 +203,13 @@ export const useIssueKey = (options?: any) => {
 };
 
 // ─── Revoke Key ───
-export const revokeKey = async ({ id, encoderType }: { id: number; encoderType?: EncoderType }) => {
+export const revokeKey = async ({
+  id,
+  encoderType,
+}: {
+  id: number;
+  encoderType?: EncoderType;
+}) => {
   return customFetch<any>(`/api/keys/${id}/revoke`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -176,11 +217,13 @@ export const revokeKey = async ({ id, encoderType }: { id: number; encoderType?:
   });
 };
 export const useRevokeKey = (options?: any) => {
-  return useMutation<unknown, Error, { id: number; encoderType?: EncoderType }>({
-    mutationKey: ["revokeKey"],
-    mutationFn: revokeKey,
-    ...options,
-  });
+  return useMutation<unknown, Error, { id: number; encoderType?: EncoderType }>(
+    {
+      mutationKey: ["revokeKey"],
+      mutationFn: revokeKey,
+      ...options,
+    },
+  );
 };
 
 // ─── Smart Server: Check-In & Issue Key ───
@@ -199,31 +242,38 @@ export const smartCheckinIssueKey = async (data: {
   cardType?: string;
   notes?: string;
 }) => {
-  return customFetch<{ success: boolean; cardUid: string; workstation?: string; cardCount?: number; key?: any }>(
-    "/api/encoder/smart/checkin-issue-key",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }
-  );
+  return customFetch<{
+    success: boolean;
+    cardUid: string;
+    workstation?: string;
+    cardCount?: number;
+    key?: any;
+  }>("/api/encoder/smart/checkin-issue-key", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
 };
 export const useSmartCheckinIssueKey = (options?: any) => {
-  return useMutation<unknown, Error, {
-    roomNumber: string;
-    guestId: string | number;
-    guestName?: string;
-    arrivalDate: string;
-    departureDate: string;
-    checkOutTime?: string;
-    workstation?: string;
-    saveToDb?: boolean;
-    propertyId?: number;
-    roomId?: number;
-    assignmentId?: number;
-    cardType?: string;
-    notes?: string;
-  }>({
+  return useMutation<
+    unknown,
+    Error,
+    {
+      roomNumber: string;
+      guestId: string | number;
+      guestName?: string;
+      arrivalDate: string;
+      departureDate: string;
+      checkOutTime?: string;
+      workstation?: string;
+      saveToDb?: boolean;
+      propertyId?: number;
+      roomId?: number;
+      assignmentId?: number;
+      cardType?: string;
+      notes?: string;
+    }
+  >({
     mutationKey: ["smartCheckinIssueKey"],
     mutationFn: smartCheckinIssueKey,
     ...options,
@@ -231,7 +281,8 @@ export const useSmartCheckinIssueKey = (options?: any) => {
 };
 
 // ─── Audit Log ───
-export const getAuditLogUrl = (propertyId: number) => `/api/keys/audit?propertyId=${propertyId}`;
+export const getAuditLogUrl = (propertyId: number) =>
+  `/api/keys/audit?propertyId=${propertyId}`;
 export const getAuditLog = async (propertyId: number) => {
   return customFetch<any[]>(getAuditLogUrl(propertyId));
 };

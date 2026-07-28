@@ -55,7 +55,11 @@ export function LookupSection({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [editCapacity, setEditCapacity] = useState<number>(2);
-  const [deleteDialog, setDeleteDialog] = useState<{open: boolean, id: number, val: string}>({open: false, id: 0, val: ""});
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    id: number;
+    val: string;
+  }>({ open: false, id: 0, val: "" });
   const queryClient = useQueryClient();
 
   const { data: values = [], isLoading } = useLookupValues(
@@ -100,7 +104,7 @@ export function LookupSection({
   };
 
   const handleDeleteClick = (id: number, val: string) => {
-    setDeleteDialog({open: true, id, val});
+    setDeleteDialog({ open: true, id, val });
   };
 
   const performDelete = async () => {
@@ -357,7 +361,7 @@ export function LookupSection({
 
       <AnimatedConfirmModal
         open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog(prev => ({...prev, open}))}
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
         title={`Delete "${deleteDialog.val}"?`}
         description="Are you sure you want to delete this lookup value?"
         variant="destructive"

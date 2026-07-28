@@ -67,12 +67,10 @@ router.post(
         .where(eq(floorsTable.floorNumber, parsed.data.floorNumber));
     });
     if (existingFloor.length > 0) {
-      res
-        .status(409)
-        .json({
-          error: `Floor ${parsed.data.floorNumber} already exists in this property`,
-          code: "FLOOR_DUPLICATE",
-        });
+      res.status(409).json({
+        error: `Floor ${parsed.data.floorNumber} already exists in this property`,
+        code: "FLOOR_DUPLICATE",
+      });
       return;
     }
 
@@ -132,12 +130,10 @@ router.patch(
       });
       const conflict = existingFloor.find((f) => f.id !== params.data.id);
       if (conflict) {
-        res
-          .status(409)
-          .json({
-            error: `Floor ${parsed.data.floorNumber} already exists in this property`,
-            code: "FLOOR_DUPLICATE",
-          });
+        res.status(409).json({
+          error: `Floor ${parsed.data.floorNumber} already exists in this property`,
+          code: "FLOOR_DUPLICATE",
+        });
         return;
       }
     }

@@ -7,6 +7,6 @@
  */
 
 export type ListHostingsParams = {
-propertyId?: number;
-status?: string;
+  propertyId?: number;
+  status?: string;
 };

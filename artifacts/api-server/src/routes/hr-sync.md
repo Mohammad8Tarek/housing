@@ -11,6 +11,7 @@ Integration is configured per-property via the Settings → HR Sync page.
 ### Pull (Housing → HR)
 
 Configured in Settings → HR Sync:
+
 - **API URL** — the HR system's employee list endpoint (e.g. `https://hr.company.com/api/employees`)
 - **API Key** — sent as `Authorization: Bearer <api_key>` header
 
@@ -129,6 +130,7 @@ All fields except `employeeId` are optional. Missing fields preserve existing va
 ### `POST /api/hr-sync/notify-departure`
 
 Notify the housing system that an employee has been terminated or has left the organization. The system will:
+
 1. Mark the employee status as `departed`
 2. Find any active room assignment
 3. Auto-checkout the employee (set assignment to `CHECKED_OUT`, decrement room occupancy)
@@ -212,14 +214,14 @@ Requires `settings.view` permission.
 
 Settings are stored in the `public.hr_sync_config` table:
 
-| Column          | Type      | Description                         |
-|-----------------|-----------|-------------------------------------|
-| property_id     | integer   | FK to properties table              |
-| api_url         | text      | HR system API endpoint URL          |
-| api_key         | text      | Bearer token for pull auth          |
-| field_mapping   | jsonb     | Field name mapping (key → value)    |
-| is_active       | boolean   | Enable/disable sync                 |
-| last_sync_at    | timestamp | Most recent sync completion         |
+| Column        | Type      | Description                      |
+| ------------- | --------- | -------------------------------- |
+| property_id   | integer   | FK to properties table           |
+| api_url       | text      | HR system API endpoint URL       |
+| api_key       | text      | Bearer token for pull auth       |
+| field_mapping | jsonb     | Field name mapping (key → value) |
+| is_active     | boolean   | Enable/disable sync              |
+| last_sync_at  | timestamp | Most recent sync completion      |
 
 ## Environment Variables
 

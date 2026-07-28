@@ -98,12 +98,10 @@ router.post(
 
       const parsed = CreateActivitySchema.safeParse(req.body);
       if (!parsed.success)
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: parsed.error.errors[0]?.message ?? "Invalid input",
-          });
+        return res.status(400).json({
+          success: false,
+          message: parsed.error.errors[0]?.message ?? "Invalid input",
+        });
 
       const sanitized = sanitizeFields(parsed.data, [
         "titleAr",
@@ -151,13 +149,11 @@ router.post(
       );
 
       if (!result) {
-        return res
-          .status(503)
-          .json({
-            success: false,
-            message:
-              "هذه الميزة غير متاحة بعد / This feature is not available yet",
-          });
+        return res.status(503).json({
+          success: false,
+          message:
+            "هذه الميزة غير متاحة بعد / This feature is not available yet",
+        });
       }
 
       const [record] = result;
@@ -212,12 +208,10 @@ router.put(
 
       const parsed = UpdateActivitySchema.safeParse(req.body);
       if (!parsed.success)
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: parsed.error.errors[0]?.message ?? "Invalid input",
-          });
+        return res.status(400).json({
+          success: false,
+          message: parsed.error.errors[0]?.message ?? "Invalid input",
+        });
 
       const sanitized = sanitizeFields(parsed.data, [
         "titleAr",

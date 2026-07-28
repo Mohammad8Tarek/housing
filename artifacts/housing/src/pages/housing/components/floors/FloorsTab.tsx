@@ -4,8 +4,18 @@ import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateFloor, useUpdateFloor, useDeleteFloor } from "@workspace/api-client-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  useCreateFloor,
+  useUpdateFloor,
+  useDeleteFloor,
+} from "@workspace/api-client-react";
 
 import { FloorsTable } from "./FloorsTable";
 import { FloorModals } from "./FloorModals";
@@ -18,7 +28,13 @@ type Props = {
   fLoading: boolean;
 };
 
-export function FloorsTab({ propertyId, buildings, floors, rooms, fLoading }: Props) {
+export function FloorsTab({
+  propertyId,
+  buildings,
+  floors,
+  rooms,
+  fLoading,
+}: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
 
@@ -38,29 +54,46 @@ export function FloorsTab({ propertyId, buildings, floors, rooms, fLoading }: Pr
   const [floorBuildingFilter, setFloorBuildingFilter] = useState("all");
 
   const filteredFloors = floors.filter(
-    (f) => floorBuildingFilter === "all" || f.buildingId === Number(floorBuildingFilter)
+    (f) =>
+      floorBuildingFilter === "all" ||
+      f.buildingId === Number(floorBuildingFilter),
   );
 
   const openCreateFloor = () => {
     setEditFloor(null);
-    setFForm({ buildingId: buildings[0]?.id || 0, floorNumber: "", description: "" });
+    setFForm({
+      buildingId: buildings[0]?.id || 0,
+      floorNumber: "",
+      description: "",
+    });
     setFloorModal(true);
   };
 
   const openEditFloor = (f: any) => {
     setEditFloor(f);
-    setFForm({ buildingId: f.buildingId, floorNumber: f.floorNumber, description: f.description || "" });
+    setFForm({
+      buildingId: f.buildingId,
+      floorNumber: f.floorNumber,
+      description: f.description || "",
+    });
     setFloorModal(true);
   };
 
   const saveFloorHandler = async () => {
     if (!fForm.buildingId || !fForm.floorNumber.trim()) {
-      toast.error(ar ? "المبنى ورقم الطابق مطلوبان" : "Building and floor number are required");
+      toast.error(
+        ar
+          ? "المبنى ورقم الطابق مطلوبان"
+          : "Building and floor number are required",
+      );
       return;
     }
     try {
       if (editFloor) {
-        await updateFloorMut.mutateAsync({ id: editFloor.id, data: { ...fForm } });
+        await updateFloorMut.mutateAsync({
+          id: editFloor.id,
+          data: { ...fForm },
+        });
         toast.success(ar ? "تم تحديث الطابق بنجاح" : "Floor updated");
       } else {
         await createFloorMut.mutateAsync({ data: { ...fForm, propertyId } });
@@ -87,14 +120,21 @@ export function FloorsTab({ propertyId, buildings, floors, rooms, fLoading }: Pr
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <Select value={floorBuildingFilter} onValueChange={setFloorBuildingFilter}>
+          <Select
+            value={floorBuildingFilter}
+            onValueChange={setFloorBuildingFilter}
+          >
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>
+              <SelectItem value="all">
+                {ar ? "كل المباني" : "All Buildings"}
+              </SelectItem>
               {buildings.map((b) => (
-                <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                <SelectItem key={b.id} value={String(b.id)}>
+                  {b.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -108,7 +148,7 @@ export function FloorsTab({ propertyId, buildings, floors, rooms, fLoading }: Pr
           </Button>
         </PermissionGate>
       </div>
-      
+
       <FloorsTable
         buildings={buildings}
         floors={floors}

@@ -26,11 +26,11 @@ const MODULE_QUERY_KEYS: Record<string, string[]> = {
   hostings: ["/api/hostings"],
   "hosting-requests": ["/api/hosting-requests"],
   accommodation: [
-    "/api/assignments", 
-    "/api/rooms", 
-    "/api/reservations", 
-    "/api/hostings", 
-    "/api/hosting-requests"
+    "/api/assignments",
+    "/api/rooms",
+    "/api/reservations",
+    "/api/hostings",
+    "/api/hosting-requests",
   ],
   notifications: ["/api/notifications"],
   dashboard: [
@@ -73,7 +73,7 @@ export function useWebSocket(): { isConnected: boolean } {
   // Use refs to avoid reconnecting WS when language/toast change
   const toastRef = useRef(toast);
   const arRef = useRef(ar);
-  
+
   useEffect(() => {
     toastRef.current = toast;
     arRef.current = ar;
@@ -142,7 +142,7 @@ export function useWebSocket(): { isConnected: boolean } {
         // Ignored
       }
     }
-    
+
     if (!wsUrl) {
       const proto = window.location.protocol === "https:" ? "wss" : "ws";
       const hostname = window.location.hostname;
@@ -182,17 +182,24 @@ export function useWebSocket(): { isConnected: boolean } {
             const isForCurrentUser = !targetUserId || targetUserId === user?.id;
 
             if (!isForCurrentUser) {
-              console.info("[WS] 🔕 Notification filtered out for another user", {
-                targetUserId,
-                currentUserId: user?.id,
-              });
+              console.info(
+                "[WS] 🔕 Notification filtered out for another user",
+                {
+                  targetUserId,
+                  currentUserId: user?.id,
+                },
+              );
               return;
             }
 
             console.info("[WS] 🔔 New Custom Notification Received");
             toastRef.current({
-              title: arRef.current ? msg.data.titleAr || msg.data.title : msg.data.title,
-              description: arRef.current ? msg.data.messageAr || msg.data.message : msg.data.message,
+              title: arRef.current
+                ? msg.data.titleAr || msg.data.title
+                : msg.data.title,
+              description: arRef.current
+                ? msg.data.messageAr || msg.data.message
+                : msg.data.message,
             });
             invalidateModule("notifications");
           } else if (msg.type === "data_updated" && msg.module) {
@@ -200,20 +207,28 @@ export function useWebSocket(): { isConnected: boolean } {
               `[WS] 🔔 ${msg.module}/${msg.action} — invalidating module`,
             );
             invalidateModule(msg.module as string);
-            
+
             // Show toast for specific module events
             if (msg.action === "created") {
               let tTitle = "";
               let tDesc = "";
               if (msg.module === "maintenance") {
-                tTitle = arRef.current ? "تذكرة صيانة جديدة" : "New Maintenance Ticket";
-                tDesc = arRef.current ? "تم إنشاء تذكرة صيانة جديدة." : "A new maintenance ticket was created.";
+                tTitle = arRef.current
+                  ? "تذكرة صيانة جديدة"
+                  : "New Maintenance Ticket";
+                tDesc = arRef.current
+                  ? "تم إنشاء تذكرة صيانة جديدة."
+                  : "A new maintenance ticket was created.";
               } else if (msg.module === "assignments") {
                 tTitle = arRef.current ? "تسكين جديد" : "New Assignment";
-                tDesc = arRef.current ? "تم تسكين موظف جديد." : "A new employee assignment was created.";
+                tDesc = arRef.current
+                  ? "تم تسكين موظف جديد."
+                  : "A new employee assignment was created.";
               } else if (msg.module === "reservations") {
                 tTitle = arRef.current ? "حجز جديد" : "New Reservation";
-                tDesc = arRef.current ? "تم إضافة حجز جديد." : "A new reservation was added.";
+                tDesc = arRef.current
+                  ? "تم إضافة حجز جديد."
+                  : "A new reservation was added.";
               }
               if (tTitle) {
                 toastRef.current({ title: tTitle, description: tDesc });
@@ -221,13 +236,19 @@ export function useWebSocket(): { isConnected: boolean } {
             } else if (msg.action === "updated") {
               if (msg.module === "maintenance") {
                 toastRef.current({
-                  title: arRef.current ? "تحديث في تذكرة صيانة" : "Maintenance Ticket Updated",
-                  description: arRef.current ? "تم تحديث تذكرة صيانة." : "A maintenance ticket was updated."
+                  title: arRef.current
+                    ? "تحديث في تذكرة صيانة"
+                    : "Maintenance Ticket Updated",
+                  description: arRef.current
+                    ? "تم تحديث تذكرة صيانة."
+                    : "A maintenance ticket was updated.",
                 });
               } else if (msg.module === "assignments") {
                 toastRef.current({
                   title: arRef.current ? "تحديث التسكين" : "Assignment Updated",
-                  description: arRef.current ? "تم تحديث بيانات التسكين." : "An employee assignment was updated."
+                  description: arRef.current
+                    ? "تم تحديث بيانات التسكين."
+                    : "An employee assignment was updated.",
                 });
               }
             }

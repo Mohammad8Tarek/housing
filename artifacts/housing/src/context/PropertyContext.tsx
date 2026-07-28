@@ -82,12 +82,21 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         if (serverId === -1) {
           targetId = "all";
         } else {
-          targetId = serverId && serverId > 0 ? serverId : (user.propertyId || (allProperties.length > 0 ? (allProperties[0] as Property).id : undefined));
+          targetId =
+            serverId && serverId > 0
+              ? serverId
+              : user.propertyId ||
+                (allProperties.length > 0
+                  ? (allProperties[0] as Property).id
+                  : undefined);
         }
       } else {
         if (serverId && serverId > 0 && userPropertyIds.includes(serverId)) {
           targetId = serverId;
-        } else if (user.propertyId && userPropertyIds.includes(user.propertyId)) {
+        } else if (
+          user.propertyId &&
+          userPropertyIds.includes(user.propertyId)
+        ) {
           targetId = user.propertyId;
         } else {
           targetId = userPropertyIds[0];
@@ -100,9 +109,16 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       }
     } else {
       // Enforce restrictions if they have an activePropertyId
-      if (!isSuperAdmin && (activePropertyId === "all" || !userPropertyIds.includes(activePropertyId as number))) {
+      if (
+        !isSuperAdmin &&
+        (activePropertyId === "all" ||
+          !userPropertyIds.includes(activePropertyId as number))
+      ) {
         const serverId = (user as any).lastPropertyId;
-        const fallback = (serverId && serverId > 0 && userPropertyIds.includes(serverId)) ? serverId : userPropertyIds[0];
+        const fallback =
+          serverId && serverId > 0 && userPropertyIds.includes(serverId)
+            ? serverId
+            : userPropertyIds[0];
         if (fallback) {
           setActivePropertyIdState(fallback);
           localStorage.setItem("activePropertyId", String(fallback));

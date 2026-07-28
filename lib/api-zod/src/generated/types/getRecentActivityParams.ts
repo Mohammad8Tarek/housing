@@ -7,6 +7,6 @@
  */
 
 export type GetRecentActivityParams = {
-propertyId?: number;
-limit?: number;
+  propertyId?: number;
+  limit?: number;
 };

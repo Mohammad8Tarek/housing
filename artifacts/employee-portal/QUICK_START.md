@@ -15,12 +15,14 @@ npm run dev
 ## اختبار PWA
 
 ### على المتصفح (DevTools):
+
 1. اضغط F12
 2. اذهب لـ **Application** tab
 3. فعّل **"Offline"** mode
 4. يجب أن تظهر صفحة offline جميلة
 
 ### على الهاتف الفعلي:
+
 1. استخدم نفس الشبكة المحلية
 2. اذهب إلى `http://[pc-ip]:10000`
 3. اضغط على تثبيت التطبيق
@@ -30,14 +32,14 @@ npm run dev
 
 ## ملفات مهمة
 
-| الملف | الوصف |
-|-------|--------|
-| `vite.config.ts` | PWA + caching config |
-| `index.html` | Meta tags موجهة للموبايل |
-| `public/manifest.json` | PWA manifest |
-| `public/offline.html` | Offline fallback |
-| `src/index.css` | Mobile-first styles |
-| `src/hooks/useMobileGestures.tsx` | Gesture hooks |
+| الملف                             | الوصف                    |
+| --------------------------------- | ------------------------ |
+| `vite.config.ts`                  | PWA + caching config     |
+| `index.html`                      | Meta tags موجهة للموبايل |
+| `public/manifest.json`            | PWA manifest             |
+| `public/offline.html`             | Offline fallback         |
+| `src/index.css`                   | Mobile-first styles      |
+| `src/hooks/useMobileGestures.tsx` | Gesture hooks            |
 
 ---
 
@@ -50,7 +52,7 @@ npm run dev
 ✅ **Safe Area Support** - للـ iPhone notch  
 ✅ **Glass Effects** - تأثيرات حديثة  
 ✅ **Haptic Feedback** - اهتزازات اللمس  
-✅ **Performance** - محسّن للموبايل  
+✅ **Performance** - محسّن للموبايل
 
 ---
 
@@ -58,12 +60,14 @@ npm run dev
 
 **س: كيف أغيّر اللون الأساسي؟**
 ج: عدّل في `vite.config.ts`:
+
 ```typescript
-theme_color: "#your-color"
+theme_color: "#your-color";
 ```
 
 **س: كيف أعطّل الـ offline mode؟**
 ج: في `vite.config.ts`:
+
 ```typescript
 workbox: {
   cleanupOutdatedCaches: false,
@@ -75,9 +79,9 @@ workbox: {
 
 **س: كيف أختبر الـ notifications؟**
 ج: في console:
+
 ```javascript
-navigator.serviceWorker.ready
-  .then(reg => reg.showNotification('Hello!'))
+navigator.serviceWorker.ready.then((reg) => reg.showNotification("Hello!"));
 ```
 
 ---

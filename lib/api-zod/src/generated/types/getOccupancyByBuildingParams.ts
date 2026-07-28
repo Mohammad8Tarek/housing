@@ -7,5 +7,5 @@
  */
 
 export type GetOccupancyByBuildingParams = {
-propertyId?: number;
+  propertyId?: number;
 };

@@ -36,17 +36,28 @@ export function ResetPasswordDialog({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast.success(ar ? "تمت إعادة تعيين كلمة المرور بنجاح" : "Password reset successfully");
+        toast.success(
+          ar
+            ? "تمت إعادة تعيين كلمة المرور بنجاح"
+            : "Password reset successfully",
+        );
         onClose();
       },
       onError: (e: any) =>
-        toast.error(e.message || (ar ? "فشل إعادة تعيين كلمة المرور" : "Failed to reset password")),
+        toast.error(
+          e.message ||
+            (ar ? "فشل إعادة تعيين كلمة المرور" : "Failed to reset password"),
+        ),
     },
   });
 
   const handleResetPassword = () => {
     if (!newPassword || newPassword.length < 6) {
-      toast.error(ar ? "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل" : "Password must be at least 6 characters");
+      toast.error(
+        ar
+          ? "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل"
+          : "Password must be at least 6 characters",
+      );
       return;
     }
     resetPasswordMutation.mutate({

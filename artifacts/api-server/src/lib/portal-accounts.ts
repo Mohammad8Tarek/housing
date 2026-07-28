@@ -70,7 +70,11 @@ export async function ensureEmployeePortalAccount(
         failedAttempts: 0,
         lockedUntil: null,
       } as any);
-      return { employeeId: normalizedEmployeeId, created: true, temporaryPassword };
+      return {
+        employeeId: normalizedEmployeeId,
+        created: true,
+        temporaryPassword,
+      };
     } catch {
       // If insert fails (unique violation), account already exists
       return { employeeId: normalizedEmployeeId, created: false };

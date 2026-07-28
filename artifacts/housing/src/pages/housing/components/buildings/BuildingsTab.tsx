@@ -1,6 +1,18 @@
 // @ts-nocheck
 import { useState } from "react";
-import { Plus, Building2, MapPin, Users, Pencil, Trash2, Wand2, ChevronUp, ChevronDown, Layers, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Building2,
+  MapPin,
+  Users,
+  Pencil,
+  Trash2,
+  Wand2,
+  ChevronUp,
+  ChevronDown,
+  Layers,
+  Loader2,
+} from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
@@ -35,14 +47,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-  useCreateBuilding, 
-  useUpdateBuilding, 
+import {
+  useCreateBuilding,
+  useUpdateBuilding,
   useDeleteBuilding,
   useCreateFloor,
-  useCreateRoom 
+  useCreateRoom,
 } from "@workspace/api-client-react";
-import { buildingStatusBadge, makeDefaultFloor, FloorConfig } from "../../utils";
+import {
+  buildingStatusBadge,
+  makeDefaultFloor,
+  FloorConfig,
+} from "../../utils";
 
 const roomTypes = [
   "Standard",
@@ -79,7 +95,6 @@ export function BuildingsTab({
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
-
 
   const createBuildingMut = useCreateBuilding();
   const updateBuildingMut = useUpdateBuilding();
@@ -191,9 +206,11 @@ export function BuildingsTab({
       } else {
         if (smartMode) {
           if (smartTotalRooms > 200) {
-            toast.error(ar
+            toast.error(
+              ar
                 ? "الحد الأقصى 200 غرفة في العملية الواحدة"
-                : "Max 200 rooms per operation");
+                : "Max 200 rooms per operation",
+            );
             return;
           }
 
@@ -239,9 +256,11 @@ export function BuildingsTab({
             }
           }
 
-          toast.success(ar
+          toast.success(
+            ar
               ? `تم إنشاء المبنى و ${smartTotalRooms} غرفة`
-              : `Building and ${smartTotalRooms} rooms created`);
+              : `Building and ${smartTotalRooms} rooms created`,
+          );
           setIsBuildingGenerating(false);
           setBuildingModal(false);
         } else {

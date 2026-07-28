@@ -25,7 +25,11 @@ type EmployeeResult = {
   firstName: string;
   lastName: string;
   jobTitle: string | null;
-  department: string | null; accommodationRoom?: string | null; accommodationRoomType?: string | null; accommodationBuilding?: string | null; accommodationFloor?: string | null;
+  department: string | null;
+  accommodationRoom?: string | null;
+  accommodationRoomType?: string | null;
+  accommodationBuilding?: string | null;
+  accommodationFloor?: string | null;
 };
 
 export default function CreateHostingRequest() {
@@ -35,7 +39,7 @@ export default function CreateHostingRequest() {
   const { properties, activePropertyId } = useProperty();
   const { user } = useAuth();
 
-      const [form, setForm] = useState({
+  const [form, setForm] = useState({
     hotelId: "",
     clockNumber: "",
     visitHotelId: "",
@@ -50,16 +54,20 @@ export default function CreateHostingRequest() {
     attachmentData: "",
   });
 
-  const [assignedRoomInfo, setAssignedRoomInfo] = useState<{ id: number, roomType: string, building: string, floor: string, isOccupied?: boolean, isReserved?: boolean } | null>(null);
+  const [assignedRoomInfo, setAssignedRoomInfo] = useState<{
+    id: number;
+    roomType: string;
+    building: string;
+    floor: string;
+    isOccupied?: boolean;
+    isReserved?: boolean;
+  } | null>(null);
   const [isSearchingRoom, setIsSearchingRoom] = useState(false);
   const searchRoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-
 
   const [employee, setEmployee] = useState<EmployeeResult | null>(null);
   const [isSearchingEmp, setIsSearchingEmp] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
 
   // Auto-fetch employee by Clock Number
   useEffect(() => {
@@ -67,18 +75,22 @@ export default function CreateHostingRequest() {
       setEmployee(null);
       return;
     }
-    
+
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    
+
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearchingEmp(true);
       try {
         const propId = form.hotelId || activePropertyId || "";
-        const resp = await fetch(`/api/employees/search?q=${encodeURIComponent(form.clockNumber)}&propertyId=${propId}`);
+        const resp = await fetch(
+          `/api/employees/search?q=${encodeURIComponent(form.clockNumber)}&propertyId=${propId}`,
+        );
         const data = await resp.json();
         if (Array.isArray(data) && data.length > 0) {
           // Find exact match or first result
-          const exact = data.find((e) => String(e.employeeId) === String(form.clockNumber));
+          const exact = data.find(
+            (e) => String(e.employeeId) === String(form.clockNumber),
+          );
           setEmployee(exact || data[0]);
         } else {
           setEmployee(null);
@@ -95,21 +107,23 @@ export default function CreateHostingRequest() {
     };
   }, [form.clockNumber, form.hotelId, activePropertyId]);
 
-
-
   useEffect(() => {
     if (!form.assignedRoomNumber || form.assignedRoomNumber.length < 1) {
       setAssignedRoomInfo(null);
       return;
     }
-    
-    if (searchRoomTimeoutRef.current) clearTimeout(searchRoomTimeoutRef.current);
-    
+
+    if (searchRoomTimeoutRef.current)
+      clearTimeout(searchRoomTimeoutRef.current);
+
     searchRoomTimeoutRef.current = setTimeout(async () => {
       setIsSearchingRoom(true);
       try {
-        const propId = form.visitHotelId || form.hotelId || activePropertyId || "";
-        const resp = await fetch(`/api/rooms/by-number?number=${encodeURIComponent(form.assignedRoomNumber)}&propertyId=${propId}`);
+        const propId =
+          form.visitHotelId || form.hotelId || activePropertyId || "";
+        const resp = await fetch(
+          `/api/rooms/by-number?number=${encodeURIComponent(form.assignedRoomNumber)}&propertyId=${propId}`,
+        );
         if (resp.ok) {
           const data = await resp.json();
           setAssignedRoomInfo(data);
@@ -124,7 +138,8 @@ export default function CreateHostingRequest() {
     }, 500);
 
     return () => {
-      if (searchRoomTimeoutRef.current) clearTimeout(searchRoomTimeoutRef.current);
+      if (searchRoomTimeoutRef.current)
+        clearTimeout(searchRoomTimeoutRef.current);
     };
   }, [form.assignedRoomNumber, form.hotelId, activePropertyId]);
 
@@ -135,7 +150,13 @@ export default function CreateHostingRequest() {
         const from = field === "fromDate" ? value : prev.fromDate;
         const to = field === "toDate" ? value : prev.toDate;
         if (from && to) {
-          const diff = Math.max(0, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / (1000 * 60 * 60 * 24)));
+          const diff = Math.max(
+            0,
+            Math.ceil(
+              (new Date(to).getTime() - new Date(from).getTime()) /
+                (1000 * 60 * 60 * 24),
+            ),
+          );
           updated.consumedDays = diff;
         }
       }
@@ -149,9 +170,11 @@ export default function CreateHostingRequest() {
       const res = await fetch("/api/hosting-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
+        body: JSON.stringify({
           hotelId: form.hotelId ? parseInt(form.hotelId) : undefined,
-          visitHotelId: form.visitHotelId ? parseInt(form.visitHotelId) : undefined,
+          visitHotelId: form.visitHotelId
+            ? parseInt(form.visitHotelId)
+            : undefined,
           clockNumber: form.clockNumber || undefined,
           numberOfRooms: 1,
           assignedRoomId: assignedRoomInfo?.id || undefined,
@@ -177,14 +200,24 @@ export default function CreateHostingRequest() {
       setLocation(`/hosting-requests/${created.id}`);
     },
     onError: (err: Error) => {
-      toast.error(err.message)
+      toast.error(err.message);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.hotelId || !form.clockNumber || !form.visitHotelId || !form.assignedRoomNumber || !form.familyMembersCount || !form.fromDate || !form.toDate) {
-      toast.error(ar ? "يرجى ملء الحقول المطلوبة (*)" : "Please fill required fields (*)");
+    if (
+      !form.hotelId ||
+      !form.clockNumber ||
+      !form.visitHotelId ||
+      !form.assignedRoomNumber ||
+      !form.familyMembersCount ||
+      !form.fromDate ||
+      !form.toDate
+    ) {
+      toast.error(
+        ar ? "يرجى ملء الحقول المطلوبة (*)" : "Please fill required fields (*)",
+      );
       return;
     }
     createMutation.mutate();
@@ -193,13 +226,19 @@ export default function CreateHostingRequest() {
   return (
     <div className="space-y-6 p-1">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/hosting-requests")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setLocation("/hosting-requests")}
+        >
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">
             {ar ? "إنشاء طلب استضافة" : "Create Hosting Request"}
-            {employee ? ` - ${employee.firstName} ${employee.lastName} (${employee.jobTitle || ""})` : ""}
+            {employee
+              ? ` - ${employee.firstName} ${employee.lastName} (${employee.jobTitle || ""})`
+              : ""}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             {ar ? "طلبات" : "requests"}
@@ -219,9 +258,14 @@ export default function CreateHostingRequest() {
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
             <div className="space-y-2">
               <Label>{ar ? "السكن الأساسي *" : "Residence *"}</Label>
-              <Select value={form.hotelId} onValueChange={(v) => updateField("hotelId", v)}>
+              <Select
+                value={form.hotelId}
+                onValueChange={(v) => updateField("hotelId", v)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={ar ? "اختر الفندق" : "Select Hotel"} />
+                  <SelectValue
+                    placeholder={ar ? "اختر الفندق" : "Select Hotel"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {properties?.map((p) => (
@@ -232,12 +276,19 @@ export default function CreateHostingRequest() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label>{ar ? "سكن الزيارة *" : "Visit Residence *"}</Label>
-              <Select value={form.visitHotelId} onValueChange={(v) => updateField("visitHotelId", v)}>
+              <Select
+                value={form.visitHotelId}
+                onValueChange={(v) => updateField("visitHotelId", v)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={ar ? "اختر سكن الزيارة" : "Select Visit Residence"} />
+                  <SelectValue
+                    placeholder={
+                      ar ? "اختر سكن الزيارة" : "Select Visit Residence"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {properties?.map((p) => (
@@ -265,7 +316,9 @@ export default function CreateHostingRequest() {
             <div className="space-y-2">
               <Label className="flex justify-between">
                 <span>{ar ? "رقم البصمة *" : "Clock Number *"}</span>
-                {isSearchingEmp && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                {isSearchingEmp && (
+                  <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                )}
               </Label>
               <Input
                 placeholder="12345"
@@ -278,7 +331,9 @@ export default function CreateHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee ? `${employee.firstName} ${employee.lastName}` : ""}
+                value={
+                  employee ? `${employee.firstName} ${employee.lastName}` : ""
+                }
                 placeholder={ar ? "الاسم" : "Name"}
               />
             </div>
@@ -355,20 +410,37 @@ export default function CreateHostingRequest() {
                   min={1}
                   required
                   value={form.familyMembersCount}
-                  onChange={(e) => updateField("familyMembersCount", e.target.value)}
+                  onChange={(e) =>
+                    updateField("familyMembersCount", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
-                <Label>{ar ? "أفراد العائلة المشمولين *" : "Family Members Included *"}</Label>
-                <Select value={form.familyMembersIncluded} onValueChange={(v) => updateField("familyMembersIncluded", v)}>
+                <Label>
+                  {ar
+                    ? "أفراد العائلة المشمولين *"
+                    : "Family Members Included *"}
+                </Label>
+                <Select
+                  value={form.familyMembersIncluded}
+                  onValueChange={(v) => updateField("familyMembersIncluded", v)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={ar ? "اختر" : "Select"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Spouse">{ar ? "الزوج/الزوجة" : "Spouse"}</SelectItem>
-                    <SelectItem value="Children">{ar ? "الأبناء" : "Children"}</SelectItem>
-                    <SelectItem value="Parents">{ar ? "الوالدين" : "Parents"}</SelectItem>
-                    <SelectItem value="Spouse & Children">{ar ? "الزوج/الزوجة والأبناء" : "Spouse & Children"}</SelectItem>
+                    <SelectItem value="Spouse">
+                      {ar ? "الزوج/الزوجة" : "Spouse"}
+                    </SelectItem>
+                    <SelectItem value="Children">
+                      {ar ? "الأبناء" : "Children"}
+                    </SelectItem>
+                    <SelectItem value="Parents">
+                      {ar ? "الوالدين" : "Parents"}
+                    </SelectItem>
+                    <SelectItem value="Spouse & Children">
+                      {ar ? "الزوج/الزوجة والأبناء" : "Spouse & Children"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -395,11 +467,16 @@ export default function CreateHostingRequest() {
               </div>
               <div className="space-y-2">
                 <Label>{ar ? "الأيام المستهلكة *" : "Consumed Days *"}</Label>
-                <Input type="number" value={form.consumedDays} readOnly className="bg-muted/50" />
+                <Input
+                  type="number"
+                  value={form.consumedDays}
+                  readOnly
+                  className="bg-muted/50"
+                />
               </div>
             </div>
 
-                        <div className="space-y-2">
+            <div className="space-y-2">
               <Label>{ar ? "ملاحظات" : "Remarks"}</Label>
               <Textarea
                 rows={3}
@@ -410,15 +487,21 @@ export default function CreateHostingRequest() {
 
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Label className="text-primary font-semibold">{ar ? "غرفة الاستضافة المعينة *" : "Assigned Hosting Room *"}</Label>
+                <Label className="text-primary font-semibold">
+                  {ar ? "غرفة الاستضافة المعينة *" : "Assigned Hosting Room *"}
+                </Label>
                 {assignedRoomInfo?.isOccupied && (
                   <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">
-                    {ar ? "هذه الغرفة ساكنة حالياً!" : "Room is currently occupied!"}
+                    {ar
+                      ? "هذه الغرفة ساكنة حالياً!"
+                      : "Room is currently occupied!"}
                   </span>
                 )}
                 {assignedRoomInfo?.isReserved && (
                   <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">
-                    {ar ? "يوجد حجز قادم على هذه الغرفة!" : "Room has an upcoming reservation!"}
+                    {ar
+                      ? "يوجد حجز قادم على هذه الغرفة!"
+                      : "Room has an upcoming reservation!"}
                   </span>
                 )}
               </div>
@@ -426,33 +509,46 @@ export default function CreateHostingRequest() {
                 <div className="space-y-2">
                   <Label className="flex justify-between">
                     <span>{ar ? "رقم الغرفة" : "Room Number"}</span>
-                    {isSearchingRoom && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                    {isSearchingRoom && (
+                      <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                    )}
                   </Label>
                   <Input
                     placeholder="101"
                     value={form.assignedRoomNumber}
-                    onChange={(e) => updateField("assignedRoomNumber", e.target.value)}
+                    onChange={(e) =>
+                      updateField("assignedRoomNumber", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>{ar ? "نوع الغرفة" : "Room Type"}</Label>
-                  <Input readOnly className="bg-muted/50" value={assignedRoomInfo?.roomType || ""} />
+                  <Input
+                    readOnly
+                    className="bg-muted/50"
+                    value={assignedRoomInfo?.roomType || ""}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{ar ? "المبنى" : "Building"}</Label>
-                  <Input readOnly className="bg-muted/50" value={assignedRoomInfo?.building || ""} />
+                  <Input
+                    readOnly
+                    className="bg-muted/50"
+                    value={assignedRoomInfo?.building || ""}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{ar ? "الدور" : "Floor"}</Label>
-                  <Input readOnly className="bg-muted/50" value={assignedRoomInfo?.floor || ""} />
+                  <Input
+                    readOnly
+                    className="bg-muted/50"
+                    value={assignedRoomInfo?.floor || ""}
+                  />
                 </div>
               </div>
             </div>
-
           </CardContent>
         </Card>
-
-        
 
         {/* Section 5: Attachments */}
         <Card className="border-t-4 border-t-primary/20">
@@ -472,7 +568,11 @@ export default function CreateHostingRequest() {
                   const file = e.target.files?.[0];
                   if (file) {
                     if (file.size > 5 * 1024 * 1024) {
-                      toast.error(ar ? "حجم الملف كبير جداً (أقصى حد 5 ميجا)" : "File size too large (max 5MB)");
+                      toast.error(
+                        ar
+                          ? "حجم الملف كبير جداً (أقصى حد 5 ميجا)"
+                          : "File size too large (max 5MB)",
+                      );
                       return;
                     }
                     const reader = new FileReader();
@@ -494,10 +594,14 @@ export default function CreateHostingRequest() {
                 ) : (
                   <>
                     <p className="font-semibold text-foreground">
-                      {ar ? "انقر للرفع أو اسحب الملفات هنا" : "Click to upload or drag files here"}
+                      {ar
+                        ? "انقر للرفع أو اسحب الملفات هنا"
+                        : "Click to upload or drag files here"}
                     </p>
                     <p className="text-sm mt-1">
-                      {ar ? "الحد الأقصى لحجم الملف 5 ميجابايت" : "Max file size 5MB"}
+                      {ar
+                        ? "الحد الأقصى لحجم الملف 5 ميجابايت"
+                        : "Max file size 5MB"}
                     </p>
                   </>
                 )}

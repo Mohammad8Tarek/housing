@@ -143,9 +143,15 @@ export const moduleActions = (module: Module): Action[] =>
 export const permKey = (module: Module, action: Action) =>
   `${module}.${action}`;
 
-export const getPermissionsForRoles = (roles: Array<string | undefined | null>): string[] => {
+export const getPermissionsForRoles = (
+  roles: Array<string | undefined | null>,
+): string[] => {
   const normalized = (roles ?? [])
-    .map((role) => String(role ?? "").trim().toLowerCase())
+    .map((role) =>
+      String(role ?? "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
 
   const merged = new Set<string>();

@@ -41,12 +41,24 @@ export function BuildingsTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الاسم" : "Name"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الموقع" : "Location"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الطوابق" : "Floors"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الغرف" : "Rooms"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "السعة" : "Capacity"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الحالة" : "Status"}</th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الاسم" : "Name"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الموقع" : "Location"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الطوابق" : "Floors"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الغرف" : "Rooms"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "السعة" : "Capacity"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الحالة" : "Status"}
+            </th>
             <th className="p-3" />
           </tr>
         </thead>
@@ -83,19 +95,31 @@ export function BuildingsTable({
                   </span>
                 </td>
                 <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${buildingStatusBadge(b.status)}`}>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${buildingStatusBadge(b.status)}`}
+                  >
                     {b.status}
                   </span>
                 </td>
                 <td className="p-3">
                   <div className="flex items-center gap-1 justify-end">
                     <PermissionGate module="housing" action="edit">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditBuilding(b)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onEditBuilding(b)}
+                      >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                     </PermissionGate>
                     <PermissionGate module="housing" action="delete">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteBuilding(b)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => onDeleteBuilding(b)}
+                      >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </PermissionGate>
@@ -106,7 +130,10 @@ export function BuildingsTable({
           })}
           {buildings.length === 0 && (
             <tr>
-              <td colSpan={7} className="py-12 text-center text-muted-foreground">
+              <td
+                colSpan={7}
+                className="py-12 text-center text-muted-foreground"
+              >
                 <Building2 className="w-8 h-8 opacity-30 mx-auto mb-2" />
                 <p>{ar ? "لا توجد مبانٍ" : "No buildings yet"}</p>
               </td>

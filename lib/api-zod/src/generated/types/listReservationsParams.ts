@@ -7,6 +7,6 @@
  */
 
 export type ListReservationsParams = {
-propertyId?: number;
-status?: string;
+  propertyId?: number;
+  status?: string;
 };

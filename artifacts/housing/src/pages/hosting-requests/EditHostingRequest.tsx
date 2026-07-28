@@ -25,7 +25,11 @@ type EmployeeResult = {
   firstName: string;
   lastName: string;
   jobTitle: string | null;
-  department: string | null; accommodationRoom?: string | null; accommodationRoomType?: string | null; accommodationBuilding?: string | null; accommodationFloor?: string | null;
+  department: string | null;
+  accommodationRoom?: string | null;
+  accommodationRoomType?: string | null;
+  accommodationBuilding?: string | null;
+  accommodationFloor?: string | null;
 };
 
 export default function EditHostingRequest() {
@@ -48,7 +52,7 @@ export default function EditHostingRequest() {
     remarks: "",
   });
 
-    const params = useParams();
+  const params = useParams();
   const requestId = params.id;
 
   const { data: requestRes, isLoading: isLoadingRequest } = useQuery({
@@ -69,8 +73,12 @@ export default function EditHostingRequest() {
         clockNumber: r.clockNumber ? String(r.clockNumber) : "",
         visitHotelId: r.visitHotelId ? String(r.visitHotelId) : "",
         numberOfRooms: r.numberOfRooms ? String(r.numberOfRooms) : "",
-        assignedRoomNumber: r.assignedRoomNumber ? String(r.assignedRoomNumber) : "",
-        familyMembersCount: r.familyMembersCount ? String(r.familyMembersCount) : "",
+        assignedRoomNumber: r.assignedRoomNumber
+          ? String(r.assignedRoomNumber)
+          : "",
+        familyMembersCount: r.familyMembersCount
+          ? String(r.familyMembersCount)
+          : "",
         familyMembersIncluded: r.familyMembersIncluded || "",
         fromDate: r.fromDate ? String(r.fromDate).split("T")[0] : "",
         toDate: r.toDate ? String(r.toDate).split("T")[0] : "",
@@ -90,18 +98,22 @@ export default function EditHostingRequest() {
       setEmployee(null);
       return;
     }
-    
+
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    
+
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearchingEmp(true);
       try {
         const propId = form.hotelId || activePropertyId || "";
-        const resp = await fetch(`/api/employees/search?q=${encodeURIComponent(form.clockNumber)}&propertyId=${propId}`);
+        const resp = await fetch(
+          `/api/employees/search?q=${encodeURIComponent(form.clockNumber)}&propertyId=${propId}`,
+        );
         const data = await resp.json();
         if (Array.isArray(data) && data.length > 0) {
           // Find exact match or first result
-          const exact = data.find((e) => String(e.employeeId) === String(form.clockNumber));
+          const exact = data.find(
+            (e) => String(e.employeeId) === String(form.clockNumber),
+          );
           setEmployee(exact || data[0]);
         } else {
           setEmployee(null);
@@ -125,7 +137,13 @@ export default function EditHostingRequest() {
         const from = field === "fromDate" ? value : prev.fromDate;
         const to = field === "toDate" ? value : prev.toDate;
         if (from && to) {
-          const diff = Math.max(0, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / (1000 * 60 * 60 * 24)));
+          const diff = Math.max(
+            0,
+            Math.ceil(
+              (new Date(to).getTime() - new Date(from).getTime()) /
+                (1000 * 60 * 60 * 24),
+            ),
+          );
           updated.consumedDays = diff;
         }
       }
@@ -141,7 +159,9 @@ export default function EditHostingRequest() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           hotelId: form.hotelId ? parseInt(form.hotelId) : undefined,
-          visitHotelId: form.visitHotelId ? parseInt(form.visitHotelId) : undefined,
+          visitHotelId: form.visitHotelId
+            ? parseInt(form.visitHotelId)
+            : undefined,
           numberOfRooms: parseInt(form.numberOfRooms),
           familyMembersCount: parseInt(form.familyMembersCount),
           familyMembersIncluded: form.familyMembersIncluded || undefined,
@@ -164,14 +184,24 @@ export default function EditHostingRequest() {
       setLocation(`/hosting-requests/${updated.id}`);
     },
     onError: (err: Error) => {
-      toast.error(err.message)
+      toast.error(err.message);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.hotelId || !form.clockNumber || !form.visitHotelId || !form.numberOfRooms || !form.familyMembersCount || !form.fromDate || !form.toDate) {
-      toast.error(ar ? "يرجى ملء الحقول المطلوبة (*)" : "Please fill required fields (*)");
+    if (
+      !form.hotelId ||
+      !form.clockNumber ||
+      !form.visitHotelId ||
+      !form.numberOfRooms ||
+      !form.familyMembersCount ||
+      !form.fromDate ||
+      !form.toDate
+    ) {
+      toast.error(
+        ar ? "يرجى ملء الحقول المطلوبة (*)" : "Please fill required fields (*)",
+      );
       return;
     }
     updateMutation.mutate();
@@ -182,7 +212,11 @@ export default function EditHostingRequest() {
   return (
     <div className="space-y-6 p-1">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setLocation(`/hosting-requests/${requestId}`)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setLocation(`/hosting-requests/${requestId}`)}
+        >
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
@@ -207,9 +241,14 @@ export default function EditHostingRequest() {
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
             <div className="space-y-2">
               <Label>{ar ? "الفندق *" : "Hotel *"}</Label>
-              <Select value={form.hotelId} onValueChange={(v) => updateField("hotelId", v)}>
+              <Select
+                value={form.hotelId}
+                onValueChange={(v) => updateField("hotelId", v)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={ar ? "اختر الفندق" : "Select Hotel"} />
+                  <SelectValue
+                    placeholder={ar ? "اختر الفندق" : "Select Hotel"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {properties?.map((p) => (
@@ -220,11 +259,13 @@ export default function EditHostingRequest() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="flex justify-between">
                 <span>{ar ? "رقم البصمة *" : "Clock Number *"}</span>
-                {isSearchingEmp && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                {isSearchingEmp && (
+                  <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                )}
               </Label>
               <Input
                 placeholder="12345"
@@ -235,9 +276,16 @@ export default function EditHostingRequest() {
 
             <div className="space-y-2">
               <Label>{ar ? "فندق الزيارة *" : "Visit Hotel *"}</Label>
-              <Select value={form.visitHotelId} onValueChange={(v) => updateField("visitHotelId", v)}>
+              <Select
+                value={form.visitHotelId}
+                onValueChange={(v) => updateField("visitHotelId", v)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={ar ? "اختر فندق الزيارة" : "Select Visit Hotel"} />
+                  <SelectValue
+                    placeholder={
+                      ar ? "اختر فندق الزيارة" : "Select Visit Hotel"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {properties?.map((p) => (
@@ -267,7 +315,9 @@ export default function EditHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee ? `${employee.firstName} ${employee.lastName}` : ""}
+                value={
+                  employee ? `${employee.firstName} ${employee.lastName}` : ""
+                }
                 placeholder={ar ? "الاسم" : "Name"}
               />
             </div>
@@ -354,20 +404,37 @@ export default function EditHostingRequest() {
                   min={1}
                   required
                   value={form.familyMembersCount}
-                  onChange={(e) => updateField("familyMembersCount", e.target.value)}
+                  onChange={(e) =>
+                    updateField("familyMembersCount", e.target.value)
+                  }
                 />
               </div>
               <div className="space-y-2">
-                <Label>{ar ? "أفراد العائلة المشمولين *" : "Family Members Included *"}</Label>
-                <Select value={form.familyMembersIncluded} onValueChange={(v) => updateField("familyMembersIncluded", v)}>
+                <Label>
+                  {ar
+                    ? "أفراد العائلة المشمولين *"
+                    : "Family Members Included *"}
+                </Label>
+                <Select
+                  value={form.familyMembersIncluded}
+                  onValueChange={(v) => updateField("familyMembersIncluded", v)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={ar ? "اختر" : "Select"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Spouse">{ar ? "الزوج/الزوجة" : "Spouse"}</SelectItem>
-                    <SelectItem value="Children">{ar ? "الأبناء" : "Children"}</SelectItem>
-                    <SelectItem value="Parents">{ar ? "الوالدين" : "Parents"}</SelectItem>
-                    <SelectItem value="Spouse & Children">{ar ? "الزوج/الزوجة والأبناء" : "Spouse & Children"}</SelectItem>
+                    <SelectItem value="Spouse">
+                      {ar ? "الزوج/الزوجة" : "Spouse"}
+                    </SelectItem>
+                    <SelectItem value="Children">
+                      {ar ? "الأبناء" : "Children"}
+                    </SelectItem>
+                    <SelectItem value="Parents">
+                      {ar ? "الوالدين" : "Parents"}
+                    </SelectItem>
+                    <SelectItem value="Spouse & Children">
+                      {ar ? "الزوج/الزوجة والأبناء" : "Spouse & Children"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -394,7 +461,12 @@ export default function EditHostingRequest() {
               </div>
               <div className="space-y-2">
                 <Label>{ar ? "الأيام المستهلكة *" : "Consumed Days *"}</Label>
-                <Input type="number" value={form.consumedDays} readOnly className="bg-muted/50" />
+                <Input
+                  type="number"
+                  value={form.consumedDays}
+                  readOnly
+                  className="bg-muted/50"
+                />
               </div>
             </div>
 
@@ -424,10 +496,14 @@ export default function EditHostingRequest() {
               </div>
               <div className="text-center">
                 <p className="font-semibold text-foreground">
-                  {ar ? "انقر للرفع أو اسحب الملفات هنا" : "Click to upload or drag files here"}
+                  {ar
+                    ? "انقر للرفع أو اسحب الملفات هنا"
+                    : "Click to upload or drag files here"}
                 </p>
                 <p className="text-sm mt-1">
-                  {ar ? "الحد الأقصى لحجم الملف 5 ميجابايت" : "Max file size 5MB"}
+                  {ar
+                    ? "الحد الأقصى لحجم الملف 5 ميجابايت"
+                    : "Max file size 5MB"}
                 </p>
               </div>
             </div>

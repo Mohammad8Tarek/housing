@@ -23,7 +23,6 @@ export function ChangePasswordDialog({
   open,
   onOpenChange,
 }: ChangePasswordDialogProps) {
-
   const { language } = useLanguage();
   const ar = language === "ar";
   const [isLoading, setIsLoading] = useState(false);
@@ -43,9 +42,11 @@ export function ChangePasswordDialog({
       return;
     }
     if (form.newPassword.length < 6) {
-      toast.error(ar
+      toast.error(
+        ar
           ? "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل"
-          : "Password must be at least 6 characters");
+          : "Password must be at least 6 characters",
+      );
       return;
     }
 
@@ -64,22 +65,20 @@ export function ChangePasswordDialog({
       if (!response.ok) {
         const error = await response.json();
         toast.error(
-            error.error ||
-            (ar ? "فشل تغيير كلمة المرور" : "Failed to change password")
+          error.error ||
+            (ar ? "فشل تغيير كلمة المرور" : "Failed to change password"),
         );
         return;
       }
 
-      toast.success(ar
-          ? "تم تغيير كلمة المرور بنجاح!"
-          : "Password changed successfully!");
+      toast.success(
+        ar ? "تم تغيير كلمة المرور بنجاح!" : "Password changed successfully!",
+      );
       setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       onOpenChange(false);
     } catch (err: any) {
       console.error("Change password error:", err);
-      toast.error(
-          ar ? "خطأ في تغيير كلمة المرور" : "Error changing password"
-      );
+      toast.error(ar ? "خطأ في تغيير كلمة المرور" : "Error changing password");
     } finally {
       setIsLoading(false);
     }

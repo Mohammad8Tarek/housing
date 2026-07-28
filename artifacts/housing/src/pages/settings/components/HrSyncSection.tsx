@@ -46,8 +46,12 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
           setIsActive(d.isActive ?? false);
         }
       })
-      .catch(() => { toast.error(ar ? "فشل تحميل إعدادات المزامنة" : "Failed to load sync settings"); })
-    }, [propertyId]);
+      .catch(() => {
+        toast.error(
+          ar ? "فشل تحميل إعدادات المزامنة" : "Failed to load sync settings",
+        );
+      });
+  }, [propertyId]);
 
   const saveConfig = async () => {
     if (!propertyId) return;
@@ -92,9 +96,11 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
       });
       if (!resp.ok) throw new Error((await resp.json()).message);
       const d = await resp.json();
-      toast.success(ar
+      toast.success(
+        ar
           ? `تمت المزامنة: ${d.created || 0} جديد، ${d.updated || 0} تحديث`
-          : `Sync complete: ${d.created || 0} created, ${d.updated || 0} updated`);
+          : `Sync complete: ${d.created || 0} created, ${d.updated || 0} updated`,
+      );
     } catch (err: any) {
       toast.error(err.message || "Sync failed");
     } finally {

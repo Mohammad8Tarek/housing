@@ -140,8 +140,7 @@ export default function PortalNotifications() {
       setShowCreate(false);
       setForm(EMPTY_FORM);
     },
-    onError: () =>
-      toast.error(ar ? "خطأ في الإنشاء" : "Creation failed"),
+    onError: () => toast.error(ar ? "خطأ في الإنشاء" : "Creation failed"),
   });
 
   // ── Delete notification ────────────────────────────────────────
@@ -166,15 +165,14 @@ export default function PortalNotifications() {
         queryKey: ["portal-notifications-stats-admin", activePropertyId],
       });
     },
-    onError: () =>
-      toast.error(ar ? "فشل الحذف" : "Delete failed"),
+    onError: () => toast.error(ar ? "فشل الحذف" : "Delete failed"),
   });
 
   const handleCreate = () => {
     if (!form.title || !form.message) {
-      toast.error(ar
-          ? "العنوان والرسالة مطلوبان"
-          : "Title and message are required");
+      toast.error(
+        ar ? "العنوان والرسالة مطلوبان" : "Title and message are required",
+      );
       return;
     }
     createMutation.mutate({

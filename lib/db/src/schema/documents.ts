@@ -8,5 +8,7 @@ export const portalDocumentsTable = pgTable("portal_documents", {
   fileType: text("file_type").notNull(),
   fileData: text("file_data").notNull(),
   category: text("category").notNull().default("policy"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });

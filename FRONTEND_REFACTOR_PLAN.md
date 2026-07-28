@@ -7,15 +7,16 @@
 
 ## 1. The Problem
 
-| File | Size | Estimated Lines | Components Inside |
-|------|------|-----------------|-------------------|
-| `reports.tsx` | ~97 KB | ~2,500 | Multiple report types, charts, filters, export logic |
-| `housing.tsx` | ~84 KB | ~2,200 | Room assignment, status badges, bulk actions, filters |
-| `portal.tsx` | ~68 KB | ~1,700 | Chat, food/transport, notifications, contacts, schedule |
-| `users.tsx` | ~62 KB | ~1,600 | CRUD table, modals, forms, permission editor |
-| `settings.tsx` | ~43 KB | ~1,100 | Tabs, forms, lookups, system config |
+| File           | Size   | Estimated Lines | Components Inside                                       |
+| -------------- | ------ | --------------- | ------------------------------------------------------- |
+| `reports.tsx`  | ~97 KB | ~2,500          | Multiple report types, charts, filters, export logic    |
+| `housing.tsx`  | ~84 KB | ~2,200          | Room assignment, status badges, bulk actions, filters   |
+| `portal.tsx`   | ~68 KB | ~1,700          | Chat, food/transport, notifications, contacts, schedule |
+| `users.tsx`    | ~62 KB | ~1,600          | CRUD table, modals, forms, permission editor            |
+| `settings.tsx` | ~43 KB | ~1,100          | Tabs, forms, lookups, system config                     |
 
 **Why this is bad:**
+
 - Impossible to review in PRs.
 - Re-renders affect everything (no memoization boundaries).
 - Business logic mixed with UI logic.
@@ -45,6 +46,7 @@
 ```
 
 **Rule of Thumb:**
+
 - No component file > 300 lines.
 - No component > 10 KB.
 - No `useEffect` > 5 lines (extract to custom hook).
@@ -57,6 +59,7 @@
 ### 3.1 `reports.tsx` (~97 KB)
 
 **Current Structure:** Single file with:
+
 - Report type selector (tabs)
 - Multiple chart types (bar, line, pie)
 - Data table with pagination
@@ -94,6 +97,7 @@
 ### 3.2 `housing.tsx` (~84 KB)
 
 **Current Structure:** Single file with:
+
 - Room grid / list view toggle
 - Status badges (occupied, vacant, maintenance)
 - Room assignment modal
@@ -136,6 +140,7 @@
 ### 3.3 `portal.tsx` (~68 KB) — Employee Portal
 
 **Current Structure:** Single file with:
+
 - Chat interface
 - Food/transport requests
 - Notifications
@@ -174,6 +179,7 @@
 ### 3.4 `users.tsx` (~62 KB)
 
 **Current Structure:** Single file with:
+
 - User CRUD table
 - Create/Edit modal with forms
 - Permission matrix editor
@@ -212,6 +218,7 @@
 ### 3.5 `settings.tsx` (~43 KB)
 
 **Current Structure:** Single file with:
+
 - Tabbed interface (General, Properties, Lookups, System)
 - Multiple forms
 - Lookup value management
@@ -246,37 +253,42 @@
 
 During the refactor, extract these common components to `components/ui/` or `components/shared/`:
 
-| Component | Used In | Action |
-|-----------|---------|--------|
-| `DataTable` | reports, users, housing, maintenance | Already exists? Check if radix-table can be extracted |
-| `FilterBar` | reports, housing, users, maintenance | Extract generic filter container |
-| `ExportButton` | reports, users | Wrap html2canvas + jspdf + xlsx logic |
-| `ConfirmModal` | housing, users, settings | Generic confirmation dialog |
-| `StatusBadge` | housing, maintenance, users | Color + label based on status enum |
-| `SearchInput` | housing, users, maintenance | Debounced search with clear button |
-| `FormModal` | users, settings, housing | Reusable modal with form + submit/cancel |
-| `DateRangePicker` | reports, activity-log | Reusable date range selection |
-| `KpiCard` | reports, dashboard | Metric card with icon + trend |
+| Component         | Used In                              | Action                                                |
+| ----------------- | ------------------------------------ | ----------------------------------------------------- |
+| `DataTable`       | reports, users, housing, maintenance | Already exists? Check if radix-table can be extracted |
+| `FilterBar`       | reports, housing, users, maintenance | Extract generic filter container                      |
+| `ExportButton`    | reports, users                       | Wrap html2canvas + jspdf + xlsx logic                 |
+| `ConfirmModal`    | housing, users, settings             | Generic confirmation dialog                           |
+| `StatusBadge`     | housing, maintenance, users          | Color + label based on status enum                    |
+| `SearchInput`     | housing, users, maintenance          | Debounced search with clear button                    |
+| `FormModal`       | users, settings, housing             | Reusable modal with form + submit/cancel              |
+| `DateRangePicker` | reports, activity-log                | Reusable date range selection                         |
+| `KpiCard`         | reports, dashboard                   | Metric card with icon + trend                         |
 
 ---
 
 ## 5. State Management Strategy
 
 ### Current State
+
 - React Query for server state
 - React `useState` for local UI state
 - Context for auth, language, property
 
 ### Recommended Improvements
+
 1. **Move filter state to URL query params:**
+
    ```tsx
    // Use wouter's useLocation + URLSearchParams
    // OR use a custom hook:
    const [filters, setFilters] = useUrlFilters({ page: 1, status: "" });
    ```
+
    Benefit: Shareable URLs, back button works, no state lost on refresh.
 
 2. **Extract data fetching into dedicated hooks:**
+
    ```tsx
    // hooks/useReports.ts
    export function useReports(filters: ReportFilters) {
@@ -295,14 +307,14 @@ During the refactor, extract these common components to `components/ui/` or `com
 
 ## 6. Performance Optimizations During Refactor
 
-| Technique | Where | Benefit |
-|-----------|-------|---------|
-| `React.lazy()` + `Suspense` | `App.tsx` route components | Smaller initial bundle |
-| `React.memo()` | RoomCard, ReportRow, UserRow | Prevent re-renders when parent changes |
-| `useMemo()` | Expensive calculations (KPIs, chart data) | Avoid re-computation |
-| `useCallback()` | Event handlers passed to children | Stable references for memo |
-| Virtual scrolling | Large tables (>100 rows) | Smooth rendering |
-| Debounced search | Search inputs | Fewer API calls |
+| Technique                   | Where                                     | Benefit                                |
+| --------------------------- | ----------------------------------------- | -------------------------------------- |
+| `React.lazy()` + `Suspense` | `App.tsx` route components                | Smaller initial bundle                 |
+| `React.memo()`              | RoomCard, ReportRow, UserRow              | Prevent re-renders when parent changes |
+| `useMemo()`                 | Expensive calculations (KPIs, chart data) | Avoid re-computation                   |
+| `useCallback()`             | Event handlers passed to children         | Stable references for memo             |
+| Virtual scrolling           | Large tables (>100 rows)                  | Smooth rendering                       |
+| Debounced search            | Search inputs                             | Fewer API calls                        |
 
 ---
 
@@ -325,6 +337,7 @@ describe("ReportFilters", () => {
 ```
 
 **Test priorities:**
+
 1. Filter components (most user interaction)
 2. Modal components (complex state)
 3. Data tables (rendering + pagination)
@@ -335,36 +348,43 @@ describe("ReportFilters", () => {
 ## 8. Step-by-Step Execution Order
 
 ### Phase 1: Foundation (2 days)
+
 1. Set up folder structure template in `pages/_template/`
 2. Create shared components: `FilterBar`, `ConfirmModal`, `StatusBadge`, `SearchInput`
 3. Add `useUrlFilters` hook utility
 4. Configure Vitest + React Testing Library
 
 ### Phase 2: `settings.tsx` (Pilot) (1 day)
+
 - Smallest file → good for testing the pattern
 - Extract tabs, forms, lookup manager
 - Verify bundle size reduction
 - Write tests for extracted components
 
 ### Phase 3: `users.tsx` (2 days)
+
 - Extract table, filters, modals, permission matrix
 - Add tests for CRUD operations
 
 ### Phase 4: `portal.tsx` (2 days)
+
 - Extract chat, requests, notifications, contacts, schedule
 - Mobile-first testing (Capacitor)
 
 ### Phase 5: `housing.tsx` (3 days)
+
 - Core business logic → be careful
 - Extract room views, assignment flow, guest hosting
 - Test bulk actions thoroughly
 
 ### Phase 6: `reports.tsx` (3–4 days)
+
 - Largest file → most complex
 - Extract charts, tables, export logic, filters
 - Test export functionality with large datasets
 
 ### Phase 7: `App.tsx` Cleanup (1 day)
+
 - Remove `@ts-nocheck`
 - Add `React.lazy()` for all routes
 - Add `<Suspense>` boundaries
@@ -376,27 +396,27 @@ describe("ReportFilters", () => {
 
 ## 9. Success Metrics
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Largest file size | ~97 KB | <20 KB |
-| Lines per file (max) | ~2,500 | <300 |
-| Files in `pages/` | 5 massive files | 20+ focused files |
-| Test coverage (pages) | 0% | >50% |
-| Build time (housing) | ~X s | ~30% faster (lazy loading) |
-| HMR speed | Slow | Fast (smaller modules) |
+| Metric                | Before          | After                      |
+| --------------------- | --------------- | -------------------------- |
+| Largest file size     | ~97 KB          | <20 KB                     |
+| Lines per file (max)  | ~2,500          | <300                       |
+| Files in `pages/`     | 5 massive files | 20+ focused files          |
+| Test coverage (pages) | 0%              | >50%                       |
+| Build time (housing)  | ~X s            | ~30% faster (lazy loading) |
+| HMR speed             | Slow            | Fast (smaller modules)     |
 
 ---
 
 ## 10. Risks & Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| Breaking existing functionality | Refactor one file at a time, test before moving to next |
-| Time overrun | Start with smallest file (`settings.tsx`) as pilot |
-| Lost git history | Use `git mv` for file moves, preserve blame |
-| Merge conflicts | Do refactor in a dedicated branch, merge frequently from main |
-| Mobile portal regression | Test on Capacitor after each portal refactor |
+| Risk                            | Mitigation                                                    |
+| ------------------------------- | ------------------------------------------------------------- |
+| Breaking existing functionality | Refactor one file at a time, test before moving to next       |
+| Time overrun                    | Start with smallest file (`settings.tsx`) as pilot            |
+| Lost git history                | Use `git mv` for file moves, preserve blame                   |
+| Merge conflicts                 | Do refactor in a dedicated branch, merge frequently from main |
+| Mobile portal regression        | Test on Capacitor after each portal refactor                  |
 
 ---
 
-*End of Plan*
+_End of Plan_

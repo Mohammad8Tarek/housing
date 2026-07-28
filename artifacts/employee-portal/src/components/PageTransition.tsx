@@ -45,9 +45,7 @@ export function LoginSignatureTransition({
           <motion.div
             className="relative w-24 h-24 rounded-full bg-accent2 flex items-center justify-center shadow-2xl"
             initial={
-              reduced
-                ? { scale: 1, opacity: 1 }
-                : { scale: 0.4, opacity: 0 }
+              reduced ? { scale: 1, opacity: 1 } : { scale: 0.4, opacity: 0 }
             }
             animate={
               reduced
@@ -57,11 +55,7 @@ export function LoginSignatureTransition({
                     opacity: [0, 1, 1],
                   }
             }
-            exit={
-              reduced
-                ? { opacity: 0 }
-                : { scale: 1.4, opacity: 0 }
-            }
+            exit={reduced ? { opacity: 0 } : { scale: 1.4, opacity: 0 }}
             transition={
               reduced
                 ? { duration: 0 }
@@ -71,9 +65,7 @@ export function LoginSignatureTransition({
             <motion.span
               className="text-accent2-foreground"
               initial={reduced ? false : { scale: 0.6, rotate: -45 }}
-              animate={
-                reduced ? false : { scale: 1, rotate: [-45, 10, 0] }
-              }
+              animate={reduced ? false : { scale: 1, rotate: [-45, 10, 0] }}
               transition={
                 reduced
                   ? { duration: 0 }

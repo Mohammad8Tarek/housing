@@ -1,4 +1,10 @@
-import { db, pool, hostingsTable, hostingCompanionsTable, withTenant } from "./index.js";
+import {
+  db,
+  pool,
+  hostingsTable,
+  hostingCompanionsTable,
+  withTenant,
+} from "./index.js";
 import { eq, inArray } from "drizzle-orm";
 
 /**
@@ -12,7 +18,7 @@ async function seedCompanions() {
   try {
     // Get all properties
     const result = await pool.query(
-      "SELECT id, schema_name FROM public.properties WHERE status = 'active' ORDER BY id"
+      "SELECT id, schema_name FROM public.properties WHERE status = 'active' ORDER BY id",
     );
     const properties = result.rows;
 
@@ -25,7 +31,9 @@ async function seedCompanions() {
       const propertyId = prop.id;
       const schemaName = prop.schema_name;
 
-      console.log(`\n📌 Processing property: ${propertyId} (schema: ${schemaName})`);
+      console.log(
+        `\n📌 Processing property: ${propertyId} (schema: ${schemaName})`,
+      );
 
       const hostings = await withTenant(propertyId, async (tenantDb) => {
         return await tenantDb.select().from(hostingsTable).limit(5);
@@ -41,15 +49,20 @@ async function seedCompanions() {
         const hosting = hostings[i];
 
         // Check if companions already exist
-        const existingCompanions = await withTenant(propertyId, async (tenantDb) => {
-          return await tenantDb
-            .select()
-            .from(hostingCompanionsTable)
-            .where(eq(hostingCompanionsTable.hostingId, hosting.id));
-        });
+        const existingCompanions = await withTenant(
+          propertyId,
+          async (tenantDb) => {
+            return await tenantDb
+              .select()
+              .from(hostingCompanionsTable)
+              .where(eq(hostingCompanionsTable.hostingId, hosting.id));
+          },
+        );
 
         if (existingCompanions.length > 0) {
-          console.log(`  ├─ Hosting #${hosting.id} already has ${existingCompanions.length} companion(s)`);
+          console.log(
+            `  ├─ Hosting #${hosting.id} already has ${existingCompanions.length} companion(s)`,
+          );
           continue;
         }
 
@@ -84,11 +97,13 @@ async function seedCompanions() {
               relation: c.relation ?? null,
               isChild: c.isChild ?? 0,
               age: (c as any).age ?? null,
-            }))
+            })),
           );
         });
 
-        console.log(`  ├─ ✓ Added ${companions.length} companion(s) to hosting #${hosting.id}`);
+        console.log(
+          `  ├─ ✓ Added ${companions.length} companion(s) to hosting #${hosting.id}`,
+        );
       }
     }
 

@@ -95,7 +95,10 @@ export function loadConfig(): AppConfig {
 
   // Look for config.json next to the exe or in current dir
   const locations = [
-    path.join(process.execPath ? path.dirname(process.execPath) : process.cwd(), "config.json"),
+    path.join(
+      process.execPath ? path.dirname(process.execPath) : process.cwd(),
+      "config.json",
+    ),
     path.join(process.cwd(), "config.json"),
     path.join(__dirname, "..", "config.json"),
   ];
@@ -110,7 +113,9 @@ export function loadConfig(): AppConfig {
 
   if (!configPath) {
     console.error("\n❌ ERROR: config.json not found!");
-    console.error("   Please copy config.example.json to config.json and fill in your settings.\n");
+    console.error(
+      "   Please copy config.example.json to config.json and fill in your settings.\n",
+    );
     process.exit(1);
   }
 
@@ -127,7 +132,7 @@ export function loadConfig(): AppConfig {
 
 export function mapFields(
   record: Record<string, any>,
-  fieldMap: Record<string, string>
+  fieldMap: Record<string, string>,
 ): Partial<HousingEmployee> {
   const result: Record<string, any> = {};
   for (const [housingField, sourceField] of Object.entries(fieldMap)) {

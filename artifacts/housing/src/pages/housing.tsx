@@ -31,16 +31,24 @@ export default function Housing() {
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [roomLogRoom, setRoomLogRoom] = useState<any>(null);
 
-  const { data: bData, isLoading: bLoading } = useListBuildings({ propertyId: activePropertyId as number });
-  const { data: fData, isLoading: fLoading } = useListFloors({ propertyId: activePropertyId as number });
+  const { data: bData, isLoading: bLoading } = useListBuildings({
+    propertyId: activePropertyId as number,
+  });
+  const { data: fData, isLoading: fLoading } = useListFloors({
+    propertyId: activePropertyId as number,
+  });
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
     { propertyId: activePropertyId as number, limit: 1000 },
     { query: { staleTime: 0 } },
   );
   const rData = _rDataWrapper?.data || [];
-  const { data: aData } = useListAssignments({ propertyId: activePropertyId as number });
-  
-  const { data: eDataWrapper } = useListEmployees({ propertyId: activePropertyId as number });
+  const { data: aData } = useListAssignments({
+    propertyId: activePropertyId as number,
+  });
+
+  const { data: eDataWrapper } = useListEmployees({
+    propertyId: activePropertyId as number,
+  });
   const eData = eDataWrapper?.data || [];
   if (!activePropertyId) {
     return (
@@ -71,7 +79,9 @@ export default function Housing() {
   );
   const freeBeds = totalCapacity - currentOccupancy;
   const occPct =
-    totalCapacity > 0 ? Math.round((currentOccupancy / totalCapacity) * 100) : 0;
+    totalCapacity > 0
+      ? Math.round((currentOccupancy / totalCapacity) * 100)
+      : 0;
 
   return (
     <div className="flex-1 w-full p-6 md:p-8 space-y-6">
@@ -170,7 +180,11 @@ export default function Housing() {
           { id: "buildings", label: ar ? "المباني" : "Buildings" },
           { id: "floors", label: ar ? "الطوابق" : "Floors" },
           { id: "rooms", label: ar ? "الغرف" : "Rooms" },
-          { id: "keys", label: ar ? "المفاتيح" : "Keys", icon: <Key className="w-3.5 h-3.5 mr-1.5" /> },
+          {
+            id: "keys",
+            label: ar ? "المفاتيح" : "Keys",
+            icon: <Key className="w-3.5 h-3.5 mr-1.5" />,
+          },
         ].map((t) => (
           <button
             key={t.id}
@@ -207,7 +221,6 @@ export default function Housing() {
         )}
         {tab === "buildings" && (
           <BuildingsTab
-            
             buildings={buildings}
             floors={floors}
             rooms={rooms}
@@ -216,7 +229,6 @@ export default function Housing() {
         )}
         {tab === "floors" && (
           <FloorsTab
-            
             buildings={buildings}
             floors={floors}
             rooms={rooms}
@@ -225,7 +237,6 @@ export default function Housing() {
         )}
         {tab === "rooms" && (
           <RoomsTab
-            
             buildings={buildings}
             floors={floors}
             rooms={rooms}
@@ -238,7 +249,6 @@ export default function Housing() {
             rooms={rooms}
             assignments={assignments}
             employees={employees}
-            
           />
         )}
       </div>

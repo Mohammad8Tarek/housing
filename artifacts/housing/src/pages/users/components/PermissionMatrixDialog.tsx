@@ -54,11 +54,16 @@ export function PermissionMatrixDialog({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast.success(ar ? "تم تحديث الصلاحيات بنجاح" : "Permissions updated successfully");
+        toast.success(
+          ar ? "تم تحديث الصلاحيات بنجاح" : "Permissions updated successfully",
+        );
         onClose();
       },
       onError: (e: any) =>
-        toast.error(e.message || (ar ? "فشل حفظ الصلاحيات" : "Failed to save permissions")),
+        toast.error(
+          e.message ||
+            (ar ? "فشل حفظ الصلاحيات" : "Failed to save permissions"),
+        ),
     },
   });
 
@@ -149,8 +154,13 @@ export function PermissionMatrixDialog({
           <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
             {ar ? "الدور الحالي" : "Current Role"}:
           </span>
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleColor(user.roles?.[0] || "manager")}`}>
-            {ROLES.find((r: any) => r.value === (user.roles?.[0] || "").toLowerCase())?.label ?? (user.roles?.[0] || "—")}
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleColor(user.roles?.[0] || "manager")}`}
+          >
+            {ROLES.find(
+              (r: any) => r.value === (user.roles?.[0] || "").toLowerCase(),
+            )?.label ??
+              (user.roles?.[0] || "—")}
           </span>
           {user.jobTitle && user.jobTitle !== "none" && (
             <>
@@ -158,7 +168,8 @@ export function PermissionMatrixDialog({
                 {ar ? "منصب الاعتماد" : "Workflow"}:
               </span>
               <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700">
-                {WORKFLOW_ROLES.find((r: any) => r.value === user.jobTitle)?.label ?? user.jobTitle.replace(/_/g, " ")}
+                {WORKFLOW_ROLES.find((r: any) => r.value === user.jobTitle)
+                  ?.label ?? user.jobTitle.replace(/_/g, " ")}
               </span>
             </>
           )}

@@ -59,12 +59,10 @@ router.post(
 
     const parsed = CreateContactSchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: parsed.error.errors[0]?.message ?? "Invalid input",
-        });
+      res.status(400).json({
+        success: false,
+        message: parsed.error.errors[0]?.message ?? "Invalid input",
+      });
       return;
     }
 
@@ -117,12 +115,10 @@ router.put(
 
     const parsed = UpdateContactSchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: parsed.error.errors[0]?.message ?? "Invalid input",
-        });
+      res.status(400).json({
+        success: false,
+        message: parsed.error.errors[0]?.message ?? "Invalid input",
+      });
       return;
     }
 

@@ -5,7 +5,7 @@
  * Sunrise Staff Housing Management System API
  * OpenAPI spec version: 0.1.0
  */
-import type { CreateHostingBodyCompanionsItem } from './createHostingBodyCompanionsItem';
+import type { CreateHostingBodyCompanionsItem } from "./createHostingBodyCompanionsItem";
 
 export interface CreateHostingBody {
   propertyId: number;

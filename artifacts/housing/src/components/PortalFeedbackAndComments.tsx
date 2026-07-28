@@ -286,9 +286,9 @@ export default function PortalFeedbackAndComments() {
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                                              onClick={() => {
-                          setDeleteDialog({open: true, id: comment.id});
-                        }}
+                      onClick={() => {
+                        setDeleteDialog({ open: true, id: comment.id });
+                      }}
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -313,9 +313,13 @@ export default function PortalFeedbackAndComments() {
 
       <AnimatedConfirmModal
         open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog(prev => ({...prev, open}))}
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
         title={ar ? `حذف التعليق؟` : `Delete Comment?`}
-        description={ar ? "هل أنت متأكد من الحذف؟" : "Are you sure you want to delete this comment?"}
+        description={
+          ar
+            ? "هل أنت متأكد من الحذف؟"
+            : "Are you sure you want to delete this comment?"
+        }
         variant="destructive"
         onConfirm={() => deleteCommentMutation.mutate(deleteDialog.id)}
       />

@@ -16,7 +16,7 @@ import {
 export function useReportData(
   filterProperty: string,
   activePropertyId?: number,
-  filterBuilding: string = "all"
+  filterBuilding: string = "all",
 ) {
   const { data: properties = [] } = useListProperties({
     query: { queryKey: ["properties"], enabled: true },
@@ -34,11 +34,10 @@ export function useReportData(
     { propertyId: propId },
     { query: { queryKey: ["settings", propId], enabled: !!propId } },
   );
-  
-  const { data: _bData } = useListBuildings(
-    { propertyId: propId } as any,
-    { query: { queryKey: ["buildings", propId], enabled: !!propId } },
-  );
+
+  const { data: _bData } = useListBuildings({ propertyId: propId } as any, {
+    query: { queryKey: ["buildings", propId], enabled: !!propId },
+  });
   const buildings: any[] = (_bData as any)?.data || _bData || [];
 
   const floorsQueryParams = useMemo(() => {
@@ -69,13 +68,13 @@ export function useReportData(
     { query: { queryKey: ["rooms", propId], enabled: !!propId } },
   );
   const rooms: any[] = (_rData as any)?.data || _rData || [];
-  
+
   const { data: _eData, isLoading: empLoad } = useListEmployees(
     { propertyId: propId } as any,
     { query: { queryKey: ["employees", propId, 1000], enabled: !!propId } },
   );
   const employees: any[] = (_eData as any)?.data || _eData || [];
-  
+
   const { data: _aData, isLoading: assLoad } = useListAssignments(
     { propertyId: propId } as any,
     { query: { queryKey: ["assignments", propId], enabled: !!propId } },
@@ -116,10 +115,13 @@ export function useReportData(
       .then((d) => {
         if (d) setEvalStats(d);
       })
-      .catch(() => { toast.error("Failed to fetch evaluation stats"); })
+      .catch(() => {
+        toast.error("Failed to fetch evaluation stats");
+      });
   }, [propId]);
 
-  const isLoading = roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad;
+  const isLoading =
+    roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad;
 
   const buildingMap = useMemo(() => {
     const m: Record<number, string> = {};
@@ -130,7 +132,8 @@ export function useReportData(
   const floorMap = useMemo(() => {
     const m: Record<number, string> = {};
     floors.forEach(
-      (f: any) => (m[f.id] = f.floorNumber ? `Floor ${f.floorNumber}` : `Floor ${f.id}`),
+      (f: any) =>
+        (m[f.id] = f.floorNumber ? `Floor ${f.floorNumber}` : `Floor ${f.id}`),
     );
     return m;
   }, [floors]);

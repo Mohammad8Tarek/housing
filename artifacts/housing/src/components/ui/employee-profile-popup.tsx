@@ -83,7 +83,10 @@ export function EmployeeProfilePopup({
     { propertyId },
     { query: { enabled: !!propertyId } },
   );
-  const { data: _eData , isLoading: employeesLoading } = useListEmployees({ propertyId }, { query: { enabled: !!propertyId } });
+  const { data: _eData, isLoading: employeesLoading } = useListEmployees(
+    { propertyId },
+    { query: { enabled: !!propertyId } },
+  );
   const employees = _eData?.data || [];
   const { data: hostings = [] } = useListHostings(
     { propertyId },

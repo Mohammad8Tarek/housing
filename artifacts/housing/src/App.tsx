@@ -35,10 +35,18 @@ const Reports = lazy(() => import("@/pages/reports"));
 const Users = lazy(() => import("@/pages/users"));
 const ActivityLog = lazy(() => import("@/pages/activity-log"));
 const Settings = lazy(() => import("@/pages/settings"));
-const EditHostingRequest = lazy(() => import("@/pages/hosting-requests/EditHostingRequest"));
-const HostingRequestsList = lazy(() => import("@/pages/hosting-requests/HostingRequestsList"));
-const CreateHostingRequest = lazy(() => import("@/pages/hosting-requests/CreateHostingRequest"));
-const HostingRequestDetail = lazy(() => import("@/pages/hosting-requests/HostingRequestDetail"));
+const EditHostingRequest = lazy(
+  () => import("@/pages/hosting-requests/EditHostingRequest"),
+);
+const HostingRequestsList = lazy(
+  () => import("@/pages/hosting-requests/HostingRequestsList"),
+);
+const CreateHostingRequest = lazy(
+  () => import("@/pages/hosting-requests/CreateHostingRequest"),
+);
+const HostingRequestDetail = lazy(
+  () => import("@/pages/hosting-requests/HostingRequestDetail"),
+);
 
 // Employee Portal Pages (Moved to standalone app)
 
@@ -277,7 +285,9 @@ function App() {
                       position="top-right"
                       richColors
                       toastOptions={{
-                        style: { '--normal-bg': 'var(--brand-teal, #2AB5B5)' } as React.CSSProperties,
+                        style: {
+                          "--normal-bg": "var(--brand-teal, #2AB5B5)",
+                        } as React.CSSProperties,
                       }}
                     />
                   </TooltipProvider>

@@ -1,4 +1,5 @@
 # Source Bundle
+
 Generated: 2026-07-21 16:46:10
 Files included: 110
 
@@ -20,70 +21,69 @@ const APPROVAL_ROLES = ["housing_manager", "hr_manager", "accounts_manager"] as 
 const STEP_ROLES: Record<number, string> = { 1: "housing_manager", 2: "hr_manager", 3: "accounts_manager" };
 
 const CreateFamilyVisitBody = z.object({
-  hotelId: z.number().optional(),
-  visitHotelId: z.number().optional(),
-  numberOfRooms: z.number().int().min(1),
-  familyMembersCount: z.number().int().min(1),
-  familyMembersIncluded: z.string().optional(),
-  fromDate: z.string().min(1),
-  toDate: z.string().min(1),
-  consumedDays: z.number().int().min(1),
-  remarks: z.string().optional(),
+hotelId: z.number().optional(),
+visitHotelId: z.number().optional(),
+numberOfRooms: z.number().int().min(1),
+familyMembersCount: z.number().int().min(1),
+familyMembersIncluded: z.string().optional(),
+fromDate: z.string().min(1),
+toDate: z.string().min(1),
+consumedDays: z.number().int().min(1),
+remarks: z.string().optional(),
 });
 
 const ListQuery = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
-  status: z.string().optional(),
-  hotelId: z.coerce.number().optional(),
-  search: z.string().optional(),
-  fromDate: z.string().optional(),
-  toDate: z.string().optional(),
+page: z.coerce.number().int().min(1).default(1),
+limit: z.coerce.number().int().min(1).max(100).default(25),
+status: z.string().optional(),
+hotelId: z.coerce.number().optional(),
+search: z.string().optional(),
+fromDate: z.string().optional(),
+toDate: z.string().optional(),
 });
 
 const SignBody = z.object({
-  comment: z.string().optional(),
+comment: z.string().optional(),
 });
 
 const RejectBody = z.object({
-  reason: z.string().min(1, "Rejection reason is required"),
+reason: z.string().min(1, "Rejection reason is required"),
 });
 
 const RebackBody = z.object({
-  reason: z.string().min(1, "Reback reason is required"),
+reason: z.string().min(1, "Reback reason is required"),
 });
 
-
 function su(req: any) {
-  const s = req.session ?? {};
-  return {
-    userId: s.userId,
-    propertyId: s.propertyId,
-    username: s.username,
-    userRole: Array.isArray(s.userRole) ? s.userRole[0] : (s.userRole || ""),
-    roles: s.userRole ? (Array.isArray(s.userRole) ? s.userRole : [s.userRole]) : [],
-    jobTitle: s.jobTitle || "",
-    isSystemAdmin: !!s.isSystemAdmin,
-  };
+const s = req.session ?? {};
+return {
+userId: s.userId,
+propertyId: s.propertyId,
+username: s.username,
+userRole: Array.isArray(s.userRole) ? s.userRole[0] : (s.userRole || ""),
+roles: s.userRole ? (Array.isArray(s.userRole) ? s.userRole : [s.userRole]) : [],
+jobTitle: s.jobTitle || "",
+isSystemAdmin: !!s.isSystemAdmin,
+};
 }
 
 async function generateRequestNumber(propertyId: number): Promise<string> {
-  const year = new Date().getFullYear();
-  let code = "FV";
-  
-  if (propertyId) {
-    const propRes = await pool.query(
-      "SELECT code FROM public.properties WHERE id = $1",
-      [propertyId]
-    );
-    if (propRes.rows.length > 0 && propRes.rows[0].code) {
-      code = propRes.rows[0].code.toUpperCase();
-    }
-  }
+const year = new Date().getFullYear();
+let code = "FV";
 
-  const prefix = `${code}-${year}-`;
-  const res = await pool.query(
-    "SELECT COUNT(*)::int AS cnt FROM public.family_visit_requests WHERE request_number LIKE $1",
+if (propertyId) {
+const propRes = await pool.query(
+"SELECT code FROM public.properties WHERE id = $1",
+[propertyId]
+);
+if (propRes.rows.length > 0 && propRes.rows[0].code) {
+code = propRes.rows[0].code.toUpperCase();
+}
+}
+
+const prefix = `${code}-${year}-`;
+const res = await pool.query(
+"SELECT COUNT(\*)::int AS cnt FROM public.family_visit_requests WHERE request_number LIKE $1",
     [`${prefix}%`],
   );
   const seq = (res.rows[0]?.cnt ?? 0) + 1;
@@ -91,8 +91,8 @@ async function generateRequestNumber(propertyId: number): Promise<string> {
 }
 
 async function getRequestWithSteps(requestId: number, propertyId: number, isSystemAdmin: boolean) {
-  const requestRes = await pool.query(
-    `SELECT fvr.*, p.display_name AS property_name,
+const requestRes = await pool.query(
+`SELECT fvr.*, p.display_name AS property_name,
       json_agg(
         json_build_object(
           'id', fas.id,
@@ -113,26 +113,26 @@ async function getRequestWithSteps(requestId: number, propertyId: number, isSyst
     LEFT JOIN public.users su ON su.id = fas.signed_by_user_id
     WHERE fvr.id = $1
     GROUP BY fvr.id, p.display_name`,
-    [requestId],
-  );
-  if (requestRes.rows.length === 0) return null;
-  const request = requestRes.rows[0];
-  if (!isSystemAdmin && request.property_id !== propertyId) return null;
-  return request;
+[requestId],
+);
+if (requestRes.rows.length === 0) return null;
+const request = requestRes.rows[0];
+if (!isSystemAdmin && request.property_id !== propertyId) return null;
+return request;
 }
 
 // POST /api/family-visit — Create
 router.post("/family-visit", requirePermission("hosting_requests", "create"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const parsed = CreateFamilyVisitBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        success: false,
-        message: parsed.error.issues.map((e: any) => e.message).join(", "),
-      });
-      return;
-    }
+const user = su(req);
+try {
+const parsed = CreateFamilyVisitBody.safeParse(req.body);
+if (!parsed.success) {
+res.status(400).json({
+success: false,
+message: parsed.error.issues.map((e: any) => e.message).join(", "),
+});
+return;
+}
 
     const body = parsed.data;
 
@@ -193,17 +193,18 @@ router.post("/family-visit", requirePermission("hosting_requests", "create"), as
 
     const created = await getRequestWithSteps(requestId, user.propertyId, user.isSystemAdmin);
     res.status(201).json({ success: true, data: created });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // GET /api/family-visit — List with pagination & filters
 router.get("/family-visit", requirePermission("hosting_requests", "view"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const q = ListQuery.parse(req.query as any);
+const user = su(req);
+try {
+const q = ListQuery.parse(req.query as any);
 
     const conditions: string[] = ["fvr.property_id = $" + (1)];
     const params: any[] = [user.propertyId];
@@ -262,7 +263,7 @@ router.get("/family-visit", requirePermission("hosting_requests", "view"), async
     );
 
     const totalPages = Math.ceil(total / q.limit);
-    
+
     // Compute pendingOn
     const mappedRows = rowsRes.rows.map((row) => {
       let pendingOn = null;
@@ -287,18 +288,19 @@ router.get("/family-visit", requirePermission("hosting_requests", "view"), async
         hasPrevPage: q.page > 1,
       },
     });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // GET /api/family-visit/counts — Status counts for tabs
 router.get("/family-visit/counts", requirePermission("hosting_requests", "view"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const res2 = await pool.query(
-      `SELECT
+const user = su(req);
+try {
+const res2 = await pool.query(
+`SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status = 'in_signing')::int AS in_signing,
         COUNT(*) FILTER (WHERE status = 'approved')::int AS approved,
@@ -306,21 +308,21 @@ router.get("/family-visit/counts", requirePermission("hosting_requests", "view")
         COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled
       FROM public.family_visit_requests
       WHERE property_id = $1`,
-      [user.propertyId],
-    );
-    res.json({ success: true, data: res2.rows[0] });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+[user.propertyId],
+);
+res.json({ success: true, data: res2.rows[0] });
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // GET /api/family-visit/pending-my-signature
 router.get("/family-visit/pending-my-signature", requirePermission("hosting_requests", "view"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const rows = await pool.query(
-      `SELECT fvr.id, fvr.request_number, fvr.employee_name, fvr.created_at,
+const user = su(req);
+try {
+const rows = await pool.query(
+`SELECT fvr.id, fvr.request_number, fvr.employee_name, fvr.created_at,
         fas.step_order, fas.role_required
       FROM public.family_visit_requests fvr
       JOIN public.family_visit_approval_steps fas ON fas.request_id = fvr.id
@@ -330,24 +332,24 @@ router.get("/family-visit/pending-my-signature", requirePermission("hosting_requ
         AND fvr.status = 'in_signing'
         AND fas.role_required = ANY($2::text[])
       ORDER BY fvr.created_at DESC`,
-      [user.propertyId, user.roles],
-    );
-    res.json({ success: true, count: rows.rows.length, data: rows.rows });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+[user.propertyId, user.roles],
+);
+res.json({ success: true, count: rows.rows.length, data: rows.rows });
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // POST /api/family-visit/:id/create-guest-hosting — إنشاء طلب استضافة من زيارة عائلية
 router.post("/family-visit/:id/create-guest-hosting", requirePermission("hosting_requests", "create"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const requestId = parseInt(String(req.params.id));
-    if (isNaN(requestId)) {
-      res.status(400).json({ success: false, message: "Invalid ID" });
-      return;
-    }
+const user = su(req);
+try {
+const requestId = parseInt(String(req.params.id));
+if (isNaN(requestId)) {
+res.status(400).json({ success: false, message: "Invalid ID" });
+return;
+}
 
     if (!user.propertyId) {
       res.status(400).json({ success: false, message: "No property selected" });
@@ -417,7 +419,7 @@ router.post("/family-visit/:id/create-guest-hosting", requirePermission("hosting
         employeeId = empByClock.rows[0].id;
       } else {
         const empByName = await client.query(
-          `SELECT id FROM "${schemaName}".employees 
+          `SELECT id FROM "${schemaName}".employees
            WHERE (first_name || ' ' || last_name) ILIKE $1 LIMIT 1`,
           [`%${visit.employee_name}%`],
         );
@@ -482,22 +484,23 @@ router.post("/family-visit/:id/create-guest-hosting", requirePermission("hosting
     } finally {
       client.release();
     }
-  } catch (err: unknown) {
-    if (res.headersSent) return;
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+
+} catch (err: unknown) {
+if (res.headersSent) return;
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // GET /api/family-visit/:id — Request detail
 router.get("/family-visit/:id", requirePermission("hosting_requests", "view"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const requestId = parseInt(String(req.params.id));
-    if (isNaN(requestId)) {
-      res.status(400).json({ success: false, message: "Invalid ID" });
-      return;
-    }
+const user = su(req);
+try {
+const requestId = parseInt(String(req.params.id));
+if (isNaN(requestId)) {
+res.status(400).json({ success: false, message: "Invalid ID" });
+return;
+}
 
     const request = await getRequestWithSteps(requestId, user.propertyId, user.isSystemAdmin);
     if (!request) {
@@ -506,21 +509,22 @@ router.get("/family-visit/:id", requirePermission("hosting_requests", "view"), a
     }
 
     res.json({ success: true, data: request });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // POST /api/family-visit/:id/sign — Sign current step
 router.post("/family-visit/:id/sign", requirePermission("hosting_requests", "approve"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const requestId = parseInt(String(req.params.id));
-    if (isNaN(requestId)) {
-      res.status(400).json({ success: false, message: "Invalid ID" });
-      return;
-    }
+const user = su(req);
+try {
+const requestId = parseInt(String(req.params.id));
+if (isNaN(requestId)) {
+res.status(400).json({ success: false, message: "Invalid ID" });
+return;
+}
 
     const parsed = SignBody.safeParse(req.body);
     const comment = parsed.success ? parsed.data.comment : undefined;
@@ -713,21 +717,22 @@ router.post("/family-visit/:id/sign", requirePermission("hosting_requests", "app
     } finally {
       client.release();
     }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // POST /api/family-visit/:id/reject — Reject request
 router.post("/family-visit/:id/reject", requirePermission("hosting_requests", "approve"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const requestId = parseInt(String(req.params.id));
-    if (isNaN(requestId)) {
-      res.status(400).json({ success: false, message: "Invalid ID" });
-      return;
-    }
+const user = su(req);
+try {
+const requestId = parseInt(String(req.params.id));
+if (isNaN(requestId)) {
+res.status(400).json({ success: false, message: "Invalid ID" });
+return;
+}
 
     const parsed = RejectBody.safeParse(req.body);
     if (!parsed.success) {
@@ -812,22 +817,22 @@ router.post("/family-visit/:id/reject", requirePermission("hosting_requests", "a
     } finally {
       client.release();
     }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
-});
 
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
+});
 
 // POST /api/family-visit/:id/reback - Reback request
 router.post("/family-visit/:id/reback", requirePermission("hosting_requests", "edit"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const requestId = parseInt(String(req.params.id));
-    if (isNaN(requestId)) {
-      res.status(400).json({ success: false, message: "Invalid ID" });
-      return;
-    }
+const user = su(req);
+try {
+const requestId = parseInt(String(req.params.id));
+if (isNaN(requestId)) {
+res.status(400).json({ success: false, message: "Invalid ID" });
+return;
+}
 
     const parsed = RebackBody.safeParse(req.body);
     if (!parsed.success) {
@@ -922,21 +927,22 @@ router.post("/family-visit/:id/reback", requirePermission("hosting_requests", "e
     } finally {
       client.release();
     }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // PUT /api/family-visit/:id - Edit request
 router.put("/family-visit/:id", requirePermission("hosting_requests", "edit"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const requestId = parseInt(String(req.params.id));
-    if (isNaN(requestId)) {
-      res.status(400).json({ success: false, message: "Invalid ID" });
-      return;
-    }
+const user = su(req);
+try {
+const requestId = parseInt(String(req.params.id));
+if (isNaN(requestId)) {
+res.status(400).json({ success: false, message: "Invalid ID" });
+return;
+}
 
     const parsed = CreateFamilyVisitBody.safeParse(req.body);
     if (!parsed.success) {
@@ -961,7 +967,7 @@ router.put("/family-visit/:id", requirePermission("hosting_requests", "edit"), a
         res.status(404).json({ success: false, message: "Request not found or access denied" });
         return;
       }
-      
+
       const reqStatus = lockRes.rows[0]?.status;
       if (reqStatus !== "PENDING" && reqStatus !== "returned" && !user.isSystemAdmin) {
         await client.query("ROLLBACK");
@@ -1022,21 +1028,22 @@ router.put("/family-visit/:id", requirePermission("hosting_requests", "edit"), a
     } finally {
       client.release();
     }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 // DELETE /api/family-visit/:id - Delete request
 router.delete("/family-visit/:id", requirePermission("hosting_requests", "delete"), async (req, res): Promise<void> => {
-  const user = su(req);
-  try {
-    const requestId = parseInt(String(req.params.id));
-    if (isNaN(requestId)) {
-      res.status(400).json({ success: false, message: "Invalid ID" });
-      return;
-    }
+const user = su(req);
+try {
+const requestId = parseInt(String(req.params.id));
+if (isNaN(requestId)) {
+res.status(400).json({ success: false, message: "Invalid ID" });
+return;
+}
 
     const client = await pool.connect();
     try {
@@ -1080,10 +1087,11 @@ router.delete("/family-visit/:id", requirePermission("hosting_requests", "delete
     } finally {
       client.release();
     }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
-  }
+
+} catch (err: unknown) {
+const message = err instanceof Error ? err.message : String(err);
+res.status(500).json({ success: false, message });
+}
 });
 
 export default router;
@@ -1094,155 +1102,155 @@ FILE: artifacts/api-server/src/routes/hostings.ts
 
 import { Router } from "express";
 import {
-  db,
-  withTenant,
-  hostingsTable,
-  hostingCompanionsTable,
-  employeesTable,
-  roomsTable,
-  buildingsTable,
-  floorsTable,
+db,
+withTenant,
+hostingsTable,
+hostingCompanionsTable,
+employeesTable,
+roomsTable,
+buildingsTable,
+floorsTable,
 } from "@workspace/db";
 import { eq, and, inArray, SQL } from "drizzle-orm";
 import {
-  CreateHostingBody,
-  UpdateHostingBody,
-  UpdateHostingParams,
-  DeleteHostingParams,
-  ApproveHostingParams,
-  CheckinHostingParams,
-  CheckinHostingBody,
-  CheckoutHostingParams,
-  ListHostingsQueryParams,
-  ListHostingsResponse,
-  UpdateHostingResponse,
-  ApproveHostingResponse,
-  CheckinHostingResponse,
-  CheckoutHostingResponse,
+CreateHostingBody,
+UpdateHostingBody,
+UpdateHostingParams,
+DeleteHostingParams,
+ApproveHostingParams,
+CheckinHostingParams,
+CheckinHostingBody,
+CheckoutHostingParams,
+ListHostingsQueryParams,
+ListHostingsResponse,
+UpdateHostingResponse,
+ApproveHostingResponse,
+CheckinHostingResponse,
+CheckoutHostingResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 
 const router: Router = Router();
-const MAX_DOCUMENT_IMAGE_LENGTH = 7 * 1024 * 1024;
+const MAX*DOCUMENT_IMAGE_LENGTH = 7 * 1024 \_ 1024;
 const DOCUMENT_DATA_IMAGE_RE =
-  /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
+/^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 const DOCUMENT_WEB_URL_RE = /^https?:\/\/[^\s]+$/i;
 const DOCUMENT_TYPES = new Set(["ID", "PASSPORT", "OTHER"]);
 
 function fmtHosting(r: Record<string, any>) {
-  const dateFields = [
-    "expectedFrom",
-    "expectedTo",
-    "actualCheckIn",
-    "actualCheckOut",
-    "createdAt",
-    "updatedAt",
-  ];
-  const out: Record<string, any> = { ...r };
-  for (const f of dateFields) {
-    if (out[f] instanceof Date && typeof out[f].toISOString === "function")
-      out[f] = out[f].toISOString();
-    else if (out[f] == null) out[f] = null;
-  }
-  return out;
+const dateFields = [
+"expectedFrom",
+"expectedTo",
+"actualCheckIn",
+"actualCheckOut",
+"createdAt",
+"updatedAt",
+];
+const out: Record<string, any> = { ...r };
+for (const f of dateFields) {
+if (out[f] instanceof Date && typeof out[f].toISOString === "function")
+out[f] = out[f].toISOString();
+else if (out[f] == null) out[f] = null;
+}
+return out;
 }
 
 function fmtCompanion(c: Record<string, any>) {
-  const out: Record<string, any> = { ...c };
-  const dateFields = ["createdAt", "updatedAt"];
-  for (const f of dateFields) {
-    if (out[f] instanceof Date && typeof out[f].toISOString === "function")
-      out[f] = out[f].toISOString();
-    else if (out[f] == null) out[f] = null;
-  }
-  out.documentImage = safeDocumentImage(out.documentImage);
-  return out;
+const out: Record<string, any> = { ...c };
+const dateFields = ["createdAt", "updatedAt"];
+for (const f of dateFields) {
+if (out[f] instanceof Date && typeof out[f].toISOString === "function")
+out[f] = out[f].toISOString();
+else if (out[f] == null) out[f] = null;
+}
+out.documentImage = safeDocumentImage(out.documentImage);
+return out;
 }
 
 function safeDocumentImage(value: unknown) {
-  if (value == null || value === "") return null;
-  const image = String(value);
-  if (image.length > MAX_DOCUMENT_IMAGE_LENGTH) return null;
-  if (DOCUMENT_DATA_IMAGE_RE.test(image) || DOCUMENT_WEB_URL_RE.test(image))
-    return image;
-  return null;
+if (value == null || value === "") return null;
+const image = String(value);
+if (image.length > MAX_DOCUMENT_IMAGE_LENGTH) return null;
+if (DOCUMENT_DATA_IMAGE_RE.test(image) || DOCUMENT_WEB_URL_RE.test(image))
+return image;
+return null;
 }
 
 function normalizeDocumentImage(value: unknown) {
-  if (value == null || value === "") return null;
-  const image = String(value);
-  if (image.length > MAX_DOCUMENT_IMAGE_LENGTH) {
-    throw new Error("Document image exceeds the 5 MB upload limit");
-  }
-  if (!DOCUMENT_DATA_IMAGE_RE.test(image) && !DOCUMENT_WEB_URL_RE.test(image)) {
-    throw new Error("Document image must be a PNG, JPG, WEBP, or GIF image");
-  }
-  return image;
+if (value == null || value === "") return null;
+const image = String(value);
+if (image.length > MAX_DOCUMENT_IMAGE_LENGTH) {
+throw new Error("Document image exceeds the 5 MB upload limit");
+}
+if (!DOCUMENT_DATA_IMAGE_RE.test(image) && !DOCUMENT_WEB_URL_RE.test(image)) {
+throw new Error("Document image must be a PNG, JPG, WEBP, or GIF image");
+}
+return image;
 }
 
 function normalizeDocumentFileName(value: unknown) {
-  if (value == null || value === "") return null;
-  return (
-    String(value)
-      .replace(/[^\w.\- ()]/g, "")
-      .slice(0, 160)
-      .trim() || null
-  );
+if (value == null || value === "") return null;
+return (
+String(value)
+.replace(/[^\w.\- ()]/g, "")
+.slice(0, 160)
+.trim() || null
+);
 }
 
 function normalizeCompanionInput(c: Record<string, any>) {
-  const name = String(c.name ?? "").trim();
-  if (!name) throw new Error("Companion name is required");
-  const documentType = c.documentType
-    ? String(c.documentType).toUpperCase()
-    : null;
-  const isChild = Number(c.isChild) === 1 ? 1 : 0;
-  return {
-    name,
-    idNumber: c.idNumber ? String(c.idNumber).trim().slice(0, 80) : null,
-    documentType:
-      documentType && DOCUMENT_TYPES.has(documentType) ? documentType : null,
-    documentImage: normalizeDocumentImage(c.documentImage),
-    documentFileName: normalizeDocumentFileName(c.documentFileName),
-    relation: c.relation ? String(c.relation).trim().slice(0, 80) : null,
-    isChild,
-    age:
-      isChild && c.age != null && c.age !== ""
-        ? Math.max(0, Math.min(17, Number(c.age) || 0))
-        : null,
-  };
+const name = String(c.name ?? "").trim();
+if (!name) throw new Error("Companion name is required");
+const documentType = c.documentType
+? String(c.documentType).toUpperCase()
+: null;
+const isChild = Number(c.isChild) === 1 ? 1 : 0;
+return {
+name,
+idNumber: c.idNumber ? String(c.idNumber).trim().slice(0, 80) : null,
+documentType:
+documentType && DOCUMENT_TYPES.has(documentType) ? documentType : null,
+documentImage: normalizeDocumentImage(c.documentImage),
+documentFileName: normalizeDocumentFileName(c.documentFileName),
+relation: c.relation ? String(c.relation).trim().slice(0, 80) : null,
+isChild,
+age:
+isChild && c.age != null && c.age !== ""
+? Math.max(0, Math.min(17, Number(c.age) || 0))
+: null,
+};
 }
 
 function fmtRelated(r: Record<string, any> | null | undefined) {
-  if (!r) return null;
-  const out: Record<string, any> = { ...r };
-  for (const [key, value] of Object.entries(out)) {
-    if (value instanceof Date && typeof value.toISOString === "function") {
-      out[key] = value.toISOString();
-    }
-  }
-  return out;
+if (!r) return null;
+const out: Record<string, any> = { ...r };
+for (const [key, value] of Object.entries(out)) {
+if (value instanceof Date && typeof value.toISOString === "function") {
+out[key] = value.toISOString();
+}
+}
+return out;
 }
 
 async function fetchCompanions(tenantDb: any, hostingId: number) {
-  const rows = await tenantDb
-    .select()
-    .from(hostingCompanionsTable)
-    .where(eq(hostingCompanionsTable.hostingId, hostingId));
-  return rows.map(fmtCompanion);
+const rows = await tenantDb
+.select()
+.from(hostingCompanionsTable)
+.where(eq(hostingCompanionsTable.hostingId, hostingId));
+return rows.map(fmtCompanion);
 }
 
 router.get(
-  "/hostings",
-  requirePermission("accommodation", "view"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings",
+requirePermission("accommodation", "view"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     try {
       const query = ListHostingsQueryParams.safeParse(req.query);
@@ -1335,18 +1343,19 @@ router.get(
       );
       res.status(500).json({ error: "Failed to fetch hostings" });
     }
-  },
+
+},
 );
 
 router.post(
-  "/hostings",
-  requirePermission("accommodation", "create"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings",
+requirePermission("accommodation", "create"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     const parsed = CreateHostingBody.safeParse(req.body);
     if (!parsed.success) {
@@ -1415,18 +1424,19 @@ router.post(
         propertyId,
         companions: result.companionsList.map(fmtCompanion),
       });
-  },
+
+},
 );
 
 router.patch(
-  "/hostings/:id",
-  requirePermission("accommodation", "edit"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings/:id",
+requirePermission("accommodation", "edit"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     try {
       const params = UpdateHostingParams.safeParse(req.params);
@@ -1482,18 +1492,19 @@ router.patch(
       console.error("[Update Hosting API] Error:", error.message || error);
       res.status(500).json({ error: "Failed to update hosting" });
     }
-  },
+
+},
 );
 
 router.delete(
-  "/hostings/:id",
-  requirePermission("accommodation", "delete"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings/:id",
+requirePermission("accommodation", "delete"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     const params = DeleteHostingParams.safeParse(req.params);
     if (!params.success) {
@@ -1530,18 +1541,19 @@ router.delete(
       });
     }
     res.sendStatus(204);
-  },
+
+},
 );
 
 router.post(
-  "/hostings/:id/approve",
-  requirePermission("accommodation", "edit"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings/:id/approve",
+requirePermission("accommodation", "edit"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     try {
       const params = ApproveHostingParams.safeParse(req.params);
@@ -1590,18 +1602,19 @@ router.post(
       console.error("[Approve Hosting API] Error:", error.message || error);
       res.status(500).json({ error: "Failed to approve hosting" });
     }
-  },
+
+},
 );
 
 router.post(
-  "/hostings/:id/checkin",
-  requirePermission("accommodation", "edit"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings/:id/checkin",
+requirePermission("accommodation", "edit"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     try {
       const params = CheckinHostingParams.safeParse(req.params);
@@ -1662,18 +1675,19 @@ router.post(
       console.error("[Checkin Hosting API] Error:", error.message || error);
       res.status(500).json({ error: "Failed to checkin hosting" });
     }
-  },
+
+},
 );
 
 router.post(
-  "/hostings/:id/checkout",
-  requirePermission("accommodation", "edit"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings/:id/checkout",
+requirePermission("accommodation", "edit"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     try {
       const params = CheckoutHostingParams.safeParse(req.params);
@@ -1725,19 +1739,20 @@ router.post(
       console.error("[Checkout API] Error:", error.message || error);
       res.status(500).json({ error: "Failed to checkout hosting" });
     }
-  },
+
+},
 );
 
-/* Companions CRUD */
+/_ Companions CRUD _/
 router.get(
-  "/hostings/:id/companions",
-  requirePermission("accommodation", "view"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings/:id/companions",
+requirePermission("accommodation", "view"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) {
@@ -1753,18 +1768,19 @@ router.get(
     });
 
     res.json(companions.map(fmtCompanion));
-  },
+
+},
 );
 
 router.post(
-  "/hostings/:id/companions",
-  requirePermission("accommodation", "create"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings/:id/companions",
+requirePermission("accommodation", "create"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) {
@@ -1792,18 +1808,19 @@ router.post(
     });
 
     res.status(201).json(fmtCompanion(companion));
-  },
+
+},
 );
 
 router.delete(
-  "/hostings/:id/companions/:companionId",
-  requirePermission("accommodation", "delete"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+"/hostings/:id/companions/:companionId",
+requirePermission("accommodation", "delete"),
+async (req, res): Promise<void> => {
+const propertyId = getTenantId(req);
+if (!propertyId) {
+res.status(400).json({ error: "propertyId is required" });
+return;
+}
 
     const hostingId = parseInt(req.params.id as string);
     if (isNaN(hostingId)) {
@@ -1828,7 +1845,8 @@ router.delete(
     });
 
     res.sendStatus(204);
-  },
+
+},
 );
 
 export default router;
@@ -1844,72 +1862,72 @@ import { propertiesTable } from "./properties";
 import { usersTable } from "./users";
 
 export const familyVisitRequestsTable = pgTable("family_visit_requests", {
-  id: serial("id").primaryKey(),
-  requestNumber: varchar("request_number", { length: 20 }).notNull().unique(),
-  propertyId: integer("property_id").notNull().references(() => propertiesTable.id),
-  hotelId: integer("hotel_id"),
-  visitHotelId: integer("visit_hotel_id"),
+id: serial("id").primaryKey(),
+requestNumber: varchar("request_number", { length: 20 }).notNull().unique(),
+propertyId: integer("property_id").notNull().references(() => propertiesTable.id),
+hotelId: integer("hotel_id"),
+visitHotelId: integer("visit_hotel_id"),
 
-  requesterUserId: integer("requester_user_id").notNull().references(() => usersTable.id),
-  employeeName: varchar("employee_name", { length: 200 }).notNull(),
-  clockNumber: varchar("clock_number", { length: 50 }).notNull(),
-  department: varchar("department", { length: 150 }).notNull(),
-  position: varchar("position", { length: 150 }).notNull(),
+requesterUserId: integer("requester_user_id").notNull().references(() => usersTable.id),
+employeeName: varchar("employee_name", { length: 200 }).notNull(),
+clockNumber: varchar("clock_number", { length: 50 }).notNull(),
+department: varchar("department", { length: 150 }).notNull(),
+position: varchar("position", { length: 150 }).notNull(),
 
-  numberOfRooms: integer("number_of_rooms").notNull(),
-  familyMembersCount: integer("family_members_count").notNull(),
-  familyMembersIncluded: varchar("family_members_included", { length: 100 }),
-  fromDate: date("from_date").notNull(),
-  toDate: date("to_date").notNull(),
-  consumedDays: integer("consumed_days").notNull(),
-  remarks: text("remarks"),
+numberOfRooms: integer("number_of_rooms").notNull(),
+familyMembersCount: integer("family_members_count").notNull(),
+familyMembersIncluded: varchar("family_members_included", { length: 100 }),
+fromDate: date("from_date").notNull(),
+toDate: date("to_date").notNull(),
+consumedDays: integer("consumed_days").notNull(),
+remarks: text("remarks"),
 
-  status: varchar("status", { length: 30 }).notNull().default("in_signing"),
-  currentStepOrder: integer("current_step_order").notNull().default(1),
-  rejectedAtStep: integer("rejected_at_step"),
-  rejectionReason: text("rejection_reason"),
+status: varchar("status", { length: 30 }).notNull().default("in_signing"),
+currentStepOrder: integer("current_step_order").notNull().default(1),
+rejectedAtStep: integer("rejected_at_step"),
+rejectionReason: text("rejection_reason"),
 
-  guestHostingId: integer("guest_hosting_id"),
-  guestHostingStatus: varchar("guest_hosting_status", { length: 30 }),
+guestHostingId: integer("guest_hosting_id"),
+guestHostingStatus: varchar("guest_hosting_status", { length: 30 }),
 
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => ({
-  statusIdx: index("idx_fvr_status").on(table.status),
-  propertyIdIdx: index("idx_fvr_property_id").on(table.propertyId),
+statusIdx: index("idx_fvr_status").on(table.status),
+propertyIdIdx: index("idx_fvr_property_id").on(table.propertyId),
 }));
 
 export const insertFamilyVisitRequestSchema = createInsertSchema(familyVisitRequestsTable).omit({
-  id: true,
-  requestNumber: true,
-  createdAt: true,
-  updatedAt: true,
+id: true,
+requestNumber: true,
+createdAt: true,
+updatedAt: true,
 });
 export type InsertFamilyVisitRequest = typeof familyVisitRequestsTable.$inferInsert;
 export type FamilyVisitRequest = typeof familyVisitRequestsTable.$inferSelect;
 
 export const familyVisitApprovalStepsTable = pgTable("family_visit_approval_steps", {
-  id: serial("id").primaryKey(),
-  requestId: integer("request_id").notNull().references(() => familyVisitRequestsTable.id, { onDelete: "cascade" }),
-  stepOrder: integer("step_order").notNull(),
-  roleRequired: varchar("role_required", { length: 50 }).notNull(),
+id: serial("id").primaryKey(),
+requestId: integer("request_id").notNull().references(() => familyVisitRequestsTable.id, { onDelete: "cascade" }),
+stepOrder: integer("step_order").notNull(),
+roleRequired: varchar("role_required", { length: 50 }).notNull(),
 
-  status: varchar("status", { length: 30 }).notNull().default("pending"),
+status: varchar("status", { length: 30 }).notNull().default("pending"),
 
-  signedByUserId: integer("signed_by_user_id").references(() => usersTable.id),
-  signedAt: timestamp("signed_at", { withTimezone: true }),
-  signatureImageUrlSnapshot: text("signature_image_url_snapshot"),
-  comment: text("comment"),
+signedByUserId: integer("signed_by_user_id").references(() => usersTable.id),
+signedAt: timestamp("signed_at", { withTimezone: true }),
+signatureImageUrlSnapshot: text("signature_image_url_snapshot"),
+comment: text("comment"),
 
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
-  requestIdIdx: index("index_fvas_request_id").on(table.requestId),
-  statusIdx: index("index_fvas_status").on(table.status),
+requestIdIdx: index("index_fvas_request_id").on(table.requestId),
+statusIdx: index("index_fvas_status").on(table.status),
 }));
 
 export const insertFamilyVisitApprovalStepSchema = createInsertSchema(familyVisitApprovalStepsTable).omit({
-  id: true,
-  createdAt: true,
+id: true,
+createdAt: true,
 });
 export type InsertFamilyVisitApprovalStep = typeof familyVisitApprovalStepsTable.$inferInsert;
 export type FamilyVisitApprovalStep = typeof familyVisitApprovalStepsTable.$inferSelect;
@@ -1923,17 +1941,17 @@ import { createInsertSchema } from "drizzle-zod";
 import { usersTable } from "./users";
 
 export const userSignaturesTable = pgTable("user_signatures", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => usersTable.id).unique(),
-  signatureImageUrl: text("signature_image_url").notNull(),
-  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+id: serial("id").primaryKey(),
+userId: integer("user_id").notNull().references(() => usersTable.id).unique(),
+signatureImageUrl: text("signature_image_url").notNull(),
+uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 export const insertUserSignatureSchema = createInsertSchema(userSignaturesTable).omit({
-  id: true,
-  uploadedAt: true,
-  updatedAt: true,
+id: true,
+uploadedAt: true,
+updatedAt: true,
 });
 
 export type InsertUserSignature = typeof userSignaturesTable.$inferInsert;
@@ -1959,82 +1977,82 @@ import { usePermission } from "@/hooks/use-permission";
 const STATUS_TABS = ["all", "in_signing", "approved", "rejected"] as const;
 
 const statusLabels: Record<string, Record<string, string>> = {
-  all: { en: "All", ar: "الكل" },
-  in_signing: { en: "In Signing", ar: "قيد التوقيع" },
-  approved: { en: "Approved", ar: "معتمد" },
-  rejected: { en: "Rejected", ar: "مرفوض" },
+all: { en: "All", ar: "الكل" },
+in_signing: { en: "In Signing", ar: "قيد التوقيع" },
+approved: { en: "Approved", ar: "معتمد" },
+rejected: { en: "Rejected", ar: "مرفوض" },
 };
 
 const statusColors: Record<string, string> = {
-  all: "",
-  in_signing: "bg-muted-foreground",
-  approved: "bg-green-500",
-  rejected: "bg-red-500",
+all: "",
+in_signing: "bg-muted-foreground",
+approved: "bg-green-500",
+rejected: "bg-red-500",
 };
 
 const statusBadgeVariant: Record<string, "success" | "warning" | "danger" | "info" | "muted"> = {
-  in_signing: "warning",
-  approved: "success",
-  rejected: "danger",
-  cancelled: "muted",
+in_signing: "warning",
+approved: "success",
+rejected: "danger",
+cancelled: "muted",
 };
 
 export default function FamilyVisitIndex() {
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const [, setLocation] = useLocation();
-  const { canCreate } = usePermission();
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const limit = 25;
+const { language } = useLanguage();
+const ar = language === "ar";
+const [, setLocation] = useLocation();
+const { canCreate } = usePermission();
+const [statusFilter, setStatusFilter] = useState("all");
+const [search, setSearch] = useState("");
+const [page, setPage] = useState(1);
+const limit = 25;
 
-  const { data: countsData } = useQuery({
-    queryKey: ["/api/family-visit/counts"],
-    queryFn: async () => {
-      const res = await fetch("/api/family-visit/counts");
-      const json = await res.json();
-      return json.data;
-    },
-  });
+const { data: countsData } = useQuery({
+queryKey: ["/api/family-visit/counts"],
+queryFn: async () => {
+const res = await fetch("/api/family-visit/counts");
+const json = await res.json();
+return json.data;
+},
+});
 
-  const { data, isLoading, isFetching, isError, error } = useQuery({
-    queryKey: ["/api/family-visit", { page, limit, status: statusFilter, search }],
-    queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-      if (statusFilter !== "all") params.set("status", statusFilter);
-      if (search) params.set("search", search);
-      const res = await fetch(`/api/family-visit?${params}`);
-      if (!res.ok) {
-        throw new Error("Failed to load hosting requests");
-      }
-      return res.json();
-    },
-    placeholderData: (prev: any) => prev,
-  });
+const { data, isLoading, isFetching, isError, error } = useQuery({
+queryKey: ["/api/family-visit", { page, limit, status: statusFilter, search }],
+queryFn: async () => {
+const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+if (statusFilter !== "all") params.set("status", statusFilter);
+if (search) params.set("search", search);
+const res = await fetch(`/api/family-visit?${params}`);
+if (!res.ok) {
+throw new Error("Failed to load hosting requests");
+}
+return res.json();
+},
+placeholderData: (prev: any) => prev,
+});
 
-  const handleSearch = useCallback((e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setPage(1);
-  }, []);
+const handleSearch = useCallback((e: FormEvent<HTMLFormElement>) => {
+e.preventDefault();
+setPage(1);
+}, []);
 
-  const getStatusLabel = (status: string) => {
-    if (status === "approved") return ar ? "معتمد" : "Approved";
-    if (status === "in_signing") return ar ? "قيد التوقيع" : "In Signing";
-    if (status === "rejected") return ar ? "مرفوض" : "Rejected";
-    if (status === "cancelled") return ar ? "ملغي" : "Cancelled";
-    return status;
-  };
+const getStatusLabel = (status: string) => {
+if (status === "approved") return ar ? "معتمد" : "Approved";
+if (status === "in_signing") return ar ? "قيد التوقيع" : "In Signing";
+if (status === "rejected") return ar ? "مرفوض" : "Rejected";
+if (status === "cancelled") return ar ? "ملغي" : "Cancelled";
+return status;
+};
 
-  const getPendingRole = (request: any) => {
-    if (request.pendingOn) {
-      const roleMap: Record<string, Record<string, string>> = {
-        housing_manager: { en: "Housing Manager", ar: "مدير السكن" },
-        hr_manager: { en: "HR Manager", ar: "مدير الموارد البشرية" },
-        accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
-      };
-      return roleMap[request.pendingOn]?.[language] ?? request.pendingOn;
-    }
+const getPendingRole = (request: any) => {
+if (request.pendingOn) {
+const roleMap: Record<string, Record<string, string>> = {
+housing_manager: { en: "Housing Manager", ar: "مدير السكن" },
+hr_manager: { en: "HR Manager", ar: "مدير الموارد البشرية" },
+accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
+};
+return roleMap[request.pendingOn]?.[language] ?? request.pendingOn;
+}
 
     if (request.status !== "in_signing" || !Array.isArray(request.approval_steps)) return null;
 
@@ -2048,10 +2066,11 @@ export default function FamilyVisitIndex() {
       accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
     };
     return roleMap[step.roleRequired]?.[language] ?? step.roleRequired;
-  };
 
-  const formatDateValue = (value: unknown) => {
-    if (!value) return "—";
+};
+
+const formatDateValue = (value: unknown) => {
+if (!value) return "—";
 
     const date = value instanceof Date ? value : new Date(String(value));
     if (Number.isNaN(date.getTime())) return "—";
@@ -2061,33 +2080,35 @@ export default function FamilyVisitIndex() {
       month: "short",
       day: "numeric",
     });
-  };
 
-  const getTabLabel = (tab: string) => {
-    const label = statusLabels[tab]?.[language] ?? statusLabels[tab]?.en ?? tab;
-    return label;
-  };
+};
 
-  return (
-    <div className="space-y-6 p-1">
-      <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {ar ? "طلبات الاستضافة" : "Hosting Requests"}
-            </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {countsData?.total != null
-              ? `${countsData.total} ${ar ? "طلب" : "requests"}`
-              : ""}
-          </p>
-        </div>
-        {canCreate("hosting_requests") && (
-          <Button type="button" onClick={() => setLocation("/family-visit/create")}>
-            <Plus className="w-4 h-4 mr-2" />
-            {ar ? "طلب استضافة جديد" : "New Hosting Request"}
-          </Button>
-        )}
-      </div>
+const getTabLabel = (tab: string) => {
+const label = statusLabels[tab]?.[language] ?? statusLabels[tab]?.en ?? tab;
+return label;
+};
+
+return (
+
+<div className="space-y-6 p-1">
+<div className="flex items-center justify-between">
+<div>
+<h1 className="text-2xl font-bold text-foreground">
+{ar ? "طلبات الاستضافة" : "Hosting Requests"}
+</h1>
+<p className="text-muted-foreground text-sm mt-1">
+{countsData?.total != null
+? `${countsData.total} ${ar ? "طلب" : "requests"}`
+: ""}
+</p>
+</div>
+{canCreate("hosting_requests") && (
+<Button type="button" onClick={() => setLocation("/family-visit/create")}>
+<Plus className="w-4 h-4 mr-2" />
+{ar ? "طلب استضافة جديد" : "New Hosting Request"}
+</Button>
+)}
+</div>
 
       {/* Status Tabs */}
       <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit">
@@ -2210,7 +2231,8 @@ export default function FamilyVisitIndex() {
         />
       )}
     </div>
-  );
+
+);
 }
 
 ================================================================================
@@ -2226,11 +2248,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -2238,46 +2260,46 @@ import { ArrowLeft, Loader2, Upload, Trash2, Paperclip } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 
 type EmployeeResult = {
-  id: number;
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  jobTitle: string | null;
-  department: string | null; accommodationRoom?: string | null; accommodationRoomType?: string | null; accommodationBuilding?: string | null; accommodationFloor?: string | null;
+id: number;
+employeeId: string;
+firstName: string;
+lastName: string;
+jobTitle: string | null;
+department: string | null; accommodationRoom?: string | null; accommodationRoomType?: string | null; accommodationBuilding?: string | null; accommodationFloor?: string | null;
 };
 
 export default function CreateFamilyVisit() {
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const [, setLocation] = useLocation();
-  const { properties, activePropertyId } = useProperty();
+const { language } = useLanguage();
+const ar = language === "ar";
+const [, setLocation] = useLocation();
+const { properties, activePropertyId } = useProperty();
 
-  const [form, setForm] = useState({
-    hotelId: "",
-    clockNumber: "",
-    visitHotelId: "",
-    numberOfRooms: "",
-    familyMembersCount: "",
-    familyMembersIncluded: "",
-    fromDate: "",
-    toDate: "",
-    consumedDays: 0,
-    remarks: "",
-  });
+const [form, setForm] = useState({
+hotelId: "",
+clockNumber: "",
+visitHotelId: "",
+numberOfRooms: "",
+familyMembersCount: "",
+familyMembersIncluded: "",
+fromDate: "",
+toDate: "",
+consumedDays: 0,
+remarks: "",
+});
 
-  const [employee, setEmployee] = useState<EmployeeResult | null>(null);
-  const [isSearchingEmp, setIsSearchingEmp] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+const [employee, setEmployee] = useState<EmployeeResult | null>(null);
+const [isSearchingEmp, setIsSearchingEmp] = useState(false);
+const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-fetch employee by Clock Number
-  useEffect(() => {
-    if (!form.clockNumber || form.clockNumber.length < 2) {
-      setEmployee(null);
-      return;
-    }
-    
+// Auto-fetch employee by Clock Number
+useEffect(() => {
+if (!form.clockNumber || form.clockNumber.length < 2) {
+setEmployee(null);
+return;
+}
+
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    
+
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearchingEmp(true);
       try {
@@ -2301,82 +2323,84 @@ export default function CreateFamilyVisit() {
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
-  }, [form.clockNumber, form.hotelId, activePropertyId]);
 
-  const updateField = (field: string, value: any) => {
-    setForm((prev) => {
-      const updated = { ...prev, [field]: value };
-      if (field === "fromDate" || field === "toDate") {
-        const from = field === "fromDate" ? value : prev.fromDate;
-        const to = field === "toDate" ? value : prev.toDate;
-        if (from && to) {
-          const diff = Math.max(0, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / (1000 * 60 * 60 * 24)));
-          updated.consumedDays = diff;
-        }
-      }
-      return updated;
-    });
-  };
+}, [form.clockNumber, form.hotelId, activePropertyId]);
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      // In a real scenario, attachments would be uploaded first or sent as FormData
-      const res = await fetch("/api/family-visit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hotelId: form.hotelId ? parseInt(form.hotelId) : undefined,
-          visitHotelId: form.visitHotelId ? parseInt(form.visitHotelId) : undefined,
-          numberOfRooms: parseInt(form.numberOfRooms),
-          familyMembersCount: parseInt(form.familyMembersCount),
-          familyMembersIncluded: form.familyMembersIncluded || undefined,
-          fromDate: form.fromDate,
-          toDate: form.toDate,
-          consumedDays: form.consumedDays,
-          remarks: form.remarks || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to create");
-      return data.data;
-    },
-    onSuccess: (created) => {
-      toast.success(
-        ar
-          ? `تم إنشاء الطلب ${created.request_number}`
-          : `Request ${created.request_number} created`,
-      );
-      setLocation(`/family-visit/${created.id}`);
-    },
-    onError: (err: Error) => {
-      toast.error(err.message);
-    },
-  });
+const updateField = (field: string, value: any) => {
+setForm((prev) => {
+const updated = { ...prev, [field]: value };
+if (field === "fromDate" || field === "toDate") {
+const from = field === "fromDate" ? value : prev.fromDate;
+const to = field === "toDate" ? value : prev.toDate;
+if (from && to) {
+const diff = Math.max(0, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / (1000 _ 60 _ 60 \* 24)));
+updated.consumedDays = diff;
+}
+}
+return updated;
+});
+};
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.hotelId || !form.clockNumber || !form.visitHotelId || !form.numberOfRooms || !form.familyMembersCount || !form.fromDate || !form.toDate) {
-      toast.error(ar ? "يرجى ملء الحقول المطلوبة (*)" : "Please fill required fields (*)");
-      return;
-    }
-    createMutation.mutate();
-  };
+const createMutation = useMutation({
+mutationFn: async () => {
+// In a real scenario, attachments would be uploaded first or sent as FormData
+const res = await fetch("/api/family-visit", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+hotelId: form.hotelId ? parseInt(form.hotelId) : undefined,
+visitHotelId: form.visitHotelId ? parseInt(form.visitHotelId) : undefined,
+numberOfRooms: parseInt(form.numberOfRooms),
+familyMembersCount: parseInt(form.familyMembersCount),
+familyMembersIncluded: form.familyMembersIncluded || undefined,
+fromDate: form.fromDate,
+toDate: form.toDate,
+consumedDays: form.consumedDays,
+remarks: form.remarks || undefined,
+}),
+});
+const data = await res.json();
+if (!res.ok) throw new Error(data.message || "Failed to create");
+return data.data;
+},
+onSuccess: (created) => {
+toast.success(
+ar
+? `تم إنشاء الطلب ${created.request_number}`
+: `Request ${created.request_number} created`,
+);
+setLocation(`/family-visit/${created.id}`);
+},
+onError: (err: Error) => {
+toast.error(err.message);
+},
+});
 
-  return (
-    <div className="space-y-6 p-1">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/accommodation/guest-hosting")}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {ar ? "إنشاء طلب استضافة" : "Create Hosting Request"}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {ar ? "طلبات" : "requests"}
-          </p>
-        </div>
-      </div>
+const handleSubmit = (e: React.FormEvent) => {
+e.preventDefault();
+if (!form.hotelId || !form.clockNumber || !form.visitHotelId || !form.numberOfRooms || !form.familyMembersCount || !form.fromDate || !form.toDate) {
+toast.error(ar ? "يرجى ملء الحقول المطلوبة (_)" : "Please fill required fields (_)");
+return;
+}
+createMutation.mutate();
+};
+
+return (
+
+<div className="space-y-6 p-1">
+<div className="flex items-center gap-4">
+<Button variant="ghost" size="icon" onClick={() => setLocation("/accommodation/guest-hosting")}>
+<ArrowLeft className="w-5 h-5" />
+</Button>
+<div>
+<h1 className="text-2xl font-bold text-foreground">
+{ar ? "إنشاء طلب استضافة" : "Create Hosting Request"}
+</h1>
+<p className="text-muted-foreground text-sm mt-1">
+{ar ? "طلبات" : "requests"}
+</p>
+</div>
+</div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Section 1: Request Information */}
@@ -2403,7 +2427,7 @@ export default function CreateFamilyVisit() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="flex justify-between">
                 <span>{ar ? "رقم البصمة *" : "Clock Number *"}</span>
@@ -2634,7 +2658,8 @@ export default function CreateFamilyVisit() {
         </div>
       </form>
     </div>
-  );
+
+);
 }
 
 ================================================================================
@@ -2650,11 +2675,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useLocation, useParams } from "wouter";
@@ -2663,77 +2688,78 @@ import { ArrowLeft, Loader2, Upload, Trash2, Paperclip } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 
 type EmployeeResult = {
-  id: number;
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  jobTitle: string | null;
-  department: string | null; accommodationRoom?: string | null; accommodationRoomType?: string | null; accommodationBuilding?: string | null; accommodationFloor?: string | null;
+id: number;
+employeeId: string;
+firstName: string;
+lastName: string;
+jobTitle: string | null;
+department: string | null; accommodationRoom?: string | null; accommodationRoomType?: string | null; accommodationBuilding?: string | null; accommodationFloor?: string | null;
 };
 
 export default function EditFamilyVisit() {
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const [, setLocation] = useLocation();
-  const { properties, activePropertyId } = useProperty();
+const { language } = useLanguage();
+const ar = language === "ar";
+const [, setLocation] = useLocation();
+const { properties, activePropertyId } = useProperty();
 
-  const [form, setForm] = useState({
-    hotelId: "",
-    clockNumber: "",
-    visitHotelId: "",
-    numberOfRooms: "",
-    familyMembersCount: "",
-    familyMembersIncluded: "",
-    fromDate: "",
-    toDate: "",
-    consumedDays: 0,
-    remarks: "",
-  });
+const [form, setForm] = useState({
+hotelId: "",
+clockNumber: "",
+visitHotelId: "",
+numberOfRooms: "",
+familyMembersCount: "",
+familyMembersIncluded: "",
+fromDate: "",
+toDate: "",
+consumedDays: 0,
+remarks: "",
+});
 
     const params = useParams();
-  const requestId = params.id;
 
-  const { data: requestRes, isLoading: isLoadingRequest } = useQuery({
-    queryKey: ["family-visit", requestId],
-    queryFn: async () => {
-      const res = await fetch(`/api/family-visit/${requestId}`);
-      if (!res.ok) throw new Error("Failed to fetch request");
-      return res.json();
-    },
-    enabled: !!requestId,
-  });
+const requestId = params.id;
 
-  useEffect(() => {
-    if (requestRes?.data) {
-      const r = requestRes.data;
-      setForm({
-        hotelId: r.property_id ? String(r.property_id) : "",
-        clockNumber: r.employee_id ? String(r.employee_id) : "",
-        visitHotelId: r.visit_hotel_id ? String(r.visit_hotel_id) : "",
-        numberOfRooms: r.number_of_rooms ? String(r.number_of_rooms) : "",
-        familyMembersCount: r.family_members_count ? String(r.family_members_count) : "",
-        familyMembersIncluded: r.family_members_included || "",
-        fromDate: r.from_date ? String(r.from_date).split("T")[0] : "",
-        toDate: r.to_date ? String(r.to_date).split("T")[0] : "",
-        consumedDays: r.consumed_days || 0,
-        remarks: r.remarks || "",
-      });
-    }
-  }, [requestRes?.data]);
+const { data: requestRes, isLoading: isLoadingRequest } = useQuery({
+queryKey: ["family-visit", requestId],
+queryFn: async () => {
+const res = await fetch(`/api/family-visit/${requestId}`);
+if (!res.ok) throw new Error("Failed to fetch request");
+return res.json();
+},
+enabled: !!requestId,
+});
 
-  const [employee, setEmployee] = useState<EmployeeResult | null>(null);
-  const [isSearchingEmp, setIsSearchingEmp] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+useEffect(() => {
+if (requestRes?.data) {
+const r = requestRes.data;
+setForm({
+hotelId: r.property_id ? String(r.property_id) : "",
+clockNumber: r.employee_id ? String(r.employee_id) : "",
+visitHotelId: r.visit_hotel_id ? String(r.visit_hotel_id) : "",
+numberOfRooms: r.number_of_rooms ? String(r.number_of_rooms) : "",
+familyMembersCount: r.family_members_count ? String(r.family_members_count) : "",
+familyMembersIncluded: r.family_members_included || "",
+fromDate: r.from_date ? String(r.from_date).split("T")[0] : "",
+toDate: r.to_date ? String(r.to_date).split("T")[0] : "",
+consumedDays: r.consumed_days || 0,
+remarks: r.remarks || "",
+});
+}
+}, [requestRes?.data]);
 
-  // Auto-fetch employee by Clock Number
-  useEffect(() => {
-    if (!form.clockNumber || form.clockNumber.length < 2) {
-      setEmployee(null);
-      return;
-    }
-    
+const [employee, setEmployee] = useState<EmployeeResult | null>(null);
+const [isSearchingEmp, setIsSearchingEmp] = useState(false);
+const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+// Auto-fetch employee by Clock Number
+useEffect(() => {
+if (!form.clockNumber || form.clockNumber.length < 2) {
+setEmployee(null);
+return;
+}
+
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    
+
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearchingEmp(true);
       try {
@@ -2757,84 +2783,86 @@ export default function EditFamilyVisit() {
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
-  }, [form.clockNumber, form.hotelId, activePropertyId]);
 
-  const updateField = (field: string, value: any) => {
-    setForm((prev) => {
-      const updated = { ...prev, [field]: value };
-      if (field === "fromDate" || field === "toDate") {
-        const from = field === "fromDate" ? value : prev.fromDate;
-        const to = field === "toDate" ? value : prev.toDate;
-        if (from && to) {
-          const diff = Math.max(0, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / (1000 * 60 * 60 * 24)));
-          updated.consumedDays = diff;
-        }
-      }
-      return updated;
-    });
-  };
+}, [form.clockNumber, form.hotelId, activePropertyId]);
 
-  const updateMutation = useMutation({
-    mutationFn: async () => {
-      // In a real scenario, attachments would be uploaded first or sent as FormData
-      const res = await fetch(`/api/family-visit/${requestId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hotelId: form.hotelId ? parseInt(form.hotelId) : undefined,
-          visitHotelId: form.visitHotelId ? parseInt(form.visitHotelId) : undefined,
-          numberOfRooms: parseInt(form.numberOfRooms),
-          familyMembersCount: parseInt(form.familyMembersCount),
-          familyMembersIncluded: form.familyMembersIncluded || undefined,
-          fromDate: form.fromDate,
-          toDate: form.toDate,
-          consumedDays: form.consumedDays,
-          remarks: form.remarks || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to create");
-      return data.data;
-    },
-    onSuccess: (updated) => {
-      toast.success(
-        ar
-          ? `تم تحديث الطلب ${updated.request_number}`
-          : `Request ${updated.request_number} updated`,
-      );
-      setLocation(`/family-visit/${updated.id}`);
-    },
-    onError: (err: Error) => {
-      toast.error(err.message);
-    },
-  });
+const updateField = (field: string, value: any) => {
+setForm((prev) => {
+const updated = { ...prev, [field]: value };
+if (field === "fromDate" || field === "toDate") {
+const from = field === "fromDate" ? value : prev.fromDate;
+const to = field === "toDate" ? value : prev.toDate;
+if (from && to) {
+const diff = Math.max(0, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / (1000 _ 60 _ 60 \* 24)));
+updated.consumedDays = diff;
+}
+}
+return updated;
+});
+};
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.hotelId || !form.clockNumber || !form.visitHotelId || !form.numberOfRooms || !form.familyMembersCount || !form.fromDate || !form.toDate) {
-      toast.error(ar ? "يرجى ملء الحقول المطلوبة (*)" : "Please fill required fields (*)");
-      return;
-    }
-    updateMutation.mutate();
-  };
+const updateMutation = useMutation({
+mutationFn: async () => {
+// In a real scenario, attachments would be uploaded first or sent as FormData
+const res = await fetch(`/api/family-visit/${requestId}`, {
+method: "PUT",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+hotelId: form.hotelId ? parseInt(form.hotelId) : undefined,
+visitHotelId: form.visitHotelId ? parseInt(form.visitHotelId) : undefined,
+numberOfRooms: parseInt(form.numberOfRooms),
+familyMembersCount: parseInt(form.familyMembersCount),
+familyMembersIncluded: form.familyMembersIncluded || undefined,
+fromDate: form.fromDate,
+toDate: form.toDate,
+consumedDays: form.consumedDays,
+remarks: form.remarks || undefined,
+}),
+});
+const data = await res.json();
+if (!res.ok) throw new Error(data.message || "Failed to create");
+return data.data;
+},
+onSuccess: (updated) => {
+toast.success(
+ar
+? `تم تحديث الطلب ${updated.request_number}`
+: `Request ${updated.request_number} updated`,
+);
+setLocation(`/family-visit/${updated.id}`);
+},
+onError: (err: Error) => {
+toast.error(err.message);
+},
+});
 
-  if (isLoadingRequest) return <PageLoader />;
+const handleSubmit = (e: React.FormEvent) => {
+e.preventDefault();
+if (!form.hotelId || !form.clockNumber || !form.visitHotelId || !form.numberOfRooms || !form.familyMembersCount || !form.fromDate || !form.toDate) {
+toast.error(ar ? "يرجى ملء الحقول المطلوبة (_)" : "Please fill required fields (_)");
+return;
+}
+updateMutation.mutate();
+};
 
-  return (
-    <div className="space-y-6 p-1">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setLocation(`/family-visit/${requestId}`)}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {ar ? "تعديل طلب استضافة" : "Edit Hosting Request"}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {ar ? "طلبات" : "requests"}
-          </p>
-        </div>
-      </div>
+if (isLoadingRequest) return <PageLoader />;
+
+return (
+
+<div className="space-y-6 p-1">
+<div className="flex items-center gap-4">
+<Button variant="ghost" size="icon" onClick={() => setLocation(`/family-visit/${requestId}`)}>
+<ArrowLeft className="w-5 h-5" />
+</Button>
+<div>
+<h1 className="text-2xl font-bold text-foreground">
+{ar ? "تعديل طلب استضافة" : "Edit Hosting Request"}
+</h1>
+<p className="text-muted-foreground text-sm mt-1">
+{ar ? "طلبات" : "requests"}
+</p>
+</div>
+</div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Section 1: Request Information */}
@@ -2861,7 +2889,7 @@ export default function EditFamilyVisit() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="flex justify-between">
                 <span>{ar ? "رقم البصمة *" : "Clock Number *"}</span>
@@ -3092,7 +3120,8 @@ export default function EditFamilyVisit() {
         </div>
       </form>
     </div>
-  );
+
+);
 }
 
 ================================================================================
@@ -3115,271 +3144,274 @@ import { usePermission } from "@/hooks/use-permission";
 import { ArrowLeft, CheckCircle, XCircle, Clock, Loader2, Home, ExternalLink, Users, Edit, Trash2 } from "lucide-react";
 
 const stepRoles: Record<string, Record<string, string>> = {
-  housing_manager: { en: "Housing Manager", ar: "مدير السكن" },
-  hr_manager: { en: "HR Manager", ar: "مدير الموارد البشرية" },
-  accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
+housing_manager: { en: "Housing Manager", ar: "مدير السكن" },
+hr_manager: { en: "HR Manager", ar: "مدير الموارد البشرية" },
+accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
 };
 
 export default function FamilyVisitDetail() {
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const { user } = useAuth();
-  const { canEdit, canDelete, isAdmin } = usePermission();
-  const [, setLocation] = useLocation();
-  const [, params] = useRoute("/family-visit/:id");
-  const requestId = params?.id;
+const { language } = useLanguage();
+const ar = language === "ar";
+const { user } = useAuth();
+const { canEdit, canDelete, isAdmin } = usePermission();
+const [, setLocation] = useLocation();
+const [, params] = useRoute("/family-visit/:id");
+const requestId = params?.id;
 
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [showRebackDialog, setShowRebackDialog] = useState(false);
-  const [rebackReason, setRebackReason] = useState("");
-  const [showSignConfirm, setShowSignConfirm] = useState(false);
-  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
-  const [showRebackConfirm, setShowRebackConfirm] = useState(false);
+const [showRejectDialog, setShowRejectDialog] = useState(false);
+const [rejectReason, setRejectReason] = useState("");
+const [showRebackDialog, setShowRebackDialog] = useState(false);
+const [rebackReason, setRebackReason] = useState("");
+const [showSignConfirm, setShowSignConfirm] = useState(false);
+const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+const [showRebackConfirm, setShowRebackConfirm] = useState(false);
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["/api/family-visit", requestId],
-    queryFn: async () => {
-      const res = await fetch(`/api/family-visit/${requestId}`);
-      const json = await res.json();
-      if (!res.ok) {
-        const err: any = new Error(json.message);
-        err.status = res.status;
-        throw err;
-      }
-      return json.data;
-    },
-    enabled: !!requestId,
-  });
+const { data, isLoading, isError, error, refetch } = useQuery({
+queryKey: ["/api/family-visit", requestId],
+queryFn: async () => {
+const res = await fetch(`/api/family-visit/${requestId}`);
+const json = await res.json();
+if (!res.ok) {
+const err: any = new Error(json.message);
+err.status = res.status;
+throw err;
+}
+return json.data;
+},
+enabled: !!requestId,
+});
 
-  const { data: mySignature } = useQuery({
-    queryKey: ["/api/users/me/signature"],
-    queryFn: async () => {
-      const res = await fetch("/api/users/me/signature");
-      return res.json();
-    },
-  });
+const { data: mySignature } = useQuery({
+queryKey: ["/api/users/me/signature"],
+queryFn: async () => {
+const res = await fetch("/api/users/me/signature");
+return res.json();
+},
+});
 
-  const signMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/family-visit/${requestId}/sign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comment: "" }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
-      return json.data;
-    },
-    onSuccess: () => {
-      toast.success(ar ? "تم الاعتماد بنجاح" : "Successfully approved");
-      refetch();
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-  const rebackMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/family-visit/${requestId}/reback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: rebackReason }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
-      return json.data;
-    },
-    onSuccess: () => {
-      toast.success(ar ? "تم إعادة الطلب بنجاح" : "Successfully returned");
-      setRebackReason("");
-      setShowRebackConfirm(false);
-      refetch();
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+const signMutation = useMutation({
+mutationFn: async () => {
+const res = await fetch(`/api/family-visit/${requestId}/sign`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ comment: "" }),
+});
+const json = await res.json();
+if (!res.ok) throw new Error(json.message);
+return json.data;
+},
+onSuccess: () => {
+toast.success(ar ? "تم الاعتماد بنجاح" : "Successfully approved");
+refetch();
+},
+onError: (err: Error) => toast.error(err.message),
+});
+const rebackMutation = useMutation({
+mutationFn: async () => {
+const res = await fetch(`/api/family-visit/${requestId}/reback`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ reason: rebackReason }),
+});
+const json = await res.json();
+if (!res.ok) throw new Error(json.message);
+return json.data;
+},
+onSuccess: () => {
+toast.success(ar ? "تم إعادة الطلب بنجاح" : "Successfully returned");
+setRebackReason("");
+setShowRebackConfirm(false);
+refetch();
+},
+onError: (err: Error) => toast.error(err.message),
+});
 
-  const rejectMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/family-visit/${requestId}/reject`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: rejectReason }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
-      return json.data;
-    },
-    onSuccess: () => {
-      toast.success(ar ? "تم الرفض بنجاح" : "Successfully rejected");
-      setRejectReason("");
-      setShowRejectConfirm(false);
-      refetch();
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+const rejectMutation = useMutation({
+mutationFn: async () => {
+const res = await fetch(`/api/family-visit/${requestId}/reject`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ reason: rejectReason }),
+});
+const json = await res.json();
+if (!res.ok) throw new Error(json.message);
+return json.data;
+},
+onSuccess: () => {
+toast.success(ar ? "تم الرفض بنجاح" : "Successfully rejected");
+setRejectReason("");
+setShowRejectConfirm(false);
+refetch();
+},
+onError: (err: Error) => toast.error(err.message),
+});
 
-  const createGuestHostingMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/family-visit/${requestId}/create-guest-hosting`, {
-        method: "POST",
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
-      return json.data;
-    },
-    onSuccess: () => {
-      toast.success(ar ? "تم إنشاء طلب الاستضافة" : "Guest hosting created");
-      refetch();
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+const createGuestHostingMutation = useMutation({
+mutationFn: async () => {
+const res = await fetch(`/api/family-visit/${requestId}/create-guest-hosting`, {
+method: "POST",
+});
+const json = await res.json();
+if (!res.ok) throw new Error(json.message);
+return json.data;
+},
+onSuccess: () => {
+toast.success(ar ? "تم إنشاء طلب الاستضافة" : "Guest hosting created");
+refetch();
+},
+onError: (err: Error) => toast.error(err.message),
+});
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/family-visit/${requestId}`, {
-        method: "DELETE",
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
-      return json.data;
-    },
-    onSuccess: () => {
-      toast.success(ar ? "تم الحذف بنجاح" : "Successfully deleted");
-      setLocation("/family-visit");
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+const deleteMutation = useMutation({
+mutationFn: async () => {
+const res = await fetch(`/api/family-visit/${requestId}`, {
+method: "DELETE",
+});
+const json = await res.json();
+if (!res.ok) throw new Error(json.message);
+return json.data;
+},
+onSuccess: () => {
+toast.success(ar ? "تم الحذف بنجاح" : "Successfully deleted");
+setLocation("/family-visit");
+},
+onError: (err: Error) => toast.error(err.message),
+});
 
-  const { data: guestHosting } = useQuery({
-    queryKey: ["/api/hostings", data?.guest_hosting_id],
-    queryFn: async () => {
-      if (!data?.guest_hosting_id) return null;
-      const res = await fetch(`/api/hostings/${data.guest_hosting_id}?propertyId=${data.property_id}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message);
-      return json.data;
-    },
-    enabled: !!data?.guest_hosting_id,
-  });
+const { data: guestHosting } = useQuery({
+queryKey: ["/api/hostings", data?.guest_hosting_id],
+queryFn: async () => {
+if (!data?.guest_hosting_id) return null;
+const res = await fetch(`/api/hostings/${data.guest_hosting_id}?propertyId=${data.property_id}`);
+const json = await res.json();
+if (!res.ok) throw new Error(json.message);
+return json.data;
+},
+enabled: !!data?.guest_hosting_id,
+});
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4 p-1 max-w-4xl">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-96 w-full" />
-      </div>
-    );
-  }
+if (isLoading) {
+return (
 
-  if (isError && ((error as any)?.status === 403 || (error as any)?.message?.toLowerCase().includes("not allowed"))) {
-    return (
-      <div className="p-12 text-center">
-        <div className="mx-auto bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full w-20 h-20 flex items-center justify-center mb-4">
-          <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        </div>
-        <h2 className="text-xl font-bold mb-2">
-          {ar ? "غير مصرح بالوصول" : "Permission Denied"}
-        </h2>
-        <p className="text-muted-foreground mb-6">
-          {ar ? "عذراً، ليس لديك الصلاحية لعرض هذه الصفحة أو التعامل مع هذا الطلب." : "Sorry, you don't have permission to view this page or handle this request."}
-        </p>
-        <Button onClick={() => setLocation("/")} variant="default">
-          {ar ? "العودة للرئيسية" : "Back to Home"}
-        </Button>
-      </div>
-    );
-  }
+<div className="space-y-4 p-1 max-w-4xl">
+<Skeleton className="h-8 w-64" />
+<Skeleton className="h-96 w-full" />
+</div>
+);
+}
 
-  if (!data) {
-    return (
-      <div className="p-12 text-center text-muted-foreground">
-        {ar ? "الطلب غير موجود" : "Request not found"}
-      </div>
-    );
-  }
+if (isError && ((error as any)?.status === 403 || (error as any)?.message?.toLowerCase().includes("not allowed"))) {
+return (
 
-  const request = data;
-  const steps = request.approval_steps || [];
-  const currentStep = steps.find((s: any) => s.stepOrder === request.current_step_order);
-  const userHasSignature = Boolean(mySignature?.signatureImageUrl);
-  const currentUserJobTitle = (user as any)?.jobTitle;
-  
-  const userRoles = Array.isArray((user as any)?.roles) ? (user as any).roles : [];
-  const hasExplicitApprovePermission = userRoles.includes("hosting_requests.approve") || userRoles.includes("approve") || (user as any)?.permissions?.includes("hosting_requests.approve") || (user as any)?.permissions?.includes("approve");
-  const isAuthorizedToSign = isAdmin || currentStep?.roleRequired === currentUserJobTitle || userRoles.includes(currentStep?.roleRequired) || hasExplicitApprovePermission;
-  const userCanAct = currentStep?.status === "pending" && isAuthorizedToSign;
+<div className="p-12 text-center">
+<div className="mx-auto bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full w-20 h-20 flex items-center justify-center mb-4">
+<svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+</svg>
+</div>
+<h2 className="text-xl font-bold mb-2">
+{ar ? "غير مصرح بالوصول" : "Permission Denied"}
+</h2>
+<p className="text-muted-foreground mb-6">
+{ar ? "عذراً، ليس لديك الصلاحية لعرض هذه الصفحة أو التعامل مع هذا الطلب." : "Sorry, you don't have permission to view this page or handle this request."}
+</p>
+<Button onClick={() => setLocation("/")} variant="default">
+{ar ? "العودة للرئيسية" : "Back to Home"}
+</Button>
+</div>
+);
+}
 
+if (!data) {
+return (
 
-  const hostingStatusLabels: Record<string, { en: string; ar: string }> = {
-    PENDING: { en: "Pending Approval", ar: "قيد الانتظار" },
-    APPROVED: { en: "Approved", ar: "معتمد" },
-    ACTIVE: { en: "Active", ar: "نشط" },
-    COMPLETED: { en: "Completed", ar: "مكتمل" },
-  };
+<div className="p-12 text-center text-muted-foreground">
+{ar ? "الطلب غير موجود" : "Request not found"}
+</div>
+);
+}
 
-  const hostingStatusVariants: Record<string, "warning" | "success" | "info" | "muted"> = {
-    PENDING: "warning",
-    APPROVED: "success",
-    ACTIVE: "info",
-    COMPLETED: "muted",
-  };
+const request = data;
+const steps = request.approval_steps || [];
+const currentStep = steps.find((s: any) => s.stepOrder === request.current_step_order);
+const userHasSignature = Boolean(mySignature?.signatureImageUrl);
+const currentUserJobTitle = (user as any)?.jobTitle;
 
-  const hostingStatusVariant =
-    request.guest_hosting_status ? hostingStatusVariants[request.guest_hosting_status] ?? "muted" : "muted";
-  const hostingStatusLabel =
-    request.guest_hosting_status ? hostingStatusLabels[request.guest_hosting_status] : null;
+const userRoles = Array.isArray((user as any)?.roles) ? (user as any).roles : [];
+const hasExplicitApprovePermission = userRoles.includes("hosting_requests.approve") || userRoles.includes("approve") || (user as any)?.permissions?.includes("hosting_requests.approve") || (user as any)?.permissions?.includes("approve");
+const isAuthorizedToSign = isAdmin || currentStep?.roleRequired === currentUserJobTitle || userRoles.includes(currentStep?.roleRequired) || hasExplicitApprovePermission;
+const userCanAct = currentStep?.status === "pending" && isAuthorizedToSign;
 
-  const statusBadgeVariant: Record<string, "success" | "warning" | "danger" | "info" | "muted"> = {
-    in_signing: "warning",
-    approved: "success",
-    rejected: "danger",
-  };
+const hostingStatusLabels: Record<string, { en: string; ar: string }> = {
+PENDING: { en: "Pending Approval", ar: "قيد الانتظار" },
+APPROVED: { en: "Approved", ar: "معتمد" },
+ACTIVE: { en: "Active", ar: "نشط" },
+COMPLETED: { en: "Completed", ar: "مكتمل" },
+};
 
-  return (
-    <div className="space-y-6 p-1">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/family-visit")}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">
-              {request.request_number}
-            </h1>
-            <StatusBadge
-              label={
-                request.status === "approved" ? (ar ? "معتمد" : "Approved") :
-                request.status === "rejected" ? (ar ? "مرفوض" : "Rejected") :
-                request.status === "in_signing" ? (ar ? "قيد التوقيع" : "In Signing") :
-                request.status
-              }
-              variant={statusBadgeVariant[request.status] ?? "muted"}
-            />
-          </div>
-          <p className="text-muted-foreground text-sm mt-1">
-            {request.employee_name} — {request.department}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {canEdit("hosting_requests") && (
-            <Button variant="outline" onClick={() => setLocation(`/family-visit/${request.id}/edit`)}>
-              <Edit className="w-4 h-4 mr-2" />
-              {ar ? "تعديل" : "Edit"}
-            </Button>
-          )}
-          {canDelete("hosting_requests") && (
-            <Button variant="destructive" onClick={() => {
-              if (window.confirm(ar ? "هل أنت متأكد من حذف هذا الطلب؟" : "Are you sure you want to delete this request?")) {
-                deleteMutation.mutate();
-              }
-            }}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              {ar ? "حذف" : "Delete"}
-            </Button>
-          )}
-        </div>
-      </div>
+const hostingStatusVariants: Record<string, "warning" | "success" | "info" | "muted"> = {
+PENDING: "warning",
+APPROVED: "success",
+ACTIVE: "info",
+COMPLETED: "muted",
+};
+
+const hostingStatusVariant =
+request.guest_hosting_status ? hostingStatusVariants[request.guest_hosting_status] ?? "muted" : "muted";
+const hostingStatusLabel =
+request.guest_hosting_status ? hostingStatusLabels[request.guest_hosting_status] : null;
+
+const statusBadgeVariant: Record<string, "success" | "warning" | "danger" | "info" | "muted"> = {
+in_signing: "warning",
+approved: "success",
+rejected: "danger",
+};
+
+return (
+
+<div className="space-y-6 p-1">
+<div className="flex items-center gap-4">
+<Button variant="ghost" size="icon" onClick={() => setLocation("/family-visit")}>
+<ArrowLeft className="w-5 h-5" />
+</Button>
+<div className="flex-1">
+<div className="flex items-center gap-3">
+<h1 className="text-2xl font-bold text-foreground">
+{request.request_number}
+</h1>
+<StatusBadge
+label={
+request.status === "approved" ? (ar ? "معتمد" : "Approved") :
+request.status === "rejected" ? (ar ? "مرفوض" : "Rejected") :
+request.status === "in_signing" ? (ar ? "قيد التوقيع" : "In Signing") :
+request.status
+}
+variant={statusBadgeVariant[request.status] ?? "muted"}
+/>
+</div>
+<p className="text-muted-foreground text-sm mt-1">
+{request.employee_name} — {request.department}
+</p>
+</div>
+<div className="flex items-center gap-2">
+{canEdit("hosting_requests") && (
+<Button variant="outline" onClick={() => setLocation(`/family-visit/${request.id}/edit`)}>
+<Edit className="w-4 h-4 mr-2" />
+{ar ? "تعديل" : "Edit"}
+</Button>
+)}
+{canDelete("hosting_requests") && (
+<Button variant="destructive" onClick={() => {
+if (window.confirm(ar ? "هل أنت متأكد من حذف هذا الطلب؟" : "Are you sure you want to delete this request?")) {
+deleteMutation.mutate();
+}
+}}>
+<Trash2 className="w-4 h-4 mr-2" />
+{ar ? "حذف" : "Delete"}
+</Button>
+)}
+</div>
+</div>
 
       {/* Request Details */}
       <div className="flex flex-col gap-6">
@@ -3453,7 +3485,7 @@ export default function FamilyVisitDetail() {
 
                 let cardClasses = "flex flex-col items-center justify-center p-4 rounded-lg border w-48 text-center bg-card";
                 let iconClasses = "w-10 h-10 rounded-lg flex items-center justify-center mb-3";
-                
+
                 if (isSigned) {
                   cardClasses += " border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20";
                   iconClasses += " text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50";
@@ -3471,8 +3503,8 @@ export default function FamilyVisitDetail() {
                 return (
                   <div key={step.id} className={cardClasses}>
                     <div className={iconClasses}>
-                      {isSigned ? <Users className="w-5 h-5" /> : 
-                       isRejected ? <Users className="w-5 h-5" /> : 
+                      {isSigned ? <Users className="w-5 h-5" /> :
+                       isRejected ? <Users className="w-5 h-5" /> :
                        <Users className="w-5 h-5" />}
                     </div>
                     <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">
@@ -3727,7 +3759,8 @@ export default function FamilyVisitDetail() {
         </Button>
       </div>
     </div>
-  );
+
+);
 }
 
 ================================================================================
@@ -3745,15 +3778,15 @@ import { db, pool, usersTable } from "@workspace/db";
 import { eq, and, SQL, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
-  CreateUserBody,
-  UpdateUserBody,
-  GetUserParams,
-  UpdateUserParams,
-  DeleteUserParams,
-  ListUsersQueryParams,
-  ListUsersResponse,
-  GetUserResponse,
-  UpdateUserResponse,
+CreateUserBody,
+UpdateUserBody,
+GetUserParams,
+UpdateUserParams,
+DeleteUserParams,
+ListUsersQueryParams,
+ListUsersResponse,
+GetUserResponse,
+UpdateUserResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { requireAuth } from "../middlewares/permissions.js";
@@ -3763,48 +3796,48 @@ import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
 
 const router: Router = Router();
 
-// ℹ️  Schema column 'property_ids' is managed via migration (scripts/add-missing-indexes.sql)
-//    Do NOT run DDL here — it was removed to prevent startup delays and silent failures.
+// ℹ️ Schema column 'property_ids' is managed via migration (scripts/add-missing-indexes.sql)
+// Do NOT run DDL here — it was removed to prevent startup delays and silent failures.
 
-/** Returns true if the roles array contains a system-admin role */
+/\*_ Returns true if the roles array contains a system-admin role _/
 function isSystemAdminRoles(roles: string[]): boolean {
-  return roles.some((role) =>
-    ["super_admin", "system_admin", "admin"].includes(String(role).trim().toLowerCase()),
-  );
+return roles.some((role) =>
+["super_admin", "system_admin", "admin"].includes(String(role).trim().toLowerCase()),
+);
 }
 
 function requireUserUpdatePermission(req: any, res: any, next: any): void {
-  const guards: any[] = [];
-  if (
-    Object.prototype.hasOwnProperty.call(req.body ?? {}, "permissions") ||
-    Object.prototype.hasOwnProperty.call(req.body ?? {}, "roles")
-  ) {
-    guards.push(requirePermission("users", "manage_permissions"));
-  }
-  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "password")) {
-    guards.push(requirePermission("users", "reset_password"));
-  }
-  if (guards.length === 0) {
-    guards.push(requirePermission("users", "edit"));
-  }
+const guards: any[] = [];
+if (
+Object.prototype.hasOwnProperty.call(req.body ?? {}, "permissions") ||
+Object.prototype.hasOwnProperty.call(req.body ?? {}, "roles")
+) {
+guards.push(requirePermission("users", "manage_permissions"));
+}
+if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "password")) {
+guards.push(requirePermission("users", "reset_password"));
+}
+if (guards.length === 0) {
+guards.push(requirePermission("users", "edit"));
+}
 
-  let index = 0;
-  const run = (err?: any) => {
-    if (err) return next(err);
-    const guard = guards[index++];
-    if (!guard) return next();
-    return guard(req, res, run);
-  };
-  run();
+let index = 0;
+const run = (err?: any) => {
+if (err) return next(err);
+const guard = guards[index++];
+if (!guard) return next();
+return guard(req, res, run);
+};
+run();
 }
 
 // 1. جلب المستخدمين مع دعم كامل للمصفوفة و Server-side Pagination
 router.get(
-  "/users",
-  requirePermission("users", "view"),
-  async (req, res): Promise<void> => {
-    const isSystemAdmin = (req.session as any)?.isSystemAdmin;
-    const sessionPropertyId = (req.session as any)?.propertyId;
+"/users",
+requirePermission("users", "view"),
+async (req, res): Promise<void> => {
+const isSystemAdmin = (req.session as any)?.isSystemAdmin;
+const sessionPropertyId = (req.session as any)?.propertyId;
 
     // Server-side pagination params
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -3888,29 +3921,30 @@ router.get(
         totalPages: Math.ceil(totalRows / limit),
       },
     });
-  },
+
+},
 );
 
 // 2. إنشاء مستخدم جديد
 router.post(
-  "/users",
-  requirePermission("users", "create"),
-  async (req, res): Promise<void> => {
-    const parsed = CreateUserBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
-      return;
-    }
-    const { password, propertyIds, ...userData } = parsed.data as any;
-    if (
-      isSystemAdminRoles(userData.roles ?? []) &&
-      !(req.session as any)?.isSystemAdmin
-    ) {
-      res
-        .status(403)
-        .json({ error: "Only system admins can create system admins" });
-      return;
-    }
+"/users",
+requirePermission("users", "create"),
+async (req, res): Promise<void> => {
+const parsed = CreateUserBody.safeParse(req.body);
+if (!parsed.success) {
+res.status(400).json({ error: parsed.error.message });
+return;
+}
+const { password, propertyIds, ...userData } = parsed.data as any;
+if (
+isSystemAdminRoles(userData.roles ?? []) &&
+!(req.session as any)?.isSystemAdmin
+) {
+res
+.status(403)
+.json({ error: "Only system admins can create system admins" });
+return;
+}
 
     // ─── Validate password against policy ─────────────────────────────
     const policy = await getPasswordPolicy(userData.propertyId ?? 0);
@@ -3966,19 +4000,20 @@ router.post(
       phone: safeUserAny.phone || null,
       propertyIds: pids,
     });
-  },
+
+},
 );
 
 // 3. تحديث مستخدم (التعديل الجوهري هنا)
 router.patch(
-  "/users/:id",
-  requireUserUpdatePermission,
-  async (req, res): Promise<void> => {
-    const params = UpdateUserParams.safeParse(req.params);
-    if (!params.success) {
-      res.status(400).json({ error: params.error.message });
-      return;
-    }
+"/users/:id",
+requireUserUpdatePermission,
+async (req, res): Promise<void> => {
+const params = UpdateUserParams.safeParse(req.params);
+if (!params.success) {
+res.status(400).json({ error: params.error.message });
+return;
+}
 
     const [targetUser] = await db
       .select()
@@ -4119,19 +4154,20 @@ router.patch(
       permissions: updated.permissions,
       status: updated.status,
     });
-  },
+
+},
 );
 
 // Unlock user account (reset failedLoginAttempts, clear lockedUntil)
 router.post(
-  "/users/:id/unlock",
-  requirePermission("users", "unlock"),
-  async (req, res): Promise<void> => {
-    const id = Number(req.params.id);
-    if (!id) {
-      res.status(400).json({ error: "Invalid user ID" });
-      return;
-    }
+"/users/:id/unlock",
+requirePermission("users", "unlock"),
+async (req, res): Promise<void> => {
+const id = Number(req.params.id);
+if (!id) {
+res.status(400).json({ error: "Invalid user ID" });
+return;
+}
 
     const [targetUser] = await db
       .select()
@@ -4173,18 +4209,19 @@ router.post(
       success: true,
       message: `User '${targetUser.username}' unlocked`,
     });
-  },
+
+},
 );
 
 router.delete(
-  "/users/:id",
-  requirePermission("users", "delete"),
-  async (req, res): Promise<void> => {
-    const params = DeleteUserParams.safeParse(req.params);
-    if (!params.success) {
-      res.status(400).json({ error: params.error.message });
-      return;
-    }
+"/users/:id",
+requirePermission("users", "delete"),
+async (req, res): Promise<void> => {
+const params = DeleteUserParams.safeParse(req.params);
+if (!params.success) {
+res.status(400).json({ error: params.error.message });
+return;
+}
 
     const [targetUser] = await db
       .select()
@@ -4204,19 +4241,20 @@ router.delete(
 
     await db.delete(usersTable).where(eq(usersTable.id, params.data.id));
     res.sendStatus(204);
-  },
+
+},
 );
 
 // ─── PATCH /users/me/last-property ──────────────────────────────────────
 router.patch(
-  "/users/me/last-property",
-  requireAuth,
-  async (req, res): Promise<void> => {
-    const userId = (req.session as any)?.userId;
-    if (!userId) {
-      res.status(401).json({ error: "Not authenticated" });
-      return;
-    }
+"/users/me/last-property",
+requireAuth,
+async (req, res): Promise<void> => {
+const userId = (req.session as any)?.userId;
+if (!userId) {
+res.status(401).json({ error: "Not authenticated" });
+return;
+}
 
     const { propertyId } = req.body as { propertyId?: number };
     if (propertyId == null || typeof propertyId !== "number") {
@@ -4229,7 +4267,8 @@ router.patch(
       .set({ lastPropertyId: propertyId } as any)
       .where(eq(usersTable.id, userId));
     res.json({ success: true });
-  },
+
+},
 );
 
 export default router;
@@ -4245,18 +4284,18 @@ import bcrypt from "bcryptjs";
 import { LoginBody, ChangePasswordBody } from "@workspace/api-zod";
 import { logActivity, getClientIp } from "../lib/activity-logger.js";
 import {
-  loginRateLimit,
-  changePasswordRateLimit,
-  resetLoginAttempts,
+loginRateLimit,
+changePasswordRateLimit,
+resetLoginAttempts,
 } from "../middlewares/rate-limit.js";
 import {
-  getPasswordPolicy,
-  validatePassword,
-  checkPasswordHistory,
-  recordPasswordHistory,
-  cleanupOldPasswordHistory,
-  isPasswordExpired,
-  PasswordPolicy,
+getPasswordPolicy,
+validatePassword,
+checkPasswordHistory,
+recordPasswordHistory,
+cleanupOldPasswordHistory,
+isPasswordExpired,
+PasswordPolicy,
 } from "../lib/password-policy.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { formatZodError } from "../utils/error-response.js";
@@ -4264,71 +4303,71 @@ import { formatZodError } from "../utils/error-response.js";
 const router: Router = Router();
 
 const normalizeRole = (role: unknown): string =>
-  String(role ?? "")
-    .trim()
-    .toLowerCase();
+String(role ?? "")
+.trim()
+.toLowerCase();
 
 // ─── POST /auth/login ─────────────────────────────────────────────────────
 router.post("/auth/login", async (req, res): Promise<void> => {
-  const parsed = LoginBody.safeParse(req.body);
-  if (!parsed.success) {
-    const ar = (req.headers["accept-language"] ?? "")
-      .toLowerCase()
-      .startsWith("ar");
-    res
-      .status(400)
-      .json({ success: false, message: formatZodError(parsed.error, ar) });
-    return;
-  }
+const parsed = LoginBody.safeParse(req.body);
+if (!parsed.success) {
+const ar = (req.headers["accept-language"] ?? "")
+.toLowerCase()
+.startsWith("ar");
+res
+.status(400)
+.json({ success: false, message: formatZodError(parsed.error, ar) });
+return;
+}
 
-  const { username, password } = parsed.data;
-  const ip = getClientIp(req);
+const { username, password } = parsed.data;
+const ip = getClientIp(req);
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(sql`lower(${usersTable.username}) = lower(${username.trim()})`)
-    .limit(1);
+const [user] = await db
+.select()
+.from(usersTable)
+.where(sql`lower(${usersTable.username}) = lower(${username.trim()})`)
+.limit(1);
 
-  if (!user) {
-    res.status(401).json({ error: "Invalid credentials" });
-    return;
-  }
+if (!user) {
+res.status(401).json({ error: "Invalid credentials" });
+return;
+}
 
-  const propertyId = user.propertyId ?? 0;
-  const policy = propertyId
-    ? await getPasswordPolicy(propertyId)
-    : await getPasswordPolicy(0);
+const propertyId = user.propertyId ?? 0;
+const policy = propertyId
+? await getPasswordPolicy(propertyId)
+: await getPasswordPolicy(0);
 
-  // ─── Account Lockout Check ──────────────────────────────────────────
-  if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
-    const remaining = Math.ceil(
-      (new Date(user.lockedUntil).getTime() - Date.now()) / 60000,
-    );
-    logActivity({
-      req,
-      propertyId,
-      username,
-      userId: user.id,
-      userRole: user.roles?.[0],
-      action: "LOGIN_BLOCKED_LOCKED",
-      actionType: "SECURITY",
-      module: "auth",
-      severity: "warning",
-      details: `Blocked login attempt from ${ip} — account locked for ${remaining} more minutes`,
-      ipAddress: ip,
-    });
-    res.status(423).json({
-      error: `الحساب مقفل. حاول مرة أخرى بعد ${remaining} دقيقة`,
-      code: "ACCOUNT_LOCKED",
-      retryAfterMinutes: remaining,
-    });
-    return;
-  }
+// ─── Account Lockout Check ──────────────────────────────────────────
+if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+const remaining = Math.ceil(
+(new Date(user.lockedUntil).getTime() - Date.now()) / 60000,
+);
+logActivity({
+req,
+propertyId,
+username,
+userId: user.id,
+userRole: user.roles?.[0],
+action: "LOGIN_BLOCKED_LOCKED",
+actionType: "SECURITY",
+module: "auth",
+severity: "warning",
+details: `Blocked login attempt from ${ip} — account locked for ${remaining} more minutes`,
+ipAddress: ip,
+});
+res.status(423).json({
+error: `الحساب مقفل. حاول مرة أخرى بعد ${remaining} دقيقة`,
+code: "ACCOUNT_LOCKED",
+retryAfterMinutes: remaining,
+});
+return;
+}
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
-    const threshold = policy.lockoutThreshold ?? 5;
+const valid = await bcrypt.compare(password, user.passwordHash);
+if (!valid) {
+const threshold = policy.lockoutThreshold ?? 5;
 
     // Atomic SQL increment to prevent race-condition undercounting
     // Two parallel failed requests could each read the same count and write count+1,
@@ -4404,50 +4443,51 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       remainingAttempts: remainingBeforeLock,
     });
     return;
-  }
 
-  if (user.status?.toLowerCase() === "inactive") {
-    res.status(401).json({ error: "Account disabled" });
-    return;
-  }
+}
 
-  // ─── Reset lockout counters on success ──────────────────────────────
-  await db
-    .update(usersTable)
-    .set({
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-      lastLoginAt: new Date(),
-    })
-    .where(eq(usersTable.id, user.id));
+if (user.status?.toLowerCase() === "inactive") {
+res.status(401).json({ error: "Account disabled" });
+return;
+}
 
-  // ✅ إعادة تعيين عداد rate limit بعد نجاح الدخول
-  resetLoginAttempts(req);
+// ─── Reset lockout counters on success ──────────────────────────────
+await db
+.update(usersTable)
+.set({
+failedLoginAttempts: 0,
+lockedUntil: null,
+lastLoginAt: new Date(),
+})
+.where(eq(usersTable.id, user.id));
 
-  // ─── Check password expiry ──────────────────────────────────────────
-  const passwordExpired = await isPasswordExpired(user, policy);
+// ✅ إعادة تعيين عداد rate limit بعد نجاح الدخول
+resetLoginAttempts(req);
 
-  // ✅ Session Regeneration — prevents Session Fixation Attack
-  const roles = (user.roles ?? []).map(normalizeRole);
-  const isSystemAdmin =
-    roles.includes("super_admin") || roles.includes("system_admin") || roles.includes("admin");
+// ─── Check password expiry ──────────────────────────────────────────
+const passwordExpired = await isPasswordExpired(user, policy);
 
-  const sessionData = {
-    userId: user.id,
-    propertyId: user.propertyId,
-    isSystemAdmin,
-    username: user.username,
-    userRole: user.roles?.[0] ?? null,
-    jobTitle: user.jobTitle ?? null,
-    loginAt: Date.now(),
-    passwordExpired,
-  };
+// ✅ Session Regeneration — prevents Session Fixation Attack
+const roles = (user.roles ?? []).map(normalizeRole);
+const isSystemAdmin =
+roles.includes("super_admin") || roles.includes("system_admin") || roles.includes("admin");
 
-  req.session.regenerate((err) => {
-    if (err) {
-      res.status(500).json({ error: "Session error" });
-      return;
-    }
+const sessionData = {
+userId: user.id,
+propertyId: user.propertyId,
+isSystemAdmin,
+username: user.username,
+userRole: user.roles?.[0] ?? null,
+jobTitle: user.jobTitle ?? null,
+loginAt: Date.now(),
+passwordExpired,
+};
+
+req.session.regenerate((err) => {
+if (err) {
+res.status(500).json({ error: "Session error" });
+return;
+}
 
     Object.assign(req.session, sessionData);
 
@@ -4475,89 +4515,90 @@ router.post("/auth/login", async (req, res): Promise<void> => {
         passwordExpired,
       },
     });
-  });
+
+});
 });
 
 // ─── POST /auth/logout ────────────────────────────────────────────────────
 router.post("/auth/logout", async (req, res): Promise<void> => {
-  const session = req.session as any;
-  const userId = session?.userId;
-  const propertyId = session?.propertyId;
+const session = req.session as any;
+const userId = session?.userId;
+const propertyId = session?.propertyId;
 
-  if (userId && propertyId) {
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, userId))
-      .limit(1);
-    if (user) {
-      logActivity({
-        req,
-        propertyId,
-        username: user.username,
-        userId: user.id,
-        userRole: user.roles?.[0],
-        action: "LOGOUT",
-        actionType: "AUTH",
-        module: "auth",
-        severity: "info",
-        details: "User logged out",
-        ipAddress: getClientIp(req),
-      });
-    }
-  }
+if (userId && propertyId) {
+const [user] = await db
+.select()
+.from(usersTable)
+.where(eq(usersTable.id, userId))
+.limit(1);
+if (user) {
+logActivity({
+req,
+propertyId,
+username: user.username,
+userId: user.id,
+userRole: user.roles?.[0],
+action: "LOGOUT",
+actionType: "AUTH",
+module: "auth",
+severity: "info",
+details: "User logged out",
+ipAddress: getClientIp(req),
+});
+}
+}
 
-  req.session.destroy((err) => {
-    // Always clear cookie and respond, even if session store is unreachable
-    // (e.g., Redis/PG down). Otherwise, the client hangs indefinitely.
-    if (err) {
-      console.error("Session destroy error:", err.message);
-    }
-    res.clearCookie("sunrise.sid");
-    res.json({ message: "Logged out" });
-  });
+req.session.destroy((err) => {
+// Always clear cookie and respond, even if session store is unreachable
+// (e.g., Redis/PG down). Otherwise, the client hangs indefinitely.
+if (err) {
+console.error("Session destroy error:", err.message);
+}
+res.clearCookie("sunrise.sid");
+res.json({ message: "Logged out" });
+});
 });
 
 // ─── GET /auth/me ─────────────────────────────────────────────────────────
 router.get("/auth/me", async (req, res): Promise<void> => {
-  const userId = (req.session as any)?.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+const userId = (req.session as any)?.userId;
+if (!userId) {
+res.status(401).json({ error: "Not authenticated" });
+return;
+}
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
-  if (!user) {
-    req.session.destroy(() => {});
-    res.status(401).json({ error: "User not found" });
-    return;
-  }
+const [user] = await db
+.select()
+.from(usersTable)
+.where(eq(usersTable.id, userId))
+.limit(1);
+if (!user) {
+req.session.destroy(() => {});
+res.status(401).json({ error: "User not found" });
+return;
+}
 
-  const roles = (user.roles ?? []).map(normalizeRole);
-  const isSystemAdmin =
-    roles.includes("super_admin") || roles.includes("system_admin") || roles.includes("admin");
+const roles = (user.roles ?? []).map(normalizeRole);
+const isSystemAdmin =
+roles.includes("super_admin") || roles.includes("system_admin") || roles.includes("admin");
 
-  const session = req.session as any;
-  const passwordExpired = session?.passwordExpired ?? false;
+const session = req.session as any;
+const passwordExpired = session?.passwordExpired ?? false;
 
-  const { passwordHash: _, ...safeUser } = user;
-  res.json({ ...safeUser, isSystemAdmin, passwordExpired });
+const { passwordHash: \_, ...safeUser } = user;
+res.json({ ...safeUser, isSystemAdmin, passwordExpired });
 });
 
 // ─── POST /auth/change-password ───────────────────────────────────────────
 router.post(
-  "/auth/change-password",
-  changePasswordRateLimit,
-  async (req, res): Promise<void> => {
-    const userId = (req.session as any)?.userId;
-    if (!userId) {
-      res.status(401).json({ error: "Not authenticated" });
-      return;
-    }
+"/auth/change-password",
+changePasswordRateLimit,
+async (req, res): Promise<void> => {
+const userId = (req.session as any)?.userId;
+if (!userId) {
+res.status(401).json({ error: "Not authenticated" });
+return;
+}
 
     const parsed = ChangePasswordBody.safeParse(req.body);
     if (!parsed.success) {
@@ -4647,92 +4688,93 @@ router.post(
     });
 
     res.json({ message: "Password changed successfully" });
-  },
+
+},
 );
 
 // ─── POST /auth/switch-property ───────────────────────────────────────────
 router.post("/auth/switch-property", async (req, res): Promise<void> => {
-  const session = req.session as any;
-  const userId = session?.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+const session = req.session as any;
+const userId = session?.userId;
+if (!userId) {
+res.status(401).json({ error: "Not authenticated" });
+return;
+}
 
-  const newPropertyId = Number(req.body?.propertyId);
-  // Guard against NaN, zero, negative values that could slip past DB constraints
-  if (!Number.isFinite(newPropertyId) || newPropertyId <= 0) {
-    res.status(400).json({ error: "A valid positive propertyId is required" });
-    return;
-  }
+const newPropertyId = Number(req.body?.propertyId);
+// Guard against NaN, zero, negative values that could slip past DB constraints
+if (!Number.isFinite(newPropertyId) || newPropertyId <= 0) {
+res.status(400).json({ error: "A valid positive propertyId is required" });
+return;
+}
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
+const [user] = await db
+.select()
+.from(usersTable)
+.where(eq(usersTable.id, userId))
+.limit(1);
+if (!user) {
+res.status(404).json({ error: "User not found" });
+return;
+}
 
-  // Use normalizeRole (defined above) for consistent case-insensitive role matching
-  // Previously used `user.roles.includes("SYSTEM_ADMIN")` — that (uppercase) never matched
-  // the lowercase-stored roles, silently denying system admins the bypass they should have.
-  const isSystemAdmin =
-    (user.roles ?? []).map(normalizeRole).includes("super_admin") ||
-    (user.roles ?? []).map(normalizeRole).includes("system_admin");
+// Use normalizeRole (defined above) for consistent case-insensitive role matching
+// Previously used `user.roles.includes("SYSTEM_ADMIN")` — that (uppercase) never matched
+// the lowercase-stored roles, silently denying system admins the bypass they should have.
+const isSystemAdmin =
+(user.roles ?? []).map(normalizeRole).includes("super_admin") ||
+(user.roles ?? []).map(normalizeRole).includes("system_admin");
 
-  if (!isSystemAdmin) {
-    const allowedIds: number[] = (user as any).propertyIds?.length
-      ? (user as any).propertyIds
-      : user.propertyId
-        ? [user.propertyId]
-        : [];
-    if (!allowedIds.includes(newPropertyId)) {
-      // Log denied attempts — could indicate privilege escalation probing
-      logActivity({
-        req,
-        propertyId: newPropertyId,
-        username: user.username,
-        userId: user.id,
-        userRole: user.roles?.[0],
-        action: "PROPERTY_SWITCH_DENIED",
-        actionType: "SECURITY",
-        module: "auth",
-        severity: "warning",
-        details: `Access denied switching to property ${newPropertyId} (allowed: ${JSON.stringify(allowedIds)})`,
-        ipAddress: getClientIp(req),
-      });
-      res.status(403).json({ error: "Access denied to this property" });
-      return;
-    }
-  }
+if (!isSystemAdmin) {
+const allowedIds: number[] = (user as any).propertyIds?.length
+? (user as any).propertyIds
+: user.propertyId
+? [user.propertyId]
+: [];
+if (!allowedIds.includes(newPropertyId)) {
+// Log denied attempts — could indicate privilege escalation probing
+logActivity({
+req,
+propertyId: newPropertyId,
+username: user.username,
+userId: user.id,
+userRole: user.roles?.[0],
+action: "PROPERTY_SWITCH_DENIED",
+actionType: "SECURITY",
+module: "auth",
+severity: "warning",
+details: `Access denied switching to property ${newPropertyId} (allowed: ${JSON.stringify(allowedIds)})`,
+ipAddress: getClientIp(req),
+});
+res.status(403).json({ error: "Access denied to this property" });
+return;
+}
+}
 
-  const oldPropertyId = session.propertyId;
-  session.propertyId = newPropertyId;
+const oldPropertyId = session.propertyId;
+session.propertyId = newPropertyId;
 
-  await new Promise<void>((resolve, reject) =>
-    req.session.save((err: any) => (err ? reject(err) : resolve())),
-  );
+await new Promise<void>((resolve, reject) =>
+req.session.save((err: any) => (err ? reject(err) : resolve())),
+);
 
-  if (oldPropertyId !== newPropertyId) {
-    logActivity({
-      req,
-      propertyId: newPropertyId,
-      username: user.username,
-      userId: user.id,
-      userRole: user.roles?.[0],
-      action: "PROPERTY_SWITCH",
-      actionType: "UPDATE",
-      module: "auth",
-      severity: "info",
-      details: `Switched from property ${oldPropertyId ?? "none"} to ${newPropertyId}`,
-      ipAddress: getClientIp(req),
-    });
-  }
+if (oldPropertyId !== newPropertyId) {
+logActivity({
+req,
+propertyId: newPropertyId,
+username: user.username,
+userId: user.id,
+userRole: user.roles?.[0],
+action: "PROPERTY_SWITCH",
+actionType: "UPDATE",
+module: "auth",
+severity: "info",
+details: `Switched from property ${oldPropertyId ?? "none"} to ${newPropertyId}`,
+ipAddress: getClientIp(req),
+});
+}
 
-  res.json({ success: true, propertyId: newPropertyId });
+res.json({ success: true, propertyId: newPropertyId });
 });
 
 export default router;
@@ -4744,71 +4786,71 @@ FILE: artifacts/housing/src/pages/users/index.tsx
 // @ts-nocheck
 import { useState, useMemo } from "react";
 import {
-  useListUsers,
-  useListProperties,
-  getListUsersQueryKey,
+useListUsers,
+useListProperties,
+getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+Table,
+TableBody,
+TableCell,
+TableHead,
+TableHeader,
+TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
+DropdownMenu,
+DropdownMenuContent,
+DropdownMenuItem,
+DropdownMenuTrigger,
+DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import {
-  Trash,
-  UserCog,
-  ShieldCheck,
-  Shield,
-  KeyRound,
-  Building2,
-  Search,
-  Users,
-  Crown,
-  Briefcase,
-  Headphones,
-  Wrench,
-  MoreVertical,
-  Unlock,
-  X,
-  Pen,
-  Upload,
+Trash,
+UserCog,
+ShieldCheck,
+Shield,
+KeyRound,
+Building2,
+Search,
+Users,
+Crown,
+Briefcase,
+Headphones,
+Wrench,
+MoreVertical,
+Unlock,
+X,
+Pen,
+Upload,
 } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import {
-  ColumnChooser,
-  useColumnVisibility,
+ColumnChooser,
+useColumnVisibility,
 } from "@/components/ui/column-chooser";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
-import * as XLSX from "xlsx";
+import \* as XLSX from "xlsx";
 import { DataPagination } from "@/components/DataPagination";
 import {
-  ErrorState,
-  EmptyState,
-  TableSkeleton,
+ErrorState,
+EmptyState,
+TableSkeleton,
 } from "@/components/ui/page-states";
 
 // Import extracted components
@@ -4821,271 +4863,269 @@ import { DeleteUserDialog } from "./components/DeleteUserDialog";
 import { UnlockUserDialog } from "./components/UnlockUserDialog";
 import { UploadSignatureDialog } from "./components/UploadSignatureDialog";
 
-
 import { SYSTEM_ROLES, WORKFLOW_ROLES, roleColor } from "./utils";
 const ALL_ROLES = [...SYSTEM_ROLES, ...WORKFLOW_ROLES];
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuth();
-  const { isSuperAdmin } = useProperty();
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const queryClient = useQueryClient();
+const { user: currentUser } = useAuth();
+const { isSuperAdmin } = useProperty();
+const { language } = useLanguage();
+const ar = language === "ar";
+const queryClient = useQueryClient();
 
-  const [deleteUser, setDeleteUser] = useState<any | null>(null);
-  const [matrixUser, setMatrixUser] = useState<any | null>(null);
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const [resetUser, setResetUser] = useState<any | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [editUser, setEditUser] = useState<any | null>(null);
-  const [unlockUser, setUnlockUser] = useState<any | null>(null);
-  const [editPropsUser, setEditPropsUser] = useState<any | null>(null);
-  const [signatureUser, setSignatureUser] = useState<any | null>(null);
+const [deleteUser, setDeleteUser] = useState<any | null>(null);
+const [matrixUser, setMatrixUser] = useState<any | null>(null);
+const [pageSize, setPageSize] = useState(10);
+const [currentPage, setCurrentPage] = useState(1);
+const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+const [resetUser, setResetUser] = useState<any | null>(null);
+const [searchQuery, setSearchQuery] = useState("");
+const [roleFilter, setRoleFilter] = useState<string>("all");
+const [statusFilter, setStatusFilter] = useState<string>("all");
+const [editUser, setEditUser] = useState<any | null>(null);
+const [unlockUser, setUnlockUser] = useState<any | null>(null);
+const [editPropsUser, setEditPropsUser] = useState<any | null>(null);
+const [signatureUser, setSignatureUser] = useState<any | null>(null);
 
+const {
+data: \_apiResponseWrapper,
+isLoading,
+isError,
+refetch,
+} = useListUsers({ page: currentPage, limit: pageSize as any });
+const { data: properties } = useListProperties();
 
-  
-  const {
-    data: _apiResponseWrapper,
-    isLoading,
-    isError,
-    refetch,
-  } = useListUsers({ page: currentPage, limit: pageSize as any });
-  const { data: properties } = useListProperties();
+const users = \_apiResponseWrapper?.data ?? [];
+const pagination = \_apiResponseWrapper?.pagination;
 
-  const users = _apiResponseWrapper?.data ?? [];
-  const pagination = _apiResponseWrapper?.pagination;
+const invalidate = () =>
+queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+const isUserLocked = (u: any) => u.status === "LOCKED";
 
-  const isUserLocked = (u: any) => u.status === "LOCKED";
+// ── Enterprise: filtered + searched users ──
+const filteredUsers = useMemo(() => {
+let list = users || [];
+if (searchQuery.trim()) {
+const q = searchQuery.toLowerCase();
+list = list.filter((u: any) => u.username.toLowerCase().includes(q));
+}
+if (roleFilter !== "all") {
+list = list.filter((u: any) =>
+u.roles?.some((r: string) => r.toLowerCase() === roleFilter),
+);
+}
+if (statusFilter !== "all") {
+list = list.filter(
+(u: any) =>
+(u.status || "").toUpperCase() === statusFilter.toUpperCase(),
+);
+}
+return list;
+}, [users, searchQuery, roleFilter, statusFilter]);
 
-  // ── Enterprise: filtered + searched users ──
-  const filteredUsers = useMemo(() => {
-    let list = users || [];
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((u: any) => u.username.toLowerCase().includes(q));
-    }
-    if (roleFilter !== "all") {
-      list = list.filter((u: any) =>
-        u.roles?.some((r: string) => r.toLowerCase() === roleFilter),
-      );
-    }
-    if (statusFilter !== "all") {
-      list = list.filter(
-        (u: any) =>
-          (u.status || "").toUpperCase() === statusFilter.toUpperCase(),
-      );
-    }
-    return list;
-  }, [users, searchQuery, roleFilter, statusFilter]);
+// ── Optimized Stats (Single Pass) ──
+const stats = useMemo(() => {
+const all = users || [];
+const s = {
+total: all.length,
+superAdmin: 0,
+admin: 0,
+manager: 0,
+receptionist: 0,
+maintenance: 0,
+active: 0,
+};
+for (const u of all) {
+if (u.status === "ACTIVE") s.active++;
+const roles = u.roles || [];
+if (roles.some((r: string) => r.toLowerCase() === "super_admin"))
+s.superAdmin++;
+if (roles.some((r: string) => r.toLowerCase() === "admin")) s.admin++;
+if (roles.some((r: string) => r.toLowerCase() === "manager")) s.manager++;
+if (roles.some((r: string) => r.toLowerCase() === "receptionist"))
+s.receptionist++;
+if (roles.some((r: string) => r.toLowerCase() === "maintenance_staff"))
+s.maintenance++;
+}
+return s;
+}, [users]);
 
-  // ── Optimized Stats (Single Pass) ──
-  const stats = useMemo(() => {
-    const all = users || [];
-    const s = {
-      total: all.length,
-      superAdmin: 0,
-      admin: 0,
-      manager: 0,
-      receptionist: 0,
-      maintenance: 0,
-      active: 0,
-    };
-    for (const u of all) {
-      if (u.status === "ACTIVE") s.active++;
-      const roles = u.roles || [];
-      if (roles.some((r: string) => r.toLowerCase() === "super_admin"))
-        s.superAdmin++;
-      if (roles.some((r: string) => r.toLowerCase() === "admin")) s.admin++;
-      if (roles.some((r: string) => r.toLowerCase() === "manager")) s.manager++;
-      if (roles.some((r: string) => r.toLowerCase() === "receptionist"))
-        s.receptionist++;
-      if (roles.some((r: string) => r.toLowerCase() === "maintenance_staff"))
-        s.maintenance++;
-    }
-    return s;
-  }, [users]);
+const ROLE_TABS = [
+{ id: "all", label: ar ? "الكل" : "All", icon: Users, count: stats.total },
+{
+id: "super_admin",
+label: ar ? "سوبر ادمن" : "Super Admin",
+icon: Crown,
+count: stats.superAdmin,
+},
+{
+id: "admin",
+label: ar ? "ادمن" : "Admin",
+icon: ShieldCheck,
+count: stats.admin,
+},
+{
+id: "manager",
+label: ar ? "مدير" : "Manager",
+icon: Briefcase,
+count: stats.manager,
+},
+{
+id: "receptionist",
+label: ar ? "استقبال" : "Receptionist",
+icon: Headphones,
+count: stats.receptionist,
+},
+{
+id: "maintenance_staff",
+label: ar ? "صيانة" : "Maintenance",
+icon: Wrench,
+count: stats.maintenance,
+},
+];
 
-  const ROLE_TABS = [
-    { id: "all", label: ar ? "الكل" : "All", icon: Users, count: stats.total },
-    {
-      id: "super_admin",
-      label: ar ? "سوبر ادمن" : "Super Admin",
-      icon: Crown,
-      count: stats.superAdmin,
-    },
-    {
-      id: "admin",
-      label: ar ? "ادمن" : "Admin",
-      icon: ShieldCheck,
-      count: stats.admin,
-    },
-    {
-      id: "manager",
-      label: ar ? "مدير" : "Manager",
-      icon: Briefcase,
-      count: stats.manager,
-    },
-    {
-      id: "receptionist",
-      label: ar ? "استقبال" : "Receptionist",
-      icon: Headphones,
-      count: stats.receptionist,
-    },
-    {
-      id: "maintenance_staff",
-      label: ar ? "صيانة" : "Maintenance",
-      icon: Wrench,
-      count: stats.maintenance,
-    },
-  ];
+const USER_COLS = [
+{
+key: "username",
+label: "Username",
+labelAr: "اسم المستخدم",
+defaultVisible: true,
+},
+{
+key: "email",
+label: "Email",
+labelAr: "البريد الإلكتروني",
+defaultVisible: true,
+},
+{ key: "phone", label: "Phone", labelAr: "الهاتف", defaultVisible: true },
+{ key: "roles", label: "Roles", labelAr: "الأدوار", defaultVisible: true },
+{
+key: "property",
+label: "Property",
+labelAr: "البروبرتي",
+defaultVisible: true,
+},
+{
+key: "permissions",
+label: "Permissions",
+labelAr: "الصلاحيات",
+defaultVisible: true,
+},
+{ key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
+{
+key: "actions",
+label: "Actions",
+labelAr: "إجراءات",
+defaultVisible: true,
+fixed: true,
+},
+];
+const {
+visible: uVisible,
+toggle: uToggle,
+showAll: uShowAll,
+hideAll: uHideAll,
+isVisible: isUVisible,
+} = useColumnVisibility(USER_COLS);
 
-  const USER_COLS = [
-    {
-      key: "username",
-      label: "Username",
-      labelAr: "اسم المستخدم",
-      defaultVisible: true,
-    },
-    {
-      key: "email",
-      label: "Email",
-      labelAr: "البريد الإلكتروني",
-      defaultVisible: true,
-    },
-    { key: "phone", label: "Phone", labelAr: "الهاتف", defaultVisible: true },
-    { key: "roles", label: "Roles", labelAr: "الأدوار", defaultVisible: true },
-    {
-      key: "property",
-      label: "Property",
-      labelAr: "البروبرتي",
-      defaultVisible: true,
-    },
-    {
-      key: "permissions",
-      label: "Permissions",
-      labelAr: "الصلاحيات",
-      defaultVisible: true,
-    },
-    { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
-    {
-      key: "actions",
-      label: "Actions",
-      labelAr: "إجراءات",
-      defaultVisible: true,
-      fixed: true,
-    },
-  ];
-  const {
-    visible: uVisible,
-    toggle: uToggle,
-    showAll: uShowAll,
-    hideAll: uHideAll,
-    isVisible: isUVisible,
-  } = useColumnVisibility(USER_COLS);
+const pagedUsers = filteredUsers.slice(
+(currentPage - 1) _ pageSize,
+currentPage _ pageSize,
+);
+const pagedUserIds = pagedUsers.map((u: any) => u.id);
+const allUserPageSelected =
+pagedUserIds.length > 0 &&
+pagedUserIds.every((id: number) => selectedRows.has(id));
 
-  const pagedUsers = filteredUsers.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-  const pagedUserIds = pagedUsers.map((u: any) => u.id);
-  const allUserPageSelected =
-    pagedUserIds.length > 0 &&
-    pagedUserIds.every((id: number) => selectedRows.has(id));
+const toggleSelectAllUser = () => {
+if (allUserPageSelected) {
+setSelectedRows((prev) => {
+const next = new Set(prev);
+pagedUserIds.forEach((id: number) => next.delete(id));
+return next;
+});
+} else {
+setSelectedRows((prev) => {
+const next = new Set(prev);
+pagedUserIds.forEach((id: number) => next.add(id));
+return next;
+});
+}
+};
 
-  const toggleSelectAllUser = () => {
-    if (allUserPageSelected) {
-      setSelectedRows((prev) => {
-        const next = new Set(prev);
-        pagedUserIds.forEach((id: number) => next.delete(id));
-        return next;
-      });
-    } else {
-      setSelectedRows((prev) => {
-        const next = new Set(prev);
-        pagedUserIds.forEach((id: number) => next.add(id));
-        return next;
-      });
-    }
-  };
+const toggleUserRow = (id: number) => {
+setSelectedRows((prev) => {
+const next = new Set(prev);
+next.has(id) ? next.delete(id) : next.add(id);
+return next;
+});
+};
 
-  const toggleUserRow = (id: number) => {
-    setSelectedRows((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+const exportUserExcel = () => {
+const all: any[] = users || [];
+const target =
+selectedRows.size > 0
+? all.filter((u: any) => selectedRows.has(u.id))
+: all;
+const rows = target.map((u: any) => ({
+Username: u.username,
+Email: u.email || "",
+Phone: u.phone || "",
+Roles: (u.roles || []).join(", "),
+Status: u.status ?? "",
+}));
+const ws = XLSX.utils.json*to_sheet(rows);
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, "Users");
+XLSX.writeFile(wb, `users*${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
 
-  const exportUserExcel = () => {
-    const all: any[] = users || [];
-    const target =
-      selectedRows.size > 0
-        ? all.filter((u: any) => selectedRows.has(u.id))
-        : all;
-    const rows = target.map((u: any) => ({
-      Username: u.username,
-      Email: u.email || "",
-      Phone: u.phone || "",
-      Roles: (u.roles || []).join(", "),
-      Status: u.status ?? "",
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Users");
-    XLSX.writeFile(wb, `users_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  };
+return (
 
-  return (
-    <div className="space-y-6" dir={ar ? "rtl" : "ltr"}>
-      {/* Dynamic Dialogs */}
-      {matrixUser && (
-        <PermissionMatrixDialog
-          user={matrixUser}
-          onClose={() => setMatrixUser(null)}
-        />
-      )}
-      {editUser && (
-        <EditUserDialog user={editUser} onClose={() => setEditUser(null)} />
-      )}
-      {editPropsUser && (
-        <EditPropertiesDialog
-          user={editPropsUser}
-          properties={properties ?? []}
-          onClose={() => setEditPropsUser(null)}
-          onSuccess={invalidate}
-        />
-      )}
-      {resetUser && (
-        <ResetPasswordDialog
-          user={resetUser}
-          onClose={() => setResetUser(null)}
-        />
-      )}
-      {deleteUser && (
-        <DeleteUserDialog
-          user={deleteUser}
-          onClose={() => setDeleteUser(null)}
-        />
-      )}
-      {unlockUser && (
-        <UnlockUserDialog
-          user={unlockUser}
-          onClose={() => setUnlockUser(null)}
-        />
-      )}
-      {signatureUser && (
-        <UploadSignatureDialog
-          user={signatureUser}
-          onClose={() => setSignatureUser(null)}
-        />
-      )}
+<div className="space-y-6" dir={ar ? "rtl" : "ltr"}>
+{/_ Dynamic Dialogs _/}
+{matrixUser && (
+<PermissionMatrixDialog
+user={matrixUser}
+onClose={() => setMatrixUser(null)}
+/>
+)}
+{editUser && (
+<EditUserDialog user={editUser} onClose={() => setEditUser(null)} />
+)}
+{editPropsUser && (
+<EditPropertiesDialog
+user={editPropsUser}
+properties={properties ?? []}
+onClose={() => setEditPropsUser(null)}
+onSuccess={invalidate}
+/>
+)}
+{resetUser && (
+<ResetPasswordDialog
+user={resetUser}
+onClose={() => setResetUser(null)}
+/>
+)}
+{deleteUser && (
+<DeleteUserDialog
+user={deleteUser}
+onClose={() => setDeleteUser(null)}
+/>
+)}
+{unlockUser && (
+<UnlockUserDialog
+user={unlockUser}
+onClose={() => setUnlockUser(null)}
+/>
+)}
+{signatureUser && (
+<UploadSignatureDialog
+user={signatureUser}
+onClose={() => setSignatureUser(null)}
+/>
+)}
 
       {/* ── Enterprise Header ── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -5700,7 +5740,8 @@ export default function UsersPage() {
         </div>
       )}
     </div>
-  );
+
+);
 }
 
 ================================================================================
@@ -5708,44 +5749,44 @@ FILE: artifacts/housing/src/pages/users/utils.ts
 ================================================================================
 
 export const SYSTEM_ROLES = [
-  { value: "super_admin", label: "Super Admin" },
-  { value: "admin", label: "System Admin" },
-  { value: "manager", label: "Property Manager" },
-  { value: "receptionist", label: "Receptionist" },
-  { value: "maintenance_staff", label: "Tickets Staff" },
+{ value: "super_admin", label: "Super Admin" },
+{ value: "admin", label: "System Admin" },
+{ value: "manager", label: "Property Manager" },
+{ value: "receptionist", label: "Receptionist" },
+{ value: "maintenance_staff", label: "Tickets Staff" },
 ];
 
 export const WORKFLOW_ROLES = [
-  { value: "none", label: "None / Not a Manager" },
-  { value: "department_manager", label: "Department Manager" },
-  { value: "housing_manager", label: "Housing Manager" },
-  { value: "hr_manager", label: "HR Manager" },
-  { value: "accounts_manager", label: "Accounts Manager" },
-  { value: "hotel_gm", label: "Hotel General Manager" },
-  { value: "hotel_fc", label: "Hotel Financial Controller" },
+{ value: "none", label: "None / Not a Manager" },
+{ value: "department_manager", label: "Department Manager" },
+{ value: "housing_manager", label: "Housing Manager" },
+{ value: "hr_manager", label: "HR Manager" },
+{ value: "accounts_manager", label: "Accounts Manager" },
+{ value: "hotel_gm", label: "Hotel General Manager" },
+{ value: "hotel_fc", label: "Hotel Financial Controller" },
 ];
 
 export const roleColor = (role: string) => {
-  switch (role.toLowerCase()) {
-    case "super_admin":
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300";
-    case "admin":
-      return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
-    case "manager":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
-    case "housing_manager":
-      return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300";
-    case "hr_manager":
-      return "bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300";
-    case "accounts_manager":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300";
-    case "receptionist":
-      return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
-    case "maintenance_staff":
-      return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
-    default:
-      return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
-  }
+switch (role.toLowerCase()) {
+case "super_admin":
+return "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300";
+case "admin":
+return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
+case "manager":
+return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
+case "housing_manager":
+return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300";
+case "hr_manager":
+return "bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300";
+case "accounts_manager":
+return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300";
+case "receptionist":
+return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
+case "maintenance_staff":
+return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
+default:
+return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+}
 };
 
 ================================================================================
@@ -5754,29 +5795,29 @@ FILE: artifacts/housing/src/pages/users/components/CreateUserDialog.tsx
 
 import { useState } from "react";
 import {
-  useCreateUser,
-  getListUsersQueryKey,
+useCreateUser,
+getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
+DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import { UserCog, Plus } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
@@ -5784,77 +5825,77 @@ import { getPermissionsForRoles } from "@/lib/permissions";
 import { SYSTEM_ROLES, WORKFLOW_ROLES } from "../utils";
 
 interface CreateUserDialogProps {
-  properties: any[];
+properties: any[];
 }
 
 export function CreateUserDialog({ properties }: CreateUserDialogProps) {
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const queryClient = useQueryClient();
-  const { activePropertyId, isSuperAdmin } = useProperty();
+const { toast } = useToast();
+const { language } = useLanguage();
+const ar = language === "ar";
+const queryClient = useQueryClient();
+const { activePropertyId, isSuperAdmin } = useProperty();
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    phone: "",
-    password: "",
-    role: "manager",
-    jobTitle: "none",
-    propertyId: activePropertyId ?? 0,
-    propertyIds: activePropertyId ? [activePropertyId] : ([] as number[]),
-  });
+const [isOpen, setIsOpen] = useState(false);
+const [form, setForm] = useState({
+username: "",
+email: "",
+phone: "",
+password: "",
+role: "manager",
+jobTitle: "none",
+propertyId: activePropertyId ?? 0,
+propertyIds: activePropertyId ? [activePropertyId] : ([] as number[]),
+});
 
-  const resetForm = () =>
-    setForm({
-      username: "",
-      email: "",
-      phone: "",
-      password: "",
-      role: "manager",
-      jobTitle: "none",
-      propertyId: activePropertyId ?? 0,
-      propertyIds: activePropertyId ? [activePropertyId] : [],
-    });
+const resetForm = () =>
+setForm({
+username: "",
+email: "",
+phone: "",
+password: "",
+role: "manager",
+jobTitle: "none",
+propertyId: activePropertyId ?? 0,
+propertyIds: activePropertyId ? [activePropertyId] : [],
+});
 
-  const createMutation = useCreateUser({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast({
-          title: ar ? "تم إنشاء المستخدم بنجاح" : "User created successfully",
-        });
-        setIsOpen(false);
-        resetForm();
-      },
-      onError: (e: any) =>
-        toast({
-          title: ar ? "خطأ في إنشاء المستخدم" : "Error creating user",
-          description: e.message,
-          variant: "destructive",
-        }),
-    },
-  });
+const createMutation = useCreateUser({
+mutation: {
+onSuccess: () => {
+queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+toast({
+title: ar ? "تم إنشاء المستخدم بنجاح" : "User created successfully",
+});
+setIsOpen(false);
+resetForm();
+},
+onError: (e: any) =>
+toast({
+title: ar ? "خطأ في إنشاء المستخدم" : "Error creating user",
+description: e.message,
+variant: "destructive",
+}),
+},
+});
 
-  const onSubmit = () => {
-    if (!form.username || !form.password) {
-      toast({
-        title: ar
-          ? "الرجاء ملء جميع الحقول المطلوبة"
-          : "Please fill all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-    const needsProperty = form.role !== "super_admin";
-    const pids =
-      form.propertyIds.length > 0
-        ? form.propertyIds
-        : form.propertyId
-          ? [form.propertyId]
-          : [];
-    const primaryPid = pids[0] || activePropertyId || 1;
+const onSubmit = () => {
+if (!form.username || !form.password) {
+toast({
+title: ar
+? "الرجاء ملء جميع الحقول المطلوبة"
+: "Please fill all required fields",
+variant: "destructive",
+});
+return;
+}
+const needsProperty = form.role !== "super_admin";
+const pids =
+form.propertyIds.length > 0
+? form.propertyIds
+: form.propertyId
+? [form.propertyId]
+: [];
+const primaryPid = pids[0] || activePropertyId || 1;
 
     if (needsProperty && !primaryPid) {
       toast({
@@ -5883,24 +5924,25 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
         status: "ACTIVE" as any,
       } as any,
     });
-  };
 
-  return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(v) => {
-        setIsOpen(v);
-        if (!v) resetForm();
-      }}
-    >
-      <PermissionGate module="users" action="create">
-        <DialogTrigger asChild>
-          <Button className="bg-[#0F2A44] hover:bg-[#0F2A44]/90 text-white gap-2">
-            <Plus className="w-4 h-4" />
-            {ar ? "إضافة مستخدم" : "Add User"}
-          </Button>
-        </DialogTrigger>
-      </PermissionGate>
+};
+
+return (
+
+<Dialog
+open={isOpen}
+onOpenChange={(v) => {
+setIsOpen(v);
+if (!v) resetForm();
+}} >
+<PermissionGate module="users" action="create">
+<DialogTrigger asChild>
+<Button className="bg-[#0F2A44] hover:bg-[#0F2A44]/90 text-white gap-2">
+<Plus className="w-4 h-4" />
+{ar ? "إضافة مستخدم" : "Add User"}
+</Button>
+</DialogTrigger>
+</PermissionGate>
 
       <DialogContent
         className="max-w-md"
@@ -6068,7 +6110,8 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
         </div>
       </DialogContent>
     </Dialog>
-  );
+
+);
 }
 
 ================================================================================
@@ -6076,95 +6119,93 @@ FILE: artifacts/housing/src/pages/users/components/DeleteUserDialog.tsx
 ================================================================================
 
 import {
-  useDeleteUser,
-  getListUsersQueryKey,
+useDeleteUser,
+getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+AlertDialog,
+AlertDialogAction,
+AlertDialogCancel,
+AlertDialogContent,
+AlertDialogDescription,
+AlertDialogFooter,
+AlertDialogHeader,
+AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 interface DeleteUserDialogProps {
-  user: any;
-  onClose: () => void;
+user: any;
+onClose: () => void;
 }
 
 export function DeleteUserDialog({ user, onClose }: DeleteUserDialogProps) {
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const queryClient = useQueryClient();
+const { toast } = useToast();
+const { language } = useLanguage();
+const ar = language === "ar";
+const queryClient = useQueryClient();
 
-  const deleteMutation = useDeleteUser({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast({ title: ar ? "تم حذف المستخدم" : "User deleted" });
-        onClose();
-      },
-      onError: (e: any) =>
-        toast({
-          title: ar ? "فشل حذف المستخدم" : "Failed to delete user",
-          description: e.message,
-          variant: "destructive",
-        }),
-    },
-  });
+const deleteMutation = useDeleteUser({
+mutation: {
+onSuccess: () => {
+queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+toast({ title: ar ? "تم حذف المستخدم" : "User deleted" });
+onClose();
+},
+onError: (e: any) =>
+toast({
+title: ar ? "فشل حذف المستخدم" : "Failed to delete user",
+description: e.message,
+variant: "destructive",
+}),
+},
+});
 
-  return (
-    <AlertDialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {ar ? "حذف المستخدم" : "Delete User"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {ar ? (
-              <>
-                هل أنت متأكد من حذف المستخدم <strong>{user?.username}</strong>؟
-                لا يمكن التراجع عن هذا الإجراء.
-              </>
-            ) : (
-              <>
-                Are you sure you want to delete{" "}
-                <strong>{user?.username}</strong>? This cannot be undone.
-              </>
-            )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            onClick={() => deleteMutation.mutate({ id: user.id })}
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending
-              ? ar
-                ? "جاري الحذف..."
-                : "Deleting..."
-              : ar
-                ? "حذف"
-                : "Delete"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
+return (
+<AlertDialog
+open
+onOpenChange={(open) => {
+if (!open) onClose();
+}} >
+<AlertDialogContent>
+<AlertDialogHeader>
+<AlertDialogTitle>
+{ar ? "حذف المستخدم" : "Delete User"}
+</AlertDialogTitle>
+<AlertDialogDescription>
+{ar ? (
+<>
+هل أنت متأكد من حذف المستخدم <strong>{user?.username}</strong>؟
+لا يمكن التراجع عن هذا الإجراء.
+</>
+) : (
+<>
+Are you sure you want to delete{" "}
+<strong>{user?.username}</strong>? This cannot be undone.
+</>
+)}
+</AlertDialogDescription>
+</AlertDialogHeader>
+<AlertDialogFooter>
+<AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+<AlertDialogAction
+className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+onClick={() => deleteMutation.mutate({ id: user.id })}
+disabled={deleteMutation.isPending} >
+{deleteMutation.isPending
+? ar
+? "جاري الحذف..."
+: "Deleting..."
+: ar
+? "حذف"
+: "Delete"}
+</AlertDialogAction>
+</AlertDialogFooter>
+</AlertDialogContent>
+</AlertDialog>
+);
 }
 
 ================================================================================
@@ -6176,153 +6217,152 @@ import { useUpdateUser } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Building2 } from "lucide-react";
 
 interface EditPropertiesDialogProps {
-  user: any;
-  properties: any[];
-  onClose: () => void;
-  onSuccess?: () => void;
+user: any;
+properties: any[];
+onClose: () => void;
+onSuccess?: () => void;
 }
 
 export function EditPropertiesDialog({
-  user,
-  properties,
-  onClose,
-  onSuccess,
+user,
+properties,
+onClose,
+onSuccess,
 }: EditPropertiesDialogProps) {
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const updateMutation = useUpdateUser({
-    mutation: {
-      onError: (e: any) =>
-        toast({
-          title: "Error",
-          description: e.message,
-          variant: "destructive",
-        }),
-    },
-  });
+const { toast } = useToast();
+const { language } = useLanguage();
+const ar = language === "ar";
+const updateMutation = useUpdateUser({
+mutation: {
+onError: (e: any) =>
+toast({
+title: "Error",
+description: e.message,
+variant: "destructive",
+}),
+},
+});
 
-  const initialPids: number[] = user.propertyIds?.length
-    ? user.propertyIds
-    : user.propertyId
-      ? [user.propertyId]
-      : [];
-  const [selectedIds, setSelectedIds] = useState<number[]>(initialPids);
-  const [saving, setSaving] = useState(false);
+const initialPids: number[] = user.propertyIds?.length
+? user.propertyIds
+: user.propertyId
+? [user.propertyId]
+: [];
+const [selectedIds, setSelectedIds] = useState<number[]>(initialPids);
+const [saving, setSaving] = useState(false);
 
-  const toggle = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
+const toggle = (id: number) => {
+setSelectedIds((prev) =>
+prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+);
+};
 
-  const save = async () => {
-    if (!selectedIds.length) {
-      toast({
-        title: ar
-          ? "يجب اختيار فرع واحد على الأقل"
-          : "Select at least one property",
-        variant: "destructive",
-      });
-      return;
-    }
-    setSaving(true);
-    try {
-      await updateMutation.mutateAsync({
-        id: user.id,
-        data: { propertyIds: selectedIds, propertyId: selectedIds[0] } as any,
-      });
-      toast({ title: ar ? "تم تحديث الفروع" : "Properties updated" });
-      onSuccess?.();
-      onClose();
-    } finally {
-      setSaving(false);
-    }
-  };
+const save = async () => {
+if (!selectedIds.length) {
+toast({
+title: ar
+? "يجب اختيار فرع واحد على الأقل"
+: "Select at least one property",
+variant: "destructive",
+});
+return;
+}
+setSaving(true);
+try {
+await updateMutation.mutateAsync({
+id: user.id,
+data: { propertyIds: selectedIds, propertyId: selectedIds[0] } as any,
+});
+toast({ title: ar ? "تم تحديث الفروع" : "Properties updated" });
+onSuccess?.();
+onClose();
+} finally {
+setSaving(false);
+}
+};
 
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent
-        className="max-w-sm"
-        srTitle={ar ? "تعديل الفروع" : "Edit Properties"}
-      >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-green-600" />
-            {ar ? "تعديل الفروع" : "Edit Properties"} —{" "}
-            <span className="font-mono">{user.username}</span>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3 pt-1">
-          <p className="text-sm text-muted-foreground">
-            {ar
-              ? "اختر جميع الفروع التي يمكن لهذا المستخدم الوصول إليها:"
-              : "Select all properties this user can access:"}
-          </p>
-          <div className="border rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto bg-muted/10">
-            {properties.map((p) => (
-              <label
+return (
+
+<Dialog
+open
+onOpenChange={(open) => {
+if (!open) onClose();
+}} >
+<DialogContent
+className="max-w-sm"
+srTitle={ar ? "تعديل الفروع" : "Edit Properties"} >
+<DialogHeader>
+<DialogTitle className="flex items-center gap-2">
+<Building2 className="w-5 h-5 text-green-600" />
+{ar ? "تعديل الفروع" : "Edit Properties"} —{" "}
+<span className="font-mono">{user.username}</span>
+</DialogTitle>
+</DialogHeader>
+<div className="space-y-3 pt-1">
+<p className="text-sm text-muted-foreground">
+{ar
+? "اختر جميع الفروع التي يمكن لهذا المستخدم الوصول إليها:"
+: "Select all properties this user can access:"}
+</p>
+<div className="border rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto bg-muted/10">
+{properties.map((p) => (
+<label
                 key={p.id}
                 className="flex items-center gap-2.5 cursor-pointer hover:bg-muted/30 px-2 py-1.5 rounded-md transition-colors"
               >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(p.id)}
-                  onChange={() => toggle(p.id)}
-                  className="w-4 h-4 rounded"
-                />
-                <span className="flex-1 text-sm font-medium">{p.name}</span>
-                <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                  {p.code}
-                </span>
-              </label>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {selectedIds.length === 0
-              ? ar
-                ? "لم يتم اختيار أي فرع"
-                : "No properties selected"
-              : ar
-                ? `تم اختيار ${selectedIds.length} فرع`
-                : `${selectedIds.length} propert${selectedIds.length > 1 ? "ies" : "y"} selected`}
-          </p>
-          <div className="flex gap-2 justify-end pt-1">
-            <Button variant="outline" onClick={onClose}>
-              {ar ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
+<input
+type="checkbox"
+checked={selectedIds.includes(p.id)}
+onChange={() => toggle(p.id)}
+className="w-4 h-4 rounded"
+/>
+<span className="flex-1 text-sm font-medium">{p.name}</span>
+<span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+{p.code}
+</span>
+</label>
+))}
+</div>
+<p className="text-xs text-muted-foreground">
+{selectedIds.length === 0
+? ar
+? "لم يتم اختيار أي فرع"
+: "No properties selected"
+: ar
+? `تم اختيار ${selectedIds.length} فرع`
+: `${selectedIds.length} propert${selectedIds.length > 1 ? "ies" : "y"} selected`}
+</p>
+<div className="flex gap-2 justify-end pt-1">
+<Button variant="outline" onClick={onClose}>
+{ar ? "إلغاء" : "Cancel"}
+</Button>
+<Button
               onClick={save}
               disabled={saving}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {saving
-                ? ar
-                  ? "جاري الحفظ..."
-                  : "Saving..."
-                : ar
-                  ? "حفظ الفروع"
-                  : "Save Properties"}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+{saving
+? ar
+? "جاري الحفظ..."
+: "Saving..."
+: ar
+? "حفظ الفروع"
+: "Save Properties"}
+</Button>
+</div>
+</div>
+</DialogContent>
+</Dialog>
+);
 }
 
 ================================================================================
@@ -6331,28 +6371,28 @@ FILE: artifacts/housing/src/pages/users/components/EditUserDialog.tsx
 
 import { useState } from "react";
 import {
-  useUpdateUser,
-  getListUsersQueryKey,
+useUpdateUser,
+getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import { UserCog, Upload, Loader2, CheckCircle2 } from "lucide-react";
 import { SYSTEM_ROLES, WORKFLOW_ROLES } from "../utils";
@@ -6360,89 +6400,88 @@ import { getPermissionsForRoles } from "@/lib/permissions";
 import { toast as sonnerToast } from "sonner";
 
 interface EditUserDialogProps {
-  user: any;
-  onClose: () => void;
+user: any;
+onClose: () => void;
 }
 
 export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const { user: currentUser, isSystemAdmin } = useAuth();
-  const queryClient = useQueryClient();
+const { toast } = useToast();
+const { language } = useLanguage();
+const ar = language === "ar";
+const { user: currentUser, isSystemAdmin } = useAuth();
+const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState({
-    username: user.username || "",
-    email: user.email || "",
-    phone: user.phone || "",
-    status: user.status || "ACTIVE",
-    role: user.roles?.[0] || "manager",
-    jobTitle: user.jobTitle || "none",
-  });
-  const [signatureFile, setSignatureFile] = useState<File | null>(null);
+const [formData, setFormData] = useState({
+username: user.username || "",
+email: user.email || "",
+phone: user.phone || "",
+status: user.status || "ACTIVE",
+role: user.roles?.[0] || "manager",
+jobTitle: user.jobTitle || "none",
+});
+const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
-  const isSelf = currentUser?.id === user.id;
-  const canUploadSignature = isSystemAdmin || isSelf;
-  const [isUploadingSig, setIsUploadingSig] = useState(false);
-  const [saving, setSaving] = useState(false);
+const isSelf = currentUser?.id === user.id;
+const canUploadSignature = isSystemAdmin || isSelf;
+const [isUploadingSig, setIsUploadingSig] = useState(false);
+const [saving, setSaving] = useState(false);
 
-  const updateMutation = useUpdateUser({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast({
-          title: ar
-            ? "تم تحديث البيانات بنجاح"
-            : "User data updated successfully",
-        });
-        onClose();
-      },
-      onError: (e: any) =>
-        toast({
-          title: ar ? "فشل تحديث البيانات" : "Failed to update user data",
-          description: e.message,
-          variant: "destructive",
-        }),
-    },
-  });
+const updateMutation = useUpdateUser({
+mutation: {
+onSuccess: () => {
+queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+toast({
+title: ar
+? "تم تحديث البيانات بنجاح"
+: "User data updated successfully",
+});
+onClose();
+},
+onError: (e: any) =>
+toast({
+title: ar ? "فشل تحديث البيانات" : "Failed to update user data",
+description: e.message,
+variant: "destructive",
+}),
+},
+});
 
+const handleSignatureUpload = async (file: File) => {
+if (!["image/png", "image/jpeg"].includes(file.type)) {
+sonnerToast.error(ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image");
+return;
+}
+setIsUploadingSig(true);
+try {
+const reader = new FileReader();
+reader.onload = async () => {
+const base64 = reader.result as string;
+const endpoint = isSelf ? "/api/users/me/signature" : `/api/users/${user.id}/signature`;
+const res = await fetch(endpoint, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ signatureImage: base64 }),
+});
+if (!res.ok) throw new Error("Upload failed");
+sonnerToast.success(ar ? "تم حفظ التوقيع بنجاح" : "Signature saved successfully");
+setSignatureFile(file);
+};
+reader.readAsDataURL(file);
+} catch (err: any) {
+sonnerToast.error(ar ? "فشل الرفع" : "Upload failed");
+} finally {
+setIsUploadingSig(false);
+}
+};
 
-  const handleSignatureUpload = async (file: File) => {
-    if (!["image/png", "image/jpeg"].includes(file.type)) {
-      sonnerToast.error(ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image");
-      return;
-    }
-    setIsUploadingSig(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = reader.result as string;
-        const endpoint = isSelf ? "/api/users/me/signature" : `/api/users/${user.id}/signature`;
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ signatureImage: base64 }),
-        });
-        if (!res.ok) throw new Error("Upload failed");
-        sonnerToast.success(ar ? "تم حفظ التوقيع بنجاح" : "Signature saved successfully");
-        setSignatureFile(file);
-      };
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      sonnerToast.error(ar ? "فشل الرفع" : "Upload failed");
-    } finally {
-      setIsUploadingSig(false);
-    }
-  };
-
-  const save = async () => {
-    if (!formData.username.trim()) {
-      toast({
-        title: ar ? "الاسم مطلوب" : "Username is required",
-        variant: "destructive",
-      });
-      return;
-    }
+const save = async () => {
+if (!formData.username.trim()) {
+toast({
+title: ar ? "الاسم مطلوب" : "Username is required",
+variant: "destructive",
+});
+return;
+}
 
     setSaving(true);
     try {
@@ -6462,41 +6501,41 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
     } finally {
       setSaving(false);
     }
-  };
 
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent
-        className="max-w-sm"
-        srTitle={ar ? "تعديل بيانات المستخدم" : "Edit User Data"}
-      >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserCog className="w-5 h-5 text-blue-600" />
-            {ar ? "تعديل بيانات المستخدم" : "Edit User Data"}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-2">
-          {/* Username */}
-          <div className="space-y-2">
-            <Label htmlFor="username" className="text-sm font-medium">
-              {ar ? "اسم المستخدم" : "Username"}
-            </Label>
-            <Input
-              id="username"
-              value={formData.username}
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
-              placeholder={ar ? "أدخل اسم المستخدم" : "Enter username"}
-              className="font-mono"
-            />
-          </div>
+};
+
+return (
+
+<Dialog
+open
+onOpenChange={(open) => {
+if (!open) onClose();
+}} >
+<DialogContent
+className="max-w-sm"
+srTitle={ar ? "تعديل بيانات المستخدم" : "Edit User Data"} >
+<DialogHeader>
+<DialogTitle className="flex items-center gap-2">
+<UserCog className="w-5 h-5 text-blue-600" />
+{ar ? "تعديل بيانات المستخدم" : "Edit User Data"}
+</DialogTitle>
+</DialogHeader>
+<div className="space-y-4 pt-2">
+{/_ Username _/}
+<div className="space-y-2">
+<Label htmlFor="username" className="text-sm font-medium">
+{ar ? "اسم المستخدم" : "Username"}
+</Label>
+<Input
+id="username"
+value={formData.username}
+onChange={(e) =>
+setFormData({ ...formData, username: e.target.value })
+}
+placeholder={ar ? "أدخل اسم المستخدم" : "Enter username"}
+className="font-mono"
+/>
+</div>
 
           {/* Email */}
           <div className="space-y-2">
@@ -6530,7 +6569,7 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
             />
           </div>
 
-          
+
             {/* Role / Position */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">
@@ -6672,7 +6711,8 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
         </div>
       </DialogContent>
     </Dialog>
-  );
+
+);
 }
 
 ================================================================================
@@ -6681,158 +6721,157 @@ FILE: artifacts/housing/src/pages/users/components/PermissionMatrixDialog.tsx
 
 import { useState } from "react";
 import {
-  useUpdateUser,
-  getListUsersQueryKey,
+useUpdateUser,
+getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Shield } from "lucide-react";
 import {
-  MODULES,
-  MODULE_ACTIONS,
-  MODULE_LABELS,
-  ACTION_LABELS,
-  permKey,
-  ROLE_DEFAULT_PERMISSIONS,
-  type Module,
-  type Action,
+MODULES,
+MODULE_ACTIONS,
+MODULE_LABELS,
+ACTION_LABELS,
+permKey,
+ROLE_DEFAULT_PERMISSIONS,
+type Module,
+type Action,
 } from "@/lib/permissions";
 import { SYSTEM_ROLES as ROLES, roleColor } from "../utils";
 
 interface PermissionMatrixDialogProps {
-  user: any; // We'll fix this type later if possible, or just keep any for now.
-  onClose: () => void;
+user: any; // We'll fix this type later if possible, or just keep any for now.
+onClose: () => void;
 }
 
 export function PermissionMatrixDialog({
-  user,
-  onClose,
+user,
+onClose,
 }: PermissionMatrixDialogProps) {
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const queryClient = useQueryClient();
+const { toast } = useToast();
+const { language } = useLanguage();
+const ar = language === "ar";
+const queryClient = useQueryClient();
 
-  const initialPerms = (): Set<string> => {
-    const explicit = (user.permissions as string[] | undefined) ?? [];
-    if (explicit.length > 0) return new Set(explicit);
-    const role = user.roles?.[0]?.toLowerCase() ?? "";
-    return new Set(ROLE_DEFAULT_PERMISSIONS[role] ?? []);
-  };
+const initialPerms = (): Set<string> => {
+const explicit = (user.permissions as string[] | undefined) ?? [];
+if (explicit.length > 0) return new Set(explicit);
+const role = user.roles?.[0]?.toLowerCase() ?? "";
+return new Set(ROLE_DEFAULT_PERMISSIONS[role] ?? []);
+};
 
-  const [perms, setPerms] = useState<Set<string>>(initialPerms);
-  const [saving, setSaving] = useState(false);
+const [perms, setPerms] = useState<Set<string>>(initialPerms);
+const [saving, setSaving] = useState(false);
 
-  const updateMutation = useUpdateUser({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast({
-          title: ar
-            ? "تم تحديث الصلاحيات بنجاح"
-            : "Permissions updated successfully",
-        });
-        onClose();
-      },
-      onError: (e: any) =>
-        toast({
-          title: ar ? "فشل حفظ الصلاحيات" : "Failed to save permissions",
-          description: e.message,
-          variant: "destructive",
-        }),
-    },
-  });
+const updateMutation = useUpdateUser({
+mutation: {
+onSuccess: () => {
+queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+toast({
+title: ar
+? "تم تحديث الصلاحيات بنجاح"
+: "Permissions updated successfully",
+});
+onClose();
+},
+onError: (e: any) =>
+toast({
+title: ar ? "فشل حفظ الصلاحيات" : "Failed to save permissions",
+description: e.message,
+variant: "destructive",
+}),
+},
+});
 
-  const toggle = (m: Module, a: Action) => {
-    const key = permKey(m, a);
-    setPerms((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
-  };
+const toggle = (m: Module, a: Action) => {
+const key = permKey(m, a);
+setPerms((prev) => {
+const next = new Set(prev);
+next.has(key) ? next.delete(key) : next.add(key);
+return next;
+});
+};
 
-  const toggleModule = (m: Module) => {
-    const modulePerms = MODULE_ACTIONS[m] ?? [];
-    const allChecked = modulePerms.every((a) => perms.has(permKey(m, a)));
-    setPerms((prev) => {
-      const next = new Set(prev);
-      modulePerms.forEach((a) =>
-        allChecked ? next.delete(permKey(m, a)) : next.add(permKey(m, a)),
-      );
-      return next;
-    });
-  };
+const toggleModule = (m: Module) => {
+const modulePerms = MODULE_ACTIONS[m] ?? [];
+const allChecked = modulePerms.every((a) => perms.has(permKey(m, a)));
+setPerms((prev) => {
+const next = new Set(prev);
+modulePerms.forEach((a) =>
+allChecked ? next.delete(permKey(m, a)) : next.add(permKey(m, a)),
+);
+return next;
+});
+};
 
-  const applyRoleDefaults = (roleKey: string) => {
-    setPerms(new Set(ROLE_DEFAULT_PERMISSIONS[roleKey] ?? []));
-  };
+const applyRoleDefaults = (roleKey: string) => {
+setPerms(new Set(ROLE_DEFAULT_PERMISSIONS[roleKey] ?? []));
+};
 
-  const selectAll = () => {
-    setPerms(
-      new Set(
-        MODULES.flatMap((m) =>
-          (MODULE_ACTIONS[m] ?? []).map((a) => permKey(m, a)),
-        ),
-      ),
-    );
-  };
+const selectAll = () => {
+setPerms(
+new Set(
+MODULES.flatMap((m) =>
+(MODULE_ACTIONS[m] ?? []).map((a) => permKey(m, a)),
+),
+),
+);
+};
 
-  const deselectAll = () => {
-    setPerms(new Set());
-  };
+const deselectAll = () => {
+setPerms(new Set());
+};
 
-  const save = () => {
-    setSaving(true);
-    updateMutation.mutate({
-      id: user.id,
-      data: { permissions: Array.from(perms) },
-    });
-  };
+const save = () => {
+setSaving(true);
+updateMutation.mutate({
+id: user.id,
+data: { permissions: Array.from(perms) },
+});
+};
 
-  const totalPossible = MODULES.reduce(
-    (sum, m) => sum + (MODULE_ACTIONS[m] ?? []).length,
-    0,
-  );
+const totalPossible = MODULES.reduce(
+(sum, m) => sum + (MODULE_ACTIONS[m] ?? []).length,
+0,
+);
 
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent
-        className="max-w-5xl max-h-[90vh] overflow-y-auto"
-        srTitle={ar ? "مصفوفة الصلاحيات" : "Permission Matrix"}
-      >
-        <DialogHeader>
-          <DialogTitle className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#C9A24D] to-[#8B7532] flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="text-lg font-semibold">
-                {ar ? "مصفوفة الصلاحيات" : "Permission Matrix"}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {user.username} •{" "}
-                {ar
-                  ? "تحكم في صلاحيات المستخدم"
-                  : "Control permissions for the user"}
-              </div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
+return (
+
+<Dialog
+open
+onOpenChange={(open) => {
+if (!open) onClose();
+}} >
+<DialogContent
+className="max-w-5xl max-h-[90vh] overflow-y-auto"
+srTitle={ar ? "مصفوفة الصلاحيات" : "Permission Matrix"} >
+<DialogHeader>
+<DialogTitle className="flex flex-col gap-3 sm:flex-row sm:items-center">
+<div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#C9A24D] to-[#8B7532] flex items-center justify-center">
+<Shield className="w-5 h-5 text-white" />
+</div>
+<div>
+<div className="text-lg font-semibold">
+{ar ? "مصفوفة الصلاحيات" : "Permission Matrix"}
+</div>
+<div className="text-sm text-muted-foreground">
+{user.username} •{" "}
+{ar
+? "تحكم في صلاحيات المستخدم"
+: "Control permissions for the user"}
+</div>
+</div>
+</DialogTitle>
+</DialogHeader>
 
         {/* Summary bar */}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-3 rounded-lg bg-muted/30 border text-sm">
@@ -6970,7 +7009,8 @@ export function PermissionMatrixDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
+
+);
 }
 
 ================================================================================
@@ -6979,17 +7019,17 @@ FILE: artifacts/housing/src/pages/users/components/ResetPasswordDialog.tsx
 
 import { useState } from "react";
 import {
-  useUpdateUser,
-  getListUsersQueryKey,
+useUpdateUser,
+getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6997,119 +7037,118 @@ import { Label } from "@/components/ui/label";
 import { KeyRound } from "lucide-react";
 
 interface ResetPasswordDialogProps {
-  user: any;
-  onClose: () => void;
+user: any;
+onClose: () => void;
 }
 
 export function ResetPasswordDialog({
-  user,
-  onClose,
+user,
+onClose,
 }: ResetPasswordDialogProps) {
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const queryClient = useQueryClient();
+const { toast } = useToast();
+const { language } = useLanguage();
+const ar = language === "ar";
+const queryClient = useQueryClient();
 
-  const [newPassword, setNewPassword] = useState("");
+const [newPassword, setNewPassword] = useState("");
 
-  const resetPasswordMutation = useUpdateUser({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast({
-          title: ar
-            ? "تمت إعادة تعيين كلمة المرور بنجاح"
-            : "Password reset successfully",
-        });
-        onClose();
-      },
-      onError: (e: any) =>
-        toast({
-          title: ar
-            ? "فشل إعادة تعيين كلمة المرور"
-            : "Failed to reset password",
-          description: e.message,
-          variant: "destructive",
-        }),
-    },
-  });
+const resetPasswordMutation = useUpdateUser({
+mutation: {
+onSuccess: () => {
+queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+toast({
+title: ar
+? "تمت إعادة تعيين كلمة المرور بنجاح"
+: "Password reset successfully",
+});
+onClose();
+},
+onError: (e: any) =>
+toast({
+title: ar
+? "فشل إعادة تعيين كلمة المرور"
+: "Failed to reset password",
+description: e.message,
+variant: "destructive",
+}),
+},
+});
 
-  const handleResetPassword = () => {
-    if (!newPassword || newPassword.length < 6) {
-      toast({
-        title: ar
-          ? "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل"
-          : "Password must be at least 6 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-    resetPasswordMutation.mutate({
-      id: user.id,
-      data: { password: newPassword } as any,
-    });
-  };
+const handleResetPassword = () => {
+if (!newPassword || newPassword.length < 6) {
+toast({
+title: ar
+? "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل"
+: "Password must be at least 6 characters",
+variant: "destructive",
+});
+return;
+}
+resetPasswordMutation.mutate({
+id: user.id,
+data: { password: newPassword } as any,
+});
+};
 
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent
-        className="max-w-sm"
-        srTitle={ar ? "إعادة تعيين كلمة المرور" : "Reset Password"}
-      >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-blue-500" />
-            {ar ? "إعادة تعيين كلمة المرور" : "Reset Password"} —{" "}
-            <span className="font-mono">{user.username}</span>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-1">
-          <div className="space-y-1.5">
-            <Label>
-              {ar ? "كلمة المرور الجديدة" : "New Password"}{" "}
-              <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              type="password"
-              placeholder={ar ? "6 أحرف كحد أدنى" : "Minimum 6 characters"}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              autoComplete="off"
-              onKeyDown={(e) => e.key === "Enter" && handleResetPassword()}
-            />
-            <p className="text-xs text-muted-foreground">
-              {ar
-                ? "سيحتاج المستخدم إلى استخدام كلمة المرور الجديدة لتسجيل الدخول."
-                : "The user will need to use this new password to sign in."}
-            </p>
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={onClose}>
-              {ar ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
+return (
+
+<Dialog
+open
+onOpenChange={(open) => {
+if (!open) onClose();
+}} >
+<DialogContent
+className="max-w-sm"
+srTitle={ar ? "إعادة تعيين كلمة المرور" : "Reset Password"} >
+<DialogHeader>
+<DialogTitle className="flex items-center gap-2">
+<KeyRound className="w-5 h-5 text-blue-500" />
+{ar ? "إعادة تعيين كلمة المرور" : "Reset Password"} —{" "}
+<span className="font-mono">{user.username}</span>
+</DialogTitle>
+</DialogHeader>
+<div className="space-y-4 pt-1">
+<div className="space-y-1.5">
+<Label>
+{ar ? "كلمة المرور الجديدة" : "New Password"}{" "}
+<span className="text-red-500">\*</span>
+</Label>
+<Input
+type="password"
+placeholder={ar ? "6 أحرف كحد أدنى" : "Minimum 6 characters"}
+value={newPassword}
+onChange={(e) => setNewPassword(e.target.value)}
+autoComplete="off"
+onKeyDown={(e) => e.key === "Enter" && handleResetPassword()}
+/>
+<p className="text-xs text-muted-foreground">
+{ar
+? "سيحتاج المستخدم إلى استخدام كلمة المرور الجديدة لتسجيل الدخول."
+: "The user will need to use this new password to sign in."}
+</p>
+</div>
+<div className="flex gap-2 justify-end">
+<Button variant="outline" onClick={onClose}>
+{ar ? "إلغاء" : "Cancel"}
+</Button>
+<Button
               onClick={handleResetPassword}
               disabled={resetPasswordMutation.isPending}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {resetPasswordMutation.isPending
-                ? ar
-                  ? "جاري الحفظ..."
-                  : "Saving..."
-                : ar
-                  ? "إعادة تعيين كلمة المرور"
-                  : "Reset Password"}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+{resetPasswordMutation.isPending
+? ar
+? "جاري الحفظ..."
+: "Saving..."
+: ar
+? "إعادة تعيين كلمة المرور"
+: "Reset Password"}
+</Button>
+</div>
+</div>
+</DialogContent>
+</Dialog>
+);
 }
 
 ================================================================================
@@ -7122,89 +7161,88 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+AlertDialog,
+AlertDialogAction,
+AlertDialogCancel,
+AlertDialogContent,
+AlertDialogDescription,
+AlertDialogFooter,
+AlertDialogHeader,
+AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 interface UnlockUserDialogProps {
-  user: any;
-  onClose: () => void;
+user: any;
+onClose: () => void;
 }
 
 export function UnlockUserDialog({ user, onClose }: UnlockUserDialogProps) {
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const queryClient = useQueryClient();
-  const [unlocking, setUnlocking] = useState(false);
+const { toast } = useToast();
+const { language } = useLanguage();
+const ar = language === "ar";
+const queryClient = useQueryClient();
+const [unlocking, setUnlocking] = useState(false);
 
-  const handleUnlock = async () => {
-    setUnlocking(true);
-    try {
-      const res = await fetch("/api/users/" + user.id + "/unlock", {
-        method: "POST",
-      });
-      if (!res.ok)
-        throw new Error((await res.json()).error || "Failed to unlock");
-      toast({
-        title: ar ? "تم فتح قفل الحساب بنجاح" : "Account unlocked successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-      onClose();
-    } catch (e: any) {
-      toast({
-        title: ar ? "فشل فتح القفل" : "Failed to unlock",
-        description: e.message,
-        variant: "destructive",
-      });
-    } finally {
-      setUnlocking(false);
-    }
-  };
+const handleUnlock = async () => {
+setUnlocking(true);
+try {
+const res = await fetch("/api/users/" + user.id + "/unlock", {
+method: "POST",
+});
+if (!res.ok)
+throw new Error((await res.json()).error || "Failed to unlock");
+toast({
+title: ar ? "تم فتح قفل الحساب بنجاح" : "Account unlocked successfully",
+});
+queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+onClose();
+} catch (e: any) {
+toast({
+title: ar ? "فشل فتح القفل" : "Failed to unlock",
+description: e.message,
+variant: "destructive",
+});
+} finally {
+setUnlocking(false);
+}
+};
 
-  return (
-    <AlertDialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {ar ? "فتح قفل الحساب" : "Unlock Account"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {ar
-              ? `هل أنت متأكد من فتح قفل حساب "${user.username}"؟ سيتم مسح محاولات تسجيل الدخول الفاشلة وفتح الحساب فوراً.`
-              : `Are you sure you want to unlock "${user.username}"? Failed login attempts will be cleared and the account will be unlocked immediately.`}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-          <AlertDialogAction
+return (
+<AlertDialog
+open
+onOpenChange={(open) => {
+if (!open) onClose();
+}} >
+<AlertDialogContent>
+<AlertDialogHeader>
+<AlertDialogTitle>
+{ar ? "فتح قفل الحساب" : "Unlock Account"}
+</AlertDialogTitle>
+<AlertDialogDescription>
+{ar
+? `هل أنت متأكد من فتح قفل حساب "${user.username}"؟ سيتم مسح محاولات تسجيل الدخول الفاشلة وفتح الحساب فوراً.`
+: `Are you sure you want to unlock "${user.username}"? Failed login attempts will be cleared and the account will be unlocked immediately.`}
+</AlertDialogDescription>
+</AlertDialogHeader>
+<AlertDialogFooter>
+<AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+<AlertDialogAction
             onClick={handleUnlock}
             disabled={unlocking}
             className="bg-amber-600 hover:bg-amber-700"
           >
-            {unlocking
-              ? ar
-                ? "جاري الفتح..."
-                : "Unlocking..."
-              : ar
-                ? "فتح القفل"
-                : "Unlock"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
+{unlocking
+? ar
+? "جاري الفتح..."
+: "Unlocking..."
+: ar
+? "فتح القفل"
+: "Unlock"}
+</AlertDialogAction>
+</AlertDialogFooter>
+</AlertDialogContent>
+</AlertDialog>
+);
 }
 
 ================================================================================
@@ -7213,11 +7251,11 @@ FILE: artifacts/housing/src/pages/users/components/UploadSignatureDialog.tsx
 
 import { useState, useRef } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogDescription,
+DialogHeader,
+DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -7225,19 +7263,19 @@ import { Loader2, Pen, Upload } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface UploadSignatureDialogProps {
-  user: any;
-  onClose: () => void;
+user: any;
+onClose: () => void;
 }
 
 export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogProps) {
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const { language } = useLanguage();
+const ar = language === "ar";
+const [isUploading, setIsUploading] = useState(false);
+const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const file = e.target.files?.[0];
+if (!file) return;
 
     if (!["image/png", "image/jpeg"].includes(file.type)) {
       toast.error(ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image");
@@ -7270,25 +7308,27 @@ export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogPr
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  };
 
-  if (!user) return null;
+};
 
-  return (
-    <Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{ar ? "رفع توقيع للمستخدم" : "Upload User Signature"}</DialogTitle>
-          <DialogDescription>
-            {ar ? `رفع صورة توقيع للمستخدم: ${user.username}` : `Upload a signature image for user: ${user.username}`}
-          </DialogDescription>
-        </DialogHeader>
+if (!user) return null;
+
+return (
+
+<Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
+<DialogContent>
+<DialogHeader>
+<DialogTitle>{ar ? "رفع توقيع للمستخدم" : "Upload User Signature"}</DialogTitle>
+<DialogDescription>
+{ar ? `رفع صورة توقيع للمستخدم: ${user.username}` : `Upload a signature image for user: ${user.username}`}
+</DialogDescription>
+</DialogHeader>
 
         <div className="flex flex-col items-center justify-center space-y-4 py-8">
           <div className="p-4 bg-muted/20 rounded-full border border-dashed border-primary/50">
             <Pen className="w-8 h-8 text-muted-foreground" />
           </div>
-          
+
           <Button
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
@@ -7315,7 +7355,8 @@ export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogPr
         </div>
       </DialogContent>
     </Dialog>
-  );
+
+);
 }
 
 ================================================================================
@@ -7350,7 +7391,7 @@ const Portal = lazy(() => import("@/pages/portal"));
 const Reservations = lazy(() => import("@/pages/accommodation/reservations"));
 const InHouse = lazy(() => import("@/pages/accommodation/in-house"));
 const RoomAssignment = lazy(
-  () => import("@/pages/accommodation/room-assignment"),
+() => import("@/pages/accommodation/room-assignment"),
 );
 const GuestHosting = lazy(() => import("@/pages/accommodation/guest-hosting"));
 const History = lazy(() => import("@/pages/accommodation/history"));
@@ -7367,96 +7408,98 @@ const FamilyVisitDetail = lazy(() => import("@/pages/family-visit/FamilyVisitDet
 // Employee Portal Pages (Moved to standalone app)
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60_000, // 1 min
-      refetchInterval: 60_000, // 1 min
-      gcTime: 5 * 60_000, // 5 min cache
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-      retry: 1,
-    },
-  },
+defaultOptions: {
+queries: {
+staleTime: 60_000, // 1 min
+refetchInterval: 60_000, // 1 min
+gcTime: 5 \* 60_000, // 5 min cache
+refetchOnWindowFocus: true,
+refetchOnReconnect: true,
+retry: 1,
+},
+},
 });
 
-/**
- * Global WebSocket Provider - stays mounted for the entire app session
- * This ensures WebSocket connection persists across route changes
- */
-function WebSocketProvider({ children }: { children: React.ReactNode }) {
+/\*\*
+
+- Global WebSocket Provider - stays mounted for the entire app session
+- This ensures WebSocket connection persists across route changes
+  \*/
+  function WebSocketProvider({ children }: { children: React.ReactNode }) {
   useWebSocket();
   return <>{children}</>;
-}
+  }
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) return <PageLoader />;
-  if (!isAuthenticated) return <Redirect to="/login" />;
-  return <AppLayout>{children}</AppLayout>;
+const { isAuthenticated, isLoading } = useAuth();
+if (isLoading) return <PageLoader />;
+if (!isAuthenticated) return <Redirect to="/login" />;
+return <AppLayout>{children}</AppLayout>;
 }
 
-/** Renders `children` if user has permission, else redirects to /dashboard */
+/\*_ Renders `children` if user has permission, else redirects to /dashboard _/
 function PermissionLayout({
-  module,
-  action = "view",
-  children,
+module,
+action = "view",
+children,
 }: {
-  module: Module;
-  action?: Action;
-  children: React.ReactNode;
+module: Module;
+action?: Action;
+children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { can, isAdmin } = usePermission();
+const { isAuthenticated, isLoading } = useAuth();
+const { can, isAdmin } = usePermission();
 
-  if (isLoading) return <PageLoader />;
-  if (!isAuthenticated) return <Redirect to="/login" />;
+if (isLoading) return <PageLoader />;
+if (!isAuthenticated) return <Redirect to="/login" />;
 
-  // If user is admin they bypass permission checks
-  if (!isAdmin && !can(module, action)) {
-    return (
-      <AppLayout>
-        <div className="flex flex-col items-center justify-center h-full gap-4 py-20">
-          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-            <svg
+// If user is admin they bypass permission checks
+if (!isAdmin && !can(module, action)) {
+return (
+<AppLayout>
+
+<div className="flex flex-col items-center justify-center h-full gap-4 py-20">
+<div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+<svg
               className="w-8 h-8 text-red-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
+<path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-foreground">Access Denied</h2>
-          <p className="text-muted-foreground text-sm text-center max-w-sm">
-            You don&apos;t have permission to view this page. Contact your
-            administrator to request access.
-          </p>
-          <a
+</svg>
+</div>
+<h2 className="text-xl font-bold text-foreground">Access Denied</h2>
+<p className="text-muted-foreground text-sm text-center max-w-sm">
+You don&apos;t have permission to view this page. Contact your
+administrator to request access.
+</p>
+<a
             href="/dashboard"
             className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
           >
-            Go to Dashboard
-          </a>
-        </div>
-      </AppLayout>
-    );
-  }
+Go to Dashboard
+</a>
+</div>
+</AppLayout>
+);
+}
 
-  return <AppLayout>{children}</AppLayout>;
+return <AppLayout>{children}</AppLayout>;
 }
 
 function Router() {
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Switch>
-        <Route path="/login">
-          <Login />
-        </Route>
+return (
+<Suspense fallback={<PageLoader />}>
+<Switch>
+<Route path="/login">
+<Login />
+</Route>
 
         <Route path="/">
           <Redirect to="/dashboard" />
@@ -7576,43 +7619,44 @@ function Router() {
         </Route>
       </Switch>
     </Suspense>
-  );
+
+);
 }
 
 function App() {
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider
+return (
+<ErrorBoundary>
+<QueryClientProvider client={queryClient}>
+<ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem={false}
         >
-          <LanguageProvider>
-            <AuthProvider>
-              <PropertyProvider>
-                <WebSocketProvider>
-                  <TooltipProvider>
-                    <WouterRouter>
-                      <Router />
-                    </WouterRouter>
-                    <Toaster />
-                    <SonnerToaster
-                      position="top-right"
-                      richColors
-                      toastOptions={{
+<LanguageProvider>
+<AuthProvider>
+<PropertyProvider>
+<WebSocketProvider>
+<TooltipProvider>
+<WouterRouter>
+<Router />
+</WouterRouter>
+<Toaster />
+<SonnerToaster
+position="top-right"
+richColors
+toastOptions={{
                         style: { '--normal-bg': 'var(--brand-teal, #2AB5B5)' } as React.CSSProperties,
                       }}
-                    />
-                  </TooltipProvider>
-                </WebSocketProvider>
-              </PropertyProvider>
-            </AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
+/>
+</TooltipProvider>
+</WebSocketProvider>
+</PropertyProvider>
+</AuthProvider>
+</LanguageProvider>
+</ThemeProvider>
+</QueryClientProvider>
+</ErrorBoundary>
+);
 }
 
 export default App;
@@ -7635,8 +7679,8 @@ FILE: artifacts/housing/src/components/ui/accordion.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as AccordionPrimitive from "@radix-ui/react-accordion";
+import _ as React from "react";
+import _ as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -7644,22 +7688,27 @@ import { cn } from "@/lib/utils";
 const Accordion = AccordionPrimitive.Root;
 
 const AccordionItem = React.forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
->(({ className, ...props }, ref) => (
-  <AccordionPrimitive.Item
+React.ElementRef<typeof AccordionPrimitive.Item>,
+React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
+
+> (({ className, ...props }, ref) => (
+> <AccordionPrimitive.Item
+
     ref={ref}
     className={cn("border-b", className)}
     {...props}
-  />
+
+/>
 ));
 AccordionItem.displayName = "AccordionItem";
 
 const AccordionTrigger = React.forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Header className="flex">
+React.ElementRef<typeof AccordionPrimitive.Trigger>,
+React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
+
+> (({ className, children, ...props }, ref) => (
+> <AccordionPrimitive.Header className="flex">
+
     <AccordionPrimitive.Trigger
       ref={ref}
       className={cn(
@@ -7671,21 +7720,27 @@ const AccordionTrigger = React.forwardRef<
       {children}
       <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
     </AccordionPrimitive.Trigger>
-  </AccordionPrimitive.Header>
+
+</AccordionPrimitive.Header>
 ));
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 
 const AccordionContent = React.forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Content
+React.ElementRef<typeof AccordionPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
+
+> (({ className, children, ...props }, ref) => (
+> <AccordionPrimitive.Content
+
     ref={ref}
     className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
     {...props}
-  >
+
+>
+
     <div className={cn("pb-4 pt-0", className)}>{children}</div>
-  </AccordionPrimitive.Content>
+
+</AccordionPrimitive.Content>
 ));
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;
 
@@ -7696,8 +7751,8 @@ FILE: artifacts/housing/src/components/ui/alert-dialog.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
+import _ as React from "react";
+import _ as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -7709,25 +7764,30 @@ const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
 const AlertDialogOverlay = React.forwardRef<
-  React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Overlay
+React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
+React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
+
+> (({ className, ...props }, ref) => (
+> <AlertDialogPrimitive.Overlay
+
     className={cn(
       "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
     ref={ref}
-  />
+
+/>
 ));
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
 const AlertDialogContent = React.forwardRef<
-  React.ElementRef<typeof AlertDialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <AlertDialogPortal>
+React.ElementRef<typeof AlertDialogPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
+
+> (({ className, ...props }, ref) => (
+> <AlertDialogPortal>
+
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
       ref={ref}
@@ -7737,14 +7797,16 @@ const AlertDialogContent = React.forwardRef<
       )}
       {...props}
     />
+
   </AlertDialogPortal>
 ));
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
 
 const AlertDialogHeader = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+
   <div
     className={cn(
       "flex flex-col space-y-2 text-center sm:text-left",
@@ -7756,9 +7818,10 @@ const AlertDialogHeader = ({
 AlertDialogHeader.displayName = "AlertDialogHeader";
 
 const AlertDialogFooter = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+
   <div
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
@@ -7770,47 +7833,58 @@ const AlertDialogFooter = ({
 AlertDialogFooter.displayName = "AlertDialogFooter";
 
 const AlertDialogTitle = React.forwardRef<
-  React.ElementRef<typeof AlertDialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Title
+React.ElementRef<typeof AlertDialogPrimitive.Title>,
+React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>
+
+> (({ className, ...props }, ref) => (
+> <AlertDialogPrimitive.Title
+
     ref={ref}
     className={cn("text-lg font-semibold", className)}
     {...props}
-  />
+
+/>
 ));
 AlertDialogTitle.displayName = AlertDialogPrimitive.Title.displayName;
 
 const AlertDialogDescription = React.forwardRef<
-  React.ElementRef<typeof AlertDialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Description
+React.ElementRef<typeof AlertDialogPrimitive.Description>,
+React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>
+
+> (({ className, ...props }, ref) => (
+> <AlertDialogPrimitive.Description
+
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
-  />
+
+/>
 ));
 AlertDialogDescription.displayName =
-  AlertDialogPrimitive.Description.displayName;
+AlertDialogPrimitive.Description.displayName;
 
 const AlertDialogAction = React.forwardRef<
-  React.ElementRef<typeof AlertDialogPrimitive.Action>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Action
+React.ElementRef<typeof AlertDialogPrimitive.Action>,
+React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
+
+> (({ className, ...props }, ref) => (
+> <AlertDialogPrimitive.Action
+
     ref={ref}
     className={cn(buttonVariants(), className)}
     {...props}
-  />
+
+/>
 ));
 AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 
 const AlertDialogCancel = React.forwardRef<
-  React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Cancel
+React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
+React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
+
+> (({ className, ...props }, ref) => (
+> <AlertDialogPrimitive.Cancel
+
     ref={ref}
     className={cn(
       buttonVariants({ variant: "outline" }),
@@ -7818,22 +7892,23 @@ const AlertDialogCancel = React.forwardRef<
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
 
 export {
-  AlertDialog,
-  AlertDialogPortal,
-  AlertDialogOverlay,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
+AlertDialog,
+AlertDialogPortal,
+AlertDialogOverlay,
+AlertDialogTrigger,
+AlertDialogContent,
+AlertDialogHeader,
+AlertDialogFooter,
+AlertDialogTitle,
+AlertDialogDescription,
+AlertDialogAction,
+AlertDialogCancel,
 };
 
 ================================================================================
@@ -7841,31 +7916,33 @@ FILE: artifacts/housing/src/components/ui/alert.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
-  {
-    variants: {
-      variant: {
-        default: "bg-background text-foreground",
-        destructive:
-          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
+"relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
+{
+variants: {
+variant: {
+default: "bg-background text-foreground",
+destructive:
+"border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+},
+},
+defaultVariants: {
+variant: "default",
+},
+},
 );
 
 const Alert = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
->(({ className, variant, ...props }, ref) => (
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
+
+> (({ className, variant, ...props }, ref) => (
+
   <div
     ref={ref}
     role="alert"
@@ -7876,9 +7953,11 @@ const Alert = React.forwardRef<
 Alert.displayName = "Alert";
 
 const AlertTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
+HTMLParagraphElement,
+React.HTMLAttributes<HTMLHeadingElement>
+
+> (({ className, ...props }, ref) => (
+
   <h5
     ref={ref}
     className={cn("mb-1 font-medium leading-none tracking-tight", className)}
@@ -7888,9 +7967,11 @@ const AlertTitle = React.forwardRef<
 AlertTitle.displayName = "AlertTitle";
 
 const AlertDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
+HTMLParagraphElement,
+React.HTMLAttributes<HTMLParagraphElement>
+
+> (({ className, ...props }, ref) => (
+
   <div
     ref={ref}
     className={cn("text-sm [&_p]:leading-relaxed", className)}
@@ -7906,7 +7987,7 @@ FILE: artifacts/housing/src/components/ui/aspect-ratio.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio";
+import \* as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio";
 
 const AspectRatio = AspectRatioPrimitive.Root;
 
@@ -7919,50 +8000,59 @@ FILE: artifacts/housing/src/components/ui/avatar.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
-import * as AvatarPrimitive from "@radix-ui/react-avatar";
+import _ as React from "react";
+import _ as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
 
 const Avatar = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Root
+React.ElementRef<typeof AvatarPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
+
+> (({ className, ...props }, ref) => (
+> <AvatarPrimitive.Root
+
     ref={ref}
     className={cn(
       "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 Avatar.displayName = AvatarPrimitive.Root.displayName;
 
 const AvatarImage = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Image>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
+React.ElementRef<typeof AvatarPrimitive.Image>,
+React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
+
+> (({ className, ...props }, ref) => (
+> <AvatarPrimitive.Image
+
     ref={ref}
     className={cn("aspect-square h-full w-full", className)}
     {...props}
-  />
+
+/>
 ));
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 
 const AvatarFallback = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Fallback>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Fallback
+React.ElementRef<typeof AvatarPrimitive.Fallback>,
+React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
+
+> (({ className, ...props }, ref) => (
+> <AvatarPrimitive.Fallback
+
     ref={ref}
     className={cn(
       "flex h-full w-full items-center justify-center rounded-full bg-muted",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
 
@@ -7973,47 +8063,48 @@ FILE: artifacts/housing/src/components/ui/badge.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  // @replit
-  // Whitespace-nowrap: Badges should never wrap.
-  "whitespace-nowrap inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" +
-    " hover-elevate ",
-  {
-    variants: {
-      variant: {
-        default:
-          // @replit shadow-xs instead of shadow, no hover because we use hover-elevate
-          "border-transparent bg-primary text-primary-foreground shadow-xs",
-        secondary:
-          // @replit no hover because we use hover-elevate
-          "border-transparent bg-secondary text-secondary-foreground",
-        destructive:
-          // @replit shadow-xs instead of shadow, no hover because we use hover-elevate
-          "border-transparent bg-destructive text-destructive-foreground shadow-xs",
-        // @replit shadow-xs" - use badge outline variable
-        outline: "text-foreground border [border-color:var(--badge-outline)]",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
+// @replit
+// Whitespace-nowrap: Badges should never wrap.
+"whitespace-nowrap inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" +
+" hover-elevate ",
+{
+variants: {
+variant: {
+default:
+// @replit shadow-xs instead of shadow, no hover because we use hover-elevate
+"border-transparent bg-primary text-primary-foreground shadow-xs",
+secondary:
+// @replit no hover because we use hover-elevate
+"border-transparent bg-secondary text-secondary-foreground",
+destructive:
+// @replit shadow-xs instead of shadow, no hover because we use hover-elevate
+"border-transparent bg-destructive text-destructive-foreground shadow-xs",
+// @replit shadow-xs" - use badge outline variable
+outline: "text-foreground border [border-color:var(--badge-outline)]",
+},
+},
+defaultVariants: {
+variant: "default",
+},
+},
 );
 
 export interface BadgeProps
-  extends
-    React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+extends
+React.HTMLAttributes<HTMLDivElement>,
+VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
+return (
+
+<div className={cn(badgeVariants({ variant }), className)} {...props} />
+);
 }
 
 export { Badge, badgeVariants };
@@ -8023,24 +8114,27 @@ FILE: artifacts/housing/src/components/ui/breadcrumb.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const Breadcrumb = React.forwardRef<
-  HTMLElement,
-  React.ComponentPropsWithoutRef<"nav"> & {
-    separator?: React.ReactNode;
-  }
->(({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />);
-Breadcrumb.displayName = "Breadcrumb";
+HTMLElement,
+React.ComponentPropsWithoutRef<"nav"> & {
+separator?: React.ReactNode;
+}
+
+> (({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />);
+> Breadcrumb.displayName = "Breadcrumb";
 
 const BreadcrumbList = React.forwardRef<
-  HTMLOListElement,
-  React.ComponentPropsWithoutRef<"ol">
->(({ className, ...props }, ref) => (
+HTMLOListElement,
+React.ComponentPropsWithoutRef<"ol">
+
+> (({ className, ...props }, ref) => (
+
   <ol
     ref={ref}
     className={cn(
@@ -8053,9 +8147,11 @@ const BreadcrumbList = React.forwardRef<
 BreadcrumbList.displayName = "BreadcrumbList";
 
 const BreadcrumbItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentPropsWithoutRef<"li">
->(({ className, ...props }, ref) => (
+HTMLLIElement,
+React.ComponentPropsWithoutRef<"li">
+
+> (({ className, ...props }, ref) => (
+
   <li
     ref={ref}
     className={cn("inline-flex items-center gap-1.5", className)}
@@ -8065,43 +8161,48 @@ const BreadcrumbItem = React.forwardRef<
 BreadcrumbItem.displayName = "BreadcrumbItem";
 
 const BreadcrumbLink = React.forwardRef<
-  HTMLAnchorElement,
-  React.ComponentPropsWithoutRef<"a"> & {
-    asChild?: boolean;
-  }
->(({ asChild, className, ...props }, ref) => {
-  const Comp = asChild ? Slot : "a";
+HTMLAnchorElement,
+React.ComponentPropsWithoutRef<"a"> & {
+asChild?: boolean;
+}
 
-  return (
-    <Comp
-      ref={ref}
-      className={cn("transition-colors hover:text-foreground", className)}
-      {...props}
-    />
-  );
+> (({ asChild, className, ...props }, ref) => {
+> const Comp = asChild ? Slot : "a";
+
+return (
+<Comp
+ref={ref}
+className={cn("transition-colors hover:text-foreground", className)}
+{...props}
+/>
+);
 });
 BreadcrumbLink.displayName = "BreadcrumbLink";
 
 const BreadcrumbPage = React.forwardRef<
-  HTMLSpanElement,
-  React.ComponentPropsWithoutRef<"span">
->(({ className, ...props }, ref) => (
-  <span
+HTMLSpanElement,
+React.ComponentPropsWithoutRef<"span">
+
+> (({ className, ...props }, ref) => (
+> <span
+
     ref={ref}
     role="link"
     aria-disabled="true"
     aria-current="page"
     className={cn("font-normal text-foreground", className)}
     {...props}
-  />
+
+/>
 ));
 BreadcrumbPage.displayName = "BreadcrumbPage";
 
 const BreadcrumbSeparator = ({
-  children,
-  className,
-  ...props
+children,
+className,
+...props
 }: React.ComponentProps<"li">) => (
+
   <li
     role="presentation"
     aria-hidden="true"
@@ -8114,29 +8215,32 @@ const BreadcrumbSeparator = ({
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator";
 
 const BreadcrumbEllipsis = ({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<"span">) => (
-  <span
-    role="presentation"
-    aria-hidden="true"
-    className={cn("flex h-9 w-9 items-center justify-center", className)}
-    {...props}
-  >
+<span
+role="presentation"
+aria-hidden="true"
+className={cn("flex h-9 w-9 items-center justify-center", className)}
+{...props}
+
+>
+
     <MoreHorizontal className="h-4 w-4" />
     <span className="sr-only">More</span>
+
   </span>
 );
 BreadcrumbEllipsis.displayName = "BreadcrumbElipssis";
 
 export {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-  BreadcrumbEllipsis,
+Breadcrumb,
+BreadcrumbList,
+BreadcrumbItem,
+BreadcrumbLink,
+BreadcrumbPage,
+BreadcrumbSeparator,
+BreadcrumbEllipsis,
 };
 
 ================================================================================
@@ -8148,59 +8252,60 @@ import { Button } from "@/components/ui/button";
 import { X, FileSpreadsheet } from "lucide-react";
 
 interface BulkActionBarProps {
-  count: number;
-  onClear: () => void;
-  onExportExcel?: () => void;
-  extraActions?: React.ReactNode;
-  ar?: boolean;
+count: number;
+onClear: () => void;
+onExportExcel?: () => void;
+extraActions?: React.ReactNode;
+ar?: boolean;
 }
 
 export function BulkActionBar({
-  count,
-  onClear,
-  onExportExcel,
-  extraActions,
-  ar,
+count,
+onClear,
+onExportExcel,
+extraActions,
+ar,
 }: BulkActionBarProps) {
-  if (count === 0) return null;
+if (count === 0) return null;
 
-  return (
-    <div className="flex items-center gap-3 bg-primary/10 border border-primary/20 rounded-lg px-4 py-2.5">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">
-          {count}
-        </span>
-        <span className="text-sm font-medium truncate">
-          {ar
-            ? `${count} صف محدد`
-            : `${count} row${count !== 1 ? "s" : ""} selected`}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        {onExportExcel && (
-          <Button
+return (
+
+<div className="flex items-center gap-3 bg-primary/10 border border-primary/20 rounded-lg px-4 py-2.5">
+<div className="flex items-center gap-2 flex-1 min-w-0">
+<span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">
+{count}
+</span>
+<span className="text-sm font-medium truncate">
+{ar
+? `${count} صف محدد`
+: `${count} row${count !== 1 ? "s" : ""} selected`}
+</span>
+</div>
+<div className="flex items-center gap-2 shrink-0">
+{onExportExcel && (
+<Button
             variant="outline"
             size="sm"
             onClick={onExportExcel}
             className="gap-1.5 text-green-700 border-green-200 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950/40"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            {ar ? "تصدير Excel" : "Export Excel"}
-          </Button>
-        )}
-        {extraActions}
-        <Button
+<FileSpreadsheet className="w-3.5 h-3.5" />
+{ar ? "تصدير Excel" : "Export Excel"}
+</Button>
+)}
+{extraActions}
+<Button
           variant="ghost"
           size="sm"
           onClick={onClear}
           className="gap-1.5 text-muted-foreground hover:text-foreground"
         >
-          <X className="w-3.5 h-3.5" />
-          {ar ? "إلغاء التحديد" : "Clear"}
-        </Button>
-      </div>
-    </div>
-  );
+<X className="w-3.5 h-3.5" />
+{ar ? "إلغاء التحديد" : "Clear"}
+</Button>
+</div>
+</div>
+);
 }
 
 ================================================================================
@@ -8215,81 +8320,82 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
 const buttonGroupVariants = cva(
-  "flex w-fit items-stretch has-[>[data-slot=button-group]]:gap-2 [&>*]:focus-visible:relative [&>*]:focus-visible:z-10 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1",
-  {
-    variants: {
-      orientation: {
-        horizontal:
-          "[&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none",
-        vertical:
-          "flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none",
-      },
-    },
-    defaultVariants: {
-      orientation: "horizontal",
-    },
-  },
+"flex w-fit items-stretch has-[>[data-slot=button-group]]:gap-2 [&>*]:focus-visible:relative [&>*]:focus-visible:z-10 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1",
+{
+variants: {
+orientation: {
+horizontal:
+"[&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none",
+vertical:
+"flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none",
+},
+},
+defaultVariants: {
+orientation: "horizontal",
+},
+},
 );
 
 function ButtonGroup({
-  className,
-  orientation,
-  ...props
+className,
+orientation,
+...props
 }: React.ComponentProps<"div"> & VariantProps<typeof buttonGroupVariants>) {
-  return (
-    <div
-      role="group"
-      data-slot="button-group"
-      data-orientation={orientation}
-      className={cn(buttonGroupVariants({ orientation }), className)}
-      {...props}
-    />
-  );
+return (
+
+<div
+role="group"
+data-slot="button-group"
+data-orientation={orientation}
+className={cn(buttonGroupVariants({ orientation }), className)}
+{...props}
+/>
+);
 }
 
 function ButtonGroupText({
-  className,
-  asChild = false,
-  ...props
+className,
+asChild = false,
+...props
 }: React.ComponentProps<"div"> & {
-  asChild?: boolean;
+asChild?: boolean;
 }) {
-  const Comp = asChild ? Slot : "div";
+const Comp = asChild ? Slot : "div";
 
-  return (
-    <Comp
-      className={cn(
-        "bg-muted shadow-xs flex items-center gap-2 rounded-md border px-4 text-sm font-medium [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Comp
+className={cn(
+"bg-muted shadow-xs flex items-center gap-2 rounded-md border px-4 text-sm font-medium [&\_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function ButtonGroupSeparator({
-  className,
-  orientation = "vertical",
-  ...props
+className,
+orientation = "vertical",
+...props
 }: React.ComponentProps<typeof Separator>) {
-  return (
-    <Separator
-      data-slot="button-group-separator"
-      orientation={orientation}
-      className={cn(
-        "bg-input relative !m-0 self-stretch data-[orientation=vertical]:h-auto",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Separator
+data-slot="button-group-separator"
+orientation={orientation}
+className={cn(
+"bg-input relative !m-0 self-stretch data-[orientation=vertical]:h-auto",
+className,
+)}
+{...props}
+/>
+);
 }
 
 export {
-  ButtonGroup,
-  ButtonGroupSeparator,
-  ButtonGroupText,
-  buttonGroupVariants,
+ButtonGroup,
+ButtonGroupSeparator,
+ButtonGroupText,
+buttonGroupVariants,
 };
 
 ================================================================================
@@ -8297,68 +8403,68 @@ FILE: artifacts/housing/src/components/ui/button.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0" +
-    " hover-elevate active-elevate-2",
-  {
-    variants: {
-      variant: {
-        default:
-          // @replit: no hover, and add primary border
-          "bg-primary text-primary-foreground border border-primary-border",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-sm border-destructive-border",
-        outline:
-          // @replit Shows the background color of whatever card / sidebar / accent background it is inside of.
-          // Inherits the current text color. Uses shadow-xs. no shadow on active
-          // No hover state
-          " border [border-color:var(--button-outline)] shadow-xs active:shadow-none ",
-        secondary:
-          // @replit border, no hover, no shadow, secondary border.
-          "border bg-secondary text-secondary-foreground border border-secondary-border ",
-        // @replit no hover, transparent border
-        ghost: "border border-transparent",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        // @replit changed sizes
-        default: "min-h-9 px-4 py-2",
-        sm: "min-h-8 rounded-md px-3 text-xs",
-        lg: "min-h-10 rounded-md px-8",
-        icon: "h-9 w-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
+"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0" +
+" hover-elevate active-elevate-2",
+{
+variants: {
+variant: {
+default:
+// @replit: no hover, and add primary border
+"bg-primary text-primary-foreground border border-primary-border",
+destructive:
+"bg-destructive text-destructive-foreground shadow-sm border-destructive-border",
+outline:
+// @replit Shows the background color of whatever card / sidebar / accent background it is inside of.
+// Inherits the current text color. Uses shadow-xs. no shadow on active
+// No hover state
+" border [border-color:var(--button-outline)] shadow-xs active:shadow-none ",
+secondary:
+// @replit border, no hover, no shadow, secondary border.
+"border bg-secondary text-secondary-foreground border border-secondary-border ",
+// @replit no hover, transparent border
+ghost: "border border-transparent",
+link: "text-primary underline-offset-4 hover:underline",
+},
+size: {
+// @replit changed sizes
+default: "min-h-9 px-4 py-2",
+sm: "min-h-8 rounded-md px-3 text-xs",
+lg: "min-h-10 rounded-md px-8",
+icon: "h-9 w-9",
+},
+},
+defaultVariants: {
+variant: "default",
+size: "default",
+},
+},
 );
 
 export interface ButtonProps
-  extends
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
+extends
+React.ButtonHTMLAttributes<HTMLButtonElement>,
+VariantProps<typeof buttonVariants> {
+asChild?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    );
-  },
+({ className, variant, size, asChild = false, ...props }, ref) => {
+const Comp = asChild ? Slot : "button";
+return (
+<Comp
+className={cn(buttonVariants({ variant, size, className }))}
+ref={ref}
+{...props}
+/>
+);
+},
 );
 Button.displayName = "Button";
 
@@ -8371,11 +8477,11 @@ FILE: artifacts/housing/src/components/ui/calendar.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
+import \* as React from "react";
 import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
+ChevronDownIcon,
+ChevronLeftIcon,
+ChevronRightIcon,
 } from "lucide-react";
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 
@@ -8383,35 +8489,35 @@ import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 function Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  captionLayout = "label",
-  buttonVariant = "ghost",
-  formatters,
-  components,
-  ...props
+className,
+classNames,
+showOutsideDays = true,
+captionLayout = "label",
+buttonVariant = "ghost",
+formatters,
+components,
+...props
 }: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
-  const defaultClassNames = getDefaultClassNames();
+const defaultClassNames = getDefaultClassNames();
 
-  return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn(
-        "bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
-        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
-        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
-        className,
-      )}
-      captionLayout={captionLayout}
-      formatters={{
+return (
+<DayPicker
+showOutsideDays={showOutsideDays}
+className={cn(
+"bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
+String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
+className,
+)}
+captionLayout={captionLayout}
+formatters={{
         formatMonthDropdown: (date) =>
           date.toLocaleString("default", { month: "short" }),
         ...formatters,
       }}
-      classNames={{
+classNames={{
         root: cn("w-fit", defaultClassNames.root),
         months: cn(
           "relative flex flex-col gap-4 md:flex-row",
@@ -8495,23 +8601,24 @@ function Calendar({
         hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
       }}
-      components={{
-        Root: ({ className, rootRef, ...props }) => {
-          return (
-            <div
-              data-slot="calendar"
-              ref={rootRef}
-              className={cn(className)}
-              {...props}
-            />
-          );
-        },
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === "left") {
-            return (
-              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
-            );
-          }
+components={{
+Root: ({ className, rootRef, ...props }) => {
+return (
+
+<div
+data-slot="calendar"
+ref={rootRef}
+className={cn(className)}
+{...props}
+/>
+);
+},
+Chevron: ({ className, orientation, ...props }) => {
+if (orientation === "left") {
+return (
+<ChevronLeftIcon className={cn("size-4", className)} {...props} />
+);
+}
 
           if (orientation === "right") {
             return (
@@ -8540,45 +8647,46 @@ function Calendar({
       }}
       {...props}
     />
-  );
+
+);
 }
 
 function CalendarDayButton({
-  className,
-  day,
-  modifiers,
-  ...props
+className,
+day,
+modifiers,
+...props
 }: React.ComponentProps<typeof DayButton>) {
-  const defaultClassNames = getDefaultClassNames();
+const defaultClassNames = getDefaultClassNames();
 
-  const ref = React.useRef<HTMLButtonElement>(null);
-  React.useEffect(() => {
-    if (modifiers.focused) ref.current?.focus();
-  }, [modifiers.focused]);
+const ref = React.useRef<HTMLButtonElement>(null);
+React.useEffect(() => {
+if (modifiers.focused) ref.current?.focus();
+}, [modifiers.focused]);
 
-  return (
-    <Button
-      ref={ref}
-      variant="ghost"
-      size="icon"
-      data-day={day.date.toLocaleDateString()}
-      data-selected-single={
-        modifiers.selected &&
-        !modifiers.range_start &&
-        !modifiers.range_end &&
-        !modifiers.range_middle
-      }
-      data-range-start={modifiers.range_start}
-      data-range-end={modifiers.range_end}
-      data-range-middle={modifiers.range_middle}
-      className={cn(
-        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 flex aspect-square h-auto w-full min-w-[--cell-size] flex-col gap-1 font-normal leading-none data-[range-end=true]:rounded-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] [&>span]:text-xs [&>span]:opacity-70",
-        defaultClassNames.day,
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Button
+ref={ref}
+variant="ghost"
+size="icon"
+data-day={day.date.toLocaleDateString()}
+data-selected-single={
+modifiers.selected &&
+!modifiers.range_start &&
+!modifiers.range_end &&
+!modifiers.range_middle
+}
+data-range-start={modifiers.range_start}
+data-range-end={modifiers.range_end}
+data-range-middle={modifiers.range_middle}
+className={cn(
+"data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 flex aspect-square h-auto w-full min-w-[--cell-size] flex-col gap-1 font-normal leading-none data-[range-end=true]:rounded-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] [&>span]:text-xs [&>span]:opacity-70",
+defaultClassNames.day,
+className,
+)}
+{...props}
+/>
+);
 }
 
 export { Calendar, CalendarDayButton };
@@ -8588,14 +8696,16 @@ FILE: artifacts/housing/src/components/ui/card.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 
 import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
+
+> (({ className, ...props }, ref) => (
+
   <div
     ref={ref}
     className={cn(
@@ -8608,9 +8718,11 @@ const Card = React.forwardRef<
 Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
+
+> (({ className, ...props }, ref) => (
+
   <div
     ref={ref}
     className={cn("flex flex-col space-y-1.5 p-6", className)}
@@ -8620,9 +8732,11 @@ const CardHeader = React.forwardRef<
 CardHeader.displayName = "CardHeader";
 
 const CardTitle = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
+
+> (({ className, ...props }, ref) => (
+
   <div
     ref={ref}
     className={cn("font-semibold leading-none tracking-tight", className)}
@@ -8632,9 +8746,11 @@ const CardTitle = React.forwardRef<
 CardTitle.displayName = "CardTitle";
 
 const CardDescription = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
+
+> (({ className, ...props }, ref) => (
+
   <div
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
@@ -8644,17 +8760,21 @@ const CardDescription = React.forwardRef<
 CardDescription.displayName = "CardDescription";
 
 const CardContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
+
+> (({ className, ...props }, ref) => (
+
   <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 
 const CardFooter = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
+
+> (({ className, ...props }, ref) => (
+
   <div
     ref={ref}
     className={cn("flex items-center p-6 pt-0", className)}
@@ -8664,12 +8784,12 @@ const CardFooter = React.forwardRef<
 CardFooter.displayName = "CardFooter";
 
 export {
-  Card,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-  CardContent,
+Card,
+CardHeader,
+CardFooter,
+CardTitle,
+CardDescription,
+CardContent,
 };
 
 ================================================================================
@@ -8677,9 +8797,9 @@ FILE: artifacts/housing/src/components/ui/carousel.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import useEmblaCarousel, {
-  type UseEmblaCarouselType,
+type UseEmblaCarouselType,
 } from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
@@ -8692,38 +8812,40 @@ type CarouselOptions = UseCarouselParameters[0];
 type CarouselPlugin = UseCarouselParameters[1];
 
 type CarouselProps = {
-  opts?: CarouselOptions;
-  plugins?: CarouselPlugin;
-  orientation?: "horizontal" | "vertical";
-  setApi?: (api: CarouselApi) => void;
+opts?: CarouselOptions;
+plugins?: CarouselPlugin;
+orientation?: "horizontal" | "vertical";
+setApi?: (api: CarouselApi) => void;
 };
 
 type CarouselContextProps = {
-  carouselRef: ReturnType<typeof useEmblaCarousel>[0];
-  api: ReturnType<typeof useEmblaCarousel>[1];
-  scrollPrev: () => void;
-  scrollNext: () => void;
-  canScrollPrev: boolean;
-  canScrollNext: boolean;
+carouselRef: ReturnType<typeof useEmblaCarousel>[0];
+api: ReturnType<typeof useEmblaCarousel>[1];
+scrollPrev: () => void;
+scrollNext: () => void;
+canScrollPrev: boolean;
+canScrollNext: boolean;
 } & CarouselProps;
 
 const CarouselContext = React.createContext<CarouselContextProps | null>(null);
 
 function useCarousel() {
-  const context = React.useContext(CarouselContext);
+const context = React.useContext(CarouselContext);
 
-  if (!context) {
-    throw new Error("useCarousel must be used within a <Carousel />");
-  }
+if (!context) {
+throw new Error("useCarousel must be used within a <Carousel />");
+}
 
-  return context;
+return context;
 }
 
 const Carousel = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & CarouselProps
->(
-  (
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement> & CarouselProps
+
+> (
+> (
+
     {
       orientation = "horizontal",
       opts,
@@ -8734,16 +8856,17 @@ const Carousel = React.forwardRef<
       ...props
     },
     ref,
-  ) => {
-    const [carouselRef, api] = useEmblaCarousel(
-      {
-        ...opts,
-        axis: orientation === "horizontal" ? "x" : "y",
-      },
-      plugins,
-    );
-    const [canScrollPrev, setCanScrollPrev] = React.useState(false);
-    const [canScrollNext, setCanScrollNext] = React.useState(false);
+
+) => {
+const [carouselRef, api] = useEmblaCarousel(
+{
+...opts,
+axis: orientation === "horizontal" ? "x" : "y",
+},
+plugins,
+);
+const [canScrollPrev, setCanScrollPrev] = React.useState(false);
+const [canScrollNext, setCanScrollNext] = React.useState(false);
 
     const onSelect = React.useCallback((api: CarouselApi) => {
       if (!api) {
@@ -8823,119 +8946,124 @@ const Carousel = React.forwardRef<
         </div>
       </CarouselContext.Provider>
     );
-  },
+
+},
 );
 Carousel.displayName = "Carousel";
 
 const CarouselContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const { carouselRef, orientation } = useCarousel();
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
 
-  return (
-    <div ref={carouselRef} className="overflow-hidden">
-      <div
-        ref={ref}
-        className={cn(
-          "flex",
-          orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
-          className,
-        )}
-        {...props}
-      />
-    </div>
-  );
+> (({ className, ...props }, ref) => {
+> const { carouselRef, orientation } = useCarousel();
+
+return (
+
+<div ref={carouselRef} className="overflow-hidden">
+<div
+ref={ref}
+className={cn(
+"flex",
+orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
+className,
+)}
+{...props}
+/>
+</div>
+);
 });
 CarouselContent.displayName = "CarouselContent";
 
 const CarouselItem = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const { orientation } = useCarousel();
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
 
-  return (
-    <div
-      ref={ref}
-      role="group"
-      aria-roledescription="slide"
-      className={cn(
-        "min-w-0 shrink-0 grow-0 basis-full",
-        orientation === "horizontal" ? "pl-4" : "pt-4",
-        className,
-      )}
-      {...props}
-    />
-  );
+> (({ className, ...props }, ref) => {
+> const { orientation } = useCarousel();
+
+return (
+
+<div
+ref={ref}
+role="group"
+aria-roledescription="slide"
+className={cn(
+"min-w-0 shrink-0 grow-0 basis-full",
+orientation === "horizontal" ? "pl-4" : "pt-4",
+className,
+)}
+{...props}
+/>
+);
 });
 CarouselItem.displayName = "CarouselItem";
 
 const CarouselPrevious = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentProps<typeof Button>
->(({ className, variant = "outline", size = "icon", ...props }, ref) => {
-  const { orientation, scrollPrev, canScrollPrev } = useCarousel();
+HTMLButtonElement,
+React.ComponentProps<typeof Button>
 
-  return (
-    <Button
-      ref={ref}
-      variant={variant}
-      size={size}
-      className={cn(
-        "absolute  h-8 w-8 rounded-full",
-        orientation === "horizontal"
-          ? "-left-12 top-1/2 -translate-y-1/2"
-          : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
-        className,
-      )}
-      disabled={!canScrollPrev}
-      onClick={scrollPrev}
-      {...props}
-    >
-      <ArrowLeft className="h-4 w-4" />
-      <span className="sr-only">Previous slide</span>
-    </Button>
-  );
+> (({ className, variant = "outline", size = "icon", ...props }, ref) => {
+> const { orientation, scrollPrev, canScrollPrev } = useCarousel();
+
+return (
+<Button
+ref={ref}
+variant={variant}
+size={size}
+className={cn(
+"absolute h-8 w-8 rounded-full",
+orientation === "horizontal"
+? "-left-12 top-1/2 -translate-y-1/2"
+: "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+className,
+)}
+disabled={!canScrollPrev}
+onClick={scrollPrev}
+{...props} >
+<ArrowLeft className="h-4 w-4" />
+<span className="sr-only">Previous slide</span>
+</Button>
+);
 });
 CarouselPrevious.displayName = "CarouselPrevious";
 
 const CarouselNext = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentProps<typeof Button>
->(({ className, variant = "outline", size = "icon", ...props }, ref) => {
-  const { orientation, scrollNext, canScrollNext } = useCarousel();
+HTMLButtonElement,
+React.ComponentProps<typeof Button>
 
-  return (
-    <Button
-      ref={ref}
-      variant={variant}
-      size={size}
-      className={cn(
-        "absolute h-8 w-8 rounded-full",
-        orientation === "horizontal"
-          ? "-right-12 top-1/2 -translate-y-1/2"
-          : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
-        className,
-      )}
-      disabled={!canScrollNext}
-      onClick={scrollNext}
-      {...props}
-    >
-      <ArrowRight className="h-4 w-4" />
-      <span className="sr-only">Next slide</span>
-    </Button>
-  );
+> (({ className, variant = "outline", size = "icon", ...props }, ref) => {
+> const { orientation, scrollNext, canScrollNext } = useCarousel();
+
+return (
+<Button
+ref={ref}
+variant={variant}
+size={size}
+className={cn(
+"absolute h-8 w-8 rounded-full",
+orientation === "horizontal"
+? "-right-12 top-1/2 -translate-y-1/2"
+: "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+className,
+)}
+disabled={!canScrollNext}
+onClick={scrollNext}
+{...props} >
+<ArrowRight className="h-4 w-4" />
+<span className="sr-only">Next slide</span>
+</Button>
+);
 });
 CarouselNext.displayName = "CarouselNext";
 
 export {
-  type CarouselApi,
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
+type CarouselApi,
+Carousel,
+CarouselContent,
+CarouselItem,
+CarouselPrevious,
+CarouselNext,
 };
 
 ================================================================================
@@ -8943,8 +9071,8 @@ FILE: artifacts/housing/src/components/ui/chart.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as RechartsPrimitive from "recharts";
+import _ as React from "react";
+import _ as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
 
@@ -8952,76 +9080,77 @@ import { cn } from "@/lib/utils";
 const THEMES = { light: "", dark: ".dark" } as const;
 
 export type ChartConfig = {
-  [k in string]: {
-    label?: React.ReactNode;
-    icon?: React.ComponentType;
-  } & (
-    | { color?: string; theme?: never }
-    | { color?: never; theme: Record<keyof typeof THEMES, string> }
-  );
+[k in string]: {
+label?: React.ReactNode;
+icon?: React.ComponentType;
+} & (
+| { color?: string; theme?: never }
+| { color?: never; theme: Record<keyof typeof THEMES, string> }
+);
 };
 
 type ChartContextProps = {
-  config: ChartConfig;
+config: ChartConfig;
 };
 
 const ChartContext = React.createContext<ChartContextProps | null>(null);
 
 function useChart() {
-  const context = React.useContext(ChartContext);
+const context = React.useContext(ChartContext);
 
-  if (!context) {
-    throw new Error("useChart must be used within a <ChartContainer />");
-  }
+if (!context) {
+throw new Error("useChart must be used within a <ChartContainer />");
+}
 
-  return context;
+return context;
 }
 
 const ChartContainer = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<"div"> & {
-    config: ChartConfig;
-    children: React.ComponentProps<
-      typeof RechartsPrimitive.ResponsiveContainer
-    >["children"];
-  }
->(({ id, className, children, config, ...props }, ref) => {
-  const uniqueId = React.useId();
-  const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+HTMLDivElement,
+React.ComponentProps<"div"> & {
+config: ChartConfig;
+children: React.ComponentProps<
+typeof RechartsPrimitive.ResponsiveContainer >["children"];
+}
 
-  return (
-    <ChartContext.Provider value={{ config }}>
-      <div
-        data-chart={chartId}
-        ref={ref}
-        className={cn(
-          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
-          className,
-        )}
-        {...props}
-      >
-        <ChartStyle id={chartId} config={config} />
-        <RechartsPrimitive.ResponsiveContainer>
-          {children}
-        </RechartsPrimitive.ResponsiveContainer>
-      </div>
-    </ChartContext.Provider>
-  );
+> (({ id, className, children, config, ...props }, ref) => {
+> const uniqueId = React.useId();
+> const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+
+return (
+<ChartContext.Provider value={{ config }}>
+
+<div
+data-chart={chartId}
+ref={ref}
+className={cn(
+"flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+className,
+)}
+{...props} >
+<ChartStyle id={chartId} config={config} />
+<RechartsPrimitive.ResponsiveContainer>
+{children}
+</RechartsPrimitive.ResponsiveContainer>
+</div>
+</ChartContext.Provider>
+);
 });
 ChartContainer.displayName = "Chart";
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme || config.color,
-  );
+const colorConfig = Object.entries(config).filter(
+([, config]) => config.theme || config.color,
+);
 
-  if (!colorConfig.length) {
-    return null;
-  }
+if (!colorConfig.length) {
+return null;
+}
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
+return (
+
+<style
+dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
@@ -9039,24 +9168,26 @@ ${colorConfig
           )
           .join("\n"),
       }}
-    />
-  );
+/>
+);
 };
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
 const ChartTooltipContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
-      hideLabel?: boolean;
-      hideIndicator?: boolean;
-      indicator?: "line" | "dot" | "dashed";
-      nameKey?: string;
-      labelKey?: string;
-    }
->(
-  (
+HTMLDivElement,
+React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
+React.ComponentProps<"div"> & {
+hideLabel?: boolean;
+hideIndicator?: boolean;
+indicator?: "line" | "dot" | "dashed";
+nameKey?: string;
+labelKey?: string;
+}
+
+> (
+> (
+
     {
       active,
       payload,
@@ -9073,8 +9204,9 @@ const ChartTooltipContent = React.forwardRef<
       labelKey,
     },
     ref,
-  ) => {
-    const { config } = useChart();
+
+) => {
+const { config } = useChart();
 
     const tooltipLabel = React.useMemo(() => {
       if (hideLabel || !payload?.length) {
@@ -9197,25 +9329,29 @@ const ChartTooltipContent = React.forwardRef<
         </div>
       </div>
     );
-  },
+
+},
 );
 ChartTooltipContent.displayName = "ChartTooltip";
 
 const ChartLegend = RechartsPrimitive.Legend;
 
 const ChartLegendContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean;
-      nameKey?: string;
-    }
->(
-  (
+HTMLDivElement,
+React.ComponentProps<"div"> &
+Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+hideIcon?: boolean;
+nameKey?: string;
+}
+
+> (
+> (
+
     { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },
     ref,
-  ) => {
-    const { config } = useChart();
+
+) => {
+const { config } = useChart();
 
     if (!payload?.length) {
       return null;
@@ -9259,56 +9395,57 @@ const ChartLegendContent = React.forwardRef<
           })}
       </div>
     );
-  },
+
+},
 );
 ChartLegendContent.displayName = "ChartLegend";
 
 // Helper to extract item config from a payload.
 function getPayloadConfigFromPayload(
-  config: ChartConfig,
-  payload: unknown,
-  key: string,
+config: ChartConfig,
+payload: unknown,
+key: string,
 ) {
-  if (typeof payload !== "object" || payload === null) {
-    return undefined;
-  }
+if (typeof payload !== "object" || payload === null) {
+return undefined;
+}
 
-  const payloadPayload =
-    "payload" in payload &&
-    typeof payload.payload === "object" &&
-    payload.payload !== null
-      ? payload.payload
-      : undefined;
+const payloadPayload =
+"payload" in payload &&
+typeof payload.payload === "object" &&
+payload.payload !== null
+? payload.payload
+: undefined;
 
-  let configLabelKey: string = key;
+let configLabelKey: string = key;
 
-  if (
-    key in payload &&
-    typeof payload[key as keyof typeof payload] === "string"
-  ) {
-    configLabelKey = payload[key as keyof typeof payload] as string;
-  } else if (
-    payloadPayload &&
-    key in payloadPayload &&
-    typeof payloadPayload[key as keyof typeof payloadPayload] === "string"
-  ) {
-    configLabelKey = payloadPayload[
-      key as keyof typeof payloadPayload
-    ] as string;
-  }
+if (
+key in payload &&
+typeof payload[key as keyof typeof payload] === "string"
+) {
+configLabelKey = payload[key as keyof typeof payload] as string;
+} else if (
+payloadPayload &&
+key in payloadPayload &&
+typeof payloadPayload[key as keyof typeof payloadPayload] === "string"
+) {
+configLabelKey = payloadPayload[
+key as keyof typeof payloadPayload
+] as string;
+}
 
-  return configLabelKey in config
-    ? config[configLabelKey]
-    : config[key as keyof typeof config];
+return configLabelKey in config
+? config[configLabelKey]
+: config[key as keyof typeof config];
 }
 
 export {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-  ChartStyle,
+ChartContainer,
+ChartTooltip,
+ChartTooltipContent,
+ChartLegend,
+ChartLegendContent,
+ChartStyle,
 };
 
 ================================================================================
@@ -9316,30 +9453,35 @@ FILE: artifacts/housing/src/components/ui/checkbox.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+import _ as React from "react";
+import _ as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const Checkbox = React.forwardRef<
-  React.ElementRef<typeof CheckboxPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <CheckboxPrimitive.Root
+React.ElementRef<typeof CheckboxPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
+
+> (({ className, ...props }, ref) => (
+> <CheckboxPrimitive.Root
+
     ref={ref}
     className={cn(
       "grid place-content-center peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
       className,
     )}
     {...props}
-  >
+
+>
+
     <CheckboxPrimitive.Indicator
       className={cn("grid place-content-center text-current")}
     >
       <Check className="h-4 w-4" />
     </CheckboxPrimitive.Indicator>
-  </CheckboxPrimitive.Root>
+
+</CheckboxPrimitive.Root>
 ));
 Checkbox.displayName = CheckboxPrimitive.Root.displayName;
 
@@ -9352,7 +9494,7 @@ FILE: artifacts/housing/src/components/ui/collapsible.tsx
 // @ts-nocheck
 "use client";
 
-import * as CollapsiblePrimitive from "@radix-ui/react-collapsible";
+import \* as CollapsiblePrimitive from "@radix-ui/react-collapsible";
 
 const Collapsible = CollapsiblePrimitive.Root;
 
@@ -9370,82 +9512,82 @@ FILE: artifacts/housing/src/components/ui/column-chooser.tsx
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+DropdownMenu,
+DropdownMenuCheckboxItem,
+DropdownMenuContent,
+DropdownMenuLabel,
+DropdownMenuSeparator,
+DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Columns3 } from "lucide-react";
 
 export type ColDef = {
-  key: string;
-  label: string;
-  labelAr?: string;
-  defaultVisible?: boolean;
-  fixed?: boolean;
+key: string;
+label: string;
+labelAr?: string;
+defaultVisible?: boolean;
+fixed?: boolean;
 };
 
 export function useColumnVisibility(cols: ColDef[]) {
-  const [visible, setVisible] = useState<Set<string>>(
-    () =>
-      new Set(cols.filter((c) => c.defaultVisible !== false).map((c) => c.key)),
-  );
+const [visible, setVisible] = useState<Set<string>>(
+() =>
+new Set(cols.filter((c) => c.defaultVisible !== false).map((c) => c.key)),
+);
 
-  const toggle = (key: string, checked: boolean) => {
-    setVisible((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(key);
-      else next.delete(key);
-      return next;
-    });
-  };
+const toggle = (key: string, checked: boolean) => {
+setVisible((prev) => {
+const next = new Set(prev);
+if (checked) next.add(key);
+else next.delete(key);
+return next;
+});
+};
 
-  const showAll = () => setVisible(new Set(cols.map((c) => c.key)));
-  const hideAll = () =>
-    setVisible(new Set(cols.filter((c) => c.fixed).map((c) => c.key)));
-  const isVisible = (key: string) =>
-    cols.some((c) => c.key === key) && visible.has(key);
+const showAll = () => setVisible(new Set(cols.map((c) => c.key)));
+const hideAll = () =>
+setVisible(new Set(cols.filter((c) => c.fixed).map((c) => c.key)));
+const isVisible = (key: string) =>
+cols.some((c) => c.key === key) && visible.has(key);
 
-  return { visible, toggle, showAll, hideAll, isVisible };
+return { visible, toggle, showAll, hideAll, isVisible };
 }
 
 interface ColumnChooserProps {
-  cols: ColDef[];
-  visible: Set<string>;
-  onToggle: (key: string, checked: boolean) => void;
-  onShowAll?: () => void;
-  onHideAll?: () => void;
-  ar?: boolean;
+cols: ColDef[];
+visible: Set<string>;
+onToggle: (key: string, checked: boolean) => void;
+onShowAll?: () => void;
+onHideAll?: () => void;
+ar?: boolean;
 }
 
 export function ColumnChooser({
-  cols,
-  visible,
-  onToggle,
-  onShowAll,
-  onHideAll,
-  ar,
+cols,
+visible,
+onToggle,
+onShowAll,
+onHideAll,
+ar,
 }: ColumnChooserProps) {
-  const visibleCount = cols.filter((col) => visible.has(col.key)).length;
+const visibleCount = cols.filter((col) => visible.has(col.key)).length;
 
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Columns3 className="w-4 h-4" />
-          <span>{ar ? "الأعمدة" : "Columns"}</span>
-          <span className="text-muted-foreground text-xs">
-            ({visibleCount}/{cols.length})
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel className="flex items-center justify-between">
-          <span>{ar ? "إظهار / إخفاء الأعمدة" : "Toggle Columns"}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+return (
+<DropdownMenu>
+<DropdownMenuTrigger asChild>
+<Button variant="outline" size="sm" className="gap-1.5">
+<Columns3 className="w-4 h-4" />
+<span>{ar ? "الأعمدة" : "Columns"}</span>
+<span className="text-muted-foreground text-xs">
+({visibleCount}/{cols.length})
+</span>
+</Button>
+</DropdownMenuTrigger>
+<DropdownMenuContent align="end" className="w-52">
+<DropdownMenuLabel className="flex items-center justify-between">
+<span>{ar ? "إظهار / إخفاء الأعمدة" : "Toggle Columns"}</span>
+</DropdownMenuLabel>
+<DropdownMenuSeparator />
 
         {(onShowAll || onHideAll) && (
           <>
@@ -9486,7 +9628,8 @@ export function ColumnChooser({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+
+);
 }
 
 ================================================================================
@@ -9496,7 +9639,7 @@ FILE: artifacts/housing/src/components/ui/command.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
+import \* as React from "react";
 import { type DialogProps } from "@radix-ui/react-dialog";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
@@ -9505,36 +9648,41 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const Command = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive
+React.ElementRef<typeof CommandPrimitive>,
+React.ComponentPropsWithoutRef<typeof CommandPrimitive>
+
+> (({ className, ...props }, ref) => (
+> <CommandPrimitive
+
     ref={ref}
     className={cn(
       "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 Command.displayName = CommandPrimitive.displayName;
 
 const CommandDialog = ({ children, ...props }: DialogProps) => {
-  return (
-    <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0" srTitle="Command Menu">
-        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
-          {children}
-        </Command>
-      </DialogContent>
-    </Dialog>
-  );
+return (
+<Dialog {...props}>
+<DialogContent className="overflow-hidden p-0" srTitle="Command Menu">
+<Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+{children}
+</Command>
+</DialogContent>
+</Dialog>
+);
 };
 
 const CommandInput = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive.Input>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
->(({ className, ...props }, ref) => (
+React.ElementRef<typeof CommandPrimitive.Input>,
+React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
+
+> (({ className, ...props }, ref) => (
+
   <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
     <CommandPrimitive.Input
@@ -9551,101 +9699,116 @@ const CommandInput = React.forwardRef<
 CommandInput.displayName = CommandPrimitive.Input.displayName;
 
 const CommandList = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.List
+React.ElementRef<typeof CommandPrimitive.List>,
+React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
+
+> (({ className, ...props }, ref) => (
+> <CommandPrimitive.List
+
     ref={ref}
     className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
     {...props}
-  />
+
+/>
 ));
 
 CommandList.displayName = CommandPrimitive.List.displayName;
 
 const CommandEmpty = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive.Empty>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
->((props, ref) => (
-  <CommandPrimitive.Empty
+React.ElementRef<typeof CommandPrimitive.Empty>,
+React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
+
+> ((props, ref) => (
+> <CommandPrimitive.Empty
+
     ref={ref}
     className="py-6 text-center text-sm"
     {...props}
-  />
+
+/>
 ));
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
 
 const CommandGroup = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive.Group>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.Group
+React.ElementRef<typeof CommandPrimitive.Group>,
+React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
+
+> (({ className, ...props }, ref) => (
+> <CommandPrimitive.Group
+
     ref={ref}
     className={cn(
       "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 
 CommandGroup.displayName = CommandPrimitive.Group.displayName;
 
 const CommandSeparator = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive.Separator>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.Separator
+React.ElementRef<typeof CommandPrimitive.Separator>,
+React.ComponentPropsWithoutRef<typeof CommandPrimitive.Separator>
+
+> (({ className, ...props }, ref) => (
+> <CommandPrimitive.Separator
+
     ref={ref}
     className={cn("-mx-1 h-px bg-border", className)}
     {...props}
-  />
+
+/>
 ));
 CommandSeparator.displayName = CommandPrimitive.Separator.displayName;
 
 const CommandItem = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.Item
+React.ElementRef<typeof CommandPrimitive.Item>,
+React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
+
+> (({ className, ...props }, ref) => (
+> <CommandPrimitive.Item
+
     ref={ref}
     className={cn(
       "relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 
 CommandItem.displayName = CommandPrimitive.Item.displayName;
 
 const CommandShortcut = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLSpanElement>) => {
-  return (
-    <span
-      className={cn(
-        "ml-auto text-xs tracking-widest text-muted-foreground",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<span
+className={cn(
+"ml-auto text-xs tracking-widest text-muted-foreground",
+className,
+)}
+{...props}
+/>
+);
 };
 CommandShortcut.displayName = "CommandShortcut";
 
 export {
-  Command,
-  CommandDialog,
-  CommandInput,
-  CommandList,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandShortcut,
-  CommandSeparator,
+Command,
+CommandDialog,
+CommandInput,
+CommandList,
+CommandEmpty,
+CommandGroup,
+CommandItem,
+CommandShortcut,
+CommandSeparator,
 };
 
 ================================================================================
@@ -9653,8 +9816,8 @@ FILE: artifacts/housing/src/components/ui/context-menu.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
+import _ as React from "react";
+import _ as ContextMenuPrimitive from "@radix-ui/react-context-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -9672,12 +9835,14 @@ const ContextMenuSub = ContextMenuPrimitive.Sub;
 const ContextMenuRadioGroup = ContextMenuPrimitive.RadioGroup;
 
 const ContextMenuSubTrigger = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.SubTrigger>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubTrigger> & {
-    inset?: boolean;
-  }
->(({ className, inset, children, ...props }, ref) => (
-  <ContextMenuPrimitive.SubTrigger
+React.ElementRef<typeof ContextMenuPrimitive.SubTrigger>,
+React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubTrigger> & {
+inset?: boolean;
+}
+
+> (({ className, inset, children, ...props }, ref) => (
+> <ContextMenuPrimitive.SubTrigger
+
     ref={ref}
     className={cn(
       "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
@@ -9685,33 +9850,41 @@ const ContextMenuSubTrigger = React.forwardRef<
       className,
     )}
     {...props}
-  >
+
+>
+
     {children}
     <ChevronRight className="ml-auto h-4 w-4" />
-  </ContextMenuPrimitive.SubTrigger>
+
+</ContextMenuPrimitive.SubTrigger>
 ));
 ContextMenuSubTrigger.displayName = ContextMenuPrimitive.SubTrigger.displayName;
 
 const ContextMenuSubContent = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.SubContent>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => (
-  <ContextMenuPrimitive.SubContent
+React.ElementRef<typeof ContextMenuPrimitive.SubContent>,
+React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubContent>
+
+> (({ className, ...props }, ref) => (
+> <ContextMenuPrimitive.SubContent
+
     ref={ref}
     className={cn(
       "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 ContextMenuSubContent.displayName = ContextMenuPrimitive.SubContent.displayName;
 
 const ContextMenuContent = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <ContextMenuPrimitive.Portal>
+React.ElementRef<typeof ContextMenuPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Content>
+
+> (({ className, ...props }, ref) => (
+> <ContextMenuPrimitive.Portal>
+
     <ContextMenuPrimitive.Content
       ref={ref}
       className={cn(
@@ -9720,17 +9893,20 @@ const ContextMenuContent = React.forwardRef<
       )}
       {...props}
     />
-  </ContextMenuPrimitive.Portal>
+
+</ContextMenuPrimitive.Portal>
 ));
 ContextMenuContent.displayName = ContextMenuPrimitive.Content.displayName;
 
 const ContextMenuItem = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Item> & {
-    inset?: boolean;
-  }
->(({ className, inset, ...props }, ref) => (
-  <ContextMenuPrimitive.Item
+React.ElementRef<typeof ContextMenuPrimitive.Item>,
+React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Item> & {
+inset?: boolean;
+}
+
+> (({ className, inset, ...props }, ref) => (
+> <ContextMenuPrimitive.Item
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
@@ -9738,15 +9914,18 @@ const ContextMenuItem = React.forwardRef<
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 ContextMenuItem.displayName = ContextMenuPrimitive.Item.displayName;
 
 const ContextMenuCheckboxItem = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.CheckboxItem>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.CheckboxItem>
->(({ className, children, checked, ...props }, ref) => (
-  <ContextMenuPrimitive.CheckboxItem
+React.ElementRef<typeof ContextMenuPrimitive.CheckboxItem>,
+React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.CheckboxItem>
+
+> (({ className, children, checked, ...props }, ref) => (
+> <ContextMenuPrimitive.CheckboxItem
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
@@ -9754,47 +9933,57 @@ const ContextMenuCheckboxItem = React.forwardRef<
     )}
     checked={checked}
     {...props}
-  >
+
+>
+
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <ContextMenuPrimitive.ItemIndicator>
         <Check className="h-4 w-4" />
       </ContextMenuPrimitive.ItemIndicator>
     </span>
     {children}
-  </ContextMenuPrimitive.CheckboxItem>
+
+</ContextMenuPrimitive.CheckboxItem>
 ));
 ContextMenuCheckboxItem.displayName =
-  ContextMenuPrimitive.CheckboxItem.displayName;
+ContextMenuPrimitive.CheckboxItem.displayName;
 
 const ContextMenuRadioItem = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.RadioItem>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.RadioItem>
->(({ className, children, ...props }, ref) => (
-  <ContextMenuPrimitive.RadioItem
+React.ElementRef<typeof ContextMenuPrimitive.RadioItem>,
+React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.RadioItem>
+
+> (({ className, children, ...props }, ref) => (
+> <ContextMenuPrimitive.RadioItem
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     {...props}
-  >
+
+>
+
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <ContextMenuPrimitive.ItemIndicator>
         <Circle className="h-4 w-4 fill-current" />
       </ContextMenuPrimitive.ItemIndicator>
     </span>
     {children}
-  </ContextMenuPrimitive.RadioItem>
+
+</ContextMenuPrimitive.RadioItem>
 ));
 ContextMenuRadioItem.displayName = ContextMenuPrimitive.RadioItem.displayName;
 
 const ContextMenuLabel = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Label> & {
-    inset?: boolean;
-  }
->(({ className, inset, ...props }, ref) => (
-  <ContextMenuPrimitive.Label
+React.ElementRef<typeof ContextMenuPrimitive.Label>,
+React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Label> & {
+inset?: boolean;
+}
+
+> (({ className, inset, ...props }, ref) => (
+> <ContextMenuPrimitive.Label
+
     ref={ref}
     className={cn(
       "px-2 py-1.5 text-sm font-semibold text-foreground",
@@ -9802,54 +9991,58 @@ const ContextMenuLabel = React.forwardRef<
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 ContextMenuLabel.displayName = ContextMenuPrimitive.Label.displayName;
 
 const ContextMenuSeparator = React.forwardRef<
-  React.ElementRef<typeof ContextMenuPrimitive.Separator>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <ContextMenuPrimitive.Separator
+React.ElementRef<typeof ContextMenuPrimitive.Separator>,
+React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Separator>
+
+> (({ className, ...props }, ref) => (
+> <ContextMenuPrimitive.Separator
+
     ref={ref}
     className={cn("-mx-1 my-1 h-px bg-border", className)}
     {...props}
-  />
+
+/>
 ));
 ContextMenuSeparator.displayName = ContextMenuPrimitive.Separator.displayName;
 
 const ContextMenuShortcut = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLSpanElement>) => {
-  return (
-    <span
-      className={cn(
-        "ml-auto text-xs tracking-widest text-muted-foreground",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<span
+className={cn(
+"ml-auto text-xs tracking-widest text-muted-foreground",
+className,
+)}
+{...props}
+/>
+);
 };
 ContextMenuShortcut.displayName = "ContextMenuShortcut";
 
 export {
-  ContextMenu,
-  ContextMenuTrigger,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuCheckboxItem,
-  ContextMenuRadioItem,
-  ContextMenuLabel,
-  ContextMenuSeparator,
-  ContextMenuShortcut,
-  ContextMenuGroup,
-  ContextMenuPortal,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-  ContextMenuRadioGroup,
+ContextMenu,
+ContextMenuTrigger,
+ContextMenuContent,
+ContextMenuItem,
+ContextMenuCheckboxItem,
+ContextMenuRadioItem,
+ContextMenuLabel,
+ContextMenuSeparator,
+ContextMenuShortcut,
+ContextMenuGroup,
+ContextMenuPortal,
+ContextMenuSub,
+ContextMenuSubContent,
+ContextMenuSubTrigger,
+ContextMenuRadioGroup,
 };
 
 ================================================================================
@@ -9857,8 +10050,8 @@ FILE: artifacts/housing/src/components/ui/dialog.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import _ as React from "react";
+import _ as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -9872,27 +10065,32 @@ const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
 
 const DialogOverlay = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
+React.ElementRef<typeof DialogPrimitive.Overlay>,
+React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+
+> (({ className, ...props }, ref) => (
+> <DialogPrimitive.Overlay
+
     ref={ref}
     className={cn(
       "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
-    srTitle?: string;
-  }
->(({ className, children, srTitle, ...props }, ref) => (
-  <DialogPortal>
+React.ElementRef<typeof DialogPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+srTitle?: string;
+}
+
+> (({ className, children, srTitle, ...props }, ref) => (
+> <DialogPortal>
+
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
@@ -9924,14 +10122,16 @@ const DialogContent = React.forwardRef<
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
+
   </DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+
   <div
     className={cn(
       "flex flex-col space-y-1.5 text-center sm:text-left",
@@ -9943,9 +10143,10 @@ const DialogHeader = ({
 DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+
   <div
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4 border-t border-border mt-4",
@@ -9957,40 +10158,46 @@ const DialogFooter = ({
 DialogFooter.displayName = "DialogFooter";
 
 const DialogTitle = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title
+React.ElementRef<typeof DialogPrimitive.Title>,
+React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+
+> (({ className, ...props }, ref) => (
+> <DialogPrimitive.Title
+
     ref={ref}
     className={cn("text-base font-bold leading-none tracking-tight", className)}
     {...props}
-  />
+
+/>
 ));
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
 const DialogDescription = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description
+React.ElementRef<typeof DialogPrimitive.Description>,
+React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+
+> (({ className, ...props }, ref) => (
+> <DialogPrimitive.Description
+
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
-  />
+
+/>
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {
-  Dialog,
-  DialogPortal,
-  DialogOverlay,
-  DialogTrigger,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
+Dialog,
+DialogPortal,
+DialogOverlay,
+DialogTrigger,
+DialogClose,
+DialogContent,
+DialogHeader,
+DialogFooter,
+DialogTitle,
+DialogDescription,
 };
 
 ================================================================================
@@ -9998,19 +10205,19 @@ FILE: artifacts/housing/src/components/ui/drawer.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
 
 const Drawer = ({
-  shouldScaleBackground = true,
-  ...props
+shouldScaleBackground = true,
+...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root
-    shouldScaleBackground={shouldScaleBackground}
-    {...props}
-  />
+<DrawerPrimitive.Root
+shouldScaleBackground={shouldScaleBackground}
+{...props}
+/>
 );
 Drawer.displayName = "Drawer";
 
@@ -10021,22 +10228,27 @@ const DrawerPortal = DrawerPrimitive.Portal;
 const DrawerClose = DrawerPrimitive.Close;
 
 const DrawerOverlay = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DrawerPrimitive.Overlay
+React.ElementRef<typeof DrawerPrimitive.Overlay>,
+React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
+
+> (({ className, ...props }, ref) => (
+> <DrawerPrimitive.Overlay
+
     ref={ref}
     className={cn("fixed inset-0 z-50 bg-black/80", className)}
     {...props}
-  />
+
+/>
 ));
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 
 const DrawerContent = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
+React.ElementRef<typeof DrawerPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
+
+> (({ className, children, ...props }, ref) => (
+> <DrawerPortal>
+
     <DrawerOverlay />
     <DrawerPrimitive.Content
       ref={ref}
@@ -10049,14 +10261,16 @@ const DrawerContent = React.forwardRef<
       <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
       {children}
     </DrawerPrimitive.Content>
+
   </DrawerPortal>
 ));
 DrawerContent.displayName = "DrawerContent";
 
 const DrawerHeader = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+
   <div
     className={cn("grid gap-1.5 p-4 text-center sm:text-left", className)}
     {...props}
@@ -10065,9 +10279,10 @@ const DrawerHeader = ({
 DrawerHeader.displayName = "DrawerHeader";
 
 const DrawerFooter = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+
   <div
     className={cn("mt-auto flex flex-col gap-2 p-4", className)}
     {...props}
@@ -10076,43 +10291,49 @@ const DrawerFooter = ({
 DrawerFooter.displayName = "DrawerFooter";
 
 const DrawerTitle = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <DrawerPrimitive.Title
+React.ElementRef<typeof DrawerPrimitive.Title>,
+React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
+
+> (({ className, ...props }, ref) => (
+> <DrawerPrimitive.Title
+
     ref={ref}
     className={cn(
       "text-lg font-semibold leading-none tracking-tight",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 DrawerTitle.displayName = DrawerPrimitive.Title.displayName;
 
 const DrawerDescription = React.forwardRef<
-  React.ElementRef<typeof DrawerPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DrawerPrimitive.Description
+React.ElementRef<typeof DrawerPrimitive.Description>,
+React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
+
+> (({ className, ...props }, ref) => (
+> <DrawerPrimitive.Description
+
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
-  />
+
+/>
 ));
 DrawerDescription.displayName = DrawerPrimitive.Description.displayName;
 
 export {
-  Drawer,
-  DrawerPortal,
-  DrawerOverlay,
-  DrawerTrigger,
-  DrawerClose,
-  DrawerContent,
-  DrawerHeader,
-  DrawerFooter,
-  DrawerTitle,
-  DrawerDescription,
+Drawer,
+DrawerPortal,
+DrawerOverlay,
+DrawerTrigger,
+DrawerClose,
+DrawerContent,
+DrawerHeader,
+DrawerFooter,
+DrawerTitle,
+DrawerDescription,
 };
 
 ================================================================================
@@ -10122,8 +10343,8 @@ FILE: artifacts/housing/src/components/ui/dropdown-menu.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+import _ as React from "react";
+import _ as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -10141,12 +10362,14 @@ const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 const DropdownMenuSubTrigger = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & {
-    inset?: boolean;
-  }
->(({ className, inset, children, ...props }, ref) => (
-  <DropdownMenuPrimitive.SubTrigger
+React.ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
+React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & {
+inset?: boolean;
+}
+
+> (({ className, inset, children, ...props }, ref) => (
+> <DropdownMenuPrimitive.SubTrigger
+
     ref={ref}
     className={cn(
       "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent data-[state=open]:bg-accent [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -10154,35 +10377,43 @@ const DropdownMenuSubTrigger = React.forwardRef<
       className,
     )}
     {...props}
-  >
+
+>
+
     {children}
     <ChevronRight className="ml-auto" />
-  </DropdownMenuPrimitive.SubTrigger>
+
+</DropdownMenuPrimitive.SubTrigger>
 ));
 DropdownMenuSubTrigger.displayName =
-  DropdownMenuPrimitive.SubTrigger.displayName;
+DropdownMenuPrimitive.SubTrigger.displayName;
 
 const DropdownMenuSubContent = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.SubContent
+React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
+React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
+
+> (({ className, ...props }, ref) => (
+> <DropdownMenuPrimitive.SubContent
+
     ref={ref}
     className={cn(
       "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-dropdown-menu-content-transform-origin]",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 DropdownMenuSubContent.displayName =
-  DropdownMenuPrimitive.SubContent.displayName;
+DropdownMenuPrimitive.SubContent.displayName;
 
 const DropdownMenuContent = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
+React.ElementRef<typeof DropdownMenuPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
+
+> (({ className, sideOffset = 4, ...props }, ref) => (
+> <DropdownMenuPrimitive.Portal>
+
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
@@ -10193,17 +10424,20 @@ const DropdownMenuContent = React.forwardRef<
       )}
       {...props}
     />
-  </DropdownMenuPrimitive.Portal>
+
+</DropdownMenuPrimitive.Portal>
 ));
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
 const DropdownMenuItem = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
-    inset?: boolean;
-  }
->(({ className, inset, ...props }, ref) => (
-  <DropdownMenuPrimitive.Item
+React.ElementRef<typeof DropdownMenuPrimitive.Item>,
+React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
+inset?: boolean;
+}
+
+> (({ className, inset, ...props }, ref) => (
+> <DropdownMenuPrimitive.Item
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
@@ -10211,15 +10445,18 @@ const DropdownMenuItem = React.forwardRef<
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
 
 const DropdownMenuCheckboxItem = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
->(({ className, children, checked, ...props }, ref) => (
-  <DropdownMenuPrimitive.CheckboxItem
+React.ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,
+React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
+
+> (({ className, children, checked, ...props }, ref) => (
+> <DropdownMenuPrimitive.CheckboxItem
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
@@ -10227,47 +10464,57 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     )}
     checked={checked}
     {...props}
-  >
+
+>
+
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
         <Check className="h-4 w-4" />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}
-  </DropdownMenuPrimitive.CheckboxItem>
+
+</DropdownMenuPrimitive.CheckboxItem>
 ));
 DropdownMenuCheckboxItem.displayName =
-  DropdownMenuPrimitive.CheckboxItem.displayName;
+DropdownMenuPrimitive.CheckboxItem.displayName;
 
 const DropdownMenuRadioItem = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>
->(({ className, children, ...props }, ref) => (
-  <DropdownMenuPrimitive.RadioItem
+React.ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
+React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>
+
+> (({ className, children, ...props }, ref) => (
+> <DropdownMenuPrimitive.RadioItem
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     {...props}
-  >
+
+>
+
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
         <Circle className="h-2 w-2 fill-current" />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}
-  </DropdownMenuPrimitive.RadioItem>
+
+</DropdownMenuPrimitive.RadioItem>
 ));
 DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName;
 
 const DropdownMenuLabel = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> & {
-    inset?: boolean;
-  }
->(({ className, inset, ...props }, ref) => (
-  <DropdownMenuPrimitive.Label
+React.ElementRef<typeof DropdownMenuPrimitive.Label>,
+React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> & {
+inset?: boolean;
+}
+
+> (({ className, inset, ...props }, ref) => (
+> <DropdownMenuPrimitive.Label
+
     ref={ref}
     className={cn(
       "px-2 py-1.5 text-sm font-semibold",
@@ -10275,51 +10522,55 @@ const DropdownMenuLabel = React.forwardRef<
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName;
 
 const DropdownMenuSeparator = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.Separator>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.Separator
+React.ElementRef<typeof DropdownMenuPrimitive.Separator>,
+React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>
+
+> (({ className, ...props }, ref) => (
+> <DropdownMenuPrimitive.Separator
+
     ref={ref}
     className={cn("-mx-1 my-1 h-px bg-muted", className)}
     {...props}
-  />
+
+/>
 ));
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
 
 const DropdownMenuShortcut = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLSpanElement>) => {
-  return (
-    <span
-      className={cn("ml-auto text-xs tracking-widest opacity-60", className)}
-      {...props}
-    />
-  );
+return (
+<span
+className={cn("ml-auto text-xs tracking-widest opacity-60", className)}
+{...props}
+/>
+);
 };
 DropdownMenuShortcut.displayName = "DropdownMenuShortcut";
 
 export {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuCheckboxItem,
-  DropdownMenuRadioItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuGroup,
-  DropdownMenuPortal,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuRadioGroup,
+DropdownMenu,
+DropdownMenuTrigger,
+DropdownMenuContent,
+DropdownMenuItem,
+DropdownMenuCheckboxItem,
+DropdownMenuRadioItem,
+DropdownMenuLabel,
+DropdownMenuSeparator,
+DropdownMenuShortcut,
+DropdownMenuGroup,
+DropdownMenuPortal,
+DropdownMenuSub,
+DropdownMenuSubContent,
+DropdownMenuSubTrigger,
+DropdownMenuRadioGroup,
 };
 
 ================================================================================
@@ -10329,136 +10580,136 @@ FILE: artifacts/housing/src/components/ui/employee-profile-popup.tsx
 // @ts-nocheck
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  useGetEmployee,
-  useListAssignments,
-  useListRooms,
-  useListBuildings,
-  useListFloors,
-  useListEmployees,
-  useListHostings,
+useGetEmployee,
+useListAssignments,
+useListRooms,
+useListBuildings,
+useListFloors,
+useListEmployees,
+useListHostings,
 } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
-  Building2,
-  BedDouble,
-  Calendar,
-  Phone,
-  Shield,
-  Globe2,
-  User,
-  Users,
-  Home,
-  Briefcase,
-  ExternalLink,
-  FileText,
-  Image as ImageIcon,
+Building2,
+BedDouble,
+Calendar,
+Phone,
+Shield,
+Globe2,
+User,
+Users,
+Home,
+Briefcase,
+ExternalLink,
+FileText,
+Image as ImageIcon,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Link } from "wouter";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
 interface EmployeeProfilePopupProps {
-  employeeId: number | null;
-  propertyId: number | undefined;
-  onClose: () => void;
+employeeId: number | null;
+propertyId: number | undefined;
+onClose: () => void;
 }
 
 export function EmployeeProfilePopup({
-  employeeId,
-  propertyId,
-  onClose,
+employeeId,
+propertyId,
+onClose,
 }: EmployeeProfilePopupProps) {
-  const { language } = useLanguage();
-  const ar = language === "ar";
-  const [companionCache, setCompanionCache] = useState<Record<number, any[]>>(
-    {},
-  );
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [lightboxName, setLightboxName] = useState<string | undefined>(
-    undefined,
-  );
+const { language } = useLanguage();
+const ar = language === "ar";
+const [companionCache, setCompanionCache] = useState<Record<number, any[]>>(
+{},
+);
+const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+const [lightboxName, setLightboxName] = useState<string | undefined>(
+undefined,
+);
 
-  const { data: employee, isLoading: empLoading } = useGetEmployee(
-    employeeId!,
-    {
-      query: { enabled: !!employeeId },
-    },
-  );
+const { data: employee, isLoading: empLoading } = useGetEmployee(
+employeeId!,
+{
+query: { enabled: !!employeeId },
+},
+);
 
-  const { data: assignments = [] } = useListAssignments({ propertyId } as any, {
-    query: { enabled: !!propertyId },
-  });
+const { data: assignments = [] } = useListAssignments({ propertyId } as any, {
+query: { enabled: !!propertyId },
+});
 
-  const { data: _rData } = useListRooms(
-    { propertyId },
-    { query: { enabled: !!propertyId } },
-  );
-  const rooms = _rData?.data || [];
-  const { data: buildings = [] } = useListBuildings(
-    { propertyId },
-    { query: { enabled: !!propertyId } },
-  );
-  const { data: floors = [] } = useListFloors(
-    { propertyId },
-    { query: { enabled: !!propertyId } },
-  );
-  const { data: _eData , isLoading: employeesLoading } = useListEmployees({ propertyId }, { query: { enabled: !!propertyId } });
-  const employees = _eData?.data || [];
-  const { data: hostings = [] } = useListHostings(
-    { propertyId },
-    { query: { enabled: !!propertyId && !!employeeId } },
-  );
+const { data: \_rData } = useListRooms(
+{ propertyId },
+{ query: { enabled: !!propertyId } },
+);
+const rooms = \_rData?.data || [];
+const { data: buildings = [] } = useListBuildings(
+{ propertyId },
+{ query: { enabled: !!propertyId } },
+);
+const { data: floors = [] } = useListFloors(
+{ propertyId },
+{ query: { enabled: !!propertyId } },
+);
+const { data: \_eData , isLoading: employeesLoading } = useListEmployees({ propertyId }, { query: { enabled: !!propertyId } });
+const employees = \_eData?.data || [];
+const { data: hostings = [] } = useListHostings(
+{ propertyId },
+{ query: { enabled: !!propertyId && !!employeeId } },
+);
 
-  const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
-  const floorMap = Object.fromEntries(floors.map((f) => [f.id, f.floorNumber]));
-  const empMap = Object.fromEntries(employees.map((e: any) => [e.id, e]));
+const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
+const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
+const floorMap = Object.fromEntries(floors.map((f) => [f.id, f.floorNumber]));
+const empMap = Object.fromEntries(employees.map((e: any) => [e.id, e]));
 
-  const activeAssignments = (assignments as any[]).filter(
-    (a) => a.status === "ACTIVE",
-  );
-  const currentAssignment = activeAssignments.find(
-    (a) => a.employeeId === employeeId,
-  );
-  const roommates = currentAssignment
-    ? activeAssignments.filter(
-        (a) =>
-          a.roomId === currentAssignment.roomId && a.employeeId !== employeeId,
-      )
-    : [];
+const activeAssignments = (assignments as any[]).filter(
+(a) => a.status === "ACTIVE",
+);
+const currentAssignment = activeAssignments.find(
+(a) => a.employeeId === employeeId,
+);
+const roommates = currentAssignment
+? activeAssignments.filter(
+(a) =>
+a.roomId === currentAssignment.roomId && a.employeeId !== employeeId,
+)
+: [];
 
-  const emp = (employee as any) ?? empMap[employeeId as number];
-  const room = currentAssignment ? roomMap[currentAssignment.roomId] : null;
-  const building = room ? buildingMap[room.buildingId] : null;
-  const floorNum = room ? floorMap[room.floorId] : null;
-  const daysStayed = currentAssignment
-    ? differenceInDays(new Date(), new Date(currentAssignment.checkInDate))
-    : null;
-  const employeeHostings = (hostings as any[])
-    .filter((h) => h.employeeId === employeeId)
-    .sort(
-      (a, b) =>
-        new Date(b.expectedFrom ?? b.createdAt ?? 0).getTime() -
-        new Date(a.expectedFrom ?? a.createdAt ?? 0).getTime(),
-    );
-  useEffect(() => {
-    if (!propertyId || !employeeHostings.length) return;
-    const missing = employeeHostings.filter(
-      (h) =>
-        Number(h.guestsCount ?? 0) > 0 &&
-        (!Array.isArray(h.companions) || h.companions.length === 0) &&
-        companionCache[h.id] === undefined,
-    );
-    if (!missing.length) return;
+const emp = (employee as any) ?? empMap[employeeId as number];
+const room = currentAssignment ? roomMap[currentAssignment.roomId] : null;
+const building = room ? buildingMap[room.buildingId] : null;
+const floorNum = room ? floorMap[room.floorId] : null;
+const daysStayed = currentAssignment
+? differenceInDays(new Date(), new Date(currentAssignment.checkInDate))
+: null;
+const employeeHostings = (hostings as any[])
+.filter((h) => h.employeeId === employeeId)
+.sort(
+(a, b) =>
+new Date(b.expectedFrom ?? b.createdAt ?? 0).getTime() -
+new Date(a.expectedFrom ?? a.createdAt ?? 0).getTime(),
+);
+useEffect(() => {
+if (!propertyId || !employeeHostings.length) return;
+const missing = employeeHostings.filter(
+(h) =>
+Number(h.guestsCount ?? 0) > 0 &&
+(!Array.isArray(h.companions) || h.companions.length === 0) &&
+companionCache[h.id] === undefined,
+);
+if (!missing.length) return;
 
     let cancelled = false;
     Promise.all(
@@ -10488,50 +10739,50 @@ export function EmployeeProfilePopup({
     return () => {
       cancelled = true;
     };
-  }, [propertyId, employeeHostings, companionCache]);
 
-  const getHostingGuests = (hosting: any) =>
-    Array.isArray(hosting.companions) && hosting.companions.length > 0
-      ? hosting.companions
-      : (companionCache[hosting.id] ?? []);
+}, [propertyId, employeeHostings, companionCache]);
 
-  const hostingRoomLabel = (hosting: any) => {
-    const hostingRoom =
-      hosting.room ?? (hosting.roomId ? roomMap[hosting.roomId] : null);
-    return (
-      hostingRoom?.roomNumber ?? (hosting.roomId ? `#${hosting.roomId}` : "—")
-    );
-  };
-  const guestLabel = (guest: any) => {
-    const parts = [
-      Number(guest.isChild) === 1
-        ? ar
-          ? "طفل"
-          : "Child"
-        : ar
-          ? "بالغ"
-          : "Adult",
-      guest.relation,
-      guest.age != null ? `${guest.age}${ar ? " سنة" : "y"}` : "",
-    ].filter(Boolean);
-    return parts.join(" • ");
-  };
+const getHostingGuests = (hosting: any) =>
+Array.isArray(hosting.companions) && hosting.companions.length > 0
+? hosting.companions
+: (companionCache[hosting.id] ?? []);
 
-  return (
-    <>
-      <Dialog
-        open={!!employeeId}
-        onOpenChange={(open) => {
-          if (!open) onClose();
-        }}
-      >
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              {ar ? "بطاقة الموظف" : "Employee Profile"}
-            </DialogTitle>
-          </DialogHeader>
+const hostingRoomLabel = (hosting: any) => {
+const hostingRoom =
+hosting.room ?? (hosting.roomId ? roomMap[hosting.roomId] : null);
+return (
+hostingRoom?.roomNumber ?? (hosting.roomId ? `#${hosting.roomId}` : "—")
+);
+};
+const guestLabel = (guest: any) => {
+const parts = [
+Number(guest.isChild) === 1
+? ar
+? "طفل"
+: "Child"
+: ar
+? "بالغ"
+: "Adult",
+guest.relation,
+guest.age != null ? `${guest.age}${ar ? " سنة" : "y"}` : "",
+].filter(Boolean);
+return parts.join(" • ");
+};
+
+return (
+<>
+<Dialog
+open={!!employeeId}
+onOpenChange={(open) => {
+if (!open) onClose();
+}} >
+<DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+<DialogHeader>
+<DialogTitle className="flex items-center gap-2">
+<User className="w-5 h-5 text-primary" />
+{ar ? "بطاقة الموظف" : "Employee Profile"}
+</DialogTitle>
+</DialogHeader>
 
           {empLoading || employeesLoading ? (
             <div className="space-y-3">
@@ -10906,7 +11157,8 @@ export function EmployeeProfilePopup({
         onClose={() => setLightboxSrc(null)}
       />
     </>
-  );
+
+);
 }
 
 ================================================================================
@@ -10919,104 +11171,104 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 function Empty({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="empty"
-      className={cn(
-        "flex min-w-0 flex-1 flex-col items-center justify-center gap-6 text-balance rounded-lg border-dashed p-6 text-center md:p-12",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="empty"
+className={cn(
+"flex min-w-0 flex-1 flex-col items-center justify-center gap-6 text-balance rounded-lg border-dashed p-6 text-center md:p-12",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function EmptyHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="empty-header"
-      className={cn(
-        "flex max-w-sm flex-col items-center gap-2 text-center",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="empty-header"
+className={cn(
+"flex max-w-sm flex-col items-center gap-2 text-center",
+className,
+)}
+{...props}
+/>
+);
 }
 
 const emptyMediaVariants = cva(
-  "mb-2 flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default: "bg-transparent",
-        icon: "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
+"mb-2 flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0",
+{
+variants: {
+variant: {
+default: "bg-transparent",
+icon: "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&\_svg:not([class*='size-'])]:size-6",
+},
+},
+defaultVariants: {
+variant: "default",
+},
+},
 );
 
 function EmptyMedia({
-  className,
-  variant = "default",
-  ...props
+className,
+variant = "default",
+...props
 }: React.ComponentProps<"div"> & VariantProps<typeof emptyMediaVariants>) {
-  return (
-    <div
-      data-slot="empty-icon"
-      data-variant={variant}
-      className={cn(emptyMediaVariants({ variant, className }))}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="empty-icon"
+data-variant={variant}
+className={cn(emptyMediaVariants({ variant, className }))}
+{...props}
+/>
+);
 }
 
 function EmptyTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="empty-title"
-      className={cn("text-lg font-medium tracking-tight", className)}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="empty-title"
+className={cn("text-lg font-medium tracking-tight", className)}
+{...props}
+/>
+);
 }
 
 function EmptyDescription({ className, ...props }: React.ComponentProps<"p">) {
-  return (
-    <div
-      data-slot="empty-description"
-      className={cn(
-        "text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="empty-description"
+className={cn(
+"text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function EmptyContent({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="empty-content"
-      className={cn(
-        "flex w-full min-w-0 max-w-sm flex-col items-center gap-4 text-balance text-sm",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="empty-content"
+className={cn(
+"flex w-full min-w-0 max-w-sm flex-col items-center gap-4 text-balance text-sm",
+className,
+)}
+{...props}
+/>
+);
 }
 
 export {
-  Empty,
-  EmptyHeader,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyContent,
-  EmptyMedia,
+Empty,
+EmptyHeader,
+EmptyTitle,
+EmptyDescription,
+EmptyContent,
+EmptyMedia,
 };
 
 ================================================================================
@@ -11034,193 +11286,192 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
-  return (
-    <fieldset
-      data-slot="field-set"
-      className={cn(
-        "flex flex-col gap-6",
-        "has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<fieldset
+data-slot="field-set"
+className={cn(
+"flex flex-col gap-6",
+"has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function FieldLegend({
-  className,
-  variant = "legend",
-  ...props
+className,
+variant = "legend",
+...props
 }: React.ComponentProps<"legend"> & { variant?: "legend" | "label" }) {
-  return (
-    <legend
-      data-slot="field-legend"
-      data-variant={variant}
-      className={cn(
-        "mb-3 font-medium",
-        "data-[variant=legend]:text-base",
-        "data-[variant=label]:text-sm",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<legend
+data-slot="field-legend"
+data-variant={variant}
+className={cn(
+"mb-3 font-medium",
+"data-[variant=legend]:text-base",
+"data-[variant=label]:text-sm",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="field-group"
-      className={cn(
-        "group/field-group @container/field-group flex w-full flex-col gap-7 data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="field-group"
+className={cn(
+"group/field-group @container/field-group flex w-full flex-col gap-7 data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4",
+className,
+)}
+{...props}
+/>
+);
 }
 
 const fieldVariants = cva(
-  "group/field data-[invalid=true]:text-destructive flex w-full gap-3",
-  {
-    variants: {
-      orientation: {
-        vertical: ["flex-col [&>*]:w-full [&>.sr-only]:w-auto"],
-        horizontal: [
-          "flex-row items-center",
-          "[&>[data-slot=field-label]]:flex-auto",
-          "has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px has-[>[data-slot=field-content]]:items-start",
-        ],
-        responsive: [
-          "@md/field-group:flex-row @md/field-group:items-center @md/field-group:[&>*]:w-auto flex-col [&>*]:w-full [&>.sr-only]:w-auto",
-          "@md/field-group:[&>[data-slot=field-label]]:flex-auto",
-          "@md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-        ],
-      },
-    },
-    defaultVariants: {
-      orientation: "vertical",
-    },
-  },
+"group/field data-[invalid=true]:text-destructive flex w-full gap-3",
+{
+variants: {
+orientation: {
+vertical: ["flex-col [&>*]:w-full [&>.sr-only]:w-auto"],
+horizontal: [
+"flex-row items-center",
+"[&>[data-slot=field-label]]:flex-auto",
+"has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px has-[>[data-slot=field-content]]:items-start",
+],
+responsive: [
+"@md/field-group:flex-row @md/field-group:items-center @md/field-group:[&>*]:w-auto flex-col [&>*]:w-full [&>.sr-only]:w-auto",
+"@md/field-group:[&>[data-slot=field-label]]:flex-auto",
+"@md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
+],
+},
+},
+defaultVariants: {
+orientation: "vertical",
+},
+},
 );
 
 function Field({
-  className,
-  orientation = "vertical",
-  ...props
+className,
+orientation = "vertical",
+...props
 }: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
-  return (
-    <div
-      role="group"
-      data-slot="field"
-      data-orientation={orientation}
-      className={cn(fieldVariants({ orientation }), className)}
-      {...props}
-    />
-  );
+return (
+<div
+role="group"
+data-slot="field"
+data-orientation={orientation}
+className={cn(fieldVariants({ orientation }), className)}
+{...props}
+/>
+);
 }
 
 function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="field-content"
-      className={cn(
-        "group/field-content flex flex-1 flex-col gap-1.5 leading-snug",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="field-content"
+className={cn(
+"group/field-content flex flex-1 flex-col gap-1.5 leading-snug",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function FieldLabel({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<typeof Label>) {
-  return (
-    <Label
-      data-slot="field-label"
-      className={cn(
-        "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50",
-        "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>[data-slot=field]]:p-4",
-        "has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Label
+data-slot="field-label"
+className={cn(
+"group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50",
+"has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>[data-slot=field]]:p-4",
+"has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary dark:has-data-[state=checked]:bg-primary/10",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="field-label"
-      className={cn(
-        "flex w-fit items-center gap-2 text-sm font-medium leading-snug group-data-[disabled=true]/field:opacity-50",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="field-label"
+className={cn(
+"flex w-fit items-center gap-2 text-sm font-medium leading-snug group-data-[disabled=true]/field:opacity-50",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
-  return (
-    <p
-      data-slot="field-description"
-      className={cn(
-        "text-muted-foreground text-sm font-normal leading-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
-        "nth-last-2:-mt-1 last:mt-0 [[data-variant=legend]+&]:-mt-1.5",
-        "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<p
+data-slot="field-description"
+className={cn(
+"text-muted-foreground text-sm font-normal leading-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
+"nth-last-2:-mt-1 last:mt-0 [[data-variant=legend]+&]:-mt-1.5",
+"[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function FieldSeparator({
-  children,
-  className,
-  ...props
+children,
+className,
+...props
 }: React.ComponentProps<"div"> & {
-  children?: React.ReactNode;
+children?: React.ReactNode;
 }) {
-  return (
-    <div
-      data-slot="field-separator"
-      data-content={!!children}
-      className={cn(
-        "relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
-        className,
-      )}
-      {...props}
-    >
-      <Separator className="absolute inset-0 top-1/2" />
-      {children && (
-        <span
+return (
+<div
+data-slot="field-separator"
+data-content={!!children}
+className={cn(
+"relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
+className,
+)}
+{...props} >
+<Separator className="absolute inset-0 top-1/2" />
+{children && (
+<span
           className="bg-background text-muted-foreground relative mx-auto block w-fit px-2"
           data-slot="field-separator-content"
         >
-          {children}
-        </span>
-      )}
-    </div>
-  );
+{children}
+</span>
+)}
+</div>
+);
 }
 
 function FieldError({
-  className,
-  children,
-  errors,
-  ...props
+className,
+children,
+errors,
+...props
 }: React.ComponentProps<"div"> & {
-  errors?: Array<{ message?: string } | undefined>;
+errors?: Array<{ message?: string } | undefined>;
 }) {
-  const content = useMemo(() => {
-    if (children) {
-      return children;
-    }
+const content = useMemo(() => {
+if (children) {
+return children;
+}
 
     if (!errors) {
       return null;
@@ -11238,35 +11489,35 @@ function FieldError({
         )}
       </ul>
     );
-  }, [children, errors]);
 
-  if (!content) {
-    return null;
-  }
+}, [children, errors]);
 
-  return (
-    <div
-      role="alert"
-      data-slot="field-error"
-      className={cn("text-destructive text-sm font-normal", className)}
-      {...props}
-    >
-      {content}
-    </div>
-  );
+if (!content) {
+return null;
+}
+
+return (
+<div
+role="alert"
+data-slot="field-error"
+className={cn("text-destructive text-sm font-normal", className)}
+{...props} >
+{content}
+</div>
+);
 }
 
 export {
-  Field,
-  FieldLabel,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLegend,
-  FieldSeparator,
-  FieldSet,
-  FieldContent,
-  FieldTitle,
+Field,
+FieldLabel,
+FieldDescription,
+FieldError,
+FieldGroup,
+FieldLegend,
+FieldSeparator,
+FieldSet,
+FieldContent,
+FieldTitle,
 };
 
 ================================================================================
@@ -11274,16 +11525,16 @@ FILE: artifacts/housing/src/components/ui/form.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as LabelPrimitive from "@radix-ui/react-label";
+import _ as React from "react";
+import _ as LabelPrimitive from "@radix-ui/react-label";
 import { Slot } from "@radix-ui/react-slot";
 import {
-  Controller,
-  FormProvider,
-  useFormContext,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
+Controller,
+FormProvider,
+useFormContext,
+type ControllerProps,
+type FieldPath,
+type FieldValues,
 } from "react-hook-form";
 
 import { cn } from "@/lib/utils";
@@ -11292,166 +11543,175 @@ import { Label } from "@/components/ui/label";
 const Form = FormProvider;
 
 type FormFieldContextValue<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+TFieldValues extends FieldValues = FieldValues,
+TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+
 > = {
-  name: TName;
-};
+> name: TName;
+> };
 
 const FormFieldContext = React.createContext<FormFieldContextValue | null>(
-  null,
+null,
 );
 
 const FormField = <
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({
-  ...props
-}: ControllerProps<TFieldValues, TName>) => {
-  return (
+TFieldValues extends FieldValues = FieldValues,
+TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+
+> ({
+> ...props
+> }: ControllerProps<TFieldValues, TName>) => {
+> return (
+
     <FormFieldContext.Provider value={{ name: props.name }}>
       <Controller {...props} />
     </FormFieldContext.Provider>
-  );
+
+);
 };
 
 const useFormField = () => {
-  const fieldContext = React.useContext(FormFieldContext);
-  const itemContext = React.useContext(FormItemContext);
-  const { getFieldState, formState } = useFormContext();
+const fieldContext = React.useContext(FormFieldContext);
+const itemContext = React.useContext(FormItemContext);
+const { getFieldState, formState } = useFormContext();
 
-  if (!fieldContext) {
-    throw new Error("useFormField should be used within <FormField>");
-  }
+if (!fieldContext) {
+throw new Error("useFormField should be used within <FormField>");
+}
 
-  if (!itemContext) {
-    throw new Error("useFormField should be used within <FormItem>");
-  }
+if (!itemContext) {
+throw new Error("useFormField should be used within <FormItem>");
+}
 
-  const fieldState = getFieldState(fieldContext.name, formState);
+const fieldState = getFieldState(fieldContext.name, formState);
 
-  const { id } = itemContext;
+const { id } = itemContext;
 
-  return {
-    id,
-    name: fieldContext.name,
-    formItemId: `${id}-form-item`,
-    formDescriptionId: `${id}-form-item-description`,
-    formMessageId: `${id}-form-item-message`,
-    ...fieldState,
-  };
+return {
+id,
+name: fieldContext.name,
+formItemId: `${id}-form-item`,
+formDescriptionId: `${id}-form-item-description`,
+formMessageId: `${id}-form-item-message`,
+...fieldState,
+};
 };
 
 type FormItemContextValue = {
-  id: string;
+id: string;
 };
 
 const FormItemContext = React.createContext<FormItemContextValue | null>(null);
 
 const FormItem = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const id = React.useId();
+HTMLDivElement,
+React.HTMLAttributes<HTMLDivElement>
 
-  return (
-    <FormItemContext.Provider value={{ id }}>
-      <div ref={ref} className={cn("space-y-2", className)} {...props} />
-    </FormItemContext.Provider>
-  );
+> (({ className, ...props }, ref) => {
+> const id = React.useId();
+
+return (
+<FormItemContext.Provider value={{ id }}>
+<div ref={ref} className={cn("space-y-2", className)} {...props} />
+</FormItemContext.Provider>
+);
 });
 FormItem.displayName = "FormItem";
 
 const FormLabel = React.forwardRef<
-  React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
->(({ className, ...props }, ref) => {
-  const { error, formItemId } = useFormField();
+React.ElementRef<typeof LabelPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 
-  return (
-    <Label
-      ref={ref}
-      className={cn(error && "text-destructive", className)}
-      htmlFor={formItemId}
-      {...props}
-    />
-  );
+> (({ className, ...props }, ref) => {
+> const { error, formItemId } = useFormField();
+
+return (
+<Label
+ref={ref}
+className={cn(error && "text-destructive", className)}
+htmlFor={formItemId}
+{...props}
+/>
+);
 });
 FormLabel.displayName = "FormLabel";
 
 const FormControl = React.forwardRef<
-  React.ElementRef<typeof Slot>,
-  React.ComponentPropsWithoutRef<typeof Slot>
->(({ ...props }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } =
+React.ElementRef<typeof Slot>,
+React.ComponentPropsWithoutRef<typeof Slot>
+
+> (({ ...props }, ref) => {
+> const { error, formItemId, formDescriptionId, formMessageId } =
+
     useFormField();
 
-  return (
-    <Slot
-      ref={ref}
-      id={formItemId}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
-      aria-invalid={!!error}
-      {...props}
-    />
-  );
+return (
+<Slot
+ref={ref}
+id={formItemId}
+aria-describedby={
+!error
+? `${formDescriptionId}`
+: `${formDescriptionId} ${formMessageId}`
+}
+aria-invalid={!!error}
+{...props}
+/>
+);
 });
 FormControl.displayName = "FormControl";
 
 const FormDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => {
-  const { formDescriptionId } = useFormField();
+HTMLParagraphElement,
+React.HTMLAttributes<HTMLParagraphElement>
 
-  return (
-    <p
-      ref={ref}
-      id={formDescriptionId}
-      className={cn("text-[0.8rem] text-muted-foreground", className)}
-      {...props}
-    />
-  );
+> (({ className, ...props }, ref) => {
+> const { formDescriptionId } = useFormField();
+
+return (
+<p
+ref={ref}
+id={formDescriptionId}
+className={cn("text-[0.8rem] text-muted-foreground", className)}
+{...props}
+/>
+);
 });
 FormDescription.displayName = "FormDescription";
 
 const FormMessage = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, children, ...props }, ref) => {
-  const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message ?? "") : children;
+HTMLParagraphElement,
+React.HTMLAttributes<HTMLParagraphElement>
 
-  if (!body) {
-    return null;
-  }
+> (({ className, children, ...props }, ref) => {
+> const { error, formMessageId } = useFormField();
+> const body = error ? String(error?.message ?? "") : children;
 
-  return (
-    <p
-      ref={ref}
-      id={formMessageId}
-      className={cn("text-[0.8rem] font-medium text-destructive", className)}
-      {...props}
-    >
-      {body}
-    </p>
-  );
+if (!body) {
+return null;
+}
+
+return (
+<p
+ref={ref}
+id={formMessageId}
+className={cn("text-[0.8rem] font-medium text-destructive", className)}
+{...props} >
+{body}
+</p>
+);
 });
 FormMessage.displayName = "FormMessage";
 
 export {
-  useFormField,
-  Form,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-  FormField,
+useFormField,
+Form,
+FormItem,
+FormLabel,
+FormControl,
+FormDescription,
+FormMessage,
+FormField,
 };
 
 ================================================================================
@@ -11459,8 +11719,8 @@ FILE: artifacts/housing/src/components/ui/hover-card.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
+import _ as React from "react";
+import _ as HoverCardPrimitive from "@radix-ui/react-hover-card";
 
 import { cn } from "@/lib/utils";
 
@@ -11469,10 +11729,12 @@ const HoverCard = HoverCardPrimitive.Root;
 const HoverCardTrigger = HoverCardPrimitive.Trigger;
 
 const HoverCardContent = React.forwardRef<
-  React.ElementRef<typeof HoverCardPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
-  <HoverCardPrimitive.Content
+React.ElementRef<typeof HoverCardPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content>
+
+> (({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+> <HoverCardPrimitive.Content
+
     ref={ref}
     align={align}
     sideOffset={sideOffset}
@@ -11481,7 +11743,8 @@ const HoverCardContent = React.forwardRef<
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 HoverCardContent.displayName = HoverCardPrimitive.Content.displayName;
 
@@ -11494,91 +11757,89 @@ FILE: artifacts/housing/src/components/ui/image-lightbox.tsx
 // @ts-nocheck
 import { useEffect, useCallback, useState } from "react";
 import {
-  X,
-  ZoomIn,
-  ZoomOut,
-  Download,
-  RotateCw,
-  ExternalLink,
+X,
+ZoomIn,
+ZoomOut,
+Download,
+RotateCw,
+ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface ImageLightboxProps {
-  src: string | null;
-  alt?: string;
-  fileName?: string;
-  onClose: () => void;
+src: string | null;
+alt?: string;
+fileName?: string;
+onClose: () => void;
 }
 
 export function ImageLightbox({
-  src,
-  alt = "",
-  fileName,
-  onClose,
+src,
+alt = "",
+fileName,
+onClose,
 }: ImageLightboxProps) {
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
+const [zoom, setZoom] = useState(1);
+const [rotation, setRotation] = useState(0);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (!src) return;
-      if (e.key === "Escape") onClose();
-      if (e.key === "+" || e.key === "=") setZoom((z) => Math.min(z + 0.25, 4));
-      if (e.key === "-") setZoom((z) => Math.max(z - 0.25, 0.25));
-    },
-    [onClose, src],
-  );
+const handleKeyDown = useCallback(
+(e: KeyboardEvent) => {
+if (!src) return;
+if (e.key === "Escape") onClose();
+if (e.key === "+" || e.key === "=") setZoom((z) => Math.min(z + 0.25, 4));
+if (e.key === "-") setZoom((z) => Math.max(z - 0.25, 0.25));
+},
+[onClose, src],
+);
 
-  useEffect(() => {
-    if (!src) return;
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [src, handleKeyDown]);
+useEffect(() => {
+if (!src) return;
+document.addEventListener("keydown", handleKeyDown);
+return () => {
+document.removeEventListener("keydown", handleKeyDown);
+};
+}, [src, handleKeyDown]);
 
-  // Reset zoom/rotation when image changes
-  useEffect(() => {
-    setZoom(1);
-    setRotation(0);
-  }, [src]);
+// Reset zoom/rotation when image changes
+useEffect(() => {
+setZoom(1);
+setRotation(0);
+}, [src]);
 
-  const isImage = src
-    ? src.startsWith("data:image/") ||
-      /\.(png|jpg|jpeg|gif|webp|svg|bmp)(\?|$)/i.test(src)
-    : false;
+const isImage = src
+? src.startsWith("data:image/") ||
+/\.(png|jpg|jpeg|gif|webp|svg|bmp)(\?|$)/i.test(src)
+: false;
 
-  const handleDownload = () => {
-    if (!src) return;
-    const a = document.createElement("a");
-    a.href = src;
-    a.download = fileName || "document";
-    a.click();
-  };
+const handleDownload = () => {
+if (!src) return;
+const a = document.createElement("a");
+a.href = src;
+a.download = fileName || "document";
+a.click();
+};
 
-  return (
-    <Dialog
-      open={!!src}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent
-        className="max-w-none w-full h-full p-0 border-none bg-transparent shadow-none [&>button]:hidden flex items-center justify-center overflow-hidden"
-        srTitle={fileName || "Image Viewer"}
-        style={{
+return (
+<Dialog
+open={!!src}
+onOpenChange={(open) => {
+if (!open) onClose();
+}} >
+<DialogContent
+className="max-w-none w-full h-full p-0 border-none bg-transparent shadow-none [&>button]:hidden flex items-center justify-center overflow-hidden"
+srTitle={fileName || "Image Viewer"}
+style={{
           transform: "none",
           top: 0,
           left: 0,
           translate: "none",
           margin: 0,
         }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      >
-        <div
+onClick={(e) => {
+if (e.target === e.currentTarget) onClose();
+}} >
+<div
           className="fixed inset-0 z-0 bg-black/90 backdrop-blur-sm"
           onClick={onClose}
         />
@@ -11707,7 +11968,8 @@ export function ImageLightbox({
         </div>
       </DialogContent>
     </Dialog>
-  );
+
+);
 }
 
 ================================================================================
@@ -11715,7 +11977,7 @@ FILE: artifacts/housing/src/components/ui/input-group.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
@@ -11724,13 +11986,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="input-group"
-      role="group"
-      className={cn(
-        "group/input-group border-input dark:bg-input/30 shadow-xs relative flex w-full items-center rounded-md border outline-none transition-[color,box-shadow]",
-        "h-9 has-[>textarea]:h-auto",
+return (
+<div
+data-slot="input-group"
+role="group"
+className={cn(
+"group/input-group border-input dark:bg-input/30 shadow-xs relative flex w-full items-center rounded-md border outline-none transition-[color,box-shadow]",
+"h-9 has-[>textarea]:h-auto",
 
         // Variants based on alignment.
         "has-[>[data-align=inline-start]]:[&>input]:pl-2",
@@ -11748,140 +12010,141 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
       )}
       {...props}
     />
-  );
+
+);
 }
 
 const inputGroupAddonVariants = cva(
-  "text-muted-foreground flex h-auto cursor-text select-none items-center justify-center gap-2 py-1.5 text-sm font-medium group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-4",
-  {
-    variants: {
-      align: {
-        "inline-start":
-          "order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]",
-        "inline-end":
-          "order-last pr-3 has-[>button]:mr-[-0.4rem] has-[>kbd]:mr-[-0.35rem]",
-        "block-start":
-          "[.border-b]:pb-3 order-first w-full justify-start px-3 pt-3 group-has-[>input]/input-group:pt-2.5",
-        "block-end":
-          "[.border-t]:pt-3 order-last w-full justify-start px-3 pb-3 group-has-[>input]/input-group:pb-2.5",
-      },
-    },
-    defaultVariants: {
-      align: "inline-start",
-    },
-  },
+"text-muted-foreground flex h-auto cursor-text select-none items-center justify-center gap-2 py-1.5 text-sm font-medium group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-4",
+{
+variants: {
+align: {
+"inline-start":
+"order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]",
+"inline-end":
+"order-last pr-3 has-[>button]:mr-[-0.4rem] has-[>kbd]:mr-[-0.35rem]",
+"block-start":
+"[.border-b]:pb-3 order-first w-full justify-start px-3 pt-3 group-has-[>input]/input-group:pt-2.5",
+"block-end":
+"[.border-t]:pt-3 order-last w-full justify-start px-3 pb-3 group-has-[>input]/input-group:pb-2.5",
+},
+},
+defaultVariants: {
+align: "inline-start",
+},
+},
 );
 
 function InputGroupAddon({
-  className,
-  align = "inline-start",
-  ...props
+className,
+align = "inline-start",
+...props
 }: React.ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>) {
-  return (
-    <div
-      role="group"
-      data-slot="input-group-addon"
-      data-align={align}
-      className={cn(inputGroupAddonVariants({ align }), className)}
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest("button")) {
-          return;
-        }
-        e.currentTarget.parentElement?.querySelector("input")?.focus();
-      }}
-      {...props}
-    />
-  );
+return (
+<div
+role="group"
+data-slot="input-group-addon"
+data-align={align}
+className={cn(inputGroupAddonVariants({ align }), className)}
+onClick={(e) => {
+if ((e.target as HTMLElement).closest("button")) {
+return;
+}
+e.currentTarget.parentElement?.querySelector("input")?.focus();
+}}
+{...props}
+/>
+);
 }
 
 const inputGroupButtonVariants = cva(
-  "flex items-center gap-2 text-sm shadow-none",
-  {
-    variants: {
-      size: {
-        xs: "h-6 gap-1 rounded-[calc(var(--radius)-5px)] px-2 has-[>svg]:px-2 [&>svg:not([class*='size-'])]:size-3.5",
-        sm: "h-8 gap-1.5 rounded-md px-2.5 has-[>svg]:px-2.5",
-        "icon-xs":
-          "size-6 rounded-[calc(var(--radius)-5px)] p-0 has-[>svg]:p-0",
-        "icon-sm": "size-8 p-0 has-[>svg]:p-0",
-      },
-    },
-    defaultVariants: {
-      size: "xs",
-    },
-  },
+"flex items-center gap-2 text-sm shadow-none",
+{
+variants: {
+size: {
+xs: "h-6 gap-1 rounded-[calc(var(--radius)-5px)] px-2 has-[>svg]:px-2 [&>svg:not([class*='size-'])]:size-3.5",
+sm: "h-8 gap-1.5 rounded-md px-2.5 has-[>svg]:px-2.5",
+"icon-xs":
+"size-6 rounded-[calc(var(--radius)-5px)] p-0 has-[>svg]:p-0",
+"icon-sm": "size-8 p-0 has-[>svg]:p-0",
+},
+},
+defaultVariants: {
+size: "xs",
+},
+},
 );
 
 function InputGroupButton({
-  className,
-  type = "button",
-  variant = "ghost",
-  size = "xs",
-  ...props
+className,
+type = "button",
+variant = "ghost",
+size = "xs",
+...props
 }: Omit<React.ComponentProps<typeof Button>, "size"> &
-  VariantProps<typeof inputGroupButtonVariants>) {
-  return (
-    <Button
-      type={type}
-      data-size={size}
-      variant={variant}
-      className={cn(inputGroupButtonVariants({ size }), className)}
-      {...props}
-    />
-  );
+VariantProps<typeof inputGroupButtonVariants>) {
+return (
+<Button
+type={type}
+data-size={size}
+variant={variant}
+className={cn(inputGroupButtonVariants({ size }), className)}
+{...props}
+/>
+);
 }
 
 function InputGroupText({ className, ...props }: React.ComponentProps<"span">) {
-  return (
-    <span
-      className={cn(
-        "text-muted-foreground flex items-center gap-2 text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<span
+className={cn(
+"text-muted-foreground flex items-center gap-2 text-sm [&\_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function InputGroupInput({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<"input">) {
-  return (
-    <Input
-      data-slot="input-group-control"
-      className={cn(
-        "flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Input
+data-slot="input-group-control"
+className={cn(
+"flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function InputGroupTextarea({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<"textarea">) {
-  return (
-    <Textarea
-      data-slot="input-group-control"
-      className={cn(
-        "flex-1 resize-none rounded-none border-0 bg-transparent py-3 shadow-none focus-visible:ring-0 dark:bg-transparent",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Textarea
+data-slot="input-group-control"
+className={cn(
+"flex-1 resize-none rounded-none border-0 bg-transparent py-3 shadow-none focus-visible:ring-0 dark:bg-transparent",
+className,
+)}
+{...props}
+/>
+);
 }
 
 export {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupText,
-  InputGroupInput,
-  InputGroupTextarea,
+InputGroup,
+InputGroupAddon,
+InputGroupButton,
+InputGroupText,
+InputGroupInput,
+InputGroupTextarea,
 };
 
 ================================================================================
@@ -11889,17 +12152,19 @@ FILE: artifacts/housing/src/components/ui/input-otp.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { OTPInput, OTPInputContext } from "input-otp";
 import { Minus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const InputOTP = React.forwardRef<
-  React.ElementRef<typeof OTPInput>,
-  React.ComponentPropsWithoutRef<typeof OTPInput>
->(({ className, containerClassName, ...props }, ref) => (
-  <OTPInput
+React.ElementRef<typeof OTPInput>,
+React.ComponentPropsWithoutRef<typeof OTPInput>
+
+> (({ className, containerClassName, ...props }, ref) => (
+> <OTPInput
+
     ref={ref}
     containerClassName={cn(
       "flex items-center gap-2 has-[:disabled]:opacity-50",
@@ -11907,50 +12172,55 @@ const InputOTP = React.forwardRef<
     )}
     className={cn("disabled:cursor-not-allowed", className)}
     {...props}
-  />
+
+/>
 ));
 InputOTP.displayName = "InputOTP";
 
 const InputOTPGroup = React.forwardRef<
-  React.ElementRef<"div">,
-  React.ComponentPropsWithoutRef<"div">
->(({ className, ...props }, ref) => (
+React.ElementRef<"div">,
+React.ComponentPropsWithoutRef<"div">
+
+> (({ className, ...props }, ref) => (
+
   <div ref={ref} className={cn("flex items-center", className)} {...props} />
 ));
 InputOTPGroup.displayName = "InputOTPGroup";
 
 const InputOTPSlot = React.forwardRef<
-  React.ElementRef<"div">,
-  React.ComponentPropsWithoutRef<"div"> & { index: number }
->(({ index, className, ...props }, ref) => {
-  const inputOTPContext = React.useContext(OTPInputContext);
-  const { char, hasFakeCaret, isActive } = inputOTPContext.slots[index];
+React.ElementRef<"div">,
+React.ComponentPropsWithoutRef<"div"> & { index: number }
 
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "relative flex h-9 w-9 items-center justify-center border-y border-r border-input text-sm shadow-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md",
-        isActive && "z-10 ring-1 ring-ring",
-        className,
-      )}
-      {...props}
-    >
-      {char}
-      {hasFakeCaret && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
-        </div>
-      )}
-    </div>
-  );
+> (({ index, className, ...props }, ref) => {
+> const inputOTPContext = React.useContext(OTPInputContext);
+> const { char, hasFakeCaret, isActive } = inputOTPContext.slots[index];
+
+return (
+<div
+ref={ref}
+className={cn(
+"relative flex h-9 w-9 items-center justify-center border-y border-r border-input text-sm shadow-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md",
+isActive && "z-10 ring-1 ring-ring",
+className,
+)}
+{...props} >
+{char}
+{hasFakeCaret && (
+<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+<div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
+</div>
+)}
+</div>
+);
 });
 InputOTPSlot.displayName = "InputOTPSlot";
 
 const InputOTPSeparator = React.forwardRef<
-  React.ElementRef<"div">,
-  React.ComponentPropsWithoutRef<"div">
->(({ ...props }, ref) => (
+React.ElementRef<"div">,
+React.ComponentPropsWithoutRef<"div">
+
+> (({ ...props }, ref) => (
+
   <div ref={ref} role="separator" {...props}>
     <Minus />
   </div>
@@ -11964,24 +12234,24 @@ FILE: artifacts/housing/src/components/ui/input.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 
 import { cn } from "@/lib/utils";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
-    return (
-      <input
-        type={type}
-        className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-          className,
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  },
+({ className, type, ...props }, ref) => {
+return (
+<input
+type={type}
+className={cn(
+"flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+className,
+)}
+ref={ref}
+{...props}
+/>
+);
+},
 );
 Input.displayName = "Input";
 
@@ -11992,7 +12262,7 @@ FILE: artifacts/housing/src/components/ui/item.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -12000,190 +12270,190 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
 function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      role="list"
-      data-slot="item-group"
-      className={cn("group/item-group flex flex-col", className)}
-      {...props}
-    />
-  );
+return (
+<div
+role="list"
+data-slot="item-group"
+className={cn("group/item-group flex flex-col", className)}
+{...props}
+/>
+);
 }
 
 function ItemSeparator({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<typeof Separator>) {
-  return (
-    <Separator
-      data-slot="item-separator"
-      orientation="horizontal"
-      className={cn("my-0", className)}
-      {...props}
-    />
-  );
+return (
+<Separator
+data-slot="item-separator"
+orientation="horizontal"
+className={cn("my-0", className)}
+{...props}
+/>
+);
 }
 
 const itemVariants = cva(
-  "group/item [a]:hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-ring/50 [a]:transition-colors flex flex-wrap items-center rounded-md border border-transparent text-sm outline-none transition-colors duration-100 focus-visible:ring-[3px]",
-  {
-    variants: {
-      variant: {
-        default: "bg-transparent",
-        outline: "border-border",
-        muted: "bg-muted/50",
-      },
-      size: {
-        default: "gap-4 p-4 ",
-        sm: "gap-2.5 px-4 py-3",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
+"group/item [a]:hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-ring/50 [a]:transition-colors flex flex-wrap items-center rounded-md border border-transparent text-sm outline-none transition-colors duration-100 focus-visible:ring-[3px]",
+{
+variants: {
+variant: {
+default: "bg-transparent",
+outline: "border-border",
+muted: "bg-muted/50",
+},
+size: {
+default: "gap-4 p-4 ",
+sm: "gap-2.5 px-4 py-3",
+},
+},
+defaultVariants: {
+variant: "default",
+size: "default",
+},
+},
 );
 
 function Item({
-  className,
-  variant = "default",
-  size = "default",
-  asChild = false,
-  ...props
+className,
+variant = "default",
+size = "default",
+asChild = false,
+...props
 }: React.ComponentProps<"div"> &
-  VariantProps<typeof itemVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot : "div";
-  return (
-    <Comp
-      data-slot="item"
-      data-variant={variant}
-      data-size={size}
-      className={cn(itemVariants({ variant, size, className }))}
-      {...props}
-    />
-  );
+VariantProps<typeof itemVariants> & { asChild?: boolean }) {
+const Comp = asChild ? Slot : "div";
+return (
+<Comp
+data-slot="item"
+data-variant={variant}
+data-size={size}
+className={cn(itemVariants({ variant, size, className }))}
+{...props}
+/>
+);
 }
 
 const itemMediaVariants = cva(
-  "flex shrink-0 items-center justify-center gap-2 group-has-[[data-slot=item-description]]/item:translate-y-0.5 group-has-[[data-slot=item-description]]/item:self-start [&_svg]:pointer-events-none",
-  {
-    variants: {
-      variant: {
-        default: "bg-transparent",
-        icon: "bg-muted size-8 rounded-sm border [&_svg:not([class*='size-'])]:size-4",
-        image:
-          "size-10 overflow-hidden rounded-sm [&_img]:size-full [&_img]:object-cover",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
+"flex shrink-0 items-center justify-center gap-2 group-has-[[data-slot=item-description]]/item:translate-y-0.5 group-has-[[data-slot=item-description]]/item:self-start [&_svg]:pointer-events-none",
+{
+variants: {
+variant: {
+default: "bg-transparent",
+icon: "bg-muted size-8 rounded-sm border [&\_svg:not([class*='size-'])]:size-4",
+image:
+"size-10 overflow-hidden rounded-sm [&_img]:size-full [&_img]:object-cover",
+},
+},
+defaultVariants: {
+variant: "default",
+},
+},
 );
 
 function ItemMedia({
-  className,
-  variant = "default",
-  ...props
+className,
+variant = "default",
+...props
 }: React.ComponentProps<"div"> & VariantProps<typeof itemMediaVariants>) {
-  return (
-    <div
-      data-slot="item-media"
-      data-variant={variant}
-      className={cn(itemMediaVariants({ variant, className }))}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="item-media"
+data-variant={variant}
+className={cn(itemMediaVariants({ variant, className }))}
+{...props}
+/>
+);
 }
 
 function ItemContent({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-content"
-      className={cn(
-        "flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="item-content"
+className={cn(
+"flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function ItemTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-title"
-      className={cn(
-        "flex w-fit items-center gap-2 text-sm font-medium leading-snug",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="item-title"
+className={cn(
+"flex w-fit items-center gap-2 text-sm font-medium leading-snug",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function ItemDescription({ className, ...props }: React.ComponentProps<"p">) {
-  return (
-    <p
-      data-slot="item-description"
-      className={cn(
-        "text-muted-foreground line-clamp-2 text-balance text-sm font-normal leading-normal",
-        "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<p
+data-slot="item-description"
+className={cn(
+"text-muted-foreground line-clamp-2 text-balance text-sm font-normal leading-normal",
+"[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function ItemActions({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-actions"
-      className={cn("flex items-center gap-2", className)}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="item-actions"
+className={cn("flex items-center gap-2", className)}
+{...props}
+/>
+);
 }
 
 function ItemHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-header"
-      className={cn(
-        "flex basis-full items-center justify-between gap-2",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="item-header"
+className={cn(
+"flex basis-full items-center justify-between gap-2",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function ItemFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-footer"
-      className={cn(
-        "flex basis-full items-center justify-between gap-2",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="item-footer"
+className={cn(
+"flex basis-full items-center justify-between gap-2",
+className,
+)}
+{...props}
+/>
+);
 }
 
 export {
-  Item,
-  ItemMedia,
-  ItemContent,
-  ItemActions,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-  ItemDescription,
-  ItemHeader,
-  ItemFooter,
+Item,
+ItemMedia,
+ItemContent,
+ItemActions,
+ItemGroup,
+ItemSeparator,
+ItemTitle,
+ItemDescription,
+ItemHeader,
+ItemFooter,
 };
 
 ================================================================================
@@ -12194,28 +12464,28 @@ FILE: artifacts/housing/src/components/ui/kbd.tsx
 import { cn } from "@/lib/utils";
 
 function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
-  return (
-    <kbd
-      data-slot="kbd"
-      className={cn(
-        "bg-muted text-muted-foreground pointer-events-none inline-flex h-5 w-fit min-w-5 select-none items-center justify-center gap-1 rounded-sm px-1 font-sans text-xs font-medium",
-        "[&_svg:not([class*='size-'])]:size-3",
-        "[[data-slot=tooltip-content]_&]:bg-background/20 [[data-slot=tooltip-content]_&]:text-background dark:[[data-slot=tooltip-content]_&]:bg-background/10",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<kbd
+data-slot="kbd"
+className={cn(
+"bg-muted text-muted-foreground pointer-events-none inline-flex h-5 w-fit min-w-5 select-none items-center justify-center gap-1 rounded-sm px-1 font-sans text-xs font-medium",
+"[&_svg:not([class*='size-'])]:size-3",
+"[[data-slot=tooltip-content]_&]:bg-background/20 [[data-slot=tooltip-content]_&]:text-background dark:[[data-slot=tooltip-content]_&]:bg-background/10",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function KbdGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <kbd
-      data-slot="kbd-group"
-      className={cn("inline-flex items-center gap-1", className)}
-      {...props}
-    />
-  );
+return (
+<kbd
+data-slot="kbd-group"
+className={cn("inline-flex items-center gap-1", className)}
+{...props}
+/>
+);
 }
 
 export { Kbd, KbdGroup };
@@ -12227,26 +12497,29 @@ FILE: artifacts/housing/src/components/ui/label.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
-import * as LabelPrimitive from "@radix-ui/react-label";
+import _ as React from "react";
+import _ as LabelPrimitive from "@radix-ui/react-label";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
 const labelVariants = cva(
-  "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
 );
 
 const Label = React.forwardRef<
-  React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
-    VariantProps<typeof labelVariants>
->(({ className, ...props }, ref) => (
-  <LabelPrimitive.Root
+React.ElementRef<typeof LabelPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
+VariantProps<typeof labelVariants>
+
+> (({ className, ...props }, ref) => (
+> <LabelPrimitive.Root
+
     ref={ref}
     className={cn(labelVariants(), className)}
     {...props}
-  />
+
+/>
 ));
 Label.displayName = LabelPrimitive.Root.displayName;
 
@@ -12260,15 +12533,15 @@ FILE: artifacts/housing/src/components/ui/loader.tsx
 import { Loader2 } from "lucide-react";
 
 export function Loader({ className }: { className?: string }) {
-  return <Loader2 className={`h-4 w-4 animate-spin ${className || ""}`} />;
+return <Loader2 className={`h-4 w-4 animate-spin ${className || ""}`} />;
 }
 
 export function PageLoader() {
-  return (
-    <div className="flex h-full w-full items-center justify-center min-h-[400px]">
-      <Loader className="h-8 w-8 text-primary" />
-    </div>
-  );
+return (
+<div className="flex h-full w-full items-center justify-center min-h-[400px]">
+<Loader className="h-8 w-8 text-primary" />
+</div>
+);
 }
 
 ================================================================================
@@ -12278,63 +12551,63 @@ FILE: artifacts/housing/src/components/ui/maintenance-drawer.tsx
 import { X, MessageSquare, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
 
 interface MaintenanceDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  ticket?: any;
-  employees?: any[];
-  ar?: boolean;
-  onStatusChange?: (status: string) => void;
-  onAssignChange?: (empId: number | null) => void;
+isOpen: boolean;
+onClose: () => void;
+ticket?: any;
+employees?: any[];
+ar?: boolean;
+onStatusChange?: (status: string) => void;
+onAssignChange?: (empId: number | null) => void;
 }
 
 export default function MaintenanceDrawer({
-  isOpen,
-  onClose,
-  ticket,
-  employees = [],
-  ar = false,
-  onStatusChange,
-  onAssignChange,
+isOpen,
+onClose,
+ticket,
+employees = [],
+ar = false,
+onStatusChange,
+onAssignChange,
 }: MaintenanceDrawerProps) {
-  if (!isOpen || !ticket) return null;
+if (!isOpen || !ticket) return null;
 
-  const empMap = Object.fromEntries(
-    employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
-  );
+const empMap = Object.fromEntries(
+employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
+);
 
-  const formatDuration = (startedAt: any, resolvedAt: any, reportedAt: any) => {
-    const start = reportedAt ?? startedAt;
-    if (!start) return "—";
-    const startDate = new Date(start);
-    const endDate = resolvedAt ? new Date(resolvedAt) : new Date();
-    const totalMins = Math.floor(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60),
-    );
-    if (totalMins < 1) return "<1m";
-    if (totalMins < 60) return `${totalMins}m`;
-    const hrs = Math.floor(totalMins / 60);
-    const mins = totalMins % 60;
-    return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
-  };
+const formatDuration = (startedAt: any, resolvedAt: any, reportedAt: any) => {
+const start = reportedAt ?? startedAt;
+if (!start) return "—";
+const startDate = new Date(start);
+const endDate = resolvedAt ? new Date(resolvedAt) : new Date();
+const totalMins = Math.floor(
+(endDate.getTime() - startDate.getTime()) / (1000 \* 60),
+);
+if (totalMins < 1) return "<1m";
+if (totalMins < 60) return `${totalMins}m`;
+const hrs = Math.floor(totalMins / 60);
+const mins = totalMins % 60;
+return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+};
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 bg-black/50 transition-opacity z-40 ${
+return (
+<>
+{/_ Backdrop _/}
+<div
+className={`fixed inset-0 bg-black/50 transition-opacity z-40 ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
-        onClick={onClose}
-      />
+onClick={onClose}
+/>
 
       {/* Drawer */}
       <div
@@ -12556,7 +12829,8 @@ export default function MaintenanceDrawer({
         </div>
       </div>
     </>
-  );
+
+);
 }
 
 ================================================================================
@@ -12567,153 +12841,152 @@ import { useState } from "react";
 import { Plus, RotateCcw } from "lucide-react";
 
 interface MaintenanceFilterBarProps {
-  properties?: any[];
-  departments?: string[];
-  employees?: any[];
-  onCreateNew?: () => void;
-  onFiltersChange?: (filters: MaintenanceFilterState) => void;
-  ar?: boolean;
+properties?: any[];
+departments?: string[];
+employees?: any[];
+onCreateNew?: () => void;
+onFiltersChange?: (filters: MaintenanceFilterState) => void;
+ar?: boolean;
 }
 
 interface MaintenanceFilterState {
-  fromDate: string;
-  toDate: string;
-  status: string;
-  type: string;
-  priority: string;
-  departments: string[];
-  creatorType: string;
-  propertyId: string;
+fromDate: string;
+toDate: string;
+status: string;
+type: string;
+priority: string;
+departments: string[];
+creatorType: string;
+propertyId: string;
 }
 
 const INITIAL_FILTERS: MaintenanceFilterState = {
-  fromDate: "",
-  toDate: "",
-  status: "",
-  type: "",
-  priority: "",
-  departments: [],
-  creatorType: "",
-  propertyId: "",
+fromDate: "",
+toDate: "",
+status: "",
+type: "",
+priority: "",
+departments: [],
+creatorType: "",
+propertyId: "",
 };
 
 const STATUS_OPTIONS = [
-  { value: "open", label: "Open", labelAr: "مفتوحة" },
-  { value: "in_progress", label: "In Progress", labelAr: "قيد التنفيذ" },
-  { value: "resolved", label: "Resolved", labelAr: "محلولة" },
-  { value: "closed", label: "Closed", labelAr: "مغلقة" },
+{ value: "open", label: "Open", labelAr: "مفتوحة" },
+{ value: "in_progress", label: "In Progress", labelAr: "قيد التنفيذ" },
+{ value: "resolved", label: "Resolved", labelAr: "محلولة" },
+{ value: "closed", label: "Closed", labelAr: "مغلقة" },
 ];
 const PRIORITY_OPTIONS = [
-  { value: "low", label: "Low", labelAr: "منخفضة" },
-  { value: "medium", label: "Medium", labelAr: "متوسطة" },
-  { value: "high", label: "High", labelAr: "عالية" },
-  { value: "urgent", label: "Urgent", labelAr: "عاجلة" },
+{ value: "low", label: "Low", labelAr: "منخفضة" },
+{ value: "medium", label: "Medium", labelAr: "متوسطة" },
+{ value: "high", label: "High", labelAr: "عالية" },
+{ value: "urgent", label: "Urgent", labelAr: "عاجلة" },
 ];
 const TYPE_OPTIONS = [
-  { value: "maintenance", label: "Maintenance", labelAr: "صيانة" },
-  { value: "housekeeping", label: "Housekeeping", labelAr: "هاوس كيبنج" },
-  { value: "general", label: "General", labelAr: "عام" },
+{ value: "maintenance", label: "Maintenance", labelAr: "صيانة" },
+{ value: "housekeeping", label: "Housekeeping", labelAr: "هاوس كيبنج" },
+{ value: "general", label: "General", labelAr: "عام" },
 ];
 const CREATOR_OPTIONS = [
-  { value: "", label: "All", labelAr: "الكل" },
-  { value: "staff", label: "Staff", labelAr: "موظف" },
-  { value: "guest", label: "Guest From App", labelAr: "ضيف من التطبيق" },
+{ value: "", label: "All", labelAr: "الكل" },
+{ value: "staff", label: "Staff", labelAr: "موظف" },
+{ value: "guest", label: "Guest From App", labelAr: "ضيف من التطبيق" },
 ];
 
 export default function MaintenanceFilterBar({
-  properties = [],
-  departments = ["Front Office", "Engineering", "House Keeping"],
-  employees = [],
-  onCreateNew,
-  onFiltersChange,
-  ar = false,
+properties = [],
+departments = ["Front Office", "Engineering", "House Keeping"],
+employees = [],
+onCreateNew,
+onFiltersChange,
+ar = false,
 }: MaintenanceFilterBarProps) {
-  const [filters, setFilters] = useState<MaintenanceFilterState>({
-    ...INITIAL_FILTERS,
-  });
-  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>(
-    {},
-  );
+const [filters, setFilters] = useState<MaintenanceFilterState>({
+...INITIAL_FILTERS,
+});
+const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>(
+{},
+);
 
-  const toggleDropdown = (key: string) => {
-    setOpenDropdowns((prev) => ({
-      ...Object.keys(prev).reduce((acc, k) => ({ ...acc, [k]: false }), {}),
-      [key]: !prev[key],
-    }));
-  };
+const toggleDropdown = (key: string) => {
+setOpenDropdowns((prev) => ({
+...Object.keys(prev).reduce((acc, k) => ({ ...acc, [k]: false }), {}),
+[key]: !prev[key],
+}));
+};
 
-  const handleMultiSelect = (value: string) => {
-    const newFilters = {
-      ...filters,
-      departments: filters.departments.includes(value)
-        ? filters.departments.filter((item) => item !== value)
-        : [...filters.departments, value],
-    };
-    setFilters(newFilters);
-    onFiltersChange?.(newFilters);
-  };
+const handleMultiSelect = (value: string) => {
+const newFilters = {
+...filters,
+departments: filters.departments.includes(value)
+? filters.departments.filter((item) => item !== value)
+: [...filters.departments, value],
+};
+setFilters(newFilters);
+onFiltersChange?.(newFilters);
+};
 
-  const handleSingleSelect = (
-    key: keyof MaintenanceFilterState,
-    value: string,
-  ) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFiltersChange?.(newFilters);
-  };
+const handleSingleSelect = (
+key: keyof MaintenanceFilterState,
+value: string,
+) => {
+const newFilters = { ...filters, [key]: value };
+setFilters(newFilters);
+onFiltersChange?.(newFilters);
+};
 
-  const handleDateChange = (key: "fromDate" | "toDate", value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFiltersChange?.(newFilters);
-  };
+const handleDateChange = (key: "fromDate" | "toDate", value: string) => {
+const newFilters = { ...filters, [key]: value };
+setFilters(newFilters);
+onFiltersChange?.(newFilters);
+};
 
-  const handleResetAll = () => {
-    const resetFilters = { ...INITIAL_FILTERS };
-    setFilters(resetFilters);
-    onFiltersChange?.(resetFilters);
-  };
+const handleResetAll = () => {
+const resetFilters = { ...INITIAL_FILTERS };
+setFilters(resetFilters);
+onFiltersChange?.(resetFilters);
+};
 
-  const hasActiveFilters =
-    filters.fromDate ||
-    filters.toDate ||
-    filters.status ||
-    filters.type ||
-    filters.priority ||
-    filters.departments.length > 0 ||
-    filters.creatorType ||
-    filters.propertyId;
+const hasActiveFilters =
+filters.fromDate ||
+filters.toDate ||
+filters.status ||
+filters.type ||
+filters.priority ||
+filters.departments.length > 0 ||
+filters.creatorType ||
+filters.propertyId;
 
-  const getSelectedLabel = (arr: string[]) => {
-    if (arr.length === 0) return ar ? "اختر..." : "Select...";
-    if (arr.length === 1) return arr[0];
-    return `${arr[0]}, ${arr[1]}${arr.length > 2 ? "..." : ""}`;
-  };
+const getSelectedLabel = (arr: string[]) => {
+if (arr.length === 0) return ar ? "اختر..." : "Select...";
+if (arr.length === 1) return arr[0];
+return `${arr[0]}, ${arr[1]}${arr.length > 2 ? "..." : ""}`;
+};
 
-  const selectClass =
-    "w-full px-3 py-1.5 bg-muted/50 border border-border rounded text-xs text-foreground focus:outline-none focus:border-primary transition-colors";
-  const labelClass = "block text-xs font-semibold text-muted-foreground";
+const selectClass =
+"w-full px-3 py-1.5 bg-muted/50 border border-border rounded text-xs text-foreground focus:outline-none focus:border-primary transition-colors";
+const labelClass = "block text-xs font-semibold text-muted-foreground";
 
-  return (
-    <div className="bg-card rounded-lg p-4 space-y-4 border border-border shadow-sm">
-      {/* Row 1 */}
-      <div className="grid grid-cols-4 gap-3">
-        {/* Property */}
-        <div className="space-y-1">
-          <label className={labelClass}>{ar ? "الفرع" : "Properties"}</label>
-          <select
-            value={filters.propertyId}
-            onChange={(e) => handleSingleSelect("propertyId", e.target.value)}
-            className={selectClass}
-          >
-            <option value="">{ar ? "الكل" : "All"}</option>
-            {properties.map((p) => (
-              <option key={p.id} value={String(p.id)}>
-                {p.displayName || p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+return (
+<div className="bg-card rounded-lg p-4 space-y-4 border border-border shadow-sm">
+{/_ Row 1 _/}
+<div className="grid grid-cols-4 gap-3">
+{/_ Property _/}
+<div className="space-y-1">
+<label className={labelClass}>{ar ? "الفرع" : "Properties"}</label>
+<select
+value={filters.propertyId}
+onChange={(e) => handleSingleSelect("propertyId", e.target.value)}
+className={selectClass} >
+<option value="">{ar ? "الكل" : "All"}</option>
+{properties.map((p) => (
+<option key={p.id} value={String(p.id)}>
+{p.displayName || p.name}
+</option>
+))}
+</select>
+</div>
 
         {/* From Date */}
         <div className="space-y-1">
@@ -12888,7 +13161,8 @@ export default function MaintenanceFilterBar({
         </button>
       </div>
     </div>
-  );
+
+);
 }
 
 ================================================================================
@@ -12896,79 +13170,87 @@ FILE: artifacts/housing/src/components/ui/menubar.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as MenubarPrimitive from "@radix-ui/react-menubar";
+import _ as React from "react";
+import _ as MenubarPrimitive from "@radix-ui/react-menubar";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 function MenubarMenu({
-  ...props
+...props
 }: React.ComponentProps<typeof MenubarPrimitive.Menu>) {
-  return <MenubarPrimitive.Menu {...props} />;
+return <MenubarPrimitive.Menu {...props} />;
 }
 
 function MenubarGroup({
-  ...props
+...props
 }: React.ComponentProps<typeof MenubarPrimitive.Group>) {
-  return <MenubarPrimitive.Group {...props} />;
+return <MenubarPrimitive.Group {...props} />;
 }
 
 function MenubarPortal({
-  ...props
+...props
 }: React.ComponentProps<typeof MenubarPrimitive.Portal>) {
-  return <MenubarPrimitive.Portal {...props} />;
+return <MenubarPrimitive.Portal {...props} />;
 }
 
 function MenubarRadioGroup({
-  ...props
+...props
 }: React.ComponentProps<typeof MenubarPrimitive.RadioGroup>) {
-  return <MenubarPrimitive.RadioGroup {...props} />;
+return <MenubarPrimitive.RadioGroup {...props} />;
 }
 
 function MenubarSub({
-  ...props
+...props
 }: React.ComponentProps<typeof MenubarPrimitive.Sub>) {
-  return <MenubarPrimitive.Sub data-slot="menubar-sub" {...props} />;
+return <MenubarPrimitive.Sub data-slot="menubar-sub" {...props} />;
 }
 
 const Menubar = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <MenubarPrimitive.Root
+React.ElementRef<typeof MenubarPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Root>
+
+> (({ className, ...props }, ref) => (
+> <MenubarPrimitive.Root
+
     ref={ref}
     className={cn(
       "flex h-9 items-center space-x-1 rounded-md border bg-background p-1 shadow-sm",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 Menubar.displayName = MenubarPrimitive.Root.displayName;
 
 const MenubarTrigger = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <MenubarPrimitive.Trigger
+React.ElementRef<typeof MenubarPrimitive.Trigger>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Trigger>
+
+> (({ className, ...props }, ref) => (
+> <MenubarPrimitive.Trigger
+
     ref={ref}
     className={cn(
       "flex cursor-default select-none items-center rounded-sm px-3 py-1 text-sm font-medium outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 MenubarTrigger.displayName = MenubarPrimitive.Trigger.displayName;
 
 const MenubarSubTrigger = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.SubTrigger>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubTrigger> & {
-    inset?: boolean;
-  }
->(({ className, inset, children, ...props }, ref) => (
-  <MenubarPrimitive.SubTrigger
+React.ElementRef<typeof MenubarPrimitive.SubTrigger>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubTrigger> & {
+inset?: boolean;
+}
+
+> (({ className, inset, children, ...props }, ref) => (
+> <MenubarPrimitive.SubTrigger
+
     ref={ref}
     className={cn(
       "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
@@ -12976,60 +13258,71 @@ const MenubarSubTrigger = React.forwardRef<
       className,
     )}
     {...props}
-  >
+
+>
+
     {children}
     <ChevronRight className="ml-auto h-4 w-4" />
-  </MenubarPrimitive.SubTrigger>
+
+</MenubarPrimitive.SubTrigger>
 ));
 MenubarSubTrigger.displayName = MenubarPrimitive.SubTrigger.displayName;
 
 const MenubarSubContent = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.SubContent>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubContent>
->(({ className, ...props }, ref) => (
-  <MenubarPrimitive.SubContent
+React.ElementRef<typeof MenubarPrimitive.SubContent>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubContent>
+
+> (({ className, ...props }, ref) => (
+> <MenubarPrimitive.SubContent
+
     ref={ref}
     className={cn(
       "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-menubar-content-transform-origin]",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 MenubarSubContent.displayName = MenubarPrimitive.SubContent.displayName;
 
 const MenubarContent = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Content>
->(
-  (
+React.ElementRef<typeof MenubarPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Content>
+
+> (
+> (
+
     { className, align = "start", alignOffset = -4, sideOffset = 8, ...props },
     ref,
-  ) => (
-    <MenubarPrimitive.Portal>
-      <MenubarPrimitive.Content
-        ref={ref}
-        align={align}
-        alignOffset={alignOffset}
-        sideOffset={sideOffset}
-        className={cn(
-          "z-50 min-w-[12rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-menubar-content-transform-origin]",
-          className,
-        )}
-        {...props}
-      />
-    </MenubarPrimitive.Portal>
-  ),
+
+) => (
+<MenubarPrimitive.Portal>
+<MenubarPrimitive.Content
+ref={ref}
+align={align}
+alignOffset={alignOffset}
+sideOffset={sideOffset}
+className={cn(
+"z-50 min-w-[12rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-menubar-content-transform-origin]",
+className,
+)}
+{...props}
+/>
+</MenubarPrimitive.Portal>
+),
 );
 MenubarContent.displayName = MenubarPrimitive.Content.displayName;
 
 const MenubarItem = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Item> & {
-    inset?: boolean;
-  }
->(({ className, inset, ...props }, ref) => (
-  <MenubarPrimitive.Item
+React.ElementRef<typeof MenubarPrimitive.Item>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Item> & {
+inset?: boolean;
+}
+
+> (({ className, inset, ...props }, ref) => (
+> <MenubarPrimitive.Item
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
@@ -13037,15 +13330,18 @@ const MenubarItem = React.forwardRef<
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 MenubarItem.displayName = MenubarPrimitive.Item.displayName;
 
 const MenubarCheckboxItem = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.CheckboxItem>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.CheckboxItem>
->(({ className, children, checked, ...props }, ref) => (
-  <MenubarPrimitive.CheckboxItem
+React.ElementRef<typeof MenubarPrimitive.CheckboxItem>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.CheckboxItem>
+
+> (({ className, children, checked, ...props }, ref) => (
+> <MenubarPrimitive.CheckboxItem
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
@@ -13053,46 +13349,56 @@ const MenubarCheckboxItem = React.forwardRef<
     )}
     checked={checked}
     {...props}
-  >
+
+>
+
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <MenubarPrimitive.ItemIndicator>
         <Check className="h-4 w-4" />
       </MenubarPrimitive.ItemIndicator>
     </span>
     {children}
-  </MenubarPrimitive.CheckboxItem>
+
+</MenubarPrimitive.CheckboxItem>
 ));
 MenubarCheckboxItem.displayName = MenubarPrimitive.CheckboxItem.displayName;
 
 const MenubarRadioItem = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.RadioItem>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.RadioItem>
->(({ className, children, ...props }, ref) => (
-  <MenubarPrimitive.RadioItem
+React.ElementRef<typeof MenubarPrimitive.RadioItem>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.RadioItem>
+
+> (({ className, children, ...props }, ref) => (
+> <MenubarPrimitive.RadioItem
+
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     {...props}
-  >
+
+>
+
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <MenubarPrimitive.ItemIndicator>
         <Circle className="h-4 w-4 fill-current" />
       </MenubarPrimitive.ItemIndicator>
     </span>
     {children}
-  </MenubarPrimitive.RadioItem>
+
+</MenubarPrimitive.RadioItem>
 ));
 MenubarRadioItem.displayName = MenubarPrimitive.RadioItem.displayName;
 
 const MenubarLabel = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Label> & {
-    inset?: boolean;
-  }
->(({ className, inset, ...props }, ref) => (
-  <MenubarPrimitive.Label
+React.ElementRef<typeof MenubarPrimitive.Label>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Label> & {
+inset?: boolean;
+}
+
+> (({ className, inset, ...props }, ref) => (
+> <MenubarPrimitive.Label
+
     ref={ref}
     className={cn(
       "px-2 py-1.5 text-sm font-semibold",
@@ -13100,55 +13406,59 @@ const MenubarLabel = React.forwardRef<
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 MenubarLabel.displayName = MenubarPrimitive.Label.displayName;
 
 const MenubarSeparator = React.forwardRef<
-  React.ElementRef<typeof MenubarPrimitive.Separator>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <MenubarPrimitive.Separator
+React.ElementRef<typeof MenubarPrimitive.Separator>,
+React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Separator>
+
+> (({ className, ...props }, ref) => (
+> <MenubarPrimitive.Separator
+
     ref={ref}
     className={cn("-mx-1 my-1 h-px bg-muted", className)}
     {...props}
-  />
+
+/>
 ));
 MenubarSeparator.displayName = MenubarPrimitive.Separator.displayName;
 
 const MenubarShortcut = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLSpanElement>) => {
-  return (
-    <span
-      className={cn(
-        "ml-auto text-xs tracking-widest text-muted-foreground",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<span
+className={cn(
+"ml-auto text-xs tracking-widest text-muted-foreground",
+className,
+)}
+{...props}
+/>
+);
 };
 MenubarShortcut.displayname = "MenubarShortcut";
 
 export {
-  Menubar,
-  MenubarMenu,
-  MenubarTrigger,
-  MenubarContent,
-  MenubarItem,
-  MenubarSeparator,
-  MenubarLabel,
-  MenubarCheckboxItem,
-  MenubarRadioGroup,
-  MenubarRadioItem,
-  MenubarPortal,
-  MenubarSubContent,
-  MenubarSubTrigger,
-  MenubarGroup,
-  MenubarSub,
-  MenubarShortcut,
+Menubar,
+MenubarMenu,
+MenubarTrigger,
+MenubarContent,
+MenubarItem,
+MenubarSeparator,
+MenubarLabel,
+MenubarCheckboxItem,
+MenubarRadioGroup,
+MenubarRadioItem,
+MenubarPortal,
+MenubarSubContent,
+MenubarSubTrigger,
+MenubarGroup,
+MenubarSub,
+MenubarShortcut,
 };
 
 ================================================================================
@@ -13156,91 +13466,109 @@ FILE: artifacts/housing/src/components/ui/navigation-menu.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
+import _ as React from "react";
+import _ as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cva } from "class-variance-authority";
 import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const NavigationMenu = React.forwardRef<
-  React.ElementRef<typeof NavigationMenuPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root>
->(({ className, children, ...props }, ref) => (
-  <NavigationMenuPrimitive.Root
+React.ElementRef<typeof NavigationMenuPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root>
+
+> (({ className, children, ...props }, ref) => (
+> <NavigationMenuPrimitive.Root
+
     ref={ref}
     className={cn(
       "relative z-10 flex max-w-max flex-1 items-center justify-center",
       className,
     )}
     {...props}
-  >
+
+>
+
     {children}
     <NavigationMenuViewport />
-  </NavigationMenuPrimitive.Root>
+
+</NavigationMenuPrimitive.Root>
 ));
 NavigationMenu.displayName = NavigationMenuPrimitive.Root.displayName;
 
 const NavigationMenuList = React.forwardRef<
-  React.ElementRef<typeof NavigationMenuPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.List>
->(({ className, ...props }, ref) => (
-  <NavigationMenuPrimitive.List
+React.ElementRef<typeof NavigationMenuPrimitive.List>,
+React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.List>
+
+> (({ className, ...props }, ref) => (
+> <NavigationMenuPrimitive.List
+
     ref={ref}
     className={cn(
       "group flex flex-1 list-none items-center justify-center space-x-1",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName;
 
 const NavigationMenuItem = NavigationMenuPrimitive.Item;
 
 const navigationMenuTriggerStyle = cva(
-  "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=open]:text-accent-foreground data-[state=open]:bg-accent/50 data-[state=open]:hover:bg-accent data-[state=open]:focus:bg-accent",
+"group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=open]:text-accent-foreground data-[state=open]:bg-accent/50 data-[state=open]:hover:bg-accent data-[state=open]:focus:bg-accent",
 );
 
 const NavigationMenuTrigger = React.forwardRef<
-  React.ElementRef<typeof NavigationMenuPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
-  <NavigationMenuPrimitive.Trigger
+React.ElementRef<typeof NavigationMenuPrimitive.Trigger>,
+React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Trigger>
+
+> (({ className, children, ...props }, ref) => (
+> <NavigationMenuPrimitive.Trigger
+
     ref={ref}
     className={cn(navigationMenuTriggerStyle(), "group", className)}
     {...props}
-  >
+
+>
+
     {children}{" "}
     <ChevronDown
       className="relative top-[1px] ml-1 h-3 w-3 transition duration-300 group-data-[state=open]:rotate-180"
       aria-hidden="true"
     />
-  </NavigationMenuPrimitive.Trigger>
+
+</NavigationMenuPrimitive.Trigger>
 ));
 NavigationMenuTrigger.displayName = NavigationMenuPrimitive.Trigger.displayName;
 
 const NavigationMenuContent = React.forwardRef<
-  React.ElementRef<typeof NavigationMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <NavigationMenuPrimitive.Content
+React.ElementRef<typeof NavigationMenuPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Content>
+
+> (({ className, ...props }, ref) => (
+> <NavigationMenuPrimitive.Content
+
     ref={ref}
     className={cn(
       "left-0 top-0 w-full data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 md:absolute md:w-auto ",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 NavigationMenuContent.displayName = NavigationMenuPrimitive.Content.displayName;
 
 const NavigationMenuLink = NavigationMenuPrimitive.Link;
 
 const NavigationMenuViewport = React.forwardRef<
-  React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
-  React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Viewport>
->(({ className, ...props }, ref) => (
+React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
+React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Viewport>
+
+> (({ className, ...props }, ref) => (
+
   <div className={cn("absolute left-0 top-full flex justify-center")}>
     <NavigationMenuPrimitive.Viewport
       className={cn(
@@ -13256,33 +13584,38 @@ NavigationMenuViewport.displayName =
   NavigationMenuPrimitive.Viewport.displayName;
 
 const NavigationMenuIndicator = React.forwardRef<
-  React.ElementRef<typeof NavigationMenuPrimitive.Indicator>,
-  React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Indicator>
->(({ className, ...props }, ref) => (
-  <NavigationMenuPrimitive.Indicator
+React.ElementRef<typeof NavigationMenuPrimitive.Indicator>,
+React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Indicator>
+
+> (({ className, ...props }, ref) => (
+> <NavigationMenuPrimitive.Indicator
+
     ref={ref}
     className={cn(
       "top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:fade-in",
       className,
     )}
     {...props}
-  >
+
+>
+
     <div className="relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md" />
-  </NavigationMenuPrimitive.Indicator>
+
+</NavigationMenuPrimitive.Indicator>
 ));
 NavigationMenuIndicator.displayName =
-  NavigationMenuPrimitive.Indicator.displayName;
+NavigationMenuPrimitive.Indicator.displayName;
 
 export {
-  navigationMenuTriggerStyle,
-  NavigationMenu,
-  NavigationMenuList,
-  NavigationMenuItem,
-  NavigationMenuContent,
-  NavigationMenuTrigger,
-  NavigationMenuLink,
-  NavigationMenuIndicator,
-  NavigationMenuViewport,
+navigationMenuTriggerStyle,
+NavigationMenu,
+NavigationMenuList,
+NavigationMenuItem,
+NavigationMenuContent,
+NavigationMenuTrigger,
+NavigationMenuLink,
+NavigationMenuIndicator,
+NavigationMenuViewport,
 };
 
 ================================================================================
@@ -13299,206 +13632,203 @@ import { cn } from "@/lib/utils";
 // ErrorState — shown when an API call fails
 // ─────────────────────────────────────────────────────────────
 interface ErrorStateProps {
-  message?: string;
-  onRetry?: () => void;
-  className?: string;
+message?: string;
+onRetry?: () => void;
+className?: string;
 }
 
 export function ErrorState({ message, onRetry, className }: ErrorStateProps) {
-  const isNetworkError =
-    message?.toLowerCase().includes("network") ||
-    message?.toLowerCase().includes("fetch") ||
-    message?.toLowerCase().includes("failed to fetch");
+const isNetworkError =
+message?.toLowerCase().includes("network") ||
+message?.toLowerCase().includes("fetch") ||
+message?.toLowerCase().includes("failed to fetch");
 
-  return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center py-16 text-center gap-4",
-        className,
-      )}
-    >
-      <div className="rounded-full bg-destructive/10 p-4">
-        {isNetworkError ? (
-          <WifiOff className="w-8 h-8 text-destructive opacity-80" />
-        ) : (
-          <AlertCircle className="w-8 h-8 text-destructive opacity-80" />
-        )}
-      </div>
-      <div>
-        <h3 className="font-semibold text-base mb-1">
-          {isNetworkError ? "تعذر الاتصال بالسيرفر" : "حدث خطأ غير متوقع"}
-        </h3>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          {message || "تعذر تحميل البيانات. يرجى المحاولة مرة أخرى."}
-        </p>
-      </div>
-      {onRetry && (
-        <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
-          إعادة المحاولة
-        </Button>
-      )}
-    </div>
-  );
+return (
+<div
+className={cn(
+"flex flex-col items-center justify-center py-16 text-center gap-4",
+className,
+)} >
+<div className="rounded-full bg-destructive/10 p-4">
+{isNetworkError ? (
+<WifiOff className="w-8 h-8 text-destructive opacity-80" />
+) : (
+<AlertCircle className="w-8 h-8 text-destructive opacity-80" />
+)}
+</div>
+<div>
+<h3 className="font-semibold text-base mb-1">
+{isNetworkError ? "تعذر الاتصال بالسيرفر" : "حدث خطأ غير متوقع"}
+</h3>
+<p className="text-sm text-muted-foreground max-w-xs">
+{message || "تعذر تحميل البيانات. يرجى المحاولة مرة أخرى."}
+</p>
+</div>
+{onRetry && (
+<Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
+<RefreshCw className="w-4 h-4" />
+إعادة المحاولة
+</Button>
+)}
+</div>
+);
 }
 
 // ─────────────────────────────────────────────────────────────
 // EmptyState — shown when query succeeds but returns no data
 // ─────────────────────────────────────────────────────────────
 interface EmptyStateProps {
-  title?: string;
-  description?: string;
-  icon?: React.ReactNode;
-  action?: React.ReactNode;
-  className?: string;
+title?: string;
+description?: string;
+icon?: React.ReactNode;
+action?: React.ReactNode;
+className?: string;
 }
 
 export function EmptyState({
-  title,
-  description,
-  icon,
-  action,
-  className,
+title,
+description,
+icon,
+action,
+className,
 }: EmptyStateProps) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center py-16 text-center gap-4",
-        className,
-      )}
-    >
-      <div className="rounded-full bg-muted p-4">
-        {icon || <FileX className="w-8 h-8 text-muted-foreground opacity-60" />}
-      </div>
-      <div>
-        <h3 className="font-semibold text-base mb-1">
-          {title || "لا توجد بيانات"}
-        </h3>
-        {description && (
-          <p className="text-sm text-muted-foreground max-w-xs">
-            {description}
-          </p>
-        )}
-      </div>
-      {action && <div>{action}</div>}
-    </div>
-  );
+return (
+<div
+className={cn(
+"flex flex-col items-center justify-center py-16 text-center gap-4",
+className,
+)} >
+<div className="rounded-full bg-muted p-4">
+{icon || <FileX className="w-8 h-8 text-muted-foreground opacity-60" />}
+</div>
+<div>
+<h3 className="font-semibold text-base mb-1">
+{title || "لا توجد بيانات"}
+</h3>
+{description && (
+<p className="text-sm text-muted-foreground max-w-xs">
+{description}
+</p>
+)}
+</div>
+{action && <div>{action}</div>}
+</div>
+);
 }
 
 // ─────────────────────────────────────────────────────────────
 // TableSkeleton — shown while table data loads
 // ─────────────────────────────────────────────────────────────
 interface TableSkeletonProps {
-  rows?: number;
-  columns?: number;
-  className?: string;
+rows?: number;
+columns?: number;
+className?: string;
 }
 
 export function TableSkeleton({
-  rows = 5,
-  columns = 4,
-  className,
+rows = 5,
+columns = 4,
+className,
 }: TableSkeletonProps) {
-  return (
-    <div className={cn("space-y-3", className)}>
-      {/* Header */}
-      <div className="flex gap-4 px-4 py-2 bg-muted/40 rounded-lg">
-        {Array.from({ length: columns }).map((_, i) => (
-          <Skeleton key={i} className="h-4 flex-1" />
-        ))}
-      </div>
-      {/* Rows */}
-      {Array.from({ length: rows }).map((_, i) => (
-        <div
+return (
+<div className={cn("space-y-3", className)}>
+{/_ Header _/}
+<div className="flex gap-4 px-4 py-2 bg-muted/40 rounded-lg">
+{Array.from({ length: columns }).map((_, i) => (
+<Skeleton key={i} className="h-4 flex-1" />
+))}
+</div>
+{/* Rows */}
+{Array.from({ length: rows }).map((_, i) => (
+<div
           key={i}
           className="flex gap-4 px-4 py-3 border-b border-border/50 last:border-0"
         >
-          {Array.from({ length: columns }).map((_, j) => (
-            <Skeleton
-              key={j}
-              className={cn(
-                "h-4 flex-1",
-                j === 0 && "w-8 flex-none",
-                j === columns - 1 && "w-20 flex-none",
-              )}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
+{Array.from({ length: columns }).map((\_, j) => (
+<Skeleton
+key={j}
+className={cn(
+"h-4 flex-1",
+j === 0 && "w-8 flex-none",
+j === columns - 1 && "w-20 flex-none",
+)}
+/>
+))}
+</div>
+))}
+</div>
+);
 }
 
 // ─────────────────────────────────────────────────────────────
 // CardSkeleton — shown while card-based data loads
 // ─────────────────────────────────────────────────────────────
 interface CardSkeletonProps {
-  count?: number;
-  className?: string;
+count?: number;
+className?: string;
 }
 
 export function CardSkeleton({ count = 3, className }: CardSkeletonProps) {
-  return (
-    <div
-      className={cn(
-        "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-        className,
-      )}
-    >
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-xl border bg-card p-5 space-y-3">
-          <div className="flex items-center gap-3">
-            <Skeleton className="w-10 h-10 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          </div>
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-4/5" />
-        </div>
-      ))}
-    </div>
-  );
+return (
+<div
+className={cn(
+"grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+className,
+)} >
+{Array.from({ length: count }).map((\_, i) => (
+<div key={i} className="rounded-xl border bg-card p-5 space-y-3">
+<div className="flex items-center gap-3">
+<Skeleton className="w-10 h-10 rounded-full" />
+<div className="flex-1 space-y-2">
+<Skeleton className="h-4 w-3/4" />
+<Skeleton className="h-3 w-1/2" />
+</div>
+</div>
+<Skeleton className="h-3 w-full" />
+<Skeleton className="h-3 w-4/5" />
+</div>
+))}
+</div>
+);
 }
 
 // ─────────────────────────────────────────────────────────────
 // InlineLoader — small spinner for inline loading
 // ─────────────────────────────────────────────────────────────
 export function InlineLoader({ message }: { message?: string }) {
-  return (
-    <div className="flex items-center justify-center gap-3 py-8 text-muted-foreground text-sm">
-      <RefreshCw className="w-4 h-4 animate-spin" />
-      <span>{message || "جاري التحميل..."}</span>
-    </div>
-  );
+return (
+<div className="flex items-center justify-center gap-3 py-8 text-muted-foreground text-sm">
+<RefreshCw className="w-4 h-4 animate-spin" />
+<span>{message || "جاري التحميل..."}</span>
+</div>
+);
 }
 
 // ─────────────────────────────────────────────────────────────
 // DBErrorState — specifically for database connectivity issues
 // ─────────────────────────────────────────────────────────────
 export function DBErrorState({ onRetry }: { onRetry?: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-      <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-4">
-        <Database className="w-8 h-8 text-amber-600 dark:text-amber-400" />
-      </div>
-      <div>
-        <h3 className="font-semibold text-base mb-1">
-          تعذر الاتصال بقاعدة البيانات
-        </h3>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          السيرفر يواجه مشكلة مؤقتة. تأكد من أن قاعدة البيانات تعمل بشكل صحيح.
-        </p>
-      </div>
-      {onRetry && (
-        <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
-          إعادة المحاولة
-        </Button>
-      )}
-    </div>
-  );
+return (
+<div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+<div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-4">
+<Database className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+</div>
+<div>
+<h3 className="font-semibold text-base mb-1">
+تعذر الاتصال بقاعدة البيانات
+</h3>
+<p className="text-sm text-muted-foreground max-w-xs">
+السيرفر يواجه مشكلة مؤقتة. تأكد من أن قاعدة البيانات تعمل بشكل صحيح.
+</p>
+</div>
+{onRetry && (
+<Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
+<RefreshCw className="w-4 h-4" />
+إعادة المحاولة
+</Button>
+)}
+</div>
+);
 }
 
 ================================================================================
@@ -13506,13 +13836,14 @@ FILE: artifacts/housing/src/components/ui/pagination.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ButtonProps, buttonVariants } from "@/components/ui/button";
 
 const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
+
   <nav
     role="navigation"
     aria-label="pagination"
@@ -13523,9 +13854,11 @@ const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
 Pagination.displayName = "Pagination";
 
 const PaginationContent = React.forwardRef<
-  HTMLUListElement,
-  React.ComponentProps<"ul">
->(({ className, ...props }, ref) => (
+HTMLUListElement,
+React.ComponentProps<"ul">
+
+> (({ className, ...props }, ref) => (
+
   <ul
     ref={ref}
     className={cn("flex flex-row items-center gap-1", className)}
@@ -13535,93 +13868,104 @@ const PaginationContent = React.forwardRef<
 PaginationContent.displayName = "PaginationContent";
 
 const PaginationItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentProps<"li">
->(({ className, ...props }, ref) => (
+HTMLLIElement,
+React.ComponentProps<"li">
+
+> (({ className, ...props }, ref) => (
+
   <li ref={ref} className={cn("", className)} {...props} />
 ));
 PaginationItem.displayName = "PaginationItem";
 
 type PaginationLinkProps = {
-  isActive?: boolean;
+isActive?: boolean;
 } & Pick<ButtonProps, "size"> &
-  React.ComponentProps<"a">;
+React.ComponentProps<"a">;
 
 const PaginationLink = ({
-  className,
-  isActive,
-  size = "icon",
-  ...props
+className,
+isActive,
+size = "icon",
+...props
 }: PaginationLinkProps) => (
-  <a
-    aria-current={isActive ? "page" : undefined}
-    className={cn(
-      buttonVariants({
-        variant: isActive ? "outline" : "ghost",
-        size,
-      }),
-      className,
-    )}
-    {...props}
-  />
+<a
+aria-current={isActive ? "page" : undefined}
+className={cn(
+buttonVariants({
+variant: isActive ? "outline" : "ghost",
+size,
+}),
+className,
+)}
+{...props}
+/>
 );
 PaginationLink.displayName = "PaginationLink";
 
 const PaginationPrevious = ({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to previous page"
-    size="default"
-    className={cn("gap-1 pl-2.5", className)}
-    {...props}
-  >
+<PaginationLink
+aria-label="Go to previous page"
+size="default"
+className={cn("gap-1 pl-2.5", className)}
+{...props}
+
+>
+
     <ChevronLeft className="h-4 w-4" />
     <span>Previous</span>
+
   </PaginationLink>
 );
 PaginationPrevious.displayName = "PaginationPrevious";
 
 const PaginationNext = ({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to next page"
-    size="default"
-    className={cn("gap-1 pr-2.5", className)}
-    {...props}
-  >
+<PaginationLink
+aria-label="Go to next page"
+size="default"
+className={cn("gap-1 pr-2.5", className)}
+{...props}
+
+>
+
     <span>Next</span>
     <ChevronRight className="h-4 w-4" />
+
   </PaginationLink>
 );
 PaginationNext.displayName = "PaginationNext";
 
 const PaginationEllipsis = ({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<"span">) => (
-  <span
-    aria-hidden
-    className={cn("flex h-9 w-9 items-center justify-center", className)}
-    {...props}
-  >
+<span
+aria-hidden
+className={cn("flex h-9 w-9 items-center justify-center", className)}
+{...props}
+
+>
+
     <MoreHorizontal className="h-4 w-4" />
     <span className="sr-only">More pages</span>
+
   </span>
 );
 PaginationEllipsis.displayName = "PaginationEllipsis";
 
 export {
-  Pagination,
-  PaginationContent,
-  PaginationLink,
-  PaginationItem,
-  PaginationPrevious,
-  PaginationNext,
-  PaginationEllipsis,
+Pagination,
+PaginationContent,
+PaginationLink,
+PaginationItem,
+PaginationPrevious,
+PaginationNext,
+PaginationEllipsis,
 };
 
 ================================================================================
@@ -13632,19 +13976,19 @@ FILE: artifacts/housing/src/components/ui/PaginationBar.tsx
 import type { PaginationMeta } from '@workspace/api-client-react';
 
 interface PaginationBarProps {
-  pagination: PaginationMeta;
-  isFetching?: boolean;
-  onPageChange: (page: number) => void;
+pagination: PaginationMeta;
+isFetching?: boolean;
+onPageChange: (page: number) => void;
 }
 
 export function PaginationBar({ pagination, isFetching, onPageChange }: PaginationBarProps) {
-  const { page, totalPages, total, limit } = pagination;
-  const start = (page - 1) * limit + 1;
-  const end   = Math.min(page * limit, total);
+const { page, totalPages, total, limit } = pagination;
+const start = (page - 1) _ limit + 1;
+const end = Math.min(page _ limit, total);
 
-  return (
-    <div
-      style={{
+return (
+<div
+style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -13653,34 +13997,31 @@ export function PaginationBar({ pagination, isFetching, onPageChange }: Paginati
         marginTop: '8px',
         fontSize: '14px',
         color: 'var(--text-secondary, #6b7280)',
-      }}
-    >
-      <span>
-        {isFetching
-          ? 'Loading...'
-          : `${start}–${end} of ${total} records`}
-      </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <button
-          onClick={() => onPageChange(page - 1)}
-          disabled={!pagination.hasPrevPage || isFetching}
-          style={{ padding: '4px 12px', borderRadius: '6px', cursor: 'pointer' }}
-        >
-          ← Prev
-        </button>
-        <span style={{ fontWeight: 500, color: 'var(--text-primary, #111)' }}>
-          {page} / {totalPages}
-        </span>
-        <button
-          onClick={() => onPageChange(page + 1)}
-          disabled={!pagination.hasNextPage || isFetching}
-          style={{ padding: '4px 12px', borderRadius: '6px', cursor: 'pointer' }}
-        >
-          Next →
-        </button>
-      </div>
-    </div>
-  );
+      }} >
+<span>
+{isFetching
+? 'Loading...'
+: `${start}–${end} of ${total} records`}
+</span>
+<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+<button
+onClick={() => onPageChange(page - 1)}
+disabled={!pagination.hasPrevPage || isFetching}
+style={{ padding: '4px 12px', borderRadius: '6px', cursor: 'pointer' }} >
+← Prev
+</button>
+<span style={{ fontWeight: 500, color: 'var(--text-primary, #111)' }}>
+{page} / {totalPages}
+</span>
+<button
+onClick={() => onPageChange(page + 1)}
+disabled={!pagination.hasNextPage || isFetching}
+style={{ padding: '4px 12px', borderRadius: '6px', cursor: 'pointer' }} >
+Next →
+</button>
+</div>
+</div>
+);
 }
 
 ================================================================================
@@ -13693,40 +14034,41 @@ import { usePermission } from "@/hooks/use-permission";
 import type { Module, Action } from "@/lib/permissions";
 
 interface PermissionGateProps {
-  module: Module;
-  action: Action;
-  /** Fallback to render if permission is denied. Defaults to null. */
-  fallback?: ReactNode;
-  children: ReactNode;
+module: Module;
+action: Action;
+/\*_ Fallback to render if permission is denied. Defaults to null. _/
+fallback?: ReactNode;
+children: ReactNode;
 }
 
-/**
- * Renders `children` only when the current user has `module.action` permission.
- * Use `fallback` to show a disabled state or nothing.
- *
- * @example
- * <PermissionGate module="users" action="create">
- *   <Button>Add User</Button>
- * </PermissionGate>
- */
-export function PermissionGate({
-  module,
-  action,
-  fallback = null,
-  children,
-}: PermissionGateProps) {
-  const { can } = usePermission();
-  if (!can(module, action)) return <>{fallback}</>;
-  return <>{children}</>;
-}
+/\*\*
+
+- Renders `children` only when the current user has `module.action` permission.
+- Use `fallback` to show a disabled state or nothing.
+-
+- @example
+- <PermissionGate module="users" action="create">
+- <Button>Add User</Button>
+- </PermissionGate>
+   */
+  export function PermissionGate({
+    module,
+    action,
+    fallback = null,
+    children,
+  }: PermissionGateProps) {
+    const { can } = usePermission();
+    if (!can(module, action)) return <>{fallback}</>;
+    return <>{children}</>;
+  }
 
 ================================================================================
 FILE: artifacts/housing/src/components/ui/popover.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
+import _ as React from "react";
+import _ as PopoverPrimitive from "@radix-ui/react-popover";
 
 import { cn } from "@/lib/utils";
 
@@ -13737,10 +14079,12 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 const PopoverAnchor = PopoverPrimitive.Anchor;
 
 const PopoverContent = React.forwardRef<
-  React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
+React.ElementRef<typeof PopoverPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
+
+> (({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+> <PopoverPrimitive.Portal>
+
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
@@ -13751,7 +14095,8 @@ const PopoverContent = React.forwardRef<
       )}
       {...props}
     />
-  </PopoverPrimitive.Portal>
+
+</PopoverPrimitive.Portal>
 ));
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
 
@@ -13764,28 +14109,33 @@ FILE: artifacts/housing/src/components/ui/progress.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
-import * as ProgressPrimitive from "@radix-ui/react-progress";
+import _ as React from "react";
+import _ as ProgressPrimitive from "@radix-ui/react-progress";
 
 import { cn } from "@/lib/utils";
 
 const Progress = React.forwardRef<
-  React.ElementRef<typeof ProgressPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({ className, value, ...props }, ref) => (
-  <ProgressPrimitive.Root
+React.ElementRef<typeof ProgressPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
+
+> (({ className, value, ...props }, ref) => (
+> <ProgressPrimitive.Root
+
     ref={ref}
     className={cn(
       "relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
       className,
     )}
     {...props}
-  >
+
+>
+
     <ProgressPrimitive.Indicator
       className="h-full w-full flex-1 bg-primary transition-all"
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     />
-  </ProgressPrimitive.Root>
+
+</ProgressPrimitive.Root>
 ));
 Progress.displayName = ProgressPrimitive.Root.displayName;
 
@@ -13796,31 +14146,36 @@ FILE: artifacts/housing/src/components/ui/radio-group.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
+import _ as React from "react";
+import _ as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 import { Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const RadioGroup = React.forwardRef<
-  React.ElementRef<typeof RadioGroupPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
->(({ className, ...props }, ref) => {
-  return (
+React.ElementRef<typeof RadioGroupPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
+
+> (({ className, ...props }, ref) => {
+> return (
+
     <RadioGroupPrimitive.Root
       className={cn("grid gap-2", className)}
       {...props}
       ref={ref}
     />
-  );
+
+);
 });
 RadioGroup.displayName = RadioGroupPrimitive.Root.displayName;
 
 const RadioGroupItem = React.forwardRef<
-  React.ElementRef<typeof RadioGroupPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>
->(({ className, ...props }, ref) => {
-  return (
+React.ElementRef<typeof RadioGroupPrimitive.Item>,
+React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>
+
+> (({ className, ...props }, ref) => {
+> return (
+
     <RadioGroupPrimitive.Item
       ref={ref}
       className={cn(
@@ -13833,7 +14188,8 @@ const RadioGroupItem = React.forwardRef<
         <Circle className="h-3.5 w-3.5 fill-primary" />
       </RadioGroupPrimitive.Indicator>
     </RadioGroupPrimitive.Item>
-  );
+
+);
 });
 RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName;
 
@@ -13847,45 +14203,48 @@ FILE: artifacts/housing/src/components/ui/resizable.tsx
 "use client";
 
 import { GripVertical } from "lucide-react";
-import * as ResizablePrimitive from "react-resizable-panels";
+import \* as ResizablePrimitive from "react-resizable-panels";
 
 import { cn } from "@/lib/utils";
 
 const ResizablePanelGroup = ({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<typeof ResizablePrimitive.PanelGroup>) => (
-  <ResizablePrimitive.PanelGroup
-    className={cn(
-      "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
-      className,
-    )}
-    {...props}
-  />
+<ResizablePrimitive.PanelGroup
+className={cn(
+"flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
+className,
+)}
+{...props}
+/>
 );
 
 const ResizablePanel = ResizablePrimitive.Panel;
 
 const ResizableHandle = ({
-  withHandle,
-  className,
-  ...props
+withHandle,
+className,
+...props
 }: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
-  withHandle?: boolean;
+withHandle?: boolean;
 }) => (
-  <ResizablePrimitive.PanelResizeHandle
-    className={cn(
-      "relative flex w-px items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:-translate-y-1/2 data-[panel-group-direction=vertical]:after:translate-x-0 [&[data-panel-group-direction=vertical]>div]:rotate-90",
-      className,
-    )}
-    {...props}
-  >
+<ResizablePrimitive.PanelResizeHandle
+className={cn(
+"relative flex w-px items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:-translate-y-1/2 data-[panel-group-direction=vertical]:after:translate-x-0 [&[data-panel-group-direction=vertical]>div]:rotate-90",
+className,
+)}
+{...props}
+
+>
+
     {withHandle && (
       <div className="z-10 flex h-4 w-3 items-center justify-center rounded-sm border bg-border">
         <GripVertical className="h-2.5 w-2.5" />
       </div>
     )}
-  </ResizablePrimitive.PanelResizeHandle>
+
+</ResizablePrimitive.PanelResizeHandle>
 );
 
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle };
@@ -13895,34 +14254,41 @@ FILE: artifacts/housing/src/components/ui/scroll-area.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
+import _ as React from "react";
+import _ as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 
 import { cn } from "@/lib/utils";
 
 const ScrollArea = React.forwardRef<
-  React.ElementRef<typeof ScrollAreaPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
->(({ className, children, ...props }, ref) => (
-  <ScrollAreaPrimitive.Root
+React.ElementRef<typeof ScrollAreaPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
+
+> (({ className, children, ...props }, ref) => (
+> <ScrollAreaPrimitive.Root
+
     ref={ref}
     className={cn("relative overflow-hidden", className)}
     {...props}
-  >
+
+>
+
     <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />
     <ScrollAreaPrimitive.Corner />
-  </ScrollAreaPrimitive.Root>
+
+</ScrollAreaPrimitive.Root>
 ));
 ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName;
 
 const ScrollBar = React.forwardRef<
-  React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
->(({ className, orientation = "vertical", ...props }, ref) => (
-  <ScrollAreaPrimitive.ScrollAreaScrollbar
+React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
+React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
+
+> (({ className, orientation = "vertical", ...props }, ref) => (
+> <ScrollAreaPrimitive.ScrollAreaScrollbar
+
     ref={ref}
     orientation={orientation}
     className={cn(
@@ -13934,9 +14300,12 @@ const ScrollBar = React.forwardRef<
       className,
     )}
     {...props}
-  >
+
+>
+
     <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
-  </ScrollAreaPrimitive.ScrollAreaScrollbar>
+
+</ScrollAreaPrimitive.ScrollAreaScrollbar>
 ));
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName;
 
@@ -13949,8 +14318,8 @@ FILE: artifacts/housing/src/components/ui/select.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
-import * as SelectPrimitive from "@radix-ui/react-select";
+import _ as React from "react";
+import _ as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -13962,65 +14331,82 @@ const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
 const SelectTrigger = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
-  <SelectPrimitive.Trigger
+React.ElementRef<typeof SelectPrimitive.Trigger>,
+React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+
+> (({ className, children, ...props }, ref) => (
+> <SelectPrimitive.Trigger
+
     ref={ref}
     className={cn(
       "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className,
     )}
     {...props}
-  >
+
+>
+
     {children}
     <SelectPrimitive.Icon asChild>
       <ChevronDown className="h-4 w-4 opacity-50" />
     </SelectPrimitive.Icon>
-  </SelectPrimitive.Trigger>
+
+</SelectPrimitive.Trigger>
 ));
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
 const SelectScrollUpButton = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.ScrollUpButton
+React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
+React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
+
+> (({ className, ...props }, ref) => (
+> <SelectPrimitive.ScrollUpButton
+
     ref={ref}
     className={cn(
       "flex cursor-default items-center justify-center py-1",
       className,
     )}
     {...props}
-  >
+
+>
+
     <ChevronUp className="h-4 w-4" />
-  </SelectPrimitive.ScrollUpButton>
+
+</SelectPrimitive.ScrollUpButton>
 ));
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
 
 const SelectScrollDownButton = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.ScrollDownButton
+React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
+React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
+
+> (({ className, ...props }, ref) => (
+> <SelectPrimitive.ScrollDownButton
+
     ref={ref}
     className={cn(
       "flex cursor-default items-center justify-center py-1",
       className,
     )}
     {...props}
-  >
+
+>
+
     <ChevronDown className="h-4 w-4" />
-  </SelectPrimitive.ScrollDownButton>
+
+</SelectPrimitive.ScrollDownButton>
 ));
 SelectScrollDownButton.displayName =
-  SelectPrimitive.ScrollDownButton.displayName;
+SelectPrimitive.ScrollDownButton.displayName;
 
 const SelectContent = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
+React.ElementRef<typeof SelectPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+
+> (({ className, children, position = "popper", ...props }, ref) => (
+> <SelectPrimitive.Portal>
+
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
@@ -14044,67 +14430,79 @@ const SelectContent = React.forwardRef<
       </SelectPrimitive.Viewport>
       <SelectScrollDownButton />
     </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
+
+</SelectPrimitive.Portal>
 ));
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
 const SelectLabel = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.Label
+React.ElementRef<typeof SelectPrimitive.Label>,
+React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
+
+> (({ className, ...props }, ref) => (
+> <SelectPrimitive.Label
+
     ref={ref}
     className={cn("px-2 py-1.5 text-sm font-semibold", className)}
     {...props}
-  />
+
+/>
 ));
 SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
 const SelectItem = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
-  <SelectPrimitive.Item
+React.ElementRef<typeof SelectPrimitive.Item>,
+React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
+
+> (({ className, children, ...props }, ref) => (
+> <SelectPrimitive.Item
+
     ref={ref}
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     {...props}
-  >
+
+>
+
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
         <Check className="h-4 w-4" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-  </SelectPrimitive.Item>
+
+</SelectPrimitive.Item>
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
 const SelectSeparator = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Separator>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.Separator
+React.ElementRef<typeof SelectPrimitive.Separator>,
+React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
+
+> (({ className, ...props }, ref) => (
+> <SelectPrimitive.Separator
+
     ref={ref}
     className={cn("-mx-1 my-1 h-px bg-muted", className)}
     {...props}
-  />
+
+/>
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
 export {
-  Select,
-  SelectGroup,
-  SelectValue,
-  SelectTrigger,
-  SelectContent,
-  SelectLabel,
-  SelectItem,
-  SelectSeparator,
-  SelectScrollUpButton,
-  SelectScrollDownButton,
+Select,
+SelectGroup,
+SelectValue,
+SelectTrigger,
+SelectContent,
+SelectLabel,
+SelectItem,
+SelectSeparator,
+SelectScrollUpButton,
+SelectScrollDownButton,
 };
 
 ================================================================================
@@ -14112,31 +14510,34 @@ FILE: artifacts/housing/src/components/ui/separator.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as SeparatorPrimitive from "@radix-ui/react-separator";
+import _ as React from "react";
+import _ as SeparatorPrimitive from "@radix-ui/react-separator";
 
 import { cn } from "@/lib/utils";
 
 const Separator = React.forwardRef<
-  React.ElementRef<typeof SeparatorPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
->(
-  (
+React.ElementRef<typeof SeparatorPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
+
+> (
+> (
+
     { className, orientation = "horizontal", decorative = true, ...props },
     ref,
-  ) => (
-    <SeparatorPrimitive.Root
-      ref={ref}
-      decorative={decorative}
-      orientation={orientation}
-      className={cn(
-        "shrink-0 bg-border",
-        orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
-        className,
-      )}
-      {...props}
-    />
-  ),
+
+) => (
+<SeparatorPrimitive.Root
+ref={ref}
+decorative={decorative}
+orientation={orientation}
+className={cn(
+"shrink-0 bg-border",
+orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
+className,
+)}
+{...props}
+/>
+),
 );
 Separator.displayName = SeparatorPrimitive.Root.displayName;
 
@@ -14149,8 +14550,8 @@ FILE: artifacts/housing/src/components/ui/sheet.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
-import * as SheetPrimitive from "@radix-ui/react-dialog";
+import _ as React from "react";
+import _ as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 
@@ -14165,49 +14566,54 @@ const SheetClose = SheetPrimitive.Close;
 const SheetPortal = SheetPrimitive.Portal;
 
 const SheetOverlay = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Overlay
+React.ElementRef<typeof SheetPrimitive.Overlay>,
+React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
+
+> (({ className, ...props }, ref) => (
+> <SheetPrimitive.Overlay
+
     className={cn(
       "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
     ref={ref}
-  />
+
+/>
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out",
-  {
-    variants: {
-      side: {
-        top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-        bottom:
-          "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
-        right:
-          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
-      },
-    },
-    defaultVariants: {
-      side: "right",
-    },
-  },
+"fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out",
+{
+variants: {
+side: {
+top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+bottom:
+"inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+right:
+"inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+},
+},
+defaultVariants: {
+side: "right",
+},
+},
 );
 
 interface SheetContentProps
-  extends
-    React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+extends
+React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
+VariantProps<typeof sheetVariants> {}
 
 const SheetContent = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Content>,
-  SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
-  <SheetPortal>
+React.ElementRef<typeof SheetPrimitive.Content>,
+SheetContentProps
+
+> (({ side = "right", className, children, ...props }, ref) => (
+> <SheetPortal>
+
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
@@ -14220,14 +14626,16 @@ const SheetContent = React.forwardRef<
       </SheetPrimitive.Close>
       {children}
     </SheetPrimitive.Content>
+
   </SheetPortal>
 ));
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
 const SheetHeader = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+
   <div
     className={cn(
       "flex flex-col space-y-2 text-center sm:text-left",
@@ -14239,9 +14647,10 @@ const SheetHeader = ({
 SheetHeader.displayName = "SheetHeader";
 
 const SheetFooter = ({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+
   <div
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
@@ -14253,40 +14662,46 @@ const SheetFooter = ({
 SheetFooter.displayName = "SheetFooter";
 
 const SheetTitle = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Title
+React.ElementRef<typeof SheetPrimitive.Title>,
+React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
+
+> (({ className, ...props }, ref) => (
+> <SheetPrimitive.Title
+
     ref={ref}
     className={cn("text-lg font-semibold text-foreground", className)}
     {...props}
-  />
+
+/>
 ));
 SheetTitle.displayName = SheetPrimitive.Title.displayName;
 
 const SheetDescription = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Description
+React.ElementRef<typeof SheetPrimitive.Description>,
+React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
+
+> (({ className, ...props }, ref) => (
+> <SheetPrimitive.Description
+
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
-  />
+
+/>
 ));
 SheetDescription.displayName = SheetPrimitive.Description.displayName;
 
 export {
-  Sheet,
-  SheetPortal,
-  SheetOverlay,
-  SheetTrigger,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetFooter,
-  SheetTitle,
-  SheetDescription,
+Sheet,
+SheetPortal,
+SheetOverlay,
+SheetTrigger,
+SheetClose,
+SheetContent,
+SheetHeader,
+SheetFooter,
+SheetTitle,
+SheetDescription,
 };
 
 ================================================================================
@@ -14296,7 +14711,7 @@ FILE: artifacts/housing/src/components/ui/sidebar.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
+import \* as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
@@ -14307,719 +14722,714 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
+Sheet,
+SheetContent,
+SheetDescription,
+SheetHeader,
+SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+Tooltip,
+TooltipContent,
+TooltipProvider,
+TooltipTrigger,
 } from "@/components/ui/tooltip";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+const SIDEBAR_COOKIE_MAX_AGE = 60 _ 60 _ 24 \* 7;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 type SidebarContextProps = {
-  state: "expanded" | "collapsed";
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  openMobile: boolean;
-  setOpenMobile: (open: boolean) => void;
-  isMobile: boolean;
-  toggleSidebar: () => void;
+state: "expanded" | "collapsed";
+open: boolean;
+setOpen: (open: boolean) => void;
+openMobile: boolean;
+setOpenMobile: (open: boolean) => void;
+isMobile: boolean;
+toggleSidebar: () => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
 
 function useSidebar() {
-  const context = React.useContext(SidebarContext);
-  if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider.");
-  }
+const context = React.useContext(SidebarContext);
+if (!context) {
+throw new Error("useSidebar must be used within a SidebarProvider.");
+}
 
-  return context;
+return context;
 }
 
 function SidebarProvider({
-  defaultOpen = true,
-  open: openProp,
-  onOpenChange: setOpenProp,
-  className,
-  style,
-  children,
-  ...props
+defaultOpen = true,
+open: openProp,
+onOpenChange: setOpenProp,
+className,
+style,
+children,
+...props
 }: React.ComponentProps<"div"> & {
-  defaultOpen?: boolean;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+defaultOpen?: boolean;
+open?: boolean;
+onOpenChange?: (open: boolean) => void;
 }) {
-  const isMobile = useIsMobile();
-  const [openMobile, setOpenMobile] = React.useState(false);
+const isMobile = useIsMobile();
+const [openMobile, setOpenMobile] = React.useState(false);
 
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen);
-  const open = openProp ?? _open;
-  const setOpen = React.useCallback(
-    (value: boolean | ((value: boolean) => boolean)) => {
-      const openState = typeof value === "function" ? value(open) : value;
-      if (setOpenProp) {
-        setOpenProp(openState);
-      } else {
-        _setOpen(openState);
-      }
+// This is the internal state of the sidebar.
+// We use openProp and setOpenProp for control from outside the component.
+const [_open, _setOpen] = React.useState(defaultOpen);
+const open = openProp ?? \_open;
+const setOpen = React.useCallback(
+(value: boolean | ((value: boolean) => boolean)) => {
+const openState = typeof value === "function" ? value(open) : value;
+if (setOpenProp) {
+setOpenProp(openState);
+} else {
+\_setOpen(openState);
+}
 
       // This sets the cookie to keep the sidebar state.
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
     },
     [setOpenProp, open],
-  );
 
-  // Helper to toggle the sidebar.
-  const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
-  }, [isMobile, setOpen, setOpenMobile]);
+);
 
-  // Adds a keyboard shortcut to toggle the sidebar.
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-        (event.metaKey || event.ctrlKey)
-      ) {
-        event.preventDefault();
-        toggleSidebar();
-      }
-    };
+// Helper to toggle the sidebar.
+const toggleSidebar = React.useCallback(() => {
+return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
+}, [isMobile, setOpen, setOpenMobile]);
+
+// Adds a keyboard shortcut to toggle the sidebar.
+React.useEffect(() => {
+const handleKeyDown = (event: KeyboardEvent) => {
+if (
+event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
+(event.metaKey || event.ctrlKey)
+) {
+event.preventDefault();
+toggleSidebar();
+}
+};
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSidebar]);
 
-  // We add a state so that we can do data-state="expanded" or "collapsed".
-  // This makes it easier to style the sidebar with Tailwind classes.
-  const state = open ? "expanded" : "collapsed";
+}, [toggleSidebar]);
 
-  const contextValue = React.useMemo<SidebarContextProps>(
-    () => ({
-      state,
-      open,
-      setOpen,
-      isMobile,
-      openMobile,
-      setOpenMobile,
-      toggleSidebar,
-    }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
-  );
+// We add a state so that we can do data-state="expanded" or "collapsed".
+// This makes it easier to style the sidebar with Tailwind classes.
+const state = open ? "expanded" : "collapsed";
 
-  return (
-    <SidebarContext.Provider value={contextValue}>
-      <TooltipProvider delayDuration={0}>
-        <div
-          data-slot="sidebar-wrapper"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH,
-              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-              ...style,
-            } as React.CSSProperties
-          }
-          className={cn(
-            "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
-            className,
-          )}
-          {...props}
-        >
-          {children}
-        </div>
-      </TooltipProvider>
-    </SidebarContext.Provider>
-  );
+const contextValue = React.useMemo<SidebarContextProps>(
+() => ({
+state,
+open,
+setOpen,
+isMobile,
+openMobile,
+setOpenMobile,
+toggleSidebar,
+}),
+[state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+);
+
+return (
+<SidebarContext.Provider value={contextValue}>
+<TooltipProvider delayDuration={0}>
+<div
+data-slot="sidebar-wrapper"
+style={
+{
+"--sidebar-width": SIDEBAR_WIDTH,
+"--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+...style,
+} as React.CSSProperties
+}
+className={cn(
+"group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
+className,
+)}
+{...props} >
+{children}
+</div>
+</TooltipProvider>
+</SidebarContext.Provider>
+);
 }
 
 function Sidebar({
-  side = "left",
-  variant = "sidebar",
-  collapsible = "offcanvas",
-  className,
-  children,
-  ...props
+side = "left",
+variant = "sidebar",
+collapsible = "offcanvas",
+className,
+children,
+...props
 }: React.ComponentProps<"div"> & {
-  side?: "left" | "right";
-  variant?: "sidebar" | "floating" | "inset";
-  collapsible?: "offcanvas" | "icon" | "none";
+side?: "left" | "right";
+variant?: "sidebar" | "floating" | "inset";
+collapsible?: "offcanvas" | "icon" | "none";
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
-  if (collapsible === "none") {
-    return (
-      <div
-        data-slot="sidebar"
-        className={cn(
-          "bg-sidebar text-sidebar-foreground flex h-full w-[var(--sidebar-width)] flex-col",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  }
+if (collapsible === "none") {
+return (
+<div
+data-slot="sidebar"
+className={cn(
+"bg-sidebar text-sidebar-foreground flex h-full w-[var(--sidebar-width)] flex-col",
+className,
+)}
+{...props} >
+{children}
+</div>
+);
+}
 
-  if (isMobile) {
-    return (
-      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-        <SheetContent
-          data-sidebar="sidebar"
-          data-slot="sidebar"
-          data-mobile="true"
-          className="bg-sidebar text-sidebar-foreground w-[var(--sidebar-width)] p-0 [&>button]:hidden"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-            } as React.CSSProperties
-          }
-          side={side}
-        >
-          <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
-          </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
+if (isMobile) {
+return (
+<Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+<SheetContent
+data-sidebar="sidebar"
+data-slot="sidebar"
+data-mobile="true"
+className="bg-sidebar text-sidebar-foreground w-[var(--sidebar-width)] p-0 [&>button]:hidden"
+style={
+{
+"--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+} as React.CSSProperties
+}
+side={side} >
+<SheetHeader className="sr-only">
+<SheetTitle>Sidebar</SheetTitle>
+<SheetDescription>Displays the mobile sidebar.</SheetDescription>
+</SheetHeader>
+<div className="flex h-full w-full flex-col">{children}</div>
+</SheetContent>
+</Sheet>
+);
+}
 
-  return (
-    <div
-      className="group peer text-sidebar-foreground hidden md:block"
-      data-state={state}
-      data-collapsible={state === "collapsed" ? collapsible : ""}
-      data-variant={variant}
-      data-side={side}
-      data-slot="sidebar"
-    >
-      {/* This is what handles the sidebar gap on desktop */}
-      <div
-        data-slot="sidebar-gap"
-        className={cn(
-          "relative w-[var(--sidebar-width)] bg-transparent transition-[width] duration-200 ease-linear",
-          "group-data-[collapsible=offcanvas]:w-0",
-          "group-data-[side=right]:rotate-180",
-          variant === "floating" || variant === "inset"
-            ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+var(--spacing-4))]"
-            : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]",
-        )}
-      />
-      <div
-        data-slot="sidebar-container"
-        className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-[var(--sidebar-width)] transition-[left,right,width] duration-200 ease-linear md:flex",
-          side === "left"
-            ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-          // Adjust the padding for floating and inset variants.
-          variant === "floating" || variant === "inset"
-            ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+var(--spacing-4)+2px)]"
-            : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[side=left]:border-r group-data-[side=right]:border-l",
-          className,
-        )}
-        {...props}
-      >
-        <div
+return (
+<div
+className="group peer text-sidebar-foreground hidden md:block"
+data-state={state}
+data-collapsible={state === "collapsed" ? collapsible : ""}
+data-variant={variant}
+data-side={side}
+data-slot="sidebar" >
+{/_ This is what handles the sidebar gap on desktop _/}
+<div
+data-slot="sidebar-gap"
+className={cn(
+"relative w-[var(--sidebar-width)] bg-transparent transition-[width] duration-200 ease-linear",
+"group-data-[collapsible=offcanvas]:w-0",
+"group-data-[side=right]:rotate-180",
+variant === "floating" || variant === "inset"
+? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+var(--spacing-4))]"
+: "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]",
+)}
+/>
+<div
+data-slot="sidebar-container"
+className={cn(
+"fixed inset-y-0 z-10 hidden h-svh w-[var(--sidebar-width)] transition-[left,right,width] duration-200 ease-linear md:flex",
+side === "left"
+? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
+: "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+// Adjust the padding for floating and inset variants.
+variant === "floating" || variant === "inset"
+? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+var(--spacing-4)+2px)]"
+: "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+className,
+)}
+{...props} >
+<div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
           className="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm"
         >
-          {children}
-        </div>
-      </div>
-    </div>
-  );
+{children}
+</div>
+</div>
+</div>
+);
 }
 
 function SidebarTrigger({
-  className,
-  onClick,
-  ...props
+className,
+onClick,
+...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar();
+const { toggleSidebar } = useSidebar();
 
-  return (
-    <Button
-      data-sidebar="trigger"
-      data-slot="sidebar-trigger"
-      variant="ghost"
-      size="icon"
-      className={cn("h-7 w-7", className)}
-      onClick={(event) => {
-        onClick?.(event);
-        toggleSidebar();
-      }}
-      {...props}
-    >
-      <PanelLeftIcon />
-      <span className="sr-only">Toggle Sidebar</span>
-    </Button>
-  );
+return (
+<Button
+data-sidebar="trigger"
+data-slot="sidebar-trigger"
+variant="ghost"
+size="icon"
+className={cn("h-7 w-7", className)}
+onClick={(event) => {
+onClick?.(event);
+toggleSidebar();
+}}
+{...props} >
+<PanelLeftIcon />
+<span className="sr-only">Toggle Sidebar</span>
+</Button>
+);
 }
 
 function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
-  const { toggleSidebar } = useSidebar();
+const { toggleSidebar } = useSidebar();
 
-  // Note: Tailwind v3.4 doesn't support "in-" selectors. So the rail won't work perfectly.
-  return (
-    <button
-      data-sidebar="rail"
-      data-slot="sidebar-rail"
-      aria-label="Toggle Sidebar"
-      tabIndex={-1}
-      onClick={toggleSidebar}
-      title="Toggle Sidebar"
-      className={cn(
-        "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
-        "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
-        "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-        "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
-        "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
-        "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
-        className,
-      )}
-      {...props}
-    />
-  );
+// Note: Tailwind v3.4 doesn't support "in-" selectors. So the rail won't work perfectly.
+return (
+<button
+data-sidebar="rail"
+data-slot="sidebar-rail"
+aria-label="Toggle Sidebar"
+tabIndex={-1}
+onClick={toggleSidebar}
+title="Toggle Sidebar"
+className={cn(
+"hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
+"in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
+"[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
+"hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
+"[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
+"[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
-  return (
-    <main
-      data-slot="sidebar-inset"
-      className={cn(
-        "bg-background relative flex w-full flex-1 flex-col",
-        "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<main
+data-slot="sidebar-inset"
+className={cn(
+"bg-background relative flex w-full flex-1 flex-col",
+"md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function SidebarInput({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<typeof Input>) {
-  return (
-    <Input
-      data-slot="sidebar-input"
-      data-sidebar="input"
-      className={cn("bg-background h-8 w-full shadow-none", className)}
-      {...props}
-    />
-  );
+return (
+<Input
+data-slot="sidebar-input"
+data-sidebar="input"
+className={cn("bg-background h-8 w-full shadow-none", className)}
+{...props}
+/>
+);
 }
 
 function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sidebar-header"
-      data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2", className)}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="sidebar-header"
+data-sidebar="header"
+className={cn("flex flex-col gap-2 p-2", className)}
+{...props}
+/>
+);
 }
 
 function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sidebar-footer"
-      data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="sidebar-footer"
+data-sidebar="footer"
+className={cn("flex flex-col gap-2 p-2", className)}
+{...props}
+/>
+);
 }
 
 function SidebarSeparator({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<typeof Separator>) {
-  return (
-    <Separator
-      data-slot="sidebar-separator"
-      data-sidebar="separator"
-      className={cn("bg-sidebar-border mx-2 w-auto", className)}
-      {...props}
-    />
-  );
+return (
+<Separator
+data-slot="sidebar-separator"
+data-sidebar="separator"
+className={cn("bg-sidebar-border mx-2 w-auto", className)}
+{...props}
+/>
+);
 }
 
 function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sidebar-content"
-      data-sidebar="content"
-      className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="sidebar-content"
+data-sidebar="content"
+className={cn(
+"flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sidebar-group"
-      data-sidebar="group"
-      className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="sidebar-group"
+data-sidebar="group"
+className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
+{...props}
+/>
+);
 }
 
 function SidebarGroupLabel({
-  className,
-  asChild = false,
-  ...props
+className,
+asChild = false,
+...props
 }: React.ComponentProps<"div"> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot : "div";
+const Comp = asChild ? Slot : "div";
 
-  return (
-    <Comp
-      data-slot="sidebar-group-label"
-      data-sidebar="group-label"
-      className={cn(
-        "text-sidebar-foreground/70 ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0",
-        "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Comp
+data-slot="sidebar-group-label"
+data-sidebar="group-label"
+className={cn(
+"text-sidebar-foreground/70 ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0",
+"group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function SidebarGroupAction({
-  className,
-  asChild = false,
-  ...props
+className,
+asChild = false,
+...props
 }: React.ComponentProps<"button"> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot : "button";
+const Comp = asChild ? Slot : "button";
 
-  return (
-    <Comp
-      data-slot="sidebar-group-action"
-      data-sidebar="group-action"
-      className={cn(
-        "text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-3.5 right-3 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
-        "after:absolute after:-inset-2 md:after:hidden",
-        "group-data-[collapsible=icon]:hidden",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Comp
+data-slot="sidebar-group-action"
+data-sidebar="group-action"
+className={cn(
+"text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-3.5 right-3 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+// Increases the hit area of the button on mobile.
+"after:absolute after:-inset-2 md:after:hidden",
+"group-data-[collapsible=icon]:hidden",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function SidebarGroupContent({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sidebar-group-content"
-      data-sidebar="group-content"
-      className={cn("w-full text-sm", className)}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="sidebar-group-content"
+data-sidebar="group-content"
+className={cn("w-full text-sm", className)}
+{...props}
+/>
+);
 }
 
 function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
-  return (
-    <ul
-      data-slot="sidebar-menu"
-      data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-1", className)}
-      {...props}
-    />
-  );
+return (
+<ul
+data-slot="sidebar-menu"
+data-sidebar="menu"
+className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+{...props}
+/>
+);
 }
 
 function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
-  return (
-    <li
-      data-slot="sidebar-menu-item"
-      data-sidebar="menu-item"
-      className={cn("group/menu-item relative", className)}
-      {...props}
-    />
-  );
+return (
+<li
+data-slot="sidebar-menu-item"
+data-sidebar="menu-item"
+className={cn("group/menu-item relative", className)}
+{...props}
+/>
+);
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:w-8! group-data-[collapsible=icon]:h-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
-      },
-      size: {
-        default: "h-8 text-sm",
-        sm: "h-7 text-xs",
-        lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
+"peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:w-8! group-data-[collapsible=icon]:h-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+{
+variants: {
+variant: {
+default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+outline:
+"bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
+},
+size: {
+default: "h-8 text-sm",
+sm: "h-7 text-xs",
+lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
+},
+},
+defaultVariants: {
+variant: "default",
+size: "default",
+},
+},
 );
 
 function SidebarMenuButton({
-  asChild = false,
-  isActive = false,
-  variant = "default",
-  size = "default",
-  tooltip,
-  className,
-  ...props
+asChild = false,
+isActive = false,
+variant = "default",
+size = "default",
+tooltip,
+className,
+...props
 }: React.ComponentProps<"button"> & {
-  asChild?: boolean;
-  isActive?: boolean;
-  tooltip?: string | React.ComponentProps<typeof TooltipContent>;
+asChild?: boolean;
+isActive?: boolean;
+tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
-  const Comp = asChild ? Slot : "button";
-  const { isMobile, state } = useSidebar();
+const Comp = asChild ? Slot : "button";
+const { isMobile, state } = useSidebar();
 
-  const button = (
-    <Comp
-      data-slot="sidebar-menu-button"
-      data-sidebar="menu-button"
-      data-size={size}
-      data-active={isActive}
-      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-      {...props}
-    />
-  );
+const button = (
+<Comp
+data-slot="sidebar-menu-button"
+data-sidebar="menu-button"
+data-size={size}
+data-active={isActive}
+className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+{...props}
+/>
+);
 
-  if (!tooltip) {
-    return button;
-  }
+if (!tooltip) {
+return button;
+}
 
-  if (typeof tooltip === "string") {
-    tooltip = {
-      children: tooltip,
-    };
-  }
+if (typeof tooltip === "string") {
+tooltip = {
+children: tooltip,
+};
+}
 
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent
-        side="right"
-        align="center"
-        hidden={state !== "collapsed" || isMobile}
-        {...tooltip}
-      />
-    </Tooltip>
-  );
+return (
+<Tooltip>
+<TooltipTrigger asChild>{button}</TooltipTrigger>
+<TooltipContent
+side="right"
+align="center"
+hidden={state !== "collapsed" || isMobile}
+{...tooltip}
+/>
+</Tooltip>
+);
 }
 
 function SidebarMenuAction({
-  className,
-  asChild = false,
-  showOnHover = false,
-  ...props
+className,
+asChild = false,
+showOnHover = false,
+...props
 }: React.ComponentProps<"button"> & {
-  asChild?: boolean;
-  showOnHover?: boolean;
+asChild?: boolean;
+showOnHover?: boolean;
 }) {
-  const Comp = asChild ? Slot : "button";
+const Comp = asChild ? Slot : "button";
 
-  return (
-    <Comp
-      data-slot="sidebar-menu-action"
-      data-sidebar="menu-action"
-      className={cn(
-        "text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
-        "after:absolute after:-inset-2 md:after:hidden",
-        "peer-data-[size=sm]/menu-button:top-1",
-        "peer-data-[size=default]/menu-button:top-1.5",
-        "peer-data-[size=lg]/menu-button:top-2.5",
-        "group-data-[collapsible=icon]:hidden",
-        showOnHover &&
-          "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Comp
+data-slot="sidebar-menu-action"
+data-sidebar="menu-action"
+className={cn(
+"text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+// Increases the hit area of the button on mobile.
+"after:absolute after:-inset-2 md:after:hidden",
+"peer-data-[size=sm]/menu-button:top-1",
+"peer-data-[size=default]/menu-button:top-1.5",
+"peer-data-[size=lg]/menu-button:top-2.5",
+"group-data-[collapsible=icon]:hidden",
+showOnHover &&
+"peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function SidebarMenuBadge({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sidebar-menu-badge"
-      data-sidebar="menu-badge"
-      className={cn(
-        "text-sidebar-foreground pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums select-none",
-        "peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground",
-        "peer-data-[size=sm]/menu-button:top-1",
-        "peer-data-[size=default]/menu-button:top-1.5",
-        "peer-data-[size=lg]/menu-button:top-2.5",
-        "group-data-[collapsible=icon]:hidden",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<div
+data-slot="sidebar-menu-badge"
+data-sidebar="menu-badge"
+className={cn(
+"text-sidebar-foreground pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums select-none",
+"peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground",
+"peer-data-[size=sm]/menu-button:top-1",
+"peer-data-[size=default]/menu-button:top-1.5",
+"peer-data-[size=lg]/menu-button:top-2.5",
+"group-data-[collapsible=icon]:hidden",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function SidebarMenuSkeleton({
-  className,
-  showIcon = false,
-  ...props
+className,
+showIcon = false,
+...props
 }: React.ComponentProps<"div"> & {
-  showIcon?: boolean;
+showIcon?: boolean;
 }) {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
-  }, []);
+// Random width between 50 to 90%.
+const width = React.useMemo(() => {
+return `${Math.floor(Math.random() * 40) + 50}%`;
+}, []);
 
-  return (
-    <div
-      data-slot="sidebar-menu-skeleton"
-      data-sidebar="menu-skeleton"
-      className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
-      {...props}
-    >
-      {showIcon && (
-        <Skeleton
+return (
+<div
+data-slot="sidebar-menu-skeleton"
+data-sidebar="menu-skeleton"
+className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
+{...props} >
+{showIcon && (
+<Skeleton
           className="size-4 rounded-md"
           data-sidebar="menu-skeleton-icon"
         />
-      )}
-      <Skeleton
-        className="h-4 max-w-[var(--skeleton-width)] flex-1"
-        data-sidebar="menu-skeleton-text"
-        style={
-          {
-            "--skeleton-width": width,
-          } as React.CSSProperties
-        }
-      />
-    </div>
-  );
+)}
+<Skeleton
+className="h-4 max-w-[var(--skeleton-width)] flex-1"
+data-sidebar="menu-skeleton-text"
+style={
+{
+"--skeleton-width": width,
+} as React.CSSProperties
+}
+/>
+</div>
+);
 }
 
 function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
-  return (
-    <ul
-      data-slot="sidebar-menu-sub"
-      data-sidebar="menu-sub"
-      className={cn(
-        "border-sidebar-border mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5",
-        "group-data-[collapsible=icon]:hidden",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<ul
+data-slot="sidebar-menu-sub"
+data-sidebar="menu-sub"
+className={cn(
+"border-sidebar-border mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5",
+"group-data-[collapsible=icon]:hidden",
+className,
+)}
+{...props}
+/>
+);
 }
 
 function SidebarMenuSubItem({
-  className,
-  ...props
+className,
+...props
 }: React.ComponentProps<"li">) {
-  return (
-    <li
-      data-slot="sidebar-menu-sub-item"
-      data-sidebar="menu-sub-item"
-      className={cn("group/menu-sub-item relative", className)}
-      {...props}
-    />
-  );
+return (
+<li
+data-slot="sidebar-menu-sub-item"
+data-sidebar="menu-sub-item"
+className={cn("group/menu-sub-item relative", className)}
+{...props}
+/>
+);
 }
 
 function SidebarMenuSubButton({
-  asChild = false,
-  size = "md",
-  isActive = false,
-  className,
-  ...props
+asChild = false,
+size = "md",
+isActive = false,
+className,
+...props
 }: React.ComponentProps<"a"> & {
-  asChild?: boolean;
-  size?: "sm" | "md";
-  isActive?: boolean;
+asChild?: boolean;
+size?: "sm" | "md";
+isActive?: boolean;
 }) {
-  const Comp = asChild ? Slot : "a";
+const Comp = asChild ? Slot : "a";
 
-  return (
-    <Comp
-      data-slot="sidebar-menu-sub-button"
-      data-sidebar="menu-sub-button"
-      data-size={size}
-      data-active={isActive}
-      className={cn(
-        "text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 outline outline-2 outline-transparent outline-offset-2 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
-        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
-        size === "sm" && "text-xs",
-        size === "md" && "text-sm",
-        "group-data-[collapsible=icon]:hidden",
-        className,
-      )}
-      {...props}
-    />
-  );
+return (
+<Comp
+data-slot="sidebar-menu-sub-button"
+data-sidebar="menu-sub-button"
+data-size={size}
+data-active={isActive}
+className={cn(
+"text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 outline outline-2 outline-transparent outline-offset-2 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+"data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
+size === "sm" && "text-xs",
+size === "md" && "text-sm",
+"group-data-[collapsible=icon]:hidden",
+className,
+)}
+{...props}
+/>
+);
 }
 
 export {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInput,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSkeleton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarSeparator,
-  SidebarTrigger,
-  useSidebar,
+Sidebar,
+SidebarContent,
+SidebarFooter,
+SidebarGroup,
+SidebarGroupAction,
+SidebarGroupContent,
+SidebarGroupLabel,
+SidebarHeader,
+SidebarInput,
+SidebarInset,
+SidebarMenu,
+SidebarMenuAction,
+SidebarMenuBadge,
+SidebarMenuButton,
+SidebarMenuItem,
+SidebarMenuSkeleton,
+SidebarMenuSub,
+SidebarMenuSubButton,
+SidebarMenuSubItem,
+SidebarProvider,
+SidebarRail,
+SidebarSeparator,
+SidebarTrigger,
+useSidebar,
 };
 
 ================================================================================
@@ -15030,15 +15440,15 @@ FILE: artifacts/housing/src/components/ui/skeleton.tsx
 import { cn } from "@/lib/utils";
 
 function Skeleton({
-  className,
-  ...props
+className,
+...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("animate-pulse rounded-md bg-primary/10", className)}
-      {...props}
-    />
-  );
+return (
+<div
+className={cn("animate-pulse rounded-md bg-primary/10", className)}
+{...props}
+/>
+);
 }
 
 export { Skeleton };
@@ -15048,16 +15458,16 @@ FILE: artifacts/housing/src/components/ui/SkeletonCard.tsx
 ================================================================================
 
 export function SkeletonCard({ height = "120px" }: { height?: string }) {
-  return (
-    <div
-      style={{
+return (
+<div
+style={{
         height,
         backgroundColor: "var(--bg-secondary, #f3f4f6)",
         borderRadius: "8px",
         animation: "pulse 1.5s infinite",
       }}
-    />
-  );
+/>
+);
 }
 
 ================================================================================
@@ -15065,28 +15475,33 @@ FILE: artifacts/housing/src/components/ui/slider.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as SliderPrimitive from "@radix-ui/react-slider";
+import _ as React from "react";
+import _ as SliderPrimitive from "@radix-ui/react-slider";
 
 import { cn } from "@/lib/utils";
 
 const Slider = React.forwardRef<
-  React.ElementRef<typeof SliderPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <SliderPrimitive.Root
+React.ElementRef<typeof SliderPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
+
+> (({ className, ...props }, ref) => (
+> <SliderPrimitive.Root
+
     ref={ref}
     className={cn(
       "relative flex w-full touch-none select-none items-center",
       className,
     )}
     {...props}
-  >
+
+>
+
     <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-primary/20">
       <SliderPrimitive.Range className="absolute h-full bg-primary" />
     </SliderPrimitive.Track>
     <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
-  </SliderPrimitive.Root>
+
+</SliderPrimitive.Root>
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;
 
@@ -15105,13 +15520,13 @@ import { Toaster as Sonner } from "sonner";
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+const { theme = "system" } = useTheme();
 
-  return (
-    <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster group"
-      toastOptions={{
+return (
+<Sonner
+theme={theme as ToasterProps["theme"]}
+className="toaster group"
+toastOptions={{
         classNames: {
           toast:
             "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
@@ -15122,9 +15537,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
         },
       }}
-      {...props}
-    />
-  );
+{...props}
+/>
+);
 };
 
 export { Toaster };
@@ -15139,14 +15554,14 @@ import { Loader2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
-  return (
-    <Loader2Icon
-      role="status"
-      aria-label="Loading"
-      className={cn("size-4 animate-spin", className)}
-      {...props}
-    />
-  );
+return (
+<Loader2Icon
+role="status"
+aria-label="Loading"
+className={cn("size-4 animate-spin", className)}
+{...props}
+/>
+);
 }
 
 export { Spinner };
@@ -15156,29 +15571,34 @@ FILE: artifacts/housing/src/components/ui/switch.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as SwitchPrimitives from "@radix-ui/react-switch";
+import _ as React from "react";
+import _ as SwitchPrimitives from "@radix-ui/react-switch";
 
 import { cn } from "@/lib/utils";
 
 const Switch = React.forwardRef<
-  React.ElementRef<typeof SwitchPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
->(({ className, ...props }, ref) => (
-  <SwitchPrimitives.Root
+React.ElementRef<typeof SwitchPrimitives.Root>,
+React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
+
+> (({ className, ...props }, ref) => (
+> <SwitchPrimitives.Root
+
     className={cn(
       "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
       className,
     )}
     {...props}
     ref={ref}
-  >
+
+>
+
     <SwitchPrimitives.Thumb
       className={cn(
         "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0",
       )}
     />
-  </SwitchPrimitives.Root>
+
+</SwitchPrimitives.Root>
 ));
 Switch.displayName = SwitchPrimitives.Root.displayName;
 
@@ -15189,14 +15609,16 @@ FILE: artifacts/housing/src/components/ui/table.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 
 import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<
-  HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
+HTMLTableElement,
+React.HTMLAttributes<HTMLTableElement>
+
+> (({ className, ...props }, ref) => (
+
   <div className="relative w-full overflow-auto">
     <table
       ref={ref}
@@ -15208,17 +15630,21 @@ const Table = React.forwardRef<
 Table.displayName = "Table";
 
 const TableHeader = React.forwardRef<
-  HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
+HTMLTableSectionElement,
+React.HTMLAttributes<HTMLTableSectionElement>
+
+> (({ className, ...props }, ref) => (
+
   <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
 ));
 TableHeader.displayName = "TableHeader";
 
 const TableBody = React.forwardRef<
-  HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
+HTMLTableSectionElement,
+React.HTMLAttributes<HTMLTableSectionElement>
+
+> (({ className, ...props }, ref) => (
+
   <tbody
     ref={ref}
     className={cn("[&_tr:last-child]:border-0", className)}
@@ -15228,9 +15654,11 @@ const TableBody = React.forwardRef<
 TableBody.displayName = "TableBody";
 
 const TableFooter = React.forwardRef<
-  HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
+HTMLTableSectionElement,
+React.HTMLAttributes<HTMLTableSectionElement>
+
+> (({ className, ...props }, ref) => (
+
   <tfoot
     ref={ref}
     className={cn(
@@ -15243,9 +15671,11 @@ const TableFooter = React.forwardRef<
 TableFooter.displayName = "TableFooter";
 
 const TableRow = React.forwardRef<
-  HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
+HTMLTableRowElement,
+React.HTMLAttributes<HTMLTableRowElement>
+
+> (({ className, ...props }, ref) => (
+
   <tr
     ref={ref}
     className={cn(
@@ -15258,9 +15688,11 @@ const TableRow = React.forwardRef<
 TableRow.displayName = "TableRow";
 
 const TableHead = React.forwardRef<
-  HTMLTableCellElement,
-  React.ThHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+HTMLTableCellElement,
+React.ThHTMLAttributes<HTMLTableCellElement>
+
+> (({ className, ...props }, ref) => (
+
   <th
     ref={ref}
     className={cn(
@@ -15273,9 +15705,11 @@ const TableHead = React.forwardRef<
 TableHead.displayName = "TableHead";
 
 const TableCell = React.forwardRef<
-  HTMLTableCellElement,
-  React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+HTMLTableCellElement,
+React.TdHTMLAttributes<HTMLTableCellElement>
+
+> (({ className, ...props }, ref) => (
+
   <td
     ref={ref}
     className={cn(
@@ -15288,9 +15722,11 @@ const TableCell = React.forwardRef<
 TableCell.displayName = "TableCell";
 
 const TableCaption = React.forwardRef<
-  HTMLTableCaptionElement,
-  React.HTMLAttributes<HTMLTableCaptionElement>
->(({ className, ...props }, ref) => (
+HTMLTableCaptionElement,
+React.HTMLAttributes<HTMLTableCaptionElement>
+
+> (({ className, ...props }, ref) => (
+
   <caption
     ref={ref}
     className={cn("mt-4 text-sm text-muted-foreground", className)}
@@ -15300,14 +15736,14 @@ const TableCaption = React.forwardRef<
 TableCaption.displayName = "TableCaption";
 
 export {
-  Table,
-  TableHeader,
-  TableBody,
-  TableFooter,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableCaption,
+Table,
+TableHeader,
+TableBody,
+TableFooter,
+TableHead,
+TableRow,
+TableCell,
+TableCaption,
 };
 
 ================================================================================
@@ -15315,55 +15751,64 @@ FILE: artifacts/housing/src/components/ui/tabs.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
+import _ as React from "react";
+import _ as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
 
 const Tabs = TabsPrimitive.Root;
 
 const TabsList = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
+React.ElementRef<typeof TabsPrimitive.List>,
+React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+
+> (({ className, ...props }, ref) => (
+> <TabsPrimitive.List
+
     ref={ref}
     className={cn(
       "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 TabsList.displayName = TabsPrimitive.List.displayName;
 
 const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Trigger
+React.ElementRef<typeof TabsPrimitive.Trigger>,
+React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+
+> (({ className, ...props }, ref) => (
+> <TabsPrimitive.Trigger
+
     ref={ref}
     className={cn(
       "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
 const TabsContent = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
+React.ElementRef<typeof TabsPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+
+> (({ className, ...props }, ref) => (
+> <TabsPrimitive.Content
+
     ref={ref}
     className={cn(
       "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 TabsContent.displayName = TabsPrimitive.Content.displayName;
 
@@ -15374,15 +15819,17 @@ FILE: artifacts/housing/src/components/ui/textarea.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 
 import { cn } from "@/lib/utils";
 
 const Textarea = React.forwardRef<
-  HTMLTextAreaElement,
-  React.ComponentProps<"textarea">
->(({ className, ...props }, ref) => {
-  return (
+HTMLTextAreaElement,
+React.ComponentProps<"textarea">
+
+> (({ className, ...props }, ref) => {
+> return (
+
     <textarea
       className={cn(
         "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
@@ -15391,7 +15838,8 @@ const Textarea = React.forwardRef<
       ref={ref}
       {...props}
     />
-  );
+
+);
 });
 Textarea.displayName = "Textarea";
 
@@ -15404,252 +15852,253 @@ FILE: artifacts/housing/src/components/ui/ticket-detail-modal.tsx
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+Select,
+SelectContent,
+SelectItem,
+SelectTrigger,
+SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { format, differenceInMinutes, differenceInHours } from "date-fns";
 import {
-  Play,
-  CheckCircle2,
-  Clock,
-  User,
-  Calendar,
-  AlertTriangle,
-  MessageSquare,
-  Paperclip,
-  Plus,
-  RotateCcw,
-  Handshake,
-  ChevronDown,
-  ChevronRight,
-  X,
-  Eye,
-  FileText,
-  Wrench,
-  Loader2,
+Play,
+CheckCircle2,
+Clock,
+User,
+Calendar,
+AlertTriangle,
+MessageSquare,
+Paperclip,
+Plus,
+RotateCcw,
+Handshake,
+ChevronDown,
+ChevronRight,
+X,
+Eye,
+FileText,
+Wrench,
+Loader2,
 } from "lucide-react";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
 interface TicketDetailModalProps {
-  open: boolean;
-  onClose: () => void;
-  ticket: any;
-  employees: any[];
-  ar: boolean;
-  onStatusChange: (id: number, data: any) => void;
-  onAssignChange: (id: number, empId: number | null) => void;
-  onCreateSubTicket?: (parentId: number, data: any) => void;
-  subTickets?: any[];
-  loadingSubTickets?: boolean;
+open: boolean;
+onClose: () => void;
+ticket: any;
+employees: any[];
+ar: boolean;
+onStatusChange: (id: number, data: any) => void;
+onAssignChange: (id: number, empId: number | null) => void;
+onCreateSubTicket?: (parentId: number, data: any) => void;
+subTickets?: any[];
+loadingSubTickets?: boolean;
 }
 
 const STATUS_AR: Record<string, string> = {
-  open: "مفتوحة",
-  in_progress: "قيد التنفيذ",
-  resolved: "محلولة",
-  closed: "مغلقة",
+open: "مفتوحة",
+in_progress: "قيد التنفيذ",
+resolved: "محلولة",
+closed: "مغلقة",
 };
 const PRIORITY_AR: Record<string, string> = {
-  LOW: "منخفضة",
-  MEDIUM: "متوسطة",
-  HIGH: "عالية",
-  URGENT: "عاجلة",
+LOW: "منخفضة",
+MEDIUM: "متوسطة",
+HIGH: "عالية",
+URGENT: "عاجلة",
 };
 const CATEGORY_AR = {
-  maintenance: "صيانة",
-  housekeeping: "هاوس كيبنج",
-  general: "عام",
+maintenance: "صيانة",
+housekeeping: "هاوس كيبنج",
+general: "عام",
 };
 
 function statusColor(s: string) {
-  switch ((s || "").toLowerCase()) {
-    case "open":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
-    case "in_progress":
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300";
-    case "resolved":
-      return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
-    case "closed":
-      return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
-    default:
-      return "bg-gray-100 text-gray-600";
-  }
+switch ((s || "").toLowerCase()) {
+case "open":
+return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
+case "in_progress":
+return "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300";
+case "resolved":
+return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
+case "closed":
+return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+default:
+return "bg-gray-100 text-gray-600";
+}
 }
 
 function priorityColor(p: string) {
-  switch ((p || "").toLowerCase()) {
-    case "urgent":
-      return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
-    case "high":
-      return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
-    case "medium":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300";
-    default:
-      return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
-  }
+switch ((p || "").toLowerCase()) {
+case "urgent":
+return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
+case "high":
+return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
+case "medium":
+return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300";
+default:
+return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+}
 }
 
 function formatDuration(startedAt: any, resolvedAt: any, reportedAt: any) {
-  const start = reportedAt ?? startedAt;
-  if (!start) return "—";
-  const startDate = new Date(start);
-  const endDate = resolvedAt ? new Date(resolvedAt) : new Date();
-  const totalMins = differenceInMinutes(endDate, startDate);
-  if (totalMins < 1) return "<1m";
-  if (totalMins < 60) return `${totalMins}m`;
-  const hrs = differenceInHours(endDate, startDate);
-  const mins = totalMins % 60;
-  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+const start = reportedAt ?? startedAt;
+if (!start) return "—";
+const startDate = new Date(start);
+const endDate = resolvedAt ? new Date(resolvedAt) : new Date();
+const totalMins = differenceInMinutes(endDate, startDate);
+if (totalMins < 1) return "<1m";
+if (totalMins < 60) return `${totalMins}m`;
+const hrs = differenceInHours(endDate, startDate);
+const mins = totalMins % 60;
+return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
 }
 
 function timeColor(diff: number) {
-  if (diff < 21) return "bg-gray-200 text-gray-700";
-  if (diff < 31) return "bg-blue-100 text-blue-700";
-  if (diff < 41) return "bg-yellow-100 text-yellow-700";
-  if (diff < 51) return "bg-orange-100 text-orange-700";
-  if (diff < 61) return "bg-red-100 text-red-700";
-  return "bg-gray-800 text-white";
+if (diff < 21) return "bg-gray-200 text-gray-700";
+if (diff < 31) return "bg-blue-100 text-blue-700";
+if (diff < 41) return "bg-yellow-100 text-yellow-700";
+if (diff < 51) return "bg-orange-100 text-orange-700";
+if (diff < 61) return "bg-red-100 text-red-700";
+return "bg-gray-800 text-white";
 }
 
 export default function TicketDetailModal({
-  open,
-  onClose,
-  ticket,
-  employees = [],
-  ar,
-  onStatusChange,
-  onAssignChange,
-  onCreateSubTicket,
-  subTickets = [],
-  loadingSubTickets = false,
+open,
+onClose,
+ticket,
+employees = [],
+ar,
+onStatusChange,
+onAssignChange,
+onCreateSubTicket,
+subTickets = [],
+loadingSubTickets = false,
 }: TicketDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<
-    "details" | "tasks" | "comments" | "attachments"
-  >("details");
-  const [commentText, setCommentText] = useState("");
-  const [showSubTicketForm, setShowSubTicketForm] = useState(false);
-  const [subTicketForm, setSubTicketForm] = useState({
+const [activeTab, setActiveTab] = useState<
+"details" | "tasks" | "comments" | "attachments"
+
+> ("details");
+> const [commentText, setCommentText] = useState("");
+> const [showSubTicketForm, setShowSubTicketForm] = useState(false);
+> const [subTicketForm, setSubTicketForm] = useState({
+
     problemType: "",
     description: "",
     priority: "MEDIUM",
-  });
-  const [creatingSub, setCreatingSub] = useState(false);
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  if (!ticket) return null;
+});
+const [creatingSub, setCreatingSub] = useState(false);
+const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  const empMap = Object.fromEntries(
-    employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
-  );
+if (!ticket) return null;
 
-  const reportedDate = ticket.reportedAt
-    ? format(new Date(ticket.reportedAt), "dd MMM yyyy")
-    : "—";
-  const reportedTime = ticket.reportedAt
-    ? format(new Date(ticket.reportedAt), "HH:mm")
-    : "—";
-  const startedDate = ticket.startedAt
-    ? format(new Date(ticket.startedAt), "dd MMM yyyy")
-    : null;
-  const startedTime = ticket.startedAt
-    ? format(new Date(ticket.startedAt), "HH:mm")
-    : null;
-  const resolvedDate = ticket.resolvedAt
-    ? format(new Date(ticket.resolvedAt), "dd MMM yyyy")
-    : null;
-  const resolvedTime = ticket.resolvedAt
-    ? format(new Date(ticket.resolvedAt), "HH:mm")
-    : null;
+const empMap = Object.fromEntries(
+employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
+);
 
-  const timeToAssign =
-    ticket.startedAt && ticket.reportedAt
-      ? formatDuration(ticket.reportedAt, ticket.startedAt, null)
-      : "—";
-  const workingTime = ticket.startedAt
-    ? formatDuration(ticket.startedAt, ticket.resolvedAt, null)
-    : "—";
-  const totalTime = formatDuration(
-    ticket.startedAt,
-    ticket.resolvedAt,
-    ticket.reportedAt,
-  );
+const reportedDate = ticket.reportedAt
+? format(new Date(ticket.reportedAt), "dd MMM yyyy")
+: "—";
+const reportedTime = ticket.reportedAt
+? format(new Date(ticket.reportedAt), "HH:mm")
+: "—";
+const startedDate = ticket.startedAt
+? format(new Date(ticket.startedAt), "dd MMM yyyy")
+: null;
+const startedTime = ticket.startedAt
+? format(new Date(ticket.startedAt), "HH:mm")
+: null;
+const resolvedDate = ticket.resolvedAt
+? format(new Date(ticket.resolvedAt), "dd MMM yyyy")
+: null;
+const resolvedTime = ticket.resolvedAt
+? format(new Date(ticket.resolvedAt), "HH:mm")
+: null;
 
-  const status = (ticket.status || "").toLowerCase();
-  const canStart = status === "open";
-  const canResolve = status === "in_progress";
-  const canDone = status === "resolved";
-  const canReopen = status !== "open" && status !== "closed";
+const timeToAssign =
+ticket.startedAt && ticket.reportedAt
+? formatDuration(ticket.reportedAt, ticket.startedAt, null)
+: "—";
+const workingTime = ticket.startedAt
+? formatDuration(ticket.startedAt, ticket.resolvedAt, null)
+: "—";
+const totalTime = formatDuration(
+ticket.startedAt,
+ticket.resolvedAt,
+ticket.reportedAt,
+);
 
-  const tabs = [
-    { key: "details" as const, label: ar ? "التفاصيل" : "Details", icon: Eye },
-    { key: "tasks" as const, label: ar ? "المهام" : "Tasks", icon: Wrench },
-    {
-      key: "comments" as const,
-      label: ar ? "التعليقات" : "Comments",
-      icon: MessageSquare,
-    },
-    {
-      key: "attachments" as const,
-      label: ar ? "المرفقات" : "Attachments",
-      icon: Paperclip,
-    },
-  ];
+const status = (ticket.status || "").toLowerCase();
+const canStart = status === "open";
+const canResolve = status === "in_progress";
+const canDone = status === "resolved";
+const canReopen = status !== "open" && status !== "closed";
 
-  return (
-    <>
-      <Dialog
-        open={open}
-        onOpenChange={(v) => {
-          if (!v) onClose();
-        }}
-      >
-        <DialogContent
-          className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"
-          srTitle={ar ? "تفاصيل التذكرة" : "Ticket Details"}
-        >
-          {/* Header */}
-          <DialogHeader className="px-6 pt-6 pb-4 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <DialogTitle className="text-xl font-bold">
-                  {ar ? "تذكرة #" : "Ticket #"}
-                  {ticket.id}
-                </DialogTitle>
-                <Badge className={`${statusColor(ticket.status)} text-xs`}>
-                  {ar
-                    ? (STATUS_AR[ticket.status?.toLowerCase()] ?? ticket.status)
-                    : ticket.status?.replace("_", " ")}
-                </Badge>
-                <Badge className={`${priorityColor(ticket.priority)} text-xs`}>
-                  {ar
-                    ? (PRIORITY_AR[ticket.priority?.toUpperCase()] ??
-                      PRIORITY_AR[ticket.priority] ??
-                      ticket.priority)
-                    : ticket.priority
-                      ? ticket.priority.charAt(0).toUpperCase() +
-                        ticket.priority.slice(1).toLowerCase()
-                      : ticket.priority}
-                </Badge>
-              </div>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </DialogHeader>
+const tabs = [
+{ key: "details" as const, label: ar ? "التفاصيل" : "Details", icon: Eye },
+{ key: "tasks" as const, label: ar ? "المهام" : "Tasks", icon: Wrench },
+{
+key: "comments" as const,
+label: ar ? "التعليقات" : "Comments",
+icon: MessageSquare,
+},
+{
+key: "attachments" as const,
+label: ar ? "المرفقات" : "Attachments",
+icon: Paperclip,
+},
+];
+
+return (
+<>
+<Dialog
+open={open}
+onOpenChange={(v) => {
+if (!v) onClose();
+}} >
+<DialogContent
+className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"
+srTitle={ar ? "تفاصيل التذكرة" : "Ticket Details"} >
+{/_ Header _/}
+<DialogHeader className="px-6 pt-6 pb-4 border-b">
+<div className="flex items-center justify-between">
+<div className="flex items-center gap-3">
+<DialogTitle className="text-xl font-bold">
+{ar ? "تذكرة #" : "Ticket #"}
+{ticket.id}
+</DialogTitle>
+<Badge className={`${statusColor(ticket.status)} text-xs`}>
+{ar
+? (STATUS*AR[ticket.status?.toLowerCase()] ?? ticket.status)
+: ticket.status?.replace("*", " ")}
+</Badge>
+<Badge className={`${priorityColor(ticket.priority)} text-xs`}>
+{ar
+? (PRIORITY_AR[ticket.priority?.toUpperCase()] ??
+PRIORITY_AR[ticket.priority] ??
+ticket.priority)
+: ticket.priority
+? ticket.priority.charAt(0).toUpperCase() +
+ticket.priority.slice(1).toLowerCase()
+: ticket.priority}
+</Badge>
+</div>
+<Button variant="ghost" size="icon" onClick={onClose}>
+<X className="w-4 h-4" />
+</Button>
+</div>
+</DialogHeader>
 
           {/* Tabs */}
           <div className="px-6 border-b">
@@ -16137,7 +16586,7 @@ export default function TicketDetailModal({
                 </h3>
                 {ticket.photoUrl ? (
                   <div className="space-y-3">
-                    
+
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
@@ -16154,7 +16603,8 @@ export default function TicketDetailModal({
       </Dialog>
       <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </>
-  );
+
+);
 }
 
 ================================================================================
@@ -16162,8 +16612,8 @@ FILE: artifacts/housing/src/components/ui/toast.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as ToastPrimitives from "@radix-ui/react-toast";
+import _ as React from "react";
+import _ as ToastPrimitives from "@radix-ui/react-toast";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 
@@ -16172,71 +16622,82 @@ import { cn } from "@/lib/utils";
 const ToastProvider = ToastPrimitives.Provider;
 
 const ToastViewport = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Viewport>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Viewport
+React.ElementRef<typeof ToastPrimitives.Viewport>,
+React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
+
+> (({ className, ...props }, ref) => (
+> <ToastPrimitives.Viewport
+
     ref={ref}
     className={cn(
       "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
-  {
-    variants: {
-      variant: {
-        default: "border bg-background text-foreground",
-        destructive:
-          "destructive group border-destructive bg-destructive text-destructive-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
+"group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+{
+variants: {
+variant: {
+default: "border bg-background text-foreground",
+destructive:
+"destructive group border-destructive bg-destructive text-destructive-foreground",
+},
+},
+defaultVariants: {
+variant: "default",
+},
+},
 );
 
 const Toast = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
-    VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => {
-  return (
+React.ElementRef<typeof ToastPrimitives.Root>,
+React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
+VariantProps<typeof toastVariants>
+
+> (({ className, variant, ...props }, ref) => {
+> return (
+
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
       {...props}
     />
-  );
+
+);
 });
 Toast.displayName = ToastPrimitives.Root.displayName;
 
 const ToastAction = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Action>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Action
+React.ElementRef<typeof ToastPrimitives.Action>,
+React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
+
+> (({ className, ...props }, ref) => (
+> <ToastPrimitives.Action
+
     ref={ref}
     className={cn(
       "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
       className,
     )}
     {...props}
-  />
+
+/>
 ));
 ToastAction.displayName = ToastPrimitives.Action.displayName;
 
 const ToastClose = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Close>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Close
+React.ElementRef<typeof ToastPrimitives.Close>,
+React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
+
+> (({ className, ...props }, ref) => (
+> <ToastPrimitives.Close
+
     ref={ref}
     className={cn(
       "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
@@ -16244,33 +16705,42 @@ const ToastClose = React.forwardRef<
     )}
     toast-close=""
     {...props}
-  >
+
+>
+
     <X className="h-4 w-4" />
-  </ToastPrimitives.Close>
+
+</ToastPrimitives.Close>
 ));
 ToastClose.displayName = ToastPrimitives.Close.displayName;
 
 const ToastTitle = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Title>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Title
+React.ElementRef<typeof ToastPrimitives.Title>,
+React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
+
+> (({ className, ...props }, ref) => (
+> <ToastPrimitives.Title
+
     ref={ref}
     className={cn("text-sm font-semibold", className)}
     {...props}
-  />
+
+/>
 ));
 ToastTitle.displayName = ToastPrimitives.Title.displayName;
 
 const ToastDescription = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Description>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Description
+React.ElementRef<typeof ToastPrimitives.Description>,
+React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
+
+> (({ className, ...props }, ref) => (
+> <ToastPrimitives.Description
+
     ref={ref}
     className={cn("text-sm opacity-90", className)}
     {...props}
-  />
+
+/>
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
@@ -16279,15 +16749,15 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
 type ToastActionElement = React.ReactElement<typeof ToastAction>;
 
 export {
-  type ToastProps,
-  type ToastActionElement,
-  ToastProvider,
-  ToastViewport,
-  Toast,
-  ToastTitle,
-  ToastDescription,
-  ToastClose,
-  ToastAction,
+type ToastProps,
+type ToastActionElement,
+ToastProvider,
+ToastViewport,
+Toast,
+ToastTitle,
+ToastDescription,
+ToastClose,
+ToastAction,
 };
 
 ================================================================================
@@ -16297,36 +16767,36 @@ FILE: artifacts/housing/src/components/ui/toaster.tsx
 // @ts-nocheck
 import { useToast } from "@/hooks/use-toast";
 import {
-  Toast,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
+Toast,
+ToastClose,
+ToastDescription,
+ToastProvider,
+ToastTitle,
+ToastViewport,
 } from "@/components/ui/toast";
 
 export function Toaster() {
-  const { toasts } = useToast();
+const { toasts } = useToast();
 
-  return (
-    <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        );
-      })}
-      <ToastViewport />
-    </ToastProvider>
-  );
+return (
+<ToastProvider>
+{toasts.map(function ({ id, title, description, action, ...props }) {
+return (
+<Toast key={id} {...props}>
+<div className="grid gap-1">
+{title && <ToastTitle>{title}</ToastTitle>}
+{description && (
+<ToastDescription>{description}</ToastDescription>
+)}
+</div>
+{action}
+<ToastClose />
+</Toast>
+);
+})}
+<ToastViewport />
+</ToastProvider>
+);
 }
 
 ================================================================================
@@ -16336,60 +16806,66 @@ FILE: artifacts/housing/src/components/ui/toggle-group.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
-import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group";
+import _ as React from "react";
+import _ as ToggleGroupPrimitive from "@radix-ui/react-toggle-group";
 import { type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 import { toggleVariants } from "@/components/ui/toggle";
 
 const ToggleGroupContext = React.createContext<
-  VariantProps<typeof toggleVariants>
->({
-  size: "default",
-  variant: "default",
-});
+VariantProps<typeof toggleVariants>
+
+> ({
+> size: "default",
+> variant: "default",
+> });
 
 const ToggleGroup = React.forwardRef<
-  React.ElementRef<typeof ToggleGroupPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
-    VariantProps<typeof toggleVariants>
->(({ className, variant, size, children, ...props }, ref) => (
-  <ToggleGroupPrimitive.Root
+React.ElementRef<typeof ToggleGroupPrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
+VariantProps<typeof toggleVariants>
+
+> (({ className, variant, size, children, ...props }, ref) => (
+> <ToggleGroupPrimitive.Root
+
     ref={ref}
     className={cn("flex items-center justify-center gap-1", className)}
     {...props}
-  >
+
+>
+
     <ToggleGroupContext.Provider value={{ variant, size }}>
       {children}
     </ToggleGroupContext.Provider>
-  </ToggleGroupPrimitive.Root>
+
+</ToggleGroupPrimitive.Root>
 ));
 
 ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName;
 
 const ToggleGroupItem = React.forwardRef<
-  React.ElementRef<typeof ToggleGroupPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> &
-    VariantProps<typeof toggleVariants>
->(({ className, children, variant, size, ...props }, ref) => {
-  const context = React.useContext(ToggleGroupContext);
+React.ElementRef<typeof ToggleGroupPrimitive.Item>,
+React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> &
+VariantProps<typeof toggleVariants>
 
-  return (
-    <ToggleGroupPrimitive.Item
-      ref={ref}
-      className={cn(
-        toggleVariants({
-          variant: context.variant || variant,
-          size: context.size || size,
-        }),
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </ToggleGroupPrimitive.Item>
-  );
+> (({ className, children, variant, size, ...props }, ref) => {
+> const context = React.useContext(ToggleGroupContext);
+
+return (
+<ToggleGroupPrimitive.Item
+ref={ref}
+className={cn(
+toggleVariants({
+variant: context.variant || variant,
+size: context.size || size,
+}),
+className,
+)}
+{...props} >
+{children}
+</ToggleGroupPrimitive.Item>
+);
 });
 
 ToggleGroupItem.displayName = ToggleGroupPrimitive.Item.displayName;
@@ -16401,44 +16877,47 @@ FILE: artifacts/housing/src/components/ui/toggle.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
-import * as TogglePrimitive from "@radix-ui/react-toggle";
+import _ as React from "react";
+import _ as TogglePrimitive from "@radix-ui/react-toggle";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
 const toggleVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default: "bg-transparent",
-        outline:
-          "border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground",
-      },
-      size: {
-        default: "h-9 px-2 min-w-9",
-        sm: "h-8 px-1.5 min-w-8",
-        lg: "h-10 px-2.5 min-w-10",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
+"inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+{
+variants: {
+variant: {
+default: "bg-transparent",
+outline:
+"border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground",
+},
+size: {
+default: "h-9 px-2 min-w-9",
+sm: "h-8 px-1.5 min-w-8",
+lg: "h-10 px-2.5 min-w-10",
+},
+},
+defaultVariants: {
+variant: "default",
+size: "default",
+},
+},
 );
 
 const Toggle = React.forwardRef<
-  React.ElementRef<typeof TogglePrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> &
-    VariantProps<typeof toggleVariants>
->(({ className, variant, size, ...props }, ref) => (
-  <TogglePrimitive.Root
+React.ElementRef<typeof TogglePrimitive.Root>,
+React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> &
+VariantProps<typeof toggleVariants>
+
+> (({ className, variant, size, ...props }, ref) => (
+> <TogglePrimitive.Root
+
     ref={ref}
     className={cn(toggleVariants({ variant, size, className }))}
     {...props}
-  />
+
+/>
 ));
 
 Toggle.displayName = TogglePrimitive.Root.displayName;
@@ -16452,8 +16931,8 @@ FILE: artifacts/housing/src/components/ui/tooltip.tsx
 // @ts-nocheck
 "use client";
 
-import * as React from "react";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import _ as React from "react";
+import _ as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 import { cn } from "@/lib/utils";
 
@@ -16464,10 +16943,12 @@ const Tooltip = TooltipPrimitive.Root;
 const TooltipTrigger = TooltipPrimitive.Trigger;
 
 const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Portal>
+React.ElementRef<typeof TooltipPrimitive.Content>,
+React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+
+> (({ className, sideOffset = 4, ...props }, ref) => (
+> <TooltipPrimitive.Portal>
+
     <TooltipPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
@@ -16477,7 +16958,8 @@ const TooltipContent = React.forwardRef<
       )}
       {...props}
     />
-  </TooltipPrimitive.Portal>
+
+</TooltipPrimitive.Portal>
 ));
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
@@ -16491,110 +16973,110 @@ FILE: artifacts/housing/src/hooks/use-lookup-values.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type LookupValue = {
-  id: number;
-  propertyId: number;
-  category: string;
-  value: string;
-  parentValue: string | null;
-  sortOrder: number;
-  disabled: boolean;
+id: number;
+propertyId: number;
+category: string;
+value: string;
+parentValue: string | null;
+sortOrder: number;
+disabled: boolean;
 };
 
 const LOOKUP_CATEGORIES = {
-  DEPARTMENT: "department",
-  JOB_TITLE: "job_title",
-  ROOM_TYPE: "room_type",
-  NATIONALITY: "nationality",
+DEPARTMENT: "department",
+JOB_TITLE: "job_title",
+ROOM_TYPE: "room_type",
+NATIONALITY: "nationality",
 } as const;
 
 export { LOOKUP_CATEGORIES };
 
 async function fetchLookupValues(
-  propertyId: number,
-  category?: string,
+propertyId: number,
+category?: string,
 ): Promise<LookupValue[]> {
-  const params = new URLSearchParams({ propertyId: String(propertyId) });
-  if (category) params.append("category", category);
-  const res = await fetch(`/api/lookup-values?${params}`);
-  if (!res.ok) throw new Error("Failed to fetch lookup values");
-  return res.json();
+const params = new URLSearchParams({ propertyId: String(propertyId) });
+if (category) params.append("category", category);
+const res = await fetch(`/api/lookup-values?${params}`);
+if (!res.ok) throw new Error("Failed to fetch lookup values");
+return res.json();
 }
 
 async function createLookupValue(data: {
-  propertyId: number;
-  category: string;
-  value: string;
-  parentValue?: string;
+propertyId: number;
+category: string;
+value: string;
+parentValue?: string;
 }): Promise<LookupValue> {
-  const res = await fetch("/api/lookup-values", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Failed to create lookup value");
-  }
-  return res.json();
+const res = await fetch("/api/lookup-values", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(data),
+});
+if (!res.ok) {
+const err = await res.json().catch(() => ({}));
+throw new Error(err.error || "Failed to create lookup value");
+}
+return res.json();
 }
 
 async function deleteLookupValue(id: number): Promise<void> {
-  const res = await fetch(`/api/lookup-values/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete lookup value");
+const res = await fetch(`/api/lookup-values/${id}`, { method: "DELETE" });
+if (!res.ok) throw new Error("Failed to delete lookup value");
 }
 
 export function getLookupValuesQueryKey(
-  propertyId: number,
-  category?: string,
-  includeDisabled?: boolean,
+propertyId: number,
+category?: string,
+includeDisabled?: boolean,
 ) {
-  return ["lookup-values", propertyId, category, includeDisabled];
+return ["lookup-values", propertyId, category, includeDisabled];
 }
 
 export function useLookupValues(
-  propertyId: number | undefined,
-  category?: string,
-  includeDisabled = false,
+propertyId: number | undefined,
+category?: string,
+includeDisabled = false,
 ) {
-  return useQuery({
-    queryKey: getLookupValuesQueryKey(propertyId!, category, includeDisabled),
-    queryFn: async () => {
-      const data = await fetchLookupValues(propertyId!, category);
-      return includeDisabled ? data : data.filter((v) => !v.disabled);
-    },
-    enabled: !!propertyId,
-  });
+return useQuery({
+queryKey: getLookupValuesQueryKey(propertyId!, category, includeDisabled),
+queryFn: async () => {
+const data = await fetchLookupValues(propertyId!, category);
+return includeDisabled ? data : data.filter((v) => !v.disabled);
+},
+enabled: !!propertyId,
+});
 }
 
 export function useCreateLookupValue(propertyId: number | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      category: string;
-      value: string;
-      parentValue?: string;
-    }) => createLookupValue({ ...data, propertyId: propertyId! }),
-    onSuccess: (created) => {
-      queryClient.invalidateQueries({
-        queryKey: ["lookup-values", propertyId!],
-      });
-    },
-  });
+const queryClient = useQueryClient();
+return useMutation({
+mutationFn: (data: {
+category: string;
+value: string;
+parentValue?: string;
+}) => createLookupValue({ ...data, propertyId: propertyId! }),
+onSuccess: (created) => {
+queryClient.invalidateQueries({
+queryKey: ["lookup-values", propertyId!],
+});
+},
+});
 }
 
 export function useDeleteLookupValue(
-  propertyId: number | undefined,
-  category?: string,
+propertyId: number | undefined,
+category?: string,
 ) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => deleteLookupValue(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["lookup-values", propertyId!],
-      });
-    },
-  });
+const queryClient = useQueryClient();
+return useMutation({
+mutationFn: (id: number) => deleteLookupValue(id),
+onSuccess: () => {
+queryClient.invalidateQueries({
+queryKey: ["lookup-values", propertyId!],
+});
+},
+});
 }
 
 ================================================================================
@@ -16602,26 +17084,26 @@ FILE: artifacts/housing/src/hooks/use-mobile.tsx
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
-    undefined,
-  );
+const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
+undefined,
+);
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    };
-    mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
+React.useEffect(() => {
+const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+const onChange = () => {
+setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+};
+mql.addEventListener("change", onChange);
+setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+return () => mql.removeEventListener("change", onChange);
+}, []);
 
-  return !!isMobile;
+return !!isMobile;
 }
 
 ================================================================================
@@ -16631,53 +17113,53 @@ FILE: artifacts/housing/src/hooks/use-permission.ts
 // @ts-nocheck
 import { useAuth } from "@/context/AuthContext";
 import {
-  permKey,
-  ROLE_DEFAULT_PERMISSIONS,
-  type Module,
-  type Action,
+permKey,
+ROLE_DEFAULT_PERMISSIONS,
+type Module,
+type Action,
 } from "@/lib/permissions";
 
 const normalize = (value: unknown): string =>
-  String(value ?? "")
-    .trim()
-    .toLowerCase();
+String(value ?? "")
+.trim()
+.toLowerCase();
 
 // Role hierarchy: child roles inherit all permissions from parent roles
 const ROLE_INHERITANCE = {
-  super_admin: [],
-  system_admin: [],
-  admin: [],
-  manager: ["receptionist"],
-  hr_admin: [],
-  portal_admin: [],
-  security_staff: [],
-  receptionist: [],
-  maintenance_staff: [],
+super_admin: [],
+system_admin: [],
+admin: [],
+manager: ["receptionist"],
+hr_admin: [],
+portal_admin: [],
+security_staff: [],
+receptionist: [],
+maintenance_staff: [],
 };
 
 function resolveInheritedRoles(roles: string[]): string[] {
-  const resolved = new Set<string>();
-  const visit = (role: string) => {
-    if (resolved.has(role)) return;
-    resolved.add(role);
-    for (const parent of ROLE_INHERITANCE[role] ?? []) visit(parent);
-  };
-  for (const role of roles) visit(normalize(role));
-  return [...resolved];
+const resolved = new Set<string>();
+const visit = (role: string) => {
+if (resolved.has(role)) return;
+resolved.add(role);
+for (const parent of ROLE_INHERITANCE[role] ?? []) visit(parent);
+};
+for (const role of roles) visit(normalize(role));
+return [...resolved];
 }
 
 export function usePermission() {
-  const { user, isSystemAdmin } = useAuth();
+const { user, isSystemAdmin } = useAuth();
 
-  const isAdmin =
-    isSystemAdmin ||
-    !!user?.roles?.some((r) =>
-      ["super_admin", "system_admin"].includes(normalize(r)),
-    );
+const isAdmin =
+isSystemAdmin ||
+!!user?.roles?.some((r) =>
+["super_admin", "system_admin"].includes(normalize(r)),
+);
 
-  const effectivePermissions = (): Set<string> => {
-    if (!user) return new Set();
-    if (isAdmin) return new Set(["*"]);
+const effectivePermissions = (): Set<string> => {
+if (!user) return new Set();
+if (isAdmin) return new Set(["*"]);
 
     const combined = new Set<string>();
     const resolvedRoles = resolveInheritedRoles(user.roles ?? []);
@@ -16696,41 +17178,42 @@ export function usePermission() {
     }
 
     return combined;
-  };
 
-  const perms = effectivePermissions();
+};
 
-  const can = (module: Module, action: Action): boolean => {
-    if (!user) return false;
-    if (isAdmin) return true;
-    if (perms.has("*")) return true;
-    if (perms.has(permKey(module, action))) return true;
-    if (
-      module === "reservations" &&
-      perms.has(permKey("accommodation" as Module, action))
-    )
-      return true;
-    return false;
-  };
+const perms = effectivePermissions();
 
-  const canAny = (module: Module, actions: Action[]): boolean =>
-    actions.some((a) => can(module, a));
+const can = (module: Module, action: Action): boolean => {
+if (!user) return false;
+if (isAdmin) return true;
+if (perms.has("\*")) return true;
+if (perms.has(permKey(module, action))) return true;
+if (
+module === "reservations" &&
+perms.has(permKey("accommodation" as Module, action))
+)
+return true;
+return false;
+};
 
-  const canView = (m: Module) => can(m, "view");
-  const canCreate = (m: Module) => can(m, "create");
-  const canEdit = (m: Module) => can(m, "edit");
-  const canDelete = (m: Module) => can(m, "delete");
+const canAny = (module: Module, actions: Action[]): boolean =>
+actions.some((a) => can(module, a));
 
-  return {
-    can,
-    canAny,
-    canView,
-    canCreate,
-    canEdit,
-    canDelete,
-    isAdmin,
-    perms,
-  };
+const canView = (m: Module) => can(m, "view");
+const canCreate = (m: Module) => can(m, "create");
+const canEdit = (m: Module) => can(m, "edit");
+const canDelete = (m: Module) => can(m, "delete");
+
+return {
+can,
+canAny,
+canView,
+canCreate,
+canEdit,
+canDelete,
+isAdmin,
+perms,
+};
 }
 
 ================================================================================
@@ -16740,17 +17223,17 @@ FILE: artifacts/housing/src/hooks/use-reduced-motion.ts
 import { useEffect, useState } from "react";
 
 export function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const listener = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", listener);
-    return () => mq.removeEventListener("change", listener);
-  }, []);
-  
-  return reduced;
+const [reduced, setReduced] = useState(false);
+
+useEffect(() => {
+const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+setReduced(mq.matches);
+const listener = (e: MediaQueryListEvent) => setReduced(e.matches);
+mq.addEventListener("change", listener);
+return () => mq.removeEventListener("change", listener);
+}, []);
+
+return reduced;
 }
 
 ================================================================================
@@ -16758,7 +17241,7 @@ FILE: artifacts/housing/src/hooks/use-toast.ts
 ================================================================================
 
 // @ts-nocheck
-import * as React from "react";
+import \* as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
@@ -16766,75 +17249,75 @@ const TOAST_LIMIT = 1;
 const TOAST_REMOVE_DELAY = 5000;
 
 type ToasterToast = ToastProps & {
-  id: string;
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  action?: ToastActionElement;
+id: string;
+title?: React.ReactNode;
+description?: React.ReactNode;
+action?: ToastActionElement;
 };
 
 const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
+ADD_TOAST: "ADD_TOAST",
+UPDATE_TOAST: "UPDATE_TOAST",
+DISMISS_TOAST: "DISMISS_TOAST",
+REMOVE_TOAST: "REMOVE_TOAST",
 } as const;
 
 let count = 0;
 
 function genId() {
-  count = (count + 1) % Number.MAX_SAFE_INTEGER;
-  return count.toString();
+count = (count + 1) % Number.MAX_SAFE_INTEGER;
+return count.toString();
 }
 
 type ActionType = typeof actionTypes;
 
 type Action =
-  | {
-      type: ActionType["ADD_TOAST"];
-      toast: ToasterToast;
-    }
-  | {
-      type: ActionType["UPDATE_TOAST"];
-      toast: Partial<ToasterToast>;
-    }
-  | {
-      type: ActionType["DISMISS_TOAST"];
-      toastId?: ToasterToast["id"];
-    }
-  | {
-      type: ActionType["REMOVE_TOAST"];
-      toastId?: ToasterToast["id"];
-    };
+| {
+type: ActionType["ADD_TOAST"];
+toast: ToasterToast;
+}
+| {
+type: ActionType["UPDATE_TOAST"];
+toast: Partial<ToasterToast>;
+}
+| {
+type: ActionType["DISMISS_TOAST"];
+toastId?: ToasterToast["id"];
+}
+| {
+type: ActionType["REMOVE_TOAST"];
+toastId?: ToasterToast["id"];
+};
 
 interface State {
-  toasts: ToasterToast[];
+toasts: ToasterToast[];
 }
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
 const addToRemoveQueue = (toastId: string) => {
-  if (toastTimeouts.has(toastId)) {
-    return;
-  }
+if (toastTimeouts.has(toastId)) {
+return;
+}
 
-  const timeout = setTimeout(() => {
-    toastTimeouts.delete(toastId);
-    dispatch({
-      type: "REMOVE_TOAST",
-      toastId: toastId,
-    });
-  }, TOAST_REMOVE_DELAY);
+const timeout = setTimeout(() => {
+toastTimeouts.delete(toastId);
+dispatch({
+type: "REMOVE_TOAST",
+toastId: toastId,
+});
+}, TOAST_REMOVE_DELAY);
 
-  toastTimeouts.set(toastId, timeout);
+toastTimeouts.set(toastId, timeout);
 };
 
 export const reducer = (state: State, action: Action): State => {
-  switch (action.type) {
-    case "ADD_TOAST":
-      return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-      };
+switch (action.type) {
+case "ADD_TOAST":
+return {
+...state,
+toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+};
 
     case "UPDATE_TOAST":
       return {
@@ -16880,7 +17363,8 @@ export const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
       };
-  }
+
+}
 };
 
 const listeners: Array<(state: State) => void> = [];
@@ -16888,61 +17372,61 @@ const listeners: Array<(state: State) => void> = [];
 let memoryState: State = { toasts: [] };
 
 function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action);
-  listeners.forEach((listener) => {
-    listener(memoryState);
-  });
+memoryState = reducer(memoryState, action);
+listeners.forEach((listener) => {
+listener(memoryState);
+});
 }
 
 type Toast = Omit<ToasterToast, "id">;
 
 function toast({ ...props }: Toast) {
-  const id = genId();
+const id = genId();
 
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    });
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
+const update = (props: ToasterToast) =>
+dispatch({
+type: "UPDATE_TOAST",
+toast: { ...props, id },
+});
+const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
 
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss();
-      },
-    },
-  });
+dispatch({
+type: "ADD_TOAST",
+toast: {
+...props,
+id,
+open: true,
+onOpenChange: (open) => {
+if (!open) dismiss();
+},
+},
+});
 
-  return {
-    id: id,
-    dismiss,
-    update,
-  };
+return {
+id: id,
+dismiss,
+update,
+};
 }
 
 function useToast() {
-  const [state, setState] = React.useState<State>(memoryState);
+const [state, setState] = React.useState<State>(memoryState);
 
-  React.useEffect(() => {
-    listeners.push(setState);
-    return () => {
-      const index = listeners.indexOf(setState);
-      if (index > -1) {
-        listeners.splice(index, 1);
-      }
-    };
-  }, [state]);
+React.useEffect(() => {
+listeners.push(setState);
+return () => {
+const index = listeners.indexOf(setState);
+if (index > -1) {
+listeners.splice(index, 1);
+}
+};
+}, [state]);
 
-  return {
-    ...state,
-    toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-  };
+return {
+...state,
+toast,
+dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+};
 }
 
 export { useToast, toast };
@@ -16952,16 +17436,17 @@ FILE: artifacts/housing/src/hooks/use-websocket.ts
 ================================================================================
 
 // @ts-nocheck
-/**
- * housing/src/hooks/use-websocket.ts
- *
- * Features:
- * 1. Handles both "SYNC_DATA" (invalidate all) and "data_updated" (module-specific)
- * 2. Exponential backoff reconnect (3s → 6s → 12s → max 30s)
- * 3. Returns isConnected status
- * 4. One connection per component lifecycle — no leaks
- * 5. Real-time Toast Notifications
- */
+/\*\*
+
+- housing/src/hooks/use-websocket.ts
+-
+- Features:
+- 1.  Handles both "SYNC_DATA" (invalidate all) and "data_updated" (module-specific)
+- 2.  Exponential backoff reconnect (3s → 6s → 12s → max 30s)
+- 3.  Returns isConnected status
+- 4.  One connection per component lifecycle — no leaks
+- 5.  Real-time Toast Notifications
+      \*/
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16971,67 +17456,67 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
 
 const MODULE_QUERY_KEYS: Record<string, string[]> = {
-  assignments: ["/api/assignments"],
-  employees: ["/api/employees"],
-  rooms: ["/api/rooms"],
-  maintenance: ["/api/maintenance"],
-  reservations: ["/api/reservations"],
-  hostings: ["/api/hostings"],
-  notifications: ["/api/notifications"],
-  dashboard: [
-    "/api/dashboard/stats",
-    "/api/dashboard/occupancy-by-building",
-    "/api/dashboard/departure-alerts",
-    "/api/dashboard/arrival-alerts",
-    "/api/dashboard/recent-activity",
-  ],
-  buildings: ["/api/buildings"],
-  floors: ["/api/floors"],
-  users: ["/api/users"],
-  settings: ["/api/settings"],
-  properties: ["/api/properties"],
+assignments: ["/api/assignments"],
+employees: ["/api/employees"],
+rooms: ["/api/rooms"],
+maintenance: ["/api/maintenance"],
+reservations: ["/api/reservations"],
+hostings: ["/api/hostings"],
+notifications: ["/api/notifications"],
+dashboard: [
+"/api/dashboard/stats",
+"/api/dashboard/occupancy-by-building",
+"/api/dashboard/departure-alerts",
+"/api/dashboard/arrival-alerts",
+"/api/dashboard/recent-activity",
+],
+buildings: ["/api/buildings"],
+floors: ["/api/floors"],
+users: ["/api/users"],
+settings: ["/api/settings"],
+properties: ["/api/properties"],
 };
 
 const DASHBOARD_MODULES = new Set([
-  "assignments",
-  "rooms",
-  "employees",
-  "maintenance",
-  "reservations",
-  "hostings",
+"assignments",
+"rooms",
+"employees",
+"maintenance",
+"reservations",
+"hostings",
 ]);
 const ALL_KEYS = Object.values(MODULE_QUERY_KEYS).flat();
 
 export function useWebSocket(): { isConnected: boolean } {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const { activePropertyId } = useProperty();
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const ar = language === "ar";
+const queryClient = useQueryClient();
+const { user } = useAuth();
+const { activePropertyId } = useProperty();
+const { toast } = useToast();
+const { language } = useLanguage();
+const ar = language === "ar";
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const attemptsRef = useRef(0);
-  const unmountingRef = useRef(false);
-  const [isConnected, setIsConnected] = useState(false);
+const wsRef = useRef<WebSocket | null>(null);
+const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+const attemptsRef = useRef(0);
+const unmountingRef = useRef(false);
+const [isConnected, setIsConnected] = useState(false);
 
-  // Use refs to avoid reconnecting WS when language/toast change
-  const toastRef = useRef(toast);
-  const arRef = useRef(ar);
-  
-  useEffect(() => {
-    toastRef.current = toast;
-    arRef.current = ar;
-  }, [toast, ar]);
+// Use refs to avoid reconnecting WS when language/toast change
+const toastRef = useRef(toast);
+const arRef = useRef(ar);
 
-  const invalidateModule = useCallback(
-    (module: string) => {
-      const keys = MODULE_QUERY_KEYS[module] ?? [];
-      const allKeys = [...keys];
-      if (DASHBOARD_MODULES.has(module)) {
-        allKeys.push(...MODULE_QUERY_KEYS.dashboard!);
-      }
+useEffect(() => {
+toastRef.current = toast;
+arRef.current = ar;
+}, [toast, ar]);
+
+const invalidateModule = useCallback(
+(module: string) => {
+const keys = MODULE_QUERY_KEYS[module] ?? [];
+const allKeys = [...keys];
+if (DASHBOARD_MODULES.has(module)) {
+allKeys.push(...MODULE_QUERY_KEYS.dashboard!);
+}
 
       console.info(`[WS] Invalidating module: ${module}`, { keys: allKeys });
 
@@ -17045,23 +17530,24 @@ export function useWebSocket(): { isConnected: boolean } {
       });
     },
     [queryClient],
-  );
 
-  const invalidateAll = useCallback(() => {
-    console.info("[WS] Invalidating ALL queries");
-    queryClient.invalidateQueries({
-      predicate: (query) => {
-        const first = query.queryKey[0];
-        if (typeof first !== "string") return false;
-        return ALL_KEYS.some((k) => first === k || first.startsWith(`${k}/`));
-      },
-      refetchType: "active",
-    });
-  }, [queryClient]);
+);
 
-  const connect = useCallback(() => {
-    const currentUserId = user?.id;
-    const currentPropertyId = activePropertyId;
+const invalidateAll = useCallback(() => {
+console.info("[WS] Invalidating ALL queries");
+queryClient.invalidateQueries({
+predicate: (query) => {
+const first = query.queryKey[0];
+if (typeof first !== "string") return false;
+return ALL_KEYS.some((k) => first === k || first.startsWith(`${k}/`));
+},
+refetchType: "active",
+});
+}, [queryClient]);
+
+const connect = useCallback(() => {
+const currentUserId = user?.id;
+const currentPropertyId = activePropertyId;
 
     if (!currentUserId || !currentPropertyId) {
       console.info("[WS] Skipping connect — user or propertyId not ready:", {
@@ -17130,7 +17616,7 @@ export function useWebSocket(): { isConnected: boolean } {
               `[WS] 🔔 ${msg.module}/${msg.action} — invalidating module`,
             );
             invalidateModule(msg.module as string);
-            
+
             // Show toast for specific module events
             if (msg.action === "created") {
               let tTitle = "";
@@ -17196,21 +17682,23 @@ export function useWebSocket(): { isConnected: boolean } {
     } catch (err) {
       console.error("[WS] ❌ Failed to create WebSocket:", err);
     }
-  }, [user?.id, activePropertyId, invalidateModule, invalidateAll]);
 
-  useEffect(() => {
-    unmountingRef.current = false;
-    attemptsRef.current = 0;
-    connect();
+}, [user?.id, activePropertyId, invalidateModule, invalidateAll]);
+
+useEffect(() => {
+unmountingRef.current = false;
+attemptsRef.current = 0;
+connect();
 
     return () => {
       unmountingRef.current = true;
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
       wsRef.current?.close(1000, "Component unmounted");
     };
-  }, [connect]);
 
-  return { isConnected };
+}, [connect]);
+
+return { isConnected };
 }
 
 ================================================================================
@@ -17219,53 +17707,53 @@ FILE: artifacts/housing/src/lib/brand-colors.ts
 
 // @ts-nocheck
 export function hexToHslComponents(hex: string): string | null {
-  if (!hex?.startsWith("#") || hex.length < 7) return null;
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b),
-    min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  if (max === min) return `0 0% ${Math.round(l * 100)}%`;
-  const d = max - min;
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h = 0;
-  switch (max) {
-    case r:
-      h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-      break;
-    case g:
-      h = ((b - r) / d + 2) / 6;
-      break;
-    case b:
-      h = ((r - g) / d + 4) / 6;
-      break;
-  }
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+if (!hex?.startsWith("#") || hex.length < 7) return null;
+const r = parseInt(hex.slice(1, 3), 16) / 255;
+const g = parseInt(hex.slice(3, 5), 16) / 255;
+const b = parseInt(hex.slice(5, 7), 16) / 255;
+const max = Math.max(r, g, b),
+min = Math.min(r, g, b);
+const l = (max + min) / 2;
+if (max === min) return `0 0% ${Math.round(l * 100)}%`;
+const d = max - min;
+const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+let h = 0;
+switch (max) {
+case r:
+h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+break;
+case g:
+h = ((b - r) / d + 2) / 6;
+break;
+case b:
+h = ((r - g) / d + 4) / 6;
+break;
+}
+return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
 export function applyBrandColors(
-  primaryColor?: string | null,
-  buttonColor?: string | null,
+primaryColor?: string | null,
+buttonColor?: string | null,
 ) {
-  if (primaryColor) {
-    const h = hexToHslComponents(primaryColor);
-    if (h) {
-      document.documentElement.style.setProperty("--sidebar", h);
-      document.documentElement.style.setProperty(
-        "--sidebar-border",
-        h.replace(/(\d+)%$/, (_, n) => `${Math.max(0, parseInt(n) - 4)}%`),
-      );
-    }
-  }
-  if (buttonColor) {
-    const h = hexToHslComponents(buttonColor);
-    if (h) {
-      document.documentElement.style.setProperty("--primary", h);
-      document.documentElement.style.setProperty("--sidebar-primary", h);
-      document.documentElement.style.setProperty("--ring", h);
-    }
-  }
+if (primaryColor) {
+const h = hexToHslComponents(primaryColor);
+if (h) {
+document.documentElement.style.setProperty("--sidebar", h);
+document.documentElement.style.setProperty(
+"--sidebar-border",
+h.replace(/(\d+)%$/, (_, n) => `${Math.max(0, parseInt(n) - 4)}%`),
+);
+}
+}
+if (buttonColor) {
+const h = hexToHslComponents(buttonColor);
+if (h) {
+document.documentElement.style.setProperty("--primary", h);
+document.documentElement.style.setProperty("--sidebar-primary", h);
+document.documentElement.style.setProperty("--ring", h);
+}
+}
 }
 
 ================================================================================
@@ -17273,401 +17761,404 @@ FILE: artifacts/housing/src/lib/pdf-utils.ts
 ================================================================================
 
 // @ts-nocheck
-/** Shared PDF utility functions for jsPDF exports */
+/\*_ Shared PDF utility functions for jsPDF exports _/
 
-/** Detect Arabic/RTL characters */
+/\*_ Detect Arabic/RTL characters _/
 export const hasArabic = (str: string | null | undefined): boolean =>
-  /[\u0600-\u06FF\u0750-\u077F]/.test(str ?? "");
+/[\u0600-\u06FF\u0750-\u077F]/.test(str ?? "");
 
-/**
- * Make text safe for jsPDF Helvetica (which has no Arabic glyph support).
- * - Returns string as-is if no Arabic.
- * - Extracts any Latin characters from mixed strings.
- * - Returns fallback or "[AR]" for all-Arabic strings.
- */
-export const pdfTextSafe = (
-  str: string | null | undefined,
-  fallback?: string,
-): string => {
-  if (!str) return "—";
-  if (!hasArabic(str)) return str;
-  const latin = str.replace(/[^\x20-\x7E]/g, "").trim();
-  if (latin.length >= 2) return latin;
-  return fallback ?? "[AR]";
-};
+/\*\*
 
-/** Load an image URL and return base64 dataURL with pixel dimensions */
-export const loadImgDataUrl = async (
-  url: string,
-): Promise<{ dataUrl: string; w: number; h: number } | null> => {
-  try {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject();
-      img.src = url;
-    });
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth || img.width || 200;
-    canvas.height = img.naturalHeight || img.height || 80;
-    canvas.getContext("2d")?.drawImage(img, 0, 0);
-    return {
-      dataUrl: canvas.toDataURL("image/png"),
-      w: canvas.width,
-      h: canvas.height,
+- Make text safe for jsPDF Helvetica (which has no Arabic glyph support).
+- - Returns string as-is if no Arabic.
+- - Extracts any Latin characters from mixed strings.
+- - Returns fallback or "[AR]" for all-Arabic strings.
+    \*/
+    export const pdfTextSafe = (
+    str: string | null | undefined,
+    fallback?: string,
+    ): string => {
+    if (!str) return "—";
+    if (!hasArabic(str)) return str;
+    const latin = str.replace(/[^\x20-\x7E]/g, "").trim();
+    if (latin.length >= 2) return latin;
+    return fallback ?? "[AR]";
     };
-  } catch {
-    return null;
-  }
+
+/\*_ Load an image URL and return base64 dataURL with pixel dimensions _/
+export const loadImgDataUrl = async (
+url: string,
+): Promise<{ dataUrl: string; w: number; h: number } | null> => {
+try {
+const img = new Image();
+img.crossOrigin = "anonymous";
+await new Promise<void>((resolve, reject) => {
+img.onload = () => resolve();
+img.onerror = () => reject();
+img.src = url;
+});
+const canvas = document.createElement("canvas");
+canvas.width = img.naturalWidth || img.width || 200;
+canvas.height = img.naturalHeight || img.height || 80;
+canvas.getContext("2d")?.drawImage(img, 0, 0);
+return {
+dataUrl: canvas.toDataURL("image/png"),
+w: canvas.width,
+h: canvas.height,
+};
+} catch {
+return null;
+}
 };
 
 export interface PdfHeaderOptions {
-  systemLogoUrl?: string | null;
-  propLogoUrl?: string | null;
-  title: string;
-  subtitle?: string;
-  pageW: number;
+systemLogoUrl?: string | null;
+propLogoUrl?: string | null;
+title: string;
+subtitle?: string;
+pageW: number;
 }
 
-/** Draw dual-logo header on a jsPDF document. Returns Y position after header. */
+/\*_ Draw dual-logo header on a jsPDF document. Returns Y position after header. _/
 export const drawPdfHeader = async (
-  doc: any,
-  opts: PdfHeaderOptions,
+doc: any,
+opts: PdfHeaderOptions,
 ): Promise<number> => {
-  const LOGO_H = 12;
-  const MARGIN = 14;
+const LOGO_H = 12;
+const MARGIN = 14;
 
-  let sysImg: { dataUrl: string; w: number; h: number } | null = null;
-  let propImg: { dataUrl: string; w: number; h: number } | null = null;
+let sysImg: { dataUrl: string; w: number; h: number } | null = null;
+let propImg: { dataUrl: string; w: number; h: number } | null = null;
 
-  if (opts.systemLogoUrl) sysImg = await loadImgDataUrl(opts.systemLogoUrl);
-  if (opts.propLogoUrl && opts.propLogoUrl !== opts.systemLogoUrl)
-    propImg = await loadImgDataUrl(opts.propLogoUrl);
+if (opts.systemLogoUrl) sysImg = await loadImgDataUrl(opts.systemLogoUrl);
+if (opts.propLogoUrl && opts.propLogoUrl !== opts.systemLogoUrl)
+propImg = await loadImgDataUrl(opts.propLogoUrl);
 
-  if (sysImg) {
-    const aspect = sysImg.w / (sysImg.h || 1);
-    const w = LOGO_H * (isFinite(aspect) ? aspect : 2.5);
-    doc.addImage(sysImg.dataUrl, "PNG", MARGIN, MARGIN, w, LOGO_H);
-  }
-  if (propImg) {
-    const aspect = propImg.w / (propImg.h || 1);
-    const w = LOGO_H * (isFinite(aspect) ? aspect : 2.5);
-    doc.addImage(
-      propImg.dataUrl,
-      "PNG",
-      opts.pageW - MARGIN - w,
-      MARGIN,
-      w,
-      LOGO_H,
-    );
-  }
+if (sysImg) {
+const aspect = sysImg.w / (sysImg.h || 1);
+const w = LOGO_H _ (isFinite(aspect) ? aspect : 2.5);
+doc.addImage(sysImg.dataUrl, "PNG", MARGIN, MARGIN, w, LOGO_H);
+}
+if (propImg) {
+const aspect = propImg.w / (propImg.h || 1);
+const w = LOGO_H _ (isFinite(aspect) ? aspect : 2.5);
+doc.addImage(
+propImg.dataUrl,
+"PNG",
+opts.pageW - MARGIN - w,
+MARGIN,
+w,
+LOGO_H,
+);
+}
 
-  const textY = MARGIN + LOGO_H + 6;
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 42, 68);
-  doc.text(opts.title, MARGIN, textY);
+const textY = MARGIN + LOGO_H + 6;
+doc.setFontSize(13);
+doc.setFont("helvetica", "bold");
+doc.setTextColor(15, 42, 68);
+doc.text(opts.title, MARGIN, textY);
 
-  if (opts.subtitle) {
-    doc.setFontSize(8.5);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(opts.subtitle, MARGIN, textY + 5);
-  }
+if (opts.subtitle) {
+doc.setFontSize(8.5);
+doc.setFont("helvetica", "normal");
+doc.setTextColor(100, 100, 100);
+doc.text(opts.subtitle, MARGIN, textY + 5);
+}
 
-  doc.setTextColor(0, 0, 0);
-  return textY + 10;
+doc.setTextColor(0, 0, 0);
+return textY + 10;
 };
 
-/** Generate Housing Letter PDF — used from employee detail, check-in, and transfer */
+/\*_ Generate Housing Letter PDF — used from employee detail, check-in, and transfer _/
 export const generateHousingLetterPdf = async (opts: {
-  isArabic?: boolean;
-  employee: any;
-  assignment: any;
-  room: any;
-  building: string | null;
-  floorNum: string | number | null;
-  propName: string;
-  propAddress: string;
-  systemLogoUrl?: string | null;
-  propLogoUrl?: string | null;
+isArabic?: boolean;
+employee: any;
+assignment: any;
+room: any;
+building: string | null;
+floorNum: string | number | null;
+propName: string;
+propAddress: string;
+systemLogoUrl?: string | null;
+propLogoUrl?: string | null;
 }): Promise<void> => {
-  const emp = opts.employee;
-  const assignment = opts.assignment;
-  const room = opts.room;
-  const building = opts.building;
-  const floorNum = opts.floorNum;
-  const propName = opts.propName;
-  const propAddress = opts.propAddress;
-  const today = new Date().toLocaleDateString("en-CA");
+const emp = opts.employee;
+const assignment = opts.assignment;
+const room = opts.room;
+const building = opts.building;
+const floorNum = opts.floorNum;
+const propName = opts.propName;
+const propAddress = opts.propAddress;
+const today = new Date().toLocaleDateString("en-CA");
 
-  const { default: jsPDF } = await import("jspdf");
-  const doc = new jsPDF("portrait", "mm", "a4");
+const { default: jsPDF } = await import("jspdf");
+const doc = new jsPDF("portrait", "mm", "a4");
 
-  if (opts.isArabic) {
-    await generateArabicHousingLetterPdf(doc, opts, today);
-    return;
-  }
+if (opts.isArabic) {
+await generateArabicHousingLetterPdf(doc, opts, today);
+return;
+}
 
-  // ── English PDF (jsPDF + autoTable) ──────────────────────────────────────
-  const { default: autoTable } = await import("jspdf-autotable");
-  const pw = 210;
-  const ph = 297;
-  const ml = 14;
-  const bw = pw - ml * 2;
+// ── English PDF (jsPDF + autoTable) ──────────────────────────────────────
+const { default: autoTable } = await import("jspdf-autotable");
+const pw = 210;
+const ph = 297;
+const ml = 14;
+const bw = pw - ml \* 2;
 
-  let y = ml;
+let y = ml;
 
-  if (opts.systemLogoUrl || opts.propLogoUrl) {
-    const items: { url: string; side: string }[] = [];
-    if (opts.systemLogoUrl)
-      items.push({ url: opts.systemLogoUrl, side: "left" });
-    if (opts.propLogoUrl && opts.propLogoUrl !== opts.systemLogoUrl)
-      items.push({ url: opts.propLogoUrl, side: "right" });
-    for (const item of items) {
-      try {
-        const img = await loadImgDataUrl(item.url);
-        if (!img) continue;
-        const maxH = 10;
-        const s = Math.min(maxH / (img.h || 1), 30 / (img.w || 1));
-        doc.addImage(
-          img.dataUrl,
-          "PNG",
-          item.side === "right" ? pw - ml - img.w * s : ml,
-          y,
-          img.w * s,
-          img.h * s,
-        );
-      } catch {
-        /* skip */
-      }
-    }
-    y += 13;
-  }
+if (opts.systemLogoUrl || opts.propLogoUrl) {
+const items: { url: string; side: string }[] = [];
+if (opts.systemLogoUrl)
+items.push({ url: opts.systemLogoUrl, side: "left" });
+if (opts.propLogoUrl && opts.propLogoUrl !== opts.systemLogoUrl)
+items.push({ url: opts.propLogoUrl, side: "right" });
+for (const item of items) {
+try {
+const img = await loadImgDataUrl(item.url);
+if (!img) continue;
+const maxH = 10;
+const s = Math.min(maxH / (img.h || 1), 30 / (img.w || 1));
+doc.addImage(
+img.dataUrl,
+"PNG",
+item.side === "right" ? pw - ml - img.w _ s : ml,
+y,
+img.w _ s,
+img.h _ s,
+);
+} catch {
+/_ skip \*/
+}
+}
+y += 13;
+}
 
-  doc.setDrawColor(201, 162, 77);
-  doc.setLineWidth(0.7);
-  doc.line(ml, y, pw - ml, y);
-  y += 6;
+doc.setDrawColor(201, 162, 77);
+doc.setLineWidth(0.7);
+doc.line(ml, y, pw - ml, y);
+y += 6;
 
-  doc.setFontSize(14);
-  doc.setTextColor(15, 42, 68);
-  doc.text("Housing Letter", pw / 2, y, { align: "center" });
-  y += 6;
+doc.setFontSize(14);
+doc.setTextColor(15, 42, 68);
+doc.text("Housing Letter", pw / 2, y, { align: "center" });
+y += 6;
 
-  if (propName) {
-    doc.setFontSize(8);
-    doc.text(
-      `Property: ${propName}${propAddress ? ` — ${propAddress}` : ""}`,
-      pw / 2,
-      y,
-      { align: "center" },
-    );
-    y += 4;
-  }
+if (propName) {
+doc.setFontSize(8);
+doc.text(
+`Property: ${propName}${propAddress ? ` — ${propAddress}` : ""}`,
+pw / 2,
+y,
+{ align: "center" },
+);
+y += 4;
+}
 
-  doc.setDrawColor(200);
-  doc.setLineWidth(0.3);
-  doc.line(ml, y, pw - ml, y);
-  y += 4;
+doc.setDrawColor(200);
+doc.setLineWidth(0.3);
+doc.line(ml, y, pw - ml, y);
+y += 4;
 
-  const fmtDate = (d: string | Date) =>
-    d ? new Date(d).toLocaleDateString("en-CA") : "—";
+const fmtDate = (d: string | Date) =>
+d ? new Date(d).toLocaleDateString("en-CA") : "—";
 
-  const infoLabels = [
-    "Employee Name",
-    "Employee Code",
-    "National ID",
-    "Nationality",
-    "Department",
-    "Job Title",
-    "Level",
-    "Phone",
-    "Building",
-    "Floor",
-    "Room",
-    "Bed",
-    "Check-in Date",
-    "Expected Check-out",
-  ];
-  const infoValues = [
-    `${emp.firstName || ""} ${emp.lastName || ""}`,
-    emp.employeeId || "—",
-    emp.nationalId || "—",
-    emp.nationality || "—",
-    emp.department || "—",
-    emp.jobTitle || "—",
-    emp.level || "—",
-    emp.phone || "—",
-    building || "—",
-    floorNum ? `Floor ${floorNum}` : "—",
-    room?.roomNumber || String(assignment.roomId),
-    assignment.bedNumber ? String(assignment.bedNumber) : "—",
-    fmtDate(assignment.checkInDate),
-    fmtDate(assignment.expectedCheckOutDate),
-  ];
+const infoLabels = [
+"Employee Name",
+"Employee Code",
+"National ID",
+"Nationality",
+"Department",
+"Job Title",
+"Level",
+"Phone",
+"Building",
+"Floor",
+"Room",
+"Bed",
+"Check-in Date",
+"Expected Check-out",
+];
+const infoValues = [
+`${emp.firstName || ""} ${emp.lastName || ""}`,
+emp.employeeId || "—",
+emp.nationalId || "—",
+emp.nationality || "—",
+emp.department || "—",
+emp.jobTitle || "—",
+emp.level || "—",
+emp.phone || "—",
+building || "—",
+floorNum ? `Floor ${floorNum}` : "—",
+room?.roomNumber || String(assignment.roomId),
+assignment.bedNumber ? String(assignment.bedNumber) : "—",
+fmtDate(assignment.checkInDate),
+fmtDate(assignment.expectedCheckOutDate),
+];
 
-  autoTable(doc, {
-    startY: y,
-    tableWidth: bw,
-    margin: { left: ml, right: ml },
-    head: [["Field", "Value"]],
-    body: infoLabels.map((lbl, i) => [lbl, infoValues[i]]),
-    headStyles: {
-      fillColor: [15, 42, 68],
-      textColor: 255,
-      fontSize: 7,
-      fontStyle: "bold",
-    },
-    bodyStyles: { fontSize: 7, cellPadding: 1.2 },
-    alternateRowStyles: { fillColor: [245, 247, 250] },
-    columnStyles: {
-      0: { cellWidth: 48, fontStyle: "bold", textColor: [80, 80, 80] },
-      1: { cellWidth: bw - 48 },
-    },
-  });
+autoTable(doc, {
+startY: y,
+tableWidth: bw,
+margin: { left: ml, right: ml },
+head: [["Field", "Value"]],
+body: infoLabels.map((lbl, i) => [lbl, infoValues[i]]),
+headStyles: {
+fillColor: [15, 42, 68],
+textColor: 255,
+fontSize: 7,
+fontStyle: "bold",
+},
+bodyStyles: { fontSize: 7, cellPadding: 1.2 },
+alternateRowStyles: { fillColor: [245, 247, 250] },
+columnStyles: {
+0: { cellWidth: 48, fontStyle: "bold", textColor: [80, 80, 80] },
+1: { cellWidth: bw - 48 },
+},
+});
 
-  y = (doc as any).lastAutoTable.finalY + 5;
+y = (doc as any).lastAutoTable.finalY + 5;
 
-  doc.setDrawColor(201, 162, 77);
-  doc.setLineWidth(0.7);
-  doc.line(ml, y, pw - ml, y);
-  y += 5;
+doc.setDrawColor(201, 162, 77);
+doc.setLineWidth(0.7);
+doc.line(ml, y, pw - ml, y);
+y += 5;
 
-  doc.setFontSize(12);
-  doc.setTextColor(15, 42, 68);
-  doc.text("Custody Receipt", pw / 2, y, { align: "center" });
-  y += 5;
+doc.setFontSize(12);
+doc.setTextColor(15, 42, 68);
+doc.text("Custody Receipt", pw / 2, y, { align: "center" });
+y += 5;
 
-  doc.setFontSize(6);
-  doc.setTextColor(100);
-  doc.text(
-    "I acknowledge receipt of the items below in good condition and undertake to return them upon check-out.",
-    pw / 2,
-    y,
-    { align: "center" },
-  );
-  y += 3;
+doc.setFontSize(6);
+doc.setTextColor(100);
+doc.text(
+"I acknowledge receipt of the items below in good condition and undertake to return them upon check-out.",
+pw / 2,
+y,
+{ align: "center" },
+);
+y += 3;
 
-  doc.setDrawColor(200);
-  doc.setLineWidth(0.3);
-  doc.line(ml, y, pw - ml, y);
-  y += 3;
+doc.setDrawColor(200);
+doc.setLineWidth(0.3);
+doc.line(ml, y, pw - ml, y);
+y += 3;
 
-  const citems: string[][] = [
-    ["Room Keys", "1", ""],
-    ["Key Card", "1", ""],
-    ["Bed", "1", ""],
-    ["Mattress", "1", ""],
-    ["Pillow", "2", ""],
-    ["Wardrobe", "1", ""],
-    ["Desk", "1", ""],
-    ["Chair", "1", ""],
-    ["Curtains", "1", ""],
-    ["Trash Can", "1", ""],
-    ["AC Remote", "1", ""],
-  ];
+const citems: string[][] = [
+["Room Keys", "1", ""],
+["Key Card", "1", ""],
+["Bed", "1", ""],
+["Mattress", "1", ""],
+["Pillow", "2", ""],
+["Wardrobe", "1", ""],
+["Desk", "1", ""],
+["Chair", "1", ""],
+["Curtains", "1", ""],
+["Trash Can", "1", ""],
+["AC Remote", "1", ""],
+];
 
-  autoTable(doc, {
-    startY: y,
-    tableWidth: bw,
-    margin: { left: ml, right: ml },
-    head: [["#", "Item", "Qty", "Condition", "Notes"]],
-    body: citems.map((item, i) => [
-      String(i + 1),
-      item[0],
-      item[1],
-      "",
-      item[2],
-    ]),
-    headStyles: {
-      fillColor: [201, 162, 77],
-      textColor: 255,
-      fontSize: 7,
-      fontStyle: "bold",
-    },
-    bodyStyles: { fontSize: 6.5, cellPadding: 1 },
-    columnStyles: {
-      0: { cellWidth: 10, halign: "center" },
-      1: { cellWidth: bw - 10 - 16 - 22 - 28 },
-      2: { cellWidth: 16, halign: "center" },
-      3: { cellWidth: 22 },
-      4: { cellWidth: 28 },
-    },
-  });
+autoTable(doc, {
+startY: y,
+tableWidth: bw,
+margin: { left: ml, right: ml },
+head: [["#", "Item", "Qty", "Condition", "Notes"]],
+body: citems.map((item, i) => [
+String(i + 1),
+item[0],
+item[1],
+"",
+item[2],
+]),
+headStyles: {
+fillColor: [201, 162, 77],
+textColor: 255,
+fontSize: 7,
+fontStyle: "bold",
+},
+bodyStyles: { fontSize: 6.5, cellPadding: 1 },
+columnStyles: {
+0: { cellWidth: 10, halign: "center" },
+1: { cellWidth: bw - 10 - 16 - 22 - 28 },
+2: { cellWidth: 16, halign: "center" },
+3: { cellWidth: 22 },
+4: { cellWidth: 28 },
+},
+});
 
-  y = (doc as any).lastAutoTable.finalY + 5;
+y = (doc as any).lastAutoTable.finalY + 5;
 
-  doc.setDrawColor(201, 162, 77);
-  doc.setLineWidth(0.7);
-  doc.line(ml, y, pw - ml, y);
-  y += 5;
+doc.setDrawColor(201, 162, 77);
+doc.setLineWidth(0.7);
+doc.line(ml, y, pw - ml, y);
+y += 5;
 
-  doc.setFontSize(8);
-  doc.setTextColor(80);
-  doc.text("Signatures", ml, y);
-  y += 7;
+doc.setFontSize(8);
+doc.setTextColor(80);
+doc.text("Signatures", ml, y);
+y += 7;
 
-  const sc = (bw - 20) / 3;
-  doc.setFontSize(7);
-  doc.setTextColor(0);
-  doc.text("Recipient (Employee):", ml, y);
-  doc.text("HR Manager:", ml + sc + 10, y);
-  doc.text("Housing Manager:", ml + sc * 2 + 20, y);
-  y += 5;
-  doc.setTextColor(130);
-  doc.text("________________", ml, y);
-  doc.text("________________", ml + sc + 10, y);
-  doc.text("________________", ml + sc * 2 + 20, y);
-  y += 4;
-  doc.text("Date: ___ / ___ / _____", ml, y);
-  doc.text("Date: ___ / ___ / _____", ml + sc + 10, y);
-  doc.text("Date: ___ / ___ / _____", ml + sc * 2 + 20, y);
+const sc = (bw - 20) / 3;
+doc.setFontSize(7);
+doc.setTextColor(0);
+doc.text("Recipient (Employee):", ml, y);
+doc.text("HR Manager:", ml + sc + 10, y);
+doc.text("Housing Manager:", ml + sc _ 2 + 20, y);
+y += 5;
+doc.setTextColor(130);
+doc.text("******\_\_\_\_******", ml, y);
+doc.text("******\_\_\_\_******", ml + sc + 10, y);
+doc.text("******\_\_\_\_******", ml + sc _ 2 + 20, y);
+y += 4;
+doc.text("Date: **_ / _** / **\_**", ml, y);
+doc.text("Date: **_ / _** / **\_**", ml + sc + 10, y);
+doc.text("Date: **_ / _** / **\_**", ml + sc \* 2 + 20, y);
 
-  doc.setFontSize(6.5);
-  doc.setTextColor(130);
-  doc.text(`Print Date: ${today}`, ml, ph - ml);
-  doc.text(
-    "Sunrise Staff Housing Management — Confidential",
-    pw - ml,
-    ph - ml,
-    { align: "right" },
-  );
+doc.setFontSize(6.5);
+doc.setTextColor(130);
+doc.text(`Print Date: ${today}`, ml, ph - ml);
+doc.text(
+"Sunrise Staff Housing Management — Confidential",
+pw - ml,
+ph - ml,
+{ align: "right" },
+);
 
-  outputPdfBlob(doc, `housing-letter-${emp.employeeId || emp.id}_${today}.pdf`);
+outputPdfBlob(doc, `housing-letter-${emp.employeeId || emp.id}_${today}.pdf`);
 };
 
-/**
- * Arabic housing letter — opens a native browser print dialog.
- * This gives PERFECT Arabic text shaping since the browser renders natively.
- * The user clicks Print → Save as PDF in the browser dialog.
- */
-async function generateArabicHousingLetterPdf(
-  _doc: any,
+/\*\*
+
+- Arabic housing letter — opens a native browser print dialog.
+- This gives PERFECT Arabic text shaping since the browser renders natively.
+- The user clicks Print → Save as PDF in the browser dialog.
+  \*/
+  async function generateArabicHousingLetterPdf(
+  \_doc: any,
   opts: any,
   today: string,
-): Promise<void> {
+  ): Promise<void> {
   const emp = opts.employee;
   const assignment = opts.assignment;
   const room = opts.room;
 
-  const sysLogo = opts.systemLogoUrl
-    ? await loadImgDataUrl(opts.systemLogoUrl)
-    : null;
-  const propLogo =
-    opts.propLogoUrl && opts.propLogoUrl !== opts.systemLogoUrl
-      ? await loadImgDataUrl(opts.propLogoUrl)
-      : null;
+const sysLogo = opts.systemLogoUrl
+? await loadImgDataUrl(opts.systemLogoUrl)
+: null;
+const propLogo =
+opts.propLogoUrl && opts.propLogoUrl !== opts.systemLogoUrl
+? await loadImgDataUrl(opts.propLogoUrl)
+: null;
 
-  const fmtDate = (d: string | Date) =>
-    d ? new Date(d).toLocaleDateString("ar-EG") : "—";
-  const floorNum = opts.floorNum;
-  const bldg = opts.building;
-  const propName = opts.propName;
-  const propAddress = opts.propAddress;
+const fmtDate = (d: string | Date) =>
+d ? new Date(d).toLocaleDateString("ar-EG") : "—";
+const floorNum = opts.floorNum;
+const bldg = opts.building;
+const propName = opts.propName;
+const propAddress = opts.propAddress;
 
-  const html = `<!DOCTYPE html>
+const html = `<!DOCTYPE html>
+
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -17845,6 +18336,7 @@ async function generateArabicHousingLetterPdf(
       <span>تاريخ الطباعة: ${today}</span>
       <span>Sunrise Staff Housing Management — Confidential</span>
     </div>
+
   </div>
 
   <script>
@@ -17856,69 +18348,69 @@ async function generateArabicHousingLetterPdf(
 </body>
 </html>`;
 
-  // Open a new window with the fully rendered HTML — browser handles Arabic perfectly
-  const printWindow = window.open("", "_blank", "width=900,height=700");
-  if (!printWindow) {
-    // Popup blocked — fallback: download as .html
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `housing-letter-${emp.employeeId || emp.id}_${today}.html`;
-    a.click();
-    return;
-  }
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+// Open a new window with the fully rendered HTML — browser handles Arabic perfectly
+const printWindow = window.open("", "_blank", "width=900,height=700");
+if (!printWindow) {
+// Popup blocked — fallback: download as .html
+const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url;
+a.download = `housing-letter-${emp.employeeId || emp.id}_${today}.html`;
+a.click();
+return;
+}
+printWindow.document.open();
+printWindow.document.write(html);
+printWindow.document.close();
 }
 
-/** Try to output a PDF blob, open in new window (falls back to download) */
+/\*_ Try to output a PDF blob, open in new window (falls back to download) _/
 function outputPdfBlob(doc: any, filename: string): void {
-  if (typeof doc.output !== "function") {
-    const a = document.createElement("a");
-    a.href = "#";
-    a.download = filename;
-    a.click();
-    return;
-  }
-  try {
-    const b = doc.output("blob");
-    if (!b || typeof b !== "object") throw new Error("no blob");
-    const u = URL.createObjectURL(b);
-    const w = window.open(u, "_blank");
-    if (!w) {
-      const a = document.createElement("a");
-      a.href = u;
-      a.download = filename;
-      a.click();
-    }
-  } catch {
-    try {
-      const u2 = doc.output("datauristring");
-      const a = document.createElement("a");
-      a.href = u2;
-      a.download = filename;
-      a.click();
-    } catch {
-      /* give up */
-    }
-  }
+if (typeof doc.output !== "function") {
+const a = document.createElement("a");
+a.href = "#";
+a.download = filename;
+a.click();
+return;
+}
+try {
+const b = doc.output("blob");
+if (!b || typeof b !== "object") throw new Error("no blob");
+const u = URL.createObjectURL(b);
+const w = window.open(u, "\_blank");
+if (!w) {
+const a = document.createElement("a");
+a.href = u;
+a.download = filename;
+a.click();
+}
+} catch {
+try {
+const u2 = doc.output("datauristring");
+const a = document.createElement("a");
+a.href = u2;
+a.download = filename;
+a.click();
+} catch {
+/_ give up _/
+}
+}
 }
 
-/** Draw standard PDF footer */
+/\*_ Draw standard PDF footer _/
 export const drawPdfFooter = (doc: any, pageW: number, y?: number): void => {
-  const footY = y ?? doc.internal.pageSize.getHeight() - 10;
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(150, 150, 150);
-  doc.text(
-    "Sunrise Staff Housing Management  ·  Confidential",
-    pageW / 2,
-    footY,
-    { align: "center" },
-  );
-  doc.setTextColor(0, 0, 0);
+const footY = y ?? doc.internal.pageSize.getHeight() - 10;
+doc.setFontSize(8);
+doc.setFont("helvetica", "normal");
+doc.setTextColor(150, 150, 150);
+doc.text(
+"Sunrise Staff Housing Management · Confidential",
+pageW / 2,
+footY,
+{ align: "center" },
+);
+doc.setTextColor(0, 0, 0);
 };
 
 ================================================================================
@@ -17929,21 +18421,23 @@ import { describe, expect, it } from "vitest";
 import { getPermissionsForRoles } from "./permissions";
 
 describe("getPermissionsForRoles", () => {
-  it("returns the default permissions for a single role", () => {
-    const perms = getPermissionsForRoles(["manager"]);
+it("returns the default permissions for a single role", () => {
+const perms = getPermissionsForRoles(["manager"]);
 
     expect(perms).toContain("users.manage_permissions");
     expect(perms).toContain("dashboard.view");
     expect(perms).toContain("maintenance.approve");
-  });
 
-  it("merges the defaults from multiple roles", () => {
-    const perms = getPermissionsForRoles(["receptionist", "maintenance_staff"]);
+});
+
+it("merges the defaults from multiple roles", () => {
+const perms = getPermissionsForRoles(["receptionist", "maintenance_staff"]);
 
     expect(perms).toContain("communications.create");
     expect(perms).toContain("maintenance.assign");
     expect(perms).toContain("documents.view");
-  });
+
+});
 });
 
 ================================================================================
@@ -17953,362 +18447,362 @@ FILE: artifacts/housing/src/lib/permissions.ts
 // @ts-nocheck
 
 export const MODULES = [
-  "dashboard",
-  "housing",
-  "employees",
-  "accommodation",
-  "reservations",
-  "maintenance",
-  "reports",
-  "users",
-  "settings",
-  "activity_log",
-  "properties",
-  "documents",
-  "billing",
-  "communications",
-  "evaluations",
-  "surveys",
-  "portal_content",
-  "activities",
-  "smart_locks",
-  "hosting_requests",
+"dashboard",
+"housing",
+"employees",
+"accommodation",
+"reservations",
+"maintenance",
+"reports",
+"users",
+"settings",
+"activity_log",
+"properties",
+"documents",
+"billing",
+"communications",
+"evaluations",
+"surveys",
+"portal_content",
+"activities",
+"smart_locks",
+"hosting_requests",
 ] as const;
 
 export type Module = (typeof MODULES)[number];
 
 export type Action =
-  | "view"
-  | "create"
-  | "edit"
-  | "delete"
-  | "export"
-  | "bulk_delete"
-  | "bulk_export"
-  | "assign"
-  | "checkin"
-  | "checkout"
-  | "approve"
-  | "transfer"
-  | "reset_password"
-  | "manage_permissions"
-  | "view_sensitive"
-  | "audit"
-  | "publish"
-  | "archive"
-  | "unlock";
+| "view"
+| "create"
+| "edit"
+| "delete"
+| "export"
+| "bulk_delete"
+| "bulk_export"
+| "assign"
+| "checkin"
+| "checkout"
+| "approve"
+| "transfer"
+| "reset_password"
+| "manage_permissions"
+| "view_sensitive"
+| "audit"
+| "publish"
+| "archive"
+| "unlock";
 
 export const ACTIONS: Action[] = [
-  "view",
-  "create",
-  "edit",
-  "delete",
-  "export",
-  "bulk_delete",
-  "bulk_export",
-  "assign",
-  "checkin",
-  "checkout",
-  "approve",
-  "transfer",
-  "reset_password",
-  "manage_permissions",
-  "view_sensitive",
-  "audit",
-  "publish",
-  "archive",
-  "unlock",
+"view",
+"create",
+"edit",
+"delete",
+"export",
+"bulk_delete",
+"bulk_export",
+"assign",
+"checkin",
+"checkout",
+"approve",
+"transfer",
+"reset_password",
+"manage_permissions",
+"view_sensitive",
+"audit",
+"publish",
+"archive",
+"unlock",
 ];
 
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
-  dashboard: ["view", "export"],
-  housing: ["view", "create", "edit", "delete", "export", "bulk_export"],
-  employees: [
-    "view",
-    "create",
-    "edit",
-    "delete",
-    "export",
-    "reset_password",
-    "manage_permissions",
-    "view_sensitive",
-  ],
-  accommodation: [
-    "view",
-    "create",
-    "edit",
-    "assign",
-    "checkin",
-    "checkout",
-    "approve",
-    "transfer",
-    "bulk_delete",
-    "bulk_export",
-    "archive",
-  ],
-  reservations: [
-    "view",
-    "create",
-    "edit",
-    "checkin",
-    "checkout",
-    "approve",
-    "bulk_export",
-    "archive",
-  ],
-  maintenance: [
-    "view",
-    "create",
-    "edit",
-    "assign",
-    "approve",
-    "bulk_export",
-    "archive",
-  ],
-  reports: ["view", "export", "audit"],
-  users: [
-    "view",
-    "create",
-    "edit",
-    "delete",
-    "manage_permissions",
-    "reset_password",
-    "unlock",
-  ],
-  settings: ["view", "edit", "create", "delete"],
-  activity_log: ["view", "export", "audit"],
-  properties: ["view", "create", "edit", "delete"],
-  documents: ["view", "create", "edit", "delete", "publish", "archive"],
-  billing: ["view", "export"],
-  communications: ["view", "create"],
-  evaluations: ["view", "create", "edit", "delete", "export"],
-  surveys: ["view", "create", "edit", "delete"],
-  portal_content: ["view", "create", "edit", "delete"],
-  activities: ["view", "create", "edit", "delete", "publish"],
-  smart_locks: ["view", "create", "edit", "delete"],
-  hosting_requests: ["view", "create", "edit", "delete", "approve"],
+dashboard: ["view", "export"],
+housing: ["view", "create", "edit", "delete", "export", "bulk_export"],
+employees: [
+"view",
+"create",
+"edit",
+"delete",
+"export",
+"reset_password",
+"manage_permissions",
+"view_sensitive",
+],
+accommodation: [
+"view",
+"create",
+"edit",
+"assign",
+"checkin",
+"checkout",
+"approve",
+"transfer",
+"bulk_delete",
+"bulk_export",
+"archive",
+],
+reservations: [
+"view",
+"create",
+"edit",
+"checkin",
+"checkout",
+"approve",
+"bulk_export",
+"archive",
+],
+maintenance: [
+"view",
+"create",
+"edit",
+"assign",
+"approve",
+"bulk_export",
+"archive",
+],
+reports: ["view", "export", "audit"],
+users: [
+"view",
+"create",
+"edit",
+"delete",
+"manage_permissions",
+"reset_password",
+"unlock",
+],
+settings: ["view", "edit", "create", "delete"],
+activity_log: ["view", "export", "audit"],
+properties: ["view", "create", "edit", "delete"],
+documents: ["view", "create", "edit", "delete", "publish", "archive"],
+billing: ["view", "export"],
+communications: ["view", "create"],
+evaluations: ["view", "create", "edit", "delete", "export"],
+surveys: ["view", "create", "edit", "delete"],
+portal_content: ["view", "create", "edit", "delete"],
+activities: ["view", "create", "edit", "delete", "publish"],
+smart_locks: ["view", "create", "edit", "delete"],
+hosting_requests: ["view", "create", "edit", "delete", "approve"],
 };
 
 export const moduleActions = (module: Module): Action[] =>
-  MODULE_ACTIONS[module] ?? [];
+MODULE_ACTIONS[module] ?? [];
 
 export const permKey = (module: Module, action: Action) =>
-  `${module}.${action}`;
+`${module}.${action}`;
 
 export const getPermissionsForRoles = (roles: Array<string | undefined | null>): string[] => {
-  const normalized = (roles ?? [])
-    .map((role) => String(role ?? "").trim().toLowerCase())
-    .filter(Boolean);
+const normalized = (roles ?? [])
+.map((role) => String(role ?? "").trim().toLowerCase())
+.filter(Boolean);
 
-  const merged = new Set<string>();
-  for (const role of normalized) {
-    for (const permission of ROLE_DEFAULT_PERMISSIONS[role] ?? []) {
-      merged.add(permission);
-    }
-  }
+const merged = new Set<string>();
+for (const role of normalized) {
+for (const permission of ROLE_DEFAULT_PERMISSIONS[role] ?? []) {
+merged.add(permission);
+}
+}
 
-  return Array.from(merged);
+return Array.from(merged);
 };
 
 export const allModulePerms = (module: Module): string[] =>
-  (MODULE_ACTIONS[module] ?? []).map((action) => permKey(module, action));
+(MODULE_ACTIONS[module] ?? []).map((action) => permKey(module, action));
 
 const crudPerms = (module: Module): string[] =>
-  (["view", "create", "edit", "delete"] as Action[])
-    .filter((action) => (MODULE_ACTIONS[module] ?? []).includes(action))
-    .map((action) => permKey(module, action));
+(["view", "create", "edit", "delete"] as Action[])
+.filter((action) => (MODULE_ACTIONS[module] ?? []).includes(action))
+.map((action) => permKey(module, action));
 
 const readExportPerms = (module: Module): string[] =>
-  (["view", "export"] as Action[])
-    .filter((action) => (MODULE_ACTIONS[module] ?? []).includes(action))
-    .map((action) => permKey(module, action));
+(["view", "export"] as Action[])
+.filter((action) => (MODULE_ACTIONS[module] ?? []).includes(action))
+.map((action) => permKey(module, action));
 
 export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
-  super_admin: MODULES.flatMap((module) => allModulePerms(module)),
-  system_admin: MODULES.flatMap((module) => allModulePerms(module)),
-  admin: MODULES.filter((module) => module !== "properties").flatMap((module) =>
-    allModulePerms(module),
-  ),
-  manager: [
-    // Dashboard
-    "dashboard.view",
-    "dashboard.export",
-    // Housing
-    ...crudPerms("housing"),
-    "housing.bulk_export",
-    // Employees
-    ...crudPerms("employees"),
-    "employees.export",
-    // Accommodation
-    ...crudPerms("accommodation"),
-    "accommodation.assign",
-    "accommodation.checkin",
-    "accommodation.checkout",
-    "accommodation.approve",
-    "accommodation.transfer",
-    "accommodation.bulk_delete",
-    "accommodation.bulk_export",
-    "accommodation.archive",
-    // Reservations
-    ...crudPerms("reservations"),
-    "reservations.checkin",
-    "reservations.checkout",
-    "reservations.bulk_export",
-    "reservations.archive",
-    // Hosting Requests
-    ...crudPerms("hosting_requests"),
-    // Maintenance
-    ...crudPerms("maintenance"),
-    "maintenance.assign",
-    "maintenance.approve",
-    "maintenance.bulk_export",
-    "maintenance.archive",
-    // Reports
-    ...readExportPerms("reports"),
-    "reports.audit",
-    // Users
-    "users.view",
-    "users.edit",
-    "users.manage_permissions",
-    "users.unlock",
-    // Settings
-    "settings.view",
-    "settings.edit",
-    // Activity Log
-    "activity_log.view",
-    "activity_log.export",
-    "activity_log.audit",
-    // Documents
-    ...crudPerms("documents"),
-    "documents.publish",
-    "documents.archive",
-    // Billing
-    "billing.view",
-    "billing.export",
-    // Communications
-    "communications.view",
-    "communications.create",
-  ],
-  receptionist: [
-    "dashboard.view",
-    "housing.view",
-    "housing.export",
-    "employees.view",
-    "accommodation.view",
-    "accommodation.create",
-    "accommodation.edit",
-    "accommodation.assign",
-    "accommodation.checkin",
-    "accommodation.checkout",
-    "accommodation.approve",
-    "reservations.view",
-    "reservations.create",
-    "reservations.edit",
-    "reservations.checkin",
-    "reservations.checkout",
-    "reservations.approve",
-    "hosting_requests.view",
-    "hosting_requests.create",
-    "maintenance.view",
-    "maintenance.create",
-    "maintenance.edit",
-    "reports.view",
-    "reports.export",
-    "activity_log.view",
-    "documents.view",
-    "communications.view",
-    "communications.create",
-  ],
-  maintenance_staff: [
-    "dashboard.view",
-    "housing.view",
-    "maintenance.view",
-    "maintenance.create",
-    "maintenance.edit",
-    "maintenance.assign",
-    "maintenance.approve",
-    "employees.view",
-    "activity_log.view",
-    "documents.view",
-  ],
-  hr_admin: [
-    "dashboard.view",
-    "dashboard.export",
-    ...crudPerms("employees"),
-    "employees.export",
-    ...crudPerms("evaluations"),
-    "evaluations.export",
-    ...crudPerms("surveys"),
-    ...crudPerms("activities"),
-    "activities.publish",
-    ...crudPerms("documents"),
-    ...crudPerms("portal_content"),
-    ...crudPerms("communications"),
-    "reports.view",
-    "reports.export",
-    ...crudPerms("hosting_requests"),
-  ],
-  portal_admin: [
-    "dashboard.view",
-    ...crudPerms("activities"),
-    "activities.publish",
-    ...crudPerms("documents"),
-    ...crudPerms("portal_content"),
-    ...crudPerms("communications"),
-    "reports.view",
-  ],
-  security_staff: [
-    "dashboard.view",
-    "housing.view",
-    "accommodation.view",
-    ...crudPerms("smart_locks"),
-    "activities.view",
-  ],
+super_admin: MODULES.flatMap((module) => allModulePerms(module)),
+system_admin: MODULES.flatMap((module) => allModulePerms(module)),
+admin: MODULES.filter((module) => module !== "properties").flatMap((module) =>
+allModulePerms(module),
+),
+manager: [
+// Dashboard
+"dashboard.view",
+"dashboard.export",
+// Housing
+...crudPerms("housing"),
+"housing.bulk_export",
+// Employees
+...crudPerms("employees"),
+"employees.export",
+// Accommodation
+...crudPerms("accommodation"),
+"accommodation.assign",
+"accommodation.checkin",
+"accommodation.checkout",
+"accommodation.approve",
+"accommodation.transfer",
+"accommodation.bulk_delete",
+"accommodation.bulk_export",
+"accommodation.archive",
+// Reservations
+...crudPerms("reservations"),
+"reservations.checkin",
+"reservations.checkout",
+"reservations.bulk_export",
+"reservations.archive",
+// Hosting Requests
+...crudPerms("hosting_requests"),
+// Maintenance
+...crudPerms("maintenance"),
+"maintenance.assign",
+"maintenance.approve",
+"maintenance.bulk_export",
+"maintenance.archive",
+// Reports
+...readExportPerms("reports"),
+"reports.audit",
+// Users
+"users.view",
+"users.edit",
+"users.manage_permissions",
+"users.unlock",
+// Settings
+"settings.view",
+"settings.edit",
+// Activity Log
+"activity_log.view",
+"activity_log.export",
+"activity_log.audit",
+// Documents
+...crudPerms("documents"),
+"documents.publish",
+"documents.archive",
+// Billing
+"billing.view",
+"billing.export",
+// Communications
+"communications.view",
+"communications.create",
+],
+receptionist: [
+"dashboard.view",
+"housing.view",
+"housing.export",
+"employees.view",
+"accommodation.view",
+"accommodation.create",
+"accommodation.edit",
+"accommodation.assign",
+"accommodation.checkin",
+"accommodation.checkout",
+"accommodation.approve",
+"reservations.view",
+"reservations.create",
+"reservations.edit",
+"reservations.checkin",
+"reservations.checkout",
+"reservations.approve",
+"hosting_requests.view",
+"hosting_requests.create",
+"maintenance.view",
+"maintenance.create",
+"maintenance.edit",
+"reports.view",
+"reports.export",
+"activity_log.view",
+"documents.view",
+"communications.view",
+"communications.create",
+],
+maintenance_staff: [
+"dashboard.view",
+"housing.view",
+"maintenance.view",
+"maintenance.create",
+"maintenance.edit",
+"maintenance.assign",
+"maintenance.approve",
+"employees.view",
+"activity_log.view",
+"documents.view",
+],
+hr_admin: [
+"dashboard.view",
+"dashboard.export",
+...crudPerms("employees"),
+"employees.export",
+...crudPerms("evaluations"),
+"evaluations.export",
+...crudPerms("surveys"),
+...crudPerms("activities"),
+"activities.publish",
+...crudPerms("documents"),
+...crudPerms("portal_content"),
+...crudPerms("communications"),
+"reports.view",
+"reports.export",
+...crudPerms("hosting_requests"),
+],
+portal_admin: [
+"dashboard.view",
+...crudPerms("activities"),
+"activities.publish",
+...crudPerms("documents"),
+...crudPerms("portal_content"),
+...crudPerms("communications"),
+"reports.view",
+],
+security_staff: [
+"dashboard.view",
+"housing.view",
+"accommodation.view",
+...crudPerms("smart_locks"),
+"activities.view",
+],
 };
 
 export const MODULE_LABELS: Record<Module, { en: string; ar: string }> = {
-  dashboard: { en: "Dashboard", ar: "لوحة القيادة" },
-  housing: { en: "Housing", ar: "الإسكان" },
-  employees: { en: "Employees", ar: "الموظفين" },
-  accommodation: { en: "Accommodation", ar: "الإقامة" },
-  reservations: { en: "Reservations", ar: "الحجوزات" },
-  maintenance: { en: "Tickets", ar: "التذاكر" },
-  reports: { en: "Reports", ar: "التقارير" },
-  users: { en: "Users", ar: "المستخدمين" },
-  settings: { en: "Settings", ar: "الإعدادات" },
-  activity_log: { en: "Activity Log", ar: "سجل النشاط" },
-  properties: { en: "Properties", ar: "الفروع" },
-  documents: { en: "Documents", ar: "المستندات" },
-  billing: { en: "Billing", ar: "الفواتير" },
-  communications: { en: "Communications", ar: "الاتصالات" },
-  evaluations: { en: "Evaluations", ar: "التقييمات" },
-  surveys: { en: "Surveys", ar: "الاستبيانات" },
-  portal_content: { en: "Portal Content", ar: "محتوى البوابة" },
-  activities: { en: "Activities", ar: "الأنشطة" },
-  smart_locks: { en: "Smart Locks", ar: "الأقفال الذكية" },
-  hosting_requests: { en: "Hosting Requests", ar: "طلبات الاستضافة" },
+dashboard: { en: "Dashboard", ar: "لوحة القيادة" },
+housing: { en: "Housing", ar: "الإسكان" },
+employees: { en: "Employees", ar: "الموظفين" },
+accommodation: { en: "Accommodation", ar: "الإقامة" },
+reservations: { en: "Reservations", ar: "الحجوزات" },
+maintenance: { en: "Tickets", ar: "التذاكر" },
+reports: { en: "Reports", ar: "التقارير" },
+users: { en: "Users", ar: "المستخدمين" },
+settings: { en: "Settings", ar: "الإعدادات" },
+activity_log: { en: "Activity Log", ar: "سجل النشاط" },
+properties: { en: "Properties", ar: "الفروع" },
+documents: { en: "Documents", ar: "المستندات" },
+billing: { en: "Billing", ar: "الفواتير" },
+communications: { en: "Communications", ar: "الاتصالات" },
+evaluations: { en: "Evaluations", ar: "التقييمات" },
+surveys: { en: "Surveys", ar: "الاستبيانات" },
+portal_content: { en: "Portal Content", ar: "محتوى البوابة" },
+activities: { en: "Activities", ar: "الأنشطة" },
+smart_locks: { en: "Smart Locks", ar: "الأقفال الذكية" },
+hosting_requests: { en: "Hosting Requests", ar: "طلبات الاستضافة" },
 };
 
 export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
-  view: { en: "View", ar: "عرض" },
-  create: { en: "Create", ar: "إضافة" },
-  edit: { en: "Edit", ar: "تعديل" },
-  delete: { en: "Delete", ar: "حذف" },
-  export: { en: "Export", ar: "تصدير" },
-  bulk_delete: { en: "Bulk Delete", ar: "حذف جماعي" },
-  bulk_export: { en: "Bulk Export", ar: "تصدير جماعي" },
-  assign: { en: "Assign", ar: "تعيين" },
-  checkin: { en: "Check-in", ar: "تسجيل وصول" },
-  checkout: { en: "Check-out", ar: "تسجيل مغادرة" },
-  approve: { en: "Approve", ar: "موافقة" },
-  transfer: { en: "Transfer", ar: "نقل" },
-  reset_password: { en: "Reset Password", ar: "إعادة كلمة المرور" },
-  manage_permissions: { en: "Manage Permissions", ar: "إدارة الصلاحيات" },
-  view_sensitive: { en: "View Sensitive", ar: "عرض بيانات حساسة" },
-  audit: { en: "Audit", ar: "تدقيق" },
-  publish: { en: "Publish", ar: "نشر" },
-  archive: { en: "Archive", ar: "أرشفة" },
-  unlock: { en: "Unlock", ar: "فتح القفل" },
+view: { en: "View", ar: "عرض" },
+create: { en: "Create", ar: "إضافة" },
+edit: { en: "Edit", ar: "تعديل" },
+delete: { en: "Delete", ar: "حذف" },
+export: { en: "Export", ar: "تصدير" },
+bulk_delete: { en: "Bulk Delete", ar: "حذف جماعي" },
+bulk_export: { en: "Bulk Export", ar: "تصدير جماعي" },
+assign: { en: "Assign", ar: "تعيين" },
+checkin: { en: "Check-in", ar: "تسجيل وصول" },
+checkout: { en: "Check-out", ar: "تسجيل مغادرة" },
+approve: { en: "Approve", ar: "موافقة" },
+transfer: { en: "Transfer", ar: "نقل" },
+reset_password: { en: "Reset Password", ar: "إعادة كلمة المرور" },
+manage_permissions: { en: "Manage Permissions", ar: "إدارة الصلاحيات" },
+view_sensitive: { en: "View Sensitive", ar: "عرض بيانات حساسة" },
+audit: { en: "Audit", ar: "تدقيق" },
+publish: { en: "Publish", ar: "نشر" },
+archive: { en: "Archive", ar: "أرشفة" },
+unlock: { en: "Unlock", ar: "فتح القفل" },
 };
 
 ================================================================================
@@ -18317,76 +18811,76 @@ FILE: artifacts/housing/src/lib/PrintLanguageDialog.tsx
 
 import { useState, useCallback, useRef } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+Dialog,
+DialogContent,
+DialogHeader,
+DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export function PrintLanguageDialog({
-  open,
-  onSelect,
-  onCancel,
+open,
+onSelect,
+onCancel,
 }: {
-  open: boolean;
-  onSelect: (isArabic: boolean) => void;
-  onCancel: () => void;
+open: boolean;
+onSelect: (isArabic: boolean) => void;
+onCancel: () => void;
 }) {
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) onCancel();
-      }}
-    >
-      <DialogContent
+return (
+
+<Dialog
+open={open}
+onOpenChange={(o) => {
+if (!o) onCancel();
+}} >
+<DialogContent
         className="max-w-xs"
         srTitle="Choose language / اختر اللغة"
       >
-        <DialogHeader>
-          <DialogTitle className="text-base">
-            Choose Language / اختر اللغة
-          </DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground mb-3">
-          Choose the PDF language / اختر لغة التقرير
-        </p>
-        <div className="flex gap-3 justify-end">
-          <Button variant="outline" onClick={() => onSelect(false)}>
-            English
-          </Button>
-          <Button onClick={() => onSelect(true)}>العربية</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+<DialogHeader>
+<DialogTitle className="text-base">
+Choose Language / اختر اللغة
+</DialogTitle>
+</DialogHeader>
+<p className="text-sm text-muted-foreground mb-3">
+Choose the PDF language / اختر لغة التقرير
+</p>
+<div className="flex gap-3 justify-end">
+<Button variant="outline" onClick={() => onSelect(false)}>
+English
+</Button>
+<Button onClick={() => onSelect(true)}>العربية</Button>
+</div>
+</DialogContent>
+</Dialog>
+);
 }
 
 export function usePrintLanguage() {
-  const [open, setOpen] = useState(false);
-  const resolveRef = useRef<((ar: boolean) => void) | null>(null);
+const [open, setOpen] = useState(false);
+const resolveRef = useRef<((ar: boolean) => void) | null>(null);
 
-  const openDialog = useCallback(() => {
-    return new Promise<boolean>((resolve) => {
-      resolveRef.current = resolve;
-      setOpen(true);
-    });
-  }, []);
+const openDialog = useCallback(() => {
+return new Promise<boolean>((resolve) => {
+resolveRef.current = resolve;
+setOpen(true);
+});
+}, []);
 
-  const handleSelect = useCallback((isArabic: boolean) => {
-    resolveRef.current?.(isArabic);
-    resolveRef.current = null;
-    setOpen(false);
-  }, []);
+const handleSelect = useCallback((isArabic: boolean) => {
+resolveRef.current?.(isArabic);
+resolveRef.current = null;
+setOpen(false);
+}, []);
 
-  const handleCancel = useCallback(() => {
-    resolveRef.current?.(false);
-    resolveRef.current = null;
-    setOpen(false);
-  }, []);
+const handleCancel = useCallback(() => {
+resolveRef.current?.(false);
+resolveRef.current = null;
+setOpen(false);
+}, []);
 
-  return { langDialogOpen: open, openDialog, handleSelect, handleCancel };
+return { langDialogOpen: open, openDialog, handleSelect, handleCancel };
 }
 
 ================================================================================
@@ -18398,7 +18892,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+return twMerge(clsx(inputs));
 }
 
 ================================================================================
@@ -18406,7 +18900,7 @@ FILE: lib/api-client-react/src/custom-fetch.ts
 ================================================================================
 
 export type CustomFetchOptions = RequestInit & {
-  responseType?: "json" | "text" | "blob" | "auto";
+responseType?: "json" | "text" | "blob" | "auto";
 };
 
 export type ErrorType<T = unknown> = ApiError<T>;
@@ -18422,179 +18916,181 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 // Module-level configuration
 // ---------------------------------------------------------------------------
 
-let _baseUrl: string | null = null;
-let _authTokenGetter: AuthTokenGetter | null = null;
+let \_baseUrl: string | null = null;
+let \_authTokenGetter: AuthTokenGetter | null = null;
 
-/**
- * Set a base URL that is prepended to every relative request URL
- * (i.e. paths that start with `/`).
- *
- * Useful for Expo bundles that need to call a remote API server.
- * Pass `null` to clear the base URL.
- */
-export function setBaseUrl(url: string | null): void {
-  _baseUrl = url ? url.replace(/\/+$/, "") : null;
-}
+/\*\*
 
-/**
- * Register a getter that supplies a bearer auth token.  Before every fetch
- * the getter is invoked; when it returns a non-null string, an
- * `Authorization: Bearer <token>` header is attached to the request.
- *
- * Useful for Expo bundles making token-gated API calls.
- * Pass `null` to clear the getter.
- *
- * NOTE: This function should never be used in web applications where session
- * token cookies are automatically associated with API calls by the browser.
- */
-export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
-  _authTokenGetter = getter;
-}
+- Set a base URL that is prepended to every relative request URL
+- (i.e. paths that start with `/`).
+-
+- Useful for Expo bundles that need to call a remote API server.
+- Pass `null` to clear the base URL.
+  \*/
+  export function setBaseUrl(url: string | null): void {
+  \_baseUrl = url ? url.replace(/\/+$/, "") : null;
+  }
+
+/\*\*
+
+- Register a getter that supplies a bearer auth token. Before every fetch
+- the getter is invoked; when it returns a non-null string, an
+- `Authorization: Bearer <token>` header is attached to the request.
+-
+- Useful for Expo bundles making token-gated API calls.
+- Pass `null` to clear the getter.
+-
+- NOTE: This function should never be used in web applications where session
+- token cookies are automatically associated with API calls by the browser.
+  \*/
+  export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
+  \_authTokenGetter = getter;
+  }
 
 function isRequest(input: RequestInfo | URL): input is Request {
-  return typeof Request !== "undefined" && input instanceof Request;
+return typeof Request !== "undefined" && input instanceof Request;
 }
 
 function resolveMethod(input: RequestInfo | URL, explicitMethod?: string): string {
-  if (explicitMethod) return explicitMethod.toUpperCase();
-  if (isRequest(input)) return input.method.toUpperCase();
-  return "GET";
+if (explicitMethod) return explicitMethod.toUpperCase();
+if (isRequest(input)) return input.method.toUpperCase();
+return "GET";
 }
 
 // Use loose check for URL — some runtimes (e.g. React Native) polyfill URL
 // differently, so `instanceof URL` can fail.
 function isUrl(input: RequestInfo | URL): input is URL {
-  return typeof URL !== "undefined" && input instanceof URL;
+return typeof URL !== "undefined" && input instanceof URL;
 }
 
 function applyBaseUrl(input: RequestInfo | URL): RequestInfo | URL {
-  if (!_baseUrl) return input;
-  const url = resolveUrl(input);
-  // Only prepend to relative paths (starting with /)
-  if (!url.startsWith("/")) return input;
+if (!\_baseUrl) return input;
+const url = resolveUrl(input);
+// Only prepend to relative paths (starting with /)
+if (!url.startsWith("/")) return input;
 
-  const absolute = `${_baseUrl}${url}`;
-  if (typeof input === "string") return absolute;
-  if (isUrl(input)) return new URL(absolute);
-  return new Request(absolute, input as Request);
+const absolute = `${_baseUrl}${url}`;
+if (typeof input === "string") return absolute;
+if (isUrl(input)) return new URL(absolute);
+return new Request(absolute, input as Request);
 }
 
 function resolveUrl(input: RequestInfo | URL): string {
-  if (typeof input === "string") return input;
-  if (isUrl(input)) return input.toString();
-  return input.url;
+if (typeof input === "string") return input;
+if (isUrl(input)) return input.toString();
+return input.url;
 }
 
 function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
-  const headers = new Headers();
+const headers = new Headers();
 
-  for (const source of sources) {
-    if (!source) continue;
-    new Headers(source).forEach((value, key) => {
-      headers.set(key, value);
-    });
-  }
+for (const source of sources) {
+if (!source) continue;
+new Headers(source).forEach((value, key) => {
+headers.set(key, value);
+});
+}
 
-  return headers;
+return headers;
 }
 
 function getMediaType(headers: Headers): string | null {
-  const value = headers.get("content-type");
-  return value ? value.split(";", 1)[0].trim().toLowerCase() : null;
+const value = headers.get("content-type");
+return value ? value.split(";", 1)[0].trim().toLowerCase() : null;
 }
 
 function isJsonMediaType(mediaType: string | null): boolean {
-  return mediaType === "application/json" || Boolean(mediaType?.endsWith("+json"));
+return mediaType === "application/json" || Boolean(mediaType?.endsWith("+json"));
 }
 
 function isTextMediaType(mediaType: string | null): boolean {
-  return Boolean(
-    mediaType &&
-      (mediaType.startsWith("text/") ||
-        mediaType === "application/xml" ||
-        mediaType === "text/xml" ||
-        mediaType.endsWith("+xml") ||
-        mediaType === "application/x-www-form-urlencoded"),
-  );
+return Boolean(
+mediaType &&
+(mediaType.startsWith("text/") ||
+mediaType === "application/xml" ||
+mediaType === "text/xml" ||
+mediaType.endsWith("+xml") ||
+mediaType === "application/x-www-form-urlencoded"),
+);
 }
 
 // Use strict equality: in browsers, `response.body` is `null` when the
-// response genuinely has no content.  In React Native, `response.body` is
+// response genuinely has no content. In React Native, `response.body` is
 // always `undefined` because the ReadableStream API is not implemented —
 // even when the response carries a full payload readable via `.text()` or
-// `.json()`.  Loose equality (`== null`) matches both `null` and `undefined`,
+// `.json()`. Loose equality (`== null`) matches both `null` and `undefined`,
 // which causes every React Native response to be treated as empty.
 function hasNoBody(response: Response, method: string): boolean {
-  if (method === "HEAD") return true;
-  if (NO_BODY_STATUS.has(response.status)) return true;
-  if (response.headers.get("content-length") === "0") return true;
-  if (response.body === null) return true;
-  return false;
+if (method === "HEAD") return true;
+if (NO_BODY_STATUS.has(response.status)) return true;
+if (response.headers.get("content-length") === "0") return true;
+if (response.body === null) return true;
+return false;
 }
 
 function stripBom(text: string): string {
-  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
 function looksLikeJson(text: string): boolean {
-  const trimmed = text.trimStart();
-  return trimmed.startsWith("{") || trimmed.startsWith("[");
+const trimmed = text.trimStart();
+return trimmed.startsWith("{") || trimmed.startsWith("[");
 }
 
 function getStringField(value: unknown, key: string): string | undefined {
-  if (!value || typeof value !== "object") return undefined;
+if (!value || typeof value !== "object") return undefined;
 
-  const candidate = (value as Record<string, unknown>)[key];
-  if (typeof candidate !== "string") return undefined;
+const candidate = (value as Record<string, unknown>)[key];
+if (typeof candidate !== "string") return undefined;
 
-  const trimmed = candidate.trim();
-  return trimmed === "" ? undefined : trimmed;
+const trimmed = candidate.trim();
+return trimmed === "" ? undefined : trimmed;
 }
 
 function truncate(text: string, maxLength = 300): string {
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
 }
 
 function buildErrorMessage(response: Response, data: unknown): string {
-  const prefix = `HTTP ${response.status} ${response.statusText}`;
+const prefix = `HTTP ${response.status} ${response.statusText}`;
 
-  if (typeof data === "string") {
-    const text = data.trim();
-    return text ? `${prefix}: ${truncate(text)}` : prefix;
-  }
+if (typeof data === "string") {
+const text = data.trim();
+return text ? `${prefix}: ${truncate(text)}` : prefix;
+}
 
-  const title = getStringField(data, "title");
-  const detail = getStringField(data, "detail");
-  const message =
-    getStringField(data, "message") ??
-    getStringField(data, "error_description") ??
-    getStringField(data, "error");
+const title = getStringField(data, "title");
+const detail = getStringField(data, "detail");
+const message =
+getStringField(data, "message") ??
+getStringField(data, "error_description") ??
+getStringField(data, "error");
 
-  if (title && detail) return `${prefix}: ${title} — ${detail}`;
-  if (detail) return `${prefix}: ${detail}`;
-  if (message) return `${prefix}: ${message}`;
-  if (title) return `${prefix}: ${title}`;
+if (title && detail) return `${prefix}: ${title} — ${detail}`;
+if (detail) return `${prefix}: ${detail}`;
+if (message) return `${prefix}: ${message}`;
+if (title) return `${prefix}: ${title}`;
 
-  return prefix;
+return prefix;
 }
 
 export class ApiError<T = unknown> extends Error {
-  readonly name = "ApiError";
-  readonly status: number;
-  readonly statusText: string;
-  readonly data: T | null;
-  readonly headers: Headers;
-  readonly response: Response;
-  readonly method: string;
-  readonly url: string;
+readonly name = "ApiError";
+readonly status: number;
+readonly statusText: string;
+readonly data: T | null;
+readonly headers: Headers;
+readonly response: Response;
+readonly method: string;
+readonly url: string;
 
-  constructor(
-    response: Response,
-    data: T | null,
-    requestInfo: { method: string; url: string },
-  ) {
-    super(buildErrorMessage(response, data));
-    Object.setPrototypeOf(this, new.target.prototype);
+constructor(
+response: Response,
+data: T | null,
+requestInfo: { method: string; url: string },
+) {
+super(buildErrorMessage(response, data));
+Object.setPrototypeOf(this, new.target.prototype);
 
     this.status = response.status;
     this.statusText = response.statusText;
@@ -18603,31 +19099,32 @@ export class ApiError<T = unknown> extends Error {
     this.response = response;
     this.method = requestInfo.method;
     this.url = response.url || requestInfo.url;
-  }
+
+}
 }
 
 export class ResponseParseError extends Error {
-  readonly name = "ResponseParseError";
-  readonly status: number;
-  readonly statusText: string;
-  readonly headers: Headers;
-  readonly response: Response;
-  readonly method: string;
-  readonly url: string;
-  readonly rawBody: string;
-  readonly cause: unknown;
+readonly name = "ResponseParseError";
+readonly status: number;
+readonly statusText: string;
+readonly headers: Headers;
+readonly response: Response;
+readonly method: string;
+readonly url: string;
+readonly rawBody: string;
+readonly cause: unknown;
 
-  constructor(
-    response: Response,
-    rawBody: string,
-    cause: unknown,
-    requestInfo: { method: string; url: string },
-  ) {
-    super(
-      `Failed to parse response from ${requestInfo.method} ${response.url || requestInfo.url} ` +
-        `(${response.status} ${response.statusText}) as JSON`,
-    );
-    Object.setPrototypeOf(this, new.target.prototype);
+constructor(
+response: Response,
+rawBody: string,
+cause: unknown,
+requestInfo: { method: string; url: string },
+) {
+super(
+`Failed to parse response from ${requestInfo.method} ${response.url || requestInfo.url} ` +
+`(${response.status} ${response.statusText}) as JSON`,
+);
+Object.setPrototypeOf(this, new.target.prototype);
 
     this.status = response.status;
     this.statusText = response.statusText;
@@ -18637,81 +19134,82 @@ export class ResponseParseError extends Error {
     this.url = response.url || requestInfo.url;
     this.rawBody = rawBody;
     this.cause = cause;
-  }
+
+}
 }
 
 async function parseJsonBody(
-  response: Response,
-  requestInfo: { method: string; url: string },
+response: Response,
+requestInfo: { method: string; url: string },
 ): Promise<unknown> {
-  const raw = await response.text();
-  const normalized = stripBom(raw);
+const raw = await response.text();
+const normalized = stripBom(raw);
 
-  if (normalized.trim() === "") {
-    return null;
-  }
+if (normalized.trim() === "") {
+return null;
+}
 
-  try {
-    return JSON.parse(normalized);
-  } catch (cause) {
-    throw new ResponseParseError(response, raw, cause, requestInfo);
-  }
+try {
+return JSON.parse(normalized);
+} catch (cause) {
+throw new ResponseParseError(response, raw, cause, requestInfo);
+}
 }
 
 async function parseErrorBody(response: Response, method: string): Promise<unknown> {
-  if (hasNoBody(response, method)) {
-    return null;
-  }
+if (hasNoBody(response, method)) {
+return null;
+}
 
-  const mediaType = getMediaType(response.headers);
+const mediaType = getMediaType(response.headers);
 
-  // Fall back to text when blob() is unavailable (e.g. some React Native builds).
-  if (mediaType && !isJsonMediaType(mediaType) && !isTextMediaType(mediaType)) {
-    return typeof response.blob === "function" ? response.blob() : response.text();
-  }
+// Fall back to text when blob() is unavailable (e.g. some React Native builds).
+if (mediaType && !isJsonMediaType(mediaType) && !isTextMediaType(mediaType)) {
+return typeof response.blob === "function" ? response.blob() : response.text();
+}
 
-  const raw = await response.text();
-  const normalized = stripBom(raw);
-  const trimmed = normalized.trim();
+const raw = await response.text();
+const normalized = stripBom(raw);
+const trimmed = normalized.trim();
 
-  if (trimmed === "") {
-    return null;
-  }
+if (trimmed === "") {
+return null;
+}
 
-  if (isJsonMediaType(mediaType) || looksLikeJson(normalized)) {
-    try {
-      return JSON.parse(normalized);
-    } catch {
-      return raw;
-    }
-  }
+if (isJsonMediaType(mediaType) || looksLikeJson(normalized)) {
+try {
+return JSON.parse(normalized);
+} catch {
+return raw;
+}
+}
 
-  return raw;
+return raw;
 }
 
 function inferResponseType(response: Response): "json" | "text" | "blob" {
-  const mediaType = getMediaType(response.headers);
+const mediaType = getMediaType(response.headers);
 
-  if (isJsonMediaType(mediaType)) return "json";
-  if (isTextMediaType(mediaType) || mediaType == null) return "text";
-  return "blob";
+if (isJsonMediaType(mediaType)) return "json";
+if (isTextMediaType(mediaType) || mediaType == null) return "text";
+return "blob";
 }
 
 async function parseSuccessBody(
-  response: Response,
-  responseType: "json" | "text" | "blob" | "auto",
-  requestInfo: { method: string; url: string },
+response: Response,
+responseType: "json" | "text" | "blob" | "auto",
+requestInfo: { method: string; url: string },
 ): Promise<unknown> {
-  if (hasNoBody(response, requestInfo.method)) {
-    return null;
-  }
+if (hasNoBody(response, requestInfo.method)) {
+return null;
+}
 
-  const effectiveType =
-    responseType === "auto" ? inferResponseType(response) : responseType;
+const effectiveType =
+responseType === "auto" ? inferResponseType(response) : responseType;
 
-  switch (effectiveType) {
-    case "json":
-      return parseJsonBody(response, requestInfo);
+switch (effectiveType) {
+case "json":
+return parseJsonBody(response, requestInfo);
 
     case "text": {
       const text = await response.text();
@@ -18726,55 +19224,56 @@ async function parseSuccessBody(
         );
       }
       return response.blob();
-  }
+
+}
 }
 
 export async function customFetch<T = unknown>(
-  input: RequestInfo | URL,
-  options: CustomFetchOptions = {},
+input: RequestInfo | URL,
+options: CustomFetchOptions = {},
 ): Promise<T> {
-  input = applyBaseUrl(input);
-  const { responseType = "auto", headers: headersInit, ...init } = options;
+input = applyBaseUrl(input);
+const { responseType = "auto", headers: headersInit, ...init } = options;
 
-  const method = resolveMethod(input, init.method);
+const method = resolveMethod(input, init.method);
 
-  if (init.body != null && (method === "GET" || method === "HEAD")) {
-    throw new TypeError(`customFetch: ${method} requests cannot have a body.`);
-  }
+if (init.body != null && (method === "GET" || method === "HEAD")) {
+throw new TypeError(`customFetch: ${method} requests cannot have a body.`);
+}
 
-  const headers = mergeHeaders(isRequest(input) ? input.headers : undefined, headersInit);
+const headers = mergeHeaders(isRequest(input) ? input.headers : undefined, headersInit);
 
-  if (
-    typeof init.body === "string" &&
-    !headers.has("content-type") &&
-    looksLikeJson(init.body)
-  ) {
-    headers.set("content-type", "application/json");
-  }
+if (
+typeof init.body === "string" &&
+!headers.has("content-type") &&
+looksLikeJson(init.body)
+) {
+headers.set("content-type", "application/json");
+}
 
-  if (responseType === "json" && !headers.has("accept")) {
-    headers.set("accept", DEFAULT_JSON_ACCEPT);
-  }
+if (responseType === "json" && !headers.has("accept")) {
+headers.set("accept", DEFAULT_JSON_ACCEPT);
+}
 
-  // Attach bearer token when an auth getter is configured and no
-  // Authorization header has been explicitly provided.
-  if (_authTokenGetter && !headers.has("authorization")) {
-    const token = await _authTokenGetter();
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
-  }
+// Attach bearer token when an auth getter is configured and no
+// Authorization header has been explicitly provided.
+if (\_authTokenGetter && !headers.has("authorization")) {
+const token = await \_authTokenGetter();
+if (token) {
+headers.set("authorization", `Bearer ${token}`);
+}
+}
 
-  const requestInfo = { method, url: resolveUrl(input) };
+const requestInfo = { method, url: resolveUrl(input) };
 
-  // Set up AbortController with 30s timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30_000);
-  const signal = init.signal || controller.signal;
+// Set up AbortController with 30s timeout
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 30_000);
+const signal = init.signal || controller.signal;
 
-  try {
-    const response = await fetch(input, { ...init, method, headers, signal });
-    clearTimeout(timeoutId);
+try {
+const response = await fetch(input, { ...init, method, headers, signal });
+clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await parseErrorBody(response, method);
@@ -18782,623 +19281,625 @@ export async function customFetch<T = unknown>(
     }
 
     return (await parseSuccessBody(response, responseType, requestInfo)) as T;
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === "AbortError" && !init.signal) {
-      throw new Error(`Request timed out after 30 seconds. Server may be unreachable: ${requestInfo.method} ${requestInfo.url}`);
-    }
-    throw error;
-  }
+
+} catch (error: any) {
+clearTimeout(timeoutId);
+if (error.name === "AbortError" && !init.signal) {
+throw new Error(`Request timed out after 30 seconds. Server may be unreachable: ${requestInfo.method} ${requestInfo.url}`);
+}
+throw error;
+}
 }
 
 ================================================================================
 FILE: lib/api-client-react/src/index.ts
 ================================================================================
 
-export * from "./generated/api";
-export * from "./generated/api.schemas";
+export _ from "./generated/api";
+export _ from "./generated/api.schemas";
 export { setBaseUrl, setAuthTokenGetter } from "./custom-fetch";
 export type { AuthTokenGetter } from "./custom-fetch";
-export * from "./hooks/smart-lock";
+export \* from "./hooks/smart-lock";
 
-export * from "./hooks/portal";
+export \* from "./hooks/portal";
 
-export * from "./pagination.types";
+export \* from "./pagination.types";
 
 ================================================================================
 FILE: lib/api-client-react/src/pagination.types.ts
 ================================================================================
 
 export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
+page: number;
+limit: number;
+total: number;
+totalPages: number;
+hasNextPage: boolean;
+hasPrevPage: boolean;
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: PaginationMeta;
+data: T[];
+pagination: PaginationMeta;
 }
 
 export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  status?: string;
-  buildingId?: number;
-  departmentId?: number;
+page?: number;
+limit?: number;
+search?: string;
+status?: string;
+buildingId?: number;
+departmentId?: number;
 }
 
 ================================================================================
 FILE: lib/api-client-react/src/generated/api.schemas.ts
 ================================================================================
 
-/**
- * Generated by orval v8.12.3 🍺
- * Do not edit manually.
- * Api
- * Sunrise Staff Housing Management System API
- * OpenAPI spec version: 0.1.0
- */
-export interface HealthStatus {
+/\*\*
+
+- Generated by orval v8.12.3 🍺
+- Do not edit manually.
+- Api
+- Sunrise Staff Housing Management System API
+- OpenAPI spec version: 0.1.0
+  \*/
+  export interface HealthStatus {
   status: string;
-}
+  }
 
 export interface ErrorResponse {
-  error: string;
+error: string;
 }
 
 export interface MessageResponse {
-  message: string;
+message: string;
 }
 
 export interface LoginBody {
-  username: string;
-  password: string;
-  /** @nullable */
-  propertyCode?: string | null;
+username: string;
+password: string;
+/\*_ @nullable _/
+propertyCode?: string | null;
 }
 
 export interface User {
-  id: number;
-  propertyId: number;
-  username: string;
-  roles: string[];
-  permissions: string[];
-  status: string;
+id: number;
+propertyId: number;
+username: string;
+roles: string[];
+permissions: string[];
+status: string;
 }
 
 export interface LoginResponse {
-  user: User;
-  token: string;
+user: User;
+token: string;
 }
 
 export interface ChangePasswordBody {
-  currentPassword: string;
-  newPassword: string;
+currentPassword: string;
+newPassword: string;
 }
 
 export interface Property {
-  id: number;
-  name: string;
-  code: string;
-  /** @nullable */
-  displayName?: string | null;
-  /** @nullable */
-  logo?: string | null;
-  primaryColor: string;
-  defaultLanguage: string;
-  status: string;
-  createdAt: string;
+id: number;
+name: string;
+code: string;
+/** @nullable \*/
+displayName?: string | null;
+/** @nullable \*/
+logo?: string | null;
+primaryColor: string;
+defaultLanguage: string;
+status: string;
+createdAt: string;
 }
 
 export interface CreatePropertyBody {
-  name: string;
-  code: string;
-  /** @nullable */
-  displayName?: string | null;
-  /** @nullable */
-  logo?: string | null;
-  primaryColor: string;
-  defaultLanguage: string;
-  adminUsername: string;
-  adminPassword: string;
+name: string;
+code: string;
+/** @nullable \*/
+displayName?: string | null;
+/** @nullable \*/
+logo?: string | null;
+primaryColor: string;
+defaultLanguage: string;
+adminUsername: string;
+adminPassword: string;
 }
 
 export interface UpdatePropertyBody {
-  name?: string;
-  /** @nullable */
-  displayName?: string | null;
-  /** @nullable */
-  logo?: string | null;
-  primaryColor?: string;
-  defaultLanguage?: string;
-  status?: string;
+name?: string;
+/** @nullable \*/
+displayName?: string | null;
+/** @nullable \*/
+logo?: string | null;
+primaryColor?: string;
+defaultLanguage?: string;
+status?: string;
 }
 
 export interface Building {
-  id: number;
-  propertyId: number;
-  name: string;
-  location: string;
-  capacity: number;
-  status: string;
+id: number;
+propertyId: number;
+name: string;
+location: string;
+capacity: number;
+status: string;
 }
 
 export interface CreateBuildingBody {
-  propertyId: number;
-  name: string;
-  location: string;
-  capacity: number;
-  status?: string;
+propertyId: number;
+name: string;
+location: string;
+capacity: number;
+status?: string;
 }
 
 export interface UpdateBuildingBody {
-  name?: string;
-  location?: string;
-  capacity?: number;
-  status?: string;
+name?: string;
+location?: string;
+capacity?: number;
+status?: string;
 }
 
 export interface Floor {
-  id: number;
-  propertyId: number;
-  buildingId: number;
-  floorNumber: string;
-  description: string;
+id: number;
+propertyId: number;
+buildingId: number;
+floorNumber: string;
+description: string;
 }
 
 export interface CreateFloorBody {
-  propertyId: number;
-  buildingId: number;
-  floorNumber: string;
-  description?: string;
+propertyId: number;
+buildingId: number;
+floorNumber: string;
+description?: string;
 }
 
 export interface UpdateFloorBody {
-  floorNumber?: string;
-  description?: string;
+floorNumber?: string;
+description?: string;
 }
 
 export interface Room {
-  id: number;
-  propertyId: number;
-  buildingId: number;
-  floorId: number;
-  roomNumber: string;
-  roomType: string;
-  capacity: number;
-  currentOccupancy: number;
-  status: string;
-  /** @nullable */
-  gender?: string | null;
+id: number;
+propertyId: number;
+buildingId: number;
+floorId: number;
+roomNumber: string;
+roomType: string;
+capacity: number;
+currentOccupancy: number;
+status: string;
+/\*_ @nullable _/
+gender?: string | null;
 }
 
 export interface CreateRoomBody {
-  propertyId: number;
-  buildingId: number;
-  floorId: number;
-  roomNumber: string;
-  roomType: string;
-  capacity: number;
-  status?: string;
-  /** @nullable */
-  gender?: string | null;
+propertyId: number;
+buildingId: number;
+floorId: number;
+roomNumber: string;
+roomType: string;
+capacity: number;
+status?: string;
+/\*_ @nullable _/
+gender?: string | null;
 }
 
 export interface UpdateRoomBody {
-  roomNumber?: string;
-  roomType?: string;
-  capacity?: number;
-  status?: string;
-  /** @nullable */
-  gender?: string | null;
+roomNumber?: string;
+roomType?: string;
+capacity?: number;
+status?: string;
+/\*_ @nullable _/
+gender?: string | null;
 }
 
 export interface Employee {
-  id: number;
-  propertyId: number;
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  nationalId: string;
-  nationality: string;
-  address: string;
-  jobTitle: string;
-  level: string;
-  phone: string;
-  department: string;
-  status: string;
-  hireDate: string;
-  gender: string;
-  /** @nullable */
-  idImage?: string | null;
+id: number;
+propertyId: number;
+employeeId: string;
+firstName: string;
+lastName: string;
+nationalId: string;
+nationality: string;
+address: string;
+jobTitle: string;
+level: string;
+phone: string;
+department: string;
+status: string;
+hireDate: string;
+gender: string;
+/\*_ @nullable _/
+idImage?: string | null;
 }
 
 export interface CreateEmployeeBody {
-  propertyId: number;
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  nationalId: string;
-  nationality: string;
-  address: string;
-  jobTitle: string;
-  level: string;
-  phone: string;
-  department: string;
-  status?: string;
-  hireDate: string;
-  gender: string;
-  /** @nullable */
-  idImage?: string | null;
+propertyId: number;
+employeeId: string;
+firstName: string;
+lastName: string;
+nationalId: string;
+nationality: string;
+address: string;
+jobTitle: string;
+level: string;
+phone: string;
+department: string;
+status?: string;
+hireDate: string;
+gender: string;
+/\*_ @nullable _/
+idImage?: string | null;
 }
 
 export interface UpdateEmployeeBody {
-  firstName?: string;
-  lastName?: string;
-  nationalId?: string;
-  nationality?: string;
-  address?: string;
-  jobTitle?: string;
-  level?: string;
-  phone?: string;
-  department?: string;
-  status?: string;
-  gender?: string;
-  /** @nullable */
-  idImage?: string | null;
+firstName?: string;
+lastName?: string;
+nationalId?: string;
+nationality?: string;
+address?: string;
+jobTitle?: string;
+level?: string;
+phone?: string;
+department?: string;
+status?: string;
+gender?: string;
+/\*_ @nullable _/
+idImage?: string | null;
 }
 
 export interface Assignment {
-  id: number;
-  propertyId: number;
-  employeeId: number;
-  roomId: number;
-  /** @nullable */
-  bedNumber?: number | null;
-  checkInDate: string;
-  /** @nullable */
-  expectedCheckOutDate?: string | null;
-  /** @nullable */
-  checkOutDate?: string | null;
-  notes: string;
-  status: string;
-  createdAt: string;
+id: number;
+propertyId: number;
+employeeId: number;
+roomId: number;
+/** @nullable \*/
+bedNumber?: number | null;
+checkInDate: string;
+/** @nullable _/
+expectedCheckOutDate?: string | null;
+/\*\* @nullable _/
+checkOutDate?: string | null;
+notes: string;
+status: string;
+createdAt: string;
 }
 
 export interface CreateAssignmentBody {
-  propertyId: number;
-  employeeId: number;
-  roomId: number;
-  /** @nullable */
-  bedNumber?: number | null;
-  checkInDate: string;
-  /** @nullable */
-  expectedCheckOutDate?: string | null;
-  notes?: string;
+propertyId: number;
+employeeId: number;
+roomId: number;
+/** @nullable \*/
+bedNumber?: number | null;
+checkInDate: string;
+/** @nullable \*/
+expectedCheckOutDate?: string | null;
+notes?: string;
 }
 
 export interface UpdateAssignmentBody {
-  /** @nullable */
-  expectedCheckOutDate?: string | null;
-  notes?: string;
+/\*_ @nullable _/
+expectedCheckOutDate?: string | null;
+notes?: string;
 }
 
 export interface CheckoutBody {
-  checkOutDate: string;
-  notes?: string;
+checkOutDate: string;
+notes?: string;
 }
 
 export interface TransferBody {
-  newRoomId: number;
-  newBedNumber?: number;
-  transferReason?: string;
-  transferDate: string;
+newRoomId: number;
+newBedNumber?: number;
+transferReason?: string;
+transferDate: string;
 }
 
 export interface Reservation {
-  id: number;
-  propertyId: number;
-  /** @nullable */
-  roomId?: number | null;
-  /** @nullable */
-  roomType?: string | null;
-  firstName: string;
-  lastName: string;
-  checkInDate: string;
-  /** @nullable */
-  checkOutDate?: string | null;
-  notes: string;
-  guestIdCardNumber: string;
-  guestPhone: string;
-  jobTitle: string;
-  department: string;
-  status: string;
-  createdAt: string;
+id: number;
+propertyId: number;
+/** @nullable \*/
+roomId?: number | null;
+/** @nullable _/
+roomType?: string | null;
+firstName: string;
+lastName: string;
+checkInDate: string;
+/\*\* @nullable _/
+checkOutDate?: string | null;
+notes: string;
+guestIdCardNumber: string;
+guestPhone: string;
+jobTitle: string;
+department: string;
+status: string;
+createdAt: string;
 }
 
 export interface CreateReservationBody {
-  propertyId: number;
-  /** @nullable */
-  roomId?: number | null;
-  /** @nullable */
-  roomType?: string | null;
-  firstName: string;
-  lastName: string;
-  checkInDate: string;
-  /** @nullable */
-  checkOutDate?: string | null;
-  notes?: string;
-  guestIdCardNumber: string;
-  guestPhone: string;
-  jobTitle: string;
-  department: string;
+propertyId: number;
+/** @nullable \*/
+roomId?: number | null;
+/** @nullable _/
+roomType?: string | null;
+firstName: string;
+lastName: string;
+checkInDate: string;
+/\*\* @nullable _/
+checkOutDate?: string | null;
+notes?: string;
+guestIdCardNumber: string;
+guestPhone: string;
+jobTitle: string;
+department: string;
 }
 
 export interface UpdateReservationBody {
-  /** @nullable */
-  roomId?: number | null;
-  checkInDate?: string;
-  /** @nullable */
-  checkOutDate?: string | null;
-  notes?: string;
-  status?: string;
+/** @nullable \*/
+roomId?: number | null;
+checkInDate?: string;
+/** @nullable \*/
+checkOutDate?: string | null;
+notes?: string;
+status?: string;
 }
 
 export interface ReservationCheckinBody {
-  roomId: number;
-  actualCheckInDate: string;
+roomId: number;
+actualCheckInDate: string;
 }
 
 export type HostingCompanionsItem = {
-  name: string;
-  /** @nullable */
-  idNumber?: string | null;
-  /** @nullable */
-  documentType?: string | null;
-  /** @nullable */
-  documentImage?: string | null;
-  /** @nullable */
-  documentFileName?: string | null;
-  /** @nullable */
-  relation?: string | null;
-  isChild?: number;
-  /** @nullable */
-  age?: number | null;
+name: string;
+/** @nullable \*/
+idNumber?: string | null;
+/** @nullable _/
+documentType?: string | null;
+/\*\* @nullable _/
+documentImage?: string | null;
+/** @nullable \*/
+documentFileName?: string | null;
+/** @nullable _/
+relation?: string | null;
+isChild?: number;
+/\*\* @nullable _/
+age?: number | null;
 };
 
 export interface Hosting {
-  id: number;
-  propertyId: number;
-  employeeId: number;
-  hostingType: string;
-  guestsCount: number;
-  expectedFrom: string;
-  expectedTo: string;
-  /** @nullable */
-  actualCheckIn?: string | null;
-  /** @nullable */
-  actualCheckOut?: string | null;
-  /** @nullable */
-  roomId?: number | null;
-  /** @nullable */
-  roomType?: string | null;
-  status: string;
-  notes: string;
-  createdBy: string;
-  createdAt: string;
-  companions: HostingCompanionsItem[];
+id: number;
+propertyId: number;
+employeeId: number;
+hostingType: string;
+guestsCount: number;
+expectedFrom: string;
+expectedTo: string;
+/** @nullable \*/
+actualCheckIn?: string | null;
+/** @nullable _/
+actualCheckOut?: string | null;
+/\*\* @nullable _/
+roomId?: number | null;
+/\*_ @nullable _/
+roomType?: string | null;
+status: string;
+notes: string;
+createdBy: string;
+createdAt: string;
+companions: HostingCompanionsItem[];
 }
 
 export type CreateHostingBodyCompanionsItem = {
-  name: string;
-  /** @nullable */
-  idNumber?: string | null;
-  /** @nullable */
-  documentType?: string | null;
-  /** @nullable */
-  documentImage?: string | null;
-  /** @nullable */
-  documentFileName?: string | null;
-  /** @nullable */
-  relation?: string | null;
-  isChild?: number;
-  /** @nullable */
-  age?: number | null;
+name: string;
+/** @nullable \*/
+idNumber?: string | null;
+/** @nullable _/
+documentType?: string | null;
+/\*\* @nullable _/
+documentImage?: string | null;
+/** @nullable \*/
+documentFileName?: string | null;
+/** @nullable _/
+relation?: string | null;
+isChild?: number;
+/\*\* @nullable _/
+age?: number | null;
 };
 
 export interface CreateHostingBody {
-  propertyId: number;
-  employeeId: number;
-  hostingType: string;
-  guestsCount: number;
-  expectedFrom: string;
-  expectedTo: string;
-  /** @nullable */
-  roomId?: number | null;
-  /** @nullable */
-  roomType?: string | null;
-  notes?: string;
-  createdBy: string;
-  companions?: CreateHostingBodyCompanionsItem[];
+propertyId: number;
+employeeId: number;
+hostingType: string;
+guestsCount: number;
+expectedFrom: string;
+expectedTo: string;
+/** @nullable \*/
+roomId?: number | null;
+/** @nullable \*/
+roomType?: string | null;
+notes?: string;
+createdBy: string;
+companions?: CreateHostingBodyCompanionsItem[];
 }
 
 export interface UpdateHostingBody {
-  expectedFrom?: string;
-  expectedTo?: string;
-  /** @nullable */
-  roomId?: number | null;
-  notes?: string;
-  status?: string;
+expectedFrom?: string;
+expectedTo?: string;
+/\*_ @nullable _/
+roomId?: number | null;
+notes?: string;
+status?: string;
 }
 
 export interface HostingCheckinBody {
-  actualCheckIn: string;
-  /** @nullable */
-  roomId?: number | null;
+actualCheckIn: string;
+/\*_ @nullable _/
+roomId?: number | null;
 }
 
 export interface MaintenanceRequest {
-  id: number;
-  propertyId: number;
-  roomId: number;
-  problemType: string;
-  description: string;
-  status: string;
-  priority: string;
-  reportedAt: string;
-  /** @nullable */
-  dueDate?: string | null;
+id: number;
+propertyId: number;
+roomId: number;
+problemType: string;
+description: string;
+status: string;
+priority: string;
+reportedAt: string;
+/\*_ @nullable _/
+dueDate?: string | null;
 }
 
 export interface CreateMaintenanceBody {
-  propertyId: number;
-  roomId: number;
-  problemType: string;
-  description: string;
-  priority: string;
-  /** @nullable */
-  dueDate?: string | null;
+propertyId: number;
+roomId: number;
+problemType: string;
+description: string;
+priority: string;
+/\*_ @nullable _/
+dueDate?: string | null;
 }
 
 export interface UpdateMaintenanceBody {
-  status?: string;
-  priority?: string;
-  description?: string;
-  /** @nullable */
-  dueDate?: string | null;
+status?: string;
+priority?: string;
+description?: string;
+/\*_ @nullable _/
+dueDate?: string | null;
 }
 
 export interface CreateUserBody {
-  propertyId: number;
-  propertyIds?: number[];
-  username: string;
-  password: string;
-  roles: string[];
-  permissions?: string[];
-  status?: string;
-  /** @nullable */
-  jobTitle?: string | null;
-  /** @nullable */
-  email?: string | null;
-  /** @nullable */
-  phone?: string | null;
+propertyId: number;
+propertyIds?: number[];
+username: string;
+password: string;
+roles: string[];
+permissions?: string[];
+status?: string;
+/** @nullable \*/
+jobTitle?: string | null;
+/** @nullable _/
+email?: string | null;
+/\*\* @nullable _/
+phone?: string | null;
 }
 
 export interface UpdateUserBody {
-  username?: string;
-  /** @nullable */
-  email?: string | null;
-  /** @nullable */
-  phone?: string | null;
-  roles?: string[];
-  permissions?: string[];
-  status?: string;
-  /** @nullable */
-  password?: string | null;
-  /** @nullable */
-  jobTitle?: string | null;
-  propertyIds?: number[];
-  propertyId?: number;
+username?: string;
+/** @nullable \*/
+email?: string | null;
+/** @nullable _/
+phone?: string | null;
+roles?: string[];
+permissions?: string[];
+status?: string;
+/\*\* @nullable _/
+password?: string | null;
+/\*_ @nullable _/
+jobTitle?: string | null;
+propertyIds?: number[];
+propertyId?: number;
 }
 
 export interface ActivityLog {
-  id: number;
-  propertyId: number;
-  username: string;
-  /** @nullable */
-  userId?: number | null;
-  /** @nullable */
-  userRole?: string | null;
-  action: string;
-  actionType: string;
-  module: string;
-  severity: string;
-  timestamp: string;
-  /** @nullable */
-  entityType?: string | null;
-  /** @nullable */
-  entityId?: number | null;
+id: number;
+propertyId: number;
+username: string;
+/** @nullable \*/
+userId?: number | null;
+/** @nullable _/
+userRole?: string | null;
+action: string;
+actionType: string;
+module: string;
+severity: string;
+timestamp: string;
+/\*\* @nullable _/
+entityType?: string | null;
+/\*_ @nullable _/
+entityId?: number | null;
 }
 
 export interface AppSettings {
-  id: number;
-  propertyId: number;
-  systemName: string;
-  /** @nullable */
-  systemLogo?: string | null;
-  defaultLanguage: string;
-  primaryColor: string;
-  sidebarColor: string;
-  buttonColor: string;
-  departureAlertsEnabled: boolean;
-  departureAlertThreshold: number;
-  reportFooter: string;
+id: number;
+propertyId: number;
+systemName: string;
+/\*_ @nullable _/
+systemLogo?: string | null;
+defaultLanguage: string;
+primaryColor: string;
+sidebarColor: string;
+buttonColor: string;
+departureAlertsEnabled: boolean;
+departureAlertThreshold: number;
+reportFooter: string;
 }
 
 export interface UpdateSettingsBody {
-  propertyId?: number;
-  systemName?: string;
-  /** @nullable */
-  systemLogo?: string | null;
-  defaultLanguage?: string;
-  primaryColor?: string;
-  sidebarColor?: string;
-  buttonColor?: string;
-  departureAlertsEnabled?: boolean;
-  departureAlertThreshold?: number;
-  reportFooter?: string;
+propertyId?: number;
+systemName?: string;
+/\*_ @nullable _/
+systemLogo?: string | null;
+defaultLanguage?: string;
+primaryColor?: string;
+sidebarColor?: string;
+buttonColor?: string;
+departureAlertsEnabled?: boolean;
+departureAlertThreshold?: number;
+reportFooter?: string;
 }
 
 export interface DashboardStats {
-  totalEmployees: number;
-  activeEmployees: number;
-  unhousedEmployees: number;
-  totalRooms: number;
-  occupiedRooms: number;
-  availableRooms: number;
-  occupancyRate: number;
-  totalBuildings: number;
-  openMaintenance: number;
-  overdueMaintenance: number;
-  upcomingReservations: number;
-  totalReservations: number;
+totalEmployees: number;
+activeEmployees: number;
+unhousedEmployees: number;
+totalRooms: number;
+occupiedRooms: number;
+availableRooms: number;
+occupancyRate: number;
+totalBuildings: number;
+openMaintenance: number;
+overdueMaintenance: number;
+upcomingReservations: number;
+totalReservations: number;
 }
 
 export interface DepartureAlert {
-  assignmentId: number;
-  employeeId: number;
-  employeeName: string;
-  roomId: number;
-  roomNumber: string;
-  buildingName: string;
-  expectedCheckOutDate: string;
-  daysRemaining: number;
-  alertStatus: string;
+assignmentId: number;
+employeeId: number;
+employeeName: string;
+roomId: number;
+roomNumber: string;
+buildingName: string;
+expectedCheckOutDate: string;
+daysRemaining: number;
+alertStatus: string;
 }
 
 export interface ArrivalAlert {
-  reservationId: number;
-  guestName: string;
-  /** @nullable */
-  roomId?: number | null;
-  /** @nullable */
-  roomNumber?: string | null;
-  checkInDate: string;
-  daysUntilArrival: number;
-  alertStatus: string;
+reservationId: number;
+guestName: string;
+/** @nullable \*/
+roomId?: number | null;
+/** @nullable \*/
+roomNumber?: string | null;
+checkInDate: string;
+daysUntilArrival: number;
+alertStatus: string;
 }
 
 export interface OccupancyByBuilding {
-  buildingId: number;
-  buildingName: string;
-  totalCapacity: number;
-  currentOccupancy: number;
-  occupancyRate: number;
+buildingId: number;
+buildingName: string;
+totalCapacity: number;
+currentOccupancy: number;
+occupancyRate: number;
 }
 
 export type ListBuildingsParams = {
@@ -19485,23 +19986,23 @@ propertyId?: number;
 limit?: number;
 };
 
-
 ================================================================================
 FILE: lib/api-client-react/src/generated/api.ts
 ================================================================================
 
-/**
- * Generated by orval v8.12.3 🍺
- * Do not edit manually.
- * Api
- * Sunrise Staff Housing Management System API
- * OpenAPI spec version: 0.1.0
- */
-import {
+/\*\*
+
+- Generated by orval v8.12.3 🍺
+- Do not edit manually.
+- Api
+- Sunrise Staff Housing Management System API
+- OpenAPI spec version: 0.1.0
+  \*/
+  import {
   useMutation,
   useQuery
-} from '@tanstack/react-query';
-import type {
+  } from '@tanstack/react-query';
+  import type {
   MutationFunction,
   QueryFunction,
   QueryKey,
@@ -19509,72 +20010,72 @@ import type {
   UseMutationResult,
   UseQueryOptions,
   UseQueryResult
-} from '@tanstack/react-query';
+  } from '@tanstack/react-query';
 
 import type {
-  ActivityLog,
-  AppSettings,
-  ArrivalAlert,
-  Assignment,
-  Building,
-  ChangePasswordBody,
-  CheckoutBody,
-  CreateAssignmentBody,
-  CreateBuildingBody,
-  CreateEmployeeBody,
-  CreateFloorBody,
-  CreateHostingBody,
-  CreateMaintenanceBody,
-  CreatePropertyBody,
-  CreateReservationBody,
-  CreateRoomBody,
-  CreateUserBody,
-  DashboardStats,
-  DepartureAlert,
-  Employee,
-  ErrorResponse,
-  Floor,
-  GetArrivalAlertsParams,
-  GetDashboardStatsParams,
-  GetDepartureAlertsParams,
-  GetOccupancyByBuildingParams,
-  GetRecentActivityParams,
-  GetSettingsParams,
-  HealthStatus,
-  Hosting,
-  HostingCheckinBody,
-  ListActivityLogsParams,
-  ListAssignmentsParams,
-  ListBuildingsParams,
-  ListEmployeesParams,
-  ListFloorsParams,
-  ListHostingsParams,
-  ListMaintenanceParams,
-  ListReservationsParams,
-  ListRoomsParams,
-  ListUsersParams,
-  LoginBody,
-  LoginResponse,
-  MaintenanceRequest,
-  MessageResponse,
-  OccupancyByBuilding,
-  Property,
-  Reservation,
-  ReservationCheckinBody,
-  Room,
-  TransferBody,
-  UpdateAssignmentBody,
-  UpdateBuildingBody,
-  UpdateEmployeeBody,
-  UpdateFloorBody,
-  UpdateHostingBody,
-  UpdateMaintenanceBody,
-  UpdatePropertyBody,
-  UpdateReservationBody,
-  UpdateRoomBody,
-  UpdateSettingsBody,
-  UpdateUserBody,
-  User
+ActivityLog,
+AppSettings,
+ArrivalAlert,
+Assignment,
+Building,
+ChangePasswordBody,
+CheckoutBody,
+CreateAssignmentBody,
+CreateBuildingBody,
+CreateEmployeeBody,
+CreateFloorBody,
+CreateHostingBody,
+CreateMaintenanceBody,
+CreatePropertyBody,
+CreateReservationBody,
+CreateRoomBody,
+CreateUserBody,
+DashboardStats,
+DepartureAlert,
+Employee,
+ErrorResponse,
+Floor,
+GetArrivalAlertsParams,
+GetDashboardStatsParams,
+GetDepartureAlertsParams,
+GetOccupancyByBuildingParams,
+GetRecentActivityParams,
+GetSettingsParams,
+HealthStatus,
+Hosting,
+HostingCheckinBody,
+ListActivityLogsParams,
+ListAssignmentsParams,
+ListBuildingsParams,
+ListEmployeesParams,
+ListFloorsParams,
+ListHostingsParams,
+ListMaintenanceParams,
+ListReservationsParams,
+ListRoomsParams,
+ListUsersParams,
+LoginBody,
+LoginResponse,
+MaintenanceRequest,
+MessageResponse,
+OccupancyByBuilding,
+Property,
+Reservation,
+ReservationCheckinBody,
+Room,
+TransferBody,
+UpdateAssignmentBody,
+UpdateBuildingBody,
+UpdateEmployeeBody,
+UpdateFloorBody,
+UpdateHostingBody,
+UpdateMaintenanceBody,
+UpdatePropertyBody,
+UpdateReservationBody,
+UpdateRoomBody,
+UpdateSettingsBody,
+UpdateUserBody,
+User
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -19584,126 +20085,95 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
-
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-
 
 export const getHealthCheckUrl = () => {
 
-
-
-
-  return `/api/healthz`
+return `/api/healthz`
 }
 
-/**
- * @summary Health check
- */
-export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
+/\*\*
 
-  return customFetch<HealthStatus>(getHealthCheckUrl(),
-  {
-    ...options,
-    method: 'GET'
+- @summary Health check
+  \*/
+  export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
 
+return customFetch<HealthStatus>(getHealthCheckUrl(),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getHealthCheckQueryKey = () => {
-    return [
-    `/api/healthz`
-    ] as const;
-    }
-
+return [
+`/api/healthz`
+] as const;
+}
 
 export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getHealthCheckQueryKey();
-
-
+const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({ signal }) => healthCheck({ signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type HealthCheckQueryResult = NonNullable<Awaited<ReturnType<typeof healthCheck>>>
 export type HealthCheckQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Health check
- */
+- @summary Health check
+  \*/
 
 export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getHealthCheckQueryOptions(options)
+const queryOptions = getHealthCheckQueryOptions(options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getLoginUrl = () => {
 
-
-
-
-  return `/api/auth/login`
+return `/api/auth/login`
 }
 
-/**
- * @summary Login
- */
-export const login = async (loginBody: LoginBody, options?: RequestInit): Promise<LoginResponse> => {
+/\*\*
 
-  return customFetch<LoginResponse>(getLoginUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(loginBody)
-  }
+- @summary Login
+  \*/
+  export const login = async (loginBody: LoginBody, options?: RequestInit): Promise<LoginResponse> => {
+
+return customFetch<LoginResponse>(getLoginUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(loginBody)
+}
 );}
 
-
-
-
 export const getLoginMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginBody>}, TContext> => {
 
 const mutationKey = ['login'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof login>>, {data: BodyType<LoginBody>}> = (props) => {
           const {data} = props ?? {};
@@ -19711,69 +20181,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  login(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type LoginMutationResult = NonNullable<Awaited<ReturnType<typeof login>>>
     export type LoginMutationBody = BodyType<LoginBody>
     export type LoginMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Login
- */
-export const useLogin = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof login>>,
-        TError,
-        {data: BodyType<LoginBody>},
-        TContext
-      > => {
-      return useMutation(getLoginMutationOptions(options));
-    }
+
+- @summary Login
+  \*/
+  export const useLogin = <TError = ErrorType<ErrorResponse>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof login>>,
+  TError,
+  {data: BodyType<LoginBody>},
+  TContext > => {
+  return useMutation(getLoginMutationOptions(options));
+  }
 
 export const getLogoutUrl = () => {
 
-
-
-
-  return `/api/auth/logout`
+return `/api/auth/logout`
 }
 
-/**
- * @summary Logout
- */
-export const logout = async ( options?: RequestInit): Promise<MessageResponse> => {
+/\*\*
 
-  return customFetch<MessageResponse>(getLogoutUrl(),
-  {
-    ...options,
-    method: 'POST'
+- @summary Logout
+  \*/
+  export const logout = async ( options?: RequestInit): Promise<MessageResponse> => {
 
+return customFetch<MessageResponse>(getLogoutUrl(),
+{
+...options,
+method: 'POST'
 
-  }
+}
 );}
 
-
-
-
 export const getLogoutMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError,void, TContext> => {
 
 const mutationKey = ['logout'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof logout>>, void> = () => {
 
@@ -19781,146 +20237,113 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  logout(requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type LogoutMutationResult = NonNullable<Awaited<ReturnType<typeof logout>>>
 
     export type LogoutMutationError = ErrorType<unknown>
 
     /**
- * @summary Logout
- */
-export const useLogout = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof logout>>,
-        TError,
-        void,
-        TContext
-      > => {
-      return useMutation(getLogoutMutationOptions(options));
-    }
+
+- @summary Logout
+  \*/
+  export const useLogout = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof logout>>,
+  TError,
+  void,
+  TContext > => {
+  return useMutation(getLogoutMutationOptions(options));
+  }
 
 export const getGetMeUrl = () => {
 
-
-
-
-  return `/api/auth/me`
+return `/api/auth/me`
 }
 
-/**
- * @summary Get current user
- */
-export const getMe = async ( options?: RequestInit): Promise<User> => {
+/\*\*
 
-  return customFetch<User>(getGetMeUrl(),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get current user
+  \*/
+  export const getMe = async ( options?: RequestInit): Promise<User> => {
 
+return customFetch<User>(getGetMeUrl(),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetMeQueryKey = () => {
-    return [
-    `/api/auth/me`
-    ] as const;
-    }
-
+return [
+`/api/auth/me`
+] as const;
+}
 
 export const getGetMeQueryOptions = <TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMeQueryKey();
-
-
+const queryKey = queryOptions?.queryKey ?? getGetMeQueryKey();
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getMe>>> = ({ signal }) => getMe({ signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetMeQueryResult = NonNullable<Awaited<ReturnType<typeof getMe>>>
 export type GetMeQueryError = ErrorType<ErrorResponse>
 
+/\*\*
 
-/**
- * @summary Get current user
- */
+- @summary Get current user
+  \*/
 
 export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<ErrorResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetMeQueryOptions(options)
+const queryOptions = getGetMeQueryOptions(options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getChangePasswordUrl = () => {
 
-
-
-
-  return `/api/auth/change-password`
+return `/api/auth/change-password`
 }
 
-/**
- * @summary Change password
- */
-export const changePassword = async (changePasswordBody: ChangePasswordBody, options?: RequestInit): Promise<MessageResponse> => {
+/\*\*
 
-  return customFetch<MessageResponse>(getChangePasswordUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(changePasswordBody)
-  }
+- @summary Change password
+  \*/
+  export const changePassword = async (changePasswordBody: ChangePasswordBody, options?: RequestInit): Promise<MessageResponse> => {
+
+return customFetch<MessageResponse>(getChangePasswordUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(changePasswordBody)
+}
 );}
 
-
-
-
 export const getChangePasswordMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,{data: BodyType<ChangePasswordBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,{data: BodyType<ChangePasswordBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,{data: BodyType<ChangePasswordBody>}, TContext> => {
 
 const mutationKey = ['changePassword'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof changePassword>>, {data: BodyType<ChangePasswordBody>}> = (props) => {
           const {data} = props ?? {};
@@ -19928,146 +20351,113 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  changePassword(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type ChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changePassword>>>
     export type ChangePasswordMutationBody = BodyType<ChangePasswordBody>
     export type ChangePasswordMutationError = ErrorType<unknown>
 
     /**
- * @summary Change password
- */
-export const useChangePassword = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,{data: BodyType<ChangePasswordBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof changePassword>>,
-        TError,
-        {data: BodyType<ChangePasswordBody>},
-        TContext
-      > => {
-      return useMutation(getChangePasswordMutationOptions(options));
-    }
+
+- @summary Change password
+  \*/
+  export const useChangePassword = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,{data: BodyType<ChangePasswordBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof changePassword>>,
+  TError,
+  {data: BodyType<ChangePasswordBody>},
+  TContext > => {
+  return useMutation(getChangePasswordMutationOptions(options));
+  }
 
 export const getListPropertiesUrl = () => {
 
-
-
-
-  return `/api/properties`
+return `/api/properties`
 }
 
-/**
- * @summary List all properties
- */
-export const listProperties = async ( options?: RequestInit): Promise<Property[]> => {
+/\*\*
 
-  return customFetch<Property[]>(getListPropertiesUrl(),
-  {
-    ...options,
-    method: 'GET'
+- @summary List all properties
+  \*/
+  export const listProperties = async ( options?: RequestInit): Promise<Property[]> => {
 
+return customFetch<Property[]>(getListPropertiesUrl(),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListPropertiesQueryKey = () => {
-    return [
-    `/api/properties`
-    ] as const;
-    }
-
+return [
+`/api/properties`
+] as const;
+}
 
 export const getListPropertiesQueryOptions = <TData = Awaited<ReturnType<typeof listProperties>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListPropertiesQueryKey();
-
-
+const queryKey = queryOptions?.queryKey ?? getListPropertiesQueryKey();
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listProperties>>> = ({ signal }) => listProperties({ signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProperties>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProperties>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListPropertiesQueryResult = NonNullable<Awaited<ReturnType<typeof listProperties>>>
 export type ListPropertiesQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List all properties
- */
+- @summary List all properties
+  \*/
 
 export function useListProperties<TData = Awaited<ReturnType<typeof listProperties>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProperties>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListPropertiesQueryOptions(options)
+const queryOptions = getListPropertiesQueryOptions(options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreatePropertyUrl = () => {
 
-
-
-
-  return `/api/properties`
+return `/api/properties`
 }
 
-/**
- * @summary Create property
- */
-export const createProperty = async (createPropertyBody: CreatePropertyBody, options?: RequestInit): Promise<Property> => {
+/\*\*
 
-  return customFetch<Property>(getCreatePropertyUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createPropertyBody)
-  }
+- @summary Create property
+  \*/
+  export const createProperty = async (createPropertyBody: CreatePropertyBody, options?: RequestInit): Promise<Property> => {
+
+return customFetch<Property>(getCreatePropertyUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createPropertyBody)
+}
 );}
 
-
-
-
 export const getCreatePropertyMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProperty>>, TError,{data: BodyType<CreatePropertyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProperty>>, TError,{data: BodyType<CreatePropertyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createProperty>>, TError,{data: BodyType<CreatePropertyBody>}, TContext> => {
 
 const mutationKey = ['createProperty'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProperty>>, {data: BodyType<CreatePropertyBody>}> = (props) => {
           const {data} = props ?? {};
@@ -20075,147 +20465,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createProperty(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreatePropertyMutationResult = NonNullable<Awaited<ReturnType<typeof createProperty>>>
     export type CreatePropertyMutationBody = BodyType<CreatePropertyBody>
     export type CreatePropertyMutationError = ErrorType<unknown>
 
     /**
- * @summary Create property
- */
-export const useCreateProperty = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProperty>>, TError,{data: BodyType<CreatePropertyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createProperty>>,
-        TError,
-        {data: BodyType<CreatePropertyBody>},
-        TContext
-      > => {
-      return useMutation(getCreatePropertyMutationOptions(options));
-    }
+
+- @summary Create property
+  \*/
+  export const useCreateProperty = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProperty>>, TError,{data: BodyType<CreatePropertyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createProperty>>,
+  TError,
+  {data: BodyType<CreatePropertyBody>},
+  TContext > => {
+  return useMutation(getCreatePropertyMutationOptions(options));
+  }
 
 export const getGetPropertyUrl = (id: number,) => {
 
-
-
-
-  return `/api/properties/${id}`
+return `/api/properties/${id}`
 }
 
-/**
- * @summary Get property
- */
-export const getProperty = async (id: number, options?: RequestInit): Promise<Property> => {
+/\*\*
 
-  return customFetch<Property>(getGetPropertyUrl(id),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get property
+  \*/
+  export const getProperty = async (id: number, options?: RequestInit): Promise<Property> => {
 
+return customFetch<Property>(getGetPropertyUrl(id),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetPropertyQueryKey = (id: number,) => {
-    return [
-    `/api/properties/${id}`
-    ] as const;
-    }
-
+return [
+`/api/properties/${id}`
+] as const;
+}
 
 export const getGetPropertyQueryOptions = <TData = Awaited<ReturnType<typeof getProperty>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetPropertyQueryKey(id);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetPropertyQueryKey(id);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getProperty>>> = ({ signal }) => getProperty(id, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProperty>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProperty>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetPropertyQueryResult = NonNullable<Awaited<ReturnType<typeof getProperty>>>
 export type GetPropertyQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get property
- */
+- @summary Get property
+  \*/
 
 export function useGetProperty<TData = Awaited<ReturnType<typeof getProperty>>, TError = ErrorType<unknown>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProperty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetPropertyQueryOptions(id,options)
+const queryOptions = getGetPropertyQueryOptions(id,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getUpdatePropertyUrl = (id: number,) => {
 
-
-
-
-  return `/api/properties/${id}`
+return `/api/properties/${id}`
 }
 
-/**
- * @summary Update property
- */
-export const updateProperty = async (id: number,
-    updatePropertyBody: UpdatePropertyBody, options?: RequestInit): Promise<Property> => {
+/\*\*
 
-  return customFetch<Property>(getUpdatePropertyUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updatePropertyBody)
-  }
+- @summary Update property
+  \*/
+  export const updateProperty = async (id: number,
+  updatePropertyBody: UpdatePropertyBody, options?: RequestInit): Promise<Property> => {
+
+return customFetch<Property>(getUpdatePropertyUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updatePropertyBody)
+}
 );}
 
-
-
-
 export const getUpdatePropertyMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProperty>>, TError,{id: number;data: BodyType<UpdatePropertyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProperty>>, TError,{id: number;data: BodyType<UpdatePropertyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateProperty>>, TError,{id: number;data: BodyType<UpdatePropertyBody>}, TContext> => {
 
 const mutationKey = ['updateProperty'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProperty>>, {id: number;data: BodyType<UpdatePropertyBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -20223,69 +20580,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateProperty(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdatePropertyMutationResult = NonNullable<Awaited<ReturnType<typeof updateProperty>>>
     export type UpdatePropertyMutationBody = BodyType<UpdatePropertyBody>
     export type UpdatePropertyMutationError = ErrorType<unknown>
 
     /**
- * @summary Update property
- */
-export const useUpdateProperty = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProperty>>, TError,{id: number;data: BodyType<UpdatePropertyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateProperty>>,
-        TError,
-        {id: number;data: BodyType<UpdatePropertyBody>},
-        TContext
-      > => {
-      return useMutation(getUpdatePropertyMutationOptions(options));
-    }
+
+- @summary Update property
+  \*/
+  export const useUpdateProperty = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProperty>>, TError,{id: number;data: BodyType<UpdatePropertyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateProperty>>,
+  TError,
+  {id: number;data: BodyType<UpdatePropertyBody>},
+  TContext > => {
+  return useMutation(getUpdatePropertyMutationOptions(options));
+  }
 
 export const getDeletePropertyUrl = (id: number,) => {
 
-
-
-
-  return `/api/properties/${id}`
+return `/api/properties/${id}`
 }
 
-/**
- * @summary Delete property
- */
-export const deleteProperty = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeletePropertyUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete property
+  \*/
+  export const deleteProperty = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeletePropertyUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeletePropertyMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProperty>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProperty>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteProperty>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteProperty'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProperty>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -20293,153 +20636,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteProperty(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeletePropertyMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProperty>>>
 
     export type DeletePropertyMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete property
- */
-export const useDeleteProperty = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProperty>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteProperty>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeletePropertyMutationOptions(options));
-    }
+
+- @summary Delete property
+  \*/
+  export const useDeleteProperty = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProperty>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProperty>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeletePropertyMutationOptions(options));
+  }
 
 export const getListBuildingsUrl = (params?: ListBuildingsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/buildings?${stringifiedParams}` : `/api/buildings`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/buildings?${stringifiedParams}` : `/api/buildings`
 }
 
-/**
- * @summary List buildings
- */
-export const listBuildings = async (params?: ListBuildingsParams, options?: RequestInit): Promise<Building[]> => {
+/\*\*
 
-  return customFetch<Building[]>(getListBuildingsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List buildings
+  \*/
+  export const listBuildings = async (params?: ListBuildingsParams, options?: RequestInit): Promise<Building[]> => {
 
+return customFetch<Building[]>(getListBuildingsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListBuildingsQueryKey = (params?: ListBuildingsParams,) => {
-    return [
-    `/api/buildings`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/buildings`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListBuildingsQueryOptions = <TData = Awaited<ReturnType<typeof listBuildings>>, TError = ErrorType<unknown>>(params?: ListBuildingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBuildings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListBuildingsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListBuildingsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listBuildings>>> = ({ signal }) => listBuildings(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBuildings>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBuildings>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListBuildingsQueryResult = NonNullable<Awaited<ReturnType<typeof listBuildings>>>
 export type ListBuildingsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List buildings
- */
+- @summary List buildings
+  \*/
 
 export function useListBuildings<TData = Awaited<ReturnType<typeof listBuildings>>, TError = ErrorType<unknown>>(
- params?: ListBuildingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBuildings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListBuildingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBuildings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListBuildingsQueryOptions(params,options)
+const queryOptions = getListBuildingsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateBuildingUrl = () => {
 
-
-
-
-  return `/api/buildings`
+return `/api/buildings`
 }
 
-/**
- * @summary Create building
- */
-export const createBuilding = async (createBuildingBody: CreateBuildingBody, options?: RequestInit): Promise<Building> => {
+/\*\*
 
-  return customFetch<Building>(getCreateBuildingUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createBuildingBody)
-  }
+- @summary Create building
+  \*/
+  export const createBuilding = async (createBuildingBody: CreateBuildingBody, options?: RequestInit): Promise<Building> => {
+
+return customFetch<Building>(getCreateBuildingUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createBuildingBody)
+}
 );}
 
-
-
-
 export const getCreateBuildingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBuilding>>, TError,{data: BodyType<CreateBuildingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBuilding>>, TError,{data: BodyType<CreateBuildingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createBuilding>>, TError,{data: BodyType<CreateBuildingBody>}, TContext> => {
 
 const mutationKey = ['createBuilding'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBuilding>>, {data: BodyType<CreateBuildingBody>}> = (props) => {
           const {data} = props ?? {};
@@ -20447,70 +20761,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createBuilding(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateBuildingMutationResult = NonNullable<Awaited<ReturnType<typeof createBuilding>>>
     export type CreateBuildingMutationBody = BodyType<CreateBuildingBody>
     export type CreateBuildingMutationError = ErrorType<unknown>
 
     /**
- * @summary Create building
- */
-export const useCreateBuilding = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBuilding>>, TError,{data: BodyType<CreateBuildingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createBuilding>>,
-        TError,
-        {data: BodyType<CreateBuildingBody>},
-        TContext
-      > => {
-      return useMutation(getCreateBuildingMutationOptions(options));
-    }
+
+- @summary Create building
+  \*/
+  export const useCreateBuilding = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBuilding>>, TError,{data: BodyType<CreateBuildingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createBuilding>>,
+  TError,
+  {data: BodyType<CreateBuildingBody>},
+  TContext > => {
+  return useMutation(getCreateBuildingMutationOptions(options));
+  }
 
 export const getUpdateBuildingUrl = (id: number,) => {
 
-
-
-
-  return `/api/buildings/${id}`
+return `/api/buildings/${id}`
 }
 
-/**
- * @summary Update building
- */
-export const updateBuilding = async (id: number,
-    updateBuildingBody: UpdateBuildingBody, options?: RequestInit): Promise<Building> => {
+/\*\*
 
-  return customFetch<Building>(getUpdateBuildingUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateBuildingBody)
-  }
+- @summary Update building
+  \*/
+  export const updateBuilding = async (id: number,
+  updateBuildingBody: UpdateBuildingBody, options?: RequestInit): Promise<Building> => {
+
+return customFetch<Building>(getUpdateBuildingUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateBuildingBody)
+}
 );}
 
-
-
-
 export const getUpdateBuildingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBuilding>>, TError,{id: number;data: BodyType<UpdateBuildingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBuilding>>, TError,{id: number;data: BodyType<UpdateBuildingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateBuilding>>, TError,{id: number;data: BodyType<UpdateBuildingBody>}, TContext> => {
 
 const mutationKey = ['updateBuilding'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBuilding>>, {id: number;data: BodyType<UpdateBuildingBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -20518,69 +20819,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateBuilding(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateBuildingMutationResult = NonNullable<Awaited<ReturnType<typeof updateBuilding>>>
     export type UpdateBuildingMutationBody = BodyType<UpdateBuildingBody>
     export type UpdateBuildingMutationError = ErrorType<unknown>
 
     /**
- * @summary Update building
- */
-export const useUpdateBuilding = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBuilding>>, TError,{id: number;data: BodyType<UpdateBuildingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateBuilding>>,
-        TError,
-        {id: number;data: BodyType<UpdateBuildingBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateBuildingMutationOptions(options));
-    }
+
+- @summary Update building
+  \*/
+  export const useUpdateBuilding = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBuilding>>, TError,{id: number;data: BodyType<UpdateBuildingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateBuilding>>,
+  TError,
+  {id: number;data: BodyType<UpdateBuildingBody>},
+  TContext > => {
+  return useMutation(getUpdateBuildingMutationOptions(options));
+  }
 
 export const getDeleteBuildingUrl = (id: number,) => {
 
-
-
-
-  return `/api/buildings/${id}`
+return `/api/buildings/${id}`
 }
 
-/**
- * @summary Delete building
- */
-export const deleteBuilding = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeleteBuildingUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete building
+  \*/
+  export const deleteBuilding = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeleteBuildingUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeleteBuildingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBuilding>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBuilding>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteBuilding>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteBuilding'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBuilding>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -20588,153 +20875,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteBuilding(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeleteBuildingMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBuilding>>>
 
     export type DeleteBuildingMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete building
- */
-export const useDeleteBuilding = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBuilding>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteBuilding>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteBuildingMutationOptions(options));
-    }
+
+- @summary Delete building
+  \*/
+  export const useDeleteBuilding = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBuilding>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBuilding>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeleteBuildingMutationOptions(options));
+  }
 
 export const getListFloorsUrl = (params?: ListFloorsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/floors?${stringifiedParams}` : `/api/floors`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/floors?${stringifiedParams}` : `/api/floors`
 }
 
-/**
- * @summary List floors
- */
-export const listFloors = async (params?: ListFloorsParams, options?: RequestInit): Promise<Floor[]> => {
+/\*\*
 
-  return customFetch<Floor[]>(getListFloorsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List floors
+  \*/
+  export const listFloors = async (params?: ListFloorsParams, options?: RequestInit): Promise<Floor[]> => {
 
+return customFetch<Floor[]>(getListFloorsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListFloorsQueryKey = (params?: ListFloorsParams,) => {
-    return [
-    `/api/floors`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/floors`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListFloorsQueryOptions = <TData = Awaited<ReturnType<typeof listFloors>>, TError = ErrorType<unknown>>(params?: ListFloorsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFloors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListFloorsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListFloorsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listFloors>>> = ({ signal }) => listFloors(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFloors>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFloors>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListFloorsQueryResult = NonNullable<Awaited<ReturnType<typeof listFloors>>>
 export type ListFloorsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List floors
- */
+- @summary List floors
+  \*/
 
 export function useListFloors<TData = Awaited<ReturnType<typeof listFloors>>, TError = ErrorType<unknown>>(
- params?: ListFloorsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFloors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListFloorsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFloors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListFloorsQueryOptions(params,options)
+const queryOptions = getListFloorsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateFloorUrl = () => {
 
-
-
-
-  return `/api/floors`
+return `/api/floors`
 }
 
-/**
- * @summary Create floor
- */
-export const createFloor = async (createFloorBody: CreateFloorBody, options?: RequestInit): Promise<Floor> => {
+/\*\*
 
-  return customFetch<Floor>(getCreateFloorUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createFloorBody)
-  }
+- @summary Create floor
+  \*/
+  export const createFloor = async (createFloorBody: CreateFloorBody, options?: RequestInit): Promise<Floor> => {
+
+return customFetch<Floor>(getCreateFloorUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createFloorBody)
+}
 );}
 
-
-
-
 export const getCreateFloorMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFloor>>, TError,{data: BodyType<CreateFloorBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFloor>>, TError,{data: BodyType<CreateFloorBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createFloor>>, TError,{data: BodyType<CreateFloorBody>}, TContext> => {
 
 const mutationKey = ['createFloor'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFloor>>, {data: BodyType<CreateFloorBody>}> = (props) => {
           const {data} = props ?? {};
@@ -20742,70 +21000,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createFloor(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateFloorMutationResult = NonNullable<Awaited<ReturnType<typeof createFloor>>>
     export type CreateFloorMutationBody = BodyType<CreateFloorBody>
     export type CreateFloorMutationError = ErrorType<unknown>
 
     /**
- * @summary Create floor
- */
-export const useCreateFloor = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFloor>>, TError,{data: BodyType<CreateFloorBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createFloor>>,
-        TError,
-        {data: BodyType<CreateFloorBody>},
-        TContext
-      > => {
-      return useMutation(getCreateFloorMutationOptions(options));
-    }
+
+- @summary Create floor
+  \*/
+  export const useCreateFloor = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFloor>>, TError,{data: BodyType<CreateFloorBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createFloor>>,
+  TError,
+  {data: BodyType<CreateFloorBody>},
+  TContext > => {
+  return useMutation(getCreateFloorMutationOptions(options));
+  }
 
 export const getUpdateFloorUrl = (id: number,) => {
 
-
-
-
-  return `/api/floors/${id}`
+return `/api/floors/${id}`
 }
 
-/**
- * @summary Update floor
- */
-export const updateFloor = async (id: number,
-    updateFloorBody: UpdateFloorBody, options?: RequestInit): Promise<Floor> => {
+/\*\*
 
-  return customFetch<Floor>(getUpdateFloorUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateFloorBody)
-  }
+- @summary Update floor
+  \*/
+  export const updateFloor = async (id: number,
+  updateFloorBody: UpdateFloorBody, options?: RequestInit): Promise<Floor> => {
+
+return customFetch<Floor>(getUpdateFloorUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateFloorBody)
+}
 );}
 
-
-
-
 export const getUpdateFloorMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFloor>>, TError,{id: number;data: BodyType<UpdateFloorBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFloor>>, TError,{id: number;data: BodyType<UpdateFloorBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateFloor>>, TError,{id: number;data: BodyType<UpdateFloorBody>}, TContext> => {
 
 const mutationKey = ['updateFloor'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFloor>>, {id: number;data: BodyType<UpdateFloorBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -20813,69 +21058,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateFloor(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateFloorMutationResult = NonNullable<Awaited<ReturnType<typeof updateFloor>>>
     export type UpdateFloorMutationBody = BodyType<UpdateFloorBody>
     export type UpdateFloorMutationError = ErrorType<unknown>
 
     /**
- * @summary Update floor
- */
-export const useUpdateFloor = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFloor>>, TError,{id: number;data: BodyType<UpdateFloorBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateFloor>>,
-        TError,
-        {id: number;data: BodyType<UpdateFloorBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateFloorMutationOptions(options));
-    }
+
+- @summary Update floor
+  \*/
+  export const useUpdateFloor = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFloor>>, TError,{id: number;data: BodyType<UpdateFloorBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateFloor>>,
+  TError,
+  {id: number;data: BodyType<UpdateFloorBody>},
+  TContext > => {
+  return useMutation(getUpdateFloorMutationOptions(options));
+  }
 
 export const getDeleteFloorUrl = (id: number,) => {
 
-
-
-
-  return `/api/floors/${id}`
+return `/api/floors/${id}`
 }
 
-/**
- * @summary Delete floor
- */
-export const deleteFloor = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeleteFloorUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete floor
+  \*/
+  export const deleteFloor = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeleteFloorUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeleteFloorMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteFloor>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteFloor>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteFloor>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteFloor'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteFloor>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -20883,153 +21114,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteFloor(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeleteFloorMutationResult = NonNullable<Awaited<ReturnType<typeof deleteFloor>>>
 
     export type DeleteFloorMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete floor
- */
-export const useDeleteFloor = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteFloor>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteFloor>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteFloorMutationOptions(options));
-    }
+
+- @summary Delete floor
+  \*/
+  export const useDeleteFloor = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteFloor>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFloor>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeleteFloorMutationOptions(options));
+  }
 
 export const getListRoomsUrl = (params?: ListRoomsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/rooms?${stringifiedParams}` : `/api/rooms`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/rooms?${stringifiedParams}` : `/api/rooms`
 }
 
-/**
- * @summary List rooms
- */
-export const listRooms = async (params?: ListRoomsParams, options?: RequestInit): Promise<Room[]> => {
+/\*\*
 
-  return customFetch<Room[]>(getListRoomsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List rooms
+  \*/
+  export const listRooms = async (params?: ListRoomsParams, options?: RequestInit): Promise<Room[]> => {
 
+return customFetch<Room[]>(getListRoomsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListRoomsQueryKey = (params?: ListRoomsParams,) => {
-    return [
-    `/api/rooms`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/rooms`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListRoomsQueryOptions = <TData = Awaited<ReturnType<typeof listRooms>>, TError = ErrorType<unknown>>(params?: ListRoomsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListRoomsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListRoomsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listRooms>>> = ({ signal }) => listRooms(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRooms>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRooms>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListRoomsQueryResult = NonNullable<Awaited<ReturnType<typeof listRooms>>>
 export type ListRoomsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List rooms
- */
+- @summary List rooms
+  \*/
 
 export function useListRooms<TData = Awaited<ReturnType<typeof listRooms>>, TError = ErrorType<unknown>>(
- params?: ListRoomsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListRoomsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListRoomsQueryOptions(params,options)
+const queryOptions = getListRoomsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateRoomUrl = () => {
 
-
-
-
-  return `/api/rooms`
+return `/api/rooms`
 }
 
-/**
- * @summary Create room
- */
-export const createRoom = async (createRoomBody: CreateRoomBody, options?: RequestInit): Promise<Room> => {
+/\*\*
 
-  return customFetch<Room>(getCreateRoomUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createRoomBody)
-  }
+- @summary Create room
+  \*/
+  export const createRoom = async (createRoomBody: CreateRoomBody, options?: RequestInit): Promise<Room> => {
+
+return customFetch<Room>(getCreateRoomUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createRoomBody)
+}
 );}
 
-
-
-
 export const getCreateRoomMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRoom>>, TError,{data: BodyType<CreateRoomBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRoom>>, TError,{data: BodyType<CreateRoomBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createRoom>>, TError,{data: BodyType<CreateRoomBody>}, TContext> => {
 
 const mutationKey = ['createRoom'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRoom>>, {data: BodyType<CreateRoomBody>}> = (props) => {
           const {data} = props ?? {};
@@ -21037,147 +21239,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createRoom(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateRoomMutationResult = NonNullable<Awaited<ReturnType<typeof createRoom>>>
     export type CreateRoomMutationBody = BodyType<CreateRoomBody>
     export type CreateRoomMutationError = ErrorType<unknown>
 
     /**
- * @summary Create room
- */
-export const useCreateRoom = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRoom>>, TError,{data: BodyType<CreateRoomBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createRoom>>,
-        TError,
-        {data: BodyType<CreateRoomBody>},
-        TContext
-      > => {
-      return useMutation(getCreateRoomMutationOptions(options));
-    }
+
+- @summary Create room
+  \*/
+  export const useCreateRoom = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRoom>>, TError,{data: BodyType<CreateRoomBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createRoom>>,
+  TError,
+  {data: BodyType<CreateRoomBody>},
+  TContext > => {
+  return useMutation(getCreateRoomMutationOptions(options));
+  }
 
 export const getGetRoomUrl = (id: number,) => {
 
-
-
-
-  return `/api/rooms/${id}`
+return `/api/rooms/${id}`
 }
 
-/**
- * @summary Get room
- */
-export const getRoom = async (id: number, options?: RequestInit): Promise<Room> => {
+/\*\*
 
-  return customFetch<Room>(getGetRoomUrl(id),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get room
+  \*/
+  export const getRoom = async (id: number, options?: RequestInit): Promise<Room> => {
 
+return customFetch<Room>(getGetRoomUrl(id),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetRoomQueryKey = (id: number,) => {
-    return [
-    `/api/rooms/${id}`
-    ] as const;
-    }
-
+return [
+`/api/rooms/${id}`
+] as const;
+}
 
 export const getGetRoomQueryOptions = <TData = Awaited<ReturnType<typeof getRoom>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRoom>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetRoomQueryKey(id);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetRoomQueryKey(id);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getRoom>>> = ({ signal }) => getRoom(id, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRoom>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRoom>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetRoomQueryResult = NonNullable<Awaited<ReturnType<typeof getRoom>>>
 export type GetRoomQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get room
- */
+- @summary Get room
+  \*/
 
 export function useGetRoom<TData = Awaited<ReturnType<typeof getRoom>>, TError = ErrorType<unknown>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRoom>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRoom>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetRoomQueryOptions(id,options)
+const queryOptions = getGetRoomQueryOptions(id,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getUpdateRoomUrl = (id: number,) => {
 
-
-
-
-  return `/api/rooms/${id}`
+return `/api/rooms/${id}`
 }
 
-/**
- * @summary Update room
- */
-export const updateRoom = async (id: number,
-    updateRoomBody: UpdateRoomBody, options?: RequestInit): Promise<Room> => {
+/\*\*
 
-  return customFetch<Room>(getUpdateRoomUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateRoomBody)
-  }
+- @summary Update room
+  \*/
+  export const updateRoom = async (id: number,
+  updateRoomBody: UpdateRoomBody, options?: RequestInit): Promise<Room> => {
+
+return customFetch<Room>(getUpdateRoomUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateRoomBody)
+}
 );}
 
-
-
-
 export const getUpdateRoomMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRoom>>, TError,{id: number;data: BodyType<UpdateRoomBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRoom>>, TError,{id: number;data: BodyType<UpdateRoomBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateRoom>>, TError,{id: number;data: BodyType<UpdateRoomBody>}, TContext> => {
 
 const mutationKey = ['updateRoom'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRoom>>, {id: number;data: BodyType<UpdateRoomBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -21185,69 +21354,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateRoom(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateRoomMutationResult = NonNullable<Awaited<ReturnType<typeof updateRoom>>>
     export type UpdateRoomMutationBody = BodyType<UpdateRoomBody>
     export type UpdateRoomMutationError = ErrorType<unknown>
 
     /**
- * @summary Update room
- */
-export const useUpdateRoom = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRoom>>, TError,{id: number;data: BodyType<UpdateRoomBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateRoom>>,
-        TError,
-        {id: number;data: BodyType<UpdateRoomBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateRoomMutationOptions(options));
-    }
+
+- @summary Update room
+  \*/
+  export const useUpdateRoom = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRoom>>, TError,{id: number;data: BodyType<UpdateRoomBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateRoom>>,
+  TError,
+  {id: number;data: BodyType<UpdateRoomBody>},
+  TContext > => {
+  return useMutation(getUpdateRoomMutationOptions(options));
+  }
 
 export const getDeleteRoomUrl = (id: number,) => {
 
-
-
-
-  return `/api/rooms/${id}`
+return `/api/rooms/${id}`
 }
 
-/**
- * @summary Delete room
- */
-export const deleteRoom = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeleteRoomUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete room
+  \*/
+  export const deleteRoom = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeleteRoomUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeleteRoomMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRoom>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRoom>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteRoom>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteRoom'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRoom>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -21255,153 +21410,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteRoom(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeleteRoomMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRoom>>>
 
     export type DeleteRoomMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete room
- */
-export const useDeleteRoom = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRoom>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteRoom>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteRoomMutationOptions(options));
-    }
+
+- @summary Delete room
+  \*/
+  export const useDeleteRoom = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRoom>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteRoom>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeleteRoomMutationOptions(options));
+  }
 
 export const getListEmployeesUrl = (params?: ListEmployeesParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/employees?${stringifiedParams}` : `/api/employees`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/employees?${stringifiedParams}` : `/api/employees`
 }
 
-/**
- * @summary List employees
- */
-export const listEmployees = async (params?: ListEmployeesParams, options?: RequestInit): Promise<Employee[]> => {
+/\*\*
 
-  return customFetch<Employee[]>(getListEmployeesUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List employees
+  \*/
+  export const listEmployees = async (params?: ListEmployeesParams, options?: RequestInit): Promise<Employee[]> => {
 
+return customFetch<Employee[]>(getListEmployeesUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListEmployeesQueryKey = (params?: ListEmployeesParams,) => {
-    return [
-    `/api/employees`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/employees`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListEmployeesQueryOptions = <TData = Awaited<ReturnType<typeof listEmployees>>, TError = ErrorType<unknown>>(params?: ListEmployeesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployees>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListEmployeesQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListEmployeesQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmployees>>> = ({ signal }) => listEmployees(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmployees>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmployees>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListEmployeesQueryResult = NonNullable<Awaited<ReturnType<typeof listEmployees>>>
 export type ListEmployeesQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List employees
- */
+- @summary List employees
+  \*/
 
 export function useListEmployees<TData = Awaited<ReturnType<typeof listEmployees>>, TError = ErrorType<unknown>>(
- params?: ListEmployeesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployees>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListEmployeesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployees>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListEmployeesQueryOptions(params,options)
+const queryOptions = getListEmployeesQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateEmployeeUrl = () => {
 
-
-
-
-  return `/api/employees`
+return `/api/employees`
 }
 
-/**
- * @summary Create employee
- */
-export const createEmployee = async (createEmployeeBody: CreateEmployeeBody, options?: RequestInit): Promise<Employee> => {
+/\*\*
 
-  return customFetch<Employee>(getCreateEmployeeUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createEmployeeBody)
-  }
+- @summary Create employee
+  \*/
+  export const createEmployee = async (createEmployeeBody: CreateEmployeeBody, options?: RequestInit): Promise<Employee> => {
+
+return customFetch<Employee>(getCreateEmployeeUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createEmployeeBody)
+}
 );}
 
-
-
-
 export const getCreateEmployeeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployee>>, TError,{data: BodyType<CreateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployee>>, TError,{data: BodyType<CreateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createEmployee>>, TError,{data: BodyType<CreateEmployeeBody>}, TContext> => {
 
 const mutationKey = ['createEmployee'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEmployee>>, {data: BodyType<CreateEmployeeBody>}> = (props) => {
           const {data} = props ?? {};
@@ -21409,147 +21535,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createEmployee(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof createEmployee>>>
     export type CreateEmployeeMutationBody = BodyType<CreateEmployeeBody>
     export type CreateEmployeeMutationError = ErrorType<unknown>
 
     /**
- * @summary Create employee
- */
-export const useCreateEmployee = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployee>>, TError,{data: BodyType<CreateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createEmployee>>,
-        TError,
-        {data: BodyType<CreateEmployeeBody>},
-        TContext
-      > => {
-      return useMutation(getCreateEmployeeMutationOptions(options));
-    }
+
+- @summary Create employee
+  \*/
+  export const useCreateEmployee = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployee>>, TError,{data: BodyType<CreateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createEmployee>>,
+  TError,
+  {data: BodyType<CreateEmployeeBody>},
+  TContext > => {
+  return useMutation(getCreateEmployeeMutationOptions(options));
+  }
 
 export const getGetEmployeeUrl = (id: number,) => {
 
-
-
-
-  return `/api/employees/${id}`
+return `/api/employees/${id}`
 }
 
-/**
- * @summary Get employee
- */
-export const getEmployee = async (id: number, options?: RequestInit): Promise<Employee> => {
+/\*\*
 
-  return customFetch<Employee>(getGetEmployeeUrl(id),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get employee
+  \*/
+  export const getEmployee = async (id: number, options?: RequestInit): Promise<Employee> => {
 
+return customFetch<Employee>(getGetEmployeeUrl(id),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetEmployeeQueryKey = (id: number,) => {
-    return [
-    `/api/employees/${id}`
-    ] as const;
-    }
-
+return [
+`/api/employees/${id}`
+] as const;
+}
 
 export const getGetEmployeeQueryOptions = <TData = Awaited<ReturnType<typeof getEmployee>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetEmployeeQueryKey(id);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetEmployeeQueryKey(id);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmployee>>> = ({ signal }) => getEmployee(id, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetEmployeeQueryResult = NonNullable<Awaited<ReturnType<typeof getEmployee>>>
 export type GetEmployeeQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get employee
- */
+- @summary Get employee
+  \*/
 
 export function useGetEmployee<TData = Awaited<ReturnType<typeof getEmployee>>, TError = ErrorType<unknown>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetEmployeeQueryOptions(id,options)
+const queryOptions = getGetEmployeeQueryOptions(id,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getUpdateEmployeeUrl = (id: number,) => {
 
-
-
-
-  return `/api/employees/${id}`
+return `/api/employees/${id}`
 }
 
-/**
- * @summary Update employee
- */
-export const updateEmployee = async (id: number,
-    updateEmployeeBody: UpdateEmployeeBody, options?: RequestInit): Promise<Employee> => {
+/\*\*
 
-  return customFetch<Employee>(getUpdateEmployeeUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateEmployeeBody)
-  }
+- @summary Update employee
+  \*/
+  export const updateEmployee = async (id: number,
+  updateEmployeeBody: UpdateEmployeeBody, options?: RequestInit): Promise<Employee> => {
+
+return customFetch<Employee>(getUpdateEmployeeUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateEmployeeBody)
+}
 );}
 
-
-
-
 export const getUpdateEmployeeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployee>>, TError,{id: number;data: BodyType<UpdateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployee>>, TError,{id: number;data: BodyType<UpdateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateEmployee>>, TError,{id: number;data: BodyType<UpdateEmployeeBody>}, TContext> => {
 
 const mutationKey = ['updateEmployee'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEmployee>>, {id: number;data: BodyType<UpdateEmployeeBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -21557,69 +21650,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateEmployee(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmployee>>>
     export type UpdateEmployeeMutationBody = BodyType<UpdateEmployeeBody>
     export type UpdateEmployeeMutationError = ErrorType<unknown>
 
     /**
- * @summary Update employee
- */
-export const useUpdateEmployee = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployee>>, TError,{id: number;data: BodyType<UpdateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateEmployee>>,
-        TError,
-        {id: number;data: BodyType<UpdateEmployeeBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateEmployeeMutationOptions(options));
-    }
+
+- @summary Update employee
+  \*/
+  export const useUpdateEmployee = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployee>>, TError,{id: number;data: BodyType<UpdateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateEmployee>>,
+  TError,
+  {id: number;data: BodyType<UpdateEmployeeBody>},
+  TContext > => {
+  return useMutation(getUpdateEmployeeMutationOptions(options));
+  }
 
 export const getDeleteEmployeeUrl = (id: number,) => {
 
-
-
-
-  return `/api/employees/${id}`
+return `/api/employees/${id}`
 }
 
-/**
- * @summary Delete employee
- */
-export const deleteEmployee = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeleteEmployeeUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete employee
+  \*/
+  export const deleteEmployee = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeleteEmployeeUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeleteEmployeeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteEmployee'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEmployee>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -21627,153 +21706,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteEmployee(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeleteEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEmployee>>>
 
     export type DeleteEmployeeMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete employee
- */
-export const useDeleteEmployee = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteEmployee>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteEmployeeMutationOptions(options));
-    }
+
+- @summary Delete employee
+  \*/
+  export const useDeleteEmployee = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteEmployee>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeleteEmployeeMutationOptions(options));
+  }
 
 export const getListAssignmentsUrl = (params?: ListAssignmentsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/assignments?${stringifiedParams}` : `/api/assignments`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/assignments?${stringifiedParams}` : `/api/assignments`
 }
 
-/**
- * @summary List assignments
- */
-export const listAssignments = async (params?: ListAssignmentsParams, options?: RequestInit): Promise<Assignment[]> => {
+/\*\*
 
-  return customFetch<Assignment[]>(getListAssignmentsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List assignments
+  \*/
+  export const listAssignments = async (params?: ListAssignmentsParams, options?: RequestInit): Promise<Assignment[]> => {
 
+return customFetch<Assignment[]>(getListAssignmentsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListAssignmentsQueryKey = (params?: ListAssignmentsParams,) => {
-    return [
-    `/api/assignments`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/assignments`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListAssignmentsQueryOptions = <TData = Awaited<ReturnType<typeof listAssignments>>, TError = ErrorType<unknown>>(params?: ListAssignmentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAssignmentsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListAssignmentsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listAssignments>>> = ({ signal }) => listAssignments(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAssignments>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAssignments>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListAssignmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAssignments>>>
 export type ListAssignmentsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List assignments
- */
+- @summary List assignments
+  \*/
 
 export function useListAssignments<TData = Awaited<ReturnType<typeof listAssignments>>, TError = ErrorType<unknown>>(
- params?: ListAssignmentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListAssignmentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAssignmentsQueryOptions(params,options)
+const queryOptions = getListAssignmentsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateAssignmentUrl = () => {
 
-
-
-
-  return `/api/assignments`
+return `/api/assignments`
 }
 
-/**
- * @summary Create assignment (check-in employee)
- */
-export const createAssignment = async (createAssignmentBody: CreateAssignmentBody, options?: RequestInit): Promise<Assignment> => {
+/\*\*
 
-  return customFetch<Assignment>(getCreateAssignmentUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createAssignmentBody)
-  }
+- @summary Create assignment (check-in employee)
+  \*/
+  export const createAssignment = async (createAssignmentBody: CreateAssignmentBody, options?: RequestInit): Promise<Assignment> => {
+
+return customFetch<Assignment>(getCreateAssignmentUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createAssignmentBody)
+}
 );}
 
-
-
-
 export const getCreateAssignmentMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAssignment>>, TError,{data: BodyType<CreateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAssignment>>, TError,{data: BodyType<CreateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createAssignment>>, TError,{data: BodyType<CreateAssignmentBody>}, TContext> => {
 
 const mutationKey = ['createAssignment'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAssignment>>, {data: BodyType<CreateAssignmentBody>}> = (props) => {
           const {data} = props ?? {};
@@ -21781,147 +21831,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createAssignment(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateAssignmentMutationResult = NonNullable<Awaited<ReturnType<typeof createAssignment>>>
     export type CreateAssignmentMutationBody = BodyType<CreateAssignmentBody>
     export type CreateAssignmentMutationError = ErrorType<unknown>
 
     /**
- * @summary Create assignment (check-in employee)
- */
-export const useCreateAssignment = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAssignment>>, TError,{data: BodyType<CreateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createAssignment>>,
-        TError,
-        {data: BodyType<CreateAssignmentBody>},
-        TContext
-      > => {
-      return useMutation(getCreateAssignmentMutationOptions(options));
-    }
+
+- @summary Create assignment (check-in employee)
+  \*/
+  export const useCreateAssignment = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAssignment>>, TError,{data: BodyType<CreateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createAssignment>>,
+  TError,
+  {data: BodyType<CreateAssignmentBody>},
+  TContext > => {
+  return useMutation(getCreateAssignmentMutationOptions(options));
+  }
 
 export const getGetAssignmentUrl = (id: number,) => {
 
-
-
-
-  return `/api/assignments/${id}`
+return `/api/assignments/${id}`
 }
 
-/**
- * @summary Get assignment
- */
-export const getAssignment = async (id: number, options?: RequestInit): Promise<Assignment> => {
+/\*\*
 
-  return customFetch<Assignment>(getGetAssignmentUrl(id),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get assignment
+  \*/
+  export const getAssignment = async (id: number, options?: RequestInit): Promise<Assignment> => {
 
+return customFetch<Assignment>(getGetAssignmentUrl(id),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetAssignmentQueryKey = (id: number,) => {
-    return [
-    `/api/assignments/${id}`
-    ] as const;
-    }
-
+return [
+`/api/assignments/${id}`
+] as const;
+}
 
 export const getGetAssignmentQueryOptions = <TData = Awaited<ReturnType<typeof getAssignment>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssignment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAssignmentQueryKey(id);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetAssignmentQueryKey(id);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getAssignment>>> = ({ signal }) => getAssignment(id, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAssignment>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAssignment>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetAssignmentQueryResult = NonNullable<Awaited<ReturnType<typeof getAssignment>>>
 export type GetAssignmentQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get assignment
- */
+- @summary Get assignment
+  \*/
 
 export function useGetAssignment<TData = Awaited<ReturnType<typeof getAssignment>>, TError = ErrorType<unknown>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssignment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAssignment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetAssignmentQueryOptions(id,options)
+const queryOptions = getGetAssignmentQueryOptions(id,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getUpdateAssignmentUrl = (id: number,) => {
 
-
-
-
-  return `/api/assignments/${id}`
+return `/api/assignments/${id}`
 }
 
-/**
- * @summary Update assignment
- */
-export const updateAssignment = async (id: number,
-    updateAssignmentBody: UpdateAssignmentBody, options?: RequestInit): Promise<Assignment> => {
+/\*\*
 
-  return customFetch<Assignment>(getUpdateAssignmentUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateAssignmentBody)
-  }
+- @summary Update assignment
+  \*/
+  export const updateAssignment = async (id: number,
+  updateAssignmentBody: UpdateAssignmentBody, options?: RequestInit): Promise<Assignment> => {
+
+return customFetch<Assignment>(getUpdateAssignmentUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateAssignmentBody)
+}
 );}
 
-
-
-
 export const getUpdateAssignmentMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAssignment>>, TError,{id: number;data: BodyType<UpdateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAssignment>>, TError,{id: number;data: BodyType<UpdateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateAssignment>>, TError,{id: number;data: BodyType<UpdateAssignmentBody>}, TContext> => {
 
 const mutationKey = ['updateAssignment'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAssignment>>, {id: number;data: BodyType<UpdateAssignmentBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -21929,70 +21946,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateAssignment(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateAssignmentMutationResult = NonNullable<Awaited<ReturnType<typeof updateAssignment>>>
     export type UpdateAssignmentMutationBody = BodyType<UpdateAssignmentBody>
     export type UpdateAssignmentMutationError = ErrorType<unknown>
 
     /**
- * @summary Update assignment
- */
-export const useUpdateAssignment = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAssignment>>, TError,{id: number;data: BodyType<UpdateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateAssignment>>,
-        TError,
-        {id: number;data: BodyType<UpdateAssignmentBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateAssignmentMutationOptions(options));
-    }
+
+- @summary Update assignment
+  \*/
+  export const useUpdateAssignment = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAssignment>>, TError,{id: number;data: BodyType<UpdateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateAssignment>>,
+  TError,
+  {id: number;data: BodyType<UpdateAssignmentBody>},
+  TContext > => {
+  return useMutation(getUpdateAssignmentMutationOptions(options));
+  }
 
 export const getCheckoutAssignmentUrl = (id: number,) => {
 
-
-
-
-  return `/api/assignments/${id}/checkout`
+return `/api/assignments/${id}/checkout`
 }
 
-/**
- * @summary Check out employee from room
- */
-export const checkoutAssignment = async (id: number,
-    checkoutBody: CheckoutBody, options?: RequestInit): Promise<Assignment> => {
+/\*\*
 
-  return customFetch<Assignment>(getCheckoutAssignmentUrl(id),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(checkoutBody)
-  }
+- @summary Check out employee from room
+  \*/
+  export const checkoutAssignment = async (id: number,
+  checkoutBody: CheckoutBody, options?: RequestInit): Promise<Assignment> => {
+
+return customFetch<Assignment>(getCheckoutAssignmentUrl(id),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(checkoutBody)
+}
 );}
 
-
-
-
 export const getCheckoutAssignmentMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutAssignment>>, TError,{id: number;data: BodyType<CheckoutBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutAssignment>>, TError,{id: number;data: BodyType<CheckoutBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof checkoutAssignment>>, TError,{id: number;data: BodyType<CheckoutBody>}, TContext> => {
 
 const mutationKey = ['checkoutAssignment'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkoutAssignment>>, {id: number;data: BodyType<CheckoutBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -22000,70 +22004,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  checkoutAssignment(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CheckoutAssignmentMutationResult = NonNullable<Awaited<ReturnType<typeof checkoutAssignment>>>
     export type CheckoutAssignmentMutationBody = BodyType<CheckoutBody>
     export type CheckoutAssignmentMutationError = ErrorType<unknown>
 
     /**
- * @summary Check out employee from room
- */
-export const useCheckoutAssignment = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutAssignment>>, TError,{id: number;data: BodyType<CheckoutBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof checkoutAssignment>>,
-        TError,
-        {id: number;data: BodyType<CheckoutBody>},
-        TContext
-      > => {
-      return useMutation(getCheckoutAssignmentMutationOptions(options));
-    }
+
+- @summary Check out employee from room
+  \*/
+  export const useCheckoutAssignment = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutAssignment>>, TError,{id: number;data: BodyType<CheckoutBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof checkoutAssignment>>,
+  TError,
+  {id: number;data: BodyType<CheckoutBody>},
+  TContext > => {
+  return useMutation(getCheckoutAssignmentMutationOptions(options));
+  }
 
 export const getTransferAssignmentUrl = (id: number,) => {
 
-
-
-
-  return `/api/assignments/${id}/transfer`
+return `/api/assignments/${id}/transfer`
 }
 
-/**
- * @summary Transfer employee to another room
- */
-export const transferAssignment = async (id: number,
-    transferBody: TransferBody, options?: RequestInit): Promise<Assignment> => {
+/\*\*
 
-  return customFetch<Assignment>(getTransferAssignmentUrl(id),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(transferBody)
-  }
+- @summary Transfer employee to another room
+  \*/
+  export const transferAssignment = async (id: number,
+  transferBody: TransferBody, options?: RequestInit): Promise<Assignment> => {
+
+return customFetch<Assignment>(getTransferAssignmentUrl(id),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(transferBody)
+}
 );}
 
-
-
-
 export const getTransferAssignmentMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferAssignment>>, TError,{id: number;data: BodyType<TransferBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferAssignment>>, TError,{id: number;data: BodyType<TransferBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof transferAssignment>>, TError,{id: number;data: BodyType<TransferBody>}, TContext> => {
 
 const mutationKey = ['transferAssignment'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof transferAssignment>>, {id: number;data: BodyType<TransferBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -22071,153 +22062,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  transferAssignment(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type TransferAssignmentMutationResult = NonNullable<Awaited<ReturnType<typeof transferAssignment>>>
     export type TransferAssignmentMutationBody = BodyType<TransferBody>
     export type TransferAssignmentMutationError = ErrorType<unknown>
 
     /**
- * @summary Transfer employee to another room
- */
-export const useTransferAssignment = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferAssignment>>, TError,{id: number;data: BodyType<TransferBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof transferAssignment>>,
-        TError,
-        {id: number;data: BodyType<TransferBody>},
-        TContext
-      > => {
-      return useMutation(getTransferAssignmentMutationOptions(options));
-    }
+
+- @summary Transfer employee to another room
+  \*/
+  export const useTransferAssignment = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferAssignment>>, TError,{id: number;data: BodyType<TransferBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof transferAssignment>>,
+  TError,
+  {id: number;data: BodyType<TransferBody>},
+  TContext > => {
+  return useMutation(getTransferAssignmentMutationOptions(options));
+  }
 
 export const getListReservationsUrl = (params?: ListReservationsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/reservations?${stringifiedParams}` : `/api/reservations`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/reservations?${stringifiedParams}` : `/api/reservations`
 }
 
-/**
- * @summary List reservations
- */
-export const listReservations = async (params?: ListReservationsParams, options?: RequestInit): Promise<Reservation[]> => {
+/\*\*
 
-  return customFetch<Reservation[]>(getListReservationsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List reservations
+  \*/
+  export const listReservations = async (params?: ListReservationsParams, options?: RequestInit): Promise<Reservation[]> => {
 
+return customFetch<Reservation[]>(getListReservationsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListReservationsQueryKey = (params?: ListReservationsParams,) => {
-    return [
-    `/api/reservations`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/reservations`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListReservationsQueryOptions = <TData = Awaited<ReturnType<typeof listReservations>>, TError = ErrorType<unknown>>(params?: ListReservationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReservations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListReservationsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListReservationsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listReservations>>> = ({ signal }) => listReservations(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listReservations>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listReservations>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListReservationsQueryResult = NonNullable<Awaited<ReturnType<typeof listReservations>>>
 export type ListReservationsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List reservations
- */
+- @summary List reservations
+  \*/
 
 export function useListReservations<TData = Awaited<ReturnType<typeof listReservations>>, TError = ErrorType<unknown>>(
- params?: ListReservationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReservations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListReservationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReservations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListReservationsQueryOptions(params,options)
+const queryOptions = getListReservationsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateReservationUrl = () => {
 
-
-
-
-  return `/api/reservations`
+return `/api/reservations`
 }
 
-/**
- * @summary Create reservation
- */
-export const createReservation = async (createReservationBody: CreateReservationBody, options?: RequestInit): Promise<Reservation> => {
+/\*\*
 
-  return customFetch<Reservation>(getCreateReservationUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createReservationBody)
-  }
+- @summary Create reservation
+  \*/
+  export const createReservation = async (createReservationBody: CreateReservationBody, options?: RequestInit): Promise<Reservation> => {
+
+return customFetch<Reservation>(getCreateReservationUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createReservationBody)
+}
 );}
 
-
-
-
 export const getCreateReservationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReservation>>, TError,{data: BodyType<CreateReservationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReservation>>, TError,{data: BodyType<CreateReservationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createReservation>>, TError,{data: BodyType<CreateReservationBody>}, TContext> => {
 
 const mutationKey = ['createReservation'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createReservation>>, {data: BodyType<CreateReservationBody>}> = (props) => {
           const {data} = props ?? {};
@@ -22225,147 +22187,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createReservation(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateReservationMutationResult = NonNullable<Awaited<ReturnType<typeof createReservation>>>
     export type CreateReservationMutationBody = BodyType<CreateReservationBody>
     export type CreateReservationMutationError = ErrorType<unknown>
 
     /**
- * @summary Create reservation
- */
-export const useCreateReservation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReservation>>, TError,{data: BodyType<CreateReservationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createReservation>>,
-        TError,
-        {data: BodyType<CreateReservationBody>},
-        TContext
-      > => {
-      return useMutation(getCreateReservationMutationOptions(options));
-    }
+
+- @summary Create reservation
+  \*/
+  export const useCreateReservation = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReservation>>, TError,{data: BodyType<CreateReservationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createReservation>>,
+  TError,
+  {data: BodyType<CreateReservationBody>},
+  TContext > => {
+  return useMutation(getCreateReservationMutationOptions(options));
+  }
 
 export const getGetReservationUrl = (id: number,) => {
 
-
-
-
-  return `/api/reservations/${id}`
+return `/api/reservations/${id}`
 }
 
-/**
- * @summary Get reservation
- */
-export const getReservation = async (id: number, options?: RequestInit): Promise<Reservation> => {
+/\*\*
 
-  return customFetch<Reservation>(getGetReservationUrl(id),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get reservation
+  \*/
+  export const getReservation = async (id: number, options?: RequestInit): Promise<Reservation> => {
 
+return customFetch<Reservation>(getGetReservationUrl(id),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetReservationQueryKey = (id: number,) => {
-    return [
-    `/api/reservations/${id}`
-    ] as const;
-    }
-
+return [
+`/api/reservations/${id}`
+] as const;
+}
 
 export const getGetReservationQueryOptions = <TData = Awaited<ReturnType<typeof getReservation>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReservation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetReservationQueryKey(id);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetReservationQueryKey(id);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getReservation>>> = ({ signal }) => getReservation(id, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReservation>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReservation>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetReservationQueryResult = NonNullable<Awaited<ReturnType<typeof getReservation>>>
 export type GetReservationQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get reservation
- */
+- @summary Get reservation
+  \*/
 
 export function useGetReservation<TData = Awaited<ReturnType<typeof getReservation>>, TError = ErrorType<unknown>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReservation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReservation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetReservationQueryOptions(id,options)
+const queryOptions = getGetReservationQueryOptions(id,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getUpdateReservationUrl = (id: number,) => {
 
-
-
-
-  return `/api/reservations/${id}`
+return `/api/reservations/${id}`
 }
 
-/**
- * @summary Update reservation
- */
-export const updateReservation = async (id: number,
-    updateReservationBody: UpdateReservationBody, options?: RequestInit): Promise<Reservation> => {
+/\*\*
 
-  return customFetch<Reservation>(getUpdateReservationUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateReservationBody)
-  }
+- @summary Update reservation
+  \*/
+  export const updateReservation = async (id: number,
+  updateReservationBody: UpdateReservationBody, options?: RequestInit): Promise<Reservation> => {
+
+return customFetch<Reservation>(getUpdateReservationUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateReservationBody)
+}
 );}
 
-
-
-
 export const getUpdateReservationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReservation>>, TError,{id: number;data: BodyType<UpdateReservationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReservation>>, TError,{id: number;data: BodyType<UpdateReservationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateReservation>>, TError,{id: number;data: BodyType<UpdateReservationBody>}, TContext> => {
 
 const mutationKey = ['updateReservation'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateReservation>>, {id: number;data: BodyType<UpdateReservationBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -22373,69 +22302,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateReservation(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateReservationMutationResult = NonNullable<Awaited<ReturnType<typeof updateReservation>>>
     export type UpdateReservationMutationBody = BodyType<UpdateReservationBody>
     export type UpdateReservationMutationError = ErrorType<unknown>
 
     /**
- * @summary Update reservation
- */
-export const useUpdateReservation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReservation>>, TError,{id: number;data: BodyType<UpdateReservationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateReservation>>,
-        TError,
-        {id: number;data: BodyType<UpdateReservationBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateReservationMutationOptions(options));
-    }
+
+- @summary Update reservation
+  \*/
+  export const useUpdateReservation = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReservation>>, TError,{id: number;data: BodyType<UpdateReservationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateReservation>>,
+  TError,
+  {id: number;data: BodyType<UpdateReservationBody>},
+  TContext > => {
+  return useMutation(getUpdateReservationMutationOptions(options));
+  }
 
 export const getDeleteReservationUrl = (id: number,) => {
 
-
-
-
-  return `/api/reservations/${id}`
+return `/api/reservations/${id}`
 }
 
-/**
- * @summary Delete reservation
- */
-export const deleteReservation = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeleteReservationUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete reservation
+  \*/
+  export const deleteReservation = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeleteReservationUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeleteReservationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReservation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReservation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteReservation>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteReservation'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteReservation>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -22443,70 +22358,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteReservation(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeleteReservationMutationResult = NonNullable<Awaited<ReturnType<typeof deleteReservation>>>
 
     export type DeleteReservationMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete reservation
- */
-export const useDeleteReservation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReservation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteReservation>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteReservationMutationOptions(options));
-    }
+
+- @summary Delete reservation
+  \*/
+  export const useDeleteReservation = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReservation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteReservation>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeleteReservationMutationOptions(options));
+  }
 
 export const getCheckinReservationUrl = (id: number,) => {
 
-
-
-
-  return `/api/reservations/${id}/checkin`
+return `/api/reservations/${id}/checkin`
 }
 
-/**
- * @summary Check in a reservation guest
- */
-export const checkinReservation = async (id: number,
-    reservationCheckinBody: ReservationCheckinBody, options?: RequestInit): Promise<Reservation> => {
+/\*\*
 
-  return customFetch<Reservation>(getCheckinReservationUrl(id),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(reservationCheckinBody)
-  }
+- @summary Check in a reservation guest
+  \*/
+  export const checkinReservation = async (id: number,
+  reservationCheckinBody: ReservationCheckinBody, options?: RequestInit): Promise<Reservation> => {
+
+return customFetch<Reservation>(getCheckinReservationUrl(id),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(reservationCheckinBody)
+}
 );}
 
-
-
-
 export const getCheckinReservationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkinReservation>>, TError,{id: number;data: BodyType<ReservationCheckinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkinReservation>>, TError,{id: number;data: BodyType<ReservationCheckinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof checkinReservation>>, TError,{id: number;data: BodyType<ReservationCheckinBody>}, TContext> => {
 
 const mutationKey = ['checkinReservation'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkinReservation>>, {id: number;data: BodyType<ReservationCheckinBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -22514,153 +22416,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  checkinReservation(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CheckinReservationMutationResult = NonNullable<Awaited<ReturnType<typeof checkinReservation>>>
     export type CheckinReservationMutationBody = BodyType<ReservationCheckinBody>
     export type CheckinReservationMutationError = ErrorType<unknown>
 
     /**
- * @summary Check in a reservation guest
- */
-export const useCheckinReservation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkinReservation>>, TError,{id: number;data: BodyType<ReservationCheckinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof checkinReservation>>,
-        TError,
-        {id: number;data: BodyType<ReservationCheckinBody>},
-        TContext
-      > => {
-      return useMutation(getCheckinReservationMutationOptions(options));
-    }
+
+- @summary Check in a reservation guest
+  \*/
+  export const useCheckinReservation = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkinReservation>>, TError,{id: number;data: BodyType<ReservationCheckinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof checkinReservation>>,
+  TError,
+  {id: number;data: BodyType<ReservationCheckinBody>},
+  TContext > => {
+  return useMutation(getCheckinReservationMutationOptions(options));
+  }
 
 export const getListHostingsUrl = (params?: ListHostingsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/hostings?${stringifiedParams}` : `/api/hostings`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/hostings?${stringifiedParams}` : `/api/hostings`
 }
 
-/**
- * @summary List employee hostings
- */
-export const listHostings = async (params?: ListHostingsParams, options?: RequestInit): Promise<Hosting[]> => {
+/\*\*
 
-  return customFetch<Hosting[]>(getListHostingsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List employee hostings
+  \*/
+  export const listHostings = async (params?: ListHostingsParams, options?: RequestInit): Promise<Hosting[]> => {
 
+return customFetch<Hosting[]>(getListHostingsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListHostingsQueryKey = (params?: ListHostingsParams,) => {
-    return [
-    `/api/hostings`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/hostings`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListHostingsQueryOptions = <TData = Awaited<ReturnType<typeof listHostings>>, TError = ErrorType<unknown>>(params?: ListHostingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHostings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListHostingsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListHostingsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listHostings>>> = ({ signal }) => listHostings(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listHostings>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listHostings>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListHostingsQueryResult = NonNullable<Awaited<ReturnType<typeof listHostings>>>
 export type ListHostingsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List employee hostings
- */
+- @summary List employee hostings
+  \*/
 
 export function useListHostings<TData = Awaited<ReturnType<typeof listHostings>>, TError = ErrorType<unknown>>(
- params?: ListHostingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHostings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListHostingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHostings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListHostingsQueryOptions(params,options)
+const queryOptions = getListHostingsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateHostingUrl = () => {
 
-
-
-
-  return `/api/hostings`
+return `/api/hostings`
 }
 
-/**
- * @summary Create hosting request
- */
-export const createHosting = async (createHostingBody: CreateHostingBody, options?: RequestInit): Promise<Hosting> => {
+/\*\*
 
-  return customFetch<Hosting>(getCreateHostingUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createHostingBody)
-  }
+- @summary Create hosting request
+  \*/
+  export const createHosting = async (createHostingBody: CreateHostingBody, options?: RequestInit): Promise<Hosting> => {
+
+return customFetch<Hosting>(getCreateHostingUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createHostingBody)
+}
 );}
 
-
-
-
 export const getCreateHostingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHosting>>, TError,{data: BodyType<CreateHostingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHosting>>, TError,{data: BodyType<CreateHostingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createHosting>>, TError,{data: BodyType<CreateHostingBody>}, TContext> => {
 
 const mutationKey = ['createHosting'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createHosting>>, {data: BodyType<CreateHostingBody>}> = (props) => {
           const {data} = props ?? {};
@@ -22668,70 +22541,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createHosting(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateHostingMutationResult = NonNullable<Awaited<ReturnType<typeof createHosting>>>
     export type CreateHostingMutationBody = BodyType<CreateHostingBody>
     export type CreateHostingMutationError = ErrorType<unknown>
 
     /**
- * @summary Create hosting request
- */
-export const useCreateHosting = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHosting>>, TError,{data: BodyType<CreateHostingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createHosting>>,
-        TError,
-        {data: BodyType<CreateHostingBody>},
-        TContext
-      > => {
-      return useMutation(getCreateHostingMutationOptions(options));
-    }
+
+- @summary Create hosting request
+  \*/
+  export const useCreateHosting = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHosting>>, TError,{data: BodyType<CreateHostingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createHosting>>,
+  TError,
+  {data: BodyType<CreateHostingBody>},
+  TContext > => {
+  return useMutation(getCreateHostingMutationOptions(options));
+  }
 
 export const getUpdateHostingUrl = (id: number,) => {
 
-
-
-
-  return `/api/hostings/${id}`
+return `/api/hostings/${id}`
 }
 
-/**
- * @summary Update hosting
- */
-export const updateHosting = async (id: number,
-    updateHostingBody: UpdateHostingBody, options?: RequestInit): Promise<Hosting> => {
+/\*\*
 
-  return customFetch<Hosting>(getUpdateHostingUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateHostingBody)
-  }
+- @summary Update hosting
+  \*/
+  export const updateHosting = async (id: number,
+  updateHostingBody: UpdateHostingBody, options?: RequestInit): Promise<Hosting> => {
+
+return customFetch<Hosting>(getUpdateHostingUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateHostingBody)
+}
 );}
 
-
-
-
 export const getUpdateHostingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHosting>>, TError,{id: number;data: BodyType<UpdateHostingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHosting>>, TError,{id: number;data: BodyType<UpdateHostingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateHosting>>, TError,{id: number;data: BodyType<UpdateHostingBody>}, TContext> => {
 
 const mutationKey = ['updateHosting'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateHosting>>, {id: number;data: BodyType<UpdateHostingBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -22739,69 +22599,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateHosting(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateHostingMutationResult = NonNullable<Awaited<ReturnType<typeof updateHosting>>>
     export type UpdateHostingMutationBody = BodyType<UpdateHostingBody>
     export type UpdateHostingMutationError = ErrorType<unknown>
 
     /**
- * @summary Update hosting
- */
-export const useUpdateHosting = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHosting>>, TError,{id: number;data: BodyType<UpdateHostingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateHosting>>,
-        TError,
-        {id: number;data: BodyType<UpdateHostingBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateHostingMutationOptions(options));
-    }
+
+- @summary Update hosting
+  \*/
+  export const useUpdateHosting = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHosting>>, TError,{id: number;data: BodyType<UpdateHostingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateHosting>>,
+  TError,
+  {id: number;data: BodyType<UpdateHostingBody>},
+  TContext > => {
+  return useMutation(getUpdateHostingMutationOptions(options));
+  }
 
 export const getDeleteHostingUrl = (id: number,) => {
 
-
-
-
-  return `/api/hostings/${id}`
+return `/api/hostings/${id}`
 }
 
-/**
- * @summary Delete hosting
- */
-export const deleteHosting = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeleteHostingUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete hosting
+  \*/
+  export const deleteHosting = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeleteHostingUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeleteHostingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteHosting>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteHosting'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteHosting>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -22809,69 +22655,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteHosting(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeleteHostingMutationResult = NonNullable<Awaited<ReturnType<typeof deleteHosting>>>
 
     export type DeleteHostingMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete hosting
- */
-export const useDeleteHosting = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteHosting>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteHostingMutationOptions(options));
-    }
+
+- @summary Delete hosting
+  \*/
+  export const useDeleteHosting = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteHosting>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeleteHostingMutationOptions(options));
+  }
 
 export const getApproveHostingUrl = (id: number,) => {
 
-
-
-
-  return `/api/hostings/${id}/approve`
+return `/api/hostings/${id}/approve`
 }
 
-/**
- * @summary Approve hosting request
- */
-export const approveHosting = async (id: number, options?: RequestInit): Promise<Hosting> => {
+/\*\*
 
-  return customFetch<Hosting>(getApproveHostingUrl(id),
-  {
-    ...options,
-    method: 'POST'
+- @summary Approve hosting request
+  \*/
+  export const approveHosting = async (id: number, options?: RequestInit): Promise<Hosting> => {
 
+return customFetch<Hosting>(getApproveHostingUrl(id),
+{
+...options,
+method: 'POST'
 
-  }
+}
 );}
 
-
-
-
 export const getApproveHostingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof approveHosting>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['approveHosting'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveHosting>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -22879,70 +22711,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  approveHosting(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type ApproveHostingMutationResult = NonNullable<Awaited<ReturnType<typeof approveHosting>>>
 
     export type ApproveHostingMutationError = ErrorType<unknown>
 
     /**
- * @summary Approve hosting request
- */
-export const useApproveHosting = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof approveHosting>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getApproveHostingMutationOptions(options));
-    }
+
+- @summary Approve hosting request
+  \*/
+  export const useApproveHosting = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof approveHosting>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getApproveHostingMutationOptions(options));
+  }
 
 export const getCheckinHostingUrl = (id: number,) => {
 
-
-
-
-  return `/api/hostings/${id}/checkin`
+return `/api/hostings/${id}/checkin`
 }
 
-/**
- * @summary Check in hosting guest
- */
-export const checkinHosting = async (id: number,
-    hostingCheckinBody: HostingCheckinBody, options?: RequestInit): Promise<Hosting> => {
+/\*\*
 
-  return customFetch<Hosting>(getCheckinHostingUrl(id),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(hostingCheckinBody)
-  }
+- @summary Check in hosting guest
+  \*/
+  export const checkinHosting = async (id: number,
+  hostingCheckinBody: HostingCheckinBody, options?: RequestInit): Promise<Hosting> => {
+
+return customFetch<Hosting>(getCheckinHostingUrl(id),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(hostingCheckinBody)
+}
 );}
 
-
-
-
 export const getCheckinHostingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkinHosting>>, TError,{id: number;data: BodyType<HostingCheckinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkinHosting>>, TError,{id: number;data: BodyType<HostingCheckinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof checkinHosting>>, TError,{id: number;data: BodyType<HostingCheckinBody>}, TContext> => {
 
 const mutationKey = ['checkinHosting'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkinHosting>>, {id: number;data: BodyType<HostingCheckinBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -22950,69 +22769,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  checkinHosting(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CheckinHostingMutationResult = NonNullable<Awaited<ReturnType<typeof checkinHosting>>>
     export type CheckinHostingMutationBody = BodyType<HostingCheckinBody>
     export type CheckinHostingMutationError = ErrorType<unknown>
 
     /**
- * @summary Check in hosting guest
- */
-export const useCheckinHosting = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkinHosting>>, TError,{id: number;data: BodyType<HostingCheckinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof checkinHosting>>,
-        TError,
-        {id: number;data: BodyType<HostingCheckinBody>},
-        TContext
-      > => {
-      return useMutation(getCheckinHostingMutationOptions(options));
-    }
+
+- @summary Check in hosting guest
+  \*/
+  export const useCheckinHosting = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkinHosting>>, TError,{id: number;data: BodyType<HostingCheckinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof checkinHosting>>,
+  TError,
+  {id: number;data: BodyType<HostingCheckinBody>},
+  TContext > => {
+  return useMutation(getCheckinHostingMutationOptions(options));
+  }
 
 export const getCheckoutHostingUrl = (id: number,) => {
 
-
-
-
-  return `/api/hostings/${id}/checkout`
+return `/api/hostings/${id}/checkout`
 }
 
-/**
- * @summary Check out hosting guest
- */
-export const checkoutHosting = async (id: number, options?: RequestInit): Promise<Hosting> => {
+/\*\*
 
-  return customFetch<Hosting>(getCheckoutHostingUrl(id),
-  {
-    ...options,
-    method: 'POST'
+- @summary Check out hosting guest
+  \*/
+  export const checkoutHosting = async (id: number, options?: RequestInit): Promise<Hosting> => {
 
+return customFetch<Hosting>(getCheckoutHostingUrl(id),
+{
+...options,
+method: 'POST'
 
-  }
+}
 );}
 
-
-
-
 export const getCheckoutHostingMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof checkoutHosting>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['checkoutHosting'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkoutHosting>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -23020,153 +22825,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  checkoutHosting(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CheckoutHostingMutationResult = NonNullable<Awaited<ReturnType<typeof checkoutHosting>>>
 
     export type CheckoutHostingMutationError = ErrorType<unknown>
 
     /**
- * @summary Check out hosting guest
- */
-export const useCheckoutHosting = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof checkoutHosting>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getCheckoutHostingMutationOptions(options));
-    }
+
+- @summary Check out hosting guest
+  \*/
+  export const useCheckoutHosting = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutHosting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof checkoutHosting>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getCheckoutHostingMutationOptions(options));
+  }
 
 export const getListMaintenanceUrl = (params?: ListMaintenanceParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/maintenance?${stringifiedParams}` : `/api/maintenance`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/maintenance?${stringifiedParams}` : `/api/maintenance`
 }
 
-/**
- * @summary List maintenance requests
- */
-export const listMaintenance = async (params?: ListMaintenanceParams, options?: RequestInit): Promise<MaintenanceRequest[]> => {
+/\*\*
 
-  return customFetch<MaintenanceRequest[]>(getListMaintenanceUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List maintenance requests
+  \*/
+  export const listMaintenance = async (params?: ListMaintenanceParams, options?: RequestInit): Promise<MaintenanceRequest[]> => {
 
+return customFetch<MaintenanceRequest[]>(getListMaintenanceUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListMaintenanceQueryKey = (params?: ListMaintenanceParams,) => {
-    return [
-    `/api/maintenance`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/maintenance`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListMaintenanceQueryOptions = <TData = Awaited<ReturnType<typeof listMaintenance>>, TError = ErrorType<unknown>>(params?: ListMaintenanceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMaintenance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListMaintenanceQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListMaintenanceQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listMaintenance>>> = ({ signal }) => listMaintenance(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMaintenance>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMaintenance>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListMaintenanceQueryResult = NonNullable<Awaited<ReturnType<typeof listMaintenance>>>
 export type ListMaintenanceQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List maintenance requests
- */
+- @summary List maintenance requests
+  \*/
 
 export function useListMaintenance<TData = Awaited<ReturnType<typeof listMaintenance>>, TError = ErrorType<unknown>>(
- params?: ListMaintenanceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMaintenance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListMaintenanceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMaintenance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListMaintenanceQueryOptions(params,options)
+const queryOptions = getListMaintenanceQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateMaintenanceUrl = () => {
 
-
-
-
-  return `/api/maintenance`
+return `/api/maintenance`
 }
 
-/**
- * @summary Create maintenance request
- */
-export const createMaintenance = async (createMaintenanceBody: CreateMaintenanceBody, options?: RequestInit): Promise<MaintenanceRequest> => {
+/\*\*
 
-  return customFetch<MaintenanceRequest>(getCreateMaintenanceUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createMaintenanceBody)
-  }
+- @summary Create maintenance request
+  \*/
+  export const createMaintenance = async (createMaintenanceBody: CreateMaintenanceBody, options?: RequestInit): Promise<MaintenanceRequest> => {
+
+return customFetch<MaintenanceRequest>(getCreateMaintenanceUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createMaintenanceBody)
+}
 );}
 
-
-
-
 export const getCreateMaintenanceMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMaintenance>>, TError,{data: BodyType<CreateMaintenanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMaintenance>>, TError,{data: BodyType<CreateMaintenanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createMaintenance>>, TError,{data: BodyType<CreateMaintenanceBody>}, TContext> => {
 
 const mutationKey = ['createMaintenance'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMaintenance>>, {data: BodyType<CreateMaintenanceBody>}> = (props) => {
           const {data} = props ?? {};
@@ -23174,147 +22950,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createMaintenance(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateMaintenanceMutationResult = NonNullable<Awaited<ReturnType<typeof createMaintenance>>>
     export type CreateMaintenanceMutationBody = BodyType<CreateMaintenanceBody>
     export type CreateMaintenanceMutationError = ErrorType<unknown>
 
     /**
- * @summary Create maintenance request
- */
-export const useCreateMaintenance = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMaintenance>>, TError,{data: BodyType<CreateMaintenanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createMaintenance>>,
-        TError,
-        {data: BodyType<CreateMaintenanceBody>},
-        TContext
-      > => {
-      return useMutation(getCreateMaintenanceMutationOptions(options));
-    }
+
+- @summary Create maintenance request
+  \*/
+  export const useCreateMaintenance = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMaintenance>>, TError,{data: BodyType<CreateMaintenanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createMaintenance>>,
+  TError,
+  {data: BodyType<CreateMaintenanceBody>},
+  TContext > => {
+  return useMutation(getCreateMaintenanceMutationOptions(options));
+  }
 
 export const getGetMaintenanceUrl = (id: number,) => {
 
-
-
-
-  return `/api/maintenance/${id}`
+return `/api/maintenance/${id}`
 }
 
-/**
- * @summary Get maintenance request
- */
-export const getMaintenance = async (id: number, options?: RequestInit): Promise<MaintenanceRequest> => {
+/\*\*
 
-  return customFetch<MaintenanceRequest>(getGetMaintenanceUrl(id),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get maintenance request
+  \*/
+  export const getMaintenance = async (id: number, options?: RequestInit): Promise<MaintenanceRequest> => {
 
+return customFetch<MaintenanceRequest>(getGetMaintenanceUrl(id),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetMaintenanceQueryKey = (id: number,) => {
-    return [
-    `/api/maintenance/${id}`
-    ] as const;
-    }
-
+return [
+`/api/maintenance/${id}`
+] as const;
+}
 
 export const getGetMaintenanceQueryOptions = <TData = Awaited<ReturnType<typeof getMaintenance>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMaintenance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMaintenanceQueryKey(id);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetMaintenanceQueryKey(id);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getMaintenance>>> = ({ signal }) => getMaintenance(id, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMaintenance>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMaintenance>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetMaintenanceQueryResult = NonNullable<Awaited<ReturnType<typeof getMaintenance>>>
 export type GetMaintenanceQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get maintenance request
- */
+- @summary Get maintenance request
+  \*/
 
 export function useGetMaintenance<TData = Awaited<ReturnType<typeof getMaintenance>>, TError = ErrorType<unknown>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMaintenance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMaintenance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetMaintenanceQueryOptions(id,options)
+const queryOptions = getGetMaintenanceQueryOptions(id,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getUpdateMaintenanceUrl = (id: number,) => {
 
-
-
-
-  return `/api/maintenance/${id}`
+return `/api/maintenance/${id}`
 }
 
-/**
- * @summary Update maintenance request
- */
-export const updateMaintenance = async (id: number,
-    updateMaintenanceBody: UpdateMaintenanceBody, options?: RequestInit): Promise<MaintenanceRequest> => {
+/\*\*
 
-  return customFetch<MaintenanceRequest>(getUpdateMaintenanceUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateMaintenanceBody)
-  }
+- @summary Update maintenance request
+  \*/
+  export const updateMaintenance = async (id: number,
+  updateMaintenanceBody: UpdateMaintenanceBody, options?: RequestInit): Promise<MaintenanceRequest> => {
+
+return customFetch<MaintenanceRequest>(getUpdateMaintenanceUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateMaintenanceBody)
+}
 );}
 
-
-
-
 export const getUpdateMaintenanceMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMaintenance>>, TError,{id: number;data: BodyType<UpdateMaintenanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMaintenance>>, TError,{id: number;data: BodyType<UpdateMaintenanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateMaintenance>>, TError,{id: number;data: BodyType<UpdateMaintenanceBody>}, TContext> => {
 
 const mutationKey = ['updateMaintenance'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMaintenance>>, {id: number;data: BodyType<UpdateMaintenanceBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -23322,69 +23065,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateMaintenance(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateMaintenanceMutationResult = NonNullable<Awaited<ReturnType<typeof updateMaintenance>>>
     export type UpdateMaintenanceMutationBody = BodyType<UpdateMaintenanceBody>
     export type UpdateMaintenanceMutationError = ErrorType<unknown>
 
     /**
- * @summary Update maintenance request
- */
-export const useUpdateMaintenance = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMaintenance>>, TError,{id: number;data: BodyType<UpdateMaintenanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateMaintenance>>,
-        TError,
-        {id: number;data: BodyType<UpdateMaintenanceBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateMaintenanceMutationOptions(options));
-    }
+
+- @summary Update maintenance request
+  \*/
+  export const useUpdateMaintenance = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMaintenance>>, TError,{id: number;data: BodyType<UpdateMaintenanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateMaintenance>>,
+  TError,
+  {id: number;data: BodyType<UpdateMaintenanceBody>},
+  TContext > => {
+  return useMutation(getUpdateMaintenanceMutationOptions(options));
+  }
 
 export const getDeleteMaintenanceUrl = (id: number,) => {
 
-
-
-
-  return `/api/maintenance/${id}`
+return `/api/maintenance/${id}`
 }
 
-/**
- * @summary Delete maintenance request
- */
-export const deleteMaintenance = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeleteMaintenanceUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete maintenance request
+  \*/
+  export const deleteMaintenance = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeleteMaintenanceUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeleteMaintenanceMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenance>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenance>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenance>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteMaintenance'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMaintenance>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -23392,153 +23121,124 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteMaintenance(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeleteMaintenanceMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMaintenance>>>
 
     export type DeleteMaintenanceMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete maintenance request
- */
-export const useDeleteMaintenance = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenance>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteMaintenance>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteMaintenanceMutationOptions(options));
-    }
+
+- @summary Delete maintenance request
+  \*/
+  export const useDeleteMaintenance = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenance>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMaintenance>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeleteMaintenanceMutationOptions(options));
+  }
 
 export const getListUsersUrl = (params?: ListUsersParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/users?${stringifiedParams}` : `/api/users`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/users?${stringifiedParams}` : `/api/users`
 }
 
-/**
- * @summary List users
- */
-export const listUsers = async (params?: ListUsersParams, options?: RequestInit): Promise<User[]> => {
+/\*\*
 
-  return customFetch<User[]>(getListUsersUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List users
+  \*/
+  export const listUsers = async (params?: ListUsersParams, options?: RequestInit): Promise<User[]> => {
 
+return customFetch<User[]>(getListUsersUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListUsersQueryKey = (params?: ListUsersParams,) => {
-    return [
-    `/api/users`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/users`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListUsersQueryOptions = <TData = Awaited<ReturnType<typeof listUsers>>, TError = ErrorType<unknown>>(params?: ListUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListUsersQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListUsersQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listUsers>>> = ({ signal }) => listUsers(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listUsers>>>
 export type ListUsersQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List users
- */
+- @summary List users
+  \*/
 
 export function useListUsers<TData = Awaited<ReturnType<typeof listUsers>>, TError = ErrorType<unknown>>(
- params?: ListUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListUsersQueryOptions(params,options)
+const queryOptions = getListUsersQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateUserUrl = () => {
 
-
-
-
-  return `/api/users`
+return `/api/users`
 }
 
-/**
- * @summary Create user
- */
-export const createUser = async (createUserBody: CreateUserBody, options?: RequestInit): Promise<User> => {
+/\*\*
 
-  return customFetch<User>(getCreateUserUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createUserBody)
-  }
+- @summary Create user
+  \*/
+  export const createUser = async (createUserBody: CreateUserBody, options?: RequestInit): Promise<User> => {
+
+return customFetch<User>(getCreateUserUrl(),
+{
+...options,
+method: 'POST',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(createUserBody)
+}
 );}
 
-
-
-
 export const getCreateUserMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createUser>>, TError,{data: BodyType<CreateUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createUser>>, TError,{data: BodyType<CreateUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createUser>>, TError,{data: BodyType<CreateUserBody>}, TContext> => {
 
 const mutationKey = ['createUser'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof createUser>>, {data: BodyType<CreateUserBody>}> = (props) => {
           const {data} = props ?? {};
@@ -23546,147 +23246,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  createUser(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type CreateUserMutationResult = NonNullable<Awaited<ReturnType<typeof createUser>>>
     export type CreateUserMutationBody = BodyType<CreateUserBody>
     export type CreateUserMutationError = ErrorType<unknown>
 
     /**
- * @summary Create user
- */
-export const useCreateUser = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createUser>>, TError,{data: BodyType<CreateUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createUser>>,
-        TError,
-        {data: BodyType<CreateUserBody>},
-        TContext
-      > => {
-      return useMutation(getCreateUserMutationOptions(options));
-    }
+
+- @summary Create user
+  \*/
+  export const useCreateUser = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createUser>>, TError,{data: BodyType<CreateUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof createUser>>,
+  TError,
+  {data: BodyType<CreateUserBody>},
+  TContext > => {
+  return useMutation(getCreateUserMutationOptions(options));
+  }
 
 export const getGetUserUrl = (id: number,) => {
 
-
-
-
-  return `/api/users/${id}`
+return `/api/users/${id}`
 }
 
-/**
- * @summary Get user
- */
-export const getUser = async (id: number, options?: RequestInit): Promise<User> => {
+/\*\*
 
-  return customFetch<User>(getGetUserUrl(id),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get user
+  \*/
+  export const getUser = async (id: number, options?: RequestInit): Promise<User> => {
 
+return customFetch<User>(getGetUserUrl(id),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetUserQueryKey = (id: number,) => {
-    return [
-    `/api/users/${id}`
-    ] as const;
-    }
-
+return [
+`/api/users/${id}`
+] as const;
+}
 
 export const getGetUserQueryOptions = <TData = Awaited<ReturnType<typeof getUser>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUser>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetUserQueryKey(id);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetUserQueryKey(id);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getUser>>> = ({ signal }) => getUser(id, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUser>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUser>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetUserQueryResult = NonNullable<Awaited<ReturnType<typeof getUser>>>
 export type GetUserQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get user
- */
+- @summary Get user
+  \*/
 
 export function useGetUser<TData = Awaited<ReturnType<typeof getUser>>, TError = ErrorType<unknown>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUser>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUser>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetUserQueryOptions(id,options)
+const queryOptions = getGetUserQueryOptions(id,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getUpdateUserUrl = (id: number,) => {
 
-
-
-
-  return `/api/users/${id}`
+return `/api/users/${id}`
 }
 
-/**
- * @summary Update user
- */
-export const updateUser = async (id: number,
-    updateUserBody: UpdateUserBody, options?: RequestInit): Promise<User> => {
+/\*\*
 
-  return customFetch<User>(getUpdateUserUrl(id),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateUserBody)
-  }
+- @summary Update user
+  \*/
+  export const updateUser = async (id: number,
+  updateUserBody: UpdateUserBody, options?: RequestInit): Promise<User> => {
+
+return customFetch<User>(getUpdateUserUrl(id),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateUserBody)
+}
 );}
 
-
-
-
 export const getUpdateUserMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{id: number;data: BodyType<UpdateUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{id: number;data: BodyType<UpdateUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{id: number;data: BodyType<UpdateUserBody>}, TContext> => {
 
 const mutationKey = ['updateUser'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUser>>, {id: number;data: BodyType<UpdateUserBody>}> = (props) => {
           const {id,data} = props ?? {};
@@ -23694,69 +23361,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateUser(id,data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateUserMutationResult = NonNullable<Awaited<ReturnType<typeof updateUser>>>
     export type UpdateUserMutationBody = BodyType<UpdateUserBody>
     export type UpdateUserMutationError = ErrorType<unknown>
 
     /**
- * @summary Update user
- */
-export const useUpdateUser = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{id: number;data: BodyType<UpdateUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateUser>>,
-        TError,
-        {id: number;data: BodyType<UpdateUserBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateUserMutationOptions(options));
-    }
+
+- @summary Update user
+  \*/
+  export const useUpdateUser = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{id: number;data: BodyType<UpdateUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateUser>>,
+  TError,
+  {id: number;data: BodyType<UpdateUserBody>},
+  TContext > => {
+  return useMutation(getUpdateUserMutationOptions(options));
+  }
 
 export const getDeleteUserUrl = (id: number,) => {
 
-
-
-
-  return `/api/users/${id}`
+return `/api/users/${id}`
 }
 
-/**
- * @summary Delete user
- */
-export const deleteUser = async (id: number, options?: RequestInit): Promise<void> => {
+/\*\*
 
-  return customFetch<void>(getDeleteUserUrl(id),
-  {
-    ...options,
-    method: 'DELETE'
+- @summary Delete user
+  \*/
+  export const deleteUser = async (id: number, options?: RequestInit): Promise<void> => {
 
+return customFetch<void>(getDeleteUserUrl(id),
+{
+...options,
+method: 'DELETE'
 
-  }
+}
 );}
 
-
-
-
 export const getDeleteUserMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{id: number}, TContext> => {
 
 const mutationKey = ['deleteUser'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteUser>>, {id: number}> = (props) => {
           const {id} = props ?? {};
@@ -23764,237 +23417,192 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  deleteUser(id,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type DeleteUserMutationResult = NonNullable<Awaited<ReturnType<typeof deleteUser>>>
 
     export type DeleteUserMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete user
- */
-export const useDeleteUser = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteUser>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteUserMutationOptions(options));
-    }
+
+- @summary Delete user
+  \*/
+  export const useDeleteUser = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof deleteUser>>,
+  TError,
+  {id: number},
+  TContext > => {
+  return useMutation(getDeleteUserMutationOptions(options));
+  }
 
 export const getListActivityLogsUrl = (params?: ListActivityLogsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/activity-logs?${stringifiedParams}` : `/api/activity-logs`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/activity-logs?${stringifiedParams}` : `/api/activity-logs`
 }
 
-/**
- * @summary List activity logs
- */
-export const listActivityLogs = async (params?: ListActivityLogsParams, options?: RequestInit): Promise<ActivityLog[]> => {
+/\*\*
 
-  return customFetch<ActivityLog[]>(getListActivityLogsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary List activity logs
+  \*/
+  export const listActivityLogs = async (params?: ListActivityLogsParams, options?: RequestInit): Promise<ActivityLog[]> => {
 
+return customFetch<ActivityLog[]>(getListActivityLogsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getListActivityLogsQueryKey = (params?: ListActivityLogsParams,) => {
-    return [
-    `/api/activity-logs`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/activity-logs`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getListActivityLogsQueryOptions = <TData = Awaited<ReturnType<typeof listActivityLogs>>, TError = ErrorType<unknown>>(params?: ListActivityLogsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listActivityLogs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListActivityLogsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getListActivityLogsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listActivityLogs>>> = ({ signal }) => listActivityLogs(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listActivityLogs>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listActivityLogs>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type ListActivityLogsQueryResult = NonNullable<Awaited<ReturnType<typeof listActivityLogs>>>
 export type ListActivityLogsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary List activity logs
- */
+- @summary List activity logs
+  \*/
 
 export function useListActivityLogs<TData = Awaited<ReturnType<typeof listActivityLogs>>, TError = ErrorType<unknown>>(
- params?: ListActivityLogsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listActivityLogs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: ListActivityLogsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listActivityLogs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListActivityLogsQueryOptions(params,options)
+const queryOptions = getListActivityLogsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-
-
-
 export const getGetSettingsUrl = (params?: GetSettingsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/settings?${stringifiedParams}` : `/api/settings`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/settings?${stringifiedParams}` : `/api/settings`
 }
 
-/**
- * @summary Get system settings
- */
-export const getSettings = async (params?: GetSettingsParams, options?: RequestInit): Promise<AppSettings> => {
+/\*\*
 
-  return customFetch<AppSettings>(getGetSettingsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get system settings
+  \*/
+  export const getSettings = async (params?: GetSettingsParams, options?: RequestInit): Promise<AppSettings> => {
 
+return customFetch<AppSettings>(getGetSettingsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetSettingsQueryKey = (params?: GetSettingsParams,) => {
-    return [
-    `/api/settings`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/settings`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getGetSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>(params?: GetSettingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetSettingsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetSettingsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getSettings>>> = ({ signal }) => getSettings(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getSettings>>>
 export type GetSettingsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get system settings
- */
+- @summary Get system settings
+  \*/
 
 export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>(
- params?: GetSettingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: GetSettingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetSettingsQueryOptions(params,options)
+const queryOptions = getGetSettingsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getUpdateSettingsUrl = () => {
 
-
-
-
-  return `/api/settings`
+return `/api/settings`
 }
 
-/**
- * @summary Update system settings
- */
-export const updateSettings = async (updateSettingsBody: UpdateSettingsBody, options?: RequestInit): Promise<AppSettings> => {
+/\*\*
 
-  return customFetch<AppSettings>(getUpdateSettingsUrl(),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateSettingsBody)
-  }
+- @summary Update system settings
+  \*/
+  export const updateSettings = async (updateSettingsBody: UpdateSettingsBody, options?: RequestInit): Promise<AppSettings> => {
+
+return customFetch<AppSettings>(getUpdateSettingsUrl(),
+{
+...options,
+method: 'PATCH',
+headers: { 'Content-Type': 'application/json', ...options?.headers },
+body: JSON.stringify(updateSettingsBody)
+}
 );}
 
-
-
-
 export const getUpdateSettingsMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,{data: BodyType<UpdateSettingsBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,{data: BodyType<UpdateSettingsBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,{data: BodyType<UpdateSettingsBody>}, TContext> => {
 
 const mutationKey = ['updateSettings'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
+options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+options
+: {...options, mutation: {...options.mutation, mutationKey}}
+: {mutation: { mutationKey, }, request: undefined};
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSettings>>, {data: BodyType<UpdateSettingsBody>}> = (props) => {
           const {data} = props ?? {};
@@ -24002,451 +23610,365 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  updateSettings(data,requestOptions)
         }
 
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
+return { mutationFn, ...mutationOptions }}
 
     export type UpdateSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateSettings>>>
     export type UpdateSettingsMutationBody = BodyType<UpdateSettingsBody>
     export type UpdateSettingsMutationError = ErrorType<unknown>
 
     /**
- * @summary Update system settings
- */
-export const useUpdateSettings = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,{data: BodyType<UpdateSettingsBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateSettings>>,
-        TError,
-        {data: BodyType<UpdateSettingsBody>},
-        TContext
-      > => {
-      return useMutation(getUpdateSettingsMutationOptions(options));
-    }
+
+- @summary Update system settings
+  \*/
+  export const useUpdateSettings = <TError = ErrorType<unknown>,
+  TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,{data: BodyType<UpdateSettingsBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+  ): UseMutationResult<
+  Awaited<ReturnType<typeof updateSettings>>,
+  TError,
+  {data: BodyType<UpdateSettingsBody>},
+  TContext > => {
+  return useMutation(getUpdateSettingsMutationOptions(options));
+  }
 
 export const getGetDashboardStatsUrl = (params?: GetDashboardStatsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/dashboard/stats?${stringifiedParams}` : `/api/dashboard/stats`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/dashboard/stats?${stringifiedParams}` : `/api/dashboard/stats`
 }
 
-/**
- * @summary Get dashboard statistics
- */
-export const getDashboardStats = async (params?: GetDashboardStatsParams, options?: RequestInit): Promise<DashboardStats> => {
+/\*\*
 
-  return customFetch<DashboardStats>(getGetDashboardStatsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get dashboard statistics
+  \*/
+  export const getDashboardStats = async (params?: GetDashboardStatsParams, options?: RequestInit): Promise<DashboardStats> => {
 
+return customFetch<DashboardStats>(getGetDashboardStatsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetDashboardStatsQueryKey = (params?: GetDashboardStatsParams,) => {
-    return [
-    `/api/dashboard/stats`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/dashboard/stats`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getGetDashboardStatsQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardStats>>, TError = ErrorType<unknown>>(params?: GetDashboardStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetDashboardStatsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetDashboardStatsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardStats>>> = ({ signal }) => getDashboardStats(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardStats>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardStats>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetDashboardStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardStats>>>
 export type GetDashboardStatsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get dashboard statistics
- */
+- @summary Get dashboard statistics
+  \*/
 
 export function useGetDashboardStats<TData = Awaited<ReturnType<typeof getDashboardStats>>, TError = ErrorType<unknown>>(
- params?: GetDashboardStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: GetDashboardStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetDashboardStatsQueryOptions(params,options)
+const queryOptions = getGetDashboardStatsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-
-
-
 export const getGetDepartureAlertsUrl = (params?: GetDepartureAlertsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/dashboard/departure-alerts?${stringifiedParams}` : `/api/dashboard/departure-alerts`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/dashboard/departure-alerts?${stringifiedParams}` : `/api/dashboard/departure-alerts`
 }
 
-/**
- * @summary Get upcoming departure alerts
- */
-export const getDepartureAlerts = async (params?: GetDepartureAlertsParams, options?: RequestInit): Promise<DepartureAlert[]> => {
+/\*\*
 
-  return customFetch<DepartureAlert[]>(getGetDepartureAlertsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get upcoming departure alerts
+  \*/
+  export const getDepartureAlerts = async (params?: GetDepartureAlertsParams, options?: RequestInit): Promise<DepartureAlert[]> => {
 
+return customFetch<DepartureAlert[]>(getGetDepartureAlertsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetDepartureAlertsQueryKey = (params?: GetDepartureAlertsParams,) => {
-    return [
-    `/api/dashboard/departure-alerts`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/dashboard/departure-alerts`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getGetDepartureAlertsQueryOptions = <TData = Awaited<ReturnType<typeof getDepartureAlerts>>, TError = ErrorType<unknown>>(params?: GetDepartureAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDepartureAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetDepartureAlertsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetDepartureAlertsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getDepartureAlerts>>> = ({ signal }) => getDepartureAlerts(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDepartureAlerts>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDepartureAlerts>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetDepartureAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof getDepartureAlerts>>>
 export type GetDepartureAlertsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get upcoming departure alerts
- */
+- @summary Get upcoming departure alerts
+  \*/
 
 export function useGetDepartureAlerts<TData = Awaited<ReturnType<typeof getDepartureAlerts>>, TError = ErrorType<unknown>>(
- params?: GetDepartureAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDepartureAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: GetDepartureAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDepartureAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetDepartureAlertsQueryOptions(params,options)
+const queryOptions = getGetDepartureAlertsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-
-
-
 export const getGetArrivalAlertsUrl = (params?: GetArrivalAlertsParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/dashboard/arrival-alerts?${stringifiedParams}` : `/api/dashboard/arrival-alerts`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/dashboard/arrival-alerts?${stringifiedParams}` : `/api/dashboard/arrival-alerts`
 }
 
-/**
- * @summary Get upcoming arrival alerts
- */
-export const getArrivalAlerts = async (params?: GetArrivalAlertsParams, options?: RequestInit): Promise<ArrivalAlert[]> => {
+/\*\*
 
-  return customFetch<ArrivalAlert[]>(getGetArrivalAlertsUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get upcoming arrival alerts
+  \*/
+  export const getArrivalAlerts = async (params?: GetArrivalAlertsParams, options?: RequestInit): Promise<ArrivalAlert[]> => {
 
+return customFetch<ArrivalAlert[]>(getGetArrivalAlertsUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetArrivalAlertsQueryKey = (params?: GetArrivalAlertsParams,) => {
-    return [
-    `/api/dashboard/arrival-alerts`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/dashboard/arrival-alerts`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getGetArrivalAlertsQueryOptions = <TData = Awaited<ReturnType<typeof getArrivalAlerts>>, TError = ErrorType<unknown>>(params?: GetArrivalAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArrivalAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetArrivalAlertsQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetArrivalAlertsQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getArrivalAlerts>>> = ({ signal }) => getArrivalAlerts(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getArrivalAlerts>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getArrivalAlerts>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetArrivalAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof getArrivalAlerts>>>
 export type GetArrivalAlertsQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get upcoming arrival alerts
- */
+- @summary Get upcoming arrival alerts
+  \*/
 
 export function useGetArrivalAlerts<TData = Awaited<ReturnType<typeof getArrivalAlerts>>, TError = ErrorType<unknown>>(
- params?: GetArrivalAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArrivalAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: GetArrivalAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArrivalAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetArrivalAlertsQueryOptions(params,options)
+const queryOptions = getGetArrivalAlertsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-
-
-
 export const getGetOccupancyByBuildingUrl = (params?: GetOccupancyByBuildingParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/dashboard/occupancy-by-building?${stringifiedParams}` : `/api/dashboard/occupancy-by-building`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/dashboard/occupancy-by-building?${stringifiedParams}` : `/api/dashboard/occupancy-by-building`
 }
 
-/**
- * @summary Get occupancy breakdown by building
- */
-export const getOccupancyByBuilding = async (params?: GetOccupancyByBuildingParams, options?: RequestInit): Promise<OccupancyByBuilding[]> => {
+/\*\*
 
-  return customFetch<OccupancyByBuilding[]>(getGetOccupancyByBuildingUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get occupancy breakdown by building
+  \*/
+  export const getOccupancyByBuilding = async (params?: GetOccupancyByBuildingParams, options?: RequestInit): Promise<OccupancyByBuilding[]> => {
 
+return customFetch<OccupancyByBuilding[]>(getGetOccupancyByBuildingUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetOccupancyByBuildingQueryKey = (params?: GetOccupancyByBuildingParams,) => {
-    return [
-    `/api/dashboard/occupancy-by-building`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/dashboard/occupancy-by-building`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getGetOccupancyByBuildingQueryOptions = <TData = Awaited<ReturnType<typeof getOccupancyByBuilding>>, TError = ErrorType<unknown>>(params?: GetOccupancyByBuildingParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOccupancyByBuilding>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetOccupancyByBuildingQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetOccupancyByBuildingQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getOccupancyByBuilding>>> = ({ signal }) => getOccupancyByBuilding(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOccupancyByBuilding>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOccupancyByBuilding>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetOccupancyByBuildingQueryResult = NonNullable<Awaited<ReturnType<typeof getOccupancyByBuilding>>>
 export type GetOccupancyByBuildingQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get occupancy breakdown by building
- */
+- @summary Get occupancy breakdown by building
+  \*/
 
 export function useGetOccupancyByBuilding<TData = Awaited<ReturnType<typeof getOccupancyByBuilding>>, TError = ErrorType<unknown>>(
- params?: GetOccupancyByBuildingParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOccupancyByBuilding>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: GetOccupancyByBuildingParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOccupancyByBuilding>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetOccupancyByBuildingQueryOptions(params,options)
+const queryOptions = getGetOccupancyByBuildingQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-
-
-
 export const getGetRecentActivityUrl = (params?: GetRecentActivityParams,) => {
-  const normalizedParams = new URLSearchParams();
+const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+});
 
-  return stringifiedParams.length > 0 ? `/api/dashboard/recent-activity?${stringifiedParams}` : `/api/dashboard/recent-activity`
+const stringifiedParams = normalizedParams.toString();
+
+return stringifiedParams.length > 0 ? `/api/dashboard/recent-activity?${stringifiedParams}` : `/api/dashboard/recent-activity`
 }
 
-/**
- * @summary Get recent activity feed
- */
-export const getRecentActivity = async (params?: GetRecentActivityParams, options?: RequestInit): Promise<ActivityLog[]> => {
+/\*\*
 
-  return customFetch<ActivityLog[]>(getGetRecentActivityUrl(params),
-  {
-    ...options,
-    method: 'GET'
+- @summary Get recent activity feed
+  \*/
+  export const getRecentActivity = async (params?: GetRecentActivityParams, options?: RequestInit): Promise<ActivityLog[]> => {
 
+return customFetch<ActivityLog[]>(getGetRecentActivityUrl(params),
+{
+...options,
+method: 'GET'
 
-  }
+}
 );}
 
-
-
-
-
 export const getGetRecentActivityQueryKey = (params?: GetRecentActivityParams,) => {
-    return [
-    `/api/dashboard/recent-activity`, ...(params ? [params] : [])
-    ] as const;
-    }
-
+return [
+`/api/dashboard/recent-activity`, ...(params ? [params] : [])
+] as const;
+}
 
 export const getGetRecentActivityQueryOptions = <TData = Awaited<ReturnType<typeof getRecentActivity>>, TError = ErrorType<unknown>>(params?: GetRecentActivityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecentActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetRecentActivityQueryKey(params);
-
-
+const queryKey = queryOptions?.queryKey ?? getGetRecentActivityQueryKey(params);
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecentActivity>>> = ({ signal }) => getRecentActivity(params, { signal, ...requestOptions });
 
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRecentActivity>>, TError, TData> & { queryKey: QueryKey }
+return { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRecentActivity>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetRecentActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getRecentActivity>>>
 export type GetRecentActivityQueryError = ErrorType<unknown>
 
+/\*\*
 
-/**
- * @summary Get recent activity feed
- */
+- @summary Get recent activity feed
+  \*/
 
 export function useGetRecentActivity<TData = Awaited<ReturnType<typeof getRecentActivity>>, TError = ErrorType<unknown>>(
- params?: GetRecentActivityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecentActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+params?: GetRecentActivityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecentActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetRecentActivityQueryOptions(params,options)
+const queryOptions = getGetRecentActivityQueryOptions(params,options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
-
 
 ================================================================================
 FILE: lib/api-client-react/src/hooks/portal.ts
@@ -24456,23 +23978,23 @@ import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "../custom-fetch";
 
 export const usePortalProfile = () => useQuery({
-  queryKey: ["portal", "profile"],
-  queryFn: () => customFetch("/api/portal-data/profile")
+queryKey: ["portal", "profile"],
+queryFn: () => customFetch("/api/portal-data/profile")
 });
 
 export const usePortalRoom = () => useQuery({
-  queryKey: ["portal", "room"],
-  queryFn: () => customFetch("/api/portal-data/room")
+queryKey: ["portal", "room"],
+queryFn: () => customFetch("/api/portal-data/room")
 });
 
 export const usePortalNotifications = () => useQuery({
-  queryKey: ["portal", "notifications"],
-  queryFn: () => customFetch("/api/portal-data/notifications")
+queryKey: ["portal", "notifications"],
+queryFn: () => customFetch("/api/portal-data/notifications")
 });
 
 export const usePortalAlerts = () => useQuery({
-  queryKey: ["portal", "alerts"],
-  queryFn: () => customFetch("/api/portal-data/alerts")
+queryKey: ["portal", "alerts"],
+queryFn: () => customFetch("/api/portal-data/alerts")
 });
 
 ================================================================================
@@ -24488,241 +24010,241 @@ export type EncoderType = "ip" | "usb" | "smart";
 // ─── Encoder Status ───
 export const getEncoderStatusUrl = (type: EncoderType = "ip") => `/api/encoder/status?type=${type}`;
 export const getEncoderStatus = async (type: EncoderType = "ip", options?: { signal?: AbortSignal }) => {
-  return customFetch<{ connected: boolean; host: string; port: number; lastActivity?: string; type: EncoderType }>(
-    getEncoderStatusUrl(type),
-    { signal: options?.signal }
-  );
+return customFetch<{ connected: boolean; host: string; port: number; lastActivity?: string; type: EncoderType }>(
+getEncoderStatusUrl(type),
+{ signal: options?.signal }
+);
 };
 export const getEncoderStatusQueryKey = (type: EncoderType = "ip") => ["/api/encoder/status", type] as const;
 export const getEncoderStatusQueryOptions = (type: EncoderType = "ip", options?: any) => {
-  const { query: queryOptions } = options ?? {};
-  const queryKey = queryOptions?.queryKey ?? getEncoderStatusQueryKey(type);
-  const queryFn = ({ signal }: any) => getEncoderStatus(type, { signal });
-  return { queryKey, queryFn, refetchInterval: 3000, ...queryOptions };
+const { query: queryOptions } = options ?? {};
+const queryKey = queryOptions?.queryKey ?? getEncoderStatusQueryKey(type);
+const queryFn = ({ signal }: any) => getEncoderStatus(type, { signal });
+return { queryKey, queryFn, refetchInterval: 3000, ...queryOptions };
 };
 export function useEncoderStatus(type: EncoderType = "ip", options?: any) {
-  const queryOptions = getEncoderStatusQueryOptions(type, options);
-  return useQuery<{ connected: boolean; host: string; port: number; lastActivity?: string; type: EncoderType }>(queryOptions);
+const queryOptions = getEncoderStatusQueryOptions(type, options);
+return useQuery<{ connected: boolean; host: string; port: number; lastActivity?: string; type: EncoderType }>(queryOptions);
 }
 
 // ─── Connect Encoder ───
 export const connectEncoder = async (data: { type: EncoderType; host?: string; port?: number }) => {
-  return customFetch<{ success: boolean; status: any; type: EncoderType }>("/api/encoder/connect", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+return customFetch<{ success: boolean; status: any; type: EncoderType }>("/api/encoder/connect", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(data),
+});
 };
 export const useConnectEncoder = (options?: any) => {
-  return useMutation<unknown, Error, { type: EncoderType; host?: string; port?: number }>({
-    mutationKey: ["connectEncoder"],
-    mutationFn: connectEncoder,
-    ...options,
-  });
+return useMutation<unknown, Error, { type: EncoderType; host?: string; port?: number }>({
+mutationKey: ["connectEncoder"],
+mutationFn: connectEncoder,
+...options,
+});
 };
 
 // ─── Disconnect Encoder ───
 export const disconnectEncoder = async (type: EncoderType = "ip") => {
-  return customFetch<{ success: boolean }>("/api/encoder/disconnect", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type }),
-  });
+return customFetch<{ success: boolean }>("/api/encoder/disconnect", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ type }),
+});
 };
 export const useDisconnectEncoder = (options?: any) => {
-  return useMutation<unknown, Error, EncoderType>({
-    mutationKey: ["disconnectEncoder"],
-    mutationFn: disconnectEncoder,
-    ...options,
-  });
+return useMutation<unknown, Error, EncoderType>({
+mutationKey: ["disconnectEncoder"],
+mutationFn: disconnectEncoder,
+...options,
+});
 };
 
 // ─── Read Card ───
 export const readCard = async (type: EncoderType = "ip") => {
-  return customFetch<any>("/api/encoder/read-card", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type }),
-  });
+return customFetch<any>("/api/encoder/read-card", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ type }),
+});
 };
 export const useReadCard = (options?: any) => {
-  return useMutation<unknown, Error, EncoderType>({
-    mutationKey: ["readCard"],
-    mutationFn: readCard,
-    ...options,
-  });
+return useMutation<unknown, Error, EncoderType>({
+mutationKey: ["readCard"],
+mutationFn: readCard,
+...options,
+});
 };
 
 // ─── Eject Card ───
 export const ejectCard = async (type: EncoderType = "ip") => {
-  return customFetch<any>("/api/encoder/eject", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type }),
-  });
+return customFetch<any>("/api/encoder/eject", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ type }),
+});
 };
 export const useEjectCard = (options?: any) => {
-  return useMutation<unknown, Error, EncoderType>({
-    mutationKey: ["ejectCard"],
-    mutationFn: ejectCard,
-    ...options,
-  });
+return useMutation<unknown, Error, EncoderType>({
+mutationKey: ["ejectCard"],
+mutationFn: ejectCard,
+...options,
+});
 };
 
 // ─── Direct Encode (via encoder, no DB) ───
 export const encodeCard = async (data: {
-  type: EncoderType;
-  roomNumber: string;
-  checkIn: string;
-  checkOut: string;
-  cardType?: string;
-  ejectionType?: string;
-  user?: string;
+type: EncoderType;
+roomNumber: string;
+checkIn: string;
+checkOut: string;
+cardType?: string;
+ejectionType?: string;
+user?: string;
 }) => {
-  return customFetch<any>("/api/encoder/encode", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+return customFetch<any>("/api/encoder/encode", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(data),
+});
 };
 export const useEncodeCard = (options?: any) => {
-  return useMutation<unknown, Error, {
-    type: EncoderType;
-    roomNumber: string;
-    checkIn: string;
-    checkOut: string;
-    cardType?: string;
-    ejectionType?: string;
-    user?: string;
-  }>({
-    mutationKey: ["encodeCard"],
-    mutationFn: encodeCard,
-    ...options,
-  });
+return useMutation<unknown, Error, {
+type: EncoderType;
+roomNumber: string;
+checkIn: string;
+checkOut: string;
+cardType?: string;
+ejectionType?: string;
+user?: string;
+}>({
+mutationKey: ["encodeCard"],
+mutationFn: encodeCard,
+...options,
+});
 };
 
 // ─── List Serial Ports ───
 export const getSerialPorts = async () => {
-  return customFetch<{ path: string; manufacturer?: string; serialNumber?: string }[]>("/api/encoder/serial-ports");
+return customFetch<{ path: string; manufacturer?: string; serialNumber?: string }[]>("/api/encoder/serial-ports");
 };
 export const useSerialPorts = (options?: any) => {
-  return useQuery({
-    queryKey: ["/api/encoder/serial-ports"],
-    queryFn: getSerialPorts,
-    ...options,
-  });
+return useQuery({
+queryKey: ["/api/encoder/serial-ports"],
+queryFn: getSerialPorts,
+...options,
+});
 };
 
 // ─── Keys List ───
 export const getKeysUrl = (propertyId: number, roomId?: number) => {
-  let url = `/api/keys?propertyId=${propertyId}`;
-  if (roomId) url += `&roomId=${roomId}`;
-  return url;
+let url = `/api/keys?propertyId=${propertyId}`;
+if (roomId) url += `&roomId=${roomId}`;
+return url;
 };
 export const getKeys = async (propertyId: number, roomId?: number) => {
-  return customFetch<any[]>(getKeysUrl(propertyId, roomId));
+return customFetch<any[]>(getKeysUrl(propertyId, roomId));
 };
 export const getKeysQueryKey = (propertyId: number, roomId?: number) => ["/api/keys", propertyId, roomId] as const;
 export const useKeys = (propertyId: number, roomId?: number, options?: any) => {
-  return useQuery<any[]>({
-    queryKey: getKeysQueryKey(propertyId, roomId),
-    queryFn: () => getKeys(propertyId, roomId),
-    enabled: !!propertyId,
-    ...options,
-  });
+return useQuery<any[]>({
+queryKey: getKeysQueryKey(propertyId, roomId),
+queryFn: () => getKeys(propertyId, roomId),
+enabled: !!propertyId,
+...options,
+});
 };
 
 // ─── Issue Key ───
 export const issueKey = async (data: any) => {
-  return customFetch<any>("/api/keys/issue", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+return customFetch<any>("/api/keys/issue", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(data),
+});
 };
 export const useIssueKey = (options?: any) => {
-  return useMutation<unknown, Error, any>({
-    mutationKey: ["issueKey"],
-    mutationFn: issueKey,
-    ...options,
-  });
+return useMutation<unknown, Error, any>({
+mutationKey: ["issueKey"],
+mutationFn: issueKey,
+...options,
+});
 };
 
 // ─── Revoke Key ───
 export const revokeKey = async ({ id, encoderType }: { id: number; encoderType?: EncoderType }) => {
-  return customFetch<any>(`/api/keys/${id}/revoke`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: encoderType || "ip" }),
-  });
+return customFetch<any>(`/api/keys/${id}/revoke`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ type: encoderType || "ip" }),
+});
 };
 export const useRevokeKey = (options?: any) => {
-  return useMutation<unknown, Error, { id: number; encoderType?: EncoderType }>({
-    mutationKey: ["revokeKey"],
-    mutationFn: revokeKey,
-    ...options,
-  });
+return useMutation<unknown, Error, { id: number; encoderType?: EncoderType }>({
+mutationKey: ["revokeKey"],
+mutationFn: revokeKey,
+...options,
+});
 };
 
 // ─── Smart Server: Check-In & Issue Key ───
 export const smartCheckinIssueKey = async (data: {
-  roomNumber: string;
-  guestId: string | number;
-  guestName?: string;
-  arrivalDate: string;
-  departureDate: string;
-  checkOutTime?: string;
-  workstation?: string;
-  saveToDb?: boolean;
-  propertyId?: number;
-  roomId?: number;
-  assignmentId?: number;
-  cardType?: string;
-  notes?: string;
+roomNumber: string;
+guestId: string | number;
+guestName?: string;
+arrivalDate: string;
+departureDate: string;
+checkOutTime?: string;
+workstation?: string;
+saveToDb?: boolean;
+propertyId?: number;
+roomId?: number;
+assignmentId?: number;
+cardType?: string;
+notes?: string;
 }) => {
-  return customFetch<{ success: boolean; cardUid: string; workstation?: string; cardCount?: number; key?: any }>(
-    "/api/encoder/smart/checkin-issue-key",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }
-  );
+return customFetch<{ success: boolean; cardUid: string; workstation?: string; cardCount?: number; key?: any }>(
+"/api/encoder/smart/checkin-issue-key",
+{
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(data),
+}
+);
 };
 export const useSmartCheckinIssueKey = (options?: any) => {
-  return useMutation<unknown, Error, {
-    roomNumber: string;
-    guestId: string | number;
-    guestName?: string;
-    arrivalDate: string;
-    departureDate: string;
-    checkOutTime?: string;
-    workstation?: string;
-    saveToDb?: boolean;
-    propertyId?: number;
-    roomId?: number;
-    assignmentId?: number;
-    cardType?: string;
-    notes?: string;
-  }>({
-    mutationKey: ["smartCheckinIssueKey"],
-    mutationFn: smartCheckinIssueKey,
-    ...options,
-  });
+return useMutation<unknown, Error, {
+roomNumber: string;
+guestId: string | number;
+guestName?: string;
+arrivalDate: string;
+departureDate: string;
+checkOutTime?: string;
+workstation?: string;
+saveToDb?: boolean;
+propertyId?: number;
+roomId?: number;
+assignmentId?: number;
+cardType?: string;
+notes?: string;
+}>({
+mutationKey: ["smartCheckinIssueKey"],
+mutationFn: smartCheckinIssueKey,
+...options,
+});
 };
 
 // ─── Audit Log ───
 export const getAuditLogUrl = (propertyId: number) => `/api/keys/audit?propertyId=${propertyId}`;
 export const getAuditLog = async (propertyId: number) => {
-  return customFetch<any[]>(getAuditLogUrl(propertyId));
+return customFetch<any[]>(getAuditLogUrl(propertyId));
 };
 export const useAuditLog = (propertyId: number, options?: any) => {
-  return useQuery({
-    queryKey: ["/api/keys/audit", propertyId],
-    queryFn: () => getAuditLog(propertyId),
-    enabled: !!propertyId,
-    ...options,
-  });
+return useQuery({
+queryKey: ["/api/keys/audit", propertyId],
+queryFn: () => getAuditLog(propertyId),
+enabled: !!propertyId,
+...options,
+});
 };
 
 ================================================================================
@@ -24735,374 +24257,374 @@ FILE: artifacts/housing/src/index.css
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark \*));
 
 @theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+--color-background: hsl(var(--background));
+--color-foreground: hsl(var(--foreground));
+--color-border: hsl(var(--border));
+--color-input: hsl(var(--input));
+--color-ring: hsl(var(--ring));
 
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-card-border: hsl(var(--card-border));
+--color-card: hsl(var(--card));
+--color-card-foreground: hsl(var(--card-foreground));
+--color-card-border: hsl(var(--card-border));
 
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-popover-border: hsl(var(--popover-border));
+--color-popover: hsl(var(--popover));
+--color-popover-foreground: hsl(var(--popover-foreground));
+--color-popover-border: hsl(var(--popover-border));
 
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-primary-border: var(--primary-border);
+--color-primary: hsl(var(--primary));
+--color-primary-foreground: hsl(var(--primary-foreground));
+--color-primary-border: var(--primary-border);
 
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-secondary-border: var(--secondary-border);
+--color-secondary: hsl(var(--secondary));
+--color-secondary-foreground: hsl(var(--secondary-foreground));
+--color-secondary-border: var(--secondary-border);
 
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-muted-border: var(--muted-border);
+--color-muted: hsl(var(--muted));
+--color-muted-foreground: hsl(var(--muted-foreground));
+--color-muted-border: var(--muted-border);
 
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-accent-border: var(--accent-border);
+--color-accent: hsl(var(--accent));
+--color-accent-foreground: hsl(var(--accent-foreground));
+--color-accent-border: var(--accent-border);
 
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-destructive-border: var(--destructive-border);
+--color-destructive: hsl(var(--destructive));
+--color-destructive-foreground: hsl(var(--destructive-foreground));
+--color-destructive-border: var(--destructive-border);
 
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
+--color-chart-1: hsl(var(--chart-1));
+--color-chart-2: hsl(var(--chart-2));
+--color-chart-3: hsl(var(--chart-3));
+--color-chart-4: hsl(var(--chart-4));
+--color-chart-5: hsl(var(--chart-5));
 
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-primary-border: var(--sidebar-primary-border);
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-accent-border: var(--sidebar-accent-border);
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
+--color-sidebar: hsl(var(--sidebar));
+--color-sidebar-foreground: hsl(var(--sidebar-foreground));
+--color-sidebar-border: hsl(var(--sidebar-border));
+--color-sidebar-primary: hsl(var(--sidebar-primary));
+--color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+--color-sidebar-primary-border: var(--sidebar-primary-border);
+--color-sidebar-accent: hsl(var(--sidebar-accent));
+--color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+--color-sidebar-accent-border: var(--sidebar-accent-border);
+--color-sidebar-ring: hsl(var(--sidebar-ring));
 
-  --font-sans: var(--app-font-sans);
-  --font-serif: var(--app-font-serif);
-  --font-mono: var(--app-font-mono);
+--font-sans: var(--app-font-sans);
+--font-serif: var(--app-font-serif);
+--font-mono: var(--app-font-mono);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+--radius-sm: calc(var(--radius) - 4px);
+--radius-md: calc(var(--radius) - 2px);
+--radius-lg: var(--radius);
+--radius-xl: calc(var(--radius) + 4px);
 
-  --animate-fade-in:        fadeIn 0.25s ease-out forwards;
-  --animate-fade-in-up:     fadeInUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
-  --animate-slide-in-right: slideInRight 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
-  --animate-slide-in-left:  slideInLeft 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
+--animate-fade-in: fadeIn 0.25s ease-out forwards;
+--animate-fade-in-up: fadeInUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
+--animate-slide-in-right: slideInRight 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
+--animate-slide-in-left: slideInLeft 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
 
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes slideInRight {
-    from { opacity: 0; transform: translateX(24px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-24px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
+@keyframes fadeIn {
+from { opacity: 0; }
+to { opacity: 1; }
+}
+@keyframes fadeInUp {
+from { opacity: 0; transform: translateY(16px); }
+to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+from { opacity: 0; transform: translateX(24px); }
+to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+from { opacity: 0; transform: translateX(-24px); }
+to { opacity: 1; transform: translateX(0); }
+}
 }
 
-/* ─── LIGHT MODE ──────────────────────────────────────────── */
+/_ ─── LIGHT MODE ──────────────────────────────────────────── _/
 :root {
-  --button-outline:                rgba(0,0,0, .10);
-  --badge-outline:                 rgba(0,0,0, .05);
-  --opaque-button-border-intensity: -8;
-  --elevate-1:                     rgba(0,0,0, .03);
-  --elevate-2:                     rgba(0,0,0, .08);
+--button-outline: rgba(0,0,0, .10);
+--badge-outline: rgba(0,0,0, .05);
+--opaque-button-border-intensity: -8;
+--elevate-1: rgba(0,0,0, .03);
+--elevate-2: rgba(0,0,0, .08);
 
-  --background:   210 20% 98%;
-  --foreground:   220 20% 15%;
-  --border:       220 13% 91%;
+--background: 210 20% 98%;
+--foreground: 220 20% 15%;
+--border: 220 13% 91%;
 
-  --card:            0 0% 100%;
-  --card-foreground: 220 20% 15%;
-  --card-border:     220 13% 91%;
+--card: 0 0% 100%;
+--card-foreground: 220 20% 15%;
+--card-border: 220 13% 91%;
 
-  /* Sidebar — Navy #0F2A44 */
-  --sidebar:                    209 64% 16%;
-  --sidebar-foreground:         0 0% 98%;
-  --sidebar-border:             209 64% 12%;
-  --sidebar-primary:            41 56% 54%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:             209 50% 24%;
-  --sidebar-accent-foreground:  0 0% 100%;
-  --sidebar-ring:               41 56% 54%;
+/_ Sidebar — Navy #0F2A44 _/
+--sidebar: 209 64% 16%;
+--sidebar-foreground: 0 0% 98%;
+--sidebar-border: 209 64% 12%;
+--sidebar-primary: 41 56% 54%;
+--sidebar-primary-foreground: 0 0% 100%;
+--sidebar-accent: 209 50% 24%;
+--sidebar-accent-foreground: 0 0% 100%;
+--sidebar-ring: 41 56% 54%;
 
-  --popover:            0 0% 100%;
-  --popover-foreground: 220 20% 15%;
-  --popover-border:     220 13% 91%;
+--popover: 0 0% 100%;
+--popover-foreground: 220 20% 15%;
+--popover-border: 220 13% 91%;
 
-  /* Primary — Gold #C9A24D */
-  --primary:            41 56% 54%;
-  --primary-foreground: 0 0% 100%;
+/_ Primary — Gold #C9A24D _/
+--primary: 41 56% 54%;
+--primary-foreground: 0 0% 100%;
 
-  --secondary:            210 40% 90%;
-  --secondary-foreground: 209 64% 16%;
+--secondary: 210 40% 90%;
+--secondary-foreground: 209 64% 16%;
 
-  --muted:            220 14% 96%;
-  --muted-foreground: 220 8% 46%;
+--muted: 220 14% 96%;
+--muted-foreground: 220 8% 46%;
 
-  --accent:            220 14% 96%;
-  --accent-foreground: 220 20% 15%;
+--accent: 220 14% 96%;
+--accent-foreground: 220 20% 15%;
 
-  --destructive:            0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
+--destructive: 0 84% 60%;
+--destructive-foreground: 0 0% 100%;
 
-  --input: 220 13% 91%;
-  --ring:  41 56% 54%;
+--input: 220 13% 91%;
+--ring: 41 56% 54%;
 
-  --chart-1: 41 56% 54%;
-  --chart-2: 209 64% 16%;
-  --chart-3: 160 60% 45%;
-  --chart-4: 20 80% 60%;
-  --chart-5: 280 60% 60%;
+--chart-1: 41 56% 54%;
+--chart-2: 209 64% 16%;
+--chart-3: 160 60% 45%;
+--chart-4: 20 80% 60%;
+--chart-5: 280 60% 60%;
 
-  --app-font-sans:  'Inter', 'Cairo', sans-serif;
-  --app-font-serif: Georgia, serif;
-  --app-font-mono:  'JetBrains Mono', Menlo, monospace;
-  --radius: .5rem;
+--app-font-sans: 'Inter', 'Cairo', sans-serif;
+--app-font-serif: Georgia, serif;
+--app-font-mono: 'JetBrains Mono', Menlo, monospace;
+--radius: .5rem;
 
-  --shadow-2xs: 0px 2px 0px 0px hsl(220 20% 15% / 0.05);
-  --shadow-xs:  0px 2px 0px 0px hsl(220 20% 15% / 0.05);
-  --shadow-sm:  0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 1px 2px -1px hsl(220 20% 15% / 0.05);
-  --shadow:     0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 1px 2px -1px hsl(220 20% 15% / 0.05);
-  --shadow-md:  0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 2px 4px -1px hsl(220 20% 15% / 0.05);
-  --shadow-lg:  0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 4px 6px -1px hsl(220 20% 15% / 0.05);
-  --shadow-xl:  0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 8px 10px -1px hsl(220 20% 15% / 0.05);
-  --shadow-2xl: 0px 2px 0px 0px hsl(220 20% 15% / 0.05);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
+--shadow-2xs: 0px 2px 0px 0px hsl(220 20% 15% / 0.05);
+--shadow-xs: 0px 2px 0px 0px hsl(220 20% 15% / 0.05);
+--shadow-sm: 0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 1px 2px -1px hsl(220 20% 15% / 0.05);
+--shadow: 0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 1px 2px -1px hsl(220 20% 15% / 0.05);
+--shadow-md: 0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 2px 4px -1px hsl(220 20% 15% / 0.05);
+--shadow-lg: 0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 4px 6px -1px hsl(220 20% 15% / 0.05);
+--shadow-xl: 0px 2px 0px 0px hsl(220 20% 15% / 0.05), 0px 8px 10px -1px hsl(220 20% 15% / 0.05);
+--shadow-2xl: 0px 2px 0px 0px hsl(220 20% 15% / 0.05);
+--tracking-normal: 0em;
+--spacing: 0.25rem;
 
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --sidebar-accent-border:  hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --primary-border:     hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --secondary-border:   hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --muted-border:       hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --accent-border:      hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+--sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+--sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+--primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+--secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+--muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+--accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+--destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* ─── DARK MODE ──────────────────────────────────────────── */
+/_ ─── DARK MODE ──────────────────────────────────────────── _/
 .dark {
-  --button-outline:                rgba(255,255,255, .10);
-  --badge-outline:                 rgba(255,255,255, .05);
-  --opaque-button-border-intensity: 9;
-  --elevate-1:                     rgba(255,255,255, .04);
-  --elevate-2:                     rgba(255,255,255, .09);
+--button-outline: rgba(255,255,255, .10);
+--badge-outline: rgba(255,255,255, .05);
+--opaque-button-border-intensity: 9;
+--elevate-1: rgba(255,255,255, .04);
+--elevate-2: rgba(255,255,255, .09);
 
-  --background:   220 20% 8%;
-  --foreground:   0 0% 98%;
-  --border:       220 13% 15%;
+--background: 220 20% 8%;
+--foreground: 0 0% 98%;
+--border: 220 13% 15%;
 
-  --card:            220 20% 12%;
-  --card-foreground: 0 0% 98%;
-  --card-border:     220 13% 15%;
+--card: 220 20% 12%;
+--card-foreground: 0 0% 98%;
+--card-border: 220 13% 15%;
 
-  --sidebar:                    209 64% 12%;
-  --sidebar-foreground:         0 0% 98%;
-  --sidebar-border:             209 64% 8%;
-  --sidebar-primary:            41 56% 54%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:             209 50% 20%;
-  --sidebar-accent-foreground:  0 0% 100%;
-  --sidebar-ring:               41 56% 54%;
+--sidebar: 209 64% 12%;
+--sidebar-foreground: 0 0% 98%;
+--sidebar-border: 209 64% 8%;
+--sidebar-primary: 41 56% 54%;
+--sidebar-primary-foreground: 0 0% 100%;
+--sidebar-accent: 209 50% 20%;
+--sidebar-accent-foreground: 0 0% 100%;
+--sidebar-ring: 41 56% 54%;
 
-  --popover:            220 20% 12%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border:     220 13% 15%;
+--popover: 220 20% 12%;
+--popover-foreground: 0 0% 98%;
+--popover-border: 220 13% 15%;
 
-  --primary:            41 56% 54%;
-  --primary-foreground: 0 0% 100%;
+--primary: 41 56% 54%;
+--primary-foreground: 0 0% 100%;
 
-  --secondary:            210 40% 15%;
-  --secondary-foreground: 210 40% 90%;
+--secondary: 210 40% 15%;
+--secondary-foreground: 210 40% 90%;
 
-  --muted:            220 14% 15%;
-  --muted-foreground: 220 8% 60%;
+--muted: 220 14% 15%;
+--muted-foreground: 220 8% 60%;
 
-  --accent:            220 14% 15%;
-  --accent-foreground: 0 0% 98%;
+--accent: 220 14% 15%;
+--accent-foreground: 0 0% 98%;
 
-  --destructive:            0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
+--destructive: 0 84% 60%;
+--destructive-foreground: 0 0% 100%;
 
-  --input: 220 13% 20%;
-  --ring:  41 56% 54%;
+--input: 220 13% 20%;
+--ring: 41 56% 54%;
 
-  --chart-1: 41 56% 54%;
-  --chart-2: 210 40% 90%;
-  --chart-3: 160 60% 45%;
-  --chart-4: 20 80% 60%;
-  --chart-5: 280 60% 60%;
+--chart-1: 41 56% 54%;
+--chart-2: 210 40% 90%;
+--chart-3: 160 60% 45%;
+--chart-4: 20 80% 60%;
+--chart-5: 280 60% 60%;
 
-  --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.5);
-  --shadow-xs:  0px 2px 0px 0px hsl(0 0% 0% / 0.5);
-  --shadow-sm:  0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 1px 2px -1px hsl(0 0% 0% / 0.5);
-  --shadow:     0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 1px 2px -1px hsl(0 0% 0% / 0.5);
-  --shadow-md:  0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 2px 4px -1px hsl(0 0% 0% / 0.5);
-  --shadow-lg:  0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 4px 6px -1px hsl(0 0% 0% / 0.5);
-  --shadow-xl:  0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 8px 10px -1px hsl(0 0% 0% / 0.5);
-  --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.5);
+--shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.5);
+--shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.5);
+--shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 1px 2px -1px hsl(0 0% 0% / 0.5);
+--shadow: 0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 1px 2px -1px hsl(0 0% 0% / 0.5);
+--shadow-md: 0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 2px 4px -1px hsl(0 0% 0% / 0.5);
+--shadow-lg: 0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 4px 6px -1px hsl(0 0% 0% / 0.5);
+--shadow-xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.5), 0px 8px 10px -1px hsl(0 0% 0% / 0.5);
+--shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0.5);
 }
 
-/* ─── BASE ───────────────────────────────────────────────── */
+/_ ─── BASE ───────────────────────────────────────────────── _/
 @layer base {
-  * { @apply border-border; box-sizing: border-box; }
 
-  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+- { @apply border-border; box-sizing: border-box; }
 
-  body {
-    @apply font-sans antialiased bg-background text-foreground;
-    font-size: 13px;
-    font-weight: 400;
-    line-height: 1.6;
-    overflow-x: hidden;
-    font-feature-settings: "cv02","cv03","cv04","cv11";
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
-  h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.2; }
-  h2 { font-size: 1.5rem;  font-weight: 800; letter-spacing: -0.02em;  line-height: 1.25; }
-  h3 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.3; }
-  h4 { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; }
-
-  input[type="checkbox"],
-  input[type="radio"] { accent-color: hsl(var(--primary)); }
-
-  /* Arabic RTL: use Cairo font */
-  [dir="rtl"], [dir="rtl"] * { font-family: "Cairo", sans-serif; }
+body {
+@apply font-sans antialiased bg-background text-foreground;
+font-size: 13px;
+font-weight: 400;
+line-height: 1.6;
+overflow-x: hidden;
+font-feature-settings: "cv02","cv03","cv04","cv11";
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── COMPONENTS ─────────────────────────────────────────── */
+h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.2; }
+h2 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; }
+h3 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.3; }
+h4 { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; }
+
+input[type="checkbox"],
+input[type="radio"] { accent-color: hsl(var(--primary)); }
+
+/_ Arabic RTL: use Cairo font _/
+[dir="rtl"], [dir="rtl"] \* { font-family: "Cairo", sans-serif; }
+}
+
+/_ ─── COMPONENTS ─────────────────────────────────────────── _/
 @layer components {
 
-  /* ── Scrollbars ── */
-  ::-webkit-scrollbar        { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track  { background: transparent; }
-  ::-webkit-scrollbar-thumb  { background: hsl(var(--border)); border-radius: 10px; }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+/_ ── Scrollbars ── _/
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* ── Modal max-height fix (applies to all DialogContent) ── */
-  [data-radix-dialog-content],
-  [role="dialog"] > div {
-    max-height: 90vh;
-  }
-
-  /* ── Page helpers ── */
-  .page-header {
-    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6;
-  }
-  .page-title {
-    @apply text-2xl font-bold tracking-tight text-foreground;
-  }
-  .page-subtitle {
-    @apply text-sm text-muted-foreground mt-0.5;
-  }
-
-  /* ── Icon action buttons for table rows ── */
-  .icon-btn {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg
-           border transition-all duration-150 cursor-pointer flex-shrink-0;
-  }
-  .icon-btn-primary {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
-           bg-primary/10 text-primary border-primary/20
-           hover:bg-primary hover:text-primary-foreground hover:border-primary;
-  }
-  .icon-btn-danger {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
-           bg-red-50 text-red-500 border-red-200
-           hover:bg-red-500 hover:text-white hover:border-red-500
-           dark:bg-red-950/30 dark:border-red-900;
-  }
-  .icon-btn-warning {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
-           bg-amber-50 text-amber-600 border-amber-200
-           hover:bg-amber-500 hover:text-white hover:border-amber-500;
-  }
-  .icon-btn-success {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
-           bg-emerald-50 text-emerald-600 border-emerald-200
-           hover:bg-emerald-500 hover:text-white hover:border-emerald-500;
-  }
-  .icon-btn-neutral {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
-           bg-muted text-muted-foreground border-border
-           hover:bg-accent hover:text-accent-foreground;
-  }
-
-  /* ── Stat cards on dashboard ── */
-  .stat-card {
-    @apply bg-card p-5 rounded-xl border border-card-border
-           shadow-sm hover:shadow-md hover:-translate-y-0.5
-           transition-all duration-200 relative overflow-hidden;
-  }
-
-  /* ── Table helpers ── */
-  .table-header-cell {
-    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
-  }
-  .table-row-hover {
-    @apply hover:bg-muted/30 transition-colors duration-100;
-  }
-
-  /* ── Empty state ── */
-  .empty-state {
-    @apply flex flex-col items-center gap-3 py-16 text-center;
-  }
-  .empty-state-icon {
-    @apply w-14 h-14 rounded-2xl bg-muted flex items-center justify-center;
-  }
-
-  /* ── Form section label ── */
-  .form-section-label {
-    @apply text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3;
-  }
-
-  /* ── Sidebar active nav item indicator ── */
-  .nav-active {
-    @apply bg-sidebar-accent text-sidebar-accent-foreground font-semibold
-           border-l-2 border-sidebar-primary;
-  }
-  .nav-inactive {
-    @apply text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground;
-  }
+/_ ── Modal max-height fix (applies to all DialogContent) ── _/
+[data-radix-dialog-content],
+[role="dialog"] > div {
+max-height: 90vh;
 }
 
-/* ─── UTILITIES ──────────────────────────────────────────── */
+/_ ── Page helpers ── _/
+.page-header {
+@apply flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6;
+}
+.page-title {
+@apply text-2xl font-bold tracking-tight text-foreground;
+}
+.page-subtitle {
+@apply text-sm text-muted-foreground mt-0.5;
+}
+
+/_ ── Icon action buttons for table rows ── _/
+.icon-btn {
+@apply inline-flex items-center justify-center w-8 h-8 rounded-lg
+border transition-all duration-150 cursor-pointer flex-shrink-0;
+}
+.icon-btn-primary {
+@apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
+bg-primary/10 text-primary border-primary/20
+hover:bg-primary hover:text-primary-foreground hover:border-primary;
+}
+.icon-btn-danger {
+@apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
+bg-red-50 text-red-500 border-red-200
+hover:bg-red-500 hover:text-white hover:border-red-500
+dark:bg-red-950/30 dark:border-red-900;
+}
+.icon-btn-warning {
+@apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
+bg-amber-50 text-amber-600 border-amber-200
+hover:bg-amber-500 hover:text-white hover:border-amber-500;
+}
+.icon-btn-success {
+@apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
+bg-emerald-50 text-emerald-600 border-emerald-200
+hover:bg-emerald-500 hover:text-white hover:border-emerald-500;
+}
+.icon-btn-neutral {
+@apply inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 cursor-pointer flex-shrink-0
+bg-muted text-muted-foreground border-border
+hover:bg-accent hover:text-accent-foreground;
+}
+
+/_ ── Stat cards on dashboard ── _/
+.stat-card {
+@apply bg-card p-5 rounded-xl border border-card-border
+shadow-sm hover:shadow-md hover:-translate-y-0.5
+transition-all duration-200 relative overflow-hidden;
+}
+
+/_ ── Table helpers ── _/
+.table-header-cell {
+@apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+}
+.table-row-hover {
+@apply hover:bg-muted/30 transition-colors duration-100;
+}
+
+/_ ── Empty state ── _/
+.empty-state {
+@apply flex flex-col items-center gap-3 py-16 text-center;
+}
+.empty-state-icon {
+@apply w-14 h-14 rounded-2xl bg-muted flex items-center justify-center;
+}
+
+/_ ── Form section label ── _/
+.form-section-label {
+@apply text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3;
+}
+
+/_ ── Sidebar active nav item indicator ── _/
+.nav-active {
+@apply bg-sidebar-accent text-sidebar-accent-foreground font-semibold
+border-l-2 border-sidebar-primary;
+}
+.nav-inactive {
+@apply text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground;
+}
+}
+
+/_ ─── UTILITIES ──────────────────────────────────────────── _/
 @layer utilities {
-  .font-arabic { font-family: "Cairo", sans-serif; }
-  .glass-effect { 
-    @apply bg-white/10 dark:bg-slate-900/10 backdrop-blur-md border border-white/20;
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-  }
-  .text-balance { text-wrap: balance; }
-  .animate-fade-in    { animation: var(--animate-fade-in); }
-  .animate-fade-in-up { animation: var(--animate-fade-in-up); }
+.font-arabic { font-family: "Cairo", sans-serif; }
+.glass-effect {
+@apply bg-white/10 dark:bg-slate-900/10 backdrop-blur-md border border-white/20;
+-webkit-backdrop-filter: blur(12px);
+backdrop-filter: blur(12px);
 }
-
+.text-balance { text-wrap: balance; }
+.animate-fade-in { animation: var(--animate-fade-in); }
+.animate-fade-in-up { animation: var(--animate-fade-in-up); }
+}

@@ -345,11 +345,14 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() =>
-                    toast.info(isAr ? "هل نسيت كلمة المرور؟" : "Forgot Password?", {
-                      description: isAr
-                        ? "يرجى التواصل مع مسؤول النظام لإعادة التعيين."
-                        : "Please contact your system administrator to reset.",
-                    })
+                    toast.info(
+                      isAr ? "هل نسيت كلمة المرور؟" : "Forgot Password?",
+                      {
+                        description: isAr
+                          ? "يرجى التواصل مع مسؤول النظام لإعادة التعيين."
+                          : "Please contact your system administrator to reset.",
+                      },
+                    )
                   }
                   className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
                 >

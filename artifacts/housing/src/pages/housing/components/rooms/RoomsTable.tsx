@@ -40,12 +40,24 @@ export function RoomsTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الغرفة" : "Room"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "النوع" : "Type"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "المبنى" : "Building"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الطابق" : "Floor"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الإشغال" : "Occupancy"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الحالة" : "Status"}</th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الغرفة" : "Room"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "النوع" : "Type"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "المبنى" : "Building"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الطابق" : "Floor"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الإشغال" : "Occupancy"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الحالة" : "Status"}
+            </th>
             <th className="p-3" />
           </tr>
         </thead>
@@ -56,14 +68,22 @@ export function RoomsTable({
             return (
               <tr key={r.id} className="hover:bg-muted/30 transition-colors">
                 <td className="p-3">
-                  <span className="font-bold text-primary">#{r.roomNumber}</span>
+                  <span className="font-bold text-primary">
+                    #{r.roomNumber}
+                  </span>
                 </td>
                 <td className="p-3">
-                  <span className="px-2 py-0.5 bg-muted rounded text-xs font-medium">{r.roomType}</span>
+                  <span className="px-2 py-0.5 bg-muted rounded text-xs font-medium">
+                    {r.roomType}
+                  </span>
                 </td>
-                <td className="p-3 text-muted-foreground">{building?.name || "—"}</td>
                 <td className="p-3 text-muted-foreground">
-                  {floor ? `${ar ? "الطابق" : "Floor"} ${floor.floorNumber}` : "—"}
+                  {building?.name || "—"}
+                </td>
+                <td className="p-3 text-muted-foreground">
+                  {floor
+                    ? `${ar ? "الطابق" : "Floor"} ${floor.floorNumber}`
+                    : "—"}
                 </td>
                 <td className="p-3">
                   <span className="flex items-center gap-1 text-muted-foreground">
@@ -72,19 +92,31 @@ export function RoomsTable({
                   </span>
                 </td>
                 <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${roomStatusBadge(r.status)}`}>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${roomStatusBadge(r.status)}`}
+                  >
                     {r.status}
                   </span>
                 </td>
                 <td className="p-3">
                   <div className="flex items-center gap-1 justify-end">
                     <PermissionGate module="housing" action="edit">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditRoom(r)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onEditRoom(r)}
+                      >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                     </PermissionGate>
                     <PermissionGate module="housing" action="delete">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteRoom(r)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => onDeleteRoom(r)}
+                      >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </PermissionGate>
@@ -95,7 +127,10 @@ export function RoomsTable({
           })}
           {filteredRoomsTab.length === 0 && (
             <tr>
-              <td colSpan={7} className="py-12 text-center text-muted-foreground">
+              <td
+                colSpan={7}
+                className="py-12 text-center text-muted-foreground"
+              >
                 <Home className="w-8 h-8 opacity-30 mx-auto mb-2" />
                 <p>{ar ? "لا توجد غرف" : "No rooms found"}</p>
               </td>

@@ -123,7 +123,7 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
     headers: {
-      "X-Content-Type-Options": "nosniff"
+      "X-Content-Type-Options": "nosniff",
     },
     proxy: {
       "/api": {
@@ -143,7 +143,7 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
     headers: {
-      "X-Content-Type-Options": "nosniff"
+      "X-Content-Type-Options": "nosniff",
     },
     proxy: {
       "/api": {

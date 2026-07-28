@@ -1,8 +1,6 @@
 import { motion } from "framer-motion";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import {
-  usePrefersReducedMotion,
-} from "../hooks/useReducedMotion";
+import { usePrefersReducedMotion } from "../hooks/useReducedMotion";
 import { canHover } from "../lib/haptics";
 
 const isHoverable = canHover();

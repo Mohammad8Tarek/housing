@@ -79,7 +79,6 @@ import { DeleteUserDialog } from "./components/DeleteUserDialog";
 import { UnlockUserDialog } from "./components/UnlockUserDialog";
 import { UploadSignatureDialog } from "./components/UploadSignatureDialog";
 
-
 import { SYSTEM_ROLES, WORKFLOW_ROLES, roleColor } from "./utils";
 const ALL_ROLES = [...SYSTEM_ROLES, ...WORKFLOW_ROLES];
 
@@ -104,8 +103,6 @@ export default function UsersPage() {
   const [editPropsUser, setEditPropsUser] = useState<any | null>(null);
   const [signatureUser, setSignatureUser] = useState<any | null>(null);
 
-
-  
   const {
     data: _apiResponseWrapper,
     isLoading,
@@ -219,8 +216,18 @@ export default function UsersPage() {
     },
     { key: "phone", label: "Phone", labelAr: "الهاتف", defaultVisible: true },
     { key: "roles", label: "Roles", labelAr: "الأدوار", defaultVisible: false },
-    { key: "workflowRole", label: "Workflow Role", labelAr: "منصب مسار العمل", defaultVisible: true },
-    { key: "signature", label: "Signature", labelAr: "التوقيع", defaultVisible: true },
+    {
+      key: "workflowRole",
+      label: "Workflow Role",
+      labelAr: "منصب مسار العمل",
+      defaultVisible: true,
+    },
+    {
+      key: "signature",
+      label: "Signature",
+      labelAr: "التوقيع",
+      defaultVisible: true,
+    },
     {
       key: "property",
       label: "Property",
@@ -467,7 +474,7 @@ export default function UsersPage() {
                 setSearchQuery("");
                 setCurrentPage(1);
               }}
-              className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground ${ar ? 'left-3' : 'right-3'}`}
+              className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground ${ar ? "left-3" : "right-3"}`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -563,7 +570,11 @@ export default function UsersPage() {
       ) : pagedUsers.length === 0 ? (
         <EmptyState
           title={ar ? "لا يوجد مستخدمين" : "No users found"}
-          description={ar ? "لم يتم العثور على أي مستخدمين يتطابقون مع البحث." : "No users found matching your search criteria."}
+          description={
+            ar
+              ? "لم يتم العثور على أي مستخدمين يتطابقون مع البحث."
+              : "No users found matching your search criteria."
+          }
           className="border rounded-xl bg-card my-4"
         />
       ) : (
@@ -631,305 +642,377 @@ export default function UsersPage() {
             </TableHeader>
             <TableBody>
               <AnimatePresence mode="popLayout">
-              {pagedUsers.map((u: any) => {
-                const isUserSelected = selectedRows.has(u.id);
-                const explicit = (u as any).permissions as string[] | undefined;
-                const permCount = explicit?.length ?? 0;
-                return (
-                  <motion.tr
-                    key={u.id}
-                    layout
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                    className={isUserSelected ? "bg-primary/5" : "hover:bg-muted/20"}
-                  >
-                    <TableCell className="px-3">
-                      <Checkbox
-                        checked={isUserSelected}
-                        onCheckedChange={() => toggleUserRow(u.id)}
-                      />
-                    </TableCell>
-                    {isUVisible("username") && (
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white ${u.roles?.some((r: string) => r.toLowerCase() === "super_admin") ? "bg-gradient-to-br from-purple-500 to-purple-700" : u.roles?.some((r: string) => r.toLowerCase() === "admin") ? "bg-gradient-to-br from-red-500 to-red-700" : "bg-gradient-to-br from-[#0F2A44] to-[#1a3d5c]"}`}
-                          >
-                            {u.username.charAt(0).toUpperCase()}
+                {pagedUsers.map((u: any) => {
+                  const isUserSelected = selectedRows.has(u.id);
+                  const explicit = (u as any).permissions as
+                    | string[]
+                    | undefined;
+                  const permCount = explicit?.length ?? 0;
+                  return (
+                    <motion.tr
+                      key={u.id}
+                      layout
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className={
+                        isUserSelected ? "bg-primary/5" : "hover:bg-muted/20"
+                      }
+                    >
+                      <TableCell className="px-3">
+                        <Checkbox
+                          checked={isUserSelected}
+                          onCheckedChange={() => toggleUserRow(u.id)}
+                        />
+                      </TableCell>
+                      {isUVisible("username") && (
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white ${u.roles?.some((r: string) => r.toLowerCase() === "super_admin") ? "bg-gradient-to-br from-purple-500 to-purple-700" : u.roles?.some((r: string) => r.toLowerCase() === "admin") ? "bg-gradient-to-br from-red-500 to-red-700" : "bg-gradient-to-br from-[#0F2A44] to-[#1a3d5c]"}`}
+                            >
+                              {u.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-semibold text-sm">
+                                {u.username}
+                              </span>
+                              {u.username === currentUser?.username && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] ms-2 rtl:mr-2 rtl:ml-0 border-[#C9A24D]/40 text-[#C9A24D]"
+                                >
+                                  {ar ? "أنت" : "You"}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-semibold text-sm">
-                              {u.username}
-                            </span>
-                            {u.username === currentUser?.username && (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] ms-2 rtl:mr-2 rtl:ml-0 border-[#C9A24D]/40 text-[#C9A24D]"
+                        </TableCell>
+                      )}
+                      {isUVisible("email") && (
+                        <TableCell className="max-w-xs">
+                          <div
+                            className="text-sm text-muted-foreground truncate"
+                            title={(u as any).email || "-"}
+                          >
+                            {(u as any).email ? (
+                              <a
+                                href={`mailto:${(u as any).email}`}
+                                className="text-blue-600 hover:underline truncate block"
                               >
-                                {ar ? "أنت" : "You"}
-                              </Badge>
+                                {(u as any).email}
+                              </a>
+                            ) : (
+                              <span className="italic text-gray-400">—</span>
                             )}
                           </div>
-                        </div>
-                      </TableCell>
-                    )}
-                    {isUVisible("email") && (
-                      <TableCell className="max-w-xs">
-                        <div
-                          className="text-sm text-muted-foreground truncate"
-                          title={(u as any).email || "-"}
-                        >
-                          {(u as any).email ? (
-                            <a
-                              href={`mailto:${(u as any).email}`}
-                              className="text-blue-600 hover:underline truncate block"
-                            >
-                              {(u as any).email}
-                            </a>
-                          ) : (
-                            <span className="italic text-gray-400">—</span>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isUVisible("phone") && (
-                      <TableCell className="max-w-xs">
-                        <div
-                          className="text-sm text-muted-foreground truncate"
-                          title={(u as any).phone || "-"}
-                        >
-                          {(u as any).phone ? (
-                            <a
-                              href={`tel:${(u as any).phone}`}
-                              className="text-blue-600 hover:underline truncate block"
-                            >
-                              {(u as any).phone}
-                            </a>
-                          ) : (
-                            <span className="italic text-gray-400">—</span>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isUVisible("roles") && (
-                      <TableCell className="min-w-max">
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {(u.roles || []).slice(0, 2).map((r: string) => (
-                            <span
-                              key={r}
-                              className={`px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${roleColor(r)}`}
-                            >
+                        </TableCell>
+                      )}
+                      {isUVisible("phone") && (
+                        <TableCell className="max-w-xs">
+                          <div
+                            className="text-sm text-muted-foreground truncate"
+                            title={(u as any).phone || "-"}
+                          >
+                            {(u as any).phone ? (
+                              <a
+                                href={`tel:${(u as any).phone}`}
+                                className="text-blue-600 hover:underline truncate block"
+                              >
+                                {(u as any).phone}
+                              </a>
+                            ) : (
+                              <span className="italic text-gray-400">—</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isUVisible("roles") && (
+                        <TableCell className="min-w-max">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {(u.roles || []).slice(0, 2).map((r: string) => (
+                              <span
+                                key={r}
+                                className={`px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${roleColor(r)}`}
+                              >
                                 {(() => {
-                                  const roleObj = ALL_ROLES.find((x: any) => x.value === r.toLowerCase());
-                                  const label = ar ? roleObj?.labelAr : roleObj?.label;
+                                  const roleObj = ALL_ROLES.find(
+                                    (x: any) => x.value === r.toLowerCase(),
+                                  );
+                                  const label = ar
+                                    ? roleObj?.labelAr
+                                    : roleObj?.label;
                                   return label ?? r.replace(/_/g, " ");
                                 })()}
-                            </span>
-                          ))}
-                          {(u.roles || []).length > 2 && (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-300 whitespace-nowrap">
-                              +{(u.roles || []).length - 2}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isUVisible("workflowRole") && (
-                      <TableCell>
-                        {u.jobTitle ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            {(() => {
-                              const roleObj = WORKFLOW_ROLES.find((r: any) => r.value === u.jobTitle);
-                              const label = ar ? roleObj?.labelAr : roleObj?.label;
-                              return label ?? u.jobTitle.replace(/_/g, " ");
-                            })()}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isUVisible("signature") && (
-                      <TableCell className="text-center">
-                        {u.hasSignature ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400" title={ar ? "التوقيع متوفر" : "Signature available"}>
-                            <Pen className="w-3.5 h-3.5" />
-                            {ar ? "موجود" : "Yes"}
-                          </span>
-                        ) : u.jobTitle ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={ar ? "التوقيع غير متوفر" : "Signature missing"}>
-                            <Pen className="w-3.5 h-3.5 opacity-30" />
-                            {ar ? "مفقود" : "Missing"}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isUVisible("property") && isSuperAdmin && (
-                      <TableCell>
-                        {(() => {
-                          const pids: number[] = (u as any).propertyIds?.length
-                            ? (u as any).propertyIds
-                            : (u as any).propertyId
-                              ? [(u as any).propertyId]
-                              : [];
-                          if (!pids.length)
-                            return (
-                              <span className="text-xs text-muted-foreground italic">
-                                Global
                               </span>
-                            );
-                          return (
-                            <div className="flex flex-wrap gap-1">
-                              {pids.map((pid) => {
-                                const p = properties?.find((x) => x.id === pid);
-                                return (
-                                  <span
-                                    key={pid}
-                                    className="text-xs font-mono bg-muted px-2 py-0.5 rounded font-semibold"
-                                  >
-                                    {p?.code ?? `#${pid}`}
-                                  </span>
+                            ))}
+                            {(u.roles || []).length > 2 && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800/40 dark:text-gray-300 whitespace-nowrap">
+                                +{(u.roles || []).length - 2}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isUVisible("workflowRole") && (
+                        <TableCell>
+                          {u.jobTitle ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700 whitespace-nowrap">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              {(() => {
+                                const roleObj = WORKFLOW_ROLES.find(
+                                  (r: any) => r.value === u.jobTitle,
                                 );
-                              })}
-                            </div>
-                          );
-                        })()}
-                      </TableCell>
-                    )}
-                    {isUVisible("permissions") && (<TableCell><div className="flex flex-wrap gap-1 max-w-[220px]">{(() => { const perms = u.permissions || []; const grouped = perms.reduce((acc, p) => { const mod = p.split(".")[0]; if (mod) acc[mod] = (acc[mod] || 0) + 1; return acc; }, {}); const modules = Object.keys(grouped); const displayModules = modules.slice(0, 3); const extra = modules.length - 3; return modules.length > 0 ? (<>{displayModules.map(mod => (<span key={mod} className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800/30 dark:text-indigo-400 capitalize whitespace-nowrap">{mod.replace(/_/g, " ")} <span className="opacity-70 ml-0.5">({grouped[mod]})</span></span>))}{extra > 0 && (<span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800/30 dark:border-slate-700/30 dark:text-slate-400 whitespace-nowrap">+{extra} {ar ? "المزيد" : "more"}</span>)}</>) : (<span className="text-xs text-muted-foreground italic">�</span>); })()}</div></TableCell>)}
-                    {isUVisible("status") && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {u.status === "LOCKED" ? (
-                            <>
-                              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                              <span className="text-xs font-semibold text-red-600 dark:text-red-400">
-                                {ar ? "مقفول" : "Locked"}
-                              </span>
-                            </>
+                                const label = ar
+                                  ? roleObj?.labelAr
+                                  : roleObj?.label;
+                                return label ?? u.jobTitle.replace(/_/g, " ");
+                              })()}
+                            </span>
                           ) : (
-                            <>
-                              <div
-                                className={`w-2 h-2 rounded-full ${u.status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
-                              />
-                              <span
-                                className={`text-xs font-semibold ${u.status === "ACTIVE" ? "text-green-700 dark:text-green-400" : "text-gray-500"}`}
-                              >
-                                {u.status === "ACTIVE"
-                                  ? ar
-                                    ? "نشط"
-                                    : "Active"
-                                  : ar
-                                    ? "غير نشط"
-                                    : "Inactive"}
-                              </span>
-                            </>
+                            <span className="text-xs text-muted-foreground italic">
+                              —
+                            </span>
                           )}
-                        </div>
-                      </TableCell>
-                    )}
-                    {isUVisible("actions") && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
+                        </TableCell>
+                      )}
+                      {isUVisible("signature") && (
+                        <TableCell className="text-center">
+                          {u.hasSignature ? (
+                            <span
+                              className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400"
+                              title={
+                                ar ? "التوقيع متوفر" : "Signature available"
+                              }
                             >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              onClick={() => setEditUser(u)}
-                              className="cursor-pointer"
+                              <Pen className="w-3.5 h-3.5" />
+                              {ar ? "موجود" : "Yes"}
+                            </span>
+                          ) : u.jobTitle ? (
+                            <span
+                              className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                              title={
+                                ar ? "التوقيع غير متوفر" : "Signature missing"
+                              }
                             >
-                              <UserCog className="w-4 h-4 me-2 text-blue-600" />
-                              <span>
-                                {ar ? "تعديل البيانات" : "Edit User Data"}
-                              </span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setMatrixUser(u)}
-                              className="cursor-pointer"
-                            >
-                              <Shield className="w-4 h-4 me-2 text-[#C9A24D]" />
-                              <span>
-                                {ar ? "تعديل الصلاحيات" : "Edit Permissions"}
-                              </span>
-                            </DropdownMenuItem>
-                            {(isSuperAdmin || u.id === currentUser?.id) && (
+                              <Pen className="w-3.5 h-3.5 opacity-30" />
+                              {ar ? "مفقود" : "Missing"}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">
+                              —
+                            </span>
+                          )}
+                        </TableCell>
+                      )}
+                      {isUVisible("property") && isSuperAdmin && (
+                        <TableCell>
+                          {(() => {
+                            const pids: number[] = (u as any).propertyIds
+                              ?.length
+                              ? (u as any).propertyIds
+                              : (u as any).propertyId
+                                ? [(u as any).propertyId]
+                                : [];
+                            if (!pids.length)
+                              return (
+                                <span className="text-xs text-muted-foreground italic">
+                                  Global
+                                </span>
+                              );
+                            return (
+                              <div className="flex flex-wrap gap-1">
+                                {pids.map((pid) => {
+                                  const p = properties?.find(
+                                    (x) => x.id === pid,
+                                  );
+                                  return (
+                                    <span
+                                      key={pid}
+                                      className="text-xs font-mono bg-muted px-2 py-0.5 rounded font-semibold"
+                                    >
+                                      {p?.code ?? `#${pid}`}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                      )}
+                      {isUVisible("permissions") && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-[220px]">
+                            {(() => {
+                              const perms = u.permissions || [];
+                              const grouped = perms.reduce((acc, p) => {
+                                const mod = p.split(".")[0];
+                                if (mod) acc[mod] = (acc[mod] || 0) + 1;
+                                return acc;
+                              }, {});
+                              const modules = Object.keys(grouped);
+                              const displayModules = modules.slice(0, 3);
+                              const extra = modules.length - 3;
+                              return modules.length > 0 ? (
+                                <>
+                                  {displayModules.map((mod) => (
+                                    <span
+                                      key={mod}
+                                      className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800/30 dark:text-indigo-400 capitalize whitespace-nowrap"
+                                    >
+                                      {mod.replace(/_/g, " ")}{" "}
+                                      <span className="opacity-70 ml-0.5">
+                                        ({grouped[mod]})
+                                      </span>
+                                    </span>
+                                  ))}
+                                  {extra > 0 && (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800/30 dark:border-slate-700/30 dark:text-slate-400 whitespace-nowrap">
+                                      +{extra} {ar ? "المزيد" : "more"}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">
+                                  �
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isUVisible("status") && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {u.status === "LOCKED" ? (
+                              <>
+                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                                  {ar ? "مقفول" : "Locked"}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <div
+                                  className={`w-2 h-2 rounded-full ${u.status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
+                                />
+                                <span
+                                  className={`text-xs font-semibold ${u.status === "ACTIVE" ? "text-green-700 dark:text-green-400" : "text-gray-500"}`}
+                                >
+                                  {u.status === "ACTIVE"
+                                    ? ar
+                                      ? "نشط"
+                                      : "Active"
+                                    : ar
+                                      ? "غير نشط"
+                                      : "Inactive"}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isUVisible("actions") && (
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem
-                                onClick={() => setSignatureUser(u)}
+                                onClick={() => setEditUser(u)}
                                 className="cursor-pointer"
                               >
-                                <Upload className="w-4 h-4 me-2 text-slate-600" />
+                                <UserCog className="w-4 h-4 me-2 text-blue-600" />
                                 <span>
-                                  {ar ? "رفع توقيع" : "Upload Signature"}
+                                  {ar ? "تعديل البيانات" : "Edit User Data"}
                                 </span>
                               </DropdownMenuItem>
-                            )}
-                            {isSuperAdmin && u.roles?.[0] !== "super_admin" && (
                               <DropdownMenuItem
-                                onClick={() => setEditPropsUser(u)}
+                                onClick={() => setMatrixUser(u)}
                                 className="cursor-pointer"
                               >
-                                <Building2 className="w-4 h-4 me-2 text-green-600" />
+                                <Shield className="w-4 h-4 me-2 text-[#C9A24D]" />
                                 <span>
-                                  {ar ? "تعديل الفروع" : "Edit Properties"}
+                                  {ar ? "تعديل الصلاحيات" : "Edit Permissions"}
                                 </span>
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() => setResetUser(u)}
-                              className="cursor-pointer"
-                            >
-                              <KeyRound className="w-4 h-4 me-2 text-blue-500" />
-                              <span>
-                                {ar
-                                  ? "إعادة تعيين كلمة المرور"
-                                  : "Reset Password"}
-                              </span>
-                            </DropdownMenuItem>
-                            {isUserLocked(u) && (
-                              <PermissionGate module="users" action="unlock">
+                              {(isSuperAdmin || u.id === currentUser?.id) && (
                                 <DropdownMenuItem
-                                  onClick={() => setUnlockUser(u)}
+                                  onClick={() => setSignatureUser(u)}
                                   className="cursor-pointer"
                                 >
-                                  <Unlock className="w-4 h-4 me-2 text-amber-600" />
+                                  <Upload className="w-4 h-4 me-2 text-slate-600" />
                                   <span>
-                                    {ar ? "فتح قفل الحساب" : "Unlock Account"}
+                                    {ar ? "رفع توقيع" : "Upload Signature"}
+                                  </span>
+                                </DropdownMenuItem>
+                              )}
+                              {isSuperAdmin &&
+                                u.roles?.[0] !== "super_admin" && (
+                                  <DropdownMenuItem
+                                    onClick={() => setEditPropsUser(u)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Building2 className="w-4 h-4 me-2 text-green-600" />
+                                    <span>
+                                      {ar ? "تعديل الفروع" : "Edit Properties"}
+                                    </span>
+                                  </DropdownMenuItem>
+                                )}
+                              <DropdownMenuItem
+                                onClick={() => setResetUser(u)}
+                                className="cursor-pointer"
+                              >
+                                <KeyRound className="w-4 h-4 me-2 text-blue-500" />
+                                <span>
+                                  {ar
+                                    ? "إعادة تعيين كلمة المرور"
+                                    : "Reset Password"}
+                                </span>
+                              </DropdownMenuItem>
+                              {isUserLocked(u) && (
+                                <PermissionGate module="users" action="unlock">
+                                  <DropdownMenuItem
+                                    onClick={() => setUnlockUser(u)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Unlock className="w-4 h-4 me-2 text-amber-600" />
+                                    <span>
+                                      {ar ? "فتح قفل الحساب" : "Unlock Account"}
+                                    </span>
+                                  </DropdownMenuItem>
+                                </PermissionGate>
+                              )}
+                              <DropdownMenuSeparator />
+                              <PermissionGate module="users" action="delete">
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteUser(u)}
+                                  disabled={
+                                    u.username === currentUser?.username
+                                  }
+                                  className="cursor-pointer text-red-600 dark:text-red-400"
+                                >
+                                  <Trash className="w-4 h-4 mr-2" />
+                                  <span>
+                                    {ar ? "حذف المستخدم" : "Delete User"}
                                   </span>
                                 </DropdownMenuItem>
                               </PermissionGate>
-                            )}
-                            <DropdownMenuSeparator />
-                            <PermissionGate module="users" action="delete">
-                              <DropdownMenuItem
-                                onClick={() => setDeleteUser(u)}
-                                disabled={u.username === currentUser?.username}
-                                className="cursor-pointer text-red-600 dark:text-red-400"
-                              >
-                                <Trash className="w-4 h-4 mr-2" />
-                                <span>
-                                  {ar ? "حذف المستخدم" : "Delete User"}
-                                </span>
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </motion.tr>
-                );
-              })}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
+                    </motion.tr>
+                  );
+                })}
               </AnimatePresence>
               {pagedUsers.length === 0 && (
                 <TableRow>
@@ -988,4 +1071,3 @@ export default function UsersPage() {
     </div>
   );
 }
-

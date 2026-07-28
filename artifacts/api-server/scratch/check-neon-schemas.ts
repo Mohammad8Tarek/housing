@@ -1,4 +1,4 @@
-import { pool } from '@workspace/db';
+import { pool } from "@workspace/db";
 
 async function check() {
   try {
@@ -7,8 +7,11 @@ async function check() {
       FROM information_schema.schemata 
       WHERE schema_name LIKE 'property_%'
     `);
-    console.log("Schemas:", schemas.map(s => s.schema_name));
-    
+    console.log(
+      "Schemas:",
+      schemas.map((s) => s.schema_name),
+    );
+
     for (const schema of schemas) {
       const s = schema.schema_name;
       const { rows: emps } = await pool.query(`
@@ -16,11 +19,11 @@ async function check() {
         FROM ${s}.employees
         WHERE first_name ILIKE '%mohamed%' OR last_name ILIKE '%mohamed%'
       `);
-      
+
       if (emps.length > 0) {
         console.log(`\nFound in ${s}:`, emps);
-        const empIds = emps.map(e => e.id).join(',');
-        
+        const empIds = emps.map((e) => e.id).join(",");
+
         const { rows: assignments } = await pool.query(`
           SELECT * FROM ${s}.assignments
           WHERE employee_id IN (${empIds})
@@ -28,8 +31,7 @@ async function check() {
         console.log("Assignments:", assignments);
       }
     }
-    
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   } finally {
     process.exit(0);

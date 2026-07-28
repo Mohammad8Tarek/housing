@@ -298,7 +298,8 @@ const SESSION_TIMEOUT_MS = parseInt(
 );
 
 let sessionStore: any = undefined;
-const sessionStoreType = process.env["SESSION_STORE"]?.toLowerCase() || "memory";
+const sessionStoreType =
+  process.env["SESSION_STORE"]?.toLowerCase() || "memory";
 if (sessionStoreType !== "memory") {
   const PgSessionStore = connectPgSimple(session);
   sessionStore = new PgSessionStore({

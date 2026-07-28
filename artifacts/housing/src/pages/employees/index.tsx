@@ -140,9 +140,9 @@ function PhotoUploadBtn({
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
       toast.error(
-          language === "ar"
-            ? "المل�? كبير جداً (الحد 2MB)"
-            : "File too large (max 2MB)",
+        language === "ar"
+          ? "المل�? كبير جداً (الحد 2MB)"
+          : "File too large (max 2MB)",
       );
       return;
     }
@@ -223,8 +223,6 @@ const EMPTY_FORM: EmployeeForm = {
   level: "",
   status: "ACTIVE",
 };
-
-
 
 /* ── Sub-components ─────────────────────────────────────────────────────── */
 function FormRow({
@@ -514,9 +512,13 @@ function EmployeeDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">{ar ? "نشط" : "Active"}</SelectItem>
+                  <SelectItem value="ACTIVE">
+                    {ar ? "نشط" : "Active"}
+                  </SelectItem>
                   <SelectItem value="LEFT">{ar ? "مغادر" : "Left"}</SelectItem>
-                  <SelectItem value="SUSPENDED">{ar ? "موقوف" : "Suspended"}</SelectItem>
+                  <SelectItem value="SUSPENDED">
+                    {ar ? "موقوف" : "Suspended"}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </FormRow>
@@ -727,7 +729,11 @@ function EditEmployeeDialog({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast.error(ar ? "الملف كبير جداً (الحد الأقصى 2 ميغابايت)" : "File too large (max 2MB)");
+      toast.error(
+        ar
+          ? "الملف كبير جداً (الحد الأقصى 2 ميغابايت)"
+          : "File too large (max 2MB)",
+      );
       return;
     }
     setUploading(true);
@@ -867,7 +873,9 @@ function EditEmployeeDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="M">{ar ? "ذكر" : "Male"}</SelectItem>
-                      <SelectItem value="F">{ar ? "أنثى" : "Female"}</SelectItem>
+                      <SelectItem value="F">
+                        {ar ? "أنثى" : "Female"}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </FormRow>
@@ -943,9 +951,15 @@ function EditEmployeeDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ACTIVE">{ar ? "نشط" : "Active"}</SelectItem>
-                      <SelectItem value="LEFT">{ar ? "مغادر" : "Left"}</SelectItem>
-                      <SelectItem value="SUSPENDED">{ar ? "موقوف" : "Suspended"}</SelectItem>
+                      <SelectItem value="ACTIVE">
+                        {ar ? "نشط" : "Active"}
+                      </SelectItem>
+                      <SelectItem value="LEFT">
+                        {ar ? "مغادر" : "Left"}
+                      </SelectItem>
+                      <SelectItem value="SUSPENDED">
+                        {ar ? "موقوف" : "Suspended"}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </FormRow>
@@ -1194,9 +1208,7 @@ function ExcelImportDialog({
     <Dialog open={isOpen} onOpenChange={(v) => !v && reset()}>
       <DialogContent
         className="max-w-5xl max-h-[90vh] overflow-y-auto"
-        srTitle={
-          ar ? "استيراد موظفين من إكسل" : "Import Employees from Excel"
-        }
+        srTitle={ar ? "استيراد موظفين من إكسل" : "Import Employees from Excel"}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -1384,17 +1396,20 @@ export default function Employees() {
   const [page, setPage] = useState(1);
 
   // Reset to page 1 when search or status changes
-  useEffect(() => { setPage(1); }, [search, filterStatus, filterDept]);
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus, filterDept]);
   const [resettingPasswordId, setResettingPasswordId] = useState<number | null>(
     null,
   );
 
-  const { data: _eData , isLoading } = useListEmployees(
+  const { data: _eData, isLoading } = useListEmployees(
     { propertyId: activePropertyId ?? undefined },
     {
       query: {
         queryKey: getListEmployeesQueryKey({
-          propertyId: activePropertyId ?? undefined, limit: 1000,
+          propertyId: activePropertyId ?? undefined,
+          limit: 1000,
         }),
         enabled: !!activePropertyId,
       },
@@ -1466,9 +1481,10 @@ export default function Employees() {
     setIsImporting(false);
     setImportOpen(false);
     const toastFn = failed > 0 ? toast.error : toast.success;
-    toastFn(ar
+    toastFn(
+      ar
         ? `?? ????????? ????? ${success} ????${failed > 0 ? ` (${failed} ???)` : ""}`
-        : `Imported ${success} employees${failed > 0 ? ` (${failed} failed)` : ""}`
+        : `Imported ${success} employees${failed > 0 ? ` (${failed} failed)` : ""}`,
     );
   };
 
@@ -1485,13 +1501,14 @@ export default function Employees() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(ar
-            ? "تم إنشاء كلمة مرور مؤقتة"
-            : "Temporary Password Generated", {
-          description: data.temporaryPassword
-            ? `${ar ? "كلمة المرور المؤقتة" : "Temporary password"}: ${data.temporaryPassword}`
-            : data.message,
-        });
+        toast.success(
+          ar ? "تم إنشاء كلمة مرور مؤقتة" : "Temporary Password Generated",
+          {
+            description: data.temporaryPassword
+              ? `${ar ? "كلمة المرور المؤقتة" : "Temporary password"}: ${data.temporaryPassword}`
+              : data.message,
+          },
+        );
       } else {
         toast.error(ar ? "خطأ" : "Error", {
           description: data.message,
@@ -2109,5 +2126,3 @@ export default function Employees() {
     </div>
   );
 }
-
-

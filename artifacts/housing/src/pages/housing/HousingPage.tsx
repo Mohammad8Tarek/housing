@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Building, MapPin, Users, Key, Info } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
@@ -31,16 +30,24 @@ export function HousingPage() {
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [roomLogRoom, setRoomLogRoom] = useState<any>(null);
 
-  const { data: bData, isLoading: bLoading } = useListBuildings({ propertyId: activePropertyId as number });
-  const { data: fData, isLoading: fLoading } = useListFloors({ propertyId: activePropertyId as number });
+  const { data: bData, isLoading: bLoading } = useListBuildings({
+    propertyId: activePropertyId as number,
+  });
+  const { data: fData, isLoading: fLoading } = useListFloors({
+    propertyId: activePropertyId as number,
+  });
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
     { propertyId: activePropertyId as number } as any,
     { query: { queryKey: ["rooms", activePropertyId, 1000], staleTime: 0 } },
   );
   const rData = (_rDataWrapper as any)?.data || _rDataWrapper || [];
-  const { data: aData } = useListAssignments({ propertyId: activePropertyId as number });
-  
-  const { data: eDataWrapper } = useListEmployees({ propertyId: activePropertyId as number });
+  const { data: aData } = useListAssignments({
+    propertyId: activePropertyId as number,
+  });
+
+  const { data: eDataWrapper } = useListEmployees({
+    propertyId: activePropertyId as number,
+  });
   const eData = (eDataWrapper as any)?.data || eDataWrapper || [];
   if (!activePropertyId) {
     return (
@@ -64,14 +71,19 @@ export function HousingPage() {
 
   const isLoading = bLoading || fLoading || rLoading;
 
-  const totalCapacity = buildings.reduce((s: number, b: any) => s + (b.capacity || 0), 0);
+  const totalCapacity = buildings.reduce(
+    (s: number, b: any) => s + (b.capacity || 0),
+    0,
+  );
   const currentOccupancy = rooms.reduce(
     (s: number, r: any) => s + (r.currentOccupancy || 0),
     0,
   );
   const freeBeds = totalCapacity - currentOccupancy;
   const occPct =
-    totalCapacity > 0 ? Math.round((currentOccupancy / totalCapacity) * 100) : 0;
+    totalCapacity > 0
+      ? Math.round((currentOccupancy / totalCapacity) * 100)
+      : 0;
 
   return (
     <div className="flex-1 w-full p-6 md:p-8 space-y-6">
@@ -170,7 +182,11 @@ export function HousingPage() {
           { id: "buildings", label: ar ? "المباني" : "Buildings" },
           { id: "floors", label: ar ? "الطوابق" : "Floors" },
           { id: "rooms", label: ar ? "الغرف" : "Rooms" },
-          { id: "keys", label: ar ? "المفاتيح" : "Keys", icon: <Key className="w-3.5 h-3.5 mr-1.5" /> },
+          {
+            id: "keys",
+            label: ar ? "المفاتيح" : "Keys",
+            icon: <Key className="w-3.5 h-3.5 mr-1.5" />,
+          },
         ].map((t) => (
           <button
             key={t.id}

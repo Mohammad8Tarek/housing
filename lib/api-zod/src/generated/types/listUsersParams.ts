@@ -7,5 +7,5 @@
  */
 
 export type ListUsersParams = {
-propertyId?: number;
+  propertyId?: number;
 };

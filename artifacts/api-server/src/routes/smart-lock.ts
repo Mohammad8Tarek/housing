@@ -140,12 +140,10 @@ router.post(
   "/encoder/read-card",
   requirePermission("accommodation", "view"),
   async (req: Request, res: Response) => {
-    res
-      .status(400)
-      .json({
-        error:
-          "Read card not supported via Smart protocol. Use IP/USB encoder for read operations.",
-      });
+    res.status(400).json({
+      error:
+        "Read card not supported via Smart protocol. Use IP/USB encoder for read operations.",
+    });
   },
 );
 
@@ -154,12 +152,10 @@ router.post(
   "/encoder/eject",
   requirePermission("accommodation", "edit"),
   async (req: Request, res: Response) => {
-    res
-      .status(400)
-      .json({
-        error:
-          "Eject not supported via Smart protocol. Use IP/USB encoder for eject operations.",
-      });
+    res.status(400).json({
+      error:
+        "Eject not supported via Smart protocol. Use IP/USB encoder for eject operations.",
+    });
   },
 );
 
@@ -319,19 +315,15 @@ router.post(
         err.message?.includes("Timeout") ||
         err.message?.includes("card on the reader")
       ) {
-        res
-          .status(408)
-          .json({
-            error: "Encoder Timeout: Please place the card on the reader.",
-          });
+        res.status(408).json({
+          error: "Encoder Timeout: Please place the card on the reader.",
+        });
         return;
       }
       if (err.message?.includes("Unreachable")) {
-        res
-          .status(503)
-          .json({
-            error: "Door Lock Server Unreachable. Check IT Network Status.",
-          });
+        res.status(503).json({
+          error: "Door Lock Server Unreachable. Check IT Network Status.",
+        });
         return;
       }
       console.error("[Smart] checkin-issue-key error:", err);
@@ -616,22 +608,18 @@ router.post(
               employeeJobNumber,
             );
             if (!result.success || !result.cardNumber) {
-              res
-                .status(500)
-                .json({
-                  error: "Smart server failed to issue key",
-                  details: result.error,
-                });
+              res.status(500).json({
+                error: "Smart server failed to issue key",
+                details: result.error,
+              });
               return;
             }
             cardNumber = result.cardNumber;
           } catch (encodeErr: any) {
-            res
-              .status(500)
-              .json({
-                error: "Smart card encoding failed",
-                details: encodeErr.message,
-              });
+            res.status(500).json({
+              error: "Smart card encoding failed",
+              details: encodeErr.message,
+            });
             return;
           }
         } else {
@@ -642,11 +630,9 @@ router.post(
             parsed.data.encoderType,
           );
           if (!encoder.isConnected()) {
-            res
-              .status(400)
-              .json({
-                error: `${String(parsed.data.encoderType).toUpperCase()} encoder not connected`,
-              });
+            res.status(400).json({
+              error: `${String(parsed.data.encoderType).toUpperCase()} encoder not connected`,
+            });
             return;
           } else {
             const cardData: HotekCardData = {
@@ -665,13 +651,11 @@ router.post(
 
             const encodeResult = await encoder.issueCard(cardData);
             if (!encodeResult.success) {
-              res
-                .status(500)
-                .json({
-                  error: "Failed to encode card",
-                  details: encodeResult.errorMessage,
-                  errorCode: encodeResult.errorCode,
-                });
+              res.status(500).json({
+                error: "Failed to encode card",
+                details: encodeResult.errorMessage,
+                errorCode: encodeResult.errorCode,
+              });
               return;
             }
             cardNumber = encodeResult.cardNumber;
@@ -732,12 +716,10 @@ router.post(
       res.status(201).json(key);
     } catch (err: any) {
       console.error("[Keys] Issue error:", err);
-      res
-        .status(500)
-        .json({
-          error: "Failed to issue key",
-          details: err instanceof Error ? err.message : String(err),
-        });
+      res.status(500).json({
+        error: "Failed to issue key",
+        details: err instanceof Error ? err.message : String(err),
+      });
     }
   },
 );

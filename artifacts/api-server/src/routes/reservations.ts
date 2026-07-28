@@ -76,9 +76,12 @@ router.get(
 
     const query = ListReservationsQueryParams.safeParse(req.query);
     const conditions: SQL[] = [];
-    
+
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 25));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit as string) || 25),
+    );
     const offset = (page - 1) * limit;
 
     if (query.success) {
@@ -87,14 +90,23 @@ router.get(
     }
 
     const { data, total } = await withTenant(propertyId, async (tenantDb) => {
-      let countQuery = tenantDb.select({ count: sql<number>`count(*)` }).from(reservationsTable) as any;
-      if (conditions.length > 0) countQuery = countQuery.where(and(...conditions));
+      let countQuery = tenantDb
+        .select({ count: sql<number>`count(*)` })
+        .from(reservationsTable) as any;
+      if (conditions.length > 0)
+        countQuery = countQuery.where(and(...conditions));
       const countResult = await countQuery;
       const totalCount = Number(countResult[0]?.count ?? 0);
 
-      let baseQuery = tenantDb.select().from(reservationsTable).orderBy(desc(reservationsTable.createdAt)).limit(limit).offset(offset) as any;
-      if (conditions.length > 0) baseQuery = baseQuery.where(and(...conditions));
-      
+      let baseQuery = tenantDb
+        .select()
+        .from(reservationsTable)
+        .orderBy(desc(reservationsTable.createdAt))
+        .limit(limit)
+        .offset(offset) as any;
+      if (conditions.length > 0)
+        baseQuery = baseQuery.where(and(...conditions));
+
       const rows = await baseQuery;
       return { data: rows, total: totalCount };
     });
@@ -107,8 +119,8 @@ router.get(
         total,
         totalPages: Math.ceil(total / limit),
         hasNextPage: page < Math.ceil(total / limit),
-        hasPrevPage: page > 1
-      }
+        hasPrevPage: page > 1,
+      },
     });
   },
 );
@@ -363,7 +375,10 @@ router.post(
         }
 
         const [room] = await tenantDb
-          .select({ currentOccupancy: roomsTable.currentOccupancy, capacity: roomsTable.capacity })
+          .select({
+            currentOccupancy: roomsTable.currentOccupancy,
+            capacity: roomsTable.capacity,
+          })
           .from(roomsTable)
           .where(eq(roomsTable.id, roomId))
           .limit(1);
@@ -377,7 +392,10 @@ router.post(
           .update(roomsTable)
           .set({
             currentOccupancy: room.currentOccupancy + 1,
-            status: room.currentOccupancy + 1 >= room.capacity ? "occupied" : "available",
+            status:
+              room.currentOccupancy + 1 >= room.capacity
+                ? "occupied"
+                : "available",
           })
           .where(eq(roomsTable.id, roomId));
 
@@ -474,9 +492,14 @@ router.patch(
         .select()
         .from(reservationsTable)
         .where(eq(reservationsTable.id, id));
-      if (!reservation) return { error: "Reservation not found", status: 404 } as const;
+      if (!reservation)
+        return { error: "Reservation not found", status: 404 } as const;
       if (reservation.status !== "CHECKED_IN")
-        return { error: "Reservation is not checked in", status: 409, currentStatus: reservation.status } as const;
+        return {
+          error: "Reservation is not checked in",
+          status: 409,
+          currentStatus: reservation.status,
+        } as const;
 
       const checkOutDate =
         (req.body as any).checkOutDate || new Date().toISOString();
@@ -519,7 +542,8 @@ router.patch(
 
     const s = su(req);
     const guestName =
-      `${result.updated.firstName ?? ""} ${result.updated.lastName ?? ""}`.trim() || "Guest";
+      `${result.updated.firstName ?? ""} ${result.updated.lastName ?? ""}`.trim() ||
+      "Guest";
     await logActivity({
       req,
       propertyId,

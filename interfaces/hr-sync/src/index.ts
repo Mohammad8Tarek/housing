@@ -24,7 +24,9 @@ async function fetchEmployees(config: AppConfig): Promise<HousingEmployee[]> {
     case "csv_excel":
       return fetchFromCsvExcel(config.csv_excel);
     default:
-      throw new Error(`Unknown sync mode: ${mode}. Must be 'rest_api', 'sql_server', or 'csv_excel'.`);
+      throw new Error(
+        `Unknown sync mode: ${mode}. Must be 'rest_api', 'sql_server', or 'csv_excel'.`,
+      );
   }
 }
 
@@ -46,12 +48,18 @@ function printResult(result: SyncResult) {
 }
 
 async function doSync(config: AppConfig, label: string = "Manual") {
-  log.info(`\n▶ Starting sync [${label}] — Mode: ${config.sync.mode.toUpperCase()}`);
+  log.info(
+    `\n▶ Starting sync [${label}] — Mode: ${config.sync.mode.toUpperCase()}`,
+  );
   try {
     const employees = await fetchEmployees(config);
     const result = await runSync(config, employees);
     printResult(result);
-    await sendWebhookNotification(config.notifications, result, config.sync.mode);
+    await sendWebhookNotification(
+      config.notifications,
+      result,
+      config.sync.mode,
+    );
   } catch (err: any) {
     log.error(`[SYNC ERROR] ${err.message}`);
     if (err.stack) log.debug(err.stack);
@@ -68,7 +76,9 @@ async function main() {
   log.info(`   Mode          : ${config.sync.mode}`);
   log.info(`   Housing API   : ${config.housing_api.url}`);
   log.info(`   Property ID   : ${config.housing_api.property_id}`);
-  log.info(`   Interval      : Every ${config.sync.interval_minutes} minute(s)`);
+  log.info(
+    `   Interval      : Every ${config.sync.interval_minutes} minute(s)`,
+  );
   log.info(`   Auto Start    : ${config.sync.auto_start}`);
   log.info(`   Dry Run       : ${config.sync.dry_run}`);
   log.separator();
@@ -101,7 +111,9 @@ async function main() {
   if (config.sync.mode === "csv_excel" && config.csv_excel.watch_folder) {
     log.info(`👁️  Folder watch mode active: ${config.csv_excel.watch_folder}`);
     watchFolder(config.csv_excel, async (employees) => {
-      log.info(`[Watch] New file detected — ${employees.length} employees to sync.`);
+      log.info(
+        `[Watch] New file detected — ${employees.length} employees to sync.`,
+      );
       const result = await runSync(config, employees);
       printResult(result);
       await sendWebhookNotification(config.notifications, result, "csv_watch");
@@ -124,13 +136,17 @@ async function main() {
         ? `*/${intervalMin} * * * *`
         : `0 */${Math.floor(intervalMin / 60)} * * *`;
 
-    log.info(`⏰ Scheduler started: runs every ${intervalMin} minute(s) (cron: ${cronExpr})`);
+    log.info(
+      `⏰ Scheduler started: runs every ${intervalMin} minute(s) (cron: ${cronExpr})`,
+    );
 
     cron.schedule(cronExpr, async () => {
       await doSync(config, "Scheduled");
     });
   } else {
-    log.warn("⚠️  interval_minutes is 0 — scheduler is disabled. Use --once to sync manually.");
+    log.warn(
+      "⚠️  interval_minutes is 0 — scheduler is disabled. Use --once to sync manually.",
+    );
   }
 
   log.info(`\n✅ HR Sync Interface is running. Press Ctrl+C to stop.\n`);

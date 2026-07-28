@@ -5,7 +5,7 @@
  * Sunrise Staff Housing Management System API
  * OpenAPI spec version: 0.1.0
  */
-import type { HostingCompanionsItem } from './hostingCompanionsItem';
+import type { HostingCompanionsItem } from "./hostingCompanionsItem";
 
 export interface Hosting {
   id: number;

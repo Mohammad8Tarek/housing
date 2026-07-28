@@ -7,8 +7,8 @@
  */
 
 export type ListRoomsParams = {
-propertyId?: number;
-buildingId?: number;
-floorId?: number;
-status?: string;
+  propertyId?: number;
+  buildingId?: number;
+  floorId?: number;
+  status?: string;
 };

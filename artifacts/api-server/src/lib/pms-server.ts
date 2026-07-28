@@ -68,11 +68,15 @@ function buildFiasKrCommand(
 ): Buffer {
   const arrival = formatFiasDate(new Date());
   // If no checkOutDate provided, use far-future date (2099) so card works indefinitely
-  const depDate = checkOutDate ? new Date(checkOutDate) : new Date("2099-12-31");
+  const depDate = checkOutDate
+    ? new Date(checkOutDate)
+    : new Date("2099-12-31");
   const departure = formatFiasDate(depDate);
   const kt = isDuplicate ? "KTD" : "KTN";
   const kc = workstationId.replace("WS", "KC");
-  const fullName = employeeJobNumber ? `${guestName} - ${employeeJobNumber}` : guestName;
+  const fullName = employeeJobNumber
+    ? `${guestName} - ${employeeJobNumber}`
+    : guestName;
   const payload = `KR|${workstationId}|${kc}|RN${roomNumber}|${kt}|G#1|GA${arrival}|GD${departure}|DT120000|GN${fullName}|`;
   return buildFiasFrame(payload);
 }
@@ -506,7 +510,9 @@ export async function startAllPmsServers(app?: any): Promise<void> {
     for (const row of result.rows) {
       if (row.port) {
         if (row.port === mainPort) {
-          console.warn(`[PMS-Bridge] Skipping PMS server on port ${row.port} (same as main API server)`);
+          console.warn(
+            `[PMS-Bridge] Skipping PMS server on port ${row.port} (same as main API server)`,
+          );
           continue;
         }
         startPmsServerForProperty(row.property_id, row.port);

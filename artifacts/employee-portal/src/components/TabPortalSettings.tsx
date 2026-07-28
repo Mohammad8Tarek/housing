@@ -142,11 +142,7 @@ export default function TabPortalSettings() {
       {/* Preferences Section */}
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-          <MaterialIcon
-            icon="settings"
-            size={18}
-            className="text-accent2"
-          />
+          <MaterialIcon icon="settings" size={18} className="text-accent2" />
           {isRtl ? "التفضيلات" : "Preferences"}
         </h3>
         <div className="bg-card border border-border2 rounded-xl divide-y divide-border2">
@@ -154,7 +150,11 @@ export default function TabPortalSettings() {
           <div className="px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
-                <MaterialIcon icon="language" size={16} className="text-muted2" />
+                <MaterialIcon
+                  icon="language"
+                  size={16}
+                  className="text-muted2"
+                />
               </div>
               <div>
                 <div className="text-[12px] font-semibold text-foreground">
@@ -188,19 +188,29 @@ export default function TabPortalSettings() {
               </button>
             </div>
           </div>
-          
+
           {/* Theme Switcher */}
           <div className="px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
-                <MaterialIcon icon="palette" size={16} className="text-muted2" />
+                <MaterialIcon
+                  icon="palette"
+                  size={16}
+                  className="text-muted2"
+                />
               </div>
               <div>
                 <div className="text-[12px] font-semibold text-foreground">
                   {isRtl ? "المظهر" : "Theme"}
                 </div>
                 <div className="text-[10px] text-muted2">
-                  {theme === "dark" ? (isRtl ? "داكن" : "Dark") : (isRtl ? "فاتح" : "Light")}
+                  {theme === "dark"
+                    ? isRtl
+                      ? "داكن"
+                      : "Dark"
+                    : isRtl
+                      ? "فاتح"
+                      : "Light"}
                 </div>
               </div>
             </div>
@@ -232,7 +242,6 @@ export default function TabPortalSettings() {
 
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-
           <MaterialIcon
             icon="manage_accounts"
             size={18}
@@ -297,7 +306,11 @@ export default function TabPortalSettings() {
                       onClick={() => setShowPw(!showPw)}
                       className="absolute end-3 top-1/2 -translate-y-1/2 text-muted2 hover:text-foreground transition-colors p-1"
                     >
-                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPw ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -341,7 +354,6 @@ export default function TabPortalSettings() {
                     )}
                     {t("submit")}
                   </button>
-                  
                 </div>
               </form>
             )}
@@ -429,10 +441,7 @@ export default function TabPortalSettings() {
         <h3 className="text-sm font-bold text-foreground mb-3">
           {t("settings.appearance")}
         </h3>
-        <div className="grid grid-cols-2 gap-2.5">
-          
-          
-        </div>
+        <div className="grid grid-cols-2 gap-2.5"></div>
       </div>
 
       {/* Language */}
@@ -441,10 +450,7 @@ export default function TabPortalSettings() {
           <MaterialIcon icon="language" size={18} className="text-accent2" />
           {t("settings.language")}
         </h3>
-        <div className="grid grid-cols-2 gap-2.5">
-          
-          
-        </div>
+        <div className="grid grid-cols-2 gap-2.5"></div>
       </div>
 
       {/* Logout */}

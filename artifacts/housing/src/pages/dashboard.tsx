@@ -2,7 +2,6 @@
 import * as React from "react";
 import {
   useGetDashboardStats,
-  
   useGetOccupancyByBuilding,
   useGetRecentActivity,
 } from "@workspace/api-client-react";
@@ -44,10 +43,9 @@ import { useProperty } from "@/context/PropertyContext";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 
-
 function AnimatedNumber({ value }: { value: string | number }) {
   const reducedMotion = usePrefersReducedMotion();
-  
+
   // Extract number and suffix (like %)
   const numMatch = String(value).match(/^([\d.]+)(.*)$/);
   const targetNum = numMatch ? parseFloat(numMatch[1]) : 0;
@@ -103,7 +101,9 @@ export default function Dashboard() {
   const { data: pendingData, isLoading: depLoading } = useQuery({
     queryKey: ["/api/dashboard/pending", isAll ? 0 : activePropertyId!],
     queryFn: async () => {
-      const res = await fetch(`/api/dashboard/pending?propertyId=${isAll ? 0 : activePropertyId!}`);
+      const res = await fetch(
+        `/api/dashboard/pending?propertyId=${isAll ? 0 : activePropertyId!}`,
+      );
       if (!res.ok) throw new Error("Failed to load pending items");
       return res.json();
     },
@@ -120,10 +120,6 @@ export default function Dashboard() {
     { propertyId: isAll ? 0 : activePropertyId! },
     { query: { enabled: !isAll && !!activePropertyId } },
   );
-
-  
-  
-  
 
   const totals = allStats?.totals;
   const perProperty = allStats?.perProperty ?? [];

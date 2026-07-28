@@ -65,9 +65,7 @@ describe("validatePassword", () => {
   it("rejects password shorter than minimum length", () => {
     const result = validatePassword("Ab1!", strictPolicy);
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain(
-      "Password must be at least 8 characters",
-    );
+    expect(result.errors).toContain("Password must be at least 8 characters");
   });
 
   it("rejects password missing uppercase letter", () => {
@@ -81,9 +79,7 @@ describe("validatePassword", () => {
   it("rejects password missing lowercase letter", () => {
     const result = validatePassword("UPPERCASE1!", strictPolicy);
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain(
-      "Password must contain a lowercase letter",
-    );
+    expect(result.errors).toContain("Password must contain a lowercase letter");
   });
 
   it("rejects password missing number", () => {
@@ -114,9 +110,7 @@ describe("validatePassword", () => {
   it("still enforces minimum length under relaxed policy", () => {
     const result = validatePassword("abc", relaxedPolicy);
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain(
-      "Password must be at least 4 characters",
-    );
+    expect(result.errors).toContain("Password must be at least 4 characters");
   });
 });
 

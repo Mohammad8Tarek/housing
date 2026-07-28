@@ -42,10 +42,18 @@ export function FloorsTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "المبنى" : "Building"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الطابق" : "Floor"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الوصف" : "Description"}</th>
-            <th className="text-left p-3 font-semibold text-muted-foreground">{ar ? "الغرف" : "Rooms"}</th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "المبنى" : "Building"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الطابق" : "Floor"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الوصف" : "Description"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "الغرف" : "Rooms"}
+            </th>
             <th className="p-3" />
           </tr>
         </thead>
@@ -64,22 +72,36 @@ export function FloorsTable({
                 <td className="p-3">
                   <span className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-primary/60" />
-                    <span className="font-semibold">{ar ? "الطابق" : "Floor"} {f.floorNumber}</span>
+                    <span className="font-semibold">
+                      {ar ? "الطابق" : "Floor"} {f.floorNumber}
+                    </span>
                   </span>
                 </td>
-                <td className="p-3 text-muted-foreground">{f.description || "—"}</td>
+                <td className="p-3 text-muted-foreground">
+                  {f.description || "—"}
+                </td>
                 <td className="p-3">
                   <Badge variant="secondary">{fRooms.length}</Badge>
                 </td>
                 <td className="p-3">
                   <div className="flex items-center gap-1 justify-end">
                     <PermissionGate module="housing" action="edit">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditFloor(f)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onEditFloor(f)}
+                      >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                     </PermissionGate>
                     <PermissionGate module="housing" action="delete">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteFloor(f)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => onDeleteFloor(f)}
+                      >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </PermissionGate>
@@ -90,7 +112,10 @@ export function FloorsTable({
           })}
           {filteredFloors.length === 0 && (
             <tr>
-              <td colSpan={5} className="py-12 text-center text-muted-foreground">
+              <td
+                colSpan={5}
+                className="py-12 text-center text-muted-foreground"
+              >
                 <Layers className="w-8 h-8 opacity-30 mx-auto mb-2" />
                 <p>{ar ? "لا توجد طوابق" : "No floors yet"}</p>
               </td>

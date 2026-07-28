@@ -216,7 +216,6 @@ export default function GuestHosting() {
       },
     },
   );
-  
 
   useEffect(() => {
     if (!activePropertyId || !(hostings as any[])?.length) return;
@@ -275,8 +274,9 @@ export default function GuestHosting() {
   const requestRooms = _requestRoomsWrapper?.data || [];
   const { data: _eDataWrapper } = useListEmployees(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } }
-  );  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+    { query: { enabled: !!activePropertyId } },
+  );
+  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
   const { data: settings } = useGetSettings(
     { propertyId: activePropertyId },
     { query: { enabled: !!activePropertyId } },
@@ -315,11 +315,12 @@ export default function GuestHosting() {
         });
         if (createdPropertyId && createdPropertyId !== activePropertyId)
           setActivePropertyId(createdPropertyId);
-        toast.success(ar ? "تم إنشاء طلب الاستضافة" : "Hosting request created");
+        toast.success(
+          ar ? "تم إنشاء طلب الاستضافة" : "Hosting request created",
+        );
         resetAndClose();
       },
-      onError: (e: any) =>
-        toast.error(e.message || (ar ? "خطأ" : "Error"))
+      onError: (e: any) => toast.error(e.message || (ar ? "خطأ" : "Error")),
     },
   });
 
@@ -373,8 +374,7 @@ export default function GuestHosting() {
         toast.success(ar ? "تم تحديث الاستضافة" : "Hosting updated");
         setEditDialog({ open: false, hosting: null });
       },
-      onError: (e: any) =>
-        toast.error(e.message || (ar ? "خطأ" : "Error"))
+      onError: (e: any) => toast.error(e.message || (ar ? "خطأ" : "Error")),
     },
   });
 
@@ -430,7 +430,11 @@ export default function GuestHosting() {
         const resp = await fetch(
           `/api/employees/search?q=${encodeURIComponent(empSearch.trim())}&propertyId=${requestPropertyId}`,
         );
-        if (!resp.ok) { setEmpResults([]); setShowDropdown(false); return; }
+        if (!resp.ok) {
+          setEmpResults([]);
+          setShowDropdown(false);
+          return;
+        }
         setEmpResults(await resp.json());
         setShowDropdown(true);
       } catch {
@@ -501,9 +505,11 @@ export default function GuestHosting() {
   const uploadCompanionDocument = (idx: number, file?: File | null) => {
     if (!file) return;
     if (!ALLOWED_DOCUMENT_IMAGE_TYPES.has(file.type)) {
-      toast.error(ar
+      toast.error(
+        ar
           ? "الملف يجب أن يكون صورة JPG أو PNG أو WEBP أو GIF"
-          : "File must be a JPG, PNG, WEBP, or GIF image");
+          : "File must be a JPG, PNG, WEBP, or GIF image",
+      );
       return;
     }
     if (file.size > MAX_DOCUMENT_IMAGE_SIZE) {
@@ -527,23 +533,26 @@ export default function GuestHosting() {
     reader.readAsDataURL(file);
   };
 
-
   const onSubmit = () => {
     if (!selectedEmployee) {
       toast.error(ar ? "الرجاء اختيار موظف" : "Please select an employee");
       return;
     }
     if (!form.expectedFrom || !form.expectedTo) {
-      toast.error(ar
+      toast.error(
+        ar
           ? "الرجاء ملء جميع الحقول المطلوبة"
-          : "Please fill all required fields");
+          : "Please fill all required fields",
+      );
       return;
     }
     const invalidCompanion = companions.find((c) => !c.name.trim());
     if (invalidCompanion) {
-      toast.error(ar
+      toast.error(
+        ar
           ? "الرجاء إدخال اسم لكل المرافقين"
-          : "Please enter name for all companions");
+          : "Please enter name for all companions",
+      );
       return;
     }
 
@@ -561,9 +570,11 @@ export default function GuestHosting() {
       }));
 
     if (form.hostingType === "SEPARATE_ROOM" && !formRoomId) {
-      toast.error(ar
+      toast.error(
+        ar
           ? "الرجاء اختيار غرفة للاستضافة المنفصلة"
-          : "Please select a room for separate room hosting");
+          : "Please select a room for separate room hosting",
+      );
       return;
     }
     createMutation.mutate({
@@ -583,9 +594,11 @@ export default function GuestHosting() {
   };
 
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  
+
   // Only show APPROVED, ACTIVE, COMPLETED, CANCELLED in operations page
-  const operationalHostings = (hostings || []).filter(h => h.status !== 'PENDING');
+  const operationalHostings = (hostings || []).filter(
+    (h) => h.status !== "PENDING",
+  );
   const pagedHostings = operationalHostings.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
@@ -1066,8 +1079,7 @@ export default function GuestHosting() {
 
   return (
     <div className="space-y-4">
-      
-          <div className="flex justify-between items-center gap-2 flex-wrap">
+      <div className="flex justify-between items-center gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">
             {ar ? "استضافة الضيوف" : "Guest Hosting"}
@@ -1087,7 +1099,6 @@ export default function GuestHosting() {
             onHideAll={hHideAll}
             ar={ar}
           />
-          
         </div>
       </div>
 
@@ -1109,7 +1120,11 @@ export default function GuestHosting() {
       ) : pagedHostings.length === 0 ? (
         <EmptyState
           title={ar ? "لا توجد استضافات" : "No Hostings Found"}
-          description={ar ? "لم يتم العثور على أي بيانات استضافة مطابقة للبحث." : "No hosting data matches the search criteria."}
+          description={
+            ar
+              ? "لم يتم العثور على أي بيانات استضافة مطابقة للبحث."
+              : "No hosting data matches the search criteria."
+          }
           className="border rounded-lg bg-card my-4"
         />
       ) : (
@@ -1173,7 +1188,8 @@ export default function GuestHosting() {
                           <button
                             className="flex items-center gap-2 text-left text-sm font-semibold text-primary hover:underline"
                             onClick={() =>
-                              h.employeeId != null && setProfileEmpId(Number(h.employeeId))
+                              h.employeeId != null &&
+                              setProfileEmpId(Number(h.employeeId))
                             }
                           >
                             {emp?.photoUrl ? (
@@ -1375,7 +1391,6 @@ export default function GuestHosting() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44">
-                              
                               {h.status === "APPROVED" && (
                                 <>
                                   <DropdownMenuItem
@@ -1439,7 +1454,6 @@ export default function GuestHosting() {
                                   {ar ? "تعديل" : "Edit"}
                                 </DropdownMenuItem>
                               )}
-                              
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -1450,7 +1464,7 @@ export default function GuestHosting() {
               </TableBody>
             </Table>
           </div>
-          {(operationalHostings.length) > 0 && (
+          {operationalHostings.length > 0 && (
             <DataPagination
               total={operationalHostings.length}
               pageSize={pageSize}
@@ -1478,9 +1492,7 @@ export default function GuestHosting() {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {ar ? "تعديل الاستضافة" : "Edit Hosting"}
-            </DialogTitle>
+            <DialogTitle>{ar ? "تعديل الاستضافة" : "Edit Hosting"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div>
@@ -1524,7 +1536,9 @@ export default function GuestHosting() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={ar ? "اختر الغرفة" : "Select room"} />
+                  <SelectValue
+                    placeholder={ar ? "اختر الغرفة" : "Select room"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {filteredEditRooms.map((r: any) => (
@@ -1558,9 +1572,7 @@ export default function GuestHosting() {
             >
               {ar ? "إلغاء" : "Cancel"}
             </Button>
-            <Button onClick={handleUpdate}>
-              {ar ? "حفظ" : "Save"}
-            </Button>
+            <Button onClick={handleUpdate}>{ar ? "حفظ" : "Save"}</Button>
           </div>
         </DialogContent>
       </Dialog>

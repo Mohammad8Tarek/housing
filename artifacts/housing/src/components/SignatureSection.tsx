@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -9,7 +15,10 @@ import { Upload, Trash2, Loader2, Pen } from "lucide-react";
 export function SignatureSection() {
   const { language } = useLanguage();
   const ar = language === "ar";
-  const [signature, setSignature] = useState<{ signatureImageUrl: string | null; uploadedAt: string | null }>({
+  const [signature, setSignature] = useState<{
+    signatureImageUrl: string | null;
+    uploadedAt: string | null;
+  }>({
     signatureImageUrl: null,
     uploadedAt: null,
   });
@@ -24,9 +33,14 @@ export function SignatureSection() {
     fetch("/api/users/me/signature")
       .then((r) => r.json())
       .then((data) => {
-        setSignature({ signatureImageUrl: data.signatureImageUrl, uploadedAt: data.uploadedAt });
+        setSignature({
+          signatureImageUrl: data.signatureImageUrl,
+          uploadedAt: data.uploadedAt,
+        });
       })
-      .catch(() => toast.error(ar ? "فشل تحميل التوقيع" : "Failed to load signature"))
+      .catch(() =>
+        toast.error(ar ? "فشل تحميل التوقيع" : "Failed to load signature"),
+      )
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -35,11 +49,17 @@ export function SignatureSection() {
     if (!file) return;
 
     if (!["image/png", "image/jpeg"].includes(file.type)) {
-      toast.error(ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image");
+      toast.error(
+        ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image",
+      );
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error(ar ? "حجم الصورة يجب أن يكون أقل من 5 ميجابايت" : "Image must be under 5MB");
+      toast.error(
+        ar
+          ? "حجم الصورة يجب أن يكون أقل من 5 ميجابايت"
+          : "Image must be under 5MB",
+      );
       return;
     }
 
@@ -81,10 +101,15 @@ export function SignatureSection() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Upload failed");
-      setSignature({ signatureImageUrl: base64, uploadedAt: new Date().toISOString() });
+      setSignature({
+        signatureImageUrl: base64,
+        uploadedAt: new Date().toISOString(),
+      });
       toast.success(ar ? "تم حفظ التوقيع" : "Signature saved");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : ar ? "فشل الرفع" : "Upload failed");
+      toast.error(
+        err instanceof Error ? err.message : ar ? "فشل الرفع" : "Upload failed",
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -102,7 +127,9 @@ export function SignatureSection() {
     setIsDrawing(false);
     const c = canvasRef.current;
     if (!c) return;
-    try { c.releasePointerCapture(e.pointerId); } catch {}
+    try {
+      c.releasePointerCapture(e.pointerId);
+    } catch {}
   };
 
   const draw = (e: React.PointerEvent) => {
@@ -146,11 +173,16 @@ export function SignatureSection() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Upload failed");
-      setSignature({ signatureImageUrl: base64, uploadedAt: new Date().toISOString() });
+      setSignature({
+        signatureImageUrl: base64,
+        uploadedAt: new Date().toISOString(),
+      });
       toast.success(ar ? "تم حفظ التوقيع" : "Signature saved");
       setShowCanvas(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : ar ? "فشل الرفع" : "Upload failed");
+      toast.error(
+        err instanceof Error ? err.message : ar ? "فشل الرفع" : "Upload failed",
+      );
     } finally {
       setIsUploading(false);
     }
@@ -179,13 +211,18 @@ export function SignatureSection() {
                   className="max-h-24 object-contain"
                 />
                 <span className="text-xs text-muted-foreground">
-                  {ar ? "تم الرفع" : "Uploaded"} {signature.uploadedAt ? new Date(signature.uploadedAt).toLocaleDateString() : ""}
+                  {ar ? "تم الرفع" : "Uploaded"}{" "}
+                  {signature.uploadedAt
+                    ? new Date(signature.uploadedAt).toLocaleDateString()
+                    : ""}
                 </span>
               </div>
             ) : (
               <div className="border rounded-lg p-8 bg-muted/10 flex flex-col items-center gap-2 text-muted-foreground">
                 <Pen className="w-8 h-8" />
-                <span className="text-sm">{ar ? "لم يتم رفع توقيع بعد" : "No signature uploaded yet"}</span>
+                <span className="text-sm">
+                  {ar ? "لم يتم رفع توقيع بعد" : "No signature uploaded yet"}
+                </span>
               </div>
             )}
 
@@ -201,11 +238,21 @@ export function SignatureSection() {
                   <Upload className="w-4 h-4 mr-2" />
                 )}
                 {isUploading
-                  ? (ar ? "جاري الرفع..." : "Uploading...")
-                  : (ar ? "رفع توقيع" : "Upload Signature")}
+                  ? ar
+                    ? "جاري الرفع..."
+                    : "Uploading..."
+                  : ar
+                    ? "رفع توقيع"
+                    : "Upload Signature"}
               </Button>
               <Button variant="ghost" onClick={() => setShowCanvas((v) => !v)}>
-                {showCanvas ? (ar ? "إغلاق الرسم" : "Close Draw") : (ar ? "ارسم توقيع" : "Draw Signature")}
+                {showCanvas
+                  ? ar
+                    ? "إغلاق الرسم"
+                    : "Close Draw"
+                  : ar
+                    ? "ارسم توقيع"
+                    : "Draw Signature"}
               </Button>
             </div>
 
@@ -245,8 +292,18 @@ export function SignatureSection() {
                   />
                 </div>
                 <div className="flex gap-2 mt-2">
-                  <Button variant="outline" onClick={clearCanvas}>{ar ? "مسح" : "Clear"}</Button>
-                  <Button onClick={saveCanvas} disabled={isUploading}>{isUploading ? (ar ? "جاري الحفظ..." : "Saving...") : (ar ? "حفظ التوقيع" : "Save Signature")}</Button>
+                  <Button variant="outline" onClick={clearCanvas}>
+                    {ar ? "مسح" : "Clear"}
+                  </Button>
+                  <Button onClick={saveCanvas} disabled={isUploading}>
+                    {isUploading
+                      ? ar
+                        ? "جاري الحفظ..."
+                        : "Saving..."
+                      : ar
+                        ? "حفظ التوقيع"
+                        : "Save Signature"}
+                  </Button>
                 </div>
               </div>
             )}

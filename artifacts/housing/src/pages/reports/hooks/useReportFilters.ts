@@ -45,26 +45,41 @@ export function useReportFilters() {
     filterBuilding !== "all" ||
     filterFloor !== "all" ||
     filterStatus !== "all" ||
-    filterCategory !== "all"
+    filterCategory !== "all",
   );
 
   return {
-    activeTab, setActiveTab,
-    filterProperty, setFilterProperty,
-    filterBuilding, setFilterBuilding,
-    filterFloor, setFilterFloor,
-    filterStatus, setFilterStatus,
-    search, setSearch,
-    dateFrom, setDateFrom,
-    dateTo, setDateTo,
-    selectedRows, setSelectedRows,
-    filterCategory, setFilterCategory,
-    filterDepartment, setFilterDepartment,
-    filterGender, setFilterGender,
-    filterNationality, setFilterNationality,
-    currentPage, setCurrentPage,
-    pageSize, setPageSize,
+    activeTab,
+    setActiveTab,
+    filterProperty,
+    setFilterProperty,
+    filterBuilding,
+    setFilterBuilding,
+    filterFloor,
+    setFilterFloor,
+    filterStatus,
+    setFilterStatus,
+    search,
+    setSearch,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    selectedRows,
+    setSelectedRows,
+    filterCategory,
+    setFilterCategory,
+    filterDepartment,
+    setFilterDepartment,
+    filterGender,
+    setFilterGender,
+    filterNationality,
+    setFilterNationality,
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
     resetReportFilters,
-    hasActiveReportFilters
+    hasActiveReportFilters,
   };
 }

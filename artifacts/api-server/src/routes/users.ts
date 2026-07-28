@@ -27,7 +27,9 @@ const router: Router = Router();
 /** Returns true if the roles array contains a system-admin role */
 function isSystemAdminRoles(roles: string[]): boolean {
   return roles.some((role) =>
-    ["super_admin", "system_admin", "admin"].includes(String(role).trim().toLowerCase()),
+    ["super_admin", "system_admin", "admin"].includes(
+      String(role).trim().toLowerCase(),
+    ),
   );
 }
 

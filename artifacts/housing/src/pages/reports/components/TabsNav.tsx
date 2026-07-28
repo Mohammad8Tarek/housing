@@ -9,7 +9,13 @@ interface TabsNavProps {
   ar: boolean;
 }
 
-export function TabsNav({ activeTab, setActiveTab, setFilterStatus, setFilterCategory, ar }: TabsNavProps) {
+export function TabsNav({
+  activeTab,
+  setActiveTab,
+  setFilterStatus,
+  setFilterCategory,
+  ar,
+}: TabsNavProps) {
   return (
     <div className="flex gap-1 bg-muted/40 rounded-lg p-1 flex-wrap">
       {TABS.map((tab) => (

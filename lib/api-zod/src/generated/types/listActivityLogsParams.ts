@@ -7,8 +7,8 @@
  */
 
 export type ListActivityLogsParams = {
-propertyId?: number;
-module?: string;
-userId?: number;
-limit?: number;
+  propertyId?: number;
+  module?: string;
+  userId?: number;
+  limit?: number;
 };

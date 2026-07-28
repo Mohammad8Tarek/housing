@@ -112,11 +112,12 @@ export default function HistoryPage() {
       },
     },
   );
-  
+
   const { data: _eDataWrapper } = useListEmployees(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } }
-  );  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+    { query: { enabled: !!activePropertyId } },
+  );
+  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
   const { data: _rData } = useListRooms(
     { propertyId: activePropertyId },
     { query: { enabled: !!activePropertyId } },

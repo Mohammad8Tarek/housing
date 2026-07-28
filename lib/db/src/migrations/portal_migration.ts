@@ -4,25 +4,49 @@
  */
 import { readFileSync, existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { resolve, dirname }         from "node:path";
-import { fileURLToPath }            from "node:url";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
+const __dirname = dirname(__filename);
 function loadEnv(p: string) {
   if (!existsSync(p)) return;
-  for (const line of readFileSync(p,"utf-8").split("\n")) {
-    const t = line.trim(); if (!t||t.startsWith("#")) continue;
-    const eq = t.indexOf("="); if (eq===-1) continue;
-    const k = t.slice(0,eq).trim(), v = t.slice(eq+1).trim().replace(/^["']|["']$/g,"");
+  for (const line of readFileSync(p, "utf-8").split("\n")) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const eq = t.indexOf("=");
+    if (eq === -1) continue;
+    const k = t.slice(0, eq).trim(),
+      v = t
+        .slice(eq + 1)
+        .trim()
+        .replace(/^["']|["']$/g, "");
     if (!(k in process.env)) process.env[k] = v;
   }
 }
-loadEnv(resolve(__dirname,"..","..","..","..","artifacts","api-server",".env"));
-loadEnv(resolve(__dirname,"..","..","..","..","..","artifacts","api-server",".env"));
-import pg from "pg"; import bcrypt from "bcryptjs";
+loadEnv(
+  resolve(__dirname, "..", "..", "..", "..", "artifacts", "api-server", ".env"),
+);
+loadEnv(
+  resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "..",
+    "artifacts",
+    "api-server",
+    ".env",
+  ),
+);
+import pg from "pg";
+import bcrypt from "bcryptjs";
 const { Pool } = pg;
 const DB = process.env["DATABASE_URL"];
-if (!DB) { console.error("❌ DATABASE_URL not set"); process.exit(1); }
+if (!DB) {
+  console.error("❌ DATABASE_URL not set");
+  process.exit(1);
+}
 const pool = new Pool({ connectionString: DB });
 function temporaryPassword() {
   return process.env["DEFAULT_EMPLOYEE_PORTAL_PASSWORD"] || "1234";
@@ -51,30 +75,41 @@ async function run() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_portal_emp
         ON employee_portal_accounts(property_id, employee_id)`);
     const { rows: emps } = await client.query(
-      `SELECT property_id, employee_id, first_name, last_name FROM employees`);
+      `SELECT property_id, employee_id, first_name, last_name FROM employees`,
+    );
     console.log(`Found ${emps.length} employees`);
-    let created=0, skipped=0;
+    let created = 0,
+      skipped = 0;
     for (const e of emps) {
       const { rows: ex } = await client.query(
         `SELECT id FROM employee_portal_accounts WHERE property_id=$1 AND employee_id=$2`,
-        [e.property_id, e.employee_id]);
-      if (ex.length) { skipped++; continue; }
+        [e.property_id, e.employee_id],
+      );
+      if (ex.length) {
+        skipped++;
+        continue;
+      }
       const password = temporaryPassword();
       const hash = await bcrypt.hash(password, 12);
       await client.query(
         `INSERT INTO employee_portal_accounts(property_id,employee_id,password_hash,must_change_password)
          VALUES($1,$2,$3,TRUE)`,
-        [e.property_id, e.employee_id, hash]);
-      console.log(`  + ${e.first_name} ${e.last_name} (${e.employee_id}) temporary password: ${password}`);
+        [e.property_id, e.employee_id, hash],
+      );
+      console.log(
+        `  + ${e.first_name} ${e.last_name} (${e.employee_id}) temporary password: ${password}`,
+      );
       created++;
     }
     await client.query("COMMIT");
     console.log(`\n✅ Done — created:${created}  skipped:${skipped}`);
-  } catch(err) {
+  } catch (err) {
     await client.query("ROLLBACK");
-    console.error("❌ Failed:", err); process.exit(1);
+    console.error("❌ Failed:", err);
+    process.exit(1);
   } finally {
-    client.release(); await pool.end();
+    client.release();
+    await pool.end();
   }
 }
 run();

@@ -12,9 +12,14 @@ export const propertiesTable = pgTable("properties", {
   primaryColor: text("primary_color").notNull().default("#0F2A44"),
   defaultLanguage: text("default_language").notNull().default("en"),
   status: text("status").notNull().default("active"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const insertPropertySchema = createInsertSchema(propertiesTable).omit({ id: true, createdAt: true });
+export const insertPropertySchema = createInsertSchema(propertiesTable).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
 export type Property = typeof propertiesTable.$inferSelect;

@@ -2,12 +2,30 @@ import { useMemo } from "react";
 import { Tab } from "../types";
 
 export function useReportDataProcessor({
-  activeTab, filterBuilding, filterFloor, filterStatus, filterCategory,
-  filterDepartment, filterGender, filterNationality, search, dateFrom, dateTo,
-  buildings, floors, rooms, employees, assignments, reservations, maintenance, hostings,
-  buildingMap, floorMap, roomMap, empMap,
+  activeTab,
+  filterBuilding,
+  filterFloor,
+  filterStatus,
+  filterCategory,
+  filterDepartment,
+  filterGender,
+  filterNationality,
+  search,
+  dateFrom,
+  dateTo,
+  buildings,
+  floors,
+  rooms,
+  employees,
+  assignments,
+  reservations,
+  maintenance,
+  hostings,
+  buildingMap,
+  floorMap,
+  roomMap,
+  empMap,
 }: any) {
-  
   const filteredBuildingIds = new Set(
     filterBuilding === "all"
       ? buildings.map((b: any) => b.id)

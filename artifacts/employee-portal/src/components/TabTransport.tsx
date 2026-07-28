@@ -99,10 +99,7 @@ export default function TabTransport() {
         </h2>
       </div>
 
-      <div className="flex gap-1 bg-surface rounded-xl p-1 border border-border2">
-        
-        
-      </div>
+      <div className="flex gap-1 bg-surface rounded-xl p-1 border border-border2"></div>
 
       {status === "success" && (
         <div className="flex items-center gap-2 p-3 bg-green-400/10 border border-green-400/20 rounded-xl text-green-400 text-[12px]">
@@ -153,7 +150,9 @@ export default function TabTransport() {
                   </div>
                   <div className="text-start">
                     <div className="font-semibold text-[13px] text-foreground">
-                      {isRtl && (s as any).routeAr ? (s as any).routeAr : s.route}
+                      {isRtl && (s as any).routeAr
+                        ? (s as any).routeAr
+                        : s.route}
                     </div>
                     <div className="text-[11px] text-muted2 mt-0.5 flex items-center gap-1.5">
                       <MaterialIcon icon="schedule" size={12} />
@@ -171,7 +170,8 @@ export default function TabTransport() {
                     </div>
                   )}
                 </div>
-              </button>            ))
+              </button>
+            ))
           )}
 
           {selected && (

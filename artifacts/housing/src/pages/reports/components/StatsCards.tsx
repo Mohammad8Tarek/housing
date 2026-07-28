@@ -23,7 +23,10 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {cards.map((s) => (
-        <div key={s.label} className="bg-card border rounded-lg p-3 text-center shadow-sm">
+        <div
+          key={s.label}
+          className="bg-card border rounded-lg p-3 text-center shadow-sm"
+        >
           <p className={`text-xl font-bold ${s.color}`}>
             {isLoading ? "—" : s.value}
           </p>

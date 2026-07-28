@@ -27,7 +27,10 @@ const statusColors: Record<string, string> = {
   rejected: "bg-red-500",
 };
 
-const statusBadgeVariant: Record<string, "success" | "warning" | "danger" | "info" | "muted"> = {
+const statusBadgeVariant: Record<
+  string,
+  "success" | "warning" | "danger" | "info" | "muted"
+> = {
   in_signing: "warning",
   approved: "success",
   rejected: "danger",
@@ -54,9 +57,15 @@ export default function HostingRequestsList() {
   });
 
   const { data, isLoading, isFetching, isError, error } = useQuery({
-    queryKey: ["/api/hosting-requests", { page, limit, status: statusFilter, search }],
+    queryKey: [
+      "/api/hosting-requests",
+      { page, limit, status: statusFilter, search },
+    ],
     queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      });
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (search) params.set("search", search);
       const res = await fetch(`/api/hosting-requests?${params}`);
@@ -91,10 +100,16 @@ export default function HostingRequestsList() {
       return roleMap[request.pendingOn]?.[language] ?? request.pendingOn;
     }
 
-    if (request.status !== "in_signing" || !Array.isArray(request.approval_steps)) return null;
+    if (
+      request.status !== "in_signing" ||
+      !Array.isArray(request.approval_steps)
+    )
+      return null;
 
     const stepOrder = request.current_step_order ?? request.currentStepOrder;
-    const step = request.approval_steps.find((s: any) => s.stepOrder === stepOrder);
+    const step = request.approval_steps.find(
+      (s: any) => s.stepOrder === stepOrder,
+    );
     if (!step) return null;
 
     const roleMap: Record<string, Record<string, string>> = {
@@ -126,10 +141,10 @@ export default function HostingRequestsList() {
   return (
     <div className="space-y-6 p-1">
       <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {ar ? "طلبات الاستضافة" : "Hosting Requests"}
-            </h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {ar ? "طلبات الاستضافة" : "Hosting Requests"}
+          </h1>
           <p className="text-muted-foreground text-sm mt-1">
             {countsData?.total != null
               ? `${countsData.total} ${ar ? "طلب" : "requests"}`
@@ -137,7 +152,10 @@ export default function HostingRequestsList() {
           </p>
         </div>
         {canCreate("hosting_requests") && (
-          <Button type="button" onClick={() => setLocation("/hosting-requests/create")}>
+          <Button
+            type="button"
+            onClick={() => setLocation("/hosting-requests/create")}
+          >
             <Plus className="w-4 h-4 mr-2" />
             {ar ? "طلب استضافة جديد" : "New Hosting Request"}
           </Button>
@@ -152,7 +170,10 @@ export default function HostingRequestsList() {
             <button
               key={tab}
               type="button"
-              onClick={() => { setStatusFilter(tab); setPage(1); }}
+              onClick={() => {
+                setStatusFilter(tab);
+                setPage(1);
+              }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 statusFilter === tab
                   ? "bg-background text-foreground shadow-sm"
@@ -176,7 +197,9 @@ export default function HostingRequestsList() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={ar ? "بحث بالاسم أو رقم الطلب" : "Search by name or request ID"}
+            placeholder={
+              ar ? "بحث بالاسم أو رقم الطلب" : "Search by name or request ID"
+            }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -196,10 +219,16 @@ export default function HostingRequestsList() {
           ) : isError ? (
             <div className="p-12 text-center text-muted-foreground">
               <p className="font-medium text-foreground">
-                {ar ? "تعذر تحميل طلبات الاستضافة" : "Unable to load hosting requests"}
+                {ar
+                  ? "تعذر تحميل طلبات الاستضافة"
+                  : "Unable to load hosting requests"}
               </p>
               <p className="mt-2 text-sm">
-                {error instanceof Error ? error.message : ar ? "يرجى المحاولة مرة أخرى" : "Please try again later"}
+                {error instanceof Error
+                  ? error.message
+                  : ar
+                    ? "يرجى المحاولة مرة أخرى"
+                    : "Please try again later"}
               </p>
             </div>
           ) : !data?.data?.length ? (
@@ -211,25 +240,48 @@ export default function HostingRequestsList() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-medium text-muted-foreground">{ar ? "رقم الطلب" : "ID"}</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">{ar ? "الموظف" : "Employee"}</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">{ar ? "القسم" : "Dept"}</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">{ar ? "الحالة" : "Status"}</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">{ar ? "بانتظار" : "Pending On"}</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">{ar ? "التاريخ" : "Date"}</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">{ar ? "إجراءات" : "Actions"}</th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">
+                      {ar ? "رقم الطلب" : "ID"}
+                    </th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">
+                      {ar ? "الموظف" : "Employee"}
+                    </th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">
+                      {ar ? "القسم" : "Dept"}
+                    </th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">
+                      {ar ? "الحالة" : "Status"}
+                    </th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">
+                      {ar ? "بانتظار" : "Pending On"}
+                    </th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">
+                      {ar ? "التاريخ" : "Date"}
+                    </th>
+                    <th className="text-left p-3 font-medium text-muted-foreground">
+                      {ar ? "إجراءات" : "Actions"}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.data.map((request: any) => (
-                    <tr key={request.id} className="border-b hover:bg-muted/30 transition-colors">
-                      <td className="p-3 font-medium">{request.request_number}</td>
+                    <tr
+                      key={request.id}
+                      className="border-b hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="p-3 font-medium">
+                        {request.request_number}
+                      </td>
                       <td className="p-3">{request.employee_name}</td>
-                      <td className="p-3 text-muted-foreground">{request.department}</td>
+                      <td className="p-3 text-muted-foreground">
+                        {request.department}
+                      </td>
                       <td className="p-3">
                         <StatusBadge
                           label={getStatusLabel(request.status)}
-                          variant={statusBadgeVariant[request.status] ?? "muted"}
+                          variant={
+                            statusBadgeVariant[request.status] ?? "muted"
+                          }
                         />
                       </td>
                       <td className="p-3 text-muted-foreground">
@@ -243,7 +295,9 @@ export default function HostingRequestsList() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => setLocation(`/hosting-requests/${request.id}`)}
+                          onClick={() =>
+                            setLocation(`/hosting-requests/${request.id}`)
+                          }
                         >
                           {ar ? "عرض" : "View"}
                         </Button>

@@ -117,13 +117,15 @@ function PortalContactsSection() {
       return r.json();
     },
     onSuccess: () => {
-      toast.success(ar
+      toast.success(
+        ar
           ? editContact
             ? "تم التعديل"
             : "تمت الإضافة"
           : editContact
             ? "Contact updated"
-            : "Contact added");
+            : "Contact added",
+      );
       queryClient.invalidateQueries({
         queryKey: ["portal-contacts", activePropertyId],
       });
@@ -1203,8 +1205,7 @@ function ActivitiesSection() {
       setEditOpen(false);
       setEditForm(null);
     },
-    onError: () =>
-      toast.error(ar ? "خطأ في التحديث" : "Update failed"),
+    onError: () => toast.error(ar ? "خطأ في التحديث" : "Update failed"),
   });
 
   const deleteMutation = useMutation({
@@ -1873,19 +1874,20 @@ function PortalAccountsSection() {
       return r.json();
     },
     onSuccess: (_, vars) => {
-      toast.success(vars.isActive
+      toast.success(
+        vars.isActive
           ? ar
             ? "تم تفعيل البوابة"
             : "Portal access enabled"
           : ar
             ? "تم تعطيل البوابة"
-            : "Portal access disabled");
+            : "Portal access disabled",
+      );
       queryClient.invalidateQueries({
         queryKey: ["portal-accounts", activePropertyId],
       });
     },
-    onError: () =>
-      toast.error(ar ? "حدث خطأ" : "Error occurred"),
+    onError: () => toast.error(ar ? "حدث خطأ" : "Error occurred"),
   });
 
   const resetMutation = useMutation({
@@ -1899,12 +1901,13 @@ function PortalAccountsSection() {
       return r.json();
     },
     onSuccess: (data) => {
-      toast.success(ar
+      toast.success(
+        ar
           ? `تم إعادة تعيين كلمة المرور المؤقتة: ${data.temporaryPassword}`
-          : `Temp password: ${data.temporaryPassword}`);
+          : `Temp password: ${data.temporaryPassword}`,
+      );
     },
-    onError: () =>
-      toast.error(ar ? "حدث خطأ" : "Error occurred"),
+    onError: () => toast.error(ar ? "حدث خطأ" : "Error occurred"),
   });
 
   const filtered = (accounts || []).filter(

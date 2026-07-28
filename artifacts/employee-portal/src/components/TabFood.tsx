@@ -122,10 +122,7 @@ export default function TabFood() {
         </h2>
       </div>
 
-      <div className="flex gap-1 bg-surface rounded-xl p-1 border border-border2">
-        
-        
-      </div>
+      <div className="flex gap-1 bg-surface rounded-xl p-1 border border-border2"></div>
 
       {status === "success" && (
         <div className="flex items-center gap-2 p-3 bg-green-400/10 border border-green-400/20 rounded-xl text-green-400 text-[12px]">
@@ -202,7 +199,6 @@ export default function TabFood() {
                 <h3 className="text-sm font-bold text-foreground">
                   {isRtl ? "تأكيد الطلب" : "Confirm Order"}
                 </h3>
-                
               </div>
               <div className="text-[12px] text-muted2">
                 <span className="font-bold text-foreground">

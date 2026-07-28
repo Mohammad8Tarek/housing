@@ -173,14 +173,12 @@ router.post(
     });
 
     if (result.error) {
-      res
-        .status(result.status)
-        .json({
-          error: result.error,
-          code: result.code,
-          existingAssignmentId: result.existingAssignmentId,
-          existingRoomId: result.existingRoomId,
-        });
+      res.status(result.status).json({
+        error: result.error,
+        code: result.code,
+        existingAssignmentId: result.existingAssignmentId,
+        existingRoomId: result.existingRoomId,
+      });
       return;
     }
 
@@ -210,14 +208,12 @@ router.post(
     });
     broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
 
-    res
-      .status(201)
-      .json(
-        GetAssignmentResponse.parse({
-          ...fmtAssignment(result.assignment!),
-          propertyId,
-        }),
-      );
+    res.status(201).json(
+      GetAssignmentResponse.parse({
+        ...fmtAssignment(result.assignment!),
+        propertyId,
+      }),
+    );
   },
 );
 

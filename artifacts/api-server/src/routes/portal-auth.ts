@@ -55,7 +55,10 @@ export async function requirePortalAuth(req: any, res: any, next: any) {
     };
 
     if (!xSid) {
-      console.warn("[portal-auth] 401 — no portal session, no X-Session-Id", debugInfo);
+      console.warn(
+        "[portal-auth] 401 — no portal session, no X-Session-Id",
+        debugInfo,
+      );
       res.status(401).json({ success: false, message: "Not authenticated" });
       return;
     }
@@ -102,9 +105,10 @@ async function checkEmployeeIsActive(req: any, res: any, next: any) {
 
     if (!emp || emp.status?.toUpperCase() !== "ACTIVE") {
       req.session.destroy(() => {});
-      res
-        .status(403)
-        .json({ success: false, message: "ليس لديك صلاحية الدخول إلى البوابة" });
+      res.status(403).json({
+        success: false,
+        message: "ليس لديك صلاحية الدخول إلى البوابة",
+      });
       return;
     }
   } catch {
@@ -124,12 +128,10 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
   try {
     const parsed = LoginSchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: "employeeId and password are required",
-        });
+      res.status(400).json({
+        success: false,
+        message: "employeeId and password are required",
+      });
       return;
     }
 
@@ -153,12 +155,17 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
             const [acc] = await tenantDb
               .select()
               .from(employeePortalAccountsTable)
-              .where(eq(employeePortalAccountsTable.employeeId, employeeId.trim()))
+              .where(
+                eq(employeePortalAccountsTable.employeeId, employeeId.trim()),
+              )
               .limit(1);
             return { emp, acc, propertyId: p.id };
           });
         } catch (error: any) {
-          console.warn(`[Portal Login] Skipping property ${p.id} due to error:`, error.message);
+          console.warn(
+            `[Portal Login] Skipping property ${p.id} due to error:`,
+            error.message,
+          );
           return null;
         }
       }),
@@ -192,19 +199,18 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
 
     // Block non-active employees (e.g. SUSPENDED, DEPARTED, INACTIVE)
     if (employee.status?.toUpperCase() !== "ACTIVE") {
-      res
-        .status(403)
-        .json({ success: false, message: "ليس لديك صلاحية الدخول إلى البوابة" });
+      res.status(403).json({
+        success: false,
+        message: "ليس لديك صلاحية الدخول إلى البوابة",
+      });
       return;
     }
 
     if (!account || !account.isActive) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          message: "Portal access not enabled for this employee",
-        });
+      res.status(401).json({
+        success: false,
+        message: "Portal access not enabled for this employee",
+      });
       return;
     }
 
@@ -212,40 +218,42 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       const minutes = Math.ceil(
         (account.lockedUntil.getTime() - Date.now()) / 60000,
       );
-      res
-        .status(429)
-        .json({
-          success: false,
-          message: `Account locked. Try again in ${minutes} minute(s).`,
-        });
+      res.status(429).json({
+        success: false,
+        message: `Account locked. Try again in ${minutes} minute(s).`,
+      });
       return;
     }
 
     const valid = await bcrypt.compare(password, account.passwordHash);
     if (!valid) {
       // Atomic SQL increment to prevent race-condition undercounting on parallel failed logins
-      const [updatedAcc] = await withTenant(targetPropertyId!, async (tenantDb) => {
-        await tenantDb
-          .update(employeePortalAccountsTable)
-          .set({
-            failedAttempts: sql`${employeePortalAccountsTable.failedAttempts} + 1`,
-            lockedUntil: sql`CASE
+      const [updatedAcc] = await withTenant(
+        targetPropertyId!,
+        async (tenantDb) => {
+          await tenantDb
+            .update(employeePortalAccountsTable)
+            .set({
+              failedAttempts: sql`${employeePortalAccountsTable.failedAttempts} + 1`,
+              lockedUntil: sql`CASE
               WHEN ${employeePortalAccountsTable.failedAttempts} + 1 >= ${MAX_FAILED}
               THEN NOW() + INTERVAL '1 minute' * ${LOCK_MINUTES}
               ELSE NULL
             END`,
-            updatedAt: new Date(),
-          })
-          .where(eq(employeePortalAccountsTable.id, account.id));
+              updatedAt: new Date(),
+            })
+            .where(eq(employeePortalAccountsTable.id, account.id));
 
-        return tenantDb
-          .select()
-          .from(employeePortalAccountsTable)
-          .where(eq(employeePortalAccountsTable.id, account.id))
-          .limit(1);
-      });
+          return tenantDb
+            .select()
+            .from(employeePortalAccountsTable)
+            .where(eq(employeePortalAccountsTable.id, account.id))
+            .limit(1);
+        },
+      );
 
-      const isLocked = updatedAcc.lockedUntil && new Date(updatedAcc.lockedUntil) > new Date();
+      const isLocked =
+        updatedAcc.lockedUntil && new Date(updatedAcc.lockedUntil) > new Date();
 
       await logActivity({
         req,
@@ -260,14 +268,12 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
         severity: "warning",
       });
 
-      res
-        .status(401)
-        .json({
-          success: false,
-          message: isLocked
-            ? `Too many failed attempts. Account locked for ${LOCK_MINUTES} minutes.`
-            : "Invalid employee ID or password",
-        });
+      res.status(401).json({
+        success: false,
+        message: isLocked
+          ? `Too many failed attempts. Account locked for ${LOCK_MINUTES} minutes.`
+          : "Invalid employee ID or password",
+      });
       return;
     }
 
@@ -294,43 +300,47 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       entityType: "employee",
       entityId: employee.id,
     });
-  req.session.regenerate((err: any) => {
-    if (err) {
-      res.status(500).json({ success: false, message: "Session error" });
-      return;
-    }
-
-    (req.session as any).portal = {
-      employeeDbId: employee.id,
-      employeeId: employee.employeeId,
-      propertyId: targetPropertyId,
-      fullName: `${employee.firstName} ${employee.lastName}`,
-    };
-
-    req.session.save((saveErr: any) => {
-      if (saveErr) {
-        res.status(500).json({ success: false, message: "Session save error" });
+    req.session.regenerate((err: any) => {
+      if (err) {
+        res.status(500).json({ success: false, message: "Session error" });
         return;
       }
 
-      res.json({
-        success: true,
-        sessionId: req.sessionID,
-        mustChangePassword: account.mustChangePassword,
-        employee: {
-          id: employee.id,
-          employeeId: employee.employeeId,
-          fullName: `${employee.firstName} ${employee.lastName}`,
-          jobTitle: employee.jobTitle,
-          department: employee.department,
-          propertyId: targetPropertyId,
-        },
+      (req.session as any).portal = {
+        employeeDbId: employee.id,
+        employeeId: employee.employeeId,
+        propertyId: targetPropertyId,
+        fullName: `${employee.firstName} ${employee.lastName}`,
+      };
+
+      req.session.save((saveErr: any) => {
+        if (saveErr) {
+          res
+            .status(500)
+            .json({ success: false, message: "Session save error" });
+          return;
+        }
+
+        res.json({
+          success: true,
+          sessionId: req.sessionID,
+          mustChangePassword: account.mustChangePassword,
+          employee: {
+            id: employee.id,
+            employeeId: employee.employeeId,
+            fullName: `${employee.firstName} ${employee.lastName}`,
+            jobTitle: employee.jobTitle,
+            department: employee.department,
+            propertyId: targetPropertyId,
+          },
+        });
       });
     });
-  });
   } catch (error: any) {
     console.error("Portal login error:", error);
-    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
+    res
+      .status(500)
+      .json({ success: false, message: `Server error: ${error.message}` });
   }
 });
 
@@ -410,9 +420,10 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
     // Block if employee was suspended/departed after login
     if (result.employee.status?.toUpperCase() !== "ACTIVE") {
       req.session.destroy(() => {});
-      res
-        .status(403)
-        .json({ success: false, message: "ليس لديك صلاحية الدخول إلى البوابة" });
+      res.status(403).json({
+        success: false,
+        message: "ليس لديك صلاحية الدخول إلى البوابة",
+      });
       return;
     }
 
@@ -439,7 +450,9 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
     });
   } catch (error: any) {
     console.error("Portal /me error:", error);
-    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
+    res
+      .status(500)
+      .json({ success: false, message: `Server error: ${error.message}` });
   }
 });
 
@@ -462,12 +475,10 @@ router.post(
     const parsed = ChangePasswordSchema.safeParse(req.body);
 
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: parsed.error.errors[0]?.message ?? "Invalid input",
-        });
+      res.status(400).json({
+        success: false,
+        message: parsed.error.errors[0]?.message ?? "Invalid input",
+      });
       return;
     }
 
@@ -549,12 +560,10 @@ router.post(
       .object({ newPassword: z.string().min(6) })
       .safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: parsed.error.errors[0]?.message || "Invalid input",
-        });
+      res.status(400).json({
+        success: false,
+        message: parsed.error.errors[0]?.message || "Invalid input",
+      });
       return;
     }
     const { newPassword } = parsed.data;
@@ -633,7 +642,9 @@ router.post("/logout", async (req, res): Promise<void> => {
         entityType: "employee",
         entityId: sess.employeeDbId,
       });
-    } catch { /* log failure is non-critical */ }
+    } catch {
+      /* log failure is non-critical */
+    }
   }
   req.session.destroy(() => {
     // Clear the correct session cookie name (app.ts:308 sets `name: "sunrise.sid"`)
@@ -676,13 +687,11 @@ router.post(
       const temporaryHash = await bcrypt.hash(temporaryPassword, 12);
 
       if (!account) {
-        await tenantDb
-          .insert(employeePortalAccountsTable)
-          .values({
-            employeeId,
-            passwordHash: temporaryHash,
-            mustChangePassword: true,
-          } as any);
+        await tenantDb.insert(employeePortalAccountsTable).values({
+          employeeId,
+          passwordHash: temporaryHash,
+          mustChangePassword: true,
+        } as any);
       } else {
         await tenantDb
           .update(employeePortalAccountsTable)
@@ -761,17 +770,15 @@ router.post(
       const newHash = await bcrypt.hash(newPassword, 12);
 
       if (!account) {
-        await tenantDb
-          .insert(employeePortalAccountsTable)
-          .values({
-            employeeId,
-            passwordHash: newHash,
-            mustChangePassword: false,
-            isActive: true,
-            failedAttempts: 0,
-            lockedUntil: null,
-            passwordChangedAt: new Date(),
-          } as any);
+        await tenantDb.insert(employeePortalAccountsTable).values({
+          employeeId,
+          passwordHash: newHash,
+          mustChangePassword: false,
+          isActive: true,
+          failedAttempts: 0,
+          lockedUntil: null,
+          passwordChangedAt: new Date(),
+        } as any);
       } else {
         await tenantDb
           .update(employeePortalAccountsTable)

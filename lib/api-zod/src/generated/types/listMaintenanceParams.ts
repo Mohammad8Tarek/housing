@@ -7,7 +7,7 @@
  */
 
 export type ListMaintenanceParams = {
-propertyId?: number;
-status?: string;
-priority?: string;
+  propertyId?: number;
+  status?: string;
+  priority?: string;
 };

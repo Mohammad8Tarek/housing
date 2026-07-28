@@ -7,5 +7,5 @@
  */
 
 export type GetSettingsParams = {
-propertyId?: number;
+  propertyId?: number;
 };

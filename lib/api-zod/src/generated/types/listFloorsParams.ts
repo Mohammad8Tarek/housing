@@ -7,6 +7,6 @@
  */
 
 export type ListFloorsParams = {
-buildingId?: number;
-propertyId?: number;
+  buildingId?: number;
+  propertyId?: number;
 };

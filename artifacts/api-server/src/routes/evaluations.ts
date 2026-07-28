@@ -133,12 +133,10 @@ router.post(
 
       const parsed = CreateEvaluationSchema.safeParse(req.body);
       if (!parsed.success)
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: parsed.error.errors[0]?.message ?? "Invalid input",
-          });
+        return res.status(400).json({
+          success: false,
+          message: parsed.error.errors[0]?.message ?? "Invalid input",
+        });
 
       const { items, ...templateData } = parsed.data;
       if (!templateData.titleAr && !templateData.titleEn) {
@@ -197,13 +195,11 @@ router.post(
       );
 
       if (!result) {
-        return res
-          .status(503)
-          .json({
-            success: false,
-            message:
-              "هذه الميزة غير متاحة بعد / This feature is not available yet",
-          });
+        return res.status(503).json({
+          success: false,
+          message:
+            "هذه الميزة غير متاحة بعد / This feature is not available yet",
+        });
       }
 
       broadcastToProperty(propertyId, {
@@ -258,12 +254,10 @@ router.put(
 
       const parsed = UpdateItemsSchema.safeParse(req.body);
       if (!parsed.success)
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: parsed.error.errors[0]?.message ?? "Invalid input",
-          });
+        return res.status(400).json({
+          success: false,
+          message: parsed.error.errors[0]?.message ?? "Invalid input",
+        });
 
       await withTenant(propertyId, async (tenantDb) => {
         // Delete existing items and re-insert

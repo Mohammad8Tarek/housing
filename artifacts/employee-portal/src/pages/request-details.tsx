@@ -106,9 +106,7 @@ export default function RequestDetails() {
   if (!requestId) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <div className="flex items-center gap-3 mb-6">
-          
-        </div>
+        <div className="flex items-center gap-3 mb-6"></div>
         <div className="bg-card border border-border2 rounded-3xl p-8 text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3 opacity-50" />
           <p className="text-muted2">
@@ -122,9 +120,7 @@ export default function RequestDetails() {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <div className="flex items-center gap-3 mb-6">
-          
-        </div>
+        <div className="flex items-center gap-3 mb-6"></div>
         <div className="bg-card border border-border2 rounded-3xl p-10 flex items-center justify-center">
           <Loader2 className="w-6 h-6 text-accent2 animate-spin" />
         </div>
@@ -135,9 +131,7 @@ export default function RequestDetails() {
   if (!request) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <div className="flex items-center gap-3 mb-6">
-          
-        </div>
+        <div className="flex items-center gap-3 mb-6"></div>
         <div className="bg-card border border-border2 rounded-3xl p-8 text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3 opacity-50" />
           <p className="text-muted2">
@@ -162,7 +156,6 @@ export default function RequestDetails() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          
           <h1 className="text-2xl font-bold text-foreground capitalize">
             {request.problemType.replace(/_/g, " ")}
           </h1>
@@ -185,7 +178,6 @@ export default function RequestDetails() {
                   alt=""
                   className="w-full h-96 object-cover"
                 />
-                
               </div>
             </div>
           )}
@@ -261,7 +253,6 @@ export default function RequestDetails() {
 
       {selectedImage && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
-          
           <div className="max-w-4xl w-full">
             <img
               src={selectedImage}

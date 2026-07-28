@@ -33,14 +33,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-  useCreateFloor, 
-  useUpdateFloor, 
-  useDeleteFloor 
+import {
+  useCreateFloor,
+  useUpdateFloor,
+  useDeleteFloor,
 } from "@workspace/api-client-react";
 
 type Props = {
-  
   buildings: any[];
   floors: any[];
   rooms: any[];
@@ -56,7 +55,6 @@ export function FloorsTab({
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
-
 
   const createFloorMut = useCreateFloor();
   const updateFloorMut = useUpdateFloor();
@@ -101,9 +99,11 @@ export function FloorsTab({
 
   const saveFloorHandler = async () => {
     if (!fForm.buildingId || !fForm.floorNumber.trim()) {
-      toast.error(ar
+      toast.error(
+        ar
           ? "المبنى ورقم الطابق مطلوبان"
-          : "Building and floor number are required");
+          : "Building and floor number are required",
+      );
       return;
     }
 
@@ -147,9 +147,7 @@ export function FloorsTab({
             onValueChange={setFloorBuildingFilter}
           >
             <SelectTrigger className="w-[200px]">
-              <SelectValue
-                placeholder={ar ? "كل المباني" : "All Buildings"}
-              />
+              <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
@@ -168,8 +166,7 @@ export function FloorsTab({
         </div>
         <PermissionGate module="housing" action="create">
           <Button onClick={openCreateFloor} size="sm">
-            <Plus className="w-4 h-4 mr-1" />{" "}
-            {ar ? "إضافة طابق" : "Add Floor"}
+            <Plus className="w-4 h-4 mr-1" /> {ar ? "إضافة طابق" : "Add Floor"}
           </Button>
         </PermissionGate>
       </div>
@@ -201,9 +198,7 @@ export function FloorsTab({
             </thead>
             <tbody className="divide-y">
               {filteredFloors.map((f) => {
-                const building = buildings.find(
-                  (b) => b.id === f.buildingId,
-                );
+                const building = buildings.find((b) => b.id === f.buildingId);
                 const fRooms = rooms.filter((r) => r.floorId === f.id);
                 return (
                   <tr

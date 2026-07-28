@@ -122,7 +122,7 @@ export default function Properties() {
       },
       onError: (e: any) =>
         toast.error(ar ? "خطأ" : "Error", {
-          description: e.message
+          description: e.message,
         }),
     },
   });
@@ -136,7 +136,7 @@ export default function Properties() {
       },
       onError: (e: any) =>
         toast.error(ar ? "خطأ" : "Error", {
-          description: e.message
+          description: e.message,
         }),
     },
   });
@@ -200,9 +200,11 @@ export default function Properties() {
         return;
       }
       if (!form.adminPassword.trim() || form.adminPassword.length < 6) {
-        toast.error(ar
+        toast.error(
+          ar
             ? "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل"
-            : "Password must be at least 6 characters");
+            : "Password must be at least 6 characters",
+        );
         return;
       }
     }
@@ -528,7 +530,9 @@ export default function Properties() {
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Building2 className="w-8 h-8 opacity-30" />
                       <p className="font-medium">
-                        {ar ? "لم يتم العثور على عقارات" : "No properties found"}
+                        {ar
+                          ? "لم يتم العثور على عقارات"
+                          : "No properties found"}
                       </p>
                     </div>
                   </TableCell>
@@ -715,9 +719,11 @@ export default function Properties() {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     if (file.size > 2 * 1024 * 1024) {
-                      toast.error(ar
+                      toast.error(
+                        ar
                           ? "الملف كبير جداً (الحد الأقصى 2 ميغابايت)"
-                          : "File too large (max 2MB)");
+                          : "File too large (max 2MB)",
+                      );
                       return;
                     }
                     const reader = new FileReader();
@@ -970,13 +976,16 @@ export default function Properties() {
 
       <AnimatedConfirmModal
         open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog(prev => ({...prev, open}))}
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
         title={ar ? "حذف العقار؟" : "Delete Property?"}
-        description={ar ? "هل أنت متأكد أنك تريد حذف هذا العقار؟" : "Are you sure you want to delete this property?"}
+        description={
+          ar
+            ? "هل أنت متأكد أنك تريد حذف هذا العقار؟"
+            : "Are you sure you want to delete this property?"
+        }
         variant="destructive"
         onConfirm={() => deleteMutation.mutate({ id: deleteDialog.id })}
       />
     </div>
   );
 }
-

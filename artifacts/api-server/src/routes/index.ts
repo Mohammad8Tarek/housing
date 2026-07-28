@@ -1,8 +1,5 @@
 import { Router, type IRouter } from "express";
-import {
-  loginRateLimit,
-  portalRateLimit,
-} from "../middlewares/rate-limit.js";
+import { loginRateLimit, portalRateLimit } from "../middlewares/rate-limit.js";
 
 import healthRouter from "./health";
 import authRouter from "./auth";

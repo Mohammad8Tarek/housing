@@ -30,7 +30,10 @@ export const buildingStatusBadge = (status: string) => {
     : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
 };
 
-export function makeDefaultFloor(index: number, prevFloor?: FloorConfig): FloorConfig {
+export function makeDefaultFloor(
+  index: number,
+  prevFloor?: FloorConfig,
+): FloorConfig {
   return {
     floorNumber: String(index + 1),
     roomsCount: prevFloor?.roomsCount ?? 10,

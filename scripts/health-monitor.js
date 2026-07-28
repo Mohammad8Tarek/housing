@@ -2,21 +2,24 @@
 
 /**
  * 🚀 Health Monitor Service for Sunrise Housing
- * 
+ *
  * Monitors:
  * - Server availability
  * - Response times
  * - Memory usage
  * - Database connection pool
- * 
+ *
  * Alerts on issues
  */
 
-const http = require('http');
+const http = require("http");
 
-const API_URL = process.env.API_URL || 'http://localhost:5000';
-const CHECK_INTERVAL_MS = parseInt(process.env.CHECK_INTERVAL_MS || '30000', 10);
-const HEALTH_CHECK_ENDPOINT = '/api/health';
+const API_URL = process.env.API_URL || "http://localhost:5000";
+const CHECK_INTERVAL_MS = parseInt(
+  process.env.CHECK_INTERVAL_MS || "30000",
+  10,
+);
+const HEALTH_CHECK_ENDPOINT = "/api/health";
 
 let lastCheck = null;
 let consecutiveFailures = 0;
@@ -24,13 +27,15 @@ const MAX_CONSECUTIVE_FAILURES = 3;
 
 function log(level, message, data = {}) {
   const timestamp = new Date().toISOString();
-  console.log(JSON.stringify({
-    timestamp,
-    level,
-    service: 'health-monitor',
-    message,
-    ...data,
-  }));
+  console.log(
+    JSON.stringify({
+      timestamp,
+      level,
+      service: "health-monitor",
+      message,
+      ...data,
+    }),
+  );
 }
 
 async function checkHealth() {
@@ -41,25 +46,25 @@ async function checkHealth() {
       hostname: new URL(API_URL).hostname,
       port: new URL(API_URL).port,
       path: HEALTH_CHECK_ENDPOINT,
-      method: 'GET',
+      method: "GET",
       timeout: 5000,
     };
 
     const req = http.request(options, (res) => {
-      let data = '';
+      let data = "";
 
-      res.on('data', (chunk) => {
+      res.on("data", (chunk) => {
         data += chunk;
       });
 
-      res.on('end', () => {
+      res.on("end", () => {
         const duration = Date.now() - startTime;
         const statusCode = res.statusCode;
 
         try {
           const body = JSON.parse(data);
           resolve({
-            success: statusCode === 200 && body.status === 'ok',
+            success: statusCode === 200 && body.status === "ok",
             statusCode,
             duration,
             body,
@@ -75,7 +80,7 @@ async function checkHealth() {
       });
     });
 
-    req.on('error', (err) => {
+    req.on("error", (err) => {
       resolve({
         success: false,
         statusCode: 0,
@@ -84,13 +89,13 @@ async function checkHealth() {
       });
     });
 
-    req.on('timeout', () => {
+    req.on("timeout", () => {
       req.destroy();
       resolve({
         success: false,
         statusCode: 0,
         duration: Date.now() - startTime,
-        error: 'Timeout',
+        error: "Timeout",
       });
     });
 
@@ -103,21 +108,25 @@ async function monitorHealth() {
 
   if (result.success) {
     consecutiveFailures = 0;
-    log('info', '✅ Health check passed', {
+    log("info", "✅ Health check passed", {
       duration: result.duration,
       pool: result.body?.pool,
       memory: result.body?.memory,
     });
   } else {
     consecutiveFailures++;
-    log('warn', `❌ Health check failed (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES})`, {
-      statusCode: result.statusCode,
-      duration: result.duration,
-      error: result.error,
-    });
+    log(
+      "warn",
+      `❌ Health check failed (${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES})`,
+      {
+        statusCode: result.statusCode,
+        duration: result.duration,
+        error: result.error,
+      },
+    );
 
     if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-      log('error', '🚨 Server is DOWN - Multiple consecutive failures', {
+      log("error", "🚨 Server is DOWN - Multiple consecutive failures", {
         failures: consecutiveFailures,
         lastError: result.error,
       });
@@ -130,7 +139,7 @@ async function monitorHealth() {
 }
 
 // Start monitoring
-log('info', 'Health monitor started', {
+log("info", "Health monitor started", {
   apiUrl: API_URL,
   checkInterval: CHECK_INTERVAL_MS,
   endpoint: HEALTH_CHECK_ENDPOINT,
@@ -145,12 +154,12 @@ setInterval(() => {
 }, CHECK_INTERVAL_MS);
 
 // Graceful shutdown
-process.on('SIGINT', () => {
-  log('info', 'Health monitor shutting down');
+process.on("SIGINT", () => {
+  log("info", "Health monitor shutting down");
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
-  log('info', 'Health monitor terminating');
+process.on("SIGTERM", () => {
+  log("info", "Health monitor terminating");
   process.exit(0);
 });

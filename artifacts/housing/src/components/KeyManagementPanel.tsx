@@ -219,7 +219,6 @@ export default function KeyManagementPanel({
     );
   };
 
-
   const showProgressBox =
     isIssuing ||
     issuePhase === "done" ||
@@ -405,14 +404,18 @@ export default function KeyManagementPanel({
             <Checkbox
               id="duplicateKey"
               checked={isDuplicateKey}
-              onCheckedChange={(checked) => setIsDuplicateKey(checked as boolean)}
+              onCheckedChange={(checked) =>
+                setIsDuplicateKey(checked as boolean)
+              }
               disabled={isIssuing}
             />
             <label
               htmlFor="duplicateKey"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700"
             >
-              {ar ? "إصدار كنسخة إضافية (Duplicate Key)" : "Issue as Duplicate Key"}
+              {ar
+                ? "إصدار كنسخة إضافية (Duplicate Key)"
+                : "Issue as Duplicate Key"}
             </label>
           </div>
 
@@ -501,8 +504,6 @@ export default function KeyManagementPanel({
             </div>
           )}
         </div>
-
-
       </CardContent>
     </Card>
   );

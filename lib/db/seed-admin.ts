@@ -25,7 +25,9 @@ async function seedAdmin() {
     status: "active",
   });
 
-  console.log("Admin user created successfully! Username: admin | Password: admin123");
+  console.log(
+    "Admin user created successfully! Username: admin | Password: admin123",
+  );
   process.exit(0);
 }
 

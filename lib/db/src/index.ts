@@ -10,10 +10,10 @@
  *    (the hard error is in index.ts where it can give a better message)
  */
 
-import { drizzle }   from "drizzle-orm/node-postgres";
-import { sql }       from "drizzle-orm";
-import pg            from "pg";
-import * as schema   from "./schema/index.js";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { sql } from "drizzle-orm";
+import pg from "pg";
+import * as schema from "./schema/index.js";
 
 const { Pool } = pg;
 
@@ -21,7 +21,7 @@ const { Pool } = pg;
 // In ESM, modules are cached, but during hot-reload dev tools may re-import.
 // We store the pool on globalThis to guarantee exactly one Pool instance.
 const POOL_KEY = Symbol.for("__sunrise_pg_pool__");
-const DB_KEY   = Symbol.for("__sunrise_drizzle__");
+const DB_KEY = Symbol.for("__sunrise_drizzle__");
 
 declare global {
   var __sunrise_pg_pool__: pg.Pool | undefined;
@@ -33,8 +33,8 @@ function getDatabaseUrl(): string {
   if (url) return url;
   throw new Error(
     "[DB] DATABASE_URL environment variable is required.\n" +
-    "  Create a .env file in the project root with:\n" +
-    "  DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/staff-housing"
+      "  Create a .env file in the project root with:\n" +
+      "  DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/staff-housing",
   );
 }
 
@@ -43,14 +43,14 @@ const DATABASE_URL = getDatabaseUrl();
 // ─── Create pool (singleton) ───────────────────────────────────────────────
 if (!globalThis.__sunrise_pg_pool__) {
   globalThis.__sunrise_pg_pool__ = new Pool({
-    connectionString:        DATABASE_URL,
-    max:                     50,       // 🚀 OPTIMIZATION: Increased from 20 to handle 1000+ concurrent users
-    min:                     10,       // Maintain minimum connections ready
-    idleTimeoutMillis:    30_000,     // release idle connections after 30s
-    connectionTimeoutMillis: 10_000,  // fail after 10s if DB unreachable
-    allowExitOnIdle:         false,
-    statement_timeout:    30_000,     // Kill long-running queries after 30s
-    query_timeout:        30_000,
+    connectionString: DATABASE_URL,
+    max: 50, // 🚀 OPTIMIZATION: Increased from 20 to handle 1000+ concurrent users
+    min: 10, // Maintain minimum connections ready
+    idleTimeoutMillis: 30_000, // release idle connections after 30s
+    connectionTimeoutMillis: 10_000, // fail after 10s if DB unreachable
+    allowExitOnIdle: false,
+    statement_timeout: 30_000, // Kill long-running queries after 30s
+    query_timeout: 30_000,
   });
 
   globalThis.__sunrise_pg_pool__.on("error", (err) => {
@@ -128,7 +128,7 @@ async function shutdownPool(signal: string): Promise<void> {
 if (!(globalThis as any).__sunrise_pool_shutdown_registered__) {
   (globalThis as any).__sunrise_pool_shutdown_registered__ = true;
   process.once("SIGTERM", () => shutdownPool("SIGTERM"));
-  process.once("SIGINT",  () => shutdownPool("SIGINT"));
+  process.once("SIGINT", () => shutdownPool("SIGINT"));
 }
 
 // ─── Multi-Tenant Manager ──────────────────────────────────────────────────
@@ -150,7 +150,7 @@ export function invalidateSchemaCache(propertyId?: number): void {
  */
 export async function withTenant<T>(
   propertyId: number | string,
-  callback: (tenantDb: typeof db) => Promise<T>
+  callback: (tenantDb: typeof db) => Promise<T>,
 ): Promise<T> {
   const pId = Number(propertyId);
   if (!Number.isInteger(pId) || pId <= 0) {
@@ -160,7 +160,10 @@ export async function withTenant<T>(
 
   // إذا لم يكن اسم السكيما في الكاش، نجلبه من قاعدة البيانات ونحفظه
   if (!schemaName) {
-    const res = await pool.query("SELECT schema_name FROM public.properties WHERE id = $1", [pId]);
+    const res = await pool.query(
+      "SELECT schema_name FROM public.properties WHERE id = $1",
+      [pId],
+    );
     if (res.rows[0]?.schema_name) {
       schemaName = String(res.rows[0].schema_name);
       schemaCache.set(pId, schemaName);
@@ -173,8 +176,10 @@ export async function withTenant<T>(
   // باستخدام transaction، نضمن أن التعديل على search_path مؤقت وينتهي بانتهاء المعاملة
   return await db.transaction(async (tx) => {
     // إعداد مسار البحث (Search Path) ليقرأ ويكتب في سكيما الـ Property أولاً، ثم الـ public
-    await tx.execute(sql`SET LOCAL search_path TO ${sql.identifier(schemaName as string)}, public`);
-    
+    await tx.execute(
+      sql`SET LOCAL search_path TO ${sql.identifier(schemaName as string)}, public`,
+    );
+
     // تنفيذ الـ Callback وتمرير الـ Transaction وكأنه الـ db الأساسي
     // الـ Type assertion ضروري هنا لأن tx تتصرف كنسخة من الـ db لكن ضمن context
     return await callback(tx as unknown as typeof db);

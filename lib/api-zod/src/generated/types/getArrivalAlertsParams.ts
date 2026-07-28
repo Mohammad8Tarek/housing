@@ -7,6 +7,6 @@
  */
 
 export type GetArrivalAlertsParams = {
-propertyId?: number;
-threshold?: number;
+  propertyId?: number;
+  threshold?: number;
 };

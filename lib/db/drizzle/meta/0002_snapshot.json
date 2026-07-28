@@ -80,9 +80,7 @@
         "properties_code_unique": {
           "name": "properties_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -221,12 +219,8 @@
           "name": "users_property_id_properties_id_fk",
           "tableFrom": "users",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -236,9 +230,7 @@
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         }
       },
       "policies": {},
@@ -341,12 +333,8 @@
           "name": "floors_building_id_buildings_id_fk",
           "tableFrom": "floors",
           "tableTo": "buildings",
-          "columnsFrom": [
-            "building_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["building_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -433,12 +421,8 @@
           "name": "rooms_building_id_buildings_id_fk",
           "tableFrom": "rooms",
           "tableTo": "buildings",
-          "columnsFrom": [
-            "building_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["building_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -446,12 +430,8 @@
           "name": "rooms_floor_id_floors_id_fk",
           "tableFrom": "rooms",
           "tableTo": "floors",
-          "columnsFrom": [
-            "floor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["floor_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -674,12 +654,8 @@
           "name": "assignments_employee_id_employees_id_fk",
           "tableFrom": "assignments",
           "tableTo": "employees",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -687,12 +663,8 @@
           "name": "assignments_room_id_rooms_id_fk",
           "tableFrom": "assignments",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "room_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["room_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -805,12 +777,8 @@
           "name": "reservations_room_id_rooms_id_fk",
           "tableFrom": "reservations",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "room_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["room_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -921,12 +889,8 @@
           "name": "hostings_employee_id_employees_id_fk",
           "tableFrom": "hostings",
           "tableTo": "employees",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -934,12 +898,8 @@
           "name": "hostings_room_id_rooms_id_fk",
           "tableFrom": "hostings",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "room_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["room_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1069,12 +1029,8 @@
           "name": "maintenance_parent_id_maintenance_id_fk",
           "tableFrom": "maintenance",
           "tableTo": "maintenance",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1082,12 +1038,8 @@
           "name": "maintenance_room_id_rooms_id_fk",
           "tableFrom": "maintenance",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "room_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["room_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1095,12 +1047,8 @@
           "name": "maintenance_assigned_to_employees_id_fk",
           "tableFrom": "maintenance",
           "tableTo": "employees",
-          "columnsFrom": [
-            "assigned_to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_to"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1518,12 +1466,8 @@
           "name": "hosting_companions_hosting_id_hostings_id_fk",
           "tableFrom": "hosting_companions",
           "tableTo": "hostings",
-          "columnsFrom": [
-            "hosting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hosting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2515,12 +2459,8 @@
           "name": "survey_item_responses_template_id_evaluations_id_fk",
           "tableFrom": "survey_item_responses",
           "tableTo": "evaluations",
-          "columnsFrom": [
-            "template_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["template_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2528,12 +2468,8 @@
           "name": "survey_item_responses_item_id_survey_items_id_fk",
           "tableFrom": "survey_item_responses",
           "tableTo": "survey_items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2607,12 +2543,8 @@
           "name": "survey_items_template_id_evaluations_id_fk",
           "tableFrom": "survey_items",
           "tableTo": "evaluations",
-          "columnsFrom": [
-            "template_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["template_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2689,12 +2621,8 @@
           "name": "key_audit_log_key_id_room_keys_id_fk",
           "tableFrom": "key_audit_log",
           "tableTo": "room_keys",
-          "columnsFrom": [
-            "key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["key_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2809,12 +2737,8 @@
           "name": "room_keys_assignment_id_assignments_id_fk",
           "tableFrom": "room_keys",
           "tableTo": "assignments",
-          "columnsFrom": [
-            "assignment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assignment_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2822,12 +2746,8 @@
           "name": "room_keys_room_id_rooms_id_fk",
           "tableFrom": "room_keys",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "room_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["room_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2835,12 +2755,8 @@
           "name": "room_keys_lock_id_room_locks_id_fk",
           "tableFrom": "room_keys",
           "tableTo": "room_locks",
-          "columnsFrom": [
-            "lock_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lock_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2848,12 +2764,8 @@
           "name": "room_keys_employee_id_employees_id_fk",
           "tableFrom": "room_keys",
           "tableTo": "employees",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2920,12 +2832,8 @@
           "name": "room_locks_room_id_rooms_id_fk",
           "tableFrom": "room_locks",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "room_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["room_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3081,12 +2989,8 @@
           "name": "property_hotek_encoders_property_id_properties_id_fk",
           "tableFrom": "property_hotek_encoders",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3094,12 +2998,8 @@
           "name": "property_hotek_encoders_server_id_property_hotek_servers_id_fk",
           "tableFrom": "property_hotek_encoders",
           "tableTo": "property_hotek_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3254,12 +3154,8 @@
           "name": "property_hotek_servers_property_id_properties_id_fk",
           "tableFrom": "property_hotek_servers",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3910,12 +3806,8 @@
           "name": "user_signatures_user_id_users_id_fk",
           "tableFrom": "user_signatures",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3925,9 +3817,7 @@
         "user_signatures_user_id_unique": {
           "name": "user_signatures_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       },
       "policies": {},
@@ -4038,12 +3928,8 @@
           "name": "family_visit_approval_steps_request_id_family_visit_requests_id_fk",
           "tableFrom": "family_visit_approval_steps",
           "tableTo": "family_visit_requests",
-          "columnsFrom": [
-            "request_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["request_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4051,12 +3937,8 @@
           "name": "family_visit_approval_steps_signed_by_user_id_users_id_fk",
           "tableFrom": "family_visit_approval_steps",
           "tableTo": "users",
-          "columnsFrom": [
-            "signed_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["signed_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4269,12 +4151,8 @@
           "name": "family_visit_requests_property_id_properties_id_fk",
           "tableFrom": "family_visit_requests",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4282,12 +4160,8 @@
           "name": "family_visit_requests_requester_user_id_users_id_fk",
           "tableFrom": "family_visit_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "requester_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requester_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4297,9 +4171,7 @@
         "family_visit_requests_request_number_unique": {
           "name": "family_visit_requests_request_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "request_number"
-          ]
+          "columns": ["request_number"]
         }
       },
       "policies": {},

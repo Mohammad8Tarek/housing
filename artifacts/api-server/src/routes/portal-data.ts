@@ -47,7 +47,11 @@ router.use(requirePortalAuth);
 router.get("/profile", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   const result = await withTenant(sess.propertyId, async (tenantDb) => {
-    const [employee] = await tenantDb.select().from(employeesTable).where(eq(employeesTable.id, sess.employeeDbId)).limit(1);
+    const [employee] = await tenantDb
+      .select()
+      .from(employeesTable)
+      .where(eq(employeesTable.id, sess.employeeDbId))
+      .limit(1);
     if (!employee) return null;
     return {
       id: employee.id,
@@ -64,19 +68,62 @@ router.get("/profile", async (req, res): Promise<void> => {
 router.get("/room", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   const result = await withTenant(sess.propertyId, async (tenantDb) => {
-    const [assignment] = await tenantDb.select().from(assignmentsTable).where(and(eq(assignmentsTable.employeeId, sess.employeeDbId), eq(assignmentsTable.status, "ACTIVE"))).limit(1);
+    const [assignment] = await tenantDb
+      .select()
+      .from(assignmentsTable)
+      .where(
+        and(
+          eq(assignmentsTable.employeeId, sess.employeeDbId),
+          eq(assignmentsTable.status, "ACTIVE"),
+        ),
+      )
+      .limit(1);
     if (!assignment) return null;
-    const [room] = await tenantDb.select().from(roomsTable).where(eq(roomsTable.id, assignment.roomId)).limit(1);
+    const [room] = await tenantDb
+      .select()
+      .from(roomsTable)
+      .where(eq(roomsTable.id, assignment.roomId))
+      .limit(1);
     if (!room) return null;
-    const [building] = await tenantDb.select().from(buildingsTable).where(eq(buildingsTable.id, room.buildingId)).limit(1);
-    const [floor] = await tenantDb.select().from(floorsTable).where(eq(floorsTable.id, room.floorId)).limit(1);
-    const roommates = await tenantDb.select().from(assignmentsTable).leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id)).where(and(eq(assignmentsTable.roomId, room.id), eq(assignmentsTable.status, "ACTIVE"), sql`${assignmentsTable.employeeId} != ${sess.employeeDbId}`));
+    const [building] = await tenantDb
+      .select()
+      .from(buildingsTable)
+      .where(eq(buildingsTable.id, room.buildingId))
+      .limit(1);
+    const [floor] = await tenantDb
+      .select()
+      .from(floorsTable)
+      .where(eq(floorsTable.id, room.floorId))
+      .limit(1);
+    const roommates = await tenantDb
+      .select()
+      .from(assignmentsTable)
+      .leftJoin(
+        employeesTable,
+        eq(assignmentsTable.employeeId, employeesTable.id),
+      )
+      .where(
+        and(
+          eq(assignmentsTable.roomId, room.id),
+          eq(assignmentsTable.status, "ACTIVE"),
+          sql`${assignmentsTable.employeeId} != ${sess.employeeDbId}`,
+        ),
+      );
     return {
       roomNumber: room.roomNumber,
       building: building?.name,
       floor: floor?.floorNumber,
       assignedSince: assignment.checkInDate,
-      roommates: roommates.map(r => r.employees ? { id: r.employees.id, name: `${r.employees.firstName} ${r.employees.lastName}` } : null).filter(Boolean),
+      roommates: roommates
+        .map((r) =>
+          r.employees
+            ? {
+                id: r.employees.id,
+                name: `${r.employees.firstName} ${r.employees.lastName}`,
+              }
+            : null,
+        )
+        .filter(Boolean),
     };
   });
   res.json(result || {});
@@ -89,9 +136,22 @@ router.get("/notifications", async (req, res): Promise<void> => {
 router.get("/alerts", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   const result = await withTenant(sess.propertyId, async (tenantDb) => {
-    const maintenance = await tenantDb.select().from(maintenanceTable).where(and(eq(maintenanceTable.reportedBy, String(sess.employeeDbId)), inArray(maintenanceTable.status, ["open", "in_progress"])));
+    const maintenance = await tenantDb
+      .select()
+      .from(maintenanceTable)
+      .where(
+        and(
+          eq(maintenanceTable.reportedBy, String(sess.employeeDbId)),
+          inArray(maintenanceTable.status, ["open", "in_progress"]),
+        ),
+      );
     return {
-      items: maintenance.map(m => ({ id: m.id, title: m.problemType || m.description || 'Maintenance', status: m.status, type: 'maintenance' })),
+      items: maintenance.map((m) => ({
+        id: m.id,
+        title: m.problemType || m.description || "Maintenance",
+        status: m.status,
+        type: "maintenance",
+      })),
     };
   });
   res.json(result || { items: [] });
@@ -144,7 +204,8 @@ router.patch("/my-profile", async (req, res): Promise<void> => {
   if (address !== undefined) updateData.address = address;
   if (photo !== undefined) updateData.photoUrl = photo;
   if (email !== undefined) updateData.email = email;
-  if (emergencyContact !== undefined) updateData.emergencyContact = emergencyContact;
+  if (emergencyContact !== undefined)
+    updateData.emergencyContact = emergencyContact;
 
   if (Object.keys(updateData).length === 0) {
     res.status(400).json({ success: false, message: "No fields to update" });
@@ -469,12 +530,10 @@ router.post("/my-maintenance", async (req, res): Promise<void> => {
   const parsed = CreateMaintenanceSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    res
-      .status(400)
-      .json({
-        success: false,
-        message: parsed.error.errors[0]?.message ?? "Invalid input",
-      });
+    res.status(400).json({
+      success: false,
+      message: parsed.error.errors[0]?.message ?? "Invalid input",
+    });
     return;
   }
 
@@ -974,12 +1033,10 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
     res.json({ success: true, message: "Evaluation response saved" });
   } catch (err) {
     console.error("POST /my-evaluations/:id/respond error:", err);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to submit evaluation response",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to submit evaluation response",
+    });
   }
 });
 

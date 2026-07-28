@@ -171,9 +171,9 @@ export default function EmployeeDetail() {
     { propertyId: activePropertyId } as any,
     { query: { enabled: !!employeeId } },
   );
-  
+
   const { data: _rData } = useListRooms(
-    { propertyId: activePropertyId , limit: 1000},
+    { propertyId: activePropertyId, limit: 1000 },
     { query: { enabled: !!activePropertyId } },
   );
   const rooms = _rData?.data || [];
@@ -229,7 +229,11 @@ export default function EmployeeDetail() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast.error(ar ? "الملف كبير جداً (الحد الأقصى 2 ميغابايت)" : "File too large (max 2MB)");
+      toast.error(
+        ar
+          ? "الملف كبير جداً (الحد الأقصى 2 ميغابايت)"
+          : "File too large (max 2MB)",
+      );
       return;
     }
     setUploading(true);
@@ -291,17 +295,20 @@ export default function EmployeeDetail() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Request failed");
-      toast.success(ar ? "تم إنشاء كلمة مرور مؤقتة" : "Temporary password generated", {
+      toast.success(
+        ar ? "تم إنشاء كلمة مرور مؤقتة" : "Temporary password generated",
+        {
           description: data.temporaryPassword
-          ? `${ar ? "كلمة المرور المؤقتة" : "Temporary password"}: ${data.temporaryPassword}`
-          : data.message
-        });
+            ? `${ar ? "كلمة المرور المؤقتة" : "Temporary password"}: ${data.temporaryPassword}`
+            : data.message,
+        },
+      );
       refetchPortalAccount();
       setResetOpen(false);
     } catch (e: any) {
       toast.error(ar ? "خطأ" : "Error", {
-          description: e?.message ?? String(e)
-        });
+        description: e?.message ?? String(e),
+      });
     } finally {
       setPwSaving(false);
     }
@@ -314,8 +321,8 @@ export default function EmployeeDetail() {
     }
     if (pwForm.password.length < 6) {
       toast.error(ar ? "كلمة المرور قصيرة" : "Password too short", {
-          description: ar ? "الحد الأدنى 6 أحرف" : "Minimum 6 characters"
-        });
+        description: ar ? "الحد الأدنى 6 أحرف" : "Minimum 6 characters",
+      });
       return;
     }
     if (pwForm.password !== pwForm.confirm) {
@@ -341,8 +348,8 @@ export default function EmployeeDetail() {
       setPwForm({ password: "", confirm: "" });
     } catch (e: any) {
       toast.error(ar ? "خطأ" : "Error", {
-          description: e?.message ?? String(e)
-        });
+        description: e?.message ?? String(e),
+      });
     } finally {
       setPwSaving(false);
     }
@@ -366,18 +373,20 @@ export default function EmployeeDetail() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Request failed");
-      toast.success(isActive
+      toast.success(
+        isActive
           ? ar
             ? "تم تفعيل حساب البوابة"
             : "Portal account enabled"
           : ar
             ? "تم تعطيل حساب البوابة"
-            : "Portal account disabled");
+            : "Portal account disabled",
+      );
       refetchPortalAccount();
     } catch (e: any) {
       toast.error(ar ? "خطأ" : "Error", {
-          description: e?.message ?? String(e)
-        });
+        description: e?.message ?? String(e),
+      });
     } finally {
       setAccessSaving(false);
     }
@@ -951,4 +960,3 @@ export default function EmployeeDetail() {
     </div>
   );
 }
-

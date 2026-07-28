@@ -5,1396 +5,1349 @@
  * Sunrise Staff Housing Management System API
  * OpenAPI spec version: 0.1.0
  */
-import * as zod from 'zod';
-
+import * as zod from "zod";
 
 /**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  "status": zod.string()
-})
-
+  status: zod.string(),
+});
 
 /**
  * @summary Login
  */
 export const LoginBody = zod.object({
-  "username": zod.string(),
-  "password": zod.string(),
-  "propertyCode": zod.string().nullish()
-})
+  username: zod.string(),
+  password: zod.string(),
+  propertyCode: zod.string().nullish(),
+});
 
 export const LoginResponse = zod.object({
-  "user": zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "username": zod.string(),
-  "roles": zod.array(zod.string()),
-  "permissions": zod.array(zod.string()),
-  "status": zod.string()
-}),
-  "token": zod.string()
-})
-
+  user: zod.object({
+    id: zod.number(),
+    propertyId: zod.number(),
+    username: zod.string(),
+    roles: zod.array(zod.string()),
+    permissions: zod.array(zod.string()),
+    status: zod.string(),
+  }),
+  token: zod.string(),
+});
 
 /**
  * @summary Logout
  */
 export const LogoutResponse = zod.object({
-  "message": zod.string()
-})
-
+  message: zod.string(),
+});
 
 /**
  * @summary Get current user
  */
 export const GetMeResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "username": zod.string(),
-  "roles": zod.array(zod.string()),
-  "permissions": zod.array(zod.string()),
-  "status": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  username: zod.string(),
+  roles: zod.array(zod.string()),
+  permissions: zod.array(zod.string()),
+  status: zod.string(),
+});
 
 /**
  * @summary Change password
  */
 export const ChangePasswordBody = zod.object({
-  "currentPassword": zod.string(),
-  "newPassword": zod.string()
-})
+  currentPassword: zod.string(),
+  newPassword: zod.string(),
+});
 
 export const ChangePasswordResponse = zod.object({
-  "message": zod.string()
-})
-
+  message: zod.string(),
+});
 
 /**
  * @summary List all properties
  */
 export const ListPropertiesResponseItem = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "code": zod.string(),
-  "displayName": zod.string().nullish(),
-  "logo": zod.string().nullish(),
-  "primaryColor": zod.string(),
-  "defaultLanguage": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem)
-
+  id: zod.number(),
+  name: zod.string(),
+  code: zod.string(),
+  displayName: zod.string().nullish(),
+  logo: zod.string().nullish(),
+  primaryColor: zod.string(),
+  defaultLanguage: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem);
 
 /**
  * @summary Create property
  */
 export const CreatePropertyBody = zod.object({
-  "name": zod.string(),
-  "code": zod.string(),
-  "displayName": zod.string().nullish(),
-  "logo": zod.string().nullish(),
-  "primaryColor": zod.string(),
-  "defaultLanguage": zod.string(),
-  "adminUsername": zod.string(),
-  "adminPassword": zod.string()
-})
-
+  name: zod.string(),
+  code: zod.string(),
+  displayName: zod.string().nullish(),
+  logo: zod.string().nullish(),
+  primaryColor: zod.string(),
+  defaultLanguage: zod.string(),
+  adminUsername: zod.string(),
+  adminPassword: zod.string(),
+});
 
 /**
  * @summary Get property
  */
 export const GetPropertyParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const GetPropertyResponse = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "code": zod.string(),
-  "displayName": zod.string().nullish(),
-  "logo": zod.string().nullish(),
-  "primaryColor": zod.string(),
-  "defaultLanguage": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  name: zod.string(),
+  code: zod.string(),
+  displayName: zod.string().nullish(),
+  logo: zod.string().nullish(),
+  primaryColor: zod.string(),
+  defaultLanguage: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Update property
  */
 export const UpdatePropertyParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdatePropertyBody = zod.object({
-  "name": zod.string().optional(),
-  "displayName": zod.string().nullish(),
-  "logo": zod.string().nullish(),
-  "primaryColor": zod.string().optional(),
-  "defaultLanguage": zod.string().optional(),
-  "status": zod.string().optional()
-})
+  name: zod.string().optional(),
+  displayName: zod.string().nullish(),
+  logo: zod.string().nullish(),
+  primaryColor: zod.string().optional(),
+  defaultLanguage: zod.string().optional(),
+  status: zod.string().optional(),
+});
 
 export const UpdatePropertyResponse = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "code": zod.string(),
-  "displayName": zod.string().nullish(),
-  "logo": zod.string().nullish(),
-  "primaryColor": zod.string(),
-  "defaultLanguage": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  name: zod.string(),
+  code: zod.string(),
+  displayName: zod.string().nullish(),
+  logo: zod.string().nullish(),
+  primaryColor: zod.string(),
+  defaultLanguage: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Delete property
  */
 export const DeletePropertyParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List buildings
  */
 export const ListBuildingsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+});
 
 export const ListBuildingsResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "name": zod.string(),
-  "location": zod.string(),
-  "capacity": zod.number(),
-  "status": zod.string()
-})
-export const ListBuildingsResponse = zod.array(ListBuildingsResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  name: zod.string(),
+  location: zod.string(),
+  capacity: zod.number(),
+  status: zod.string(),
+});
+export const ListBuildingsResponse = zod.array(ListBuildingsResponseItem);
 
 /**
  * @summary Create building
  */
 export const CreateBuildingBody = zod.object({
-  "propertyId": zod.number(),
-  "name": zod.string(),
-  "location": zod.string(),
-  "capacity": zod.number(),
-  "status": zod.string().optional()
-})
-
+  propertyId: zod.number(),
+  name: zod.string(),
+  location: zod.string(),
+  capacity: zod.number(),
+  status: zod.string().optional(),
+});
 
 /**
  * @summary Update building
  */
 export const UpdateBuildingParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateBuildingBody = zod.object({
-  "name": zod.string().optional(),
-  "location": zod.string().optional(),
-  "capacity": zod.number().optional(),
-  "status": zod.string().optional()
-})
+  name: zod.string().optional(),
+  location: zod.string().optional(),
+  capacity: zod.number().optional(),
+  status: zod.string().optional(),
+});
 
 export const UpdateBuildingResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "name": zod.string(),
-  "location": zod.string(),
-  "capacity": zod.number(),
-  "status": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  name: zod.string(),
+  location: zod.string(),
+  capacity: zod.number(),
+  status: zod.string(),
+});
 
 /**
  * @summary Delete building
  */
 export const DeleteBuildingParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List floors
  */
 export const ListFloorsQueryParams = zod.object({
-  "buildingId": zod.coerce.number().optional(),
-  "propertyId": zod.coerce.number().optional()
-})
+  buildingId: zod.coerce.number().optional(),
+  propertyId: zod.coerce.number().optional(),
+});
 
 export const ListFloorsResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "buildingId": zod.number(),
-  "floorNumber": zod.string(),
-  "description": zod.string()
-})
-export const ListFloorsResponse = zod.array(ListFloorsResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  buildingId: zod.number(),
+  floorNumber: zod.string(),
+  description: zod.string(),
+});
+export const ListFloorsResponse = zod.array(ListFloorsResponseItem);
 
 /**
  * @summary Create floor
  */
 export const CreateFloorBody = zod.object({
-  "propertyId": zod.number(),
-  "buildingId": zod.number(),
-  "floorNumber": zod.string(),
-  "description": zod.string().optional()
-})
-
+  propertyId: zod.number(),
+  buildingId: zod.number(),
+  floorNumber: zod.string(),
+  description: zod.string().optional(),
+});
 
 /**
  * @summary Update floor
  */
 export const UpdateFloorParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateFloorBody = zod.object({
-  "floorNumber": zod.string().optional(),
-  "description": zod.string().optional()
-})
+  floorNumber: zod.string().optional(),
+  description: zod.string().optional(),
+});
 
 export const UpdateFloorResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "buildingId": zod.number(),
-  "floorNumber": zod.string(),
-  "description": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  buildingId: zod.number(),
+  floorNumber: zod.string(),
+  description: zod.string(),
+});
 
 /**
  * @summary Delete floor
  */
 export const DeleteFloorParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List rooms
  */
 export const ListRoomsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "buildingId": zod.coerce.number().optional(),
-  "floorId": zod.coerce.number().optional(),
-  "status": zod.coerce.string().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  buildingId: zod.coerce.number().optional(),
+  floorId: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+});
 
 export const ListRoomsResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "buildingId": zod.number(),
-  "floorId": zod.number(),
-  "roomNumber": zod.string(),
-  "roomType": zod.string(),
-  "capacity": zod.number(),
-  "currentOccupancy": zod.number(),
-  "status": zod.string(),
-  "gender": zod.string().nullish()
-})
-export const ListRoomsResponse = zod.array(ListRoomsResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  buildingId: zod.number(),
+  floorId: zod.number(),
+  roomNumber: zod.string(),
+  roomType: zod.string(),
+  capacity: zod.number(),
+  currentOccupancy: zod.number(),
+  status: zod.string(),
+  gender: zod.string().nullish(),
+});
+export const ListRoomsResponse = zod.array(ListRoomsResponseItem);
 
 /**
  * @summary Create room
  */
 export const CreateRoomBody = zod.object({
-  "propertyId": zod.number(),
-  "buildingId": zod.number(),
-  "floorId": zod.number(),
-  "roomNumber": zod.string(),
-  "roomType": zod.string(),
-  "capacity": zod.number(),
-  "status": zod.string().optional(),
-  "gender": zod.string().nullish()
-})
-
+  propertyId: zod.number(),
+  buildingId: zod.number(),
+  floorId: zod.number(),
+  roomNumber: zod.string(),
+  roomType: zod.string(),
+  capacity: zod.number(),
+  status: zod.string().optional(),
+  gender: zod.string().nullish(),
+});
 
 /**
  * @summary Get room
  */
 export const GetRoomParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const GetRoomResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "buildingId": zod.number(),
-  "floorId": zod.number(),
-  "roomNumber": zod.string(),
-  "roomType": zod.string(),
-  "capacity": zod.number(),
-  "currentOccupancy": zod.number(),
-  "status": zod.string(),
-  "gender": zod.string().nullish()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  buildingId: zod.number(),
+  floorId: zod.number(),
+  roomNumber: zod.string(),
+  roomType: zod.string(),
+  capacity: zod.number(),
+  currentOccupancy: zod.number(),
+  status: zod.string(),
+  gender: zod.string().nullish(),
+});
 
 /**
  * @summary Update room
  */
 export const UpdateRoomParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateRoomBody = zod.object({
-  "roomNumber": zod.string().optional(),
-  "roomType": zod.string().optional(),
-  "capacity": zod.number().optional(),
-  "status": zod.string().optional(),
-  "gender": zod.string().nullish()
-})
+  roomNumber: zod.string().optional(),
+  roomType: zod.string().optional(),
+  capacity: zod.number().optional(),
+  status: zod.string().optional(),
+  gender: zod.string().nullish(),
+});
 
 export const UpdateRoomResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "buildingId": zod.number(),
-  "floorId": zod.number(),
-  "roomNumber": zod.string(),
-  "roomType": zod.string(),
-  "capacity": zod.number(),
-  "currentOccupancy": zod.number(),
-  "status": zod.string(),
-  "gender": zod.string().nullish()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  buildingId: zod.number(),
+  floorId: zod.number(),
+  roomNumber: zod.string(),
+  roomType: zod.string(),
+  capacity: zod.number(),
+  currentOccupancy: zod.number(),
+  status: zod.string(),
+  gender: zod.string().nullish(),
+});
 
 /**
  * @summary Delete room
  */
 export const DeleteRoomParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List employees
  */
 export const ListEmployeesQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "status": zod.coerce.string().optional(),
-  "department": zod.coerce.string().optional(),
-  "search": zod.coerce.string().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+  department: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+});
 
 export const ListEmployeesResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.string(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "nationalId": zod.string(),
-  "nationality": zod.string(),
-  "address": zod.string(),
-  "jobTitle": zod.string(),
-  "level": zod.string(),
-  "phone": zod.string(),
-  "department": zod.string(),
-  "status": zod.string(),
-  "hireDate": zod.string(),
-  "gender": zod.string(),
-  "idImage": zod.string().nullish()
-})
-export const ListEmployeesResponse = zod.array(ListEmployeesResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.string(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  nationalId: zod.string(),
+  nationality: zod.string(),
+  address: zod.string(),
+  jobTitle: zod.string(),
+  level: zod.string(),
+  phone: zod.string(),
+  department: zod.string(),
+  status: zod.string(),
+  hireDate: zod.string(),
+  gender: zod.string(),
+  idImage: zod.string().nullish(),
+});
+export const ListEmployeesResponse = zod.array(ListEmployeesResponseItem);
 
 /**
  * @summary Create employee
  */
 export const CreateEmployeeBody = zod.object({
-  "propertyId": zod.number(),
-  "employeeId": zod.string(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "nationalId": zod.string(),
-  "nationality": zod.string(),
-  "address": zod.string(),
-  "jobTitle": zod.string(),
-  "level": zod.string(),
-  "phone": zod.string(),
-  "department": zod.string(),
-  "status": zod.string().optional(),
-  "hireDate": zod.string(),
-  "gender": zod.string(),
-  "idImage": zod.string().nullish()
-})
-
+  propertyId: zod.number(),
+  employeeId: zod.string(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  nationalId: zod.string(),
+  nationality: zod.string(),
+  address: zod.string(),
+  jobTitle: zod.string(),
+  level: zod.string(),
+  phone: zod.string(),
+  department: zod.string(),
+  status: zod.string().optional(),
+  hireDate: zod.string(),
+  gender: zod.string(),
+  idImage: zod.string().nullish(),
+});
 
 /**
  * @summary Get employee
  */
 export const GetEmployeeParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const GetEmployeeResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.string(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "nationalId": zod.string(),
-  "nationality": zod.string(),
-  "address": zod.string(),
-  "jobTitle": zod.string(),
-  "level": zod.string(),
-  "phone": zod.string(),
-  "department": zod.string(),
-  "status": zod.string(),
-  "hireDate": zod.string(),
-  "gender": zod.string(),
-  "idImage": zod.string().nullish()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.string(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  nationalId: zod.string(),
+  nationality: zod.string(),
+  address: zod.string(),
+  jobTitle: zod.string(),
+  level: zod.string(),
+  phone: zod.string(),
+  department: zod.string(),
+  status: zod.string(),
+  hireDate: zod.string(),
+  gender: zod.string(),
+  idImage: zod.string().nullish(),
+});
 
 /**
  * @summary Update employee
  */
 export const UpdateEmployeeParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateEmployeeBody = zod.object({
-  "firstName": zod.string().optional(),
-  "lastName": zod.string().optional(),
-  "nationalId": zod.string().optional(),
-  "nationality": zod.string().optional(),
-  "address": zod.string().optional(),
-  "jobTitle": zod.string().optional(),
-  "level": zod.string().optional(),
-  "phone": zod.string().optional(),
-  "department": zod.string().optional(),
-  "status": zod.string().optional(),
-  "gender": zod.string().optional(),
-  "idImage": zod.string().nullish()
-})
+  firstName: zod.string().optional(),
+  lastName: zod.string().optional(),
+  nationalId: zod.string().optional(),
+  nationality: zod.string().optional(),
+  address: zod.string().optional(),
+  jobTitle: zod.string().optional(),
+  level: zod.string().optional(),
+  phone: zod.string().optional(),
+  department: zod.string().optional(),
+  status: zod.string().optional(),
+  gender: zod.string().optional(),
+  idImage: zod.string().nullish(),
+});
 
 export const UpdateEmployeeResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.string(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "nationalId": zod.string(),
-  "nationality": zod.string(),
-  "address": zod.string(),
-  "jobTitle": zod.string(),
-  "level": zod.string(),
-  "phone": zod.string(),
-  "department": zod.string(),
-  "status": zod.string(),
-  "hireDate": zod.string(),
-  "gender": zod.string(),
-  "idImage": zod.string().nullish()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.string(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  nationalId: zod.string(),
+  nationality: zod.string(),
+  address: zod.string(),
+  jobTitle: zod.string(),
+  level: zod.string(),
+  phone: zod.string(),
+  department: zod.string(),
+  status: zod.string(),
+  hireDate: zod.string(),
+  gender: zod.string(),
+  idImage: zod.string().nullish(),
+});
 
 /**
  * @summary Delete employee
  */
 export const DeleteEmployeeParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List assignments
  */
 export const ListAssignmentsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "status": zod.coerce.string().optional(),
-  "employeeId": zod.coerce.number().optional(),
-  "roomId": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+  employeeId: zod.coerce.number().optional(),
+  roomId: zod.coerce.number().optional(),
+});
 
 export const ListAssignmentsResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "roomId": zod.number(),
-  "bedNumber": zod.number().nullish(),
-  "checkInDate": zod.string(),
-  "expectedCheckOutDate": zod.string().nullish(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-export const ListAssignmentsResponse = zod.array(ListAssignmentsResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  roomId: zod.number(),
+  bedNumber: zod.number().nullish(),
+  checkInDate: zod.string(),
+  expectedCheckOutDate: zod.string().nullish(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListAssignmentsResponse = zod.array(ListAssignmentsResponseItem);
 
 /**
  * @summary Create assignment (check-in employee)
  */
 export const CreateAssignmentBody = zod.object({
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "roomId": zod.number(),
-  "bedNumber": zod.number().nullish(),
-  "checkInDate": zod.string(),
-  "expectedCheckOutDate": zod.string().nullish(),
-  "notes": zod.string().optional()
-})
-
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  roomId: zod.number(),
+  bedNumber: zod.number().nullish(),
+  checkInDate: zod.string(),
+  expectedCheckOutDate: zod.string().nullish(),
+  notes: zod.string().optional(),
+});
 
 /**
  * @summary Get assignment
  */
 export const GetAssignmentParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const GetAssignmentResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "roomId": zod.number(),
-  "bedNumber": zod.number().nullish(),
-  "checkInDate": zod.string(),
-  "expectedCheckOutDate": zod.string().nullish(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  roomId: zod.number(),
+  bedNumber: zod.number().nullish(),
+  checkInDate: zod.string(),
+  expectedCheckOutDate: zod.string().nullish(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Update assignment
  */
 export const UpdateAssignmentParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateAssignmentBody = zod.object({
-  "expectedCheckOutDate": zod.string().nullish(),
-  "notes": zod.string().optional()
-})
+  expectedCheckOutDate: zod.string().nullish(),
+  notes: zod.string().optional(),
+});
 
 export const UpdateAssignmentResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "roomId": zod.number(),
-  "bedNumber": zod.number().nullish(),
-  "checkInDate": zod.string(),
-  "expectedCheckOutDate": zod.string().nullish(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  roomId: zod.number(),
+  bedNumber: zod.number().nullish(),
+  checkInDate: zod.string(),
+  expectedCheckOutDate: zod.string().nullish(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Check out employee from room
  */
 export const CheckoutAssignmentParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const CheckoutAssignmentBody = zod.object({
-  "checkOutDate": zod.string(),
-  "notes": zod.string().optional()
-})
+  checkOutDate: zod.string(),
+  notes: zod.string().optional(),
+});
 
 export const CheckoutAssignmentResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "roomId": zod.number(),
-  "bedNumber": zod.number().nullish(),
-  "checkInDate": zod.string(),
-  "expectedCheckOutDate": zod.string().nullish(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  roomId: zod.number(),
+  bedNumber: zod.number().nullish(),
+  checkInDate: zod.string(),
+  expectedCheckOutDate: zod.string().nullish(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Transfer employee to another room
  */
 export const TransferAssignmentParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const TransferAssignmentBody = zod.object({
-  "newRoomId": zod.number(),
-  "newBedNumber": zod.number().optional(),
-  "transferReason": zod.string().optional(),
-  "transferDate": zod.string()
-})
+  newRoomId: zod.number(),
+  newBedNumber: zod.number().optional(),
+  transferReason: zod.string().optional(),
+  transferDate: zod.string(),
+});
 
 export const TransferAssignmentResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "roomId": zod.number(),
-  "bedNumber": zod.number().nullish(),
-  "checkInDate": zod.string(),
-  "expectedCheckOutDate": zod.string().nullish(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  roomId: zod.number(),
+  bedNumber: zod.number().nullish(),
+  checkInDate: zod.string(),
+  expectedCheckOutDate: zod.string().nullish(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary List reservations
  */
 export const ListReservationsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "status": zod.coerce.string().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+});
 
 export const ListReservationsResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "checkInDate": zod.string(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "guestIdCardNumber": zod.string(),
-  "guestPhone": zod.string(),
-  "jobTitle": zod.string(),
-  "department": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-export const ListReservationsResponse = zod.array(ListReservationsResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  checkInDate: zod.string(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  guestIdCardNumber: zod.string(),
+  guestPhone: zod.string(),
+  jobTitle: zod.string(),
+  department: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListReservationsResponse = zod.array(ListReservationsResponseItem);
 
 /**
  * @summary Create reservation
  */
 export const CreateReservationBody = zod.object({
-  "propertyId": zod.number(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "checkInDate": zod.string(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string().optional(),
-  "guestIdCardNumber": zod.string(),
-  "guestPhone": zod.string(),
-  "jobTitle": zod.string(),
-  "department": zod.string()
-})
-
+  propertyId: zod.number(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  checkInDate: zod.string(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string().optional(),
+  guestIdCardNumber: zod.string(),
+  guestPhone: zod.string(),
+  jobTitle: zod.string(),
+  department: zod.string(),
+});
 
 /**
  * @summary Get reservation
  */
 export const GetReservationParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const GetReservationResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "checkInDate": zod.string(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "guestIdCardNumber": zod.string(),
-  "guestPhone": zod.string(),
-  "jobTitle": zod.string(),
-  "department": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  checkInDate: zod.string(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  guestIdCardNumber: zod.string(),
+  guestPhone: zod.string(),
+  jobTitle: zod.string(),
+  department: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Update reservation
  */
 export const UpdateReservationParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateReservationBody = zod.object({
-  "roomId": zod.number().nullish(),
-  "checkInDate": zod.string().optional(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string().optional(),
-  "status": zod.string().optional()
-})
+  roomId: zod.number().nullish(),
+  checkInDate: zod.string().optional(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string().optional(),
+  status: zod.string().optional(),
+});
 
 export const UpdateReservationResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "checkInDate": zod.string(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "guestIdCardNumber": zod.string(),
-  "guestPhone": zod.string(),
-  "jobTitle": zod.string(),
-  "department": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  checkInDate: zod.string(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  guestIdCardNumber: zod.string(),
+  guestPhone: zod.string(),
+  jobTitle: zod.string(),
+  department: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Delete reservation
  */
 export const DeleteReservationParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary Check in a reservation guest
  */
 export const CheckinReservationParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const CheckinReservationBody = zod.object({
-  "roomId": zod.number(),
-  "actualCheckInDate": zod.string()
-})
+  roomId: zod.number(),
+  actualCheckInDate: zod.string(),
+});
 
 export const CheckinReservationResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "firstName": zod.string(),
-  "lastName": zod.string(),
-  "checkInDate": zod.string(),
-  "checkOutDate": zod.string().nullish(),
-  "notes": zod.string(),
-  "guestIdCardNumber": zod.string(),
-  "guestPhone": zod.string(),
-  "jobTitle": zod.string(),
-  "department": zod.string(),
-  "status": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  firstName: zod.string(),
+  lastName: zod.string(),
+  checkInDate: zod.string(),
+  checkOutDate: zod.string().nullish(),
+  notes: zod.string(),
+  guestIdCardNumber: zod.string(),
+  guestPhone: zod.string(),
+  jobTitle: zod.string(),
+  department: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary List employee hostings
  */
 export const ListHostingsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "status": zod.coerce.string().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+});
 
 export const ListHostingsResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "hostingType": zod.string(),
-  "guestsCount": zod.number(),
-  "expectedFrom": zod.string(),
-  "expectedTo": zod.string(),
-  "actualCheckIn": zod.string().nullish(),
-  "actualCheckOut": zod.string().nullish(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "status": zod.string(),
-  "notes": zod.string(),
-  "createdBy": zod.string(),
-  "createdAt": zod.string(),
-  "companions": zod.array(zod.object({
-  "name": zod.string(),
-  "idNumber": zod.string().nullish(),
-  "documentType": zod.string().nullish(),
-  "documentImage": zod.string().nullish(),
-  "documentFileName": zod.string().nullish(),
-  "relation": zod.string().nullish(),
-  "isChild": zod.number().optional(),
-  "age": zod.number().nullish()
-}))
-})
-export const ListHostingsResponse = zod.array(ListHostingsResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  hostingType: zod.string(),
+  guestsCount: zod.number(),
+  expectedFrom: zod.string(),
+  expectedTo: zod.string(),
+  actualCheckIn: zod.string().nullish(),
+  actualCheckOut: zod.string().nullish(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string(),
+  createdBy: zod.string(),
+  createdAt: zod.string(),
+  companions: zod.array(
+    zod.object({
+      name: zod.string(),
+      idNumber: zod.string().nullish(),
+      documentType: zod.string().nullish(),
+      documentImage: zod.string().nullish(),
+      documentFileName: zod.string().nullish(),
+      relation: zod.string().nullish(),
+      isChild: zod.number().optional(),
+      age: zod.number().nullish(),
+    }),
+  ),
+});
+export const ListHostingsResponse = zod.array(ListHostingsResponseItem);
 
 /**
  * @summary Create hosting request
  */
 export const CreateHostingBody = zod.object({
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "hostingType": zod.string(),
-  "guestsCount": zod.number(),
-  "expectedFrom": zod.string(),
-  "expectedTo": zod.string(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "notes": zod.string().optional(),
-  "createdBy": zod.string(),
-  "companions": zod.array(zod.object({
-  "name": zod.string(),
-  "idNumber": zod.string().nullish(),
-  "documentType": zod.string().nullish(),
-  "documentImage": zod.string().nullish(),
-  "documentFileName": zod.string().nullish(),
-  "relation": zod.string().nullish(),
-  "isChild": zod.number().optional(),
-  "age": zod.number().nullish()
-})).optional()
-})
-
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  hostingType: zod.string(),
+  guestsCount: zod.number(),
+  expectedFrom: zod.string(),
+  expectedTo: zod.string(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  notes: zod.string().optional(),
+  createdBy: zod.string(),
+  companions: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        idNumber: zod.string().nullish(),
+        documentType: zod.string().nullish(),
+        documentImage: zod.string().nullish(),
+        documentFileName: zod.string().nullish(),
+        relation: zod.string().nullish(),
+        isChild: zod.number().optional(),
+        age: zod.number().nullish(),
+      }),
+    )
+    .optional(),
+});
 
 /**
  * @summary Update hosting
  */
 export const UpdateHostingParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateHostingBody = zod.object({
-  "expectedFrom": zod.string().optional(),
-  "expectedTo": zod.string().optional(),
-  "roomId": zod.number().nullish(),
-  "notes": zod.string().optional(),
-  "status": zod.string().optional()
-})
+  expectedFrom: zod.string().optional(),
+  expectedTo: zod.string().optional(),
+  roomId: zod.number().nullish(),
+  notes: zod.string().optional(),
+  status: zod.string().optional(),
+});
 
 export const UpdateHostingResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "hostingType": zod.string(),
-  "guestsCount": zod.number(),
-  "expectedFrom": zod.string(),
-  "expectedTo": zod.string(),
-  "actualCheckIn": zod.string().nullish(),
-  "actualCheckOut": zod.string().nullish(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "status": zod.string(),
-  "notes": zod.string(),
-  "createdBy": zod.string(),
-  "createdAt": zod.string(),
-  "companions": zod.array(zod.object({
-  "name": zod.string(),
-  "idNumber": zod.string().nullish(),
-  "documentType": zod.string().nullish(),
-  "documentImage": zod.string().nullish(),
-  "documentFileName": zod.string().nullish(),
-  "relation": zod.string().nullish(),
-  "isChild": zod.number().optional(),
-  "age": zod.number().nullish()
-}))
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  hostingType: zod.string(),
+  guestsCount: zod.number(),
+  expectedFrom: zod.string(),
+  expectedTo: zod.string(),
+  actualCheckIn: zod.string().nullish(),
+  actualCheckOut: zod.string().nullish(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string(),
+  createdBy: zod.string(),
+  createdAt: zod.string(),
+  companions: zod.array(
+    zod.object({
+      name: zod.string(),
+      idNumber: zod.string().nullish(),
+      documentType: zod.string().nullish(),
+      documentImage: zod.string().nullish(),
+      documentFileName: zod.string().nullish(),
+      relation: zod.string().nullish(),
+      isChild: zod.number().optional(),
+      age: zod.number().nullish(),
+    }),
+  ),
+});
 
 /**
  * @summary Delete hosting
  */
 export const DeleteHostingParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary Approve hosting request
  */
 export const ApproveHostingParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const ApproveHostingResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "hostingType": zod.string(),
-  "guestsCount": zod.number(),
-  "expectedFrom": zod.string(),
-  "expectedTo": zod.string(),
-  "actualCheckIn": zod.string().nullish(),
-  "actualCheckOut": zod.string().nullish(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "status": zod.string(),
-  "notes": zod.string(),
-  "createdBy": zod.string(),
-  "createdAt": zod.string(),
-  "companions": zod.array(zod.object({
-  "name": zod.string(),
-  "idNumber": zod.string().nullish(),
-  "documentType": zod.string().nullish(),
-  "documentImage": zod.string().nullish(),
-  "documentFileName": zod.string().nullish(),
-  "relation": zod.string().nullish(),
-  "isChild": zod.number().optional(),
-  "age": zod.number().nullish()
-}))
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  hostingType: zod.string(),
+  guestsCount: zod.number(),
+  expectedFrom: zod.string(),
+  expectedTo: zod.string(),
+  actualCheckIn: zod.string().nullish(),
+  actualCheckOut: zod.string().nullish(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string(),
+  createdBy: zod.string(),
+  createdAt: zod.string(),
+  companions: zod.array(
+    zod.object({
+      name: zod.string(),
+      idNumber: zod.string().nullish(),
+      documentType: zod.string().nullish(),
+      documentImage: zod.string().nullish(),
+      documentFileName: zod.string().nullish(),
+      relation: zod.string().nullish(),
+      isChild: zod.number().optional(),
+      age: zod.number().nullish(),
+    }),
+  ),
+});
 
 /**
  * @summary Check in hosting guest
  */
 export const CheckinHostingParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const CheckinHostingBody = zod.object({
-  "actualCheckIn": zod.string(),
-  "roomId": zod.number().nullish()
-})
+  actualCheckIn: zod.string(),
+  roomId: zod.number().nullish(),
+});
 
 export const CheckinHostingResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "hostingType": zod.string(),
-  "guestsCount": zod.number(),
-  "expectedFrom": zod.string(),
-  "expectedTo": zod.string(),
-  "actualCheckIn": zod.string().nullish(),
-  "actualCheckOut": zod.string().nullish(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "status": zod.string(),
-  "notes": zod.string(),
-  "createdBy": zod.string(),
-  "createdAt": zod.string(),
-  "companions": zod.array(zod.object({
-  "name": zod.string(),
-  "idNumber": zod.string().nullish(),
-  "documentType": zod.string().nullish(),
-  "documentImage": zod.string().nullish(),
-  "documentFileName": zod.string().nullish(),
-  "relation": zod.string().nullish(),
-  "isChild": zod.number().optional(),
-  "age": zod.number().nullish()
-}))
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  hostingType: zod.string(),
+  guestsCount: zod.number(),
+  expectedFrom: zod.string(),
+  expectedTo: zod.string(),
+  actualCheckIn: zod.string().nullish(),
+  actualCheckOut: zod.string().nullish(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string(),
+  createdBy: zod.string(),
+  createdAt: zod.string(),
+  companions: zod.array(
+    zod.object({
+      name: zod.string(),
+      idNumber: zod.string().nullish(),
+      documentType: zod.string().nullish(),
+      documentImage: zod.string().nullish(),
+      documentFileName: zod.string().nullish(),
+      relation: zod.string().nullish(),
+      isChild: zod.number().optional(),
+      age: zod.number().nullish(),
+    }),
+  ),
+});
 
 /**
  * @summary Check out hosting guest
  */
 export const CheckoutHostingParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const CheckoutHostingResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "employeeId": zod.number(),
-  "hostingType": zod.string(),
-  "guestsCount": zod.number(),
-  "expectedFrom": zod.string(),
-  "expectedTo": zod.string(),
-  "actualCheckIn": zod.string().nullish(),
-  "actualCheckOut": zod.string().nullish(),
-  "roomId": zod.number().nullish(),
-  "roomType": zod.string().nullish(),
-  "status": zod.string(),
-  "notes": zod.string(),
-  "createdBy": zod.string(),
-  "createdAt": zod.string(),
-  "companions": zod.array(zod.object({
-  "name": zod.string(),
-  "idNumber": zod.string().nullish(),
-  "documentType": zod.string().nullish(),
-  "documentImage": zod.string().nullish(),
-  "documentFileName": zod.string().nullish(),
-  "relation": zod.string().nullish(),
-  "isChild": zod.number().optional(),
-  "age": zod.number().nullish()
-}))
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  employeeId: zod.number(),
+  hostingType: zod.string(),
+  guestsCount: zod.number(),
+  expectedFrom: zod.string(),
+  expectedTo: zod.string(),
+  actualCheckIn: zod.string().nullish(),
+  actualCheckOut: zod.string().nullish(),
+  roomId: zod.number().nullish(),
+  roomType: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string(),
+  createdBy: zod.string(),
+  createdAt: zod.string(),
+  companions: zod.array(
+    zod.object({
+      name: zod.string(),
+      idNumber: zod.string().nullish(),
+      documentType: zod.string().nullish(),
+      documentImage: zod.string().nullish(),
+      documentFileName: zod.string().nullish(),
+      relation: zod.string().nullish(),
+      isChild: zod.number().optional(),
+      age: zod.number().nullish(),
+    }),
+  ),
+});
 
 /**
  * @summary List maintenance requests
  */
 export const ListMaintenanceQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "status": zod.coerce.string().optional(),
-  "priority": zod.coerce.string().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+  priority: zod.coerce.string().optional(),
+});
 
 export const ListMaintenanceResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "roomId": zod.number(),
-  "problemType": zod.string(),
-  "description": zod.string(),
-  "status": zod.string(),
-  "priority": zod.string(),
-  "reportedAt": zod.string(),
-  "dueDate": zod.string().nullish()
-})
-export const ListMaintenanceResponse = zod.array(ListMaintenanceResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  roomId: zod.number(),
+  problemType: zod.string(),
+  description: zod.string(),
+  status: zod.string(),
+  priority: zod.string(),
+  reportedAt: zod.string(),
+  dueDate: zod.string().nullish(),
+});
+export const ListMaintenanceResponse = zod.array(ListMaintenanceResponseItem);
 
 /**
  * @summary Create maintenance request
  */
 export const CreateMaintenanceBody = zod.object({
-  "propertyId": zod.number(),
-  "roomId": zod.number(),
-  "problemType": zod.string(),
-  "description": zod.string(),
-  "priority": zod.string(),
-  "dueDate": zod.string().nullish()
-})
-
+  propertyId: zod.number(),
+  roomId: zod.number(),
+  problemType: zod.string(),
+  description: zod.string(),
+  priority: zod.string(),
+  dueDate: zod.string().nullish(),
+});
 
 /**
  * @summary Get maintenance request
  */
 export const GetMaintenanceParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const GetMaintenanceResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "roomId": zod.number(),
-  "problemType": zod.string(),
-  "description": zod.string(),
-  "status": zod.string(),
-  "priority": zod.string(),
-  "reportedAt": zod.string(),
-  "dueDate": zod.string().nullish()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  roomId: zod.number(),
+  problemType: zod.string(),
+  description: zod.string(),
+  status: zod.string(),
+  priority: zod.string(),
+  reportedAt: zod.string(),
+  dueDate: zod.string().nullish(),
+});
 
 /**
  * @summary Update maintenance request
  */
 export const UpdateMaintenanceParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateMaintenanceBody = zod.object({
-  "status": zod.string().optional(),
-  "priority": zod.string().optional(),
-  "description": zod.string().optional(),
-  "dueDate": zod.string().nullish()
-})
+  status: zod.string().optional(),
+  priority: zod.string().optional(),
+  description: zod.string().optional(),
+  dueDate: zod.string().nullish(),
+});
 
 export const UpdateMaintenanceResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "roomId": zod.number(),
-  "problemType": zod.string(),
-  "description": zod.string(),
-  "status": zod.string(),
-  "priority": zod.string(),
-  "reportedAt": zod.string(),
-  "dueDate": zod.string().nullish()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  roomId: zod.number(),
+  problemType: zod.string(),
+  description: zod.string(),
+  status: zod.string(),
+  priority: zod.string(),
+  reportedAt: zod.string(),
+  dueDate: zod.string().nullish(),
+});
 
 /**
  * @summary Delete maintenance request
  */
 export const DeleteMaintenanceParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List users
  */
 export const ListUsersQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+});
 
 export const ListUsersResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "username": zod.string(),
-  "roles": zod.array(zod.string()),
-  "permissions": zod.array(zod.string()),
-  "status": zod.string()
-})
-export const ListUsersResponse = zod.array(ListUsersResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  username: zod.string(),
+  roles: zod.array(zod.string()),
+  permissions: zod.array(zod.string()),
+  status: zod.string(),
+});
+export const ListUsersResponse = zod.array(ListUsersResponseItem);
 
 /**
  * @summary Create user
  */
 export const CreateUserBody = zod.object({
-  "propertyId": zod.number(),
-  "propertyIds": zod.array(zod.number()).optional(),
-  "username": zod.string(),
-  "password": zod.string(),
-  "roles": zod.array(zod.string()),
-  "permissions": zod.array(zod.string()).optional(),
-  "status": zod.string().optional(),
-  "jobTitle": zod.string().nullish(),
-  "email": zod.string().nullish(),
-  "phone": zod.string().nullish()
-})
-
+  propertyId: zod.number(),
+  propertyIds: zod.array(zod.number()).optional(),
+  username: zod.string(),
+  password: zod.string(),
+  roles: zod.array(zod.string()),
+  permissions: zod.array(zod.string()).optional(),
+  status: zod.string().optional(),
+  jobTitle: zod.string().nullish(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+});
 
 /**
  * @summary Get user
  */
 export const GetUserParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const GetUserResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "username": zod.string(),
-  "roles": zod.array(zod.string()),
-  "permissions": zod.array(zod.string()),
-  "status": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  username: zod.string(),
+  roles: zod.array(zod.string()),
+  permissions: zod.array(zod.string()),
+  status: zod.string(),
+});
 
 /**
  * @summary Update user
  */
 export const UpdateUserParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateUserBody = zod.object({
-  "username": zod.string().optional(),
-  "email": zod.string().nullish(),
-  "phone": zod.string().nullish(),
-  "roles": zod.array(zod.string()).optional(),
-  "permissions": zod.array(zod.string()).optional(),
-  "status": zod.string().optional(),
-  "password": zod.string().nullish(),
-  "jobTitle": zod.string().nullish(),
-  "propertyIds": zod.array(zod.number()).optional(),
-  "propertyId": zod.number().optional()
-})
+  username: zod.string().optional(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  roles: zod.array(zod.string()).optional(),
+  permissions: zod.array(zod.string()).optional(),
+  status: zod.string().optional(),
+  password: zod.string().nullish(),
+  jobTitle: zod.string().nullish(),
+  propertyIds: zod.array(zod.number()).optional(),
+  propertyId: zod.number().optional(),
+});
 
 export const UpdateUserResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "username": zod.string(),
-  "roles": zod.array(zod.string()),
-  "permissions": zod.array(zod.string()),
-  "status": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  username: zod.string(),
+  roles: zod.array(zod.string()),
+  permissions: zod.array(zod.string()),
+  status: zod.string(),
+});
 
 /**
  * @summary Delete user
  */
 export const DeleteUserParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List activity logs
  */
 export const ListActivityLogsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "module": zod.coerce.string().optional(),
-  "userId": zod.coerce.number().optional(),
-  "limit": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  module: zod.coerce.string().optional(),
+  userId: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
 
 export const ListActivityLogsResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "username": zod.string(),
-  "userId": zod.number().nullish(),
-  "userRole": zod.string().nullish(),
-  "action": zod.string(),
-  "actionType": zod.string(),
-  "module": zod.string(),
-  "severity": zod.string(),
-  "timestamp": zod.string(),
-  "entityType": zod.string().nullish(),
-  "entityId": zod.number().nullish()
-})
-export const ListActivityLogsResponse = zod.array(ListActivityLogsResponseItem)
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  username: zod.string(),
+  userId: zod.number().nullish(),
+  userRole: zod.string().nullish(),
+  action: zod.string(),
+  actionType: zod.string(),
+  module: zod.string(),
+  severity: zod.string(),
+  timestamp: zod.string(),
+  entityType: zod.string().nullish(),
+  entityId: zod.number().nullish(),
+});
+export const ListActivityLogsResponse = zod.array(ListActivityLogsResponseItem);
 
 /**
  * @summary Get system settings
  */
 export const GetSettingsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+});
 
 export const GetSettingsResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "systemName": zod.string(),
-  "systemLogo": zod.string().nullish(),
-  "defaultLanguage": zod.string(),
-  "primaryColor": zod.string(),
-  "sidebarColor": zod.string(),
-  "buttonColor": zod.string(),
-  "departureAlertsEnabled": zod.boolean(),
-  "departureAlertThreshold": zod.number(),
-  "reportFooter": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  systemName: zod.string(),
+  systemLogo: zod.string().nullish(),
+  defaultLanguage: zod.string(),
+  primaryColor: zod.string(),
+  sidebarColor: zod.string(),
+  buttonColor: zod.string(),
+  departureAlertsEnabled: zod.boolean(),
+  departureAlertThreshold: zod.number(),
+  reportFooter: zod.string(),
+});
 
 /**
  * @summary Update system settings
  */
 export const UpdateSettingsBody = zod.object({
-  "propertyId": zod.number().optional(),
-  "systemName": zod.string().optional(),
-  "systemLogo": zod.string().nullish(),
-  "defaultLanguage": zod.string().optional(),
-  "primaryColor": zod.string().optional(),
-  "sidebarColor": zod.string().optional(),
-  "buttonColor": zod.string().optional(),
-  "departureAlertsEnabled": zod.boolean().optional(),
-  "departureAlertThreshold": zod.number().optional(),
-  "reportFooter": zod.string().optional()
-})
+  propertyId: zod.number().optional(),
+  systemName: zod.string().optional(),
+  systemLogo: zod.string().nullish(),
+  defaultLanguage: zod.string().optional(),
+  primaryColor: zod.string().optional(),
+  sidebarColor: zod.string().optional(),
+  buttonColor: zod.string().optional(),
+  departureAlertsEnabled: zod.boolean().optional(),
+  departureAlertThreshold: zod.number().optional(),
+  reportFooter: zod.string().optional(),
+});
 
 export const UpdateSettingsResponse = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "systemName": zod.string(),
-  "systemLogo": zod.string().nullish(),
-  "defaultLanguage": zod.string(),
-  "primaryColor": zod.string(),
-  "sidebarColor": zod.string(),
-  "buttonColor": zod.string(),
-  "departureAlertsEnabled": zod.boolean(),
-  "departureAlertThreshold": zod.number(),
-  "reportFooter": zod.string()
-})
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  systemName: zod.string(),
+  systemLogo: zod.string().nullish(),
+  defaultLanguage: zod.string(),
+  primaryColor: zod.string(),
+  sidebarColor: zod.string(),
+  buttonColor: zod.string(),
+  departureAlertsEnabled: zod.boolean(),
+  departureAlertThreshold: zod.number(),
+  reportFooter: zod.string(),
+});
 
 /**
  * @summary Get dashboard statistics
  */
 export const GetDashboardStatsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+});
 
 export const GetDashboardStatsResponse = zod.object({
-  "totalEmployees": zod.number(),
-  "activeEmployees": zod.number(),
-  "unhousedEmployees": zod.number(),
-  "totalRooms": zod.number(),
-  "occupiedRooms": zod.number(),
-  "availableRooms": zod.number(),
-  "occupancyRate": zod.number(),
-  "totalBuildings": zod.number(),
-  "openMaintenance": zod.number(),
-  "overdueMaintenance": zod.number(),
-  "upcomingReservations": zod.number(),
-  "totalReservations": zod.number()
-})
-
+  totalEmployees: zod.number(),
+  activeEmployees: zod.number(),
+  unhousedEmployees: zod.number(),
+  totalRooms: zod.number(),
+  occupiedRooms: zod.number(),
+  availableRooms: zod.number(),
+  occupancyRate: zod.number(),
+  totalBuildings: zod.number(),
+  openMaintenance: zod.number(),
+  overdueMaintenance: zod.number(),
+  upcomingReservations: zod.number(),
+  totalReservations: zod.number(),
+});
 
 /**
  * @summary Get upcoming departure alerts
  */
 export const GetDepartureAlertsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "threshold": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  threshold: zod.coerce.number().optional(),
+});
 
 export const GetDepartureAlertsResponseItem = zod.object({
-  "assignmentId": zod.number(),
-  "employeeId": zod.number(),
-  "employeeName": zod.string(),
-  "roomId": zod.number(),
-  "roomNumber": zod.string(),
-  "buildingName": zod.string(),
-  "expectedCheckOutDate": zod.string(),
-  "daysRemaining": zod.number(),
-  "alertStatus": zod.string()
-})
-export const GetDepartureAlertsResponse = zod.array(GetDepartureAlertsResponseItem)
-
+  assignmentId: zod.number(),
+  employeeId: zod.number(),
+  employeeName: zod.string(),
+  roomId: zod.number(),
+  roomNumber: zod.string(),
+  buildingName: zod.string(),
+  expectedCheckOutDate: zod.string(),
+  daysRemaining: zod.number(),
+  alertStatus: zod.string(),
+});
+export const GetDepartureAlertsResponse = zod.array(
+  GetDepartureAlertsResponseItem,
+);
 
 /**
  * @summary Get upcoming arrival alerts
  */
 export const GetArrivalAlertsQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "threshold": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  threshold: zod.coerce.number().optional(),
+});
 
 export const GetArrivalAlertsResponseItem = zod.object({
-  "reservationId": zod.number(),
-  "guestName": zod.string(),
-  "roomId": zod.number().nullish(),
-  "roomNumber": zod.string().nullish(),
-  "checkInDate": zod.string(),
-  "daysUntilArrival": zod.number(),
-  "alertStatus": zod.string()
-})
-export const GetArrivalAlertsResponse = zod.array(GetArrivalAlertsResponseItem)
-
+  reservationId: zod.number(),
+  guestName: zod.string(),
+  roomId: zod.number().nullish(),
+  roomNumber: zod.string().nullish(),
+  checkInDate: zod.string(),
+  daysUntilArrival: zod.number(),
+  alertStatus: zod.string(),
+});
+export const GetArrivalAlertsResponse = zod.array(GetArrivalAlertsResponseItem);
 
 /**
  * @summary Get occupancy breakdown by building
  */
 export const GetOccupancyByBuildingQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+});
 
 export const GetOccupancyByBuildingResponseItem = zod.object({
-  "buildingId": zod.number(),
-  "buildingName": zod.string(),
-  "totalCapacity": zod.number(),
-  "currentOccupancy": zod.number(),
-  "occupancyRate": zod.number()
-})
-export const GetOccupancyByBuildingResponse = zod.array(GetOccupancyByBuildingResponseItem)
-
+  buildingId: zod.number(),
+  buildingName: zod.string(),
+  totalCapacity: zod.number(),
+  currentOccupancy: zod.number(),
+  occupancyRate: zod.number(),
+});
+export const GetOccupancyByBuildingResponse = zod.array(
+  GetOccupancyByBuildingResponseItem,
+);
 
 /**
  * @summary Get recent activity feed
  */
 export const GetRecentActivityQueryParams = zod.object({
-  "propertyId": zod.coerce.number().optional(),
-  "limit": zod.coerce.number().optional()
-})
+  propertyId: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
 
 export const GetRecentActivityResponseItem = zod.object({
-  "id": zod.number(),
-  "propertyId": zod.number(),
-  "username": zod.string(),
-  "userId": zod.number().nullish(),
-  "userRole": zod.string().nullish(),
-  "action": zod.string(),
-  "actionType": zod.string(),
-  "module": zod.string(),
-  "severity": zod.string(),
-  "timestamp": zod.string(),
-  "entityType": zod.string().nullish(),
-  "entityId": zod.number().nullish()
-})
-export const GetRecentActivityResponse = zod.array(GetRecentActivityResponseItem)
-
-
+  id: zod.number(),
+  propertyId: zod.number(),
+  username: zod.string(),
+  userId: zod.number().nullish(),
+  userRole: zod.string().nullish(),
+  action: zod.string(),
+  actionType: zod.string(),
+  module: zod.string(),
+  severity: zod.string(),
+  timestamp: zod.string(),
+  entityType: zod.string().nullish(),
+  entityId: zod.number().nullish(),
+});
+export const GetRecentActivityResponse = zod.array(
+  GetRecentActivityResponseItem,
+);

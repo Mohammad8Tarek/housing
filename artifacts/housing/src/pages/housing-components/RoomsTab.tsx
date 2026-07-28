@@ -32,10 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-  useCreateRoom, 
-  useUpdateRoom, 
-  useDeleteRoom 
+import {
+  useCreateRoom,
+  useUpdateRoom,
+  useDeleteRoom,
 } from "@workspace/api-client-react";
 import { roomStatusBadge, statusNorm } from "./utils";
 
@@ -50,7 +50,6 @@ const roomTypes = [
 ];
 
 type Props = {
-  
   buildings: any[];
   floors: any[];
   rooms: any[];
@@ -66,7 +65,6 @@ export function RoomsTab({
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
-
 
   const createRoomMut = useCreateRoom();
   const updateRoomMut = useUpdateRoom();
@@ -96,8 +94,7 @@ export function RoomsTab({
     const matchF =
       roomFloorFilter === "all" || r.floorId === Number(roomFloorFilter);
     const matchS =
-      roomStatusFilter === "all" ||
-      statusNorm(r.status) === roomStatusFilter;
+      roomStatusFilter === "all" || statusNorm(r.status) === roomStatusFilter;
     return matchB && matchF && matchS;
   });
 
@@ -131,9 +128,11 @@ export function RoomsTab({
 
   const saveRoomHandler = async () => {
     if (!rForm.buildingId || !rForm.floorId || !rForm.roomNumber.trim()) {
-      toast.error(ar
+      toast.error(
+        ar
           ? "المبنى والطابق ورقم الغرفة مطلوبون"
-          : "Building, floor, and room number are required");
+          : "Building, floor, and room number are required",
+      );
       return;
     }
 
@@ -183,9 +182,7 @@ export function RoomsTab({
             }}
           >
             <SelectTrigger className="w-[160px]">
-              <SelectValue
-                placeholder={ar ? "كل المباني" : "All Buildings"}
-              />
+              <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
@@ -198,10 +195,7 @@ export function RoomsTab({
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={roomFloorFilter}
-            onValueChange={setRoomFloorFilter}
-          >
+          <Select value={roomFloorFilter} onValueChange={setRoomFloorFilter}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder={ar ? "كل الطوابق" : "All Floors"} />
             </SelectTrigger>
@@ -221,14 +215,9 @@ export function RoomsTab({
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={roomStatusFilter}
-            onValueChange={setRoomStatusFilter}
-          >
+          <Select value={roomStatusFilter} onValueChange={setRoomStatusFilter}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue
-                placeholder={ar ? "كل الحالات" : "All Statuses"}
-              />
+              <SelectValue placeholder={ar ? "كل الحالات" : "All Statuses"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
@@ -251,8 +240,7 @@ export function RoomsTab({
         </div>
         <PermissionGate module="housing" action="create">
           <Button onClick={openCreateRoom} size="sm">
-            <Plus className="w-4 h-4 mr-1" />{" "}
-            {ar ? "إضافة غرفة" : "Add Room"}
+            <Plus className="w-4 h-4 mr-1" /> {ar ? "إضافة غرفة" : "Add Room"}
           </Button>
         </PermissionGate>
       </div>
@@ -290,9 +278,7 @@ export function RoomsTab({
             </thead>
             <tbody className="divide-y">
               {filteredRoomsTab.map((r) => {
-                const building = buildings.find(
-                  (b) => b.id === r.buildingId,
-                );
+                const building = buildings.find((b) => b.id === r.buildingId);
                 const floor = floors.find((f) => f.id === r.floorId);
                 return (
                   <tr
@@ -512,9 +498,7 @@ export function RoomsTab({
                       {ar ? "مختلط / بلا تخصيص" : "Mixed / None"}
                     </SelectItem>
                     <SelectItem value="M">{ar ? "ذكور" : "Male"}</SelectItem>
-                    <SelectItem value="F">
-                      {ar ? "إناث" : "Female"}
-                    </SelectItem>
+                    <SelectItem value="F">{ar ? "إناث" : "Female"}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

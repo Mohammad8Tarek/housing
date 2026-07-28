@@ -35,13 +35,7 @@ export const getGuestDocs = (h: any) => {
 export const getGuestProfiles = (h: any, ar: boolean) => {
   return getComps(h).map((c: any) => {
     const parts = [
-      Number(c.isChild) === 1
-        ? ar
-          ? "طفل"
-          : "Child"
-        : ar
-          ? "بالغ"
-          : "Adult",
+      Number(c.isChild) === 1 ? (ar ? "طفل" : "Child") : ar ? "بالغ" : "Adult",
       c.relation,
       c.idNumber ? `${ar ? "وثيقة" : "Doc"} ${c.idNumber}` : "",
       Number(c.isChild) === 1 && c.age != null

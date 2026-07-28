@@ -41,9 +41,10 @@ export function AnimatedConfirmModal({
   const reducedMotion = usePrefersReducedMotion();
 
   // Distinct color logic
-  const actionColor = variant === "destructive" 
-    ? "bg-red-600 hover:bg-red-700 text-white" 
-    : "bg-[#2AB5B5] hover:bg-[#239999] text-white";
+  const actionColor =
+    variant === "destructive"
+      ? "bg-red-600 hover:bg-red-700 text-white"
+      : "bg-[#2AB5B5] hover:bg-[#239999] text-white";
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -67,7 +68,10 @@ export function AnimatedConfirmModal({
                 initial={{ opacity: 0, scale: 0.96, y: "-48%" }}
                 animate={{ opacity: 1, scale: 1, y: "-50%" }}
                 exit={{ opacity: 0, scale: 0.96, y: "-48%" }}
-                transition={{ duration: reducedMotion ? 0 : 0.18, ease: "easeOut" }}
+                transition={{
+                  duration: reducedMotion ? 0 : 0.18,
+                  ease: "easeOut",
+                }}
               >
                 <AlertDialogHeader className="text-center sm:text-left mb-4">
                   <AlertDialogTitle className="text-lg font-bold">

@@ -169,7 +169,7 @@ export default function Tickets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [page, setPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const [deleteId, setDeleteId] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -184,7 +184,9 @@ export default function Tickets() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
-  useEffect(() => { setPage(1); }, [searchTerm, statusFilter, priorityFilter]);
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter, priorityFilter]);
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [creatorTypeFilter, setCreatorTypeFilter] = useState("");
   const [propertyFilter, setPropertyFilter] = useState("");
@@ -208,7 +210,11 @@ export default function Tickets() {
     { propertyId: activePropertyId ?? undefined, page, limit: LIMIT },
     {
       query: {
-        queryKey: getListMaintenanceQueryKey({ propertyId: activePropertyId ?? undefined, page, limit: LIMIT }),
+        queryKey: getListMaintenanceQueryKey({
+          propertyId: activePropertyId ?? undefined,
+          page,
+          limit: LIMIT,
+        }),
         enabled: !!activePropertyId,
         refetchOnMount: true,
         staleTime: 0,
@@ -217,7 +223,7 @@ export default function Tickets() {
         refetchOnWindowFocus: true,
         placeholderData: (prev: any) => prev,
       },
-    }
+    },
   );
   const allTickets = allTicketsWrapper?.data || allTicketsWrapper || [];
 
@@ -228,13 +234,13 @@ export default function Tickets() {
   const rooms = _roomsWrapper?.data || [];
   const { data: _eDataWrapper } = useListEmployees(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } }
-  );  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+    { query: { enabled: !!activePropertyId } },
+  );
+  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
   const { data: assignments } = useListAssignments(
     { propertyId: activePropertyId } as any,
     { query: { enabled: !!activePropertyId } },
   );
-  
 
   // Build room → occupant name(s) map from active assignments + employees
   const roomOccupantMap = useMemo(() => {
@@ -297,7 +303,7 @@ export default function Tickets() {
       },
       onError: (e) =>
         toast.error(ar ? "خطأ" : "Error", {
-          description: e.message
+          description: e.message,
         }),
     },
   });
@@ -310,7 +316,7 @@ export default function Tickets() {
       },
       onError: (e) =>
         toast.error(ar ? "خطأ" : "Error", {
-          description: e.message
+          description: e.message,
         }),
     },
   });
@@ -339,7 +345,9 @@ export default function Tickets() {
 
   const onSubmit = () => {
     if (!form.roomId || !form.description) {
-      toast.error(ar ? "يرجى ملء الحقول المطلوبة" : "Please fill required fields");
+      toast.error(
+        ar ? "يرجى ملء الحقول المطلوبة" : "Please fill required fields",
+      );
       return;
     }
     createMutation.mutate({
@@ -782,7 +790,6 @@ export default function Tickets() {
                       alt=""
                       className="w-full h-full object-cover"
                     />
-                    
                   </div>
                 ) : (
                   <div className="flex gap-2">
@@ -1095,13 +1102,13 @@ export default function Tickets() {
                 )}
               </TableBody>
             </Table>
-          {allTicketsWrapper?.pagination && (
-            <PaginationBar
-              pagination={allTicketsWrapper.pagination}
-              isFetching={isFetching}
-              onPageChange={setPage}
-            />
-          )}
+            {allTicketsWrapper?.pagination && (
+              <PaginationBar
+                pagination={allTicketsWrapper.pagination}
+                isFetching={isFetching}
+                onPageChange={setPage}
+              />
+            )}
           </div>
         </div>
       )}
@@ -1192,4 +1199,3 @@ export default function Tickets() {
     </div>
   );
 }
-

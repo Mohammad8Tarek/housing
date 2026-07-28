@@ -48,8 +48,7 @@ export function GeneralSettings({
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       },
-      onError: () =>
-        toast.error("Error uploading logo"),
+      onError: () => toast.error("Error uploading logo"),
     },
   });
 

@@ -92,24 +92,20 @@ router.post(
         req.body;
 
       if (!titleAr || !fileName || !fileType || !fileData) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "titleAr, fileName, fileType, fileData are required",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "titleAr, fileName, fileType, fileData are required",
+        });
       }
 
       let normalizedFileData: string;
       try {
         normalizedFileData = validateDocumentData(fileType, fileData);
       } catch (error: any) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: error.message || "Invalid document",
-          });
+        return res.status(400).json({
+          success: false,
+          message: error.message || "Invalid document",
+        });
       }
 
       const [record] = await withTenant(propertyId, async (tenantDb) => {

@@ -207,23 +207,27 @@ router.get(
       const empMap = Object.fromEntries(employees.map((e) => [e.id, e]));
 
       // Get read receipts
-      const messageIds = messages.map(m => m.id);
+      const messageIds = messages.map((m) => m.id);
       let readReceipts: any[] = [];
       if (messageIds.length > 0) {
         readReceipts = await withTenant(sess.propertyId, async (tenantDb) => {
-          return await tenantDb.select()
+          return await tenantDb
+            .select()
             .from(portalMessageReadsTable)
             .where(inArray(portalMessageReadsTable.messageId, messageIds));
         });
       }
-      
+
       const readsByMsg: Record<number, any[]> = {};
       for (const r of readReceipts) {
         if (!readsByMsg[r.messageId]) readsByMsg[r.messageId] = [];
         readsByMsg[r.messageId].push(r);
       }
-      
-      const messagesWithReads = messages.map(m => ({ ...m, reads: readsByMsg[m.id] || [] }));
+
+      const messagesWithReads = messages.map((m) => ({
+        ...m,
+        reads: readsByMsg[m.id] || [],
+      }));
 
       res.json({
         success: true,
@@ -325,14 +329,12 @@ router.put(
           );
 
         if (unreadMessages.length > 0) {
-          await tenantDb
-            .insert(portalMessageReadsTable)
-            .values(
-              unreadMessages.map((m) => ({
-                messageId: m.id,
-                employeeId: sess.employeeDbId,
-              })),
-            );
+          await tenantDb.insert(portalMessageReadsTable).values(
+            unreadMessages.map((m) => ({
+              messageId: m.id,
+              employeeId: sess.employeeDbId,
+            })),
+          );
         }
       });
 

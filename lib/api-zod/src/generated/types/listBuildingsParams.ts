@@ -7,5 +7,5 @@
  */
 
 export type ListBuildingsParams = {
-propertyId?: number;
+  propertyId?: number;
 };

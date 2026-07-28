@@ -7,8 +7,8 @@
  */
 
 export type ListAssignmentsParams = {
-propertyId?: number;
-status?: string;
-employeeId?: number;
-roomId?: number;
+  propertyId?: number;
+  status?: string;
+  employeeId?: number;
+  roomId?: number;
 };

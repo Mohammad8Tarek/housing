@@ -1,5 +1,12 @@
 import { useState, useMemo } from "react";
-import { FileText, Search, Download, ExternalLink, X, Info } from "lucide-react";
+import {
+  FileText,
+  Search,
+  Download,
+  ExternalLink,
+  X,
+  Info,
+} from "lucide-react";
 import { useTheme } from "../lib/theme";
 import MaterialIcon from "./MaterialIcon";
 

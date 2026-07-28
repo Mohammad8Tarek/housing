@@ -136,15 +136,19 @@ router.post(
               `SELECT setval(pg_get_serial_sequence('"${schemaName}".${table}', 'id'), 1, false)`,
             )
             .catch((err: any) =>
-              console.warn(`[Properties] Sequence reset skipped for ${table}: ${err.message}`),
+              console.warn(
+                `[Properties] Sequence reset skipped for ${table}: ${err.message}`,
+              ),
             );
         }
       }
       await client.query("COMMIT");
     } catch (err) {
-      await client.query("ROLLBACK").catch((rollbackErr: any) =>
-        console.warn("[Properties] ROLLBACK failed:", rollbackErr.message),
-      );
+      await client
+        .query("ROLLBACK")
+        .catch((rollbackErr: any) =>
+          console.warn("[Properties] ROLLBACK failed:", rollbackErr.message),
+        );
       console.error("Error creating tenant schema:", err);
     } finally {
       client.release();

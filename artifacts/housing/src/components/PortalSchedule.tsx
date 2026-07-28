@@ -136,9 +136,11 @@ export default function PortalSchedule() {
       queryClient.invalidateQueries({
         queryKey: ["portal-reminders", activePropertyId],
       });
-      toast.success(ar
+      toast.success(
+        ar
           ? "تم تأجيل التذكير لمدة 30 دقيقة"
-          : "Reminder snoozed for 30 minutes");
+          : "Reminder snoozed for 30 minutes",
+      );
     },
   });
 

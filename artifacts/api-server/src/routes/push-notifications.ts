@@ -38,12 +38,10 @@ router.post("/subscribe", requirePortalAuth, async (req, res, next) => {
     const { endpoint, p256dhKey, authKey } = req.body;
 
     if (!endpoint || !p256dhKey || !authKey) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Missing endpoint, p256dhKey, or authKey",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Missing endpoint, p256dhKey, or authKey",
+      });
     }
 
     await withTenant(sess.propertyId, async (tenantDb) => {

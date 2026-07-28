@@ -160,7 +160,7 @@ export default function RoomAssignment() {
   };
 
   const { data: _rData } = useListRooms(
-    { propertyId: activePropertyId , limit: 1000},
+    { propertyId: activePropertyId, limit: 1000 },
     { query: { enabled: !!activePropertyId, staleTime: 30000 } },
   );
   const rooms = _rData?.data || [];
@@ -176,7 +176,6 @@ export default function RoomAssignment() {
     { propertyId: activePropertyId } as any,
     { query: { enabled: !!activePropertyId, staleTime: 30000 } },
   );
-  
 
   // Build set of occupied bed numbers for the currently selected room
   const occupiedBeds = new Set<number>(
@@ -265,8 +264,8 @@ export default function RoomAssignment() {
             description = body.error;
           }
         } catch {}
-        toast.error(description || (ar ? "خطأ" : "Error"))
-    },
+        toast.error(description || (ar ? "خطأ" : "Error"));
+      },
     },
   });
 
@@ -330,7 +329,9 @@ export default function RoomAssignment() {
       return;
     }
     if (!checkInDate) {
-      toast.error(ar ? "الرجاء تحديد تاريخ الدخول" : "Please set check-in date");
+      toast.error(
+        ar ? "الرجاء تحديد تاريخ الدخول" : "Please set check-in date",
+      );
       return;
     }
     if (isMultiBed && !selectedBed) {

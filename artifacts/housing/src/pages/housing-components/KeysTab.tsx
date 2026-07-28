@@ -46,14 +46,9 @@ export function KeysTab({
       <div className="space-y-1.5">
         <label className="text-sm font-medium flex items-center gap-2">
           <Key className="w-4 h-4 text-amber-600" />
-          {ar
-            ? "اختر الغرفة لإدارة مفاتيحها"
-            : "Select Room to Manage Keys"}
+          {ar ? "اختر الغرفة لإدارة مفاتيحها" : "Select Room to Manage Keys"}
         </label>
-        <Select
-          value={selectedKeyRoomId}
-          onValueChange={setSelectedKeyRoomId}
-        >
+        <Select value={selectedKeyRoomId} onValueChange={setSelectedKeyRoomId}>
           <SelectTrigger className="max-w-sm">
             <SelectValue
               placeholder={ar ? "اختر غرفة..." : "Select a room..."}
@@ -105,9 +100,7 @@ export function KeysTab({
             (a: any) => a.roomId === roomIdNum && a.status === "ACTIVE",
           );
           const assignedEmployee = activeAssignment
-            ? employees.find(
-                (e: any) => e.id === activeAssignment.employeeId,
-              )
+            ? employees.find((e: any) => e.id === activeAssignment.employeeId)
             : undefined;
           return (
             <div className="max-w-lg space-y-2">

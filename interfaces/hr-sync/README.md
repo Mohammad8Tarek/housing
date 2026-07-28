@@ -23,6 +23,7 @@ copy config.example.json config.json
 ```
 
 Open `config.json` and fill in:
+
 - `housing_api.url` → URL of your Sunrise Housing server (e.g. `http://192.168.1.10:4000`)
 - `housing_api.api_key` → Your Housing API key (from Housing Settings → Integrations)
 - `housing_api.property_id` → Your property ID

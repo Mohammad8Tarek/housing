@@ -33,7 +33,12 @@
     "typescript": "^5.4.5"
   },
   "pkg": {
-    "assets": ["dist/**/*", "config.json"],
-    "targets": ["node18-win-x64"]
+    "assets": [
+      "dist/**/*",
+      "config.json"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ]
   }
 }

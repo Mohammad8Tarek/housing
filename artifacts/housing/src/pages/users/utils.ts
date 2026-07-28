@@ -7,13 +7,33 @@ export const SYSTEM_ROLES = [
 ];
 
 export const WORKFLOW_ROLES = [
-  { value: "none", label: "None / Not a Manager", labelAr: "لا يوجد / ليس مدير" },
-  { value: "department_manager", label: "Department Manager", labelAr: "مدير القسم" },
+  {
+    value: "none",
+    label: "None / Not a Manager",
+    labelAr: "لا يوجد / ليس مدير",
+  },
+  {
+    value: "department_manager",
+    label: "Department Manager",
+    labelAr: "مدير القسم",
+  },
   { value: "housing_manager", label: "Housing Manager", labelAr: "مدير السكن" },
   { value: "hr_manager", label: "HR Manager", labelAr: "مدير الموارد البشرية" },
-  { value: "accounts_manager", label: "Accounts Manager", labelAr: "مدير الحسابات" },
-  { value: "hotel_gm", label: "Hotel General Manager", labelAr: "المدير العام للفندق" },
-  { value: "hotel_fc", label: "Hotel Financial Controller", labelAr: "المراقب المالي للفندق" },
+  {
+    value: "accounts_manager",
+    label: "Accounts Manager",
+    labelAr: "مدير الحسابات",
+  },
+  {
+    value: "hotel_gm",
+    label: "Hotel General Manager",
+    labelAr: "المدير العام للفندق",
+  },
+  {
+    value: "hotel_fc",
+    label: "Hotel Financial Controller",
+    labelAr: "المراقب المالي للفندق",
+  },
 ];
 
 export const roleColor = (role: string) => {

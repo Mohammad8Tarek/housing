@@ -217,20 +217,19 @@ router.get(
           ),
         ]);
 
-
         for (const row of (pendingFamilyVisitsResult as any).rows || []) {
-            notifications.push({
-              id: `hosting-requests-${row.id}`,
-              type: "HOSTING_REQUEST_PENDING",
-              priority: "high",
-              title: `Pending Hosting Request Approval`,
-              titleAr: `طلب استضافة في انتظار الاعتماد`,
-              description: `Hosting request for ${row.employee_name} is waiting for ${row.role_required} approval`,
-              descriptionAr: `طلب استضافة للموظف ${row.employee_name} بانتظار اعتماد ${row.role_required}`,
-              entityId: row.id,
-              entityType: "hosting_requests",
-              createdAt: new Date().toISOString(),
-            });
+          notifications.push({
+            id: `hosting-requests-${row.id}`,
+            type: "HOSTING_REQUEST_PENDING",
+            priority: "high",
+            title: `Pending Hosting Request Approval`,
+            titleAr: `طلب استضافة في انتظار الاعتماد`,
+            description: `Hosting request for ${row.employee_name} is waiting for ${row.role_required} approval`,
+            descriptionAr: `طلب استضافة للموظف ${row.employee_name} بانتظار اعتماد ${row.role_required}`,
+            entityId: row.id,
+            entityType: "hosting_requests",
+            createdAt: new Date().toISOString(),
+          });
         }
 
         for (const a of overdueAssignments) {

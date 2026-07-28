@@ -314,13 +314,11 @@ router.post(
       entityId: result.hosting.id,
       details: `Guests: ${result.hosting.guestsCount}`,
     });
-    res
-      .status(201)
-      .json({
-        ...fmtHosting(result.hosting),
-        propertyId,
-        companions: result.companionsList.map(fmtCompanion),
-      });
+    res.status(201).json({
+      ...fmtHosting(result.hosting),
+      propertyId,
+      companions: result.companionsList.map(fmtCompanion),
+    });
   },
 );
 
@@ -390,20 +388,23 @@ router.get(
         companions: companions.map(fmtCompanion),
       });
 
-      res.json({ success: true, data: {
-        ...base,
-        companions: companions.map(fmtCompanion),
-        employee: employee ? fmtRelated(employee) : null,
-        room: room
-          ? {
-              ...fmtRelated(room),
-              buildingName: building?.name ?? null,
-              buildingLocation: building?.location ?? null,
-              floorNumber: floor?.floorNumber ?? null,
-              floorDescription: floor?.description ?? null,
-            }
-          : null,
-      }});
+      res.json({
+        success: true,
+        data: {
+          ...base,
+          companions: companions.map(fmtCompanion),
+          employee: employee ? fmtRelated(employee) : null,
+          room: room
+            ? {
+                ...fmtRelated(room),
+                buildingName: building?.name ?? null,
+                buildingLocation: building?.location ?? null,
+                floorNumber: floor?.floorNumber ?? null,
+                floorDescription: floor?.description ?? null,
+              }
+            : null,
+        },
+      });
     } catch (error: any) {
       console.error(
         "[Hostings API] Error fetching hosting:",
@@ -660,7 +661,10 @@ router.post(
         const roomIdToUse = parsed.data.roomId ?? rows[0]?.roomId;
         if (roomIdToUse) {
           const [room] = await tenantDb
-            .select({ currentOccupancy: roomsTable.currentOccupancy, capacity: roomsTable.capacity })
+            .select({
+              currentOccupancy: roomsTable.currentOccupancy,
+              capacity: roomsTable.capacity,
+            })
             .from(roomsTable)
             .where(eq(roomsTable.id, roomIdToUse))
             .limit(1);

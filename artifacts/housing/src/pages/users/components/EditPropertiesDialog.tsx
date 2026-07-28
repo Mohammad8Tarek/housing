@@ -28,8 +28,7 @@ export function EditPropertiesDialog({
   const ar = language === "ar";
   const updateMutation = useUpdateUser({
     mutation: {
-      onError: (e: any) =>
-        toast.error(e.message || "Error"),
+      onError: (e: any) => toast.error(e.message || "Error"),
     },
   });
 
@@ -49,7 +48,9 @@ export function EditPropertiesDialog({
 
   const save = async () => {
     if (!selectedIds.length) {
-      toast.error(ar ? "يجب اختيار فرع واحد على الأقل" : "Select at least one property");
+      toast.error(
+        ar ? "يجب اختيار فرع واحد على الأقل" : "Select at least one property",
+      );
       return;
     }
     setSaving(true);

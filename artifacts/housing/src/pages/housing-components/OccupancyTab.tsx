@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Building2, BedDouble, Layers, ChevronRight, ChevronDown } from "lucide-react";
+import {
+  Building2,
+  BedDouble,
+  Layers,
+  ChevronRight,
+  ChevronDown,
+} from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { statusNorm } from "./utils";
@@ -20,7 +26,9 @@ export function OccupancyTab({
   const { language } = useLanguage();
   const ar = language === "ar";
 
-  const [expandedBuildings, setExpandedBuildings] = useState<Set<number>>(new Set());
+  const [expandedBuildings, setExpandedBuildings] = useState<Set<number>>(
+    new Set(),
+  );
   const [expandedFloors, setExpandedFloors] = useState<Set<number>>(new Set());
 
   return (
@@ -38,16 +46,9 @@ export function OccupancyTab({
       ) : (
         <div className="space-y-3">
           {buildings.map((building) => {
-            const bFloors = floors.filter(
-              (f) => f.buildingId === building.id,
-            );
-            const bRooms = rooms.filter(
-              (r) => r.buildingId === building.id,
-            );
-            const totalBeds = bRooms.reduce(
-              (s, r) => s + (r.capacity ?? 0),
-              0,
-            );
+            const bFloors = floors.filter((f) => f.buildingId === building.id);
+            const bRooms = rooms.filter((r) => r.buildingId === building.id);
+            const totalBeds = bRooms.reduce((s, r) => s + (r.capacity ?? 0), 0);
             const usedBeds = bRooms.reduce(
               (s, r) => s + (r.currentOccupancy ?? 0),
               0,
@@ -151,22 +152,16 @@ export function OccupancyTab({
                               )}
                               <Layers className="w-4 h-4 text-primary/60" />
                               <span className="font-semibold text-sm">
-                                {ar ? "الطابق" : "Floor"}{" "}
-                                {floor.floorNumber}
+                                {ar ? "الطابق" : "Floor"} {floor.floorNumber}
                               </span>
-                              <Badge
-                                variant="secondary"
-                                className="text-xs"
-                              >
+                              <Badge variant="secondary" className="text-xs">
                                 {fRooms.length} {ar ? "غرفة" : "rooms"}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-3 text-sm">
                               <span className="flex items-center gap-1.5">
                                 <BedDouble className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="font-semibold">
-                                  {fUsed}
-                                </span>
+                                <span className="font-semibold">{fUsed}</span>
                                 <span className="text-muted-foreground">
                                   /{fBeds}
                                 </span>

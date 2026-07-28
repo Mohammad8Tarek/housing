@@ -3,8 +3,19 @@ import * as path from "path";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
-const LEVEL_ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
-const COLORS = { debug: "\x1b[90m", info: "\x1b[36m", warn: "\x1b[33m", error: "\x1b[31m", reset: "\x1b[0m" };
+const LEVEL_ORDER: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+const COLORS = {
+  debug: "\x1b[90m",
+  info: "\x1b[36m",
+  warn: "\x1b[33m",
+  error: "\x1b[31m",
+  reset: "\x1b[0m",
+};
 
 let currentLevel: LogLevel = "info";
 let logFilePath: string | null = null;

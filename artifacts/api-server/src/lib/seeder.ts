@@ -16,7 +16,7 @@ export async function runAutoSeeder() {
   }
 
   logger.info("Starting automatic data migration from seed-data.json...");
-  
+
   try {
     const rawData = fs.readFileSync(seedFilePath, "utf-8");
     const dumpData = JSON.parse(rawData);
@@ -37,13 +37,13 @@ export async function runAutoSeeder() {
 
         const columns = Object.keys(rows[0]);
         const batchSize = 100;
-        
+
         for (let i = 0; i < rows.length; i += batchSize) {
           const batch = rows.slice(i, i + batchSize);
-          
+
           const values: any[] = [];
           const valuePlaceholders: string[] = [];
-          
+
           let paramIndex = 1;
           for (const row of batch) {
             const rowPlaceholders: string[] = [];
@@ -53,12 +53,12 @@ export async function runAutoSeeder() {
             }
             valuePlaceholders.push(`(${rowPlaceholders.join(", ")})`);
           }
-          
+
           const insertQuery = `
             INSERT INTO "${table}" ("${columns.join('", "')}")
             VALUES ${valuePlaceholders.join(", ")}
           `;
-          
+
           await client.query(insertQuery, values);
         }
         logger.info(`Seeded ${rows.length} rows into ${table}.`);
@@ -74,13 +74,14 @@ export async function runAutoSeeder() {
           `);
         } catch (err) {}
       }
-
     } finally {
       client.release();
     }
 
     fs.renameSync(seedFilePath, doneFilePath);
-    logger.info("✅ Seeding completed successfully. File renamed to seed-data.json.done");
+    logger.info(
+      "✅ Seeding completed successfully. File renamed to seed-data.json.done",
+    );
   } catch (err) {
     logger.error({ err }, "❌ Failed to run auto-seeder");
   }

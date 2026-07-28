@@ -2,7 +2,9 @@ import * as sql from "mssql";
 import { SqlServerConfig, HousingEmployee, mapFields } from "../config.js";
 import { log } from "../logger.js";
 
-export async function fetchFromSqlServer(cfg: SqlServerConfig): Promise<HousingEmployee[]> {
+export async function fetchFromSqlServer(
+  cfg: SqlServerConfig,
+): Promise<HousingEmployee[]> {
   log.info(`[SQL] Connecting to: ${cfg.server}\\${cfg.database}`);
 
   const poolConfig: sql.config = {
@@ -28,7 +30,9 @@ export async function fetchFromSqlServer(cfg: SqlServerConfig): Promise<HousingE
     const rows = result.recordset;
     log.info(`[SQL] Query returned ${rows.length} rows.`);
 
-    return rows.map((row: any) => mapFields(row, cfg.field_map)) as HousingEmployee[];
+    return rows.map((row: any) =>
+      mapFields(row, cfg.field_map),
+    ) as HousingEmployee[];
   } finally {
     if (pool) {
       await pool.close();

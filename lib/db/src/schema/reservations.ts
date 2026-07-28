@@ -5,7 +5,9 @@ import { roomsTable } from "./rooms";
 
 export const reservationsTable = pgTable("reservations", {
   id: serial("id").primaryKey(),
-  roomId: integer("room_id").references(() => roomsTable.id, { onDelete: "set null" }),
+  roomId: integer("room_id").references(() => roomsTable.id, {
+    onDelete: "set null",
+  }),
   roomType: text("room_type"),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
@@ -17,9 +19,13 @@ export const reservationsTable = pgTable("reservations", {
   jobTitle: text("job_title").notNull().default(""),
   department: text("department").notNull().default(""),
   status: text("status").notNull().default("UPCOMING"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const insertReservationSchema = createInsertSchema(reservationsTable).omit({ id: true, createdAt: true });
+export const insertReservationSchema = createInsertSchema(
+  reservationsTable,
+).omit({ id: true, createdAt: true });
 export type InsertReservation = z.infer<typeof insertReservationSchema>;
 export type Reservation = typeof reservationsTable.$inferSelect;

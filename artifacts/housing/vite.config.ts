@@ -16,14 +16,16 @@ const apiPort = process.env.API_PORT ? Number(process.env.API_PORT) : 4000;
 
 export default defineConfig({
   base: "/",
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
-      "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
+      "@assets": path.resolve(
+        import.meta.dirname,
+        "..",
+        "..",
+        "attached_assets",
+      ),
     },
     dedupe: ["react", "react-dom", "@tanstack/react-query"],
   },
@@ -44,7 +46,7 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
     headers: {
-      "X-Content-Type-Options": "nosniff"
+      "X-Content-Type-Options": "nosniff",
     },
     hmr: { overlay: false },
     fs: {
@@ -69,7 +71,7 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
     headers: {
-      "X-Content-Type-Options": "nosniff"
+      "X-Content-Type-Options": "nosniff",
     },
     proxy: {
       "/api": {

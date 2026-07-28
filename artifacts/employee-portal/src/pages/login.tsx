@@ -154,11 +154,15 @@ export default function Login() {
       }
       if (data.mustChangePassword) {
         await hapticFeedback("medium");
-        toast.success(isRtl ? "تم تسجيل الدخول بنجاح" : "Signed in successfully");
+        toast.success(
+          isRtl ? "تم تسجيل الدخول بنجاح" : "Signed in successfully",
+        );
         setShowSignature(true);
       } else {
         await hapticFeedback("medium");
-        toast.success(isRtl ? "تم تسجيل الدخول بنجاح" : "Signed in successfully");
+        toast.success(
+          isRtl ? "تم تسجيل الدخول بنجاح" : "Signed in successfully",
+        );
         setShowSignature(true);
       }
     } catch (err: unknown) {

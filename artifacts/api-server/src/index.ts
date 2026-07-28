@@ -158,10 +158,16 @@ process.once("SIGTERM", () => shutdown("SIGTERM"));
 // Process-level error handlers prevent the server from crashing on unhandled rejections
 // Without these, Node 15+ crashes the process on any unhandled async rejection.
 process.on("unhandledRejection", (reason) => {
-  logger.error({ err: reason }, "Unhandled Rejection — keeping server alive but investigate");
+  logger.error(
+    { err: reason },
+    "Unhandled Rejection — keeping server alive but investigate",
+  );
 });
 process.on("uncaughtException", (error) => {
-  logger.fatal({ err: error }, "Uncaught Exception — attempting graceful shutdown");
+  logger.fatal(
+    { err: error },
+    "Uncaught Exception — attempting graceful shutdown",
+  );
   shutdown("UNCAUGHT_EXCEPTION").catch(() => process.exit(1));
 });
 

@@ -21,9 +21,14 @@ export const employeesTable = pgTable("employees", {
   photoUrl: text("photo_url"),
   email: text("email").notNull().default(""),
   emergencyContact: text("emergency_contact").notNull().default(""),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const insertEmployeeSchema = createInsertSchema(employeesTable).omit({ id: true, createdAt: true });
+export const insertEmployeeSchema = createInsertSchema(employeesTable).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employeesTable.$inferSelect;

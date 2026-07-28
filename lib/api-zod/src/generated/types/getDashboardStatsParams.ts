@@ -7,5 +7,5 @@
  */
 
 export type GetDashboardStatsParams = {
-propertyId?: number;
+  propertyId?: number;
 };

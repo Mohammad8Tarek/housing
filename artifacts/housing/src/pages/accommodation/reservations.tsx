@@ -89,7 +89,7 @@ export default function Reservations() {
   const LIMIT = 25;
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-    const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1);
   const { isSystemAdmin } = useAuth();
   const ar = language === "ar";
 
@@ -129,7 +129,9 @@ export default function Reservations() {
   const [roomSearch, setRoomSearch] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  useEffect(() => { setPage(1); }, [search, statusFilter]);
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
 
   const [empSearch, setEmpSearch] = useState("");
   const [showEmpSuggestions, setShowEmpSuggestions] = useState(false);
@@ -151,11 +153,19 @@ export default function Reservations() {
     level: "",
   });
 
-  const { data: _resWrapper, isLoading, isFetching } = useListReservations(
+  const {
+    data: _resWrapper,
+    isLoading,
+    isFetching,
+  } = useListReservations(
     { propertyId: activePropertyId ?? undefined, page, limit: LIMIT },
     {
       query: {
-        queryKey: getListReservationsQueryKey({ propertyId: activePropertyId ?? undefined, page, limit: LIMIT }),
+        queryKey: getListReservationsQueryKey({
+          propertyId: activePropertyId ?? undefined,
+          page,
+          limit: LIMIT,
+        }),
         enabled: !!activePropertyId,
         staleTime: 0,
         placeholderData: (prev: any) => prev,
@@ -171,8 +181,9 @@ export default function Reservations() {
   const rooms = _rData?.data || [];
   const { data: _eDataWrapper } = useListEmployees(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } }
-  );  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+    { query: { enabled: !!activePropertyId } },
+  );
+  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
   const { data: properties = [] } = useListProperties({
     query: { enabled: true },
   });
@@ -232,8 +243,7 @@ export default function Reservations() {
         setIsOpen(false);
         resetForm();
       },
-      onError: (e: any) =>
-        toast.error(e.message || (ar ? "خطأ" : "Error"))
+      onError: (e: any) => toast.error(e.message || (ar ? "خطأ" : "Error")),
     },
   });
 
@@ -256,8 +266,7 @@ export default function Reservations() {
         setCheckinRoomId("");
         setRoomSearch("");
       },
-      onError: (e: any) =>
-        toast.error(e.message || (ar ? "خطأ" : "Error"))
+      onError: (e: any) => toast.error(e.message || (ar ? "خطأ" : "Error")),
     },
   });
 
@@ -268,8 +277,7 @@ export default function Reservations() {
         toast.success(ar ? "تم تحديث الحجز" : "Reservation updated");
         setEditDialog({ open: false, reservation: null });
       },
-      onError: (e: any) =>
-        toast.error(e.message || (ar ? "خطأ" : "Error"))
+      onError: (e: any) => toast.error(e.message || (ar ? "خطأ" : "Error")),
     },
   });
 
@@ -285,10 +293,12 @@ export default function Reservations() {
         });
         if (!resp.ok) throw new Error("Checkout failed");
         invalidate();
-        toast.success(ar ? "تم تسجيل المغادرة بنجاح" : "Checked out successfully");
+        toast.success(
+          ar ? "تم تسجيل المغادرة بنجاح" : "Checked out successfully",
+        );
         setCheckoutDialog({ open: false, id: null });
       } catch (e: any) {
-          toast.error(e.message || (ar ? "خطأ" : "Error"));
+        toast.error(e.message || (ar ? "خطأ" : "Error"));
       }
     },
   };
@@ -400,9 +410,11 @@ export default function Reservations() {
       !form.guestIdCardNumber ||
       !form.guestPhone
     ) {
-      toast.error(ar
+      toast.error(
+        ar
           ? "الرجاء ملء جميع الحقول المطلوبة"
-          : "Please fill all required fields");
+          : "Please fill all required fields",
+      );
       return;
     }
     createMutation.mutate({

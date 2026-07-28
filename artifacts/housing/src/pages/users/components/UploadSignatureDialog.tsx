@@ -16,7 +16,10 @@ interface UploadSignatureDialogProps {
   onClose: () => void;
 }
 
-export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogProps) {
+export function UploadSignatureDialog({
+  user,
+  onClose,
+}: UploadSignatureDialogProps) {
   const { language } = useLanguage();
   const ar = language === "ar";
   const [isUploading, setIsUploading] = useState(false);
@@ -27,11 +30,17 @@ export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogPr
     if (!file) return;
 
     if (!["image/png", "image/jpeg"].includes(file.type)) {
-      toast.error(ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image");
+      toast.error(
+        ar ? "يرجى رفع صورة PNG أو JPEG" : "Please upload a PNG or JPEG image",
+      );
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error(ar ? "حجم الصورة يجب أن يكون أقل من 2 ميجابايت" : "Image must be under 2MB");
+      toast.error(
+        ar
+          ? "حجم الصورة يجب أن يكون أقل من 2 ميجابايت"
+          : "Image must be under 2MB",
+      );
       return;
     }
 
@@ -50,10 +59,14 @@ export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogPr
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Upload failed");
-      toast.success(ar ? "تم حفظ التوقيع بنجاح" : "Signature saved successfully");
+      toast.success(
+        ar ? "تم حفظ التوقيع بنجاح" : "Signature saved successfully",
+      );
       onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : ar ? "فشل الرفع" : "Upload failed");
+      toast.error(
+        err instanceof Error ? err.message : ar ? "فشل الرفع" : "Upload failed",
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -66,9 +79,13 @@ export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogPr
     <Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{ar ? "رفع توقيع للمستخدم" : "Upload User Signature"}</DialogTitle>
+          <DialogTitle>
+            {ar ? "رفع توقيع للمستخدم" : "Upload User Signature"}
+          </DialogTitle>
           <DialogDescription>
-            {ar ? `رفع صورة توقيع للمستخدم: ${user.username}` : `Upload a signature image for user: ${user.username}`}
+            {ar
+              ? `رفع صورة توقيع للمستخدم: ${user.username}`
+              : `Upload a signature image for user: ${user.username}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -76,7 +93,7 @@ export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogPr
           <div className="p-4 bg-muted/20 rounded-full border border-dashed border-primary/50">
             <Pen className="w-8 h-8 text-muted-foreground" />
           </div>
-          
+
           <Button
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
@@ -89,8 +106,12 @@ export function UploadSignatureDialog({ user, onClose }: UploadSignatureDialogPr
               <Upload className="w-4 h-4 mr-2" />
             )}
             {isUploading
-              ? (ar ? "جاري الرفع..." : "Uploading...")
-              : (ar ? "اختيار صورة التوقيع" : "Select Signature Image")}
+              ? ar
+                ? "جاري الرفع..."
+                : "Uploading..."
+              : ar
+                ? "اختيار صورة التوقيع"
+                : "Select Signature Image"}
           </Button>
 
           <input

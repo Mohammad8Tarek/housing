@@ -27,20 +27,33 @@ export function DeleteUserDialog({ user, onClose }: DeleteUserDialogProps) {
         onClose();
       },
       onError: (e: any) =>
-        toast.error(e.message || (ar ? "فشل حذف المستخدم" : "Failed to delete user")),
+        toast.error(
+          e.message || (ar ? "فشل حذف المستخدم" : "Failed to delete user"),
+        ),
     },
   });
 
   return (
     <AnimatedConfirmModal
       open
-      onOpenChange={(open) => { if (!open) onClose(); }}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
       title={ar ? "حذف المستخدم" : "Delete User"}
-      description={ar
-        ? `هل أنت متأكد من حذف المستخدم "${user?.username}"؟ لا يمكن التراجع عن هذا الإجراء.`
-        : `Are you sure you want to delete "${user?.username}"? This cannot be undone.`
+      description={
+        ar
+          ? `هل أنت متأكد من حذف المستخدم "${user?.username}"؟ لا يمكن التراجع عن هذا الإجراء.`
+          : `Are you sure you want to delete "${user?.username}"? This cannot be undone.`
       }
-      confirmLabel={deleteMutation.isPending ? (ar ? "جاري الحذف..." : "Deleting...") : (ar ? "حذف" : "Delete")}
+      confirmLabel={
+        deleteMutation.isPending
+          ? ar
+            ? "جاري الحذف..."
+            : "Deleting..."
+          : ar
+            ? "حذف"
+            : "Delete"
+      }
       cancelLabel={ar ? "إلغاء" : "Cancel"}
       variant="destructive"
       isLoading={deleteMutation.isPending}

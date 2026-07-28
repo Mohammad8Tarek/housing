@@ -67,18 +67,26 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast.success(ar ? "تم إنشاء المستخدم بنجاح" : "User created successfully");
+        toast.success(
+          ar ? "تم إنشاء المستخدم بنجاح" : "User created successfully",
+        );
         setIsOpen(false);
         resetForm();
       },
       onError: (e: any) =>
-        toast.error(e.message || (ar ? "خطأ في إنشاء المستخدم" : "Error creating user")),
+        toast.error(
+          e.message || (ar ? "خطأ في إنشاء المستخدم" : "Error creating user"),
+        ),
     },
   });
 
   const onSubmit = () => {
     if (!form.username || !form.password) {
-      toast.error(ar ? "الرجاء ملء جميع الحقول المطلوبة" : "Please fill all required fields");
+      toast.error(
+        ar
+          ? "الرجاء ملء جميع الحقول المطلوبة"
+          : "Please fill all required fields",
+      );
       return;
     }
     const needsProperty = form.role !== "super_admin";
@@ -91,7 +99,11 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
     const primaryPid = pids[0] || activePropertyId || 1;
 
     if (needsProperty && !primaryPid) {
-      toast.error(ar ? "الرجاء اختيار فرع واحد على الأقل" : "Please select at least one property");
+      toast.error(
+        ar
+          ? "الرجاء اختيار فرع واحد على الأقل"
+          : "Please select at least one property",
+      );
       return;
     }
 
@@ -221,7 +233,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
 
           {/* Workflow Role */}
           <div className="space-y-1.5">
-            <Label>{ar ? "منصب الاعتماد (Workflow Role)" : "Workflow Role (Manager)"}</Label>
+            <Label>
+              {ar ? "منصب الاعتماد (Workflow Role)" : "Workflow Role (Manager)"}
+            </Label>
             <Select
               value={form.jobTitle}
               onValueChange={(v) => setForm((f) => ({ ...f, jobTitle: v }))}

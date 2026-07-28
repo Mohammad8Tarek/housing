@@ -254,13 +254,13 @@ export default function Reports() {
   );
   // ====================================================================
 
-  const { data: _rData , isLoading: roomLoad } = useListRooms(
+  const { data: _rData, isLoading: roomLoad } = useListRooms(
     { propertyId: propId },
     { query: { enabled: !!propId } },
   );
   const rooms = _rData?.data || [];
-  const { data: _eData , isLoading: empLoad } = useListEmployees(
-    { propertyId: propId , limit: 1000},
+  const { data: _eData, isLoading: empLoad } = useListEmployees(
+    { propertyId: propId, limit: 1000 },
     { query: { enabled: !!propId } },
   );
   const employees = _eData?.data || [];
@@ -283,7 +283,6 @@ export default function Reports() {
   const reservations = _resData?.data || [];
   const maintenance = _mntData?.data || [];
 
-
   const [evalStats, setEvalStats] = useState({
     total: 0,
     average: 0,
@@ -299,8 +298,10 @@ export default function Reports() {
       .then((d) => {
         if (d) setEvalStats(d);
       })
-      .catch(() => { toast.error(ar ? "فشل تصدير التقرير" : "Failed to export report"); })
-    }, [propId]);
+      .catch(() => {
+        toast.error(ar ? "فشل تصدير التقرير" : "Failed to export report");
+      });
+  }, [propId]);
 
   // Reset all filters when active property changes
   useEffect(() => {

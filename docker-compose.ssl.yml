@@ -4,14 +4,18 @@ services:
     container_name: sunrise-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required — set it in .env or in your shell}
-      POSTGRES_DB:       ${POSTGRES_DB:-staff-housing}
+      POSTGRES_DB: ${POSTGRES_DB:-staff-housing}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backup_clean.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-staff-housing}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-staff-housing}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,11 +30,11 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-staff-housing}
-      PORT:         4000
-      NODE_ENV:     production
+      PORT: 4000
+      NODE_ENV: production
       NODE_OPTIONS: --max-old-space-size=512
-      HOTEK_SMART_HOST:    ${HOTEK_SMART_HOST:-172.110.6.12}
-      HOTEK_SMART_PORT:    ${HOTEK_SMART_PORT:-5000}
+      HOTEK_SMART_HOST: ${HOTEK_SMART_HOST:-172.110.6.12}
+      HOTEK_SMART_PORT: ${HOTEK_SMART_PORT:-5000}
       HOTEK_SMART_TIMEOUT: ${HOTEK_SMART_TIMEOUT:-20000}
     depends_on:
       db:
@@ -86,7 +90,8 @@ services:
       - certbot-www:/var/www/certbot
       - certbot-certs:/etc/letsencrypt
     entrypoint: ["/bin/sh", "-c"]
-    command: ["trap exit TERM; while :; do sleep 12h & wait $!; certbot renew; done"]
+    command:
+      ["trap exit TERM; while :; do sleep 12h & wait $!; certbot renew; done"]
 
 volumes:
   postgres_data:

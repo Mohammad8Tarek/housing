@@ -316,11 +316,9 @@ router.post(
     );
     const config = configResult?.rows?.[0];
     if (!config) {
-      res
-        .status(400)
-        .json({
-          error: "HR sync not configured or not active for this property",
-        });
+      res.status(400).json({
+        error: "HR sync not configured or not active for this property",
+      });
       return;
     }
 

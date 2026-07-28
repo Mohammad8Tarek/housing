@@ -172,7 +172,9 @@ export default function TabRequests() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed");
       await hapticFeedback("medium");
-      toast.success(isRtl ? "تم إرسال الطلب بنجاح" : "Request submitted successfully");
+      toast.success(
+        isRtl ? "تم إرسال الطلب بنجاح" : "Request submitted successfully",
+      );
       setStatus("success");
       setForm({
         category: "maintenance",
@@ -280,8 +282,6 @@ export default function TabRequests() {
         </div>
       </div>
 
-
-
       {/* Category Cards */}
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
@@ -335,7 +335,6 @@ export default function TabRequests() {
               />
               {isRtl ? "تذكرة جديدة" : "New Ticket"}
             </h3>
-            
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <StaggerItem index={0}>
@@ -384,7 +383,9 @@ export default function TabRequests() {
                       <MotionButton
                         type="button"
                         key={p.id}
-                        onClick={() => setForm((f) => ({ ...f, priority: p.id }))}
+                        onClick={() =>
+                          setForm((f) => ({ ...f, priority: p.id }))
+                        }
                         className={`py-2.5 rounded-xl text-[12px] font-bold border transition-all ${
                           form.priority === p.id
                             ? p.cls
@@ -576,7 +577,9 @@ export default function TabRequests() {
                     <div className="flex-1 min-w-0 py-0.5">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <h4 className="font-semibold text-sm text-foreground truncate">
-                          {isRtl ? (req as any).problemTypeAr || req.problemType : req.problemType}
+                          {isRtl
+                            ? (req as any).problemTypeAr || req.problemType
+                            : req.problemType}
                         </h4>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${si.cls || "text-gray-500"} bg-opacity-10 dark:bg-opacity-20`}

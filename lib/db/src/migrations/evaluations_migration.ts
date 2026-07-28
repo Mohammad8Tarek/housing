@@ -23,12 +23,29 @@ function loadEnv(p: string) {
     const eq = t.indexOf("=");
     if (eq === -1) continue;
     const k = t.slice(0, eq).trim();
-    const v = t.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+    const v = t
+      .slice(eq + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (!(k in process.env)) process.env[k] = v;
   }
 }
-loadEnv(resolve(__dirname, "..", "..", "..", "..", "artifacts", "api-server", ".env"));
-loadEnv(resolve(__dirname, "..", "..", "..", "..", "..", "artifacts", "api-server", ".env"));
+loadEnv(
+  resolve(__dirname, "..", "..", "..", "..", "artifacts", "api-server", ".env"),
+);
+loadEnv(
+  resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "..",
+    "artifacts",
+    "api-server",
+    ".env",
+  ),
+);
 
 import pg from "pg";
 const { Pool } = pg;

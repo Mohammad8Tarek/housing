@@ -239,7 +239,9 @@ export default function PortalReports() {
     try {
       if (format === "pdf" && reportData) {
         await generatePdf(reportData);
-        toast.success(ar ? "تم إنشاء التقرير" : "Report generated successfully");
+        toast.success(
+          ar ? "تم إنشاء التقرير" : "Report generated successfully",
+        );
       } else {
         const params = new URLSearchParams();
         params.set("propertyId", String(activePropertyId));

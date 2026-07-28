@@ -18,7 +18,7 @@ function su(req: any) {
     userId: s.userId,
     propertyId: s.propertyId,
     username: s.username,
-    userRole: Array.isArray(s.userRole) ? s.userRole[0] : (s.userRole || ""),
+    userRole: Array.isArray(s.userRole) ? s.userRole[0] : s.userRole || "",
     isSystemAdmin: !!s.isSystemAdmin,
   };
 }
@@ -111,12 +111,14 @@ router.post("/users/me/signature", async (req, res): Promise<void> => {
   }
 });
 
-
 router.get("/users/:id/signature", async (req, res): Promise<void> => {
   const admin = su(req);
   const targetUserId = parseInt(String(req.params.id));
   if (!admin.isSystemAdmin && targetUserId !== admin.userId) {
-    res.status(403).json({ success: false, message: "Only system admins can view other users' signatures" });
+    res.status(403).json({
+      success: false,
+      message: "Only system admins can view other users' signatures",
+    });
     return;
   }
 
@@ -144,10 +146,13 @@ router.post("/users/:id/signature", async (req, res): Promise<void> => {
   const targetUserId = parseInt(String(req.params.id));
   const isSelf = targetUserId === admin.userId;
   if (!admin.isSystemAdmin && !isSelf) {
-    res.status(403).json({ success: false, message: "Only system admins can upload signatures for other users" });
+    res.status(403).json({
+      success: false,
+      message: "Only system admins can upload signatures for other users",
+    });
     return;
   }
-  
+
   try {
     const parsed = UploadSignatureBody.safeParse(req.body);
     if (!parsed.success) {

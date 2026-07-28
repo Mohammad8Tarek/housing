@@ -8,9 +8,14 @@ export const buildingsTable = pgTable("buildings", {
   location: text("location").notNull().default(""),
   capacity: integer("capacity").notNull().default(0),
   status: text("status").notNull().default("active"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const insertBuildingSchema = createInsertSchema(buildingsTable).omit({ id: true, createdAt: true });
+export const insertBuildingSchema = createInsertSchema(buildingsTable).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertBuilding = z.infer<typeof insertBuildingSchema>;
 export type Building = typeof buildingsTable.$inferSelect;

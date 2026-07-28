@@ -7,27 +7,41 @@
  * - Links to employees.employee_id (the HR ID, not the DB row id)
  */
 
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const employeePortalAccountsTable = pgTable("employee_portal_accounts", {
-  id:                  serial("id").primaryKey(),
-  employeeId:          text("employee_id").notNull(),        // HR employee ID (e.g. "EMP-001")
-  passwordHash:        text("password_hash").notNull(),      // bcrypt hash
-  mustChangePassword:  boolean("must_change_password").notNull().default(true),
-  isActive:            boolean("is_active").notNull().default(true),
-  failedAttempts:      integer("failed_attempts").notNull().default(0),
-  lockedUntil:         timestamp("locked_until", { withTimezone: true }),
-  lastLoginAt:         timestamp("last_login_at",  { withTimezone: true }),
-  passwordChangedAt:   timestamp("password_changed_at", { withTimezone: true }),
-  createdAt:           timestamp("created_at",  { withTimezone: true }).notNull().defaultNow(),
-  updatedAt:           timestamp("updated_at",  { withTimezone: true }).notNull().defaultNow(),
+  id: serial("id").primaryKey(),
+  employeeId: text("employee_id").notNull(), // HR employee ID (e.g. "EMP-001")
+  passwordHash: text("password_hash").notNull(), // bcrypt hash
+  mustChangePassword: boolean("must_change_password").notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const insertEmployeePortalAccountSchema = createInsertSchema(
-  employeePortalAccountsTable
+  employeePortalAccountsTable,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 
-export type InsertEmployeePortalAccount = z.infer<typeof insertEmployeePortalAccountSchema>;
-export type EmployeePortalAccount = typeof employeePortalAccountsTable.$inferSelect;
+export type InsertEmployeePortalAccount = z.infer<
+  typeof insertEmployeePortalAccountSchema
+>;
+export type EmployeePortalAccount =
+  typeof employeePortalAccountsTable.$inferSelect;

@@ -1,6 +1,8 @@
 import { Capacitor } from "@capacitor/core";
 
-export async function hapticFeedback(style: "light" | "medium" | "heavy" = "light") {
+export async function hapticFeedback(
+  style: "light" | "medium" | "heavy" = "light",
+) {
   if (!Capacitor.isNativePlatform()) return;
 
   try {

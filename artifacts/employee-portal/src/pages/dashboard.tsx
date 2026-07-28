@@ -3,7 +3,12 @@ import { useLocation } from "wouter";
 import { Moon, Sun, Bell, LogOut } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
-import { usePortalProfile, usePortalRoom, usePortalNotifications, usePortalAlerts } from "@workspace/api-client-react";
+import {
+  usePortalProfile,
+  usePortalRoom,
+  usePortalNotifications,
+  usePortalAlerts,
+} from "@workspace/api-client-react";
 import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
 
@@ -121,10 +126,10 @@ export default function Dashboard() {
 
     setPortalData({
       room: roomRes as any,
-      assignments: [], 
+      assignments: [],
       photoUrl: profileData?.photo,
       notifications: notifRes as any,
-      alerts: alertsRes as any
+      alerts: alertsRes as any,
     } as any);
 
     if (profileData && roomRes) {
@@ -181,8 +186,6 @@ export default function Dashboard() {
     },
     threshold: 60,
   });
-
-  
 
   const fetchDocuments = useCallback(async () => {
     if (fetched.current.has("documents")) return;
@@ -1020,7 +1023,6 @@ export default function Dashboard() {
                 </div>
               ))
             )}
-            
           </div>
         </div>
       )}

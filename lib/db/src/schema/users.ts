@@ -6,8 +6,9 @@ import { propertiesTable } from "./properties";
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
 
-  propertyId: integer("property_id")
-    .references(() => propertiesTable.id, { onDelete: "set null" }),
+  propertyId: integer("property_id").references(() => propertiesTable.id, {
+    onDelete: "set null",
+  }),
 
   username: text("username").notNull().unique(),
   email: text("email"),
@@ -28,8 +29,13 @@ export const usersTable = pgTable("users", {
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
 
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
-  createdAt:   timestamp("created_at",    { withTimezone: true }).notNull().defaultNow(),
-  updatedAt:   timestamp("updated_at",    { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({
@@ -41,4 +47,4 @@ export const insertUserSchema = createInsertSchema(usersTable).omit({
 export const updateUserSchema = insertUserSchema.partial() as any;
 
 export type InsertUser = typeof usersTable.$inferInsert;
-export type User       = typeof usersTable.$inferSelect;
+export type User = typeof usersTable.$inferSelect;

@@ -23,7 +23,10 @@ const FoodMenuSchema = z.object({
   price: z.string().optional(),
   mealType: z.enum(["daily", "weekly", "special"]).default("daily"),
   category: z.enum(["main", "side", "drink", "dessert"]).default("main"),
-  date: z.preprocess((val) => (val === "" ? null : val), z.string().nullable().optional()),
+  date: z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().nullable().optional(),
+  ),
   available: z.boolean().default(true),
   imageUrl: z.string().optional(),
 });
@@ -65,8 +68,8 @@ router.get("/menu", requirePortalAuth, async (req, res, next) => {
             eq(portalFoodMenuTable.mealType, type),
             or(
               eq(portalFoodMenuTable.date, date),
-              isNull(portalFoodMenuTable.date)
-            )
+              isNull(portalFoodMenuTable.date),
+            ),
           ),
         )
         .orderBy(portalFoodMenuTable.category);
@@ -211,12 +214,10 @@ router.post("/book", requirePortalAuth, async (req, res, next) => {
     const sess = portalSession(req)!;
     const { scheduleId, bookingDate } = req.body;
     if (!scheduleId || !bookingDate) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "scheduleId and bookingDate required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "scheduleId and bookingDate required",
+      });
     }
 
     const [booking] = await withTenant(sess.propertyId, async (tenantDb) => {

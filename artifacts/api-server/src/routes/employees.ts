@@ -3,7 +3,11 @@ import {
   db,
   pool,
   withTenant,
-  employeesTable, assignmentsTable, roomsTable, buildingsTable, floorsTable,
+  employeesTable,
+  assignmentsTable,
+  roomsTable,
+  buildingsTable,
+  floorsTable,
   propertiesTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, sql, SQL } from "drizzle-orm";
@@ -98,9 +102,12 @@ router.get(
 
     const query = ListEmployeesQueryParams.safeParse(req.query);
     const conditions: SQL[] = [];
-    
+
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 25));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit as string) || 25),
+    );
     const offset = (page - 1) * limit;
 
     if (query.success) {
@@ -109,26 +116,39 @@ router.get(
           or(
             ilike(employeesTable.firstName, `%${query.data.search}%`),
             ilike(employeesTable.lastName, `%${query.data.search}%`),
-            ilike(employeesTable.employeeId, `%${query.data.search}%`)
-          ) as SQL
+            ilike(employeesTable.employeeId, `%${query.data.search}%`),
+          ) as SQL,
         );
       }
-      if (query.data.status) conditions.push(eq(employeesTable.status, query.data.status));
-      if (query.data.department) conditions.push(eq(employeesTable.department, query.data.department));
+      if (query.data.status)
+        conditions.push(eq(employeesTable.status, query.data.status));
+      if (query.data.department)
+        conditions.push(eq(employeesTable.department, query.data.department));
     }
 
-    const { employees, total } = await withTenant(propertyId, async (tenantDb) => {
-      let countQuery = tenantDb.select({ count: sql<number>`count(*)` }).from(employeesTable) as any;
-      if (conditions.length > 0) countQuery = countQuery.where(and(...conditions));
-      const countResult = await countQuery;
-      const totalCount = Number(countResult[0]?.count ?? 0);
+    const { employees, total } = await withTenant(
+      propertyId,
+      async (tenantDb) => {
+        let countQuery = tenantDb
+          .select({ count: sql<number>`count(*)` })
+          .from(employeesTable) as any;
+        if (conditions.length > 0)
+          countQuery = countQuery.where(and(...conditions));
+        const countResult = await countQuery;
+        const totalCount = Number(countResult[0]?.count ?? 0);
 
-      let baseQuery = tenantDb.select().from(employeesTable).limit(limit).offset(offset) as any;
-      if (conditions.length > 0) baseQuery = baseQuery.where(and(...conditions));
-      
-      const rows = await baseQuery;
-      return { employees: rows, total: totalCount };
-    });
+        let baseQuery = tenantDb
+          .select()
+          .from(employeesTable)
+          .limit(limit)
+          .offset(offset) as any;
+        if (conditions.length > 0)
+          baseQuery = baseQuery.where(and(...conditions));
+
+        const rows = await baseQuery;
+        return { employees: rows, total: totalCount };
+      },
+    );
 
     res.json({
       data: filterSensitive(
@@ -141,8 +161,8 @@ router.get(
         total,
         totalPages: Math.ceil(total / limit),
         hasNextPage: page < Math.ceil(total / limit),
-        hasPrevPage: page > 1
-      }
+        hasPrevPage: page > 1,
+      },
     });
   },
 );
@@ -178,7 +198,7 @@ router.get(
 
     const rows = await withTenant(pId, async (tenantDb) => {
       if (conditions.length === 0) return [];
-      
+
       const queryResult = await tenantDb
         .select({
           employee: employeesTable,
@@ -188,14 +208,20 @@ router.get(
           accommodationFloor: floorsTable.floorNumber,
         })
         .from(employeesTable)
-        .leftJoin(assignmentsTable, and(eq(assignmentsTable.employeeId, employeesTable.id), eq(assignmentsTable.status, 'ACTIVE')))
+        .leftJoin(
+          assignmentsTable,
+          and(
+            eq(assignmentsTable.employeeId, employeesTable.id),
+            eq(assignmentsTable.status, "ACTIVE"),
+          ),
+        )
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
         .where(and(...conditions))
         .limit(30);
-        
-      return queryResult.map(r => ({
+
+      return queryResult.map((r) => ({
         ...r.employee,
         accommodationRoom: r.accommodationRoom,
         accommodationRoomType: r.accommodationRoomType,

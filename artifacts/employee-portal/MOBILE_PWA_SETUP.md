@@ -7,30 +7,35 @@
 ### 🎨 المميزات المضافة:
 
 #### 1. **PWA الكامل (Progressive Web App)**
+
 - ✅ Service Worker مع caching ذكي
 - ✅ Manifest.json محسّن مع shortcuts
 - ✅ أيقونات SVG متجاوبة
 - ✅ Offline support مع صفحة offline جميلة
 
 #### 2. **Mobile-First Design**
+
 - ✅ تصميم موجه للهواتف أولاً
 - ✅ Bottom navigation للهواتف
 - ✅ Safe area insets لـ iPhone notch
 - ✅ Dynamic viewport height (100dvh)
 
 #### 3. **Performance Optimizations**
+
 - ✅ Font optimization مع display: swap
 - ✅ Image caching strategy
 - ✅ API response caching
 - ✅ Code splitting و minification
 
 #### 4. **Gesture Support**
+
 - ✅ Swipe detection hooks
 - ✅ Haptic feedback support
 - ✅ Orientation detection
 - ✅ Device type detection
 
 #### 5. **تجربة المستخدم المحسّنة**
+
 - ✅ Tap highlight disabled
 - ✅ Touch-friendly buttons (48px+)
 - ✅ Glass morphism effects
@@ -108,24 +113,28 @@ vite.config.ts              # PWA plugin config محسّن
 ## 🎯 ميزات يمكن إضافتها لاحقاً
 
 ### 1. **تحسينات PWA إضافية**
+
 - [ ] Background sync للطلبات المعلقة
 - [ ] Push notifications
 - [ ] Periodic background sync
 - [ ] App update notifications
 
 ### 2. **Gesture Enhancement**
+
 - [ ] Pull-to-refresh
 - [ ] Swipe between tabs
 - [ ] Double-tap to zoom
 - [ ] Long-press context menus
 
 ### 3. **Performance**
+
 - [ ] Image optimization (webp)
 - [ ] Service worker streaming
 - [ ] Bundle analysis
 - [ ] Critical CSS inlining
 
 ### 4. **Native Features**
+
 - [ ] Camera access
 - [ ] Geolocation
 - [ ] File system API
@@ -136,21 +145,26 @@ vite.config.ts              # PWA plugin config محسّن
 ## 🔧 التكوينات المتاحة
 
 ### تغيير اللون الأساسي:
+
 قم بتعديل في `vite.config.ts`:
+
 ```typescript
-theme_color: "#your-color"
-background_color: "#your-color"
+theme_color: "#your-color";
+background_color: "#your-color";
 ```
 
 ### تغيير Caching Strategy:
+
 في `vite.config.ts` قسم `workbox`:
+
 ```typescript
 runtimeCaching: [
   // أضف استراتيجيات caching مخصصة
-]
+];
 ```
 
 ### تحسين Safe Area:
+
 تم تضمين `.pb-safe`, `.pt-safe`, `.ps-safe`, `.pe-safe` في التايلويند
 
 ---
@@ -158,20 +172,24 @@ runtimeCaching: [
 ## ✨ نصائح للـ Mobile
 
 ### للاختبار على الهاتف الفعلي:
+
 1. استخدم نفس الشبكة المحلية
 2. تأكد من أن البروتوكول HTTPS (إن أمكن)
 3. استخدم DevTools في المتصفح
 
 ### للأداء الأفضل:
+
 - استخدم شبكة سريعة (4G+)
 - نظّف cache المتصفح دورياً
 - اختبر في وضع بدون انترنت
 
 ### لتصحيح الأخطاء:
+
 ```javascript
 // في console
-navigator.serviceWorker.getRegistrations()
-  .then(regs => regs.forEach(r => r.unregister()));
+navigator.serviceWorker
+  .getRegistrations()
+  .then((regs) => regs.forEach((r) => r.unregister()));
 
 // ثم أعد تحميل الصفحة
 ```
@@ -189,4 +207,3 @@ navigator.serviceWorker.getRegistrations()
 
 **آخر تحديث:** مايو 2026
 **الإصدار:** 1.0.0
-

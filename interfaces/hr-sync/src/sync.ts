@@ -16,8 +16,13 @@ const BATCH_SIZE = 50; // Send employees in batches of 50
 
 async function sendBatch(
   employees: HousingEmployee[],
-  config: AppConfig
-): Promise<{ created: number; updated: number; skipped: number; errors: string[] }> {
+  config: AppConfig,
+): Promise<{
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+}> {
   const { url, api_key, property_id } = config.housing_api;
 
   try {
@@ -30,7 +35,7 @@ async function sendBatch(
           "x-api-key": api_key,
         },
         timeout: 60000,
-      }
+      },
     );
 
     const data = response.data;
@@ -46,7 +51,10 @@ async function sendBatch(
   }
 }
 
-export async function runSync(config: AppConfig, employees: HousingEmployee[]): Promise<SyncResult> {
+export async function runSync(
+  config: AppConfig,
+  employees: HousingEmployee[],
+): Promise<SyncResult> {
   const startTime = Date.now();
   const result: SyncResult = {
     success: false,
@@ -69,9 +77,12 @@ export async function runSync(config: AppConfig, employees: HousingEmployee[]): 
     log.warn("[Sync] DRY RUN mode — NOT sending to Housing system.");
     log.info(`[Sync] Would have sent ${employees.length} employees.`);
     employees.slice(0, 5).forEach((emp, i) => {
-      log.debug(`  [${i + 1}] ${emp.employeeId} - ${emp.firstName} ${emp.lastName} (${emp.department})`);
+      log.debug(
+        `  [${i + 1}] ${emp.employeeId} - ${emp.firstName} ${emp.lastName} (${emp.department})`,
+      );
     });
-    if (employees.length > 5) log.debug(`  ... and ${employees.length - 5} more.`);
+    if (employees.length > 5)
+      log.debug(`  ... and ${employees.length - 5} more.`);
     result.success = true;
     result.durationMs = Date.now() - startTime;
     return result;
@@ -83,11 +94,15 @@ export async function runSync(config: AppConfig, employees: HousingEmployee[]): 
     batches.push(employees.slice(i, i + BATCH_SIZE));
   }
 
-  log.info(`[Sync] Sending ${employees.length} employees in ${batches.length} batch(es) to: ${config.housing_api.url}`);
+  log.info(
+    `[Sync] Sending ${employees.length} employees in ${batches.length} batch(es) to: ${config.housing_api.url}`,
+  );
 
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i];
-    log.info(`[Sync] Batch ${i + 1}/${batches.length} (${batch.length} employees)...`);
+    log.info(
+      `[Sync] Batch ${i + 1}/${batches.length} (${batch.length} employees)...`,
+    );
     try {
       const batchResult = await sendBatch(batch, config);
       result.created += batchResult.created;
@@ -97,7 +112,7 @@ export async function runSync(config: AppConfig, employees: HousingEmployee[]): 
         result.errors.push(...batchResult.errors);
       }
       log.info(
-        `[Sync] Batch ${i + 1} done → Created: ${batchResult.created}, Updated: ${batchResult.updated}, Skipped: ${batchResult.skipped}`
+        `[Sync] Batch ${i + 1} done → Created: ${batchResult.created}, Updated: ${batchResult.updated}, Skipped: ${batchResult.skipped}`,
       );
     } catch (err: any) {
       const errMsg = `Batch ${i + 1} failed: ${err.message}`;

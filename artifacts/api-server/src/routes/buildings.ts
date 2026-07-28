@@ -60,12 +60,10 @@ router.post(
         .where(eq(buildingsTable.name, parsed.data.name));
     });
     if (existingBuilding.length > 0) {
-      res
-        .status(409)
-        .json({
-          error: `Building "${parsed.data.name}" already exists in this property`,
-          code: "BUILDING_DUPLICATE",
-        });
+      res.status(409).json({
+        error: `Building "${parsed.data.name}" already exists in this property`,
+        code: "BUILDING_DUPLICATE",
+      });
       return;
     }
 
@@ -128,12 +126,10 @@ router.patch(
       );
       const conflict = existingBuilding.find((b) => b.id !== params.data.id);
       if (conflict) {
-        res
-          .status(409)
-          .json({
-            error: `Building "${parsed.data.name}" already exists in this property`,
-            code: "BUILDING_DUPLICATE",
-          });
+        res.status(409).json({
+          error: `Building "${parsed.data.name}" already exists in this property`,
+          code: "BUILDING_DUPLICATE",
+        });
         return;
       }
     }

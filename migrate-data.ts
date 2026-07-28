@@ -1,7 +1,9 @@
-import { Client } from 'pg';
+import { Client } from "pg";
 
-const LOCAL_DB_URL = 'postgresql://postgres:admin123@localhost:5432/staff-housing';
-const REMOTE_DB_URL = 'postgresql://neondb_owner:npg_B0kqYF6HbMEv@ep-sweet-star-ax4bqt1q-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const LOCAL_DB_URL =
+  "postgresql://postgres:admin123@localhost:5432/staff-housing";
+const REMOTE_DB_URL =
+  "postgresql://neondb_owner:npg_B0kqYF6HbMEv@ep-sweet-star-ax4bqt1q-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
 
 async function migrate() {
   const local = new Client({ connectionString: LOCAL_DB_URL });
@@ -23,7 +25,7 @@ async function migrate() {
 
   console.log(`Found ${tables.length} tables to migrate.`);
 
-  const tableNames = tables.map(t => t.table_name);
+  const tableNames = tables.map((t) => t.table_name);
 
   // TRUNCATE ALL TABLES
   console.log("Truncating remote tables...");
@@ -32,7 +34,9 @@ async function migrate() {
       await remote.query(`TRUNCATE TABLE "${tableName}" CASCADE;`);
       console.log(`  - Truncated ${tableName}`);
     } catch (e: any) {
-      console.warn(`  - Could not truncate ${tableName} (might not exist in remote)`);
+      console.warn(
+        `  - Could not truncate ${tableName} (might not exist in remote)`,
+      );
     }
   }
 
@@ -47,7 +51,7 @@ async function migrate() {
 
   const tablesToProcess = Object.keys(allData);
   let remainingTables = [...tablesToProcess];
-  
+
   let passesWithoutProgress = 0;
 
   while (remainingTables.length > 0) {
@@ -56,19 +60,22 @@ async function migrate() {
 
     for (const tableName of remainingTables) {
       console.log(`Attempting to migrate table: ${tableName}`);
-      
+
       // Get target columns
-      const { rows: colRows } = await remote.query(`
+      const { rows: colRows } = await remote.query(
+        `
         SELECT column_name 
         FROM information_schema.columns 
         WHERE table_schema = 'public' AND table_name = $1
-      `, [tableName]);
-      const validColumns = new Set(colRows.map(r => r.column_name));
+      `,
+        [tableName],
+      );
+      const validColumns = new Set(colRows.map((r) => r.column_name));
 
       const rows = allData[tableName];
       const sourceColumns = Object.keys(rows[0]);
-      const columns = sourceColumns.filter(c => validColumns.has(c));
-      const columnNames = columns.map(c => `"${c}"`).join(', ');
+      const columns = sourceColumns.filter((c) => validColumns.has(c));
+      const columnNames = columns.map((c) => `"${c}"`).join(", ");
 
       try {
         await remote.query("BEGIN");
@@ -76,21 +83,23 @@ async function migrate() {
         const chunkSize = 500;
         for (let i = 0; i < rows.length; i += chunkSize) {
           const chunk = rows.slice(i, i + chunkSize);
-          
+
           const valuesArr = [];
           let paramIndex = 1;
           const queryParams = [];
 
           for (const row of chunk) {
-            const placeholders = columns.map(() => `$${paramIndex++}`).join(', ');
+            const placeholders = columns
+              .map(() => `$${paramIndex++}`)
+              .join(", ");
             valuesArr.push(`(${placeholders})`);
-            
+
             for (const col of columns) {
               queryParams.push(row[col]);
             }
           }
 
-          const insertQuery = `INSERT INTO "${tableName}" (${columnNames}) VALUES ${valuesArr.join(', ')}`;
+          const insertQuery = `INSERT INTO "${tableName}" (${columnNames}) VALUES ${valuesArr.join(", ")}`;
           await remote.query(insertQuery, queryParams);
         }
 
@@ -99,11 +108,17 @@ async function migrate() {
         processedAny = true;
       } catch (error: any) {
         await remote.query("ROLLBACK");
-        if (error.code === '23503') { // foreign_key_violation
-          console.log(`  - ⏳ Postponed ${tableName} due to foreign key constraints.`);
+        if (error.code === "23503") {
+          // foreign_key_violation
+          console.log(
+            `  - ⏳ Postponed ${tableName} due to foreign key constraints.`,
+          );
           nextRemaining.push(tableName);
         } else {
-          console.error(`  - ❌ Failed ${tableName} with unexpected error:`, error.message);
+          console.error(
+            `  - ❌ Failed ${tableName} with unexpected error:`,
+            error.message,
+          );
           nextRemaining.push(tableName);
         }
       }
@@ -112,7 +127,9 @@ async function migrate() {
     if (!processedAny) {
       passesWithoutProgress++;
       if (passesWithoutProgress > 2) {
-        console.error("Stuck in a loop due to circular foreign keys or errors. Aborting.");
+        console.error(
+          "Stuck in a loop due to circular foreign keys or errors. Aborting.",
+        );
         break;
       }
     } else {
@@ -126,7 +143,9 @@ async function migrate() {
   console.log("Updating sequences...");
   for (const tableName of tableNames) {
     try {
-      await remote.query(`SELECT setval(pg_get_serial_sequence('"${tableName}"', 'id'), COALESCE((SELECT MAX(id)+1 FROM "${tableName}"), 1), false);`);
+      await remote.query(
+        `SELECT setval(pg_get_serial_sequence('"${tableName}"', 'id'), COALESCE((SELECT MAX(id)+1 FROM "${tableName}"), 1), false);`,
+      );
     } catch (e) {
       // Ignored
     }

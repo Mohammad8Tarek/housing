@@ -12,9 +12,13 @@ export const portalContactsTable = pgTable("portal_contacts", {
   email: text("email"),
   phone: text("phone"),
   extension: text("extension"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const insertPortalContactSchema = createInsertSchema(portalContactsTable).omit({ id: true, createdAt: true });
+export const insertPortalContactSchema = createInsertSchema(
+  portalContactsTable,
+).omit({ id: true, createdAt: true });
 export type InsertPortalContact = z.infer<typeof insertPortalContactSchema>;
 export type PortalContact = typeof portalContactsTable.$inferSelect;

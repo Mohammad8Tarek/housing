@@ -87,7 +87,10 @@ router.get(
       const q = ListMaintenanceQueryParams.safeParse(req.query);
       const conditions: SQL[] = [];
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 25));
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt(req.query.limit as string) || 25),
+      );
       const offset = (page - 1) * limit;
 
       if (q.success) {
@@ -111,14 +114,22 @@ router.get(
       }
 
       const { data, total } = await withTenant(propertyId, async (tenantDb) => {
-        let countQuery = tenantDb.select({ count: sql<number>`count(*)` }).from(maintenanceTable) as any;
-        if (conditions.length > 0) countQuery = countQuery.where(and(...conditions));
+        let countQuery = tenantDb
+          .select({ count: sql<number>`count(*)` })
+          .from(maintenanceTable) as any;
+        if (conditions.length > 0)
+          countQuery = countQuery.where(and(...conditions));
         const countResult = await countQuery;
         const totalCount = Number(countResult[0]?.count ?? 0);
 
-        let baseQuery = tenantDb.select().from(maintenanceTable).limit(limit).offset(offset) as any;
-        if (conditions.length > 0) baseQuery = baseQuery.where(and(...conditions));
-        
+        let baseQuery = tenantDb
+          .select()
+          .from(maintenanceTable)
+          .limit(limit)
+          .offset(offset) as any;
+        if (conditions.length > 0)
+          baseQuery = baseQuery.where(and(...conditions));
+
         const result = await baseQuery;
         const withAssignees = await attachAssignee(tenantDb, result);
         return { data: withAssignees, total: totalCount };
@@ -132,8 +143,8 @@ router.get(
           total,
           totalPages: Math.ceil(total / limit),
           hasNextPage: page < Math.ceil(total / limit),
-          hasPrevPage: page > 1
-        }
+          hasPrevPage: page > 1,
+        },
       });
     } catch (err) {
       return next(err);
@@ -155,24 +166,20 @@ router.post(
 
       const { assignedTo, propertyId: _pid, ...safeBody } = req.body;
       if (!safeBody.roomId || !safeBody.problemType) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "roomId and problemType are required",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "roomId and problemType are required",
+        });
       }
       const body = {
         ...safeBody,
         category: safeBody.category || "maintenance",
       };
       if (!VALID_CATEGORIES.includes(body.category)) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(", ")}`,
-          });
+        return res.status(400).json({
+          success: false,
+          message: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(", ")}`,
+        });
       }
 
       const [record] = await withTenant(propertyId, async (tenantDb) => {

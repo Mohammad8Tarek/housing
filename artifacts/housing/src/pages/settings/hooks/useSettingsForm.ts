@@ -66,13 +66,14 @@ export function useSettingsForm() {
   const updateMutation = useUpdateSettings({
     mutation: {
       onSuccess: () => {
-        toast.success(language === "ar"
-              ? "تم حفظ الإعدادات"
-              : "Settings saved successfully");
+        toast.success(
+          language === "ar"
+            ? "تم حفظ الإعدادات"
+            : "Settings saved successfully",
+        );
         queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       },
-      onError: () =>
-        toast.error("Error saving settings"),
+      onError: () => toast.error("Error saving settings"),
     },
   });
 
