@@ -323,8 +323,8 @@ app.use(
     name: process.env["SESSION_COOKIE_NAME"] ?? "sunrise.sid",
     secret: requiredSecret("SESSION_SECRET", "sunrise-dev-secret"),
     store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     rolling: true, // 🚀 OPTIMIZATION: Only refresh when user is active
     proxy: undefined, // Falls back to app.set("trust proxy")
     genid: () => {
@@ -333,7 +333,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: isProduction || process.env["TRUST_PROXY"] === "true",
-      sameSite: "none",
+      sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
       maxAge: SESSION_TIMEOUT_MS,
     },
   }),

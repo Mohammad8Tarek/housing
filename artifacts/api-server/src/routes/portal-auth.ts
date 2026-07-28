@@ -300,40 +300,29 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       entityType: "employee",
       entityId: employee.id,
     });
-    req.session.regenerate((err: any) => {
-      if (err) {
-        res.status(500).json({ success: false, message: "Session error" });
-        return;
-      }
+    (req.session as any).portal = {
+      employeeDbId: employee.id,
+      employeeId: employee.employeeId,
+      propertyId: targetPropertyId,
+      fullName: `${employee.firstName} ${employee.lastName}`,
+    };
 
-      (req.session as any).portal = {
-        employeeDbId: employee.id,
+    res.json({
+      success: true,
+      sessionId: req.sessionID,
+      mustChangePassword: account.mustChangePassword,
+      employee: {
+        id: employee.id,
         employeeId: employee.employeeId,
-        propertyId: targetPropertyId,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
         fullName: `${employee.firstName} ${employee.lastName}`,
-      };
-
-      req.session.save((saveErr: any) => {
-        if (saveErr) {
-          res
-            .status(500)
-            .json({ success: false, message: "Session save error" });
-          return;
-        }
-
-        res.json({
-          success: true,
-          sessionId: req.sessionID,
-          mustChangePassword: account.mustChangePassword,
-          employee: {
-            id: employee.id,
-            employeeId: employee.employeeId,
-            fullName: `${employee.firstName} ${employee.lastName}`,
-            jobTitle: employee.jobTitle,
-            department: employee.department,
-            propertyId: targetPropertyId,
-          },
-        });
+        email: employee.email,
+        phone: employee.phone,
+        position: employee.position,
+        department: employee.department,
+      },
+    });
       });
     });
   } catch (error: any) {
