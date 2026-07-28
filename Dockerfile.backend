@@ -10,7 +10,7 @@ COPY lib/api-spec/package.json ./lib/api-spec/
 COPY artifacts/api-server/package.json ./artifacts/api-server/
 COPY artifacts/housing/package.json ./artifacts/housing/
 COPY artifacts/employee-portal/package.json ./artifacts/employee-portal/
-COPY interfaces/hr-sync/package.json ./interfaces/hr-sync/
+COPY scripts/package.json ./scripts/
 RUN pnpm install
 
 COPY lib/ ./lib/
