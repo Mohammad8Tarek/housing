@@ -61,6 +61,10 @@ export function botDetection(
   res: Response,
   next: NextFunction,
 ): void {
+  if (req.path === "/healthz" || req.path === "/api/healthz") {
+    next();
+    return;
+  }
   const score = scoreRequest(req);
   if (score >= 50) {
     res.status(403).end();
