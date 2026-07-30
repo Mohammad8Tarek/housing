@@ -259,20 +259,33 @@ async function start(): Promise<void> {
   }
 
   if (!dbCheck.ok) {
-    logger.error({ error: dbCheck.error }, "Critical: Database connection failed during startup");
-    process.exit(1);
+    logger.error(
+      { error: dbCheck.error },
+      "Critical: Database connection failed during startup, BUT continuing boot for debugging",
+    );
+  } else {
+    logger.info(
+      { latency: `${dbCheck.latencyMs}ms` },
+      "Database connection established",
+    );
   }
 
-  logger.info(
-    { latencyMs: (dbCheck as any).latencyMs },
-    "Database connected and healthy",
-  );
+  app.get("/api/ping", (req, res) => res.json({ status: "ok", db: dbCheck }));
 
-  // تشغيل الـ Migrations تلقائياً لتحديث الجداول[cite: 1]
-  await runMigrations();
-
-  // Seed initial data if seed-data.json exists and hasn't been applied yet
-  await runAutoSeeder();
+  try {
+    if (dbCheck.ok) {
+      await Promise.race([
+        runMigrations(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Migrations timeout")), 15000))
+      ]);
+      await Promise.race([
+        runAutoSeeder(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Seeder timeout")), 15000))
+      ]);
+    }
+  } catch (err) {
+    logger.error({ err }, "Startup DB task failed/timed out, continuing boot...");
+  }
 
   server.listen(PORT, "0.0.0.0", () => {
     logger.info({ port: PORT }, "🚀 Sunrise Housing API is Live");
