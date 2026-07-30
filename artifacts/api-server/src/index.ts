@@ -54,7 +54,7 @@ function requireEnv(name: string): string {
   return val;
 }
 
-const PORT = Number(process.env.PORT || 4000);
+const PORT = Number(process.env.PORT || 10003);
 const DATABASE_URL = requireEnv("DATABASE_URL"); //
 const SESSION_SECRET = requireEnv("SESSION_SECRET"); //
 
