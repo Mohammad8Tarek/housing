@@ -73,29 +73,47 @@ import { initWebSocket, closeWebSocket } from "./lib/websocket.js";
 import { runMigrations } from "./lib/migrations.js";
 import { runAutoSeeder } from "./lib/seeder.js";
 import { pool, healthCheck } from "@workspace/db";
-import { startAllPmsServers } from "./lib/pms-server.js";
+import {
+  startAllPmsServers,
+  handleMainPortConnection,
+} from "./lib/pms-server.js";
 
 // ==========================================
-// ✅ SERVER INIT
+// ✅ SERVER INIT (HTTP + Hotek FIAS on same port)
 // ==========================================
-const server = createServer(app);
-server.headersTimeout = Number(
+const httpServer = createServer(app);
+httpServer.headersTimeout = Number(
   process.env["SERVER_HEADERS_TIMEOUT_MS"] ?? 65_000,
 );
-server.requestTimeout = Number(
+httpServer.requestTimeout = Number(
   process.env["SERVER_REQUEST_TIMEOUT_MS"] ?? 120_000,
 );
-server.keepAliveTimeout = Number(
+httpServer.keepAliveTimeout = Number(
   process.env["SERVER_KEEP_ALIVE_TIMEOUT_MS"] ?? 5_000,
 );
-server.maxHeadersCount = Number(process.env["SERVER_MAX_HEADERS_COUNT"] ?? 100);
+httpServer.maxHeadersCount = Number(
+  process.env["SERVER_MAX_HEADERS_COUNT"] ?? 100,
+);
 
 try {
-  initWebSocket(server);
+  initWebSocket(httpServer);
 } catch (err) {
   logger.error({ err }, "WebSocket initialization failed");
   process.exit(1);
 }
+
+// Shared server: detects HTTP vs FIAS protocol on the same port
+const netServer = net.createServer({ pauseOnConnect: true }, (socket) => {
+  socket.once("data", (data: Buffer) => {
+    if (data[0] === 0x02) {
+      handleMainPortConnection(socket, data);
+    } else {
+      socket.unshift(data);
+      httpServer.emit("connection", socket);
+    }
+  });
+  socket.resume();
+});
 
 // ==========================================
 // ✅ GRACEFUL SHUTDOWN (نظام الإغلاق النظيف)[cite: 1]
@@ -130,8 +148,9 @@ async function shutdown(signal: string): Promise<void> {
   // تنظيف memory monitor interval
   clearInterval(memoryMonitorInterval);
 
-  // Close HTTP server
-  server.close(async () => {
+  // Close shared netServer first, then httpServer
+  netServer.close();
+  httpServer.close(async () => {
     try {
       if (pool) {
         // إغلاق اتصال قاعدة البيانات[cite: 1]
@@ -304,13 +323,13 @@ async function start(): Promise<void> {
     );
   }
 
-  server.listen(PORT, "::", () => {
+  netServer.listen(PORT, "::", () => {
     logger.info({ port: PORT }, "🚀 Sunrise Housing API is Live");
     logger.info(`Main API: http://localhost:${PORT}/api`);
     logger.info(`WebSocket: ws://localhost:${PORT}/ws`);
 
     // Start PMS V2.1 Servers for all active properties
-    // startAllPmsServers(app);
+    startAllPmsServers(app);
   });
 }
 
