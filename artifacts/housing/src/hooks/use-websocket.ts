@@ -144,10 +144,7 @@ export function useWebSocket(): { isConnected: boolean } {
     }
 
     if (!wsUrl) {
-      const proto = window.location.protocol === "https:" ? "wss" : "ws";
-      const hostname = window.location.hostname;
-      const apiPort = Number(import.meta.env.VITE_API_PORT) || 4000;
-      wsUrl = `${proto}://${hostname}:${apiPort}/ws?propertyId=${currentPropertyId}`;
+      wsUrl = `wss://sunrise-api-production-b3f9.up.railway.app/ws?propertyId=${currentPropertyId}`;
     }
 
     console.info("[WS] Attempting connection:", wsUrl.replace(/\?.*/, "?***"));
