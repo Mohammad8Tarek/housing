@@ -504,7 +504,12 @@ export function handleMainPortConnection(
 ): void {
   const addr = `${socket.remoteAddress}:${socket.remotePort}`;
   const pms = portServers.get(MAIN_PORT_KEY);
-  if (!pms) return;
+  if (!pms) {
+    console.warn(`[PMS-Bridge - Main Port] No main port properties registered`);
+    socket.destroy();
+    return;
+  }
+  console.warn(`[PMS-Bridge - Main Port] Hotek PMSServer connected from ${addr}`);
 
   if (pms.socket && !pms.socket.destroyed) {
     pms.socket.destroy();
@@ -576,12 +581,14 @@ export async function startAllPmsServers(app?: any): Promise<void> {
   if (app) _app = app;
 
   const mainPort = Number(process.env.PORT) || 4000;
+  console.warn(`[PMS-Bridge] Starting PMS servers (mainPort=${mainPort})`);
 
   try {
     const { pool } = await import("@workspace/db");
     const result = await pool.query(
       `SELECT property_id, port FROM public.property_hotek_servers WHERE is_active = true`,
     );
+    console.warn(`[PMS-Bridge] Found ${result.rows.length} active Hotek servers`);
 
     for (const row of result.rows) {
       if (row.port) {
