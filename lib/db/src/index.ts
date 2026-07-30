@@ -41,8 +41,11 @@ const DATABASE_URL = getDatabaseUrl();
 
 // ─── Create pool (singleton) ───────────────────────────────────────────────
 if (!globalThis.__sunrise_pg_pool__) {
+  const isLocalhost = DATABASE_URL.includes("localhost") || DATABASE_URL.includes("127.0.0.1");
+
   globalThis.__sunrise_pg_pool__ = new Pool({
     connectionString: DATABASE_URL,
+    ssl: isLocalhost ? false : { rejectUnauthorized: false },
     max: 50, // 🚀 OPTIMIZATION: Increased from 20 to handle 1000+ concurrent users
     min: 10, // Maintain minimum connections ready
     idleTimeoutMillis: 30_000, // release idle connections after 30s
