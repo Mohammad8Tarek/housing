@@ -109,7 +109,6 @@ const netServer = net.createServer({ pauseOnConnect: true }, (socket) => {
       handleMainPortConnection(socket, data);
     } else {
       socket.unshift(data);
-      socket.pause(); // <--- Pause the socket so the HTTP server can manage the flow
       httpServer.emit("connection", socket);
     }
   });
