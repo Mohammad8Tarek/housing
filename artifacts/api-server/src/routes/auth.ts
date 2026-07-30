@@ -207,35 +207,47 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   req.session.regenerate(async (err) => {
     if (err) {
+      console.error("[auth/login] Session regenerate error:", err);
       res.status(500).json({ error: "Session error" });
       return;
     }
 
     Object.assign(req.session, sessionData);
 
-    if (user.propertyId) {
-      await logActivity({
-        req,
-        propertyId: user.propertyId ?? 0,
-        username: user.username,
-        userId: user.id,
-        userRole: user.roles?.[0],
-        action: "LOGIN",
-        actionType: "AUTH",
-        module: "auth",
-        severity: "info",
-        details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
-        ipAddress: ip,
-      });
-    }
+    // ✅ Explicitly save session for PostgreSQL store
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error("[auth/login] Session save error:", saveErr);
+        res.status(500).json({ error: "Session save failed" });
+        return;
+      }
 
-    const { passwordHash: _, ...safeUser } = user;
-    res.json({
-      user: {
-        ...safeUser,
-        isSystemAdmin: sessionData.isSystemAdmin,
-        passwordExpired,
-      },
+      (async () => {
+        if (user.propertyId) {
+          await logActivity({
+            req,
+            propertyId: user.propertyId ?? 0,
+            username: user.username,
+            userId: user.id,
+            userRole: user.roles?.[0],
+            action: "LOGIN",
+            actionType: "AUTH",
+            module: "auth",
+            severity: "info",
+            details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
+            ipAddress: ip,
+          });
+        }
+
+        const { passwordHash: _, ...safeUser } = user;
+        res.json({
+          user: {
+            ...safeUser,
+            isSystemAdmin: sessionData.isSystemAdmin,
+            passwordExpired,
+          },
+        });
+      })();
     });
   });
 });
