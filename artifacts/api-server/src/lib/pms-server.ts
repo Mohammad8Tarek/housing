@@ -593,11 +593,22 @@ export async function startAllPmsServers(app?: any): Promise<void> {
     for (const row of result.rows) {
       if (row.port) {
         if (row.port === mainPort) {
+          const newPort = mainPort + 1;
           console.warn(
-            `[PMS-Bridge] Property ${row.property_id} uses main API port ${row.port} — registering on shared server`,
+            `[PMS-Bridge] Property ${row.property_id} uses main API port ${row.port} — migrating to ${newPort}`,
           );
-          registerMainPortProperty(row.property_id);
-          continue;
+          try {
+            await pool.query(
+              `UPDATE public.property_hotek_servers SET port = $1, updated_at = NOW() WHERE property_id = $2 AND port = $3 AND is_active = true`,
+              [newPort, row.property_id, mainPort],
+            );
+            row.port = newPort;
+          } catch (err: any) {
+            console.error(
+              `[PMS-Bridge] Failed to migrate port: ${err.message}`,
+            );
+            continue;
+          }
         }
         startPmsServerForProperty(row.property_id, row.port);
       }
