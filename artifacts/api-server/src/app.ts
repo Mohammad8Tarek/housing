@@ -318,26 +318,29 @@ if (sessionStoreType !== "memory") {
   console.log("[Session] Using MemoryStore");
 }
 
-app.use(
-  session({
+const sessionMiddleware = session({
     name: process.env["SESSION_COOKIE_NAME"] ?? "sunrise.sid",
     secret: requiredSecret("SESSION_SECRET", "sunrise-dev-secret"),
     store: sessionStore,
     resave: true,
     saveUninitialized: true,
-    rolling: true, // 🚀 OPTIMIZATION: Only refresh when user is active
-    proxy: undefined, // Falls back to app.set("trust proxy")
-    genid: () => {
-      return crypto.randomUUID();
-    },
+    rolling: true,
+    proxy: undefined,
+    genid: () => crypto.randomUUID(),
     cookie: {
       httpOnly: true,
       secure: isProduction || process.env["TRUST_PROXY"] === "true",
       sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
       maxAge: SESSION_TIMEOUT_MS,
     },
-  }),
-);
+});
+
+app.use((req, res, next) => {
+  if (req.path === "/api/ping" || req.path === "/api/healthz" || req.path === "/healthz") {
+    return next();
+  }
+  return sessionMiddleware(req, res, next);
+});
 
 // Ignore favicon requests on API domain
 app.get("/favicon.ico", (_req, res) => {
