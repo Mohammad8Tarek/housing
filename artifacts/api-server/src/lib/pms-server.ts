@@ -509,7 +509,9 @@ export function handleMainPortConnection(
     socket.destroy();
     return;
   }
-  console.warn(`[PMS-Bridge - Main Port] Hotek PMSServer connected from ${addr}`);
+  console.warn(
+    `[PMS-Bridge - Main Port] Hotek PMSServer connected from ${addr}`,
+  );
 
   if (pms.socket && !pms.socket.destroyed) {
     pms.socket.destroy();
@@ -590,7 +592,9 @@ export async function startAllPmsServers(app?: any): Promise<void> {
     );
     console.warn(
       `[PMS-Bridge] Found ${result.rows.length} active Hotek servers:`,
-      result.rows.map((r: any) => `(property=${r.property_id}, port=${r.port})`).join(", "),
+      result.rows
+        .map((r: any) => `(property=${r.property_id}, port=${r.port})`)
+        .join(", "),
     );
 
     for (const row of result.rows) {

@@ -41,7 +41,8 @@ const DATABASE_URL = getDatabaseUrl();
 
 // ─── Create pool (singleton) ───────────────────────────────────────────────
 if (!globalThis.__sunrise_pg_pool__) {
-  const isLocalhost = DATABASE_URL.includes("localhost") || DATABASE_URL.includes("127.0.0.1");
+  const isLocalhost =
+    DATABASE_URL.includes("localhost") || DATABASE_URL.includes("127.0.0.1");
 
   globalThis.__sunrise_pg_pool__ = new Pool({
     connectionString: DATABASE_URL,
