@@ -588,7 +588,10 @@ export async function startAllPmsServers(app?: any): Promise<void> {
     const result = await pool.query(
       `SELECT property_id, port FROM public.property_hotek_servers WHERE is_active = true`,
     );
-    console.warn(`[PMS-Bridge] Found ${result.rows.length} active Hotek servers`);
+    console.warn(
+      `[PMS-Bridge] Found ${result.rows.length} active Hotek servers:`,
+      result.rows.map((r: any) => `(property=${r.property_id}, port=${r.port})`).join(", "),
+    );
 
     for (const row of result.rows) {
       if (row.port) {
