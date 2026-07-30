@@ -36,7 +36,9 @@ const isProduction = process.env["NODE_ENV"] === "production";
 function requiredSecret(name: string, fallback: string): string {
   const value = process.env[name];
   if (isProduction && (!value || value === fallback || value.length < 32)) {
-    console.warn(`⚠️ SECURITY WARNING: ${name} is missing, weak, or too short in production! Using fallback for now, but this is insecure!`);
+    console.warn(
+      `⚠️ SECURITY WARNING: ${name} is missing, weak, or too short in production! Using fallback for now, but this is insecure!`,
+    );
   }
   return value ?? fallback;
 }
@@ -317,24 +319,28 @@ if (sessionStoreType !== "memory") {
 }
 
 const sessionMiddleware = session({
-    name: process.env["SESSION_COOKIE_NAME"] ?? "sunrise.sid",
-    secret: requiredSecret("SESSION_SECRET", "sunrise-dev-secret"),
-    store: sessionStore,
-    resave: true,
-    saveUninitialized: true,
-    rolling: true,
-    proxy: undefined,
-    genid: () => crypto.randomUUID(),
-    cookie: {
-      httpOnly: true,
-      secure: isProduction || process.env["TRUST_PROXY"] === "true",
-      sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
-      maxAge: SESSION_TIMEOUT_MS,
-    },
+  name: process.env["SESSION_COOKIE_NAME"] ?? "sunrise.sid",
+  secret: requiredSecret("SESSION_SECRET", "sunrise-dev-secret"),
+  store: sessionStore,
+  resave: true,
+  saveUninitialized: true,
+  rolling: true,
+  proxy: undefined,
+  genid: () => crypto.randomUUID(),
+  cookie: {
+    httpOnly: true,
+    secure: isProduction || process.env["TRUST_PROXY"] === "true",
+    sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
+    maxAge: SESSION_TIMEOUT_MS,
+  },
 });
 
 app.use((req, res, next) => {
-  if (req.path === "/api/ping" || req.path === "/api/healthz" || req.path === "/healthz") {
+  if (
+    req.path === "/api/ping" ||
+    req.path === "/api/healthz" ||
+    req.path === "/healthz"
+  ) {
     return next();
   }
   return sessionMiddleware(req, res, next);

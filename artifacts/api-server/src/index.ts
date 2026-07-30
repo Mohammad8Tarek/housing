@@ -73,10 +73,7 @@ import { initWebSocket, closeWebSocket } from "./lib/websocket.js";
 import { runMigrations } from "./lib/migrations.js";
 import { runAutoSeeder } from "./lib/seeder.js";
 import { pool, healthCheck } from "@workspace/db";
-import {
-  startAllPmsServers,
-  handleMainPortConnection,
-} from "./lib/pms-server.js";
+import { startAllPmsServers } from "./lib/pms-server.js";
 
 // ==========================================
 // ✅ SERVER INIT
@@ -249,9 +246,22 @@ async function start(): Promise<void> {
   let dbCheck: { ok: boolean; latencyMs: number; error?: string };
   try {
     dbCheck = await Promise.race([
-      healthCheck() as Promise<{ ok: boolean; latencyMs: number; error?: string }>,
-      new Promise<{ ok: boolean; latencyMs: number; error?: string }>((resolve) =>
-        setTimeout(() => resolve({ ok: false, latencyMs: 30000, error: "Database connection timeout after 30s" }), 30000),
+      healthCheck() as Promise<{
+        ok: boolean;
+        latencyMs: number;
+        error?: string;
+      }>,
+      new Promise<{ ok: boolean; latencyMs: number; error?: string }>(
+        (resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                ok: false,
+                latencyMs: 30000,
+                error: "Database connection timeout after 30s",
+              }),
+            30000,
+          ),
       ),
     ]);
   } catch (err: any) {
@@ -276,15 +286,22 @@ async function start(): Promise<void> {
     if (dbCheck.ok) {
       await Promise.race([
         runMigrations(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Migrations timeout")), 15000))
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Migrations timeout")), 15000),
+        ),
       ]);
       await Promise.race([
         runAutoSeeder(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Seeder timeout")), 15000))
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Seeder timeout")), 15000),
+        ),
       ]);
     }
   } catch (err) {
-    logger.error({ err }, "Startup DB task failed/timed out, continuing boot...");
+    logger.error(
+      { err },
+      "Startup DB task failed/timed out, continuing boot...",
+    );
   }
 
   server.listen(PORT, "0.0.0.0", () => {

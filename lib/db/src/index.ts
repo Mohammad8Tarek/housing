@@ -31,7 +31,9 @@ declare global {
 function getDatabaseUrl(): string {
   const url = process.env["DATABASE_URL"];
   if (url) return url;
-  console.warn("⚠️ DATABASE_URL is missing! Using dummy url to prevent instant crash.");
+  console.warn(
+    "⚠️ DATABASE_URL is missing! Using dummy url to prevent instant crash.",
+  );
   return "postgresql://postgres:postgres@localhost:5432/dummy";
 }
 
