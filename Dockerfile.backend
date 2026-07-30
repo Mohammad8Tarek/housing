@@ -20,6 +20,4 @@ RUN cd artifacts/api-server && node ./build.mjs
 EXPOSE 4000
 EXPOSE 10003
 ENV NODE_ENV=production
-HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:${PORT:-4000}/api/healthz || exit 1
 CMD ["node", "--enable-source-maps", "./artifacts/api-server/dist/index.mjs"]
