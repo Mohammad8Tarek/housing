@@ -245,20 +245,21 @@ const memoryMonitorInterval = setInterval(() => {
 async function start(): Promise<void> {
   logger.info("Checking database connection health...");
 
-  // فحص حالة الداتابيز قبل البدء[cite: 1]
-  const dbCheck = await Promise.race([
-    healthCheck() as Promise<{
-      ok: boolean;
-      latencyMs: number;
-      error?: string;
-    }>,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Database connection timeout")), 5000),
-    ),
-  ]);
+  // فحص حالة الداتابيز قبل البدء (Increased timeout to 30s to allow remote DBs to wake up)
+  let dbCheck: { ok: boolean; latencyMs: number; error?: string };
+  try {
+    dbCheck = await Promise.race([
+      healthCheck() as Promise<{ ok: boolean; latencyMs: number; error?: string }>,
+      new Promise<{ ok: boolean; latencyMs: number; error?: string }>((resolve) =>
+        setTimeout(() => resolve({ ok: false, latencyMs: 30000, error: "Database connection timeout after 30s" }), 30000),
+      ),
+    ]);
+  } catch (err: any) {
+    dbCheck = { ok: false, latencyMs: 0, error: err.message };
+  }
 
   if (!dbCheck.ok) {
-    logger.error("Critical: Database connection failed during startup");
+    logger.error({ error: dbCheck.error }, "Critical: Database connection failed during startup");
     process.exit(1);
   }
 
