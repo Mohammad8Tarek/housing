@@ -91,9 +91,7 @@ server.requestTimeout = Number(
 server.keepAliveTimeout = Number(
   process.env["SERVER_KEEP_ALIVE_TIMEOUT_MS"] ?? 5_000,
 );
-server.maxHeadersCount = Number(
-  process.env["SERVER_MAX_HEADERS_COUNT"] ?? 100,
-);
+server.maxHeadersCount = Number(process.env["SERVER_MAX_HEADERS_COUNT"] ?? 100);
 
 try {
   initWebSocket(server);
@@ -135,9 +133,8 @@ async function shutdown(signal: string): Promise<void> {
   // تنظيف memory monitor interval
   clearInterval(memoryMonitorInterval);
 
-  // Close shared netServer first, then httpServer
-  netServer.close();
-  httpServer.close(async () => {
+  // Close HTTP server
+  server.close(async () => {
     try {
       if (pool) {
         // إغلاق اتصال قاعدة البيانات[cite: 1]
