@@ -15,6 +15,7 @@ const WebSocket = require("ws");
 // --- CONFIGURATION ---
 const LOCAL_PORT = 10003;
 const PROPERTY_ID = 1; // Change this if your property ID in the database is different
+const BRIDGE_SECRET = process.env.HOTEK_BRIDGE_SECRET || process.env.SESSION_SECRET || "";
 const CLOUD_URL = `wss://sunrise-api-production-b3f9.up.railway.app/ws?propertyId=${PROPERTY_ID}&tunnel=hotek`;
 // ---------------------
 
@@ -30,7 +31,10 @@ let tcpSocket = null;
 function connectWs() {
   console.log(`[Cloud] Connecting to: ${CLOUD_URL}`);
   ws = new WebSocket(CLOUD_URL, ['hotek-tunnel'], {
-    headers: { 'X-Bridge-Type': 'hotek' }
+    headers: {
+      'X-Bridge-Type': 'hotek',
+      'X-Bridge-Secret': BRIDGE_SECRET,
+    }
   });
   
   ws.on('open', () => {

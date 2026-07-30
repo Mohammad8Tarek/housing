@@ -15,6 +15,7 @@ import type { Server } from "http";
 import { pool } from "@workspace/db";
 import { unsign } from "cookie-signature";
 import { logger } from "./logger.js";
+import { registerHotekBridge } from "./pms-server.js";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 export type WsModule =
@@ -69,6 +70,55 @@ const SESSION_TABLE = process.env["SESSION_TABLE"] ?? "user_sessions";
 const SESSION_TABLE_SQL = /^[A-Za-z_][A-Za-z0-9_]*$/.test(SESSION_TABLE)
   ? `"${SESSION_TABLE}"`
   : '"user_sessions"';
+const HOTEK_BRIDGE_SECRET = process.env["HOTEK_BRIDGE_SECRET"] ?? "";
+
+class HotekBridgeSocket {
+  destroyed = false;
+  remoteAddress = "hotek-bridge";
+  remotePort = 0;
+  private listeners = new Map<string, Set<(data: unknown) => void>>();
+
+  constructor(private ws: WebSocket) {}
+
+  on(event: string, listener: (data: unknown) => void): void {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event)!.add(listener);
+  }
+
+  emit(event: string, data?: unknown): void {
+    for (const listener of this.listeners.get(event) ?? []) {
+      listener(data);
+    }
+  }
+
+  write(data: Buffer | Uint8Array | string): boolean {
+    if (this.destroyed || this.ws.readyState !== WebSocket.OPEN) return false;
+    try {
+      const payload = Buffer.isBuffer(data)
+        ? data
+        : typeof data === "string"
+          ? Buffer.from(data)
+          : Buffer.from(data);
+      this.ws.send(payload);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    try {
+      this.ws.close();
+    } catch {}
+    this.emit("close");
+  }
+
+  setKeepAlive(): void {}
+  setNoDelay(): void {}
+  setTimeout(): void {}
+}
 
 function parseCookies(header: string | undefined): Record<string, string> {
   const result: Record<string, string> = {};
@@ -141,17 +191,54 @@ export function initWebSocket(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
   wss.on("connection", async (ws, req) => {
-    if (clients.size >= MAX_WS_CLIENTS) {
-      ws.close(1013, "Server is busy. Try again later.");
-      return;
-    }
-
-    // Parse query-string auth params
     const url = new URL(req.url ?? "/", "http://localhost");
     const requestedPropertyId = parseInt(
       url.searchParams.get("propertyId") ?? "0",
       10,
     );
+    const tunnel = url.searchParams.get("tunnel") ?? "";
+    const bridgeType = req.headers["x-bridge-type"];
+    const isHotekBridge = tunnel === "hotek" || bridgeType === "hotek";
+    const providedBridgeSecret =
+      typeof req.headers["x-bridge-secret"] === "string"
+        ? req.headers["x-bridge-secret"]
+        : undefined;
+
+    if (isHotekBridge) {
+      const expectedBridgeSecret = HOTEK_BRIDGE_SECRET || process.env["SESSION_SECRET"] || "";
+      if (!expectedBridgeSecret || providedBridgeSecret !== expectedBridgeSecret) {
+        ws.close(1008, "Hotek bridge auth required.");
+        return;
+      }
+
+      const propertyId = requestedPropertyId || 1;
+      const bridgeSocket = new HotekBridgeSocket(ws);
+      registerHotekBridge(propertyId, bridgeSocket as any);
+
+      ws.on("message", (raw) => {
+        const payload = raw instanceof Buffer
+          ? raw
+          : Buffer.isBuffer(raw)
+            ? raw
+            : Buffer.from(raw as ArrayBufferLike);
+        bridgeSocket.emit("data", payload);
+      });
+
+      ws.on("close", () => {
+        bridgeSocket.destroy();
+      });
+
+      ws.on("error", () => {
+        bridgeSocket.destroy();
+      });
+      return;
+    }
+
+    if (clients.size >= MAX_WS_CLIENTS) {
+      ws.close(1013, "Server is busy. Try again later.");
+      return;
+    }
+
     const auth = await loadSessionAuth(req.headers.cookie).catch((err) => {
       logger.warn({ err }, "[WS] Session auth lookup failed");
       return null;

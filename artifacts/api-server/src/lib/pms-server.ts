@@ -11,6 +11,18 @@ interface PendingCmd {
   propertyId: number;
 }
 
+export interface HotekSocketLike {
+  write(data: Buffer | Uint8Array | string): boolean;
+  destroy(error?: Error): void;
+  destroyed: boolean;
+  remoteAddress?: string;
+  remotePort?: number;
+  on(event: string, listener: (...args: any[]) => void): void;
+  setKeepAlive?(enable: boolean, initialDelay?: number): void;
+  setNoDelay?(enable: boolean): void;
+  setTimeout?(timeout: number): void;
+}
+
 export interface HotekCmdResult {
   success: boolean;
   cardNumber?: string;
@@ -20,7 +32,7 @@ export interface HotekCmdResult {
 interface PortPms {
   port: number;
   server: net.Server | null;
-  socket: net.Socket | null;
+  socket: HotekSocketLike | null;
   pendingCmd: PendingCmd | null;
   activePropertyIds: Set<number>;
 }
@@ -337,6 +349,90 @@ export function disconnectHotekClient(propertyId: number): void {
   }
 }
 
+function attachHotekSocketHandlers(
+  port: number,
+  socket: HotekSocketLike,
+  addr: string,
+): void {
+  const currentPms = portServers.get(port);
+  if (!currentPms) return;
+
+  if (currentPms.socket && currentPms.socket !== socket && !currentPms.socket.destroyed) {
+    currentPms.socket.destroy(new Error("Replaced by new Hotek connection"));
+  }
+  currentPms.socket = socket;
+
+  syncStatusToDb(port, true, addr);
+
+  if (typeof socket.setKeepAlive === "function") socket.setKeepAlive(true, 5000);
+  if (typeof socket.setNoDelay === "function") socket.setNoDelay(true);
+  if (typeof socket.setTimeout === "function") socket.setTimeout(300000);
+
+  const pingInterval = setInterval(() => {
+    if (currentPms && currentPms.socket && !currentPms.socket.destroyed) {
+      const la = `LA|DA${formatFiasDate(new Date())}|TI${formatFiasTime(new Date())}|`;
+      currentPms.socket.write(buildFiasFrame(la));
+    }
+  }, 20000);
+
+  let buffer: Buffer = Buffer.alloc(0);
+  const onData = (data: Buffer | Uint8Array | string) => {
+    const chunk = Buffer.isBuffer(data)
+      ? data
+      : typeof data === "string"
+        ? Buffer.from(data)
+        : Buffer.from(data);
+    buffer = Buffer.concat([buffer, chunk]);
+    buffer = handleHotekData(buffer, port);
+  };
+
+  const onError = (err: Error | unknown) => {
+    console.error(`[PMS-Bridge - Port ${port}] Hotek socket error:`, err instanceof Error ? err.message : String(err));
+    if (currentPms.pendingCmd) {
+      currentPms.pendingCmd.reject(
+        new Error(`Hotek connection error: ${err instanceof Error ? err.message : String(err)}`),
+      );
+      currentPms.pendingCmd = null;
+    }
+  };
+
+  const onClose = () => {
+    clearInterval(pingInterval);
+    if (currentPms.socket === socket) {
+      currentPms.socket = null;
+    }
+    if (currentPms.pendingCmd) {
+      currentPms.pendingCmd.reject(new Error("Hotek disconnected"));
+      currentPms.pendingCmd = null;
+    }
+    syncStatusToDb(port, false);
+  };
+
+  socket.on("data", onData);
+  socket.on("error", onError);
+  socket.on("close", onClose);
+}
+
+export function registerHotekBridge(propertyId: number, socket: HotekSocketLike): void {
+  const port = propertyPorts.get(propertyId) ?? MAIN_PORT_KEY;
+  const pms = portServers.get(port);
+  if (!pms) {
+    propertyPorts.set(propertyId, port);
+    portServers.set(port, {
+      port,
+      server: null,
+      socket: null,
+      pendingCmd: null,
+      activePropertyIds: new Set([propertyId]),
+    });
+  }
+
+  const targetPms = portServers.get(port);
+  if (!targetPms) return;
+  targetPms.activePropertyIds.add(propertyId);
+  attachHotekSocketHandlers(port, socket, `hotek-bridge:${propertyId}`);
+}
+
 export function startPmsServerForProperty(
   propertyId: number,
   port: number,
@@ -388,61 +484,7 @@ export function startPmsServerForProperty(
 
   const server = net.createServer((socket) => {
     const addr = `${socket.remoteAddress}:${socket.remotePort}`;
-    const currentPms = portServers.get(port);
-    if (!currentPms) return;
-
-    if (currentPms.socket && !currentPms.socket.destroyed) {
-      // console.log(`[PMS-Bridge - Port ${port}] ⚠️ Closing old Hotek connection for new one from ${addr}`);
-      currentPms.socket.destroy();
-    }
-    currentPms.socket = socket;
-    // console.log(`[PMS-Bridge - Port ${port}] ✅ Hotek PMSServer connected from ${addr}`);
-
-    syncStatusToDb(port, true, addr);
-
-    socket.setKeepAlive(true, 5000);
-    socket.setNoDelay(true);
-    socket.setTimeout(300000);
-
-    // Keep FIAS link hot to prevent delays
-    const pingInterval = setInterval(() => {
-      if (currentPms && currentPms.socket && !currentPms.socket.destroyed) {
-        const la = `LA|DA${formatFiasDate(new Date())}|TI${formatFiasTime(new Date())}|`;
-        currentPms.socket.write(buildFiasFrame(la));
-      }
-    }, 20000);
-
-    let buffer: any = Buffer.alloc(0);
-    socket.on("data", (data: Buffer) => {
-      buffer = Buffer.concat([buffer, data]);
-      buffer = handleHotekData(buffer, port);
-    });
-
-    socket.on("error", (err: Error) => {
-      console.error(
-        `[PMS-Bridge - Port ${port}] Hotek socket error:`,
-        err.message,
-      );
-      if (currentPms.pendingCmd) {
-        currentPms.pendingCmd.reject(
-          new Error(`Hotek connection error: ${err.message}`),
-        );
-        currentPms.pendingCmd = null;
-      }
-    });
-
-    socket.on("close", () => {
-      clearInterval(pingInterval);
-      // console.log(`[PMS-Bridge - Port ${port}] 🔌 Hotek PMSServer disconnected: ${addr}`);
-      if (currentPms.socket === socket) {
-        currentPms.socket = null;
-      }
-      if (currentPms.pendingCmd) {
-        currentPms.pendingCmd.reject(new Error("Hotek disconnected"));
-        currentPms.pendingCmd = null;
-      }
-      syncStatusToDb(port, false);
-    });
+    attachHotekSocketHandlers(port, socket as unknown as HotekSocketLike, addr);
   });
 
   pms.server = server;
