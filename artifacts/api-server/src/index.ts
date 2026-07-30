@@ -280,7 +280,7 @@ async function start(): Promise<void> {
     logger.info(`WebSocket: ws://localhost:${PORT}/ws`);
 
     // Start PMS V2.1 Servers for all active properties
-    startAllPmsServers(app);
+    // startAllPmsServers(app);
   });
 }
 
