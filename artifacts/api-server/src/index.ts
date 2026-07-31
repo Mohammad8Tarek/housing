@@ -315,7 +315,6 @@ async function start(): Promise<void> {
   // 2. Start PMS V2.1 Servers (they bind to 10005 locally based on db migration)
   startAllPmsServers(app);
 }
-}
 
 // بدء التشغيل ومعالجة أي خطأ كارثي
 start().catch((err) => {
