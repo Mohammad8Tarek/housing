@@ -6,6 +6,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as net from "node:net";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -303,15 +304,49 @@ async function start(): Promise<void> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 🚀 START LISTENING — this is where Railway routes traffic
+  // 🚀 START LISTENING — Multiplexer for HTTP and TCP PMS on a single port
   // ══════════════════════════════════════════════════════════════════════════
-  server.listen(PORT, "::", () => {
-    logger.info({ port: PORT }, "🚀 Sunrise Housing API is Live");
-    logger.info(`Main API: http://localhost:${PORT}/api`);
-    logger.info(`WebSocket: ws://localhost:${PORT}/ws`);
+  // 1. Bind the HTTP server to 4000 locally
+  server.listen(4000, "127.0.0.1", () => {
+    logger.info("Main API HTTP listening locally on 4000");
+  });
 
-    // Start PMS V2.1 Servers (TCP Proxy tunnel)
-    startAllPmsServers(app);
+  // 2. Start PMS V2.1 Servers (they bind to 10006 locally based on db migration)
+  startAllPmsServers(app);
+
+  // 3. Multiplexer listens on Railway's injected PORT (e.g. 10005)
+  const muxPort = Number(process.env.PORT || 10005);
+  const mux = net.createServer((socket) => {
+    socket.once('data', (chunk) => {
+      // PAUSE the socket so we don't lose any further chunks (like HTTP body) before the proxy is ready
+      socket.pause();
+
+      // If it starts with <STX> (0x02), route to PMS Server (10006)
+      // Otherwise, route to HTTP Server (4000)
+      const isPms = chunk[0] === 0x02;
+      const targetPort = isPms ? 10006 : 4000;
+      
+      const proxy = net.createConnection({ port: targetPort, host: '127.0.0.1' }, () => {
+        proxy.write(chunk);
+        socket.pipe(proxy);
+        proxy.pipe(socket);
+        
+        // RESUME the socket now that the pipe is established
+        socket.resume();
+      });
+      
+      proxy.on('error', (err) => {
+        socket.end();
+      });
+      socket.on('error', () => {
+        proxy.end();
+      });
+    });
+  });
+
+  mux.listen(muxPort, "0.0.0.0", () => {
+    logger.info({ port: muxPort }, "🚀 Sunrise Housing API Multiplexer is Live");
+    logger.info(`Multiplexer: listening on ${muxPort}, routing to HTTP (4000) and PMS (10006)`);
   });
 }
 
