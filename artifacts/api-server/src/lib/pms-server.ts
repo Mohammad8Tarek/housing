@@ -641,8 +641,8 @@ export async function startAllPmsServers(app?: any): Promise<void> {
 
     for (const row of result.rows) {
       if (row.port) {
-        // Enforce port 10005 directly for Railway TCP proxy
-        const targetPmsPort = 10005;
+        // Enforce port 10006 internally so the multiplexer can listen on 10005
+        const targetPmsPort = 10006;
         
         if (row.port !== targetPmsPort) {
           console.warn(
