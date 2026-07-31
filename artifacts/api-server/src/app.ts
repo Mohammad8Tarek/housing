@@ -89,19 +89,23 @@ const SESSION_TIMEOUT_MS = parseInt(
   process.env["SESSION_TIMEOUT_MS"] ?? String(30 * 60 * 1000),
   10,
 );
-const sessionStoreType = (process.env["SESSION_STORE"] ?? "postgresql").toLowerCase();
+const sessionStoreType = (process.env["SESSION_STORE"] ?? "memory").toLowerCase();
 let sessionStore: session.Store | undefined;
 
 if (sessionStoreType === "postgresql") {
-  const PgSessionStore = connectPgSimple(session);
-  sessionStore = new PgSessionStore({
-    pool,
-    tableName: process.env["SESSION_TABLE"] ?? "user_sessions",
-    createTableIfMissing: true,
-    pruneSessionInterval: 15 * 60,
-    ttl: SESSION_TIMEOUT_MS / 1000,
-    disableTouch: false,
-  }) as unknown as session.Store;
+  try {
+    const PgSessionStore = connectPgSimple(session);
+    sessionStore = new PgSessionStore({
+      pool,
+      tableName: process.env["SESSION_TABLE"] ?? "user_sessions",
+      createTableIfMissing: true,
+      pruneSessionInterval: 15 * 60,
+      ttl: SESSION_TIMEOUT_MS / 1000,
+      disableTouch: false,
+    }) as unknown as session.Store;
+  } catch (err) {
+    console.error("[Session] Failed to init PostgreSQL store, falling back to MemoryStore:", err);
+  }
 }
 
 const sessionMiddleware = session({
