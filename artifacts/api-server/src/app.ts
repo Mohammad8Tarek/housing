@@ -26,6 +26,8 @@ import { pool } from "@workspace/db";
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
 
 // 2. إعداد الـ Logging
 app.use(pinoHttp({
@@ -102,7 +104,8 @@ if (sessionStoreType === "postgresql") {
   }) as unknown as session.Store;
 }
 
-app.use(session({
+const sessionMiddleware = session({
+  name: "sunrise.sid",
   secret: process.env["SESSION_SECRET"] ?? "sunrise-dev-secret",
   store: sessionStore,
   resave: false,
@@ -111,10 +114,17 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env["NODE_ENV"] === "production",
-    sameSite: process.env["NODE_ENV"] === "production" ? "strict" : "lax",
+    sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
     maxAge: SESSION_TIMEOUT_MS,
   },
-}));
+});
+
+app.use((req, res, next) => {
+  if (req.path === "/api/ping" || req.path === "/api/healthz" || req.path === "/healthz") {
+    return next();
+  }
+  return sessionMiddleware(req, res, next);
+});
 
 // 7. الـ API Routes والـ Middlewares الخاصة بها
 app.use("/api", apiRateLimit);
