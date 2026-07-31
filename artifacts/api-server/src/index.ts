@@ -277,6 +277,7 @@ async function start(): Promise<void> {
       { latency: `${dbCheck.latencyMs}ms` },
       "Database connection established",
     );
+  }
   // Ping route moved to app.ts
 
   try {
