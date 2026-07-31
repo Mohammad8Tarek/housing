@@ -1270,11 +1270,11 @@ export default function InHouse() {
                   onIssuingChange={setReissueIssuing}
                   onIssueComplete={() => {
                     invalidate();
-                    toast({
-                      title: ar
+                    toast.success(
+                      ar
                         ? "تم إصدار المفاتيح بنجاح"
-                        : "Keys issued successfully",
-                    });
+                        : "Keys issued successfully"
+                    );
                   }}
                 />
               )}
