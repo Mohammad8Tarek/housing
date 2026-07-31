@@ -306,15 +306,16 @@ async function start(): Promise<void> {
   // ══════════════════════════════════════════════════════════════════════════
   // 🚀 START LISTENING — Multiplexer for HTTP and TCP PMS on a single port
   // ══════════════════════════════════════════════════════════════════════════
-  // 1. Bind the HTTP server to 4000 locally
-  server.listen(4000, "127.0.0.1", () => {
-    logger.info("Main API HTTP listening locally on 4000");
+  // 1. Bind the HTTP server to a unique internal port (4001) to avoid EADDRINUSE
+  const INTERNAL_HTTP_PORT = 4001;
+  server.listen(INTERNAL_HTTP_PORT, "127.0.0.1", () => {
+    logger.info(`Main API HTTP listening locally on ${INTERNAL_HTTP_PORT}`);
   });
 
   // 2. Start PMS V2.1 Servers (they bind to 10006 locally based on db migration)
   startAllPmsServers(app);
 
-  // 3. Multiplexer listens on Railway's injected PORT (e.g. 10005)
+  // 3. Multiplexer listens on Railway's injected PORT
   const muxPort = Number(process.env.PORT || 10005);
   const mux = net.createServer((socket) => {
     socket.once('data', (chunk) => {
@@ -322,9 +323,9 @@ async function start(): Promise<void> {
       socket.pause();
 
       // If it starts with <STX> (0x02), route to PMS Server (10006)
-      // Otherwise, route to HTTP Server (4000)
+      // Otherwise, route to HTTP Server (4001)
       const isPms = chunk[0] === 0x02;
-      const targetPort = isPms ? 10006 : 4000;
+      const targetPort = isPms ? 10006 : INTERNAL_HTTP_PORT;
       
       const proxy = net.createConnection({ port: targetPort, host: '127.0.0.1' }, () => {
         proxy.write(chunk);
@@ -346,7 +347,7 @@ async function start(): Promise<void> {
 
   mux.listen(muxPort, "0.0.0.0", () => {
     logger.info({ port: muxPort }, "🚀 Sunrise Housing API Multiplexer is Live");
-    logger.info(`Multiplexer: listening on ${muxPort}, routing to HTTP (4000) and PMS (10006)`);
+    logger.info(`Multiplexer: listening on ${muxPort}, routing to HTTP (${INTERNAL_HTTP_PORT}) and PMS (10006)`);
   });
 }
 
