@@ -305,7 +305,7 @@ async function start(): Promise<void> {
   // ══════════════════════════════════════════════════════════════════════════
   // 🚀 START LISTENING — this is where Railway routes traffic
   // ══════════════════════════════════════════════════════════════════════════
-  server.listen(PORT, "0.0.0.0", () => {
+  server.listen(PORT, "::", () => {
     logger.info({ port: PORT }, "🚀 Sunrise Housing API is Live");
     logger.info(`Main API: http://localhost:${PORT}/api`);
     logger.info(`WebSocket: ws://localhost:${PORT}/ws`);
