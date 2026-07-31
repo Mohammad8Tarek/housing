@@ -641,9 +641,8 @@ export async function startAllPmsServers(app?: any): Promise<void> {
 
     for (const row of result.rows) {
       if (row.port) {
-        // Enforce port 10003 since Railway TCP Proxy is configured to route traffic to 10003.
-        // Earlier versions of this code auto-incremented the port to avoid conflicts, which caused it to drift.
-        const targetPmsPort = 10003;
+        // Enforce port 10005 to match the user's Railway TCP Proxy settings
+        const targetPmsPort = 10005;
         
         if (row.port !== targetPmsPort) {
           console.warn(
