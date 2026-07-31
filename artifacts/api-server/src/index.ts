@@ -303,11 +303,13 @@ async function start(): Promise<void> {
     );
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // 🚀 START LISTENING — Multiplexer for HTTP and TCP PMS on a single port
-  // ══════════════════════════════════════════════════════════════════════════
-  // 1. Bind the HTTP server to a unique internal port (4001) to avoid EADDRINUSE
-  const INTERNAL_HTTP_PORT = 4001;
+  // 3. Multiplexer listens on Railway's injected PORT
+  const muxPort = Number(process.env.PORT || 10005);
+
+  // 1. Bind the HTTP server to a unique internal port to avoid EADDRINUSE or infinite loops
+  let INTERNAL_HTTP_PORT = muxPort === 4001 ? 4002 : 4001;
+  if (INTERNAL_HTTP_PORT === 10006) INTERNAL_HTTP_PORT = 10007; // Avoid PMS port
+
   server.listen(INTERNAL_HTTP_PORT, "127.0.0.1", () => {
     logger.info(`Main API HTTP listening locally on ${INTERNAL_HTTP_PORT}`);
   });
@@ -315,8 +317,6 @@ async function start(): Promise<void> {
   // 2. Start PMS V2.1 Servers (they bind to 10006 locally based on db migration)
   startAllPmsServers(app);
 
-  // 3. Multiplexer listens on Railway's injected PORT
-  const muxPort = Number(process.env.PORT || 10005);
   const mux = net.createServer((socket) => {
     socket.once('data', (chunk) => {
       // PAUSE the socket so we don't lose any further chunks (like HTTP body) before the proxy is ready
