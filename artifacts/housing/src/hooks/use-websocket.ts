@@ -144,7 +144,7 @@ export function useWebSocket(): { isConnected: boolean } {
     }
 
     if (!wsUrl) {
-      wsUrl = `wss://sunrise-api-production-b3f9.up.railway.app/ws?propertyId=${currentPropertyId}`;
+      wsUrl = `wss://sunrise-api-production-2410.up.railway.app/ws?propertyId=${currentPropertyId}`;
     }
 
     console.info("[WS] Attempting connection:", wsUrl.replace(/\?.*/, "?***"));

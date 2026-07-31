@@ -131,7 +131,7 @@ export default function TabChat() {
   }, [messages]);
 
   useEffect(() => {
-    const wsUrl = `wss://sunrise-api-production-b3f9.up.railway.app/ws`;
+    const wsUrl = `wss://sunrise-api-production-2410.up.railway.app/ws`;
 
     const connect = () => {
       if (wsRef.current?.readyState === WebSocket.OPEN) return;
