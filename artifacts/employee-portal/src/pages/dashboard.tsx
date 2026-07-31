@@ -879,9 +879,9 @@ export default function Dashboard() {
           )}
           {activeTab === "food" && <TabFood />}
           {activeTab === "transport" && <TabTransport />}
-          {activeTab === "chat" && (
+          <div style={{ display: activeTab === "chat" ? "block" : "none" }}>
             <TabChat myEmployeeId={employee?.id} contacts={contacts} />
-          )}
+          </div>
         </div>
       </div>
 

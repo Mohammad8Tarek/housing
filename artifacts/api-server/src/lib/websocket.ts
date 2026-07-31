@@ -41,7 +41,9 @@ export type WsAction =
   | "checkout"
   | "transfer"
   | "sync"
-  | "new_message";
+  | "new_message"
+  | "read_receipt"
+  | "typing_start";
 
 export interface WsPayload {
   type: "SYNC_DATA" | "data_updated" | "notification" | "connected" | "pong";

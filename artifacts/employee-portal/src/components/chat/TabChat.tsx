@@ -29,6 +29,7 @@ interface Conversation {
   lastMessage: { content: string; createdAt: string; senderId: number } | null;
   unreadCount: number;
   participantIds: number[];
+  participantsData?: any[];
   updatedAt: string;
 }
 
@@ -626,6 +627,8 @@ export function TabChat({
   const [notifPerm, setNotifPerm] = useState<NotificationPermission | null>(
     null,
   );
+  const [typingUsers, setTypingUsers] = useState<Record<number, Set<number>>>({});
+  const typingTimeoutRef = useRef<Record<string, any>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeConvRef = useRef<Conversation | null>(null);
@@ -654,16 +657,18 @@ export function TabChat({
         const newConvs: Conversation[] = d.conversations || [];
 
         // Check for new messages and fire notifications
-        if (prevConvsRef.current.length > 0 && document.hidden) {
+        if (prevConvsRef.current.length > 0) {
           for (const nc of newConvs) {
             const old = prevConvsRef.current.find((c) => c.id === nc.id);
             const activeId = activeConvRef.current?.id;
-            if (nc.unreadCount > 0 && nc.id !== activeId) {
+            
+            // Trigger notification if it's not the active conversation OR the document is hidden
+            if (nc.unreadCount > 0 && (nc.id !== activeId || document.hidden)) {
               const wasUnread = old?.unreadCount || 0;
               if (nc.unreadCount > wasUnread && nc.lastMessage) {
                 showNotification(
-                  isRtl ? "رسالة جديدة" : "New Message",
-                  nc.lastMessage.content.slice(0, 80),
+                  getConvTitle(nc),
+                  nc.lastMessage.content.slice(0, 80)
                 );
               }
             }
@@ -685,7 +690,7 @@ export function TabChat({
     loadConversations(false);
   }, [loadConversations]);
 
-  // Poll conversations every 5s using recursive setTimeout and visibility check
+  // Poll every 1.5s using recursive setTimeout and visibility check
   useEffect(() => {
     let timeoutId: any;
     let isMounted = true;
@@ -694,11 +699,46 @@ export function TabChat({
       if (!isMounted) return;
       if (document.visibilityState === "visible") {
         await loadConversations(true);
+        // If there's an active chat, poll its messages too
+        if (activeConvRef.current) {
+          try {
+            const r = await apiFetch(
+              `/api/portal-chat/conversations/${activeConvRef.current.id}/messages`,
+              { credentials: "include" }
+            );
+            if (r.ok) {
+              const d = await r.json();
+              if (d.success) {
+                setMessages(Array.isArray(d.messages) ? d.messages : []);
+                setSenders((prev) => ({ ...prev, ...(d.senders || {}) }));
+                
+                // Update typing users
+                if (d.typingUsers) {
+                  setTypingUsers(prev => {
+                    const newSet = new Set(d.typingUsers as number[]);
+                    return { ...prev, [activeConvRef.current!.id]: newSet };
+                  });
+                } else {
+                  setTypingUsers(prev => ({ ...prev, [activeConvRef.current!.id]: new Set() }));
+                }
+
+                // Mark as read if there are unread messages
+                if (d.messages && d.messages.length > lastMsgCountRef.current) {
+                  lastMsgCountRef.current = d.messages.length;
+                  apiFetch(`/api/portal-chat/conversations/${activeConvRef.current.id}/read`, {
+                    method: "PUT",
+                    credentials: "include",
+                  }).catch(() => {});
+                }
+              }
+            }
+          } catch {}
+        }
       }
-      timeoutId = setTimeout(poll, 5000);
+      timeoutId = setTimeout(poll, 1500);
     };
 
-    timeoutId = setTimeout(poll, 5000);
+    timeoutId = setTimeout(poll, 1500);
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
@@ -931,10 +971,18 @@ export function TabChat({
   };
 
   /* ── Helpers ── */
-  const getParticipantName = (empId: number): string => {
+  /* ── Helpers ── */
+  const getParticipantName = (empId: number, conv?: Conversation): string => {
     if (empId === myEmployeeId) return isRtl ? "أنا" : "Me";
+    
+    if (conv?.participantsData) {
+      const p = conv.participantsData.find(x => x.id === empId);
+      if (p) return `${p.firstName} ${p.lastName}`;
+    }
+
     const s = senders[empId];
     if (s) return `${s.firstName} ${s.lastName}`;
+    
     const c = contacts.find((cc: any) => cc.id === empId);
     if (c)
       return isRtl
@@ -942,17 +990,27 @@ export function TabChat({
         : c.nameEn || c.nameAr || `#${empId}`;
     return `#${empId}`;
   };
-  const getParticipantPhoto = (empId: number): string | null =>
-    senders[empId]?.photoUrl || null;
+
+  const getParticipantPhoto = (empId: number, conv?: Conversation): string | null => {
+    if (conv?.participantsData) {
+      const p = conv.participantsData.find(x => x.id === empId);
+      if (p?.photoUrl) return p.photoUrl;
+    }
+    const c = contacts.find((cc: any) => cc.id === empId);
+    if (c?.photoUrl) return c.photoUrl;
+    return senders[empId]?.photoUrl || null;
+  };
+
   const getConvTitle = (conv: Conversation): string => {
     if (conv.isGroup) return conv.subject || (isRtl ? "مجموعة" : "Group");
     const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
-    return otherId ? getParticipantName(otherId) : conv.subject || "Chat";
+    return otherId ? getParticipantName(otherId, conv) : conv.subject || "Chat";
   };
+  
   const getConvPhoto = (conv: Conversation): string | null => {
     if (conv.isGroup) return null;
     const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
-    return otherId ? getParticipantPhoto(otherId) : null;
+    return otherId ? getParticipantPhoto(otherId, conv) : null;
   };
 
   const insertEmoji = (emoji: string) => {
@@ -1054,6 +1112,21 @@ export function TabChat({
             >
               {title}
             </div>
+            {typingUsers[activeConv.id]?.size > 0 && (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "hsl(var(--accent2))",
+                  fontWeight: 600,
+                  animation: "pulse 1.5s infinite",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isRtl ? "يكتب الآن..." : "Typing..."}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1067,7 +1140,12 @@ export function TabChat({
             flexDirection: "column",
             gap: "4px",
             WebkitOverflowScrolling: "touch",
-            background: "hsl(var(--surface2))",
+            backgroundColor: "#efeae2",
+            backgroundImage:
+              "url('https://w0.peakpx.com/wallpaper/508/606/HD-wallpaper-whatsapp-background-thumbnail.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundBlendMode: "overlay",
           }}
         >
           {messages.length === 0 ? (
@@ -1129,17 +1207,17 @@ export function TabChat({
 
                   <div
                     style={{
+                      position: "relative",
                       maxWidth: "78%",
                       padding: "9px 13px",
                       borderRadius: isMe
                         ? "16px 16px 4px 16px"
                         : "16px 16px 16px 4px",
                       background: isMe
-                        ? "hsl(var(--accent2))"
-                        : "hsl(var(--card))",
-                      color: isMe ? "white" : "hsl(var(--foreground))",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                      border: isMe ? "none" : "0.5px solid hsl(var(--border2))",
+                        ? "#dcf8c6"
+                        : "#ffffff",
+                      color: "#000000",
+                      boxShadow: "0 1px 1px rgba(0,0,0,0.1)",
                       opacity: isTemp ? 0.7 : 1,
                       transition: "opacity 0.2s ease",
                     }}
@@ -1183,7 +1261,7 @@ export function TabChat({
                       {isMe && !isTemp && (
                         <TickIcon
                           read={isRead}
-                          color={isRead ? "#60AEFF" : "rgba(255,255,255,0.8)"}
+                          color={isRead ? "#34B7F1" : "rgba(0,0,0,0.4)"}
                         />
                       )}
                       {isMe && isTemp && (
@@ -1192,7 +1270,7 @@ export function TabChat({
                           height="12"
                           viewBox="0 0 24 24"
                           fill="none"
-                          stroke="rgba(255,255,255,0.6)"
+                          stroke="rgba(0,0,0,0.4)"
                           strokeWidth="2"
                         >
                           <circle cx="12" cy="12" r="10" />
@@ -1333,6 +1411,14 @@ export function TabChat({
                 e.target.style.height = "auto";
                 e.target.style.height =
                   Math.min(e.target.scrollHeight, 100) + "px";
+                
+                // Trigger typing event (debounced 1s)
+                if (!typingTimeoutRef.current[activeConv.id]) {
+                  apiFetch(`/api/portal-chat/conversations/${activeConv.id}/typing`, { method: "POST", credentials: "include" }).catch(() => {});
+                  typingTimeoutRef.current[activeConv.id] = setTimeout(() => {
+                    typingTimeoutRef.current[activeConv.id] = null;
+                  }, 1000);
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -1938,18 +2024,21 @@ export function TabChat({
                     style={{
                       fontSize: "13px",
                       color:
-                        conv.unreadCount > 0
+                        typingUsers[conv.id]?.size > 0
+                          ? "hsl(var(--accent2))"
+                          : conv.unreadCount > 0
                           ? "hsl(var(--foreground))"
                           : "hsl(var(--muted2))",
-                      fontWeight: conv.unreadCount > 0 ? 600 : 400,
+                      fontWeight: (conv.unreadCount > 0 || typingUsers[conv.id]?.size > 0) ? 600 : 400,
                       margin: 0,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {conv.lastMessage?.content ||
-                      (isRtl ? "ابدأ المحادثة" : "Start the conversation")}
+                    {typingUsers[conv.id]?.size > 0
+                      ? (isRtl ? "يكتب الآن..." : "Typing...")
+                      : conv.lastMessage?.content || (isRtl ? "ابدأ المحادثة" : "Start the conversation")}
                   </p>
                 </div>
               </button>
