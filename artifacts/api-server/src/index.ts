@@ -54,7 +54,7 @@ function requireEnv(name: string): string {
   return val;
 }
 
-const PORT = Number(process.env.PORT || 10003);
+const PORT = Number(process.env.PORT || 4000);
 const DATABASE_URL = requireEnv("DATABASE_URL"); //
 const SESSION_SECRET = requireEnv("SESSION_SECRET"); //
 
@@ -303,7 +303,7 @@ async function start(): Promise<void> {
     );
   }
 
-  server.listen(PORT, "0.0.0.0", () => {
+  server.listen(PORT, "::", () => {
     logger.info({ port: PORT }, "🚀 Sunrise Housing API is Live");
     logger.info(`Main API: http://localhost:${PORT}/api`);
     logger.info(`WebSocket: ws://localhost:${PORT}/ws`);
