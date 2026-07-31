@@ -17,6 +17,5 @@ COPY lib/ ./lib/
 COPY artifacts/api-server/ ./artifacts/api-server/
 RUN cd artifacts/api-server && node ./build.mjs
 
-EXPOSE 10003
 ENV NODE_ENV=production
 CMD ["node", "--enable-source-maps", "./artifacts/api-server/dist/index.mjs"]

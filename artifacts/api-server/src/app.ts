@@ -84,6 +84,45 @@ app.set('json replacer', (key: string, value: any) => {
 // 5. استخدام الـ Date Sanitizer بعد تعريف الـ app وقبل الـ Routes ✅
 app.use("/api", sanitizeDates);
 
+// 5.5. Health Checks and Utilities
+app.get("/healthz", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+app.get("/api/healthz", async (_req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.json({ status: "ok" });
+  } catch {
+    res.status(503).json({ status: "error", message: "Database unreachable" });
+  }
+});
+
+app.get("/api/ping", (_req, res) => {
+  res.json({ status: "ok", uptime: process.uptime() });
+});
+
+// ✅ Temp route to force-reset admin password on Railway DB
+app.get("/api/force-admin", async (_req, res) => {
+  try {
+    const bcrypt = await import("bcryptjs");
+    const hash = await bcrypt.default.hash("test123", 10);
+    const existing = await pool.query("SELECT id FROM users WHERE username = 'admin' LIMIT 1");
+    if (existing.rows.length > 0) {
+      await pool.query("UPDATE users SET password_hash = $1 WHERE username = 'admin'", [hash]);
+      res.send("Admin password reset to: test123");
+    } else {
+      await pool.query(
+        "INSERT INTO users (username, email, password_hash, roles, status) VALUES ('admin', 'admin@example.com', $1, '[\"super_admin\"]', 'active')",
+        [hash]
+      );
+      res.send("Admin user created with password: test123");
+    }
+  } catch (err: any) {
+    res.status(500).send("Error: " + err.message);
+  }
+});
+
 // 6. إعداد الـ Session
 const SESSION_TIMEOUT_MS = parseInt(
   process.env["SESSION_TIMEOUT_MS"] ?? String(30 * 60 * 1000),

@@ -277,9 +277,7 @@ async function start(): Promise<void> {
       { latency: `${dbCheck.latencyMs}ms` },
       "Database connection established",
     );
-  }
-
-  app.get("/api/ping", (req, res) => res.json({ status: "ok", db: dbCheck }));
+  // Ping route moved to app.ts
 
   try {
     if (dbCheck.ok) {
@@ -303,13 +301,18 @@ async function start(): Promise<void> {
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 🚀 START LISTENING — this is where Railway routes traffic
+  // ══════════════════════════════════════════════════════════════════════════
   server.listen(PORT, "0.0.0.0", () => {
     logger.info({ port: PORT }, "🚀 Sunrise Housing API is Live");
     logger.info(`Main API: http://localhost:${PORT}/api`);
     logger.info(`WebSocket: ws://localhost:${PORT}/ws`);
 
-    // Start PMS V2.1 Servers for all active properties
-    startAllPmsServers(app);
+    // Start PMS V2.1 Servers ONLY if explicitly enabled (avoid port conflicts on Railway)
+    if (process.env["ENABLE_PMS_SERVERS"] === "true") {
+      startAllPmsServers(app);
+    }
   });
 }
 
