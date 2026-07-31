@@ -205,53 +205,37 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     passwordExpired,
   };
 
-  // ✅ Direct session assignment (PostgreSQL store handles persistence)
+  // ✅ Assign session data directly
   Object.assign(req.session, sessionData);
 
-  // Save session with timeout protection
-  const savePromise = new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error("Session save timeout"));
-    }, 5000); // 5 second timeout
-
-    req.session.save((err: any) => {
-      clearTimeout(timeout);
-      if (err) reject(err);
-      else resolve();
+  // 🔧 Respond immediately, let express-session save in background
+  if (user.propertyId) {
+    // Log activity but don't wait for it
+    logActivity({
+      req,
+      propertyId: user.propertyId ?? 0,
+      username: user.username,
+      userId: user.id,
+      userRole: user.roles?.[0],
+      action: "LOGIN",
+      actionType: "AUTH",
+      module: "auth",
+      severity: "info",
+      details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
+      ipAddress: ip,
+    }).catch((err) => {
+      console.error("[auth/login] Activity log error:", err);
     });
-  });
-
-  try {
-    await savePromise;
-
-    if (user.propertyId) {
-      await logActivity({
-        req,
-        propertyId: user.propertyId ?? 0,
-        username: user.username,
-        userId: user.id,
-        userRole: user.roles?.[0],
-        action: "LOGIN",
-        actionType: "AUTH",
-        module: "auth",
-        severity: "info",
-        details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
-        ipAddress: ip,
-      });
-    }
-
-    const { passwordHash: _, ...safeUser } = user;
-    res.json({
-      user: {
-        ...safeUser,
-        isSystemAdmin: sessionData.isSystemAdmin,
-        passwordExpired,
-      },
-    });
-  } catch (sessionErr) {
-    console.error("[auth/login] Session error:", sessionErr);
-    res.status(500).json({ error: "Session operation failed" });
   }
+
+  const { passwordHash: _, ...safeUser } = user;
+  res.json({
+    user: {
+      ...safeUser,
+      isSystemAdmin: sessionData.isSystemAdmin,
+      passwordExpired,
+    },
+  });
 });
 
 // ─── POST /auth/logout ────────────────────────────────────────────────────
@@ -284,14 +268,15 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
   }
 
   req.session.destroy((err) => {
-    // Always clear cookie and respond, even if session store is unreachable
-    // (e.g., Redis/PG down). Otherwise, the client hangs indefinitely.
     if (err) {
       console.error("Session destroy error:", err.message);
     }
+    // Clear cookie regardless of destroy result
     res.clearCookie("sunrise.sid");
-    res.json({ message: "Logged out" });
   });
+
+  // Respond immediately without waiting for destroy
+  res.json({ message: "Logged out" });
 });
 
 // ─── GET /auth/me ─────────────────────────────────────────────────────────
@@ -490,12 +475,9 @@ router.post("/auth/switch-property", async (req, res): Promise<void> => {
   const oldPropertyId = session.propertyId;
   session.propertyId = newPropertyId;
 
-  await new Promise<void>((resolve, reject) =>
-    req.session.save((err: any) => (err ? reject(err) : resolve())),
-  );
-
+  // Respond immediately, express-session will save in background
   if (oldPropertyId !== newPropertyId) {
-    await logActivity({
+    logActivity({
       req,
       propertyId: newPropertyId,
       username: user.username,
@@ -507,6 +489,8 @@ router.post("/auth/switch-property", async (req, res): Promise<void> => {
       severity: "info",
       details: `Switched from property ${oldPropertyId ?? "none"} to ${newPropertyId}`,
       ipAddress: getClientIp(req),
+    }).catch((err) => {
+      console.error("[auth/property-switch] Activity log error:", err);
     });
   }
 
