@@ -205,51 +205,53 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     passwordExpired,
   };
 
-  req.session.regenerate(async (err) => {
-    if (err) {
-      console.error("[auth/login] Session regenerate error:", err);
-      res.status(500).json({ error: "Session error" });
-      return;
-    }
+  // ✅ Direct session assignment (PostgreSQL store handles persistence)
+  Object.assign(req.session, sessionData);
 
-    Object.assign(req.session, sessionData);
+  // Save session with timeout protection
+  const savePromise = new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Session save timeout"));
+    }, 5000); // 5 second timeout
 
-    // ✅ Explicitly save session for PostgreSQL store
-    req.session.save((saveErr) => {
-      if (saveErr) {
-        console.error("[auth/login] Session save error:", saveErr);
-        res.status(500).json({ error: "Session save failed" });
-        return;
-      }
-
-      (async () => {
-        if (user.propertyId) {
-          await logActivity({
-            req,
-            propertyId: user.propertyId ?? 0,
-            username: user.username,
-            userId: user.id,
-            userRole: user.roles?.[0],
-            action: "LOGIN",
-            actionType: "AUTH",
-            module: "auth",
-            severity: "info",
-            details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
-            ipAddress: ip,
-          });
-        }
-
-        const { passwordHash: _, ...safeUser } = user;
-        res.json({
-          user: {
-            ...safeUser,
-            isSystemAdmin: sessionData.isSystemAdmin,
-            passwordExpired,
-          },
-        });
-      })();
+    req.session.save((err: any) => {
+      clearTimeout(timeout);
+      if (err) reject(err);
+      else resolve();
     });
   });
+
+  try {
+    await savePromise;
+
+    if (user.propertyId) {
+      await logActivity({
+        req,
+        propertyId: user.propertyId ?? 0,
+        username: user.username,
+        userId: user.id,
+        userRole: user.roles?.[0],
+        action: "LOGIN",
+        actionType: "AUTH",
+        module: "auth",
+        severity: "info",
+        details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
+        ipAddress: ip,
+      });
+    }
+
+    const { passwordHash: _, ...safeUser } = user;
+    res.json({
+      user: {
+        ...safeUser,
+        isSystemAdmin: sessionData.isSystemAdmin,
+        passwordExpired,
+      },
+    });
+  } catch (sessionErr) {
+    console.error("[auth/login] Session error:", sessionErr);
+    res.status(500).json({ error: "Session operation failed" });
+  }
 });
 
 // ─── POST /auth/logout ────────────────────────────────────────────────────
