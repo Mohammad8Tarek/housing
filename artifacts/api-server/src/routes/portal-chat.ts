@@ -92,11 +92,26 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
               eq(portalConversationParticipantsTable.conversationId, conv.id),
             );
 
+          const participantIds = participants.map((p) => p.employeeId);
+          let participantsData: any[] = [];
+          if (participantIds.length > 0) {
+            participantsData = await tenantDb
+              .select({
+                id: employeesTable.id,
+                firstName: employeesTable.firstName,
+                lastName: employeesTable.lastName,
+                photoUrl: employeesTable.photoUrl,
+              })
+              .from(employeesTable)
+              .where(inArray(employeesTable.id, participantIds));
+          }
+
           result.push({
             ...conv,
             lastMessage: lastMsg || null,
             unreadCount: Number(unreadResult?.count || 0),
-            participantIds: participants.map((p) => p.employeeId),
+            participantIds,
+            participantsData,
           });
         }
         return result;
@@ -336,6 +351,13 @@ router.put(
             })),
           );
         }
+      });
+
+      // Broadcast the read receipt so the sender's UI updates instantly
+      await broadcastToProperty(sess.propertyId, {
+        module: "chat",
+        action: "read_receipt",
+        data: { conversationId: convId, readerId: sess.employeeDbId },
       });
 
       return res.json({ success: true });
