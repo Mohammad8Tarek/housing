@@ -641,15 +641,26 @@ export async function startAllPmsServers(app?: any): Promise<void> {
 
     for (const row of result.rows) {
       if (row.port) {
-        // Enforce port 10006 internally so the multiplexer can listen on the real port (e.g. 10005)
+        // Enforce port 10006 internally so the multiplexer can listen on 10005
         const targetPmsPort = 10006;
         
         if (row.port !== targetPmsPort) {
           console.warn(
-            `[PMS-Bridge] Property ${row.property_id} DB port is ${row.port} — binding internally to ${targetPmsPort} for multiplexer`,
+            `[PMS-Bridge] Property ${row.property_id} has drifted port ${row.port} — resetting back to ${targetPmsPort}`,
           );
+          try {
+            await pool.query(
+              `UPDATE public.property_hotek_servers SET port = $1, updated_at = NOW() WHERE property_id = $2`,
+              [targetPmsPort, row.property_id],
+            );
+            row.port = targetPmsPort;
+          } catch (err: any) {
+            console.error(
+              `[PMS-Bridge] Failed to reset drifted port: ${err.message}`,
+            );
+          }
         }
-        startPmsServerForProperty(row.property_id, targetPmsPort);
+        startPmsServerForProperty(row.property_id, row.port);
       }
     }
   } catch (err: any) {
