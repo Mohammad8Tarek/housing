@@ -346,13 +346,10 @@ export default function Login() {
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
                     placeholder={t("login.employeeIdPlaceholder")}
-                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 ps-11 pe-4 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
+                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                     required
                     disabled={isLoading}
                   />
-                  <span className="absolute start-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#C9A24D] transition-colors">
-                    <MaterialIcon icon="person" size={20} />
-                  </span>
                 </div>
               </div>
 
@@ -381,19 +378,19 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t("login.passwordPlaceholder")}
-                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-11 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
+                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 ps-4 pe-11 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                     required
                     disabled={isLoading}
                   />
-                  <span className="absolute start-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-[#C9A24D] transition-colors">
-                    <MaterialIcon icon="lock" size={20} />
-                  </span>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className={`absolute ${isRtl ? "left-4" : "right-4"} top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors flex items-center justify-center p-1`}
                   >
-                    <MaterialIcon icon={showPassword ? "visibility_off" : "visibility"} size={20} />
+                    <MaterialIcon
+                      icon={showPassword ? "visibility_off" : "visibility"}
+                      size={20}
+                    />
                   </button>
                 </div>
               </div>
