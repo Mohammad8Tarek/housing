@@ -23,6 +23,7 @@ import { apiRateLimit } from "./middlewares/rate-limit.js";
 import { auditLogMiddleware } from "./middlewares/audit-log.js";
 import { sanitizeDates } from "./middlewares/sanitize-date.js";
 import { pool } from "@workspace/db";
+import * as Sentry from "@sentry/node";
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();
@@ -178,6 +179,9 @@ app.use("/api", router);
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
+
+// Sentry Error Handler (Must be before custom global error handler)
+Sentry.setupExpressErrorHandler(app);
 
 // 9. الـ Global Error Handler (يجب أن يكون في النهاية)
 app.use((err: Error, req: Request, res: Response, _next: NextFunction): void => {
