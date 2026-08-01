@@ -24,6 +24,7 @@ import { auditLogMiddleware } from "./middlewares/audit-log.js";
 import { sanitizeDates } from "./middlewares/sanitize-date.js";
 import { pool } from "@workspace/db";
 import * as Sentry from "@sentry/node";
+import { setupSwagger } from "./lib/swagger.js";
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();
@@ -173,6 +174,10 @@ app.use((req, res, next) => {
 // 7. الـ API Routes والـ Middlewares الخاصة بها
 app.use("/api", apiRateLimit);
 app.use("/api", auditLogMiddleware);
+
+// Setup Swagger UI at /api/docs
+setupSwagger(app);
+
 app.use("/api", router);
 
 // 8. معالجة المسارات غير الموجودة (404)
