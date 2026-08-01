@@ -980,7 +980,7 @@ export function TabChat({
 
   /* ── Helpers ── */
   /* ── Helpers ── */
-  const getParticipantName = (empId: number, conv?: Conversation): string => {
+  function getParticipantName(empId: number, conv?: Conversation): string {
     if (empId === myEmployeeId) return isRtl ? "أنا" : "Me";
 
     if (conv?.participantsData) {
@@ -997,12 +997,12 @@ export function TabChat({
         ? c.nameAr || c.nameEn || `#${empId}`
         : c.nameEn || c.nameAr || `#${empId}`;
     return `#${empId}`;
-  };
+  }
 
-  const getParticipantPhoto = (
+  function getParticipantPhoto(
     empId: number,
     conv?: Conversation,
-  ): string | null => {
+  ): string | null {
     if (conv?.participantsData) {
       const p = conv.participantsData.find((x) => x.id === empId);
       if (p?.photoUrl) return p.photoUrl;
@@ -1010,15 +1010,15 @@ export function TabChat({
     const c = contacts.find((cc: any) => cc.id === empId);
     if (c?.photoUrl) return c.photoUrl;
     return senders[empId]?.photoUrl || null;
-  };
+  }
 
-  const getConvTitle = (conv: Conversation): string => {
+  function getConvTitle(conv: Conversation): string {
     if (conv.isGroup) return conv.subject || (isRtl ? "مجموعة" : "Group");
     const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
     return otherId ? getParticipantName(otherId, conv) : conv.subject || "Chat";
   };
 
-  const getConvPhoto = (conv: Conversation): string | null => {
+  function getConvPhoto(conv: Conversation): string | null {
     if (conv.isGroup) return null;
     const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
     return otherId ? getParticipantPhoto(otherId, conv) : null;
