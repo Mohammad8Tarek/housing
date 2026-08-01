@@ -29,3 +29,17 @@ export const EMPTY_FORM: EmployeeForm = {
   level: "",
   status: "ACTIVE",
 };
+
+export type EditEmpForm = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
+  nationalId: string;
+  nationality: string;
+  gender: string;
+  department: string;
+  jobTitle: string;
+  level: string;
+  status: string;
+};

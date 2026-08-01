@@ -1,5 +1,3 @@
-//@ts-nocheck
-// @ts-nocheck
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,6 +12,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { EmployeeForm, EMPTY_FORM } from "../types";
+import { FormRow } from "./FormRow";
 import {
   Table,
   TableBody,
@@ -468,17 +467,3 @@ export function EmployeeDialog({
   );
 }
 
-/* ── Edit Employee Dialog ───────────────────────────────────────────────── */
-type EditEmpForm = {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  address: string;
-  nationalId: string;
-  nationality: string;
-  gender: string;
-  department: string;
-  jobTitle: string;
-  level: string;
-  status: string;
-};

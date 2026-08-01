@@ -1,5 +1,3 @@
-//@ts-nocheck
-// @ts-nocheck
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,7 +11,9 @@ import { useProperty } from "@/context/PropertyContext";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
-import { EmployeeForm, EMPTY_FORM } from "../types";
+import { EmployeeForm, EMPTY_FORM, EditEmpForm } from "../types";
+import { FormRow } from "./FormRow";
+import { EmployeeAvatar } from "./EmployeeAvatar";
 import {
   Table,
   TableBody,
