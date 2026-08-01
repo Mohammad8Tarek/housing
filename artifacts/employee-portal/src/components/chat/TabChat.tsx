@@ -1016,13 +1016,13 @@ export function TabChat({
     if (conv.isGroup) return conv.subject || (isRtl ? "مجموعة" : "Group");
     const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
     return otherId ? getParticipantName(otherId, conv) : conv.subject || "Chat";
-  };
+  }
 
   function getConvPhoto(conv: Conversation): string | null {
     if (conv.isGroup) return null;
     const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
     return otherId ? getParticipantPhoto(otherId, conv) : null;
-  };
+  }
 
   const insertEmoji = (emoji: string) => {
     setInput((prev) => prev + emoji);
