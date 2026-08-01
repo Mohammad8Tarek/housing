@@ -13,7 +13,7 @@ const APPROVAL_ROLES = [
   "hr_manager",
   "accounts_manager",
 ] as const;
-const STEP_ROLES: Record<number, string> = {
+export const STEP_ROLES: Record<number, string> = {
   1: "housing_manager",
   2: "hr_manager",
   3: "accounts_manager",
@@ -83,7 +83,16 @@ function approvalRoleKey(value: unknown): string {
     .replace(/^_+|_+$/g, "");
 }
 
-function userMatchesApprovalRole(
+export function canAccessProperty(
+  requestPropertyId: number,
+  userPropertyIds: number[],
+  isSystemAdmin: boolean,
+): boolean {
+  if (isSystemAdmin) return true;
+  return userPropertyIds.includes(requestPropertyId);
+}
+
+export function userMatchesApprovalRole(
   user: ReturnType<typeof su>,
   requiredRole: string,
 ): boolean {
@@ -613,6 +622,12 @@ router.post(
             .json({ success: false, message: "Request not found" });
           return;
         }
+        if (!canAccessProperty(lockRes.rows[0].property_id, user.propertyIds, user.isSystemAdmin)) {
+          await client.query("ROLLBACK");
+          res.status(403).json({ success: false, message: "Cross-tenant access denied" });
+          return;
+        }
+
 
         const visit = lockRes.rows[0];
 
@@ -819,18 +834,10 @@ router.post(
         await client.query("BEGIN");
 
         // Lock the request row
-        let lockRes;
-        if (user.isSystemAdmin) {
-          lockRes = await client.query(
-            "SELECT id, status, current_step_order, request_number FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
+        const lockRes = await client.query(
+            "SELECT id, status, current_step_order, request_number, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
             [requestId],
           );
-        } else {
-          lockRes = await client.query(
-            "SELECT id, status, current_step_order, request_number FROM public.hosting_requests WHERE id = $1 AND property_id = ANY($2::int[]) FOR UPDATE",
-            [requestId, user.propertyIds],
-          );
-        }
         if (lockRes.rows.length === 0) {
           await client.query("ROLLBACK");
           res
@@ -838,6 +845,12 @@ router.post(
             .json({ success: false, message: "Request not found" });
           return;
         }
+        if (!canAccessProperty(lockRes.rows[0].property_id, user.propertyIds, user.isSystemAdmin)) {
+          await client.query("ROLLBACK");
+          res.status(403).json({ success: false, message: "Cross-tenant access denied" });
+          return;
+        }
+
 
         request = lockRes.rows[0];
 
@@ -1087,18 +1100,10 @@ router.post(
       try {
         await client.query("BEGIN");
 
-        let lockRes;
-        if (user.isSystemAdmin) {
-          lockRes = await client.query(
-            "SELECT id, status, current_step_order FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
+        const lockRes = await client.query(
+            "SELECT id, status, current_step_order, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
             [requestId],
           );
-        } else {
-          lockRes = await client.query(
-            "SELECT id, status, current_step_order FROM public.hosting_requests WHERE id = $1 AND property_id = ANY($2::int[]) FOR UPDATE",
-            [requestId, user.propertyIds],
-          );
-        }
         if (lockRes.rows.length === 0) {
           await client.query("ROLLBACK");
           res
@@ -1106,6 +1111,12 @@ router.post(
             .json({ success: false, message: "Request not found" });
           return;
         }
+        if (!canAccessProperty(lockRes.rows[0].property_id, user.propertyIds, user.isSystemAdmin)) {
+          await client.query("ROLLBACK");
+          res.status(403).json({ success: false, message: "Cross-tenant access denied" });
+          return;
+        }
+
 
         request = lockRes.rows[0];
 
@@ -1227,18 +1238,10 @@ router.post(
       try {
         await client.query("BEGIN");
 
-        let lockRes;
-        if (user.isSystemAdmin) {
-          lockRes = await client.query(
-            "SELECT id, status, current_step_order FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
+        const lockRes = await client.query(
+            "SELECT id, status, current_step_order, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
             [requestId],
           );
-        } else {
-          lockRes = await client.query(
-            "SELECT id, status, current_step_order FROM public.hosting_requests WHERE id = $1 AND property_id = ANY($2::int[]) FOR UPDATE",
-            [requestId, user.propertyIds],
-          );
-        }
         if (lockRes.rows.length === 0) {
           await client.query("ROLLBACK");
           res
@@ -1246,6 +1249,12 @@ router.post(
             .json({ success: false, message: "Request not found" });
           return;
         }
+        if (!canAccessProperty(lockRes.rows[0].property_id, user.propertyIds, user.isSystemAdmin)) {
+          await client.query("ROLLBACK");
+          res.status(403).json({ success: false, message: "Cross-tenant access denied" });
+          return;
+        }
+
 
         request = lockRes.rows[0];
 
@@ -1390,18 +1399,10 @@ router.put(
       try {
         await client.query("BEGIN");
 
-        let lockRes;
-        if (user.isSystemAdmin) {
-          lockRes = await client.query(
-            "SELECT id, status FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
+        const lockRes = await client.query(
+            "SELECT id, status, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
             [requestId],
           );
-        } else {
-          lockRes = await client.query(
-            "SELECT id, status FROM public.hosting_requests WHERE id = $1 AND property_id = ANY($2::int[]) FOR UPDATE",
-            [requestId, user.propertyIds],
-          );
-        }
         if (lockRes.rows.length === 0) {
           await client.query("ROLLBACK");
           res.status(404).json({
