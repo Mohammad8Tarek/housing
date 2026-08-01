@@ -13,6 +13,7 @@ import { useProperty } from "@/context/PropertyContext";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
+import { EmployeeForm, EMPTY_FORM } from "../types";
 import {
   Table,
   TableBody,
