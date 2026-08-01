@@ -9,8 +9,6 @@ import {
   AlertCircle,
   Check,
   ArrowRight,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch, saveSessionId, setCachedSessionId } from "../lib/api";
@@ -393,13 +391,9 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute ${isRtl ? "left-4" : "right-4"} top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors`}
+                    className={`absolute ${isRtl ? "left-4" : "right-4"} top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors flex items-center justify-center p-1`}
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    <MaterialIcon icon={showPassword ? "visibility_off" : "visibility"} size={20} />
                   </button>
                 </div>
               </div>
