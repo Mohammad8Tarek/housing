@@ -207,8 +207,12 @@ export function initWebSocket(server: Server): WebSocketServer {
         : undefined;
 
     if (isHotekBridge) {
-      const expectedBridgeSecret = HOTEK_BRIDGE_SECRET || process.env["SESSION_SECRET"] || "";
-      if (!expectedBridgeSecret || providedBridgeSecret !== expectedBridgeSecret) {
+      const expectedBridgeSecret =
+        HOTEK_BRIDGE_SECRET || process.env["SESSION_SECRET"] || "";
+      if (
+        !expectedBridgeSecret ||
+        providedBridgeSecret !== expectedBridgeSecret
+      ) {
         ws.close(1008, "Hotek bridge auth required.");
         return;
       }
@@ -218,11 +222,12 @@ export function initWebSocket(server: Server): WebSocketServer {
       registerHotekBridge(propertyId, bridgeSocket as any);
 
       ws.on("message", (raw) => {
-        const payload = raw instanceof Buffer
-          ? raw
-          : Buffer.isBuffer(raw)
+        const payload =
+          raw instanceof Buffer
             ? raw
-            : Buffer.from(raw as ArrayBufferLike);
+            : Buffer.isBuffer(raw)
+              ? raw
+              : Buffer.from(raw as ArrayBufferLike);
         bridgeSocket.emit("data", payload);
       });
 

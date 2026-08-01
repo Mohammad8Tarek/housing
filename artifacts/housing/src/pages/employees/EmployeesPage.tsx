@@ -90,13 +90,13 @@ const MAX_EMPLOYEE_IMPORT_FILE_SIZE = 1024 * 1024;
 const EMPLOYEE_IMPORT_EXTENSIONS = [".xlsx", ".xls"];
 
 /* ── Employee Photo Avatar ──────────────────────────────────────────────── */
-import { EmployeeAvatar } from './components/EmployeeAvatar';
-import { PhotoUploadBtn } from './components/PhotoUploadBtn';
-import { FormRow } from './components/FormRow';
-import { StatusBadge } from './components/StatusBadge';
-import { EmployeeDialog } from './components/EmployeeDialog';
-import { EditEmployeeDialog } from './components/EditEmployeeDialog';
-import { ExcelImportDialog } from './components/ExcelImportDialog';
+import { EmployeeAvatar } from "./components/EmployeeAvatar";
+import { PhotoUploadBtn } from "./components/PhotoUploadBtn";
+import { FormRow } from "./components/FormRow";
+import { StatusBadge } from "./components/StatusBadge";
+import { EmployeeDialog } from "./components/EmployeeDialog";
+import { EditEmployeeDialog } from "./components/EditEmployeeDialog";
+import { ExcelImportDialog } from "./components/ExcelImportDialog";
 export function EmployeesPage() {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();

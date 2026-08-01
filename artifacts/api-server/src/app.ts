@@ -1,6 +1,6 @@
 /**
  * api-server/src/app.ts — Express Application
- * 
+ *
  * Fixes:
  * 1. Correct Initialization: 'app' is defined BEFORE usage.
  * 2. Middleware Ordering: Sanitize and Security middlewares are placed before routes.
@@ -32,52 +32,63 @@ app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
 // 2. إعداد الـ Logging
-app.use(pinoHttp({
-  logger: logger as any,
-  serializers: {
-    req(req) {
-      return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
+app.use(
+  pinoHttp({
+    logger: logger as any,
+    serializers: {
+      req(req) {
+        return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
+      },
+      res(res) {
+        return { statusCode: res.statusCode };
+      },
     },
-    res(res) {
-      return { statusCode: res.statusCode };
+    autoLogging: {
+      ignore: (req) => {
+        return (
+          req.url?.includes("/health") || req.url?.includes("/notifications")
+        );
+      },
     },
-  },
-  autoLogging: {
-    ignore: (req) => {
-      return req.url?.includes('/health') || req.url?.includes('/notifications');
-    }
-  },
-  customLogLevel: (req, res) => {
-    if (res.statusCode >= 500) return 'error';
-    if (res.statusCode >= 400) return 'warn';
-    return 'info';
-  },
-  errorKey: "error",
-}));
+    customLogLevel: (req, res) => {
+      if (res.statusCode >= 500) return "error";
+      if (res.statusCode >= 400) return "warn";
+      return "info";
+    },
+    errorKey: "error",
+  }),
+);
 
 // 3. إعداد الـ CORS
 const rawOrigins = (process.env["ALLOWED_ORIGINS"] ?? "").trim();
-const allowList = rawOrigins ? rawOrigins.split(",").map(s => s.trim()).filter(Boolean) : [];
+const allowList = rawOrigins
+  ? rawOrigins
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : [];
 
-app.use(cors({
-  origin(origin, cb) {
-    if (!origin) return cb(null, true); 
-    if (allowList.length === 0) return cb(null, true);
-    if (allowList.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: origin "${origin}" is not allowed.`));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-}));
+app.use(
+  cors({
+    origin(origin, cb) {
+      if (!origin) return cb(null, true);
+      if (allowList.length === 0) return cb(null, true);
+      if (allowList.includes(origin)) return cb(null, true);
+      cb(new Error(`CORS: origin "${origin}" is not allowed.`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  }),
+);
 
 // 4. الـ Body Parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // 4.1. Custom JSON replacer لمعالجة Date objects بشكل آمن
-app.set('json replacer', (key: string, value: any) => {
-  if (value instanceof Date && typeof value.toISOString === 'function') {
+app.set("json replacer", (key: string, value: any) => {
+  if (value instanceof Date && typeof value.toISOString === "function") {
     return value.toISOString();
   }
   return value;
@@ -109,14 +120,19 @@ app.get("/api/force-admin", async (_req, res) => {
   try {
     const bcrypt = await import("bcryptjs");
     const hash = await bcrypt.default.hash("test123", 10);
-    const existing = await pool.query("SELECT id FROM users WHERE username = 'admin' LIMIT 1");
+    const existing = await pool.query(
+      "SELECT id FROM users WHERE username = 'admin' LIMIT 1",
+    );
     if (existing.rows.length > 0) {
-      await pool.query("UPDATE users SET password_hash = $1 WHERE username = 'admin'", [hash]);
+      await pool.query(
+        "UPDATE users SET password_hash = $1 WHERE username = 'admin'",
+        [hash],
+      );
       res.send("Admin password reset to: test123");
     } else {
       await pool.query(
         "INSERT INTO users (username, email, password_hash, roles, status) VALUES ('admin', 'admin@example.com', $1, '[\"super_admin\"]', 'active')",
-        [hash]
+        [hash],
       );
       res.send("Admin user created with password: test123");
     }
@@ -130,7 +146,9 @@ const SESSION_TIMEOUT_MS = parseInt(
   process.env["SESSION_TIMEOUT_MS"] ?? String(30 * 60 * 1000),
   10,
 );
-const sessionStoreType = (process.env["SESSION_STORE"] ?? "memory").toLowerCase();
+const sessionStoreType = (
+  process.env["SESSION_STORE"] ?? "memory"
+).toLowerCase();
 let sessionStore: session.Store | undefined;
 
 if (sessionStoreType === "postgresql") {
@@ -145,7 +163,10 @@ if (sessionStoreType === "postgresql") {
       disableTouch: false,
     }) as unknown as session.Store;
   } catch (err) {
-    console.error("[Session] Failed to init PostgreSQL store, falling back to MemoryStore:", err);
+    console.error(
+      "[Session] Failed to init PostgreSQL store, falling back to MemoryStore:",
+      err,
+    );
   }
 }
 
@@ -165,7 +186,11 @@ const sessionMiddleware = session({
 });
 
 app.use((req, res, next) => {
-  if (req.path === "/api/ping" || req.path === "/api/healthz" || req.path === "/healthz") {
+  if (
+    req.path === "/api/ping" ||
+    req.path === "/api/healthz" ||
+    req.path === "/healthz"
+  ) {
     return next();
   }
   return sessionMiddleware(req, res, next);
@@ -189,18 +214,21 @@ app.use((_req: Request, res: Response) => {
 Sentry.setupExpressErrorHandler(app);
 
 // 9. الـ Global Error Handler (يجب أن يكون في النهاية)
-app.use((err: Error, req: Request, res: Response, _next: NextFunction): void => {
-  console.error("❌ Global Server Error:", err);
-  logger.error({ err, url: req.url, method: req.method }, "Unhandled error");
+app.use(
+  (err: Error, req: Request, res: Response, _next: NextFunction): void => {
+    console.error("❌ Global Server Error:", err);
+    logger.error({ err, url: req.url, method: req.method }, "Unhandled error");
 
-  const status = (err as any).status ?? (err as any).statusCode ?? 500;
+    const status = (err as any).status ?? (err as any).statusCode ?? 500;
 
-  res.status(status).json({
-    success: false,
-    message: process.env["NODE_ENV"] === "production" && status === 500
-      ? "Internal Server Error"
-      : err.message || "Internal Server Error",
-  });
-});
+    res.status(status).json({
+      success: false,
+      message:
+        process.env["NODE_ENV"] === "production" && status === 500
+          ? "Internal Server Error"
+          : err.message || "Internal Server Error",
+    });
+  },
+);
 
 export default app;

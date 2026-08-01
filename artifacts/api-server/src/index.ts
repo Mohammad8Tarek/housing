@@ -330,7 +330,7 @@ async function start(): Promise<void> {
   startAllPmsServers(app);
 
   const mux = net.createServer((socket) => {
-    socket.once('data', (chunk) => {
+    socket.once("data", (chunk) => {
       // PAUSE the socket so we don't lose any further chunks (like HTTP body) before the proxy is ready
       socket.pause();
 
@@ -338,28 +338,36 @@ async function start(): Promise<void> {
       // Otherwise, route to HTTP Server (4001)
       const isPms = chunk[0] === 0x02;
       const targetPort = isPms ? 10006 : INTERNAL_HTTP_PORT;
-      
-      const proxy = net.createConnection({ port: targetPort, host: '127.0.0.1' }, () => {
-        proxy.write(chunk);
-        socket.pipe(proxy);
-        proxy.pipe(socket);
-        
-        // RESUME the socket now that the pipe is established
-        socket.resume();
-      });
-      
-      proxy.on('error', (err) => {
+
+      const proxy = net.createConnection(
+        { port: targetPort, host: "127.0.0.1" },
+        () => {
+          proxy.write(chunk);
+          socket.pipe(proxy);
+          proxy.pipe(socket);
+
+          // RESUME the socket now that the pipe is established
+          socket.resume();
+        },
+      );
+
+      proxy.on("error", (err) => {
         socket.end();
       });
-      socket.on('error', () => {
+      socket.on("error", () => {
         proxy.end();
       });
     });
   });
 
   mux.listen(muxPort, "0.0.0.0", () => {
-    logger.info({ port: muxPort }, "🚀 Sunrise Housing API Multiplexer is Live");
-    logger.info(`Multiplexer: listening on ${muxPort}, routing to HTTP (${INTERNAL_HTTP_PORT}) and PMS (10006)`);
+    logger.info(
+      { port: muxPort },
+      "🚀 Sunrise Housing API Multiplexer is Live",
+    );
+    logger.info(
+      `Multiplexer: listening on ${muxPort}, routing to HTTP (${INTERNAL_HTTP_PORT}) and PMS (10006)`,
+    );
   });
 }
 

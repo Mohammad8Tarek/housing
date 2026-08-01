@@ -622,12 +622,19 @@ router.post(
             .json({ success: false, message: "Request not found" });
           return;
         }
-        if (!canAccessProperty(lockRes.rows[0].property_id, user.propertyIds, user.isSystemAdmin)) {
+        if (
+          !canAccessProperty(
+            lockRes.rows[0].property_id,
+            user.propertyIds,
+            user.isSystemAdmin,
+          )
+        ) {
           await client.query("ROLLBACK");
-          res.status(403).json({ success: false, message: "Cross-tenant access denied" });
+          res
+            .status(403)
+            .json({ success: false, message: "Cross-tenant access denied" });
           return;
         }
-
 
         const visit = lockRes.rows[0];
 
@@ -835,9 +842,9 @@ router.post(
 
         // Lock the request row
         const lockRes = await client.query(
-            "SELECT id, status, current_step_order, request_number, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
-            [requestId],
-          );
+          "SELECT id, status, current_step_order, request_number, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
+          [requestId],
+        );
         if (lockRes.rows.length === 0) {
           await client.query("ROLLBACK");
           res
@@ -845,12 +852,19 @@ router.post(
             .json({ success: false, message: "Request not found" });
           return;
         }
-        if (!canAccessProperty(lockRes.rows[0].property_id, user.propertyIds, user.isSystemAdmin)) {
+        if (
+          !canAccessProperty(
+            lockRes.rows[0].property_id,
+            user.propertyIds,
+            user.isSystemAdmin,
+          )
+        ) {
           await client.query("ROLLBACK");
-          res.status(403).json({ success: false, message: "Cross-tenant access denied" });
+          res
+            .status(403)
+            .json({ success: false, message: "Cross-tenant access denied" });
           return;
         }
-
 
         request = lockRes.rows[0];
 
@@ -1101,9 +1115,9 @@ router.post(
         await client.query("BEGIN");
 
         const lockRes = await client.query(
-            "SELECT id, status, current_step_order, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
-            [requestId],
-          );
+          "SELECT id, status, current_step_order, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
+          [requestId],
+        );
         if (lockRes.rows.length === 0) {
           await client.query("ROLLBACK");
           res
@@ -1111,12 +1125,19 @@ router.post(
             .json({ success: false, message: "Request not found" });
           return;
         }
-        if (!canAccessProperty(lockRes.rows[0].property_id, user.propertyIds, user.isSystemAdmin)) {
+        if (
+          !canAccessProperty(
+            lockRes.rows[0].property_id,
+            user.propertyIds,
+            user.isSystemAdmin,
+          )
+        ) {
           await client.query("ROLLBACK");
-          res.status(403).json({ success: false, message: "Cross-tenant access denied" });
+          res
+            .status(403)
+            .json({ success: false, message: "Cross-tenant access denied" });
           return;
         }
-
 
         request = lockRes.rows[0];
 
@@ -1239,9 +1260,9 @@ router.post(
         await client.query("BEGIN");
 
         const lockRes = await client.query(
-            "SELECT id, status, current_step_order, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
-            [requestId],
-          );
+          "SELECT id, status, current_step_order, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
+          [requestId],
+        );
         if (lockRes.rows.length === 0) {
           await client.query("ROLLBACK");
           res
@@ -1249,12 +1270,19 @@ router.post(
             .json({ success: false, message: "Request not found" });
           return;
         }
-        if (!canAccessProperty(lockRes.rows[0].property_id, user.propertyIds, user.isSystemAdmin)) {
+        if (
+          !canAccessProperty(
+            lockRes.rows[0].property_id,
+            user.propertyIds,
+            user.isSystemAdmin,
+          )
+        ) {
           await client.query("ROLLBACK");
-          res.status(403).json({ success: false, message: "Cross-tenant access denied" });
+          res
+            .status(403)
+            .json({ success: false, message: "Cross-tenant access denied" });
           return;
         }
-
 
         request = lockRes.rows[0];
 
@@ -1400,9 +1428,9 @@ router.put(
         await client.query("BEGIN");
 
         const lockRes = await client.query(
-            "SELECT id, status, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
-            [requestId],
-          );
+          "SELECT id, status, property_id FROM public.hosting_requests WHERE id = $1 FOR UPDATE",
+          [requestId],
+        );
         if (lockRes.rows.length === 0) {
           await client.query("ROLLBACK");
           res.status(404).json({

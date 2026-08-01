@@ -2,8 +2,19 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function EditHostingDialog({
   ar,
@@ -12,13 +23,25 @@ export function EditHostingDialog({
   editForm,
   setEditForm,
   filteredEditRooms,
-  handleUpdate
+  handleUpdate,
 }: {
   ar: boolean;
   editDialog: { open: boolean; hosting: any | null };
   setEditDialog: (val: { open: boolean; hosting: any | null }) => void;
-  editForm: { expectedFrom: string; expectedTo: string; notes: string; roomId: string };
-  setEditForm: React.Dispatch<React.SetStateAction<{ expectedFrom: string; expectedTo: string; notes: string; roomId: string }>>;
+  editForm: {
+    expectedFrom: string;
+    expectedTo: string;
+    notes: string;
+    roomId: string;
+  };
+  setEditForm: React.Dispatch<
+    React.SetStateAction<{
+      expectedFrom: string;
+      expectedTo: string;
+      notes: string;
+      roomId: string;
+    }>
+  >;
   filteredEditRooms: any[];
   handleUpdate: () => void;
 }) {
@@ -75,9 +98,7 @@ export function EditHostingDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={ar ? "اختر الغرفة" : "Select room"}
-                />
+                <SelectValue placeholder={ar ? "اختر الغرفة" : "Select room"} />
               </SelectTrigger>
               <SelectContent>
                 {filteredEditRooms.map((r: any) => (

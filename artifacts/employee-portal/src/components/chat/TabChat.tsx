@@ -627,7 +627,9 @@ export function TabChat({
   const [notifPerm, setNotifPerm] = useState<NotificationPermission | null>(
     null,
   );
-  const [typingUsers, setTypingUsers] = useState<Record<number, Set<number>>>({});
+  const [typingUsers, setTypingUsers] = useState<Record<number, Set<number>>>(
+    {},
+  );
   const typingTimeoutRef = useRef<Record<string, any>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -661,14 +663,14 @@ export function TabChat({
           for (const nc of newConvs) {
             const old = prevConvsRef.current.find((c) => c.id === nc.id);
             const activeId = activeConvRef.current?.id;
-            
+
             // Trigger notification if it's not the active conversation OR the document is hidden
             if (nc.unreadCount > 0 && (nc.id !== activeId || document.hidden)) {
               const wasUnread = old?.unreadCount || 0;
               if (nc.unreadCount > wasUnread && nc.lastMessage) {
                 showNotification(
                   getConvTitle(nc),
-                  nc.lastMessage.content.slice(0, 80)
+                  nc.lastMessage.content.slice(0, 80),
                 );
               }
             }
@@ -704,31 +706,37 @@ export function TabChat({
           try {
             const r = await apiFetch(
               `/api/portal-chat/conversations/${activeConvRef.current.id}/messages`,
-              { credentials: "include" }
+              { credentials: "include" },
             );
             if (r.ok) {
               const d = await r.json();
               if (d.success) {
                 setMessages(Array.isArray(d.messages) ? d.messages : []);
                 setSenders((prev) => ({ ...prev, ...(d.senders || {}) }));
-                
+
                 // Update typing users
                 if (d.typingUsers) {
-                  setTypingUsers(prev => {
+                  setTypingUsers((prev) => {
                     const newSet = new Set(d.typingUsers as number[]);
                     return { ...prev, [activeConvRef.current!.id]: newSet };
                   });
                 } else {
-                  setTypingUsers(prev => ({ ...prev, [activeConvRef.current!.id]: new Set() }));
+                  setTypingUsers((prev) => ({
+                    ...prev,
+                    [activeConvRef.current!.id]: new Set(),
+                  }));
                 }
 
                 // Mark as read if there are unread messages
                 if (d.messages && d.messages.length > lastMsgCountRef.current) {
                   lastMsgCountRef.current = d.messages.length;
-                  apiFetch(`/api/portal-chat/conversations/${activeConvRef.current.id}/read`, {
-                    method: "PUT",
-                    credentials: "include",
-                  }).catch(() => {});
+                  apiFetch(
+                    `/api/portal-chat/conversations/${activeConvRef.current.id}/read`,
+                    {
+                      method: "PUT",
+                      credentials: "include",
+                    },
+                  ).catch(() => {});
                 }
               }
             }
@@ -974,15 +982,15 @@ export function TabChat({
   /* ── Helpers ── */
   const getParticipantName = (empId: number, conv?: Conversation): string => {
     if (empId === myEmployeeId) return isRtl ? "أنا" : "Me";
-    
+
     if (conv?.participantsData) {
-      const p = conv.participantsData.find(x => x.id === empId);
+      const p = conv.participantsData.find((x) => x.id === empId);
       if (p) return `${p.firstName} ${p.lastName}`;
     }
 
     const s = senders[empId];
     if (s) return `${s.firstName} ${s.lastName}`;
-    
+
     const c = contacts.find((cc: any) => cc.id === empId);
     if (c)
       return isRtl
@@ -991,9 +999,12 @@ export function TabChat({
     return `#${empId}`;
   };
 
-  const getParticipantPhoto = (empId: number, conv?: Conversation): string | null => {
+  const getParticipantPhoto = (
+    empId: number,
+    conv?: Conversation,
+  ): string | null => {
     if (conv?.participantsData) {
-      const p = conv.participantsData.find(x => x.id === empId);
+      const p = conv.participantsData.find((x) => x.id === empId);
       if (p?.photoUrl) return p.photoUrl;
     }
     const c = contacts.find((cc: any) => cc.id === empId);
@@ -1006,7 +1017,7 @@ export function TabChat({
     const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
     return otherId ? getParticipantName(otherId, conv) : conv.subject || "Chat";
   };
-  
+
   const getConvPhoto = (conv: Conversation): string | null => {
     if (conv.isGroup) return null;
     const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
@@ -1213,9 +1224,7 @@ export function TabChat({
                       borderRadius: isMe
                         ? "16px 16px 4px 16px"
                         : "16px 16px 16px 4px",
-                      background: isMe
-                        ? "#dcf8c6"
-                        : "#ffffff",
+                      background: isMe ? "#dcf8c6" : "#ffffff",
                       color: "#000000",
                       boxShadow: "0 1px 1px rgba(0,0,0,0.1)",
                       opacity: isTemp ? 0.7 : 1,
@@ -1411,10 +1420,13 @@ export function TabChat({
                 e.target.style.height = "auto";
                 e.target.style.height =
                   Math.min(e.target.scrollHeight, 100) + "px";
-                
+
                 // Trigger typing event (debounced 1s)
                 if (!typingTimeoutRef.current[activeConv.id]) {
-                  apiFetch(`/api/portal-chat/conversations/${activeConv.id}/typing`, { method: "POST", credentials: "include" }).catch(() => {});
+                  apiFetch(
+                    `/api/portal-chat/conversations/${activeConv.id}/typing`,
+                    { method: "POST", credentials: "include" },
+                  ).catch(() => {});
                   typingTimeoutRef.current[activeConv.id] = setTimeout(() => {
                     typingTimeoutRef.current[activeConv.id] = null;
                   }, 1000);
@@ -2027,9 +2039,12 @@ export function TabChat({
                         typingUsers[conv.id]?.size > 0
                           ? "hsl(var(--accent2))"
                           : conv.unreadCount > 0
-                          ? "hsl(var(--foreground))"
-                          : "hsl(var(--muted2))",
-                      fontWeight: (conv.unreadCount > 0 || typingUsers[conv.id]?.size > 0) ? 600 : 400,
+                            ? "hsl(var(--foreground))"
+                            : "hsl(var(--muted2))",
+                      fontWeight:
+                        conv.unreadCount > 0 || typingUsers[conv.id]?.size > 0
+                          ? 600
+                          : 400,
                       margin: 0,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -2037,8 +2052,11 @@ export function TabChat({
                     }}
                   >
                     {typingUsers[conv.id]?.size > 0
-                      ? (isRtl ? "يكتب الآن..." : "Typing...")
-                      : conv.lastMessage?.content || (isRtl ? "ابدأ المحادثة" : "Start the conversation")}
+                      ? isRtl
+                        ? "يكتب الآن..."
+                        : "Typing..."
+                      : conv.lastMessage?.content ||
+                        (isRtl ? "ابدأ المحادثة" : "Start the conversation")}
                   </p>
                 </div>
               </button>

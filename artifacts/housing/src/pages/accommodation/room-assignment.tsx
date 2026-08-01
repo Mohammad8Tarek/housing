@@ -970,9 +970,7 @@ export default function RoomAssignment() {
                 onIssueComplete={() => {
                   queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
                   toast.success(
-                    ar
-                      ? "تم إصدار المفاتيح بنجاح"
-                      : "Keys issued successfully"
+                    ar ? "تم إصدار المفاتيح بنجاح" : "Keys issued successfully",
                   );
                 }}
               />

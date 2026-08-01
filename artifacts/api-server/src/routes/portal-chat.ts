@@ -196,96 +196,107 @@ function setTyping(convId: number, employeeId: number) {
 
 // GET /portal-chat/conversations/:id/messages — رسائل المحادثة
 // @ts-ignore
-router.get("/conversations/:id/messages", requirePortalAuth, async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-    const convId = Number(req.params.id);
+router.get(
+  "/conversations/:id/messages",
+  requirePortalAuth,
+  async (req, res, next) => {
+    try {
+      const sess = portalSession(req)!;
+      const convId = Number(req.params.id);
 
-    await withTenant(sess.propertyId, async (tenantDb) => {
-      // Check participant access
-      const [participant] = await tenantDb
-        .select()
-        .from(portalConversationParticipantsTable)
-        .where(
-          and(
-            eq(portalConversationParticipantsTable.conversationId, convId),
-            eq(portalConversationParticipantsTable.employeeId, sess.employeeDbId),
-          ),
-        )
-        .limit(1);
+      await withTenant(sess.propertyId, async (tenantDb) => {
+        // Check participant access
+        const [participant] = await tenantDb
+          .select()
+          .from(portalConversationParticipantsTable)
+          .where(
+            and(
+              eq(portalConversationParticipantsTable.conversationId, convId),
+              eq(
+                portalConversationParticipantsTable.employeeId,
+                sess.employeeDbId,
+              ),
+            ),
+          )
+          .limit(1);
 
-      if (!participant) {
-        res
-          .status(403)
-          .json({ success: false, message: "Not a participant" });
-        return;
-      }
+        if (!participant) {
+          res
+            .status(403)
+            .json({ success: false, message: "Not a participant" });
+          return;
+        }
 
-      // Fetch messages
-      const messages = await tenantDb
-        .select()
-        .from(portalMessagesTable)
-        .where(
-          and(
-            eq(portalMessagesTable.conversationId, convId),
-            eq(portalMessagesTable.isDeleted, false),
-          ),
-        )
-        .orderBy(asc(portalMessagesTable.createdAt));
+        // Fetch messages
+        const messages = await tenantDb
+          .select()
+          .from(portalMessagesTable)
+          .where(
+            and(
+              eq(portalMessagesTable.conversationId, convId),
+              eq(portalMessagesTable.isDeleted, false),
+            ),
+          )
+          .orderBy(asc(portalMessagesTable.createdAt));
 
-      // Fetch reads for all messages
-      const reads = await tenantDb
-        .select()
-        .from(portalMessageReadsTable)
-        .where(
-          inArray(
-            portalMessageReadsTable.messageId,
-            messages.map((m) => m.id),
-          ),
+        // Fetch reads for all messages
+        const reads = await tenantDb
+          .select()
+          .from(portalMessageReadsTable)
+          .where(
+            inArray(
+              portalMessageReadsTable.messageId,
+              messages.map((m) => m.id),
+            ),
+          );
+
+        const msgMap = new Map(
+          messages.map((m) => [m.id, { ...m, reads: [] as any[] }]),
+        );
+        reads.forEach((r) => {
+          if (msgMap.has(r.messageId)) {
+            msgMap.get(r.messageId)!.reads.push(r);
+          }
+        });
+
+        // Get senders
+        const senderIds = [...new Set(messages.map((m) => m.senderId))];
+        let senders: any[] = [];
+        if (senderIds.length > 0) {
+          senders = await tenantDb
+            .select({
+              id: employeesTable.id,
+              firstName: employeesTable.firstName,
+              lastName: employeesTable.lastName,
+              photoUrl: employeesTable.photoUrl,
+              department: employeesTable.department,
+              jobTitle: employeesTable.jobTitle,
+            })
+            .from(employeesTable)
+            .where(inArray(employeesTable.id, senderIds));
+        }
+
+        const sendersDict = senders.reduce((acc, emp) => {
+          acc[emp.id] = emp;
+          return acc;
+        }, {});
+
+        const typingUsers = Array.from(typingState.get(convId) || []).filter(
+          (id) => id !== sess.employeeDbId,
         );
 
-      const msgMap = new Map(messages.map((m) => [m.id, { ...m, reads: [] as any[] }]));
-      reads.forEach((r) => {
-        if (msgMap.has(r.messageId)) {
-          msgMap.get(r.messageId)!.reads.push(r);
-        }
+        res.json({
+          success: true,
+          messages: Array.from(msgMap.values()),
+          senders: sendersDict,
+          typingUsers,
+        });
       });
-
-      // Get senders
-      const senderIds = [...new Set(messages.map((m) => m.senderId))];
-      let senders: any[] = [];
-      if (senderIds.length > 0) {
-        senders = await tenantDb
-          .select({
-            id: employeesTable.id,
-            firstName: employeesTable.firstName,
-            lastName: employeesTable.lastName,
-            photoUrl: employeesTable.photoUrl,
-            department: employeesTable.department,
-            jobTitle: employeesTable.jobTitle,
-          })
-          .from(employeesTable)
-          .where(inArray(employeesTable.id, senderIds));
-      }
-
-      const sendersDict = senders.reduce((acc, emp) => {
-        acc[emp.id] = emp;
-        return acc;
-      }, {});
-      
-      const typingUsers = Array.from(typingState.get(convId) || []).filter(id => id !== sess.employeeDbId);
-
-      res.json({
-        success: true,
-        messages: Array.from(msgMap.values()),
-        senders: sendersDict,
-        typingUsers,
-      });
-    });
-  } catch (err) {
-    next(err);
-  }
-});
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // POST /portal-chat/conversations/:id/messages — إرسال رسالة
 // @ts-ignore

@@ -1,2 +1,2 @@
-import { PortalPage } from './PortalPage';
+import { PortalPage } from "./PortalPage";
 export default PortalPage;

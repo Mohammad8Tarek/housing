@@ -67,11 +67,11 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-import { PortalContactsSection } from './components/PortalContactsSection';
-import { EvaluationsSection } from './components/EvaluationsSection';
-import { ActivitiesSection } from './components/ActivitiesSection';
-import { PortalAccountsSection } from './components/PortalAccountsSection';
-import { PortalDocsSection } from './components/PortalDocsSection';
+import { PortalContactsSection } from "./components/PortalContactsSection";
+import { EvaluationsSection } from "./components/EvaluationsSection";
+import { ActivitiesSection } from "./components/ActivitiesSection";
+import { PortalAccountsSection } from "./components/PortalAccountsSection";
+import { PortalDocsSection } from "./components/PortalDocsSection";
 export function PortalPage() {
   const { language } = useLanguage();
   const ar = language === "ar";

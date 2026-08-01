@@ -357,14 +357,19 @@ function attachHotekSocketHandlers(
   const currentPms = portServers.get(port);
   if (!currentPms) return;
 
-  if (currentPms.socket && currentPms.socket !== socket && !currentPms.socket.destroyed) {
+  if (
+    currentPms.socket &&
+    currentPms.socket !== socket &&
+    !currentPms.socket.destroyed
+  ) {
     currentPms.socket.destroy(new Error("Replaced by new Hotek connection"));
   }
   currentPms.socket = socket;
 
   syncStatusToDb(port, true, addr);
 
-  if (typeof socket.setKeepAlive === "function") socket.setKeepAlive(true, 5000);
+  if (typeof socket.setKeepAlive === "function")
+    socket.setKeepAlive(true, 5000);
   if (typeof socket.setNoDelay === "function") socket.setNoDelay(true);
   if (typeof socket.setTimeout === "function") socket.setTimeout(300000);
 
@@ -387,10 +392,15 @@ function attachHotekSocketHandlers(
   };
 
   const onError = (err: Error | unknown) => {
-    console.error(`[PMS-Bridge - Port ${port}] Hotek socket error:`, err instanceof Error ? err.message : String(err));
+    console.error(
+      `[PMS-Bridge - Port ${port}] Hotek socket error:`,
+      err instanceof Error ? err.message : String(err),
+    );
     if (currentPms.pendingCmd) {
       currentPms.pendingCmd.reject(
-        new Error(`Hotek connection error: ${err instanceof Error ? err.message : String(err)}`),
+        new Error(
+          `Hotek connection error: ${err instanceof Error ? err.message : String(err)}`,
+        ),
       );
       currentPms.pendingCmd = null;
     }
@@ -413,7 +423,10 @@ function attachHotekSocketHandlers(
   socket.on("close", onClose);
 }
 
-export function registerHotekBridge(propertyId: number, socket: HotekSocketLike): void {
+export function registerHotekBridge(
+  propertyId: number,
+  socket: HotekSocketLike,
+): void {
   const port = propertyPorts.get(propertyId) ?? MAIN_PORT_KEY;
   const pms = portServers.get(port);
   if (!pms) {
@@ -643,7 +656,7 @@ export async function startAllPmsServers(app?: any): Promise<void> {
       if (row.port) {
         // Enforce port 10006 internally so the multiplexer can listen on 10005
         const targetPmsPort = 10006;
-        
+
         if (row.port !== targetPmsPort) {
           console.warn(
             `[PMS-Bridge] Property ${row.property_id} has drifted port ${row.port} — resetting back to ${targetPmsPort}`,

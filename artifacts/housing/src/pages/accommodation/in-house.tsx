@@ -1273,7 +1273,7 @@ export default function InHouse() {
                     toast.success(
                       ar
                         ? "تم إصدار المفاتيح بنجاح"
-                        : "Keys issued successfully"
+                        : "Keys issued successfully",
                     );
                   }}
                 />

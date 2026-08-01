@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { userMatchesApprovalRole, canAccessProperty, STEP_ROLES } from "../routes/hosting-requests";
+import {
+  userMatchesApprovalRole,
+  canAccessProperty,
+  STEP_ROLES,
+} from "../routes/hosting-requests";
 
 describe("Approval Regression Tests", () => {
   describe("userMatchesApprovalRole", () => {
