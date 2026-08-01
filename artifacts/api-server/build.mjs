@@ -69,6 +69,7 @@ async function buildAll() {
       "firebase-admin",
       "@parcel/watcher",
       "@sentry/profiling-node",
+      "@opentelemetry/*",
       "@tree-sitter/*",
       "aws-sdk",
       "classic-level",
