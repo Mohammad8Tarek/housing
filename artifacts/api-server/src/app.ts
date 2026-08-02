@@ -23,7 +23,7 @@ import { apiRateLimit } from "./middlewares/rate-limit.js";
 import { auditLogMiddleware } from "./middlewares/audit-log.js";
 import { sanitizeDates } from "./middlewares/sanitize-date.js";
 import { pool } from "@workspace/db";
-import * as Sentry from "@sentry/node";
+// @sentry/node imported dynamically below to prevent crash if not installed
 import { setupSwagger } from "./lib/swagger.js";
 
 // 1. تعريف الـ Express instance أولاً ✅
@@ -211,7 +211,16 @@ app.use((_req: Request, res: Response) => {
 });
 
 // Sentry Error Handler (Must be before custom global error handler)
-Sentry.setupExpressErrorHandler(app);
+// Use .then() to avoid top-level-await in case esbuild config doesn't support it
+import("@sentry/node")
+  .then((Sentry) => {
+    if (Sentry.setupExpressErrorHandler) {
+      Sentry.setupExpressErrorHandler(app);
+    }
+  })
+  .catch(() => {
+    // Sentry not available, skip
+  });
 
 // 9. الـ Global Error Handler (يجب أن يكون في النهاية)
 app.use(

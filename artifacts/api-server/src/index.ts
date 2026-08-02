@@ -43,16 +43,26 @@ loadEnvFile(resolve(__dirname, "..", ".env"));
 loadEnvFile(resolve(__dirname, "..", "..", ".env"));
 loadEnvFile(resolve(__dirname, "..", "..", "..", ".env"));
 
-import * as Sentry from "@sentry/node";
-import { nodeProfilingIntegration } from "@sentry/profiling-node";
-
+// Sentry init — dynamic import so the server boots even if profiling-node is missing
 if (process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    integrations: [nodeProfilingIntegration()],
-    tracesSampleRate: 1.0,
-    profilesSampleRate: 1.0,
-  });
+  try {
+    const Sentry = await import("@sentry/node");
+    let integrations: any[] = [];
+    try {
+      const { nodeProfilingIntegration } = await import("@sentry/profiling-node");
+      integrations = [nodeProfilingIntegration()];
+    } catch {
+      console.warn("[Sentry] @sentry/profiling-node not available, skipping profiling");
+    }
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      integrations,
+      tracesSampleRate: 1.0,
+      profilesSampleRate: integrations.length > 0 ? 1.0 : 0,
+    });
+  } catch (err: any) {
+    console.warn("[Sentry] Failed to initialize:", err.message);
+  }
 }
 
 // ==========================================
