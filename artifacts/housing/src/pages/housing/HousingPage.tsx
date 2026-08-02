@@ -32,22 +32,26 @@ export function HousingPage() {
 
   const { data: bData, isLoading: bLoading } = useListBuildings({
     propertyId: activePropertyId as number,
-  });
+    limit: 1000,
+  } as any);
   const { data: fData, isLoading: fLoading } = useListFloors({
     propertyId: activePropertyId as number,
-  });
+    limit: 1000,
+  } as any);
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
-    { propertyId: activePropertyId as number } as any,
+    { propertyId: activePropertyId as number, limit: 1000 } as any,
     { query: { queryKey: ["rooms", activePropertyId, 1000], staleTime: 0 } },
   );
   const rData = (_rDataWrapper as any)?.data || _rDataWrapper || [];
   const { data: aData } = useListAssignments({
     propertyId: activePropertyId as number,
-  });
+    limit: 1000,
+  } as any);
 
   const { data: eDataWrapper } = useListEmployees({
     propertyId: activePropertyId as number,
-  });
+    limit: 1000,
+  } as any);
   const eData = (eDataWrapper as any)?.data || eDataWrapper || [];
   if (!activePropertyId) {
     return (
