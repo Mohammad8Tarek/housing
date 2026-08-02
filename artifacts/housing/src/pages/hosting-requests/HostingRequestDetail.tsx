@@ -324,584 +324,397 @@ export default function HostingRequestDetail() {
     return { signed, rejected, returned, active };
   };
 
+
   return (
-    <div className="space-y-6 p-1">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setLocation("/hosting-requests")}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">
-              {request.requestNumber}
+    <div className="relative min-h-[calc(100vh-6rem)] p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
+      {/* Background Glow Effects */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/20 rounded-full blur-[100px] opacity-50 dark:opacity-30"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-500/20 rounded-full blur-[100px] opacity-50 dark:opacity-30"></div>
+      </div>
+
+      {/* Header section (Glassmorphism) */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-background/60 backdrop-blur-xl border border-white/10 shadow-lg p-6 rounded-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none" />
+        
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+              {ar ? "تفاصيل طلب الاستضافة" : "Hosting Request Details"}
             </h1>
-            <StatusBadge
-              label={
-                request.status === "approved"
-                  ? ar
-                    ? "معتمد"
-                    : "Approved"
-                  : request.status === "rejected"
-                    ? ar
-                      ? "مرفوض"
-                      : "Rejected"
-                    : request.status === "in_signing"
-                      ? ar
-                        ? "قيد التوقيع"
-                        : "In Signing"
-                      : request.status
-              }
-              variant={statusBadgeVariant[request.status] ?? "muted"}
-            />
+            <Badge variant="outline" className="text-xs px-2 py-0.5 rounded-full border-primary/30 bg-primary/10 text-primary">
+              #{requestId}
+            </Badge>
           </div>
-          <p className="text-muted-foreground text-sm mt-1">
-            {request.employeeName} — {request.department}
-          </p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+            <span>{ar ? "تاريخ الإنشاء" : "Created Date"}:</span>
+            <span className="text-foreground">
+              {new Date(request.createdAt).toLocaleDateString(ar ? "ar-EG" : "en-US", { year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
+            <span className="text-foreground/50 mx-1">•</span>
+            <span>{ar ? "المُنشئ" : "Creator"}:</span>
+            <span className="text-foreground">{request.creatorName || request.user_id}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {canEdit("hosting_requests") && (
-            <Button
-              variant="outline"
-              onClick={() =>
-                setLocation(`/hosting-requests/${request.id}/edit`)
-              }
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              {ar ? "تعديل" : "Edit"}
-            </Button>
-          )}
-          {canDelete("hosting_requests") && (
+        
+        <div className="relative flex flex-col md:flex-row gap-3 items-end md:items-center">
+          <div className="flex items-center gap-2 bg-background/50 p-1.5 pr-4 rounded-full border shadow-sm">
+            <div className={`w-2 h-2 rounded-full ${request.status === 'approved' ? 'bg-emerald-500 animate-pulse' : request.status === 'rejected' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></div>
+            <StatusBadge label={ar ? mainStatusLabel.ar : mainStatusLabel.en} variant={mainStatusVariant} />
+          </div>
+          {canDelete && request.status === "in_signing" && (
             <Button
               variant="destructive"
+              size="sm"
               onClick={() => setShowDeleteConfirm(true)}
+              className="rounded-full shadow-lg hover:shadow-red-500/25 transition-all"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              {ar ? "حذف" : "Delete"}
+              {ar ? "حذف الطلب" : "Delete"}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Request Details */}
-      <div className="flex flex-col gap-6">
-        <div className="bg-card text-card-foreground shadow-sm rounded-xl border p-6">
-          <h2 className="text-lg font-bold mb-6">
-            {ar ? "بيانات طلب الاستضافة" : "Hosting Request Data"}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-            <div className="flex flex-col border-b pb-3">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                {ar ? "الموظف" : "NAME"}
-              </span>
-              <span className="font-medium">{request.employeeName}</span>
-            </div>
-            <div className="flex flex-col border-b pb-3">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                {ar ? "الوظيفة" : "POSITION"}
-              </span>
-              <span className="font-medium">{request.position || "-"}</span>
-            </div>
-            <div className="flex flex-col border-b pb-3">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                {ar ? "القسم" : "DEPARTMENT"}
-              </span>
-              <span className="font-medium">{request.department || "-"}</span>
-            </div>
-            <div className="flex flex-col border-b pb-3">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                {ar ? "الرقم الوظيفي" : "CLOCK NUMBER"}
-              </span>
-              <span className="font-medium">{request.clockNumber || "-"}</span>
-            </div>
-            <div className="flex flex-col border-b pb-3">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                {ar ? "عدد الغرف" : "ROOMS"}
-              </span>
-              <div className="flex items-center">
-                <Badge
-                  variant="secondary"
-                  className="bg-muted text-foreground hover:bg-muted font-bold rounded-full"
-                >
-                  {request.numberOfRooms || "-"}
-                </Badge>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column: Details */}
+        <div className="lg:col-span-8 space-y-8">
+          <Card className="bg-background/60 backdrop-blur-xl border-white/10 shadow-xl overflow-hidden rounded-2xl">
+            <div className="h-1 w-full bg-gradient-to-r from-primary via-primary/50 to-transparent" />
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                {ar ? "بيانات الضيوف" : "Guests Information"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-sm text-muted-foreground block">{ar ? "اسم الضيف" : "Guest Name"}</span>
+                  <p className="font-semibold text-lg">{request.guestName}</p>
+                </div>
+                <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-sm text-muted-foreground block">{ar ? "العلاقة / الصفة" : "Relation / Role"}</span>
+                  <p className="font-semibold text-lg">{request.relation}</p>
+                </div>
+                <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-sm text-muted-foreground block">{ar ? "عدد الضيوف" : "Number of Guests"}</span>
+                  <p className="font-semibold text-lg text-primary">{request.guestsCount}</p>
+                </div>
+                <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-sm text-muted-foreground block">{ar ? "نوع الغرفة المطلوبة" : "Requested Room Type"}</span>
+                  <p className="font-semibold text-lg">{request.requestedRoomType}</p>
+                </div>
+                
+                {/* Dates */}
+                <div className="sm:col-span-2 grid grid-cols-2 gap-4 p-5 rounded-xl bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 relative overflow-hidden">
+                  <div className="absolute right-0 top-0 opacity-5">
+                    <Clock className="w-32 h-32 -mt-4 -mr-4" />
+                  </div>
+                  <div className="relative">
+                    <span className="text-sm text-muted-foreground block mb-1">{ar ? "تاريخ الوصول" : "Expected Check-in"}</span>
+                    <p className="font-bold text-xl">{new Date(request.expectedCheckInDate).toLocaleDateString()}</p>
+                  </div>
+                  <div className="relative">
+                    <span className="text-sm text-muted-foreground block mb-1">{ar ? "تاريخ المغادرة" : "Expected Check-out"}</span>
+                    <p className="font-bold text-xl">{new Date(request.expectedCheckOutDate).toLocaleDateString()}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            {request.assignedRoomNumber && (
-              <div className="flex flex-col border-b pb-3">
-                <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                  {ar ? "غرفة الاستضافة المعينة" : "ASSIGNED HOSTING ROOM"}
-                </span>
-                <span className="font-medium text-primary">
-                  {request.assignedRoomNumber}
-                </span>
-              </div>
-            )}
 
-            <div className="flex flex-col border-b pb-3">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                {ar ? "أفراد العائلة" : "FAMILY MEMBERS"}
-              </span>
-              <div className="flex items-center">
-                <Badge
-                  variant="secondary"
-                  className="bg-muted text-foreground hover:bg-muted font-bold rounded-full"
-                >
-                  {request.familyMembersCount}
-                </Badge>
-                {request.familyMembersIncluded && (
-                  <span className="text-sm text-muted-foreground ml-2">
-                    ({request.familyMembersIncluded})
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col border-b pb-3">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                {ar ? "تاريخ الوصول" : "CHECK-IN DATE"}
-              </span>
-              <span className="font-medium">
-                {request.fromDate
-                  ? new Date(request.fromDate).toLocaleDateString("en-GB")
-                  : "-"}
-              </span>
-            </div>
-            <div className="flex flex-col border-b pb-3">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                {ar ? "تاريخ المغادرة" : "CHECK-OUT DATE"}
-              </span>
-              <span className="font-medium">
-                {request.toDate
-                  ? new Date(request.toDate).toLocaleDateString("en-GB")
-                  : "-"}
-              </span>
-            </div>
-            {request.remarks && (
-              <div className="flex flex-col md:col-span-2 border-b pb-3">
-                <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                  {ar ? "ملاحظات" : "REMARKS"}
-                </span>
-                <span className="font-medium">{request.remarks}</span>
-              </div>
-            )}
-            {request.attachmentData && (
-              <div className="flex flex-col md:col-span-2 border-b pb-3">
-                <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">
-                  {ar ? "المرفقات" : "ATTACHMENT"}
-                </span>
-                <a
-                  href={request.attachmentData}
-                  download="attachment"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary hover:underline flex items-center gap-2 font-medium"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  {ar ? "عرض المرفق" : "View Attachment"}
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
+              {request.reason && (
+                <div className="mt-6 space-y-2">
+                  <span className="text-sm font-medium text-muted-foreground">{ar ? "سبب الزيارة" : "Reason for Visit"}</span>
+                  <div className="p-4 rounded-xl bg-muted/30 border border-white/5 leading-relaxed">
+                    {request.reason}
+                  </div>
+                </div>
+              )}
 
-        {/* Approval Chain */}
-        <div className="bg-card text-card-foreground shadow-sm rounded-xl border p-6">
-          <h2 className="text-lg font-bold mb-6">
-            {ar ? "مسار الاعتماد" : "Approval Workflow"}
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            {steps.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                {ar ? "لا توجد خطوات اعتماد" : "No approval steps"}
-              </p>
-            ) : (
-              steps.map((step: any, idx: number) => {
-                const roleName =
-                  stepRoles[step.roleRequired]?.[language] ?? step.roleRequired;
-                const {
-                  signed: isSigned,
-                  rejected: isRejected,
-                  returned: isReturned,
-                  active: isActive,
-                } = getStepState(step);
-
-                let cardClasses =
-                  "flex flex-col items-center justify-center p-4 rounded-lg border w-48 text-center bg-card";
-                let iconClasses =
-                  "w-10 h-10 rounded-lg flex items-center justify-center mb-3";
-
-                if (isSigned) {
-                  cardClasses +=
-                    " border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20";
-                  iconClasses +=
-                    " text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50";
-                } else if (isRejected) {
-                  cardClasses +=
-                    " border-red-500 bg-red-50/50 dark:bg-red-950/20";
-                  iconClasses += " text-red-600 bg-red-100 dark:bg-red-900/50";
-                } else if (isReturned) {
-                  cardClasses +=
-                    " border-amber-500 bg-amber-50/50 dark:bg-amber-950/20";
-                  iconClasses +=
-                    " text-amber-600 bg-amber-100 dark:bg-amber-900/50";
-                } else if (isActive) {
-                  cardClasses +=
-                    " border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 shadow-sm";
-                  iconClasses +=
-                    " text-amber-600 bg-amber-100 dark:bg-amber-900/50";
-                } else {
-                  cardClasses += " border-border";
-                  iconClasses += " text-muted-foreground bg-muted";
-                }
-
-                return (
-                  <div key={step.id} className={cardClasses}>
-                    <div className={iconClasses}>
-                      {isSigned ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : isRejected ? (
-                        <XCircle className="w-5 h-5" />
-                      ) : isReturned ? (
-                        <ArrowLeft className="w-5 h-5" />
-                      ) : isActive ? (
-                        <Clock className="w-5 h-5" />
-                      ) : (
-                        <Users className="w-5 h-5" />
-                      )}
-                    </div>
-                    <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">
-                      {roleName}
-                    </span>
-                    <span className="text-sm font-bold mt-1 text-foreground line-clamp-1">
-                      {step.signerName || step.signed_by_user_id || "-"}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground mt-1 min-h-[16px]">
-                      {step.signedAt
-                        ? new Date(step.signedAt).toLocaleString("en-GB")
-                        : ""}
-                    </span>
-                    <div className="mt-4 w-full px-2 text-center">
-                      {step.signatureImageUrlSnapshot ? (
-                        <div className="mb-3 flex justify-center">
-                          <div className="w-[180px] h-[84px] bg-white rounded border shadow-sm flex items-center justify-center p-2">
-                            <img
-                              src={step.signatureImageUrlSnapshot}
-                              alt="Signature"
-                              className="max-h-full max-w-full object-contain"
-                            />
-                          </div>
+              {request.attachmentUrl && (
+                <div className="mt-6">
+                  <a
+                    href={request.attachmentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium text-sm border border-primary/20"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {ar ? "عرض المرفق" : "View Attachment"}
+                  </a>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Housing Card */}
+          {request.status === "approved" && (
+            <Card className="bg-background/60 backdrop-blur-xl border-emerald-500/20 shadow-xl overflow-hidden rounded-2xl">
+              <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-transparent" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl font-bold flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <Home className="w-5 h-5" />
+                  {ar ? "حالة التسكين" : "Housing Status"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                {request.guestHostingId ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-lg">
+                          <CheckCircle className="w-5 h-5 text-emerald-600" />
                         </div>
-                      ) : (
-                        <div className="mb-3 flex justify-center">
-                          <div className="w-[180px] h-[84px] bg-muted/20 rounded border border-dashed text-muted-foreground flex items-center justify-center">
-                            <span className="text-xs">
-                              {ar ? "لا يوجد توقيع" : "No signature"}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {isSigned ? (
-                        <div className="bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded mx-auto w-fit">
-                          APPROVED
-                        </div>
-                      ) : isRejected ? (
-                        <div className="bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded mx-auto w-fit">
-                          REJECTED
-                        </div>
-                      ) : isReturned ? (
-                        <div className="bg-amber-600 text-white text-[10px] font-bold px-3 py-1 rounded mx-auto w-fit">
-                          RETURNED
-                        </div>
-                      ) : isActive && userCanAct ? (
-                        <div className="pt-3 border-t border-amber-200 dark:border-amber-900/30 flex flex-col gap-2 w-full">
-                          {!userHasSignature ? (
-                            <div className="text-center">
-                              <span className="text-[10px] text-amber-700 leading-tight block mb-1">
-                                {ar
-                                  ? "يرجى رفع توقيعك في الإعدادات قبل الاعتماد"
-                                  : "Please upload your signature in Settings before signing"}
-                              </span>
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="px-1 h-6 text-[10px] underline"
-                                onClick={() => setLocation("/settings")}
-                              >
-                                {ar ? "الإعدادات" : "Settings"}
-                              </Button>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">
+                            {ar ? "طلب الاستضافة الفعلي" : "Active Guest Hosting"}
+                          </p>
+                          {hostingStatusLabel && (
+                            <div className="mt-1">
+                              <StatusBadge
+                                label={ar ? hostingStatusLabel.ar : hostingStatusLabel.en}
+                                variant={hostingStatusVariant}
+                              />
                             </div>
-                          ) : (
-                            <>
-                              <Button
-                                size="sm"
-                                className="w-full text-xs h-8"
-                                onClick={() => signMutation.mutate()}
-                                disabled={signMutation.isPending}
-                              >
-                                {signMutation.isPending ? (
-                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                ) : (
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                )}
-                                {ar ? "اعتماد" : "Approve"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-full text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                onClick={() => setShowRejectDialog(true)}
-                              >
-                                <XCircle className="w-3 h-3 mr-1 text-red-500" />
-                                {ar ? "رفض" : "Reject"}
-                              </Button>
-                              {currentStep?.stepOrder > 1 && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="w-full text-xs h-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                                  onClick={() => setShowRebackDialog(true)}
-                                >
-                                  <ArrowLeft className="w-3 h-3 mr-1" />
-                                  {ar ? "إرجاع" : "Return"}
-                                </Button>
-                              )}
-                            </>
                           )}
                         </div>
-                      ) : isActive ? (
-                        <div className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded mx-auto w-fit">
-                          PENDING
-                        </div>
-                      ) : (
-                        <div className="bg-muted text-muted-foreground text-[10px] font-bold px-3 py-1 rounded mx-auto w-fit">
-                          PENDING
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="mt-6">
-            {request.status === "in_signing" && currentStep && (
-              <div className="space-y-3">
-                {/* Reback dialog */}
-                {showRebackDialog && (
-                  <div className="p-3 border rounded-lg space-y-3 bg-amber-50/50 border-amber-200">
-                    <p className="text-sm font-medium text-amber-800">
-                      {ar ? "سبب الإرجاع" : "Return Reason"}
-                    </p>
-                    <Textarea
-                      rows={3}
-                      value={rebackReason}
-                      onChange={(e) => setRebackReason(e.target.value)}
-                      placeholder={
-                        ar
-                          ? "اكتب سبب إرجاع الطلب..."
-                          : "Enter reason for returning..."
-                      }
-                      className="border-amber-200 focus-visible:ring-amber-500"
-                    />
-                    <div className="flex gap-2">
+                      </div>
                       <Button
-                        size="sm"
-                        className="bg-amber-600 hover:bg-amber-700"
-                        onClick={() => rebackMutation.mutate()}
-                        disabled={
-                          !rebackReason.trim() || rebackMutation.isPending
-                        }
-                      >
-                        {rebackMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <ArrowLeft className="w-4 h-4 mr-2" />
-                        )}
-                        {ar ? "تأكيد الإرجاع" : "Confirm Return"}
-                      </Button>
-                      <Button
-                        size="sm"
                         variant="outline"
-                        onClick={() => {
-                          setShowRebackDialog(false);
-                          setRebackReason("");
-                        }}
+                        size="sm"
+                        className="rounded-full shadow-sm hover:shadow border-emerald-200 text-emerald-700"
+                        onClick={() => setLocation(`/accommodation/guest-hosting`)}
                       >
-                        {ar ? "إلغاء" : "Cancel"}
+                        {ar ? "عرض السجل" : "View Record"}
+                        <ExternalLink className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
+                    {guestHosting && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                        <div>
+                          <span className="text-xs text-muted-foreground block mb-1">{ar ? "رقم السجل" : "Record ID"}</span>
+                          <p className="font-bold">#{guestHosting.id}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block mb-1">{ar ? "الغرفة" : "Room"}</span>
+                          <p className="font-bold">{guestHosting.roomId || "-"}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block mb-1">{ar ? "من" : "From"}</span>
+                          <p className="font-bold">{new Date(guestHosting.expectedFrom).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block mb-1">{ar ? "إلى" : "To"}</span>
+                          <p className="font-bold">{new Date(guestHosting.expectedTo).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                    <div className="flex-1 space-y-1 text-center sm:text-start">
+                      <p className="text-sm text-emerald-700 dark:text-emerald-400 font-bold">
+                        {ar
+                          ? "تم اعتماد الطلب وتم إنشاء سجل الاستضافة تلقائياً."
+                          : "Request approved and Guest Hosting record created."}
+                      </p>
+                      <p className="text-xs text-emerald-600/70">
+                        {ar ? "يمكنك الآن متابعة إجراءات التسكين من قسم السكن." : "You can proceed to housing management now."}
+                      </p>
+                    </div>
+                    <Button
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full whitespace-nowrap shadow-lg shadow-emerald-500/20"
+                      onClick={() => setLocation("/accommodation/guest-hosting")}
+                    >
+                      <Home className="w-4 h-4 mr-2" />
+                      {ar ? "إدارة التسكين" : "Manage Housing"}
+                    </Button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-                {/* Reject dialog */}
-                {showRejectDialog && (
-                  <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
-                    <p className="text-sm font-medium">
-                      {ar ? "سبب الرفض" : "Rejection Reason"}
+        {/* Right Column: Workflow (Stepper) */}
+        <div className="lg:col-span-4 space-y-6">
+          <Card className="bg-background/60 backdrop-blur-xl border-white/10 shadow-xl overflow-hidden rounded-2xl sticky top-6">
+            <CardHeader className="pb-4 bg-muted/10 border-b border-white/5">
+              <CardTitle className="text-lg font-bold">
+                {ar ? "مسار الاعتماد" : "Approval Workflow"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="relative p-6">
+                <div className="absolute left-[39px] top-8 bottom-8 w-0.5 bg-border z-0" />
+                
+                <div className="space-y-8 relative z-10">
+                  {steps.length === 0 ? (
+                    <p className="text-muted-foreground text-sm text-center py-4">
+                      {ar ? "لا توجد خطوات اعتماد" : "No approval steps"}
                     </p>
-                    <Textarea
-                      rows={3}
-                      value={rejectReason}
-                      onChange={(e) => setRejectReason(e.target.value)}
-                      placeholder={
-                        ar ? "اكتب سبب الرفض..." : "Enter rejection reason..."
-                      }
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => rejectMutation.mutate()}
-                        disabled={
-                          !rejectReason.trim() || rejectMutation.isPending
-                        }
-                      >
-                        {rejectMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <XCircle className="w-4 h-4 mr-2" />
-                        )}
-                        {ar ? "تأكيد الرفض" : "Confirm Reject"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setShowRejectDialog(false);
-                          setRejectReason("");
-                        }}
-                      >
-                        {ar ? "إلغاء" : "Cancel"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                  ) : (
+                    steps.map((step: any, idx: number) => {
+                      const roleName = stepRoles[step.roleRequired]?.[language] ?? step.roleRequired;
+                      const { signed, rejected, returned, active } = getStepState(step);
+
+                      return (
+                        <div key={step.id} className="relative flex gap-4">
+                          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 bg-background ${signed ? 'border-emerald-500 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : rejected ? 'border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : returned ? 'border-amber-500 text-amber-500' : active ? 'border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] animate-pulse' : 'border-muted-foreground/30 text-muted-foreground'}`}>
+                            {signed ? <CheckCircle className="w-5 h-5" /> : rejected ? <XCircle className="w-5 h-5" /> : active ? <Clock className="w-5 h-5" /> : <Users className="w-4 h-4" />}
+                          </div>
+
+                          <div className={`flex-1 pt-1 space-y-2 ${active ? '' : 'opacity-80'}`}>
+                            <div>
+                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{roleName}</p>
+                              <p className={`text-sm font-bold ${active ? 'text-primary' : 'text-foreground'}`}>
+                                {step.signerName || step.signed_by_user_id || (ar ? "في الانتظار" : "Pending")}
+                              </p>
+                            </div>
+                            
+                            {step.signedAt && (
+                              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {new Date(step.signedAt).toLocaleString(ar ? "ar-EG" : "en-GB")}
+                              </p>
+                            )}
+
+                            {step.signatureImageUrlSnapshot && (
+                              <div className="mt-2 w-[140px] h-[60px] bg-white rounded-lg border shadow-sm p-1">
+                                <img
+                                  src={step.signatureImageUrlSnapshot}
+                                  alt="Signature"
+                                  className="w-full h-full object-contain filter contrast-125"
+                                />
+                              </div>
+                            )}
+
+                            {active && userCanAct && (
+                              <div className="mt-4 p-3 rounded-xl bg-background border border-primary/20 shadow-lg shadow-primary/5 space-y-3 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                                {!userHasSignature ? (
+                                  <div className="text-center p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-100 dark:border-amber-900/50">
+                                    <span className="text-xs text-amber-700 block mb-2 font-medium">
+                                      {ar ? "يرجى إضافة توقيعك في الإعدادات لتتمكن من الاعتماد" : "Please add your signature in settings to approve"}
+                                    </span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="rounded-full h-7 text-xs bg-white dark:bg-background"
+                                      onClick={() => setLocation("/settings")}
+                                    >
+                                      {ar ? "الذهاب للإعدادات" : "Go to Settings"}
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      className="w-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md border-0"
+                                      onClick={() => signMutation.mutate()}
+                                      disabled={signMutation.isPending}
+                                    >
+                                      {signMutation.isPending ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      ) : (
+                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                      )}
+                                      {ar ? "اعتماد الطلب" : "Approve"}
+                                    </Button>
+                                    <div className="flex gap-2">
+                                      {currentStep?.stepOrder > 1 && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="flex-1 rounded-full text-amber-600 border-amber-200 hover:bg-amber-50"
+                                          onClick={() => setShowRebackDialog(true)}
+                                        >
+                                          <ArrowLeft className="w-3 h-3 mr-1" />
+                                          {ar ? "إرجاع" : "Return"}
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="flex-1 rounded-full text-red-600 border-red-200 hover:bg-red-50"
+                                        onClick={() => setShowRejectDialog(true)}
+                                      >
+                                        <XCircle className="w-3 h-3 mr-1" />
+                                        {ar ? "رفض" : "Reject"}
+                                      </Button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Return/Reject Dialogs (Inline) */}
+                            {active && showRebackDialog && (
+                              <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-xl space-y-2">
+                                <Textarea
+                                  rows={2}
+                                  className="text-xs resize-none rounded-lg bg-background"
+                                  placeholder={ar ? "سبب الإرجاع..." : "Return reason..."}
+                                  value={rebackReason}
+                                  onChange={(e) => setRebackReason(e.target.value)}
+                                />
+                                <div className="flex gap-2">
+                                  <Button size="sm" className="flex-1 rounded-full h-7 text-xs bg-amber-600 hover:bg-amber-700" onClick={() => rebackMutation.mutate()} disabled={!rebackReason.trim() || rebackMutation.isPending}>
+                                    {ar ? "تأكيد" : "Confirm"}
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="flex-1 rounded-full h-7 text-xs" onClick={() => { setShowRebackDialog(false); setRebackReason(""); }}>
+                                    {ar ? "إلغاء" : "Cancel"}
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+
+                            {active && showRejectDialog && (
+                              <div className="mt-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 rounded-xl space-y-2">
+                                <Textarea
+                                  rows={2}
+                                  className="text-xs resize-none rounded-lg bg-background"
+                                  placeholder={ar ? "سبب الرفض..." : "Rejection reason..."}
+                                  value={rejectReason}
+                                  onChange={(e) => setRejectReason(e.target.value)}
+                                />
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="destructive" className="flex-1 rounded-full h-7 text-xs" onClick={() => rejectMutation.mutate()} disabled={!rejectReason.trim() || rejectMutation.isPending}>
+                                    {ar ? "تأكيد" : "Confirm"}
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="flex-1 rounded-full h-7 text-xs" onClick={() => { setShowRejectDialog(false); setRejectReason(""); }}>
+                                    {ar ? "إلغاء" : "Cancel"}
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Housing Card — الحالة السكنية */}
-      {request.status === "approved" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Home className="w-5 h-5" />
-              {ar ? "السكن" : "Housing"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {request.guestHostingId ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      {ar ? "طلب الاستضافة" : "Guest Hosting"}
-                    </p>
-                    {hostingStatusLabel && (
-                      <StatusBadge
-                        label={
-                          ar ? hostingStatusLabel.ar : hostingStatusLabel.en
-                        }
-                        variant={hostingStatusVariant}
-                      />
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLocation(`/accommodation/guest-hosting`)}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    {ar ? "عرض" : "View"}
-                  </Button>
-                </div>
-                {guestHosting && (
-                  <div className="grid grid-cols-2 gap-3 text-sm p-3 bg-muted/30 rounded-lg">
-                    <div>
-                      <span className="text-muted-foreground">
-                        {ar ? "رقم الطلب" : "ID"}
-                      </span>
-                      <p className="font-medium">#{guestHosting.id}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        {ar ? "عدد الضيوف" : "Guests"}
-                      </span>
-                      <p className="font-medium">{guestHosting.guestsCount}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        {ar ? "من" : "From"}
-                      </span>
-                      <p className="font-medium">
-                        {new Date(
-                          guestHosting.expectedFrom,
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        {ar ? "إلى" : "To"}
-                      </span>
-                      <p className="font-medium">
-                        {new Date(guestHosting.expectedTo).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {guestHosting.roomId && (
-                      <div>
-                        <span className="text-muted-foreground">
-                          {ar ? "الغرفة" : "Room"}
-                        </span>
-                        <p className="font-medium">{guestHosting.roomId}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-emerald-600 font-medium">
-                  {ar
-                    ? "تم اعتماد الطلب وتم إنشاء سجل الاستضافة تلقائياً. يمكنك الانتقال إلى قسم السكن."
-                    : "Request approved and Guest Hosting record has been created automatically. You can proceed to the housing section."}
-                </p>
-                <Button
-                  variant="outline"
-                  className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                  onClick={() => setLocation("/accommodation/guest-hosting")}
-                >
-                  <Home className="w-4 h-4 mr-2" />
-                  {ar ? "الذهاب إلى الاستضافات" : "Go to Guest Hosting"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Previous Requests Link */}
-      <div className="flex justify-start pt-2">
-        <Button variant="link" onClick={() => setLocation("/hosting-requests")}>
-          <ArrowLeft className="w-4 h-4 mr-1" />
-          {ar ? "العودة إلى الطلبات" : "Back to Requests"}
+      <div className="flex justify-start pt-4">
+        <Button variant="ghost" className="rounded-full hover:bg-muted/50" onClick={() => setLocation("/hosting-requests")}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          {ar ? "العودة للقائمة" : "Back to List"}
         </Button>
       </div>
+
       <AnimatedConfirmModal
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title={ar ? "حذف الطلب" : "Delete Request"}
-        description={
-          ar
-            ? "هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
-            : "Are you sure you want to delete this request? This action cannot be undone."
-        }
-        confirmLabel={ar ? "حذف" : "Delete"}
+        description={ar ? "هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure you want to delete this request? This action cannot be undone."}
+        confirmLabel={ar ? "حذف نهائي" : "Delete Permanently"}
         cancelLabel={ar ? "إلغاء" : "Cancel"}
         variant="destructive"
         onConfirm={() => {
