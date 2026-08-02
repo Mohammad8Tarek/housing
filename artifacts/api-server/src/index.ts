@@ -102,13 +102,13 @@ import { startAllPmsServers } from "./lib/pms-server.js";
 // ==========================================
 const server = createServer(app);
 server.headersTimeout = Number(
-  process.env["SERVER_HEADERS_TIMEOUT_MS"] ?? 65_000,
+  process.env["SERVER_HEADERS_TIMEOUT_MS"] ?? 66_000,
 );
 server.requestTimeout = Number(
   process.env["SERVER_REQUEST_TIMEOUT_MS"] ?? 120_000,
 );
 server.keepAliveTimeout = Number(
-  process.env["SERVER_KEEP_ALIVE_TIMEOUT_MS"] ?? 5_000,
+  process.env["SERVER_KEEP_ALIVE_TIMEOUT_MS"] ?? 65_000,
 );
 server.maxHeadersCount = Number(process.env["SERVER_MAX_HEADERS_COUNT"] ?? 100);
 
@@ -334,50 +334,50 @@ async function start(): Promise<void> {
 
   server.listen(INTERNAL_HTTP_PORT, "127.0.0.1", () => {
     logger.info(`Main API HTTP listening locally on ${INTERNAL_HTTP_PORT}`);
-  });
 
-  // 2. Start PMS V2.1 Servers (they bind to 10006 locally based on db migration)
-  startAllPmsServers(app);
+    // 2. Start PMS V2.1 Servers (they bind to 10006 locally based on db migration)
+    startAllPmsServers(app);
 
-  const mux = net.createServer((socket) => {
-    socket.once("data", (chunk) => {
-      // PAUSE the socket so we don't lose any further chunks (like HTTP body) before the proxy is ready
-      socket.pause();
+    const mux = net.createServer((socket) => {
+      socket.once("data", (chunk) => {
+        // PAUSE the socket so we don't lose any further chunks (like HTTP body) before the proxy is ready
+        socket.pause();
 
-      // If it starts with <STX> (0x02), route to PMS Server (10006)
-      // Otherwise, route to HTTP Server (4001)
-      const isPms = chunk[0] === 0x02;
-      const targetPort = isPms ? 10006 : INTERNAL_HTTP_PORT;
+        // If it starts with <STX> (0x02), route to PMS Server (10006)
+        // Otherwise, route to HTTP Server (4001)
+        const isPms = chunk[0] === 0x02;
+        const targetPort = isPms ? 10006 : INTERNAL_HTTP_PORT;
 
-      const proxy = net.createConnection(
-        { port: targetPort, host: "127.0.0.1" },
-        () => {
-          proxy.write(chunk);
-          socket.pipe(proxy);
-          proxy.pipe(socket);
+        const proxy = net.createConnection(
+          { port: targetPort, host: "127.0.0.1" },
+          () => {
+            proxy.write(chunk);
+            socket.pipe(proxy);
+            proxy.pipe(socket);
 
-          // RESUME the socket now that the pipe is established
-          socket.resume();
-        },
-      );
+            // RESUME the socket now that the pipe is established
+            socket.resume();
+          },
+        );
 
-      proxy.on("error", (err) => {
-        socket.end();
-      });
-      socket.on("error", () => {
-        proxy.end();
+        proxy.on("error", (err) => {
+          socket.end();
+        });
+        socket.on("error", () => {
+          proxy.end();
+        });
       });
     });
-  });
 
-  mux.listen(muxPort, "0.0.0.0", () => {
-    logger.info(
-      { port: muxPort },
-      "🚀 Sunrise Housing API Multiplexer is Live",
-    );
-    logger.info(
-      `Multiplexer: listening on ${muxPort}, routing to HTTP (${INTERNAL_HTTP_PORT}) and PMS (10006)`,
-    );
+    mux.listen(muxPort, "0.0.0.0", () => {
+      logger.info(
+        { port: muxPort },
+        "🚀 Sunrise Housing API Multiplexer is Live",
+      );
+      logger.info(
+        `Multiplexer: listening on ${muxPort}, routing to HTTP (${INTERNAL_HTTP_PORT}) and PMS (10006)`,
+      );
+    });
   });
 }
 
