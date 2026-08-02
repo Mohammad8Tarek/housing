@@ -324,6 +324,11 @@ export default function HostingRequestDetail() {
     return { signed, rejected, returned, active };
   };
 
+  const mainStatusVariant = request.status === "approved" ? "success" : request.status === "rejected" ? "danger" : "warning";
+  const mainStatusLabel = {
+    en: request.status === "approved" ? "Approved" : request.status === "rejected" ? "Rejected" : "In Signing",
+    ar: request.status === "approved" ? "معتمد" : request.status === "rejected" ? "مرفوض" : "قيد التوقيع"
+  };
 
   return (
     <div className="relative min-h-[calc(100vh-6rem)] p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
