@@ -422,6 +422,36 @@ router.post(
   },
 );
 
+// GET /api/hosting-requests/history/:clockNumber — Get history of hosting requests for an employee
+router.get(
+  "/hosting-requests/history/:clockNumber",
+  requirePermission("hosting_requests", "view"),
+  async (req, res): Promise<void> => {
+    const user = su(req);
+    try {
+      const { clockNumber } = req.params;
+      if (!clockNumber) {
+        res.status(400).json({ success: false, message: "clockNumber is required" });
+        return;
+      }
+
+      const rowsRes = await pool.query(
+        `SELECT id, request_number as "requestNumber", status, from_date as "fromDate", to_date as "toDate", consumed_days as "consumedDays"
+         FROM public.hosting_requests 
+         WHERE clock_number = $1 AND property_id = $2
+         ORDER BY created_at DESC`,
+        [clockNumber, user.propertyId],
+      );
+
+      res.status(200).json({ success: true, data: rowsRes.rows });
+    } catch (err: unknown) {
+      console.error("ROUTE ERROR:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ success: false, message });
+    }
+  },
+);
+
 // GET /api/hosting-requests — List with pagination & filters
 router.get(
   "/hosting-requests",

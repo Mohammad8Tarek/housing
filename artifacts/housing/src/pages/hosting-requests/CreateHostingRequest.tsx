@@ -18,6 +18,17 @@ import { useLocation } from "wouter";
 import { ArrowLeft, Loader2, Upload, Trash2, Paperclip } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useAuth } from "@/context/AuthContext";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Clock } from "lucide-react";
+
 
 type EmployeeResult = {
   id: number;
@@ -61,6 +72,7 @@ export default function CreateHostingRequest() {
     floor: string;
     isOccupied?: boolean;
     isReserved?: boolean;
+    hasPendingRequest?: boolean;
   } | null>(null);
   const [isSearchingRoom, setIsSearchingRoom] = useState(false);
   const searchRoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -204,6 +216,18 @@ export default function CreateHostingRequest() {
     },
   });
 
+  const { data: hostingHistory, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ["hosting-history", employee?.employeeId],
+    queryFn: async () => {
+      if (!employee?.employeeId) return [];
+      const res = await fetch(`/api/hosting-requests/history/${encodeURIComponent(String(employee.employeeId))}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.data || [];
+    },
+    enabled: !!employee?.employeeId,
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -237,7 +261,7 @@ export default function CreateHostingRequest() {
           <h1 className="text-2xl font-bold text-foreground">
             {ar ? "إنشاء طلب استضافة" : "Create Hosting Request"}
             {employee
-              ? ` - ${employee.firstName} ${employee.lastName} (${employee.jobTitle || ""})`
+              ? ` - ${employee.first_name} ${employee.last_name} (${employee.job_title || ""})`
               : ""}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -332,7 +356,7 @@ export default function CreateHostingRequest() {
                 readOnly
                 className="bg-muted/50"
                 value={
-                  employee ? `${employee.firstName} ${employee.lastName}` : ""
+                  employee ? `${employee.first_name} ${employee.last_name}` : ""
                 }
                 placeholder={ar ? "الاسم" : "Name"}
               />
@@ -351,7 +375,7 @@ export default function CreateHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee?.jobTitle || ""}
+                value={employee?.job_title || ""}
                 placeholder={ar ? "المنصب" : "Position"}
               />
             </div>
@@ -379,7 +403,7 @@ export default function CreateHostingRequest() {
                 readOnly
                 className="bg-muted/50"
                 value={employee?.accommodationRoom || ""}
-                placeholder={ar ? "رقم الغرفة" : "Room Number"}
+                placeholder={ar ? "الغرفة" : "Room"}
               />
             </div>
             <div className="space-y-2">
@@ -388,11 +412,61 @@ export default function CreateHostingRequest() {
                 readOnly
                 className="bg-muted/50"
                 value={employee?.accommodationRoomType || ""}
-                placeholder={ar ? "نوع الغرفة" : "Room Type"}
+                placeholder={ar ? "النوع" : "Type"}
               />
             </div>
           </CardContent>
         </Card>
+
+        {/* Section 2.5: Hosting History */}
+        {employee && (
+          <Card className="border-t-4 border-t-blue-500/20 bg-blue-50/30">
+            <CardHeader className="bg-blue-100/30 pb-4">
+              <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
+                <Clock className="w-5 h-5" />
+                {ar ? "سجلات الاستضافات السابقة" : "Previous Hosting Records"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {isLoadingHistory ? (
+                <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
+              ) : hostingHistory && hostingHistory.length > 0 ? (
+                <div className="rounded-md border bg-card overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>{ar ? "رقم الطلب" : "Request #"}</TableHead>
+                        <TableHead>{ar ? "من" : "From"}</TableHead>
+                        <TableHead>{ar ? "إلى" : "To"}</TableHead>
+                        <TableHead>{ar ? "الأيام" : "Days"}</TableHead>
+                        <TableHead>{ar ? "الحالة" : "Status"}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {hostingHistory.map((h: any) => (
+                        <TableRow key={h.id}>
+                          <TableCell className="font-medium">{h.requestNumber}</TableCell>
+                          <TableCell>{new Date(h.fromDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(h.toDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{h.consumedDays}</TableCell>
+                          <TableCell>
+                            <Badge variant={h.status === "approved" || h.status === "active" ? "default" : "secondary"}>
+                              {h.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {ar ? "لا توجد استضافات سابقة لهذا الموظف" : "No previous hosting records for this employee"}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Section 3: Visit Details */}
         <Card className="border-t-4 border-t-primary/20">
@@ -502,6 +576,13 @@ export default function CreateHostingRequest() {
                     {ar
                       ? "يوجد حجز قادم على هذه الغرفة!"
                       : "Room has an upcoming reservation!"}
+                  </span>
+                )}
+                {assignedRoomInfo?.hasPendingRequest && (
+                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">
+                    {ar
+                      ? "يوجد طلب استضافة قيد المراجعة لهذه الغرفة!"
+                      : "Pending hosting request exists for this room!"}
                   </span>
                 )}
               </div>
@@ -620,7 +701,7 @@ export default function CreateHostingRequest() {
           </Button>
           <Button
             type="submit"
-            disabled={createMutation.isPending || assignedRoomInfo?.isOccupied || assignedRoomInfo?.isReserved}
+            disabled={createMutation.isPending || assignedRoomInfo?.isOccupied || assignedRoomInfo?.isReserved || assignedRoomInfo?.hasPendingRequest}
           >
             {createMutation.isPending ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

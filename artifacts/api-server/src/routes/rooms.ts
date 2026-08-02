@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   db,
+  pool,
   withTenant,
   roomsTable,
   assignmentsTable,
@@ -92,10 +93,20 @@ router.get("/rooms/by-number", async (req, res) => {
         )
         .limit(1);
 
+      // Check if there are any pending or approved hosting requests for this room
+      const pendingHostingRequests = await pool.query(
+        `SELECT id FROM public.hosting_requests 
+         WHERE assigned_room_id = $1 
+         AND status IN ('in_signing', 'approved', 'pending')
+         LIMIT 1`,
+        [room.id]
+      );
+
       return {
         ...room,
         isOccupied: assignmentsList.length > 0 || hostingsList.length > 0,
         isReserved: reservationsList.length > 0,
+        hasPendingRequest: pendingHostingRequests.rows.length > 0,
       };
     });
 

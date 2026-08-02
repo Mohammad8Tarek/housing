@@ -13,6 +13,14 @@ import { useLocation, useRoute } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/use-permission";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   ArrowLeft,
   CheckCircle,
   XCircle,
@@ -198,6 +206,19 @@ export default function HostingRequestDetail() {
     },
     enabled: !!guestHostingId,
     refetchInterval: 30000,
+  });
+
+  const clockNumber = data?.request?.clockNumber;
+  const { data: hostingHistory, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ["hosting-history", clockNumber],
+    queryFn: async () => {
+      if (!clockNumber) return [];
+      const res = await fetch(`/api/hosting-requests/history/${encodeURIComponent(clockNumber)}`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: !!clockNumber,
   });
 
   if (isLoading) {
@@ -462,6 +483,55 @@ export default function HostingRequestDetail() {
                     {ar ? "عرض المرفق" : "View Attachment"}
                   </a>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Hosting History Card */}
+          <Card className="bg-background/60 backdrop-blur-xl border-blue-500/20 shadow-xl overflow-hidden rounded-2xl">
+            <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-blue-500/50 to-transparent" />
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-bold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                <Clock className="w-5 h-5" />
+                {ar ? "سجلات الاستضافات السابقة" : "Previous Hosting Records"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingHistory ? (
+                <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
+              ) : hostingHistory && hostingHistory.length > 0 ? (
+                <div className="rounded-md border bg-card overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>{ar ? "رقم الطلب" : "Request #"}</TableHead>
+                        <TableHead>{ar ? "من" : "From"}</TableHead>
+                        <TableHead>{ar ? "إلى" : "To"}</TableHead>
+                        <TableHead>{ar ? "الأيام" : "Days"}</TableHead>
+                        <TableHead>{ar ? "الحالة" : "Status"}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {hostingHistory.map((h: any) => (
+                        <TableRow key={h.id}>
+                          <TableCell className="font-medium">{h.requestNumber}</TableCell>
+                          <TableCell>{new Date(h.fromDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(h.toDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{h.consumedDays}</TableCell>
+                          <TableCell>
+                            <Badge variant={h.status === "approved" || h.status === "active" ? "default" : "secondary"}>
+                              {h.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {ar ? "لا توجد استضافات سابقة لهذا الموظف" : "No previous hosting records for this employee"}
+                </p>
               )}
             </CardContent>
           </Card>
