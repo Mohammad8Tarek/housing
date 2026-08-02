@@ -43,27 +43,7 @@ loadEnvFile(resolve(__dirname, "..", ".env"));
 loadEnvFile(resolve(__dirname, "..", "..", ".env"));
 loadEnvFile(resolve(__dirname, "..", "..", "..", ".env"));
 
-// Sentry init — dynamic import so the server boots even if profiling-node is missing
-if (process.env.SENTRY_DSN) {
-  try {
-    const Sentry = await import("@sentry/node");
-    let integrations: any[] = [];
-    try {
-      const { nodeProfilingIntegration } = await import("@sentry/profiling-node");
-      integrations = [nodeProfilingIntegration()];
-    } catch {
-      console.warn("[Sentry] @sentry/profiling-node not available, skipping profiling");
-    }
-    Sentry.init({
-      dsn: process.env.SENTRY_DSN,
-      integrations,
-      tracesSampleRate: 1.0,
-      profilesSampleRate: integrations.length > 0 ? 1.0 : 0,
-    });
-  } catch (err: any) {
-    console.warn("[Sentry] Failed to initialize:", err.message);
-  }
-}
+// Sentry init removed to prevent any crash
 
 // ==========================================
 // ✅ ENV VALIDATION
@@ -325,59 +305,17 @@ async function start(): Promise<void> {
     );
   }
 
-  // 3. Multiplexer listens on Railway's injected PORT
-  const muxPort = Number(process.env.PORT || 10005);
+  const httpPort = Number(process.env.PORT || 4000);
 
-  // 1. Bind the HTTP server to a unique internal port to avoid EADDRINUSE or infinite loops
-  let INTERNAL_HTTP_PORT = muxPort === 4001 ? 4002 : 4001;
-  if (INTERNAL_HTTP_PORT === 10006) INTERNAL_HTTP_PORT = 10007; // Avoid PMS port
-
-  server.listen(INTERNAL_HTTP_PORT, "127.0.0.1", () => {
-    logger.info(`Main API HTTP listening locally on ${INTERNAL_HTTP_PORT}`);
-
-    // 2. Start PMS V2.1 Servers (they bind to 10006 locally based on db migration)
-    startAllPmsServers(app);
-
-    const mux = net.createServer((socket) => {
-      socket.once("data", (chunk) => {
-        // PAUSE the socket so we don't lose any further chunks (like HTTP body) before the proxy is ready
-        socket.pause();
-
-        // If it starts with <STX> (0x02), route to PMS Server (10006)
-        // Otherwise, route to HTTP Server (4001)
-        const isPms = chunk[0] === 0x02;
-        const targetPort = isPms ? 10006 : INTERNAL_HTTP_PORT;
-
-        const proxy = net.createConnection(
-          { port: targetPort, host: "127.0.0.1" },
-          () => {
-            proxy.write(chunk);
-            socket.pipe(proxy);
-            proxy.pipe(socket);
-
-            // RESUME the socket now that the pipe is established
-            socket.resume();
-          },
-        );
-
-        proxy.on("error", (err) => {
-          socket.end();
-        });
-        socket.on("error", () => {
-          proxy.end();
-        });
-      });
-    });
-
-    mux.listen(muxPort, "0.0.0.0", () => {
-      logger.info(
-        { port: muxPort },
-        "🚀 Sunrise Housing API Multiplexer is Live",
-      );
-      logger.info(
-        `Multiplexer: listening on ${muxPort}, routing to HTTP (${INTERNAL_HTTP_PORT}) and PMS (10006)`,
-      );
-    });
+  server.listen(httpPort, "0.0.0.0", () => {
+    logger.info(`🚀 Main API HTTP listening on ${httpPort}`);
+    
+    // 2. Start PMS V2.1 Servers (they bind to 10006 locally)
+    try {
+      startAllPmsServers(app);
+    } catch (err) {
+      logger.error({ err }, "Failed to start PMS Servers");
+    }
   });
 }
 

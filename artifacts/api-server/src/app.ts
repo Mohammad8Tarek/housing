@@ -210,17 +210,7 @@ app.use((_req: Request, res: Response) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
-// Sentry Error Handler (Must be before custom global error handler)
-// Use .then() to avoid top-level-await in case esbuild config doesn't support it
-import("@sentry/node")
-  .then((Sentry) => {
-    if (Sentry.setupExpressErrorHandler) {
-      Sentry.setupExpressErrorHandler(app);
-    }
-  })
-  .catch(() => {
-    // Sentry not available, skip
-  });
+// Sentry Error Handler removed to prevent any crash
 
 // 9. الـ Global Error Handler (يجب أن يكون في النهاية)
 app.use(
