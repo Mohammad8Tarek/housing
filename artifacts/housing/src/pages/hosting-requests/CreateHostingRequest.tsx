@@ -618,7 +618,10 @@ export default function CreateHostingRequest() {
           >
             {ar ? "إلغاء" : "Cancel"}
           </Button>
-          <Button type="submit" disabled={createMutation.isPending}>
+          <Button
+            type="submit"
+            disabled={createMutation.isPending || assignedRoomInfo?.isOccupied || assignedRoomInfo?.isReserved}
+          >
             {createMutation.isPending ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : null}

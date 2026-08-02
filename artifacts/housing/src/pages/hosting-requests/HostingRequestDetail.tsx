@@ -397,20 +397,20 @@ export default function HostingRequestDetail() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">{ar ? "اسم الضيف" : "Guest Name"}</span>
-                  <p className="font-semibold text-lg">{request.guestName}</p>
+                  <span className="text-sm text-muted-foreground block">{ar ? "رقم الساعة / اسم الموظف" : "Clock Number / Name"}</span>
+                  <p className="font-semibold text-lg">{request.clockNumber || request.employeeName || "N/A"}</p>
                 </div>
                 <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">{ar ? "العلاقة / الصفة" : "Relation / Role"}</span>
-                  <p className="font-semibold text-lg">{request.relation}</p>
+                  <span className="text-sm text-muted-foreground block">{ar ? "الصلة / الأشخاص" : "Relation / Included"}</span>
+                  <p className="font-semibold text-lg">{request.familyMembersIncluded || "N/A"}</p>
                 </div>
                 <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
                   <span className="text-sm text-muted-foreground block">{ar ? "عدد الضيوف" : "Number of Guests"}</span>
-                  <p className="font-semibold text-lg text-primary">{request.guestsCount}</p>
+                  <p className="font-semibold text-lg text-primary">{request.familyMembersCount}</p>
                 </div>
                 <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">{ar ? "نوع الغرفة المطلوبة" : "Requested Room Type"}</span>
-                  <p className="font-semibold text-lg">{request.requestedRoomType}</p>
+                  <span className="text-sm text-muted-foreground block">{ar ? "عدد الغرف" : "Number of Rooms"}</span>
+                  <p className="font-semibold text-lg">{request.numberOfRooms}</p>
                 </div>
                 
                 {/* Dates */}
@@ -420,28 +420,40 @@ export default function HostingRequestDetail() {
                   </div>
                   <div className="relative">
                     <span className="text-sm text-muted-foreground block mb-1">{ar ? "تاريخ الوصول" : "Expected Check-in"}</span>
-                    <p className="font-bold text-xl">{new Date(request.expectedCheckInDate).toLocaleDateString()}</p>
+                    <p className="font-bold text-xl">{request.fromDate ? new Date(request.fromDate).toLocaleDateString() : "N/A"}</p>
                   </div>
                   <div className="relative">
                     <span className="text-sm text-muted-foreground block mb-1">{ar ? "تاريخ المغادرة" : "Expected Check-out"}</span>
-                    <p className="font-bold text-xl">{new Date(request.expectedCheckOutDate).toLocaleDateString()}</p>
+                    <p className="font-bold text-xl">{request.toDate ? new Date(request.toDate).toLocaleDateString() : "N/A"}</p>
+                  </div>
+                </div>
+
+                {/* Additional Info */}
+                <div className="sm:col-span-2 grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                    <span className="text-sm text-muted-foreground block">{ar ? "الأيام المستهلكة" : "Consumed Days"}</span>
+                    <p className="font-semibold text-lg">{request.consumedDays ?? "0"}</p>
+                  </div>
+                  <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                    <span className="text-sm text-muted-foreground block">{ar ? "الغرفة المعينة" : "Assigned Room"}</span>
+                    <p className="font-semibold text-lg text-primary">{request.assignedRoomNumber || (ar ? "لم يتم التعيين" : "Not Assigned")}</p>
                   </div>
                 </div>
               </div>
 
-              {request.reason && (
+              {request.remarks && (
                 <div className="mt-6 space-y-2">
-                  <span className="text-sm font-medium text-muted-foreground">{ar ? "سبب الزيارة" : "Reason for Visit"}</span>
+                  <span className="text-sm font-medium text-muted-foreground">{ar ? "ملاحظات / سبب الزيارة" : "Remarks / Reason"}</span>
                   <div className="p-4 rounded-xl bg-muted/30 border border-white/5 leading-relaxed">
-                    {request.reason}
+                    {request.remarks}
                   </div>
                 </div>
               )}
 
-              {request.attachmentUrl && (
+              {request.attachmentData && (
                 <div className="mt-6">
                   <a
-                    href={request.attachmentUrl}
+                    href={request.attachmentData}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium text-sm border border-primary/20"
