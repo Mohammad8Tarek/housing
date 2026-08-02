@@ -157,7 +157,7 @@ if (sessionStoreType === "postgresql") {
     sessionStore = new PgSessionStore({
       pool,
       tableName: process.env["SESSION_TABLE"] ?? "user_sessions",
-      createTableIfMissing: true,
+      createTableIfMissing: false,
       pruneSessionInterval: 15 * 60,
       ttl: SESSION_TIMEOUT_MS / 1000,
       disableTouch: false,
