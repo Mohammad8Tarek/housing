@@ -388,7 +388,7 @@ export default function HostingRequestDetail() {
             <div className={`w-2 h-2 rounded-full ${request.status === 'approved' ? 'bg-emerald-500 animate-pulse' : request.status === 'rejected' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></div>
             <StatusBadge label={ar ? mainStatusLabel.ar : mainStatusLabel.en} variant={mainStatusVariant} />
           </div>
-          {canDelete && request.status === "in_signing" && (
+          {canDelete("hosting_requests") && request.status === "in_signing" && (
             <Button
               variant="destructive"
               size="sm"

@@ -26,6 +26,8 @@ export const employeePortalAccountsTable = pgTable("employee_portal_accounts", {
   isActive: boolean("is_active").notNull().default(true),
   failedAttempts: integer("failed_attempts").notNull().default(0),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  resetFailedAttempts: integer("reset_failed_attempts").notNull().default(0),
+  resetLockedUntil: timestamp("reset_locked_until", { withTimezone: true }),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -45,3 +47,24 @@ export type InsertEmployeePortalAccount = z.infer<
 >;
 export type EmployeePortalAccount =
   typeof employeePortalAccountsTable.$inferSelect;
+
+export const passwordResetTokensTable = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  employeeId: text("employee_id").notNull(),
+  propertyId: integer("property_id").notNull(),
+  tokenHash: text("token_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const insertPasswordResetTokenSchema = createInsertSchema(
+  passwordResetTokensTable,
+).omit({ id: true, createdAt: true });
+
+export type InsertPasswordResetToken = z.infer<
+  typeof insertPasswordResetTokenSchema
+>;
+export type PasswordResetToken = typeof passwordResetTokensTable.$inferSelect;

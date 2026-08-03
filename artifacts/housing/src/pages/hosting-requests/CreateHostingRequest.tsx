@@ -33,10 +33,13 @@ import { Clock } from "lucide-react";
 type EmployeeResult = {
   id: number;
   employeeId: string;
-  firstName: string;
-  lastName: string;
-  jobTitle: string | null;
-  department: string | null;
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  jobTitle?: string | null;
+  job_title?: string | null;
+  department?: string | null;
   accommodationRoom?: string | null;
   accommodationRoomType?: string | null;
   accommodationBuilding?: string | null;
