@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, maintenanceTable, roomsTable } from "@workspace/db";
+import { db, maintenanceTable, roomsTable, withTenant } from "@workspace/db";
 import { eq, and, SQL } from "drizzle-orm";
 import {
   CreateMaintenanceBody,
@@ -10,22 +10,10 @@ import {
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
+import { requirePermission } from "../middlewares/permissions.js";
+import { getTenantId, su } from "../lib/request-utils.js";
 
 const router: Router = Router();
-
-async function getPropertyIdForRoom(
-  roomId: number,
-): Promise<number | undefined> {
-  const [room] = await db
-    .select({ buildingId: roomsTable.buildingId })
-    .from(roomsTable)
-    .where(eq(roomsTable.id, roomId))
-    .limit(1);
-
-  if (!room?.buildingId) return undefined;
-
-  return room.buildingId;
-}
 
 /**
  * استخلاص بيانات الجلسة بأمان للنشاط (Activity Log)
@@ -40,25 +28,20 @@ function session(req: any) {
 
 /**
  * ✅ Safe Formatter (fmt)
- * وظيفة التنسيق دي بتحمي السيرفر من خطأ value.toISOString is not a function
- * لأنها بتفحص القيمة لو null أو غير صالحة قبل التحويل.
  */
 function fmt(r: any) {
   if (!r) return null;
 
   const safeISO = (val: any) => {
-    if (!val) return null; // لو القيمة null أو undefined لا يتم استدعاء toISOString
-    // إذا كانت بالفعل Date object
+    if (!val) return null;
     if (val instanceof Date) {
       return typeof val.toISOString === "function"
         ? val.toISOString()
         : String(val);
     }
-    // إذا كانت string بالفعل، تحقق إذا كانت صيغة ISO
     if (typeof val === "string") {
-      return val; // أرجع كما هي إذا كانت string
+      return val;
     }
-    // في حالات أخرى، حاول تحويلها
     try {
       const d = new Date(val);
       return isNaN(d.getTime()) ? val : d.toISOString();
@@ -73,49 +56,71 @@ function fmt(r: any) {
     startedAt: safeISO(r.startedAt),
     resolvedAt: safeISO(r.resolvedAt),
     createdAt: safeISO(r.createdAt),
-    dueDate: safeISO(r.dueDate), // الحقل ده كان مسبب المشكلة في الـ 500
+    dueDate: safeISO(r.dueDate),
   };
 }
 
 // 1. جلب قائمة البلاغات مع الفلترة
-router.get("/maintenance", async (req, res, next) => {
-  try {
-    const q = ListMaintenanceQueryParams.safeParse(req.query);
-    const conditions: SQL[] = [];
-    if (q.success) {
-      if (q.data.status)
-        conditions.push(eq(maintenanceTable.status, q.data.status));
-      if (q.data.priority)
-        conditions.push(eq(maintenanceTable.priority, q.data.priority));
-    }
-    const rows = await db
-      .select()
-      .from(maintenanceTable)
-      .where(conditions.length ? and(...conditions) : undefined);
+router.get(
+  "/maintenance",
+  requirePermission("maintenance", "view"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-    res.json(rows.map(fmt));
-  } catch (err) {
-    next(err);
-  }
-});
+      const q = ListMaintenanceQueryParams.safeParse(req.query);
+      const conditions: SQL[] = [];
+      if (q.success) {
+        if (q.data.status)
+          conditions.push(eq(maintenanceTable.status, q.data.status));
+        if (q.data.priority)
+          conditions.push(eq(maintenanceTable.priority, q.data.priority));
+      }
+
+      const rows = await withTenant(propertyId, async (tenantDb) => {
+        return tenantDb
+          .select()
+          .from(maintenanceTable)
+          .where(conditions.length ? and(...conditions) : undefined);
+      });
+
+      res.json(rows.map(fmt));
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // 2. إنشاء بلاغ صيانة جديد
-router.post("/maintenance", async (req, res, next) => {
-  try {
-    const parsed = CreateMaintenanceBody.safeParse(req.body);
-    if (!parsed.success)
-      return res
-        .status(400)
-        .json({ success: false, message: parsed.error.message });
+router.post(
+  "/maintenance",
+  requirePermission("maintenance", "create"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-    const [record] = await db
-      .insert(maintenanceTable)
-      .values({ ...parsed.data, status: "open" } as any)
-      .returning();
+      const parsed = CreateMaintenanceBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ success: false, message: parsed.error.message });
+        return;
+      }
 
-    const s = session(req);
-    const propertyId = await getPropertyIdForRoom(record.roomId);
-    if (propertyId !== undefined) {
+      const [record] = await withTenant(propertyId, async (tenantDb) => {
+        return tenantDb
+          .insert(maintenanceTable)
+          .values({ ...parsed.data, status: "open" } as any)
+          .returning();
+      });
+
+      const s = session(req);
       logActivity({
         req,
         propertyId,
@@ -129,41 +134,51 @@ router.post("/maintenance", async (req, res, next) => {
         entityId: record.id,
       });
 
-      // تحديث المتصفحات المتصلة فوراً عبر WebSocket
       broadcastToProperty(propertyId, {
         module: "maintenance",
         action: "sync",
       });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+
+      return res.status(201).json(fmt(record));
+    } catch (err) {
+      return next(err);
     }
+  },
+);
 
-    return res.status(201).json(fmt(record));
-  } catch (err) {
-    return next(err);
-  }
-});
+// 3. تحديث بلاغ موجود
+router.patch(
+  "/maintenance/:id",
+  requirePermission("maintenance", "update"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-// 3. تحديث بلاغ موجود (مثل تغيير الحالة لـ resolved)
-router.patch("/maintenance/:id", async (req, res, next) => {
-  try {
-    const p = UpdateMaintenanceParams.safeParse(req.params);
-    if (!p.success)
-      return res.status(400).json({ success: false, message: p.error.message });
+      const p = UpdateMaintenanceParams.safeParse(req.params);
+      if (!p.success) {
+        res.status(400).json({ success: false, message: p.error.message });
+        return;
+      }
 
-    const [updated] = await db
-      .update(maintenanceTable)
-      .set(req.body as any)
-      .where(eq(maintenanceTable.id, p.data.id))
-      .returning();
+      const [updated] = await withTenant(propertyId, async (tenantDb) => {
+        return tenantDb
+          .update(maintenanceTable)
+          .set(req.body as any)
+          .where(eq(maintenanceTable.id, p.data.id))
+          .returning();
+      });
 
-    if (!updated)
-      return res
-        .status(404)
-        .json({ success: false, message: "البلاغ غير موجود" });
+      if (!updated) {
+        res.status(404).json({ success: false, message: "البلاغ غير موجود" });
+        return;
+      }
 
-    const s = session(req);
-    const propertyId = await getPropertyIdForRoom(updated.roomId);
-    if (propertyId !== undefined) {
+      const s = session(req);
       logActivity({
         req,
         propertyId,
@@ -182,35 +197,51 @@ router.patch("/maintenance/:id", async (req, res, next) => {
         action: "sync",
       });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
-    }
 
-    return res.json(fmt(updated));
-  } catch (err) {
-    return next(err);
-  }
-});
+      return res.json(fmt(updated));
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
 // 4. حذف بلاغ صيانة
-router.delete("/maintenance/:id", async (req, res, next) => {
-  try {
-    const p = DeleteMaintenanceParams.safeParse(req.params);
-    if (!p.success)
-      return res.status(400).json({ success: false, message: p.error.message });
+router.delete(
+  "/maintenance/:id",
+  requirePermission("maintenance", "delete"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-    const [row] = await db
-      .select()
-      .from(maintenanceTable)
-      .where(eq(maintenanceTable.id, p.data.id));
-    if (!row)
-      return res
-        .status(404)
-        .json({ success: false, message: "البلاغ غير موجود" });
+      const p = DeleteMaintenanceParams.safeParse(req.params);
+      if (!p.success) {
+        res.status(400).json({ success: false, message: p.error.message });
+        return;
+      }
 
-    await db.delete(maintenanceTable).where(eq(maintenanceTable.id, p.data.id));
+      const row = await withTenant(propertyId, async (tenantDb) => {
+        const [existing] = await tenantDb
+          .select()
+          .from(maintenanceTable)
+          .where(eq(maintenanceTable.id, p.data.id));
+        if (existing) {
+          await tenantDb
+            .delete(maintenanceTable)
+            .where(eq(maintenanceTable.id, p.data.id));
+        }
+        return existing;
+      });
 
-    const s = session(req);
-    const propertyId = await getPropertyIdForRoom(row.roomId);
-    if (propertyId !== undefined) {
+      if (!row) {
+        res.status(404).json({ success: false, message: "البلاغ غير موجود" });
+        return;
+      }
+
+      const s = session(req);
       logActivity({
         req,
         propertyId,
@@ -229,12 +260,12 @@ router.delete("/maintenance/:id", async (req, res, next) => {
         action: "sync",
       });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
-    }
 
-    return res.sendStatus(204);
-  } catch (err) {
-    return next(err);
-  }
-});
+      return res.sendStatus(204);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
 export default router;
