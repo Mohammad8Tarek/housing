@@ -208,7 +208,7 @@ export default function HostingRequestDetail() {
     refetchInterval: 30000,
   });
 
-  const clockNumber = data?.request?.clockNumber;
+  const clockNumber = data?.clockNumber;
   const { data: hostingHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ["hosting-history", clockNumber],
     queryFn: async () => {
@@ -222,6 +222,27 @@ export default function HostingRequestDetail() {
     },
     enabled: !!clockNumber,
   });
+
+  // Fetch employee details (including photo) by clock number
+  const { data: employeeData } = useQuery({
+    queryKey: ["employee-photo", clockNumber, data?.propertyId],
+    queryFn: async () => {
+      if (!clockNumber) return null;
+      const propId = data?.propertyId || "";
+      const res = await fetch(
+        `/api/employees/search?q=${encodeURIComponent(clockNumber)}&propertyId=${propId}`,
+      );
+      if (!res.ok) return null;
+      const arr = await res.json();
+      if (!Array.isArray(arr) || arr.length === 0) return null;
+      const exact = arr.find((e: any) => String(e.employeeId) === String(clockNumber));
+      return exact || arr[0];
+    },
+    enabled: !!clockNumber && !!data?.propertyId,
+    staleTime: 5 * 60 * 1000, // cache for 5 min
+  });
+
+  const employeePhotoUrl = employeeData?.photoUrl || employeeData?.photo_url || null;
 
   if (isLoading) {
     return (
@@ -452,9 +473,26 @@ export default function HostingRequestDetail() {
                 <div className="absolute right-0 top-0 opacity-[0.03]">
                   <Users className="w-40 h-40 -mt-6 -mr-6" />
                 </div>
-                {/* Avatar */}
+                {/* Avatar / Photo */}
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-primary/20">
+                  {employeePhotoUrl ? (
+                    <img
+                      src={employeePhotoUrl}
+                      alt={request.employeeName || "Employee"}
+                      className="w-16 h-16 rounded-2xl object-cover shadow-lg shadow-primary/20 border-2 border-primary/20"
+                      onError={(e) => {
+                        // Fall back to initials if image fails to load
+                        const target = e.currentTarget;
+                        target.style.display = "none";
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = "flex";
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 items-center justify-center text-white text-2xl font-bold shadow-lg shadow-primary/20"
+                    style={{ display: employeePhotoUrl ? "none" : "flex" }}
+                  >
                     {(request.employeeName ?? "?").charAt(0).toUpperCase()}
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-background flex items-center justify-center">
