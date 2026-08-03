@@ -201,14 +201,9 @@ router.post(
           email: userData.email || null,
           phone: userData.phone || null,
           permissions: userData.permissions ?? [],
+          propertyIds: pids,
         })
         .returning();
-
-      if (pids.length > 0) {
-        await tx.execute(
-          sql`UPDATE users SET property_ids = ${pids}::int[] WHERE id = ${created.id}`,
-        );
-      }
 
       return [created];
     });
