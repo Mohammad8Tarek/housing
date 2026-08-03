@@ -994,6 +994,21 @@ const TENANT_MIGRATIONS = [
     name: "user_sessions_expire_index",
     q: `CREATE INDEX IF NOT EXISTS idx_user_sessions_expire ON user_sessions ("expire")`,
   },
+  // === Fix existing duplicate portal accounts (keep most recent per employee_id) ===
+  {
+    name: "employee_portal_accounts.dedup_keep_latest",
+    q: `DELETE FROM employee_portal_accounts
+    WHERE id NOT IN (
+      SELECT DISTINCT ON (employee_id) id
+      FROM employee_portal_accounts
+      ORDER BY employee_id, id DESC
+    )`,
+  },
+  // === Add unique constraint on employee_portal_accounts.employee_id ===
+  {
+    name: "employee_portal_accounts.unique_employee_id",
+    q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_portal_accounts_employee_id ON employee_portal_accounts (employee_id)",
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {

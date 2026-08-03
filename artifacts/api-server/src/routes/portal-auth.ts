@@ -156,12 +156,14 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
               .where(eq(employeesTable.employeeId, employeeId.trim()))
               .limit(1);
             if (!emp) return null;
+            // ✅ Always pick the most recent account (DESC) to avoid stale duplicates
             const [acc] = await tenantDb
               .select()
               .from(employeePortalAccountsTable)
               .where(
                 eq(employeePortalAccountsTable.employeeId, employeeId.trim()),
               )
+              .orderBy(sql`id DESC`)
               .limit(1);
             return { emp, acc, propertyId: p.id };
           });
