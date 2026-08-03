@@ -288,13 +288,13 @@ async function start(): Promise<void> {
       await Promise.race([
         runMigrations(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Migrations timeout")), 15000),
+          setTimeout(() => reject(new Error("Migrations timeout")), 60000),
         ),
       ]);
       await Promise.race([
         runAutoSeeder(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Seeder timeout")), 15000),
+          setTimeout(() => reject(new Error("Seeder timeout")), 60000),
         ),
       ]);
     }

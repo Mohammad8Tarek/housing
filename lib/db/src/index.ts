@@ -48,7 +48,7 @@ if (!globalThis.__sunrise_pg_pool__) {
     connectionString: DATABASE_URL,
     ssl: isLocalhost ? false : { rejectUnauthorized: false },
     max: 50, // 🚀 OPTIMIZATION: Increased from 20 to handle 1000+ concurrent users
-    min: 10, // Maintain minimum connections ready
+    min: 2, // Maintain minimum connections ready
     idleTimeoutMillis: 30_000, // release idle connections after 30s
     connectionTimeoutMillis: 10_000, // fail after 10s if DB unreachable
     allowExitOnIdle: false,
