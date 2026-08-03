@@ -1797,6 +1797,8 @@ components:
           type: string
         gender:
           type: string
+        dateOfBirth:
+          type: string
         idImage:
           type: ["string", "null"]
 
