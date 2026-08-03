@@ -75,6 +75,15 @@ import { PortalDocsSection } from "./components/PortalDocsSection";
 export function PortalPage() {
   const { language } = useLanguage();
   const ar = language === "ar";
+  const [activeTab, setActiveTab] = useState("analytics");
+  const [reportType, setReportType] = useState<string | undefined>(undefined);
+
+  // Called from ActivitiesSection to jump to Reports tab pre-set to activities
+  const handleViewActivityReport = () => {
+    setReportType("activities");
+    setActiveTab("reports");
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+  };
 
   return (
     <div className="space-y-6">
@@ -88,7 +97,7 @@ export function PortalPage() {
             : "Manage evaluations, activities, portal documents, contacts, analytics, and scheduling"}
         </p>
       </div>
-      <Tabs defaultValue="analytics" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full md:w-auto flex gap-2 whitespace-nowrap mb-8 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
           <TabsTrigger
             value="analytics"
@@ -158,7 +167,7 @@ export function PortalPage() {
           value="analytics"
           className="animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
-          <PortalAnalyticsDashboard />
+          <PortalAnalyticsDashboard onViewReports={() => { setReportType(undefined); setActiveTab("reports"); }} />
         </TabsContent>
 
         <TabsContent
@@ -178,7 +187,7 @@ export function PortalPage() {
         >
           <Card>
             <CardContent className="pt-6">
-              <EvaluationsSection />
+              <EvaluationsSection onViewReport={() => { setReportType("evaluations"); setActiveTab("reports"); }} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -187,7 +196,7 @@ export function PortalPage() {
           value="activities"
           className="animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
-          <ActivitiesSection />
+          <ActivitiesSection onViewReport={handleViewActivityReport} />
         </TabsContent>
 
         <TabsContent
@@ -216,7 +225,7 @@ export function PortalPage() {
           value="reports"
           className="animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
-          <PortalReports />
+          <PortalReports defaultType={reportType} key={reportType} />
         </TabsContent>
 
         <TabsContent
@@ -255,3 +264,4 @@ export function PortalPage() {
     </div>
   );
 }
+

@@ -68,7 +68,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-export function ActivitiesSection() {
+export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void } = {}) {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -279,10 +279,18 @@ export function ActivitiesSection() {
               : "Organize social and recreational events"}
           </p>
         </div>
-        <Button size="sm" onClick={() => setIsOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />{" "}
-          {ar ? "إضافة فعالية" : "Add Activity"}
-        </Button>
+        <div className="flex gap-2">
+          {onViewReport && (
+            <Button size="sm" variant="outline" onClick={onViewReport}>
+              <BarChart3 className="w-4 h-4 mr-2" />
+              {ar ? "تقرير الفعاليات" : "Activities Report"}
+            </Button>
+          )}
+          <Button size="sm" onClick={() => setIsOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />{" "}
+            {ar ? "إضافة فعالية" : "Add Activity"}
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -350,20 +358,44 @@ export function ActivitiesSection() {
                   {ar ? act.titleAr : act.titleEn}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {ar ? act.descriptionAr : act.descriptionEn}
-                </p>
-                <div className="flex flex-col gap-1.5 pt-2 border-t text-[11px]">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-3 h-3" /> {act.startDate}
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {ar ? act.descriptionAr : act.descriptionEn}
+                  </p>
+                  <div className="flex flex-col gap-1.5 pt-2 border-t text-[11px]">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="w-3 h-3" /> {act.startDate}
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="w-3 h-3" />{" "}
+                      {ar ? act.locationAr : act.locationEn}
+                    </div>
+                    {/* Registration stats */}
+                    {act.maxParticipants && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Users className="w-3 h-3 text-primary" />
+                        <span className="text-muted-foreground">
+                          {ar ? "السعة القصوى:" : "Capacity:"}
+                        </span>
+                        <span className="font-semibold text-foreground">{act.maxParticipants}</span>
+                      </div>
+                    )}
+                    {act.registrationCount !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-emerald-500" />
+                        <span className="text-muted-foreground">
+                          {ar ? "المسجلون:" : "Registered:"}
+                        </span>
+                        <span className="font-semibold text-emerald-600">{act.registrationCount}</span>
+                        {act.maxParticipants > 0 && (
+                          <span className="text-muted-foreground">
+                            ({Math.round((act.registrationCount / act.maxParticipants) * 100)}%)
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="w-3 h-3" />{" "}
-                    {ar ? act.locationAr : act.locationEn}
-                  </div>
-                </div>
-              </CardContent>
+                </CardContent>
             </Card>
           ))}
           {activities?.length === 0 && (

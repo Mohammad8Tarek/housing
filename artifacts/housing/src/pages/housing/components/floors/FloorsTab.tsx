@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ export function FloorsTab({
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
+  const queryClient = useQueryClient();
 
   const createFloorMut = useCreateFloor();
   const updateFloorMut = useUpdateFloor();
@@ -99,6 +101,7 @@ export function FloorsTab({
         await createFloorMut.mutateAsync({ data: { ...fForm, propertyId } });
         toast.success(ar ? "تم إضافة الطابق بنجاح" : "Floor added");
       }
+      queryClient.invalidateQueries();
       setFloorModal(false);
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ" : "Failed to save"));
@@ -111,6 +114,7 @@ export function FloorsTab({
       await deleteFloorMut.mutateAsync(deleteFloor.id);
       toast.success(ar ? "تم حذف الطابق بنجاح" : "Floor deleted");
       setDeleteFloor(null);
+      queryClient.invalidateQueries();
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ" : "Failed to delete"));
     }

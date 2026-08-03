@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
@@ -38,6 +39,7 @@ export function RoomsTab({
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
+  const queryClient = useQueryClient();
 
   const createRoomMut = useCreateRoom();
   const updateRoomMut = useUpdateRoom();
@@ -123,6 +125,7 @@ export function RoomsTab({
         await createRoomMut.mutateAsync({ data: dataToSave });
         toast.success(ar ? "تم إضافة الغرفة بنجاح" : "Room added");
       }
+      queryClient.invalidateQueries();
       setRoomModal(false);
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ" : "Failed to save"));
@@ -135,6 +138,7 @@ export function RoomsTab({
       await deleteRoomMut.mutateAsync(deleteRoom.id);
       toast.success(ar ? "تم حذف الغرفة بنجاح" : "Room deleted");
       setDeleteRoom(null);
+      queryClient.invalidateQueries();
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ" : "Failed to delete"));
     }

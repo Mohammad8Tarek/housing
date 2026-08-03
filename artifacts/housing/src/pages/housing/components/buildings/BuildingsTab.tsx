@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   Building2,
@@ -95,6 +96,7 @@ export function BuildingsTab({
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
+  const queryClient = useQueryClient();
 
   const createBuildingMut = useCreateBuilding();
   const updateBuildingMut = useUpdateBuilding();
@@ -202,6 +204,7 @@ export function BuildingsTab({
           },
         });
         toast.success(ar ? "تم تحديث المبنى بنجاح" : "Building updated");
+        queryClient.invalidateQueries();
         setBuildingModal(false);
       } else {
         if (smartMode) {
@@ -261,6 +264,7 @@ export function BuildingsTab({
               ? `تم إنشاء المبنى و ${smartTotalRooms} غرفة`
               : `Building and ${smartTotalRooms} rooms created`,
           );
+          queryClient.invalidateQueries();
           setIsBuildingGenerating(false);
           setBuildingModal(false);
         } else {
@@ -270,6 +274,7 @@ export function BuildingsTab({
             propertyId,
           });
           toast.success(ar ? "تم إضافة المبنى بنجاح" : "Building added");
+          queryClient.invalidateQueries();
           setBuildingModal(false);
         }
       }
@@ -286,6 +291,7 @@ export function BuildingsTab({
       await deleteBuildingMut.mutateAsync(deleteBuilding.id);
       toast.success(ar ? "تم حذف المبنى بنجاح" : "Building deleted");
       setDeleteBuilding(null);
+      queryClient.invalidateQueries();
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ" : "Failed to delete"));
     }

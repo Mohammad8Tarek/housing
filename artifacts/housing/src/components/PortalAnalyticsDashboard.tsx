@@ -34,10 +34,11 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-export default function PortalAnalyticsDashboard() {
+export default function PortalAnalyticsDashboard({ onViewReports }: { onViewReports?: () => void } = {}) {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
+  const [days, setDays] = useState(30);
 
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["portal-analytics", activePropertyId],
@@ -53,10 +54,10 @@ export default function PortalAnalyticsDashboard() {
   });
 
   const { data: trends } = useQuery({
-    queryKey: ["portal-trends", activePropertyId],
+    queryKey: ["portal-trends", activePropertyId, days],
     queryFn: async () => {
       const res = await fetch(
-        `/api/portal-analytics/trends?propertyId=${activePropertyId}&days=30`,
+        `/api/portal-analytics/trends?propertyId=${activePropertyId}&days=${days}`,
         { credentials: "include" },
       );
       if (!res.ok) throw new Error("Failed to fetch trends");
@@ -69,19 +70,51 @@ export default function PortalAnalyticsDashboard() {
 
   const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 
+  const periodOptions = [
+    { value: 7,   label: ar ? "آخر 7 أيام"  : "Last 7 days" },
+    { value: 30,  label: ar ? "آخر 30 يوم"  : "Last 30 days" },
+    { value: 90,  label: ar ? "آخر 90 يوم"  : "Last 90 days" },
+    { value: 180, label: ar ? "آخر 6 أشهر"  : "Last 6 months" },
+    { value: 365, label: ar ? "هذه السنة"   : "This year" },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <TrendingUp className="w-6 h-6 text-primary" />
-          {ar ? "تحليلات البوابة" : "Portal Analytics"}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {ar
-            ? "مراقبة أداء ومشاركة محتوى البوابة"
-            : "Monitor portal content performance and engagement"}
-        </p>
+      {/* Header + controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-primary" />
+            {ar ? "تحليلات البوابة" : "Portal Analytics"}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {ar
+              ? "مراقبة أداء ومشاركة محتوى البوابة"
+              : "Monitor portal content performance and engagement"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Period filter */}
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="text-sm border rounded-lg px-3 py-1.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            {periodOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          {/* View full reports shortcut */}
+          {onViewReports && (
+            <button
+              onClick={onViewReports}
+              className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
+            >
+              <MessageSquare className="w-4 h-4" />
+              {ar ? "التقارير الكاملة" : "Full Reports"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Key Metrics */}
@@ -244,18 +277,22 @@ export default function PortalAnalyticsDashboard() {
           </CardContent>
         </Card>
 
-        {/* Trends */}
+        {/* Trends — filtered by selected period */}
         {trends && (
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle className="text-base">
-                {ar ? "الاتجاهات (آخر 30 يوم)" : "Trends (Last 30 Days)"}
-              </CardTitle>
-              <CardDescription>
-                {ar
-                  ? "نشاط الاستبيانات والفعاليات"
-                  : "Evaluation and activity activity"}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">
+                    {ar ? `الاتجاهات (آخر ${days} يوم)` : `Trends (Last ${days} Days)`}
+                  </CardTitle>
+                  <CardDescription>
+                    {ar
+                      ? "نشاط الاستبيانات والفعاليات"
+                      : "Evaluation and activity activity"}
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -290,3 +327,5 @@ export default function PortalAnalyticsDashboard() {
     </div>
   );
 }
+
+

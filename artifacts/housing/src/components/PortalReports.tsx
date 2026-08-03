@@ -126,21 +126,21 @@ function KPICard({
 // ═══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
-export default function PortalReports() {
+export default function PortalReports({ defaultType }: { defaultType?: string } = {}) {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
 
   const [reportConfig, setReportConfig] = useState({
-    type: "evaluations",
+    type: defaultType || "evaluations",
     format: "excel",
     dateFrom: "",
     dateTo: "",
     department: "all",
     modules: ["evaluations", "activities"],
   });
-  const [quickPeriod, setQuickPeriod] = useState("");
+  const [quickPeriod, setQuickPeriod] = useState("last_30");
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
