@@ -381,6 +381,7 @@ export const ListEmployeesResponseItem = zod.object({
   status: zod.string(),
   hireDate: zod.string(),
   gender: zod.string(),
+  dateOfBirth: zod.string().optional(),
   idImage: zod.string().nullish(),
 });
 export const ListEmployeesResponse = zod.array(ListEmployeesResponseItem);
@@ -403,6 +404,7 @@ export const CreateEmployeeBody = zod.object({
   status: zod.string().optional(),
   hireDate: zod.string(),
   gender: zod.string(),
+  dateOfBirth: zod.string().optional(),
   idImage: zod.string().nullish(),
 });
 
@@ -429,6 +431,7 @@ export const GetEmployeeResponse = zod.object({
   status: zod.string(),
   hireDate: zod.string(),
   gender: zod.string(),
+  dateOfBirth: zod.string().optional(),
   idImage: zod.string().nullish(),
 });
 
@@ -470,6 +473,7 @@ export const UpdateEmployeeResponse = zod.object({
   status: zod.string(),
   hireDate: zod.string(),
   gender: zod.string(),
+  dateOfBirth: zod.string().optional(),
   idImage: zod.string().nullish(),
 });
 

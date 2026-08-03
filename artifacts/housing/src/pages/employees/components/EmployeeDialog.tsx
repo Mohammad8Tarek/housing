@@ -337,6 +337,13 @@ export function EmployeeDialog({
                 <p className="text-xs text-destructive">{errors.hireDate}</p>
               )}
             </FormRow>
+            <FormRow label={ar ? "تاريخ الميلاد" : "Date of Birth"}>
+              <Input
+                type="date"
+                value={form.dateOfBirth}
+                onChange={(e) => set("dateOfBirth", e.target.value)}
+              />
+            </FormRow>
             <FormRow label={ar ? "الحالة" : "Status"}>
               <Select
                 value={form.status}

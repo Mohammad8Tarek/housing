@@ -116,6 +116,7 @@ export function EditEmployeeDialog({
     nationalId: employee.nationalId ?? "",
     nationality: employee.nationality ?? "",
     gender: employee.gender ?? "M",
+    dateOfBirth: employee.dateOfBirth ?? "",
     department: employee.department ?? "",
     jobTitle: employee.jobTitle ?? "",
     level: employee.level ?? "",
@@ -322,6 +323,13 @@ export function EditEmployeeDialog({
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                </FormRow>
+                <FormRow label={ar ? "تاريخ الميلاد" : "Date of Birth"}>
+                  <Input
+                    type="date"
+                    value={form.dateOfBirth}
+                    onChange={(e) => set("dateOfBirth", e.target.value)}
+                  />
                 </FormRow>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -12,6 +12,7 @@ export type EmployeeForm = {
   jobTitle: string;
   level: string;
   status: string;
+  dateOfBirth: string;
 };
 
 export const EMPTY_FORM: EmployeeForm = {
@@ -28,6 +29,7 @@ export const EMPTY_FORM: EmployeeForm = {
   jobTitle: "",
   level: "",
   status: "ACTIVE",
+  dateOfBirth: "",
 };
 
 export type EditEmpForm = {
@@ -42,4 +44,5 @@ export type EditEmpForm = {
   jobTitle: string;
   level: string;
   status: string;
+  dateOfBirth: string;
 };
