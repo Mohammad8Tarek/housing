@@ -150,7 +150,7 @@ router.post(
 // 3. تحديث بلاغ موجود
 router.patch(
   "/maintenance/:id",
-  requirePermission("maintenance", "update"),
+  requirePermission("maintenance", "edit"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
