@@ -107,7 +107,9 @@ app.get("/api/healthz", async (_req, res) => {
     await pool.query("SELECT 1");
     res.json({ status: "ok" });
   } catch {
-    res.status(503).json({ status: "error", message: "Database unreachable" });
+    // Railway healthchecks will kill the container if we return 503.
+    // If the DB is temporarily unreachable due to internal DNS delays, we want to stay alive.
+    res.status(200).json({ status: "error", message: "Database temporarily unreachable" });
   }
 });
 
