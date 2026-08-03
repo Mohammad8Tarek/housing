@@ -172,23 +172,15 @@ export default function Login() {
   };
 
   const handleSupportAction = (type: "password" | "access") => {
+    if (type === "password") {
+      setLocation("/forgot-password");
+      return;
+    }
     const email = "hr-support@sunrise-resorts.com";
-    const subject =
-      type === "password"
-        ? isRtl
-          ? "طلب إعادة تعيين كلمة المرور"
-          : "Password reset request"
-        : isRtl
-          ? "طلب دخول للبوابة"
-          : "Portal access request";
-    const body =
-      type === "password"
-        ? isRtl
-          ? "أرغب في إعادة تعيين كلمة المرور الخاصة بي للبوابة."
-          : "I would like to reset my portal password."
-        : isRtl
-          ? "أرغب في الحصول على صلاحيات الوصول إلى البوابة."
-          : "I would like to request access to the portal.";
+    const subject = isRtl ? "طلب دخول للبوابة" : "Portal access request";
+    const body = isRtl
+      ? "أرغب في الحصول على صلاحيات الوصول إلى البوابة."
+      : "I would like to request access to the portal.";
     window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 

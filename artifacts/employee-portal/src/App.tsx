@@ -9,6 +9,7 @@ import { AppToaster } from "./components/AppToaster";
 import { PageTransition } from "./components/PageTransition";
 import { usePrefersReducedMotion } from "./hooks/useReducedMotion";
 import Login from "./pages/login";
+import ForgotPassword from "./pages/forgot-password";
 import Dashboard from "./pages/dashboard";
 import ChangePassword from "./pages/change-password";
 import RequestDetails from "./pages/request-details";
@@ -95,6 +96,7 @@ function AnimatedRoutes() {
       <PageTransition key={routeSlug} pageKey={routeSlug}>
         <Switch location={location}>
           <Route path="/login" component={Login} />
+          <Route path="/forgot-password" component={ForgotPassword} />
           <Route path="/change-password" component={ChangePassword} />
           <Route path="/dashboard">
             <AuthGuard>
