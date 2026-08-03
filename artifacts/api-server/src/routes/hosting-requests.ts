@@ -273,11 +273,14 @@ router.post(
       }
       const requester = userRes.rows[0];
 
-      // Look up employee in tenant schema to get real name & clock number
+      // Look up employee in tenant schema to get real name, clock number, dept & position
       const propId = body.hotelId || user.propertyId;
       const requestedClock = body.clockNumber || requester.username;
       let employeeName = requestedClock;
       let clockNumber = requestedClock;
+      // Always start from requester's dept/position, override with employee data if found
+      let employeeDepartment = requester.department ?? "";
+      let employeePosition = requester.job_title ?? "";
       try {
         const propRes = await pool.query(
           "SELECT schema_name FROM public.properties WHERE id = $1",
@@ -294,16 +297,37 @@ router.post(
               const emp = empRes.rows[0];
               employeeName = `${emp.first_name} ${emp.last_name}`;
               clockNumber = emp.employee_id;
-              // Also override the requester department if it's the requested user's info
-              if (body.clockNumber && body.clockNumber !== requester.username) {
-                requester.department = emp.department || requester.department;
-                requester.job_title = emp.job_title || requester.job_title;
-              }
+              // Always use the looked-up employee's dept & position (not just when different from requester)
+              if (emp.department) employeeDepartment = emp.department;
+              if (emp.job_title) employeePosition = emp.job_title;
             }
           }
         }
       } catch {
-        // If lookup fails, fall back to username
+        // If lookup fails, fall back to requester's info
+      }
+
+      // ── Duplicate Detection ────────────────────────────────────────────────
+      // Reject if this employee already has an active (in_signing or approved)
+      // hosting request whose date range overlaps with the new request's dates.
+      const duplicateRes = await pool.query(
+        `SELECT id, request_number
+           FROM public.hosting_requests
+          WHERE clock_number = $1
+            AND property_id  = $2
+            AND status IN ('in_signing', 'approved')
+            AND from_date <= $3
+            AND to_date   >= $4
+          LIMIT 1`,
+        [clockNumber, user.propertyId, body.toDate, body.fromDate],
+      );
+      if (duplicateRes.rows.length > 0) {
+        const dup = duplicateRes.rows[0];
+        res.status(409).json({
+          success: false,
+          message: `يوجد طلب استضافة مكرر للموظف في نفس الفترة الزمنية (طلب رقم ${dup.request_number}) / A duplicate hosting request already exists for this employee in the same date range (Request ${dup.request_number})`,
+        });
+        return;
       }
 
       let requestId = -1;
@@ -320,7 +344,7 @@ router.post(
            number_of_rooms, assigned_room_id, family_members_count, family_members_included,
            from_date, to_date, consumed_days, remarks, attachment_data)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
-         RETURNING id`,
+         RETURNING id, request_number`,
           [
             requestNumber,
             user.propertyId,
@@ -329,8 +353,8 @@ router.post(
             user.userId,
             employeeName,
             clockNumber,
-            requester.department ?? "",
-            requester.job_title ?? "",
+            employeeDepartment,
+            employeePosition,
             body.numberOfRooms,
             body.assignedRoomId ?? null,
             body.familyMembersCount,

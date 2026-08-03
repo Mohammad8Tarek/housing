@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,16 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
-import { ArrowLeft, Loader2, Upload, Trash2, Paperclip } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Upload,
+  Paperclip,
+  AlertTriangle,
+  User,
+  History,
+  CalendarCheck,
+} from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -27,23 +36,46 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
 
 type EmployeeResult = {
   id: number;
   employeeId: string;
+  // API returns camelCase from Drizzle ORM
   firstName?: string;
   lastName?: string;
-  first_name?: string;
-  last_name?: string;
   jobTitle?: string | null;
-  job_title?: string | null;
   department?: string | null;
   accommodationRoom?: string | null;
   accommodationRoomType?: string | null;
   accommodationBuilding?: string | null;
   accommodationFloor?: string | null;
 };
+
+type HistoryRecord = {
+  id: number;
+  requestNumber: string;
+  status: string;
+  fromDate: string;
+  toDate: string;
+  consumedDays: number;
+};
+
+const STATUS_STYLES: Record<string, { label: string; labelAr: string; cls: string }> = {
+  in_signing: { label: "In Review", labelAr: "قيد المراجعة", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+  approved:   { label: "Approved",  labelAr: "مقبول",        cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+  rejected:   { label: "Rejected",  labelAr: "مرفوض",        cls: "bg-rose-100 text-rose-800 border-rose-300" },
+  returned:   { label: "Returned",  labelAr: "مُعاد",         cls: "bg-slate-100 text-slate-700 border-slate-300" },
+  cancelled:  { label: "Cancelled", labelAr: "ملغي",          cls: "bg-gray-100 text-gray-600 border-gray-300" },
+};
+
+function StatusBadge({ status, ar }: { status: string; ar: boolean }) {
+  const meta = STATUS_STYLES[status] ?? { label: status, labelAr: status, cls: "bg-slate-100 text-slate-700" };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${meta.cls}`}>
+      {ar ? meta.labelAr : meta.label}
+    </span>
+  );
+}
 
 export default function CreateHostingRequest() {
   const { language } = useLanguage();
@@ -83,7 +115,7 @@ export default function CreateHostingRequest() {
   const [isSearchingEmp, setIsSearchingEmp] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-fetch employee by Clock Number
+  // Auto-fetch employee by Clock Number (debounced)
   useEffect(() => {
     if (!form.clockNumber || form.clockNumber.length < 2) {
       setEmployee(null);
@@ -101,7 +133,7 @@ export default function CreateHostingRequest() {
         );
         const data = await resp.json();
         if (Array.isArray(data) && data.length > 0) {
-          // Find exact match or first result
+          // Find exact match first (by employeeId), then fall back to first result
           const exact = data.find(
             (e) => String(e.employeeId) === String(form.clockNumber),
           );
@@ -109,7 +141,7 @@ export default function CreateHostingRequest() {
         } else {
           setEmployee(null);
         }
-      } catch (err) {
+      } catch {
         setEmployee(null);
       } finally {
         setIsSearchingEmp(false);
@@ -121,6 +153,7 @@ export default function CreateHostingRequest() {
     };
   }, [form.clockNumber, form.hotelId, activePropertyId]);
 
+  // Auto-fetch room info by room number (debounced)
   useEffect(() => {
     if (!form.assignedRoomNumber || form.assignedRoomNumber.length < 1) {
       setAssignedRoomInfo(null);
@@ -144,7 +177,7 @@ export default function CreateHostingRequest() {
         } else {
           setAssignedRoomInfo(null);
         }
-      } catch (err) {
+      } catch {
         setAssignedRoomInfo(null);
       } finally {
         setIsSearchingRoom(false);
@@ -155,7 +188,7 @@ export default function CreateHostingRequest() {
       if (searchRoomTimeoutRef.current)
         clearTimeout(searchRoomTimeoutRef.current);
     };
-  }, [form.assignedRoomNumber, form.hotelId, activePropertyId]);
+  }, [form.assignedRoomNumber, form.visitHotelId, form.hotelId, activePropertyId]);
 
   const updateField = (field: string, value: any) => {
     setForm((prev) => {
@@ -180,7 +213,6 @@ export default function CreateHostingRequest() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      // In a real scenario, attachments would be uploaded first or sent as FormData
       const res = await fetch("/api/hosting-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -208,8 +240,8 @@ export default function CreateHostingRequest() {
     onSuccess: (created) => {
       toast.success(
         ar
-          ? `تم إنشاء الطلب ${created.request_number}`
-          : `Request ${created.request_number} created`,
+          ? `تم إنشاء الطلب ${created.requestNumber || created.request_number}`
+          : `Request ${created.requestNumber || created.request_number} created`,
       );
       setLocation(`/hosting-requests/${created.id}`);
     },
@@ -218,7 +250,8 @@ export default function CreateHostingRequest() {
     },
   });
 
-  const { data: hostingHistory, isLoading: isLoadingHistory } = useQuery({
+  // Hosting history for this employee
+  const { data: hostingHistory = [], isLoading: isLoadingHistory } = useQuery<HistoryRecord[]>({
     queryKey: ["hosting-history", employee?.employeeId],
     queryFn: async () => {
       if (!employee?.employeeId) return [];
@@ -231,6 +264,22 @@ export default function CreateHostingRequest() {
     },
     enabled: !!employee?.employeeId,
   });
+
+  // Detect if selected dates overlap with any active/in_signing history record
+  const hasDateConflict = useMemo(() => {
+    if (!form.fromDate || !form.toDate || hostingHistory.length === 0) return null;
+    const newFrom = new Date(form.fromDate).getTime();
+    const newTo = new Date(form.toDate).getTime();
+    return hostingHistory.find((h) => {
+      if (!["in_signing", "approved"].includes(h.status)) return false;
+      const hFrom = new Date(h.fromDate).getTime();
+      const hTo = new Date(h.toDate).getTime();
+      return newFrom <= hTo && newTo >= hFrom; // overlap check
+    }) || null;
+  }, [form.fromDate, form.toDate, hostingHistory]);
+
+  // Last hosting record
+  const lastHosting = hostingHistory.length > 0 ? hostingHistory[0] : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,8 +297,21 @@ export default function CreateHostingRequest() {
       );
       return;
     }
+    if (hasDateConflict) {
+      toast.error(
+        ar
+          ? `يوجد طلب مكرر للموظف في نفس الفترة (طلب رقم ${hasDateConflict.requestNumber})`
+          : `Duplicate request exists for this employee in the same period (Request ${hasDateConflict.requestNumber})`,
+      );
+      return;
+    }
     createMutation.mutate();
   };
+
+  // Helper: get employee full name from camelCase API response
+  const empFullName = employee
+    ? `${employee.firstName ?? ""} ${employee.lastName ?? ""}`.trim()
+    : "";
 
   return (
     <div className="space-y-6 p-1">
@@ -264,12 +326,10 @@ export default function CreateHostingRequest() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">
             {ar ? "إنشاء طلب استضافة" : "Create Hosting Request"}
-            {employee
-              ? ` - ${employee.first_name} ${employee.last_name} (${employee.job_title || ""})`
-              : ""}
+            {empFullName ? ` — ${empFullName}` : ""}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {ar ? "طلبات" : "requests"}
+            {ar ? "طلبات الاستضافة" : "Hosting Requests"}
           </p>
         </div>
       </div>
@@ -331,14 +391,28 @@ export default function CreateHostingRequest() {
         </Card>
 
         {/* Section 2: Employee Data */}
-        <Card className="border-t-4 border-t-primary/20 bg-muted/10">
-          <CardHeader className="bg-muted/30 pb-4 flex flex-row items-center gap-3 space-y-0">
-            <CardTitle className="text-lg flex items-center gap-2">
-              {ar ? "بيانات الموظف" : "Employee Data"}
-            </CardTitle>
-            <span className="px-2 py-0.5 text-[10px] uppercase font-semibold bg-blue-100 text-blue-700 rounded-full">
-              {ar ? "تعبئة تلقائية" : "Auto-filled"}
-            </span>
+        <Card className="border-t-4 border-t-blue-400/40 bg-blue-50/20 dark:bg-blue-950/10">
+          <CardHeader className="bg-blue-50/40 dark:bg-blue-900/10 pb-4 flex flex-row items-center gap-3 space-y-0">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
+              <User className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-lg flex items-center gap-2">
+                {ar ? "بيانات الموظف" : "Employee Data"}
+                <span className="px-2 py-0.5 text-[10px] uppercase font-semibold bg-blue-100 text-blue-700 rounded-full">
+                  {ar ? "تعبئة تلقائية" : "Auto-filled"}
+                </span>
+              </CardTitle>
+            </div>
+            {/* Last hosting summary */}
+            {lastHosting && (
+              <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-background border rounded-lg px-3 py-2">
+                <CalendarCheck className="w-3.5 h-3.5 text-blue-500" />
+                <span>{ar ? "آخر استضافة:" : "Last hosting:"}</span>
+                <span className="font-medium">{new Date(lastHosting.fromDate).toLocaleDateString()}</span>
+                <StatusBadge status={lastHosting.status} ar={ar} />
+              </div>
+            )}
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-6">
             <div className="space-y-2">
@@ -353,15 +427,18 @@ export default function CreateHostingRequest() {
                 value={form.clockNumber}
                 onChange={(e) => updateField("clockNumber", e.target.value)}
               />
+              {form.clockNumber.length >= 2 && !isSearchingEmp && !employee && (
+                <p className="text-xs text-rose-500">
+                  {ar ? "لم يُعثر على موظف بهذا الرقم" : "No employee found with this ID"}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>{ar ? "الاسم" : "Name"}</Label>
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={
-                  employee ? `${employee.first_name} ${employee.last_name}` : ""
-                }
+                value={empFullName}
                 placeholder={ar ? "الاسم" : "Name"}
               />
             </div>
@@ -379,7 +456,7 @@ export default function CreateHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee?.job_title || ""}
+                value={employee?.jobTitle || ""}
                 placeholder={ar ? "المنصب" : "Position"}
               />
             </div>
@@ -424,24 +501,31 @@ export default function CreateHostingRequest() {
 
         {/* Section 2.5: Hosting History */}
         {employee && (
-          <Card className="border-t-4 border-t-blue-500/20 bg-blue-50/30">
-            <CardHeader className="bg-blue-100/30 pb-4">
-              <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
-                <Clock className="w-5 h-5" />
-                {ar ? "سجلات الاستضافات السابقة" : "Previous Hosting Records"}
+          <Card className="border-t-4 border-t-indigo-400/40">
+            <CardHeader className="bg-indigo-50/30 dark:bg-indigo-900/10 pb-4 flex flex-row items-center gap-3 space-y-0">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
+                <History className="w-5 h-5 text-white" />
+              </div>
+              <CardTitle className="text-lg text-indigo-900 dark:text-indigo-200">
+                {ar ? "سجل الاستضافات السابقة" : "Previous Hosting Records"}
               </CardTitle>
+              {hostingHistory.length > 0 && (
+                <span className="ml-auto text-xs font-semibold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
+                  {hostingHistory.length} {ar ? "سجل" : "records"}
+                </span>
+              )}
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="pt-4">
               {isLoadingHistory ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                <div className="flex justify-center p-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
                 </div>
-              ) : hostingHistory && hostingHistory.length > 0 ? (
-                <div className="rounded-md border bg-card overflow-hidden">
+              ) : hostingHistory.length > 0 ? (
+                <div className="rounded-xl border bg-card overflow-hidden">
                   <Table>
-                    <TableHeader className="bg-muted/50">
+                    <TableHeader className="bg-muted/40">
                       <TableRow>
-                        <TableHead>{ar ? "رقم الطلب" : "Request #"}</TableHead>
+                        <TableHead className="font-semibold">{ar ? "رقم الطلب" : "Request #"}</TableHead>
                         <TableHead>{ar ? "من" : "From"}</TableHead>
                         <TableHead>{ar ? "إلى" : "To"}</TableHead>
                         <TableHead>{ar ? "الأيام" : "Days"}</TableHead>
@@ -449,28 +533,20 @@ export default function CreateHostingRequest() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {hostingHistory.map((h: any) => (
-                        <TableRow key={h.id}>
-                          <TableCell className="font-medium">
+                      {hostingHistory.map((h) => (
+                        <TableRow key={h.id} className="hover:bg-muted/30 transition-colors">
+                          <TableCell className="font-mono text-sm font-medium">
                             {h.requestNumber}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-sm">
                             {new Date(h.fromDate).toLocaleDateString()}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-sm">
                             {new Date(h.toDate).toLocaleDateString()}
                           </TableCell>
-                          <TableCell>{h.consumedDays}</TableCell>
+                          <TableCell className="text-sm font-medium">{h.consumedDays}</TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                h.status === "approved" || h.status === "active"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {h.status}
-                            </Badge>
+                            <StatusBadge status={h.status} ar={ar} />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -478,14 +554,34 @@ export default function CreateHostingRequest() {
                   </Table>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  {ar
-                    ? "لا توجد استضافات سابقة لهذا الموظف"
-                    : "No previous hosting records for this employee"}
-                </p>
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
+                  <History className="w-8 h-8 opacity-30" />
+                  <p className="text-sm">
+                    {ar
+                      ? "لا توجد استضافات سابقة لهذا الموظف"
+                      : "No previous hosting records for this employee"}
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* Date Conflict Warning */}
+        {hasDateConflict && (
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-rose-300 bg-rose-50 dark:bg-rose-950/20 dark:border-rose-800 text-rose-800 dark:text-rose-300">
+            <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">
+                {ar ? "تعارض في التواريخ!" : "Date Conflict Detected!"}
+              </p>
+              <p className="text-sm mt-0.5 opacity-80">
+                {ar
+                  ? `يوجد طلب ${hasDateConflict.status === "approved" ? "معتمد" : "قيد المراجعة"} رقم ${hasDateConflict.requestNumber} للموظف في نفس الفترة الزمنية.`
+                  : `A ${hasDateConflict.status === "approved" ? "approved" : "pending"} request (${hasDateConflict.requestNumber}) already exists for this employee covering the same dates.`}
+              </p>
+            </div>
+          </div>
         )}
 
         {/* Section 3: Visit Details */}
@@ -580,29 +676,23 @@ export default function CreateHostingRequest() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Label className="text-primary font-semibold">
                   {ar ? "غرفة الاستضافة المعينة *" : "Assigned Hosting Room *"}
                 </Label>
                 {assignedRoomInfo?.isOccupied && (
-                  <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">
-                    {ar
-                      ? "هذه الغرفة ساكنة حالياً!"
-                      : "Room is currently occupied!"}
+                  <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold border border-red-200">
+                    {ar ? "هذه الغرفة ساكنة حالياً!" : "Room is currently occupied!"}
                   </span>
                 )}
                 {assignedRoomInfo?.isReserved && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">
-                    {ar
-                      ? "يوجد حجز قادم على هذه الغرفة!"
-                      : "Room has an upcoming reservation!"}
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold border border-amber-200">
+                    {ar ? "يوجد حجز قادم على هذه الغرفة!" : "Room has an upcoming reservation!"}
                   </span>
                 )}
                 {assignedRoomInfo?.hasPendingRequest && (
-                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">
-                    {ar
-                      ? "يوجد طلب استضافة قيد المراجعة لهذه الغرفة!"
-                      : "Pending hosting request exists for this room!"}
+                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold border border-orange-200">
+                    {ar ? "يوجد طلب استضافة قيد المراجعة لهذه الغرفة!" : "Pending hosting request exists for this room!"}
                   </span>
                 )}
               </div>
@@ -723,9 +813,10 @@ export default function CreateHostingRequest() {
             type="submit"
             disabled={
               createMutation.isPending ||
-              assignedRoomInfo?.isOccupied ||
-              assignedRoomInfo?.isReserved ||
-              assignedRoomInfo?.hasPendingRequest
+              !!assignedRoomInfo?.isOccupied ||
+              !!assignedRoomInfo?.isReserved ||
+              !!assignedRoomInfo?.hasPendingRequest ||
+              !!hasDateConflict
             }
           >
             {createMutation.isPending ? (
