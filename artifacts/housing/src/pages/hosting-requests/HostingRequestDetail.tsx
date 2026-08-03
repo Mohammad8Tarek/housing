@@ -51,12 +51,41 @@ export default function HostingRequestDetail() {
   const { language } = useLanguage();
   const ar = language === "ar";
   const { user, isSystemAdmin } = useAuth();
-  const { canEdit, canDelete } = usePermission();
+  const { canView, canEdit, canDelete } = usePermission();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/hosting-requests/:id");
   const requestId = params?.id;
 
+  // ── Page-level permission guard ──────────────────────────────────────────
+  // If the user has no view permission, block access immediately
+  if (!isSystemAdmin && !canView("hosting_requests")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 p-8 text-center">
+        <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+          <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-5V9m0 0V7m0 2h2M12 9H10M4.93 4.93l14.14 14.14" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            {ar ? "غير مصرح بالوصول" : "You don't have permission"}
+          </h2>
+          <p className="text-muted-foreground max-w-sm">
+            {ar
+              ? "ليس لديك صلاحية لعرض هذه الصفحة. تواصل مع المسؤول إذا كنت تعتقد أن هذا خطأ."
+              : "You don't have permission to view this page. Contact your administrator if you believe this is an error."}
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => setLocation("/")} className="rounded-full">
+          {ar ? "العودة للرئيسية" : "Back to Home"}
+        </Button>
+      </div>
+    );
+  }
+
   const queryClient = useQueryClient();
+
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRebackDialog, setShowRebackDialog] = useState(false);
