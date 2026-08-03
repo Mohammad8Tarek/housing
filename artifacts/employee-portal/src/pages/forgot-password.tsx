@@ -50,15 +50,15 @@ export default function ForgotPassword() {
       const data = await res.json();
       
       if (!res.ok || !data.success) {
-        hapticFeedback.error();
+        hapticFeedback("heavy");
         setError(data.message || (isRtl ? "حدث خطأ" : "An error occurred"));
       } else {
-        hapticFeedback.success();
+        hapticFeedback("medium");
         setResetToken(data.token);
         setStep(2);
       }
     } catch (err: any) {
-      hapticFeedback.error();
+      hapticFeedback("heavy");
       setError(isRtl ? "تعذر الاتصال بالخادم" : "Connection failed");
     } finally {
       setIsLoading(false);
@@ -89,15 +89,15 @@ export default function ForgotPassword() {
       const data = await res.json();
       
       if (!res.ok || !data.success) {
-        hapticFeedback.error();
+        hapticFeedback("heavy");
         setError(data.message || (isRtl ? "حدث خطأ" : "An error occurred"));
       } else {
-        hapticFeedback.success();
+        hapticFeedback("medium");
         toast.success(data.message || (isRtl ? "تم تغيير كلمة المرور بنجاح" : "Password changed successfully"));
         setLocation("/login");
       }
     } catch (err: any) {
-      hapticFeedback.error();
+      hapticFeedback("heavy");
       setError(isRtl ? "تعذر الاتصال بالخادم" : "Connection failed");
     } finally {
       setIsLoading(false);
