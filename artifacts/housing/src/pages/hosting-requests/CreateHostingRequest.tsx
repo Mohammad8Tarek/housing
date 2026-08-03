@@ -29,14 +29,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "lucide-react";
 
-
 type EmployeeResult = {
   id: number;
   employeeId: string;
-  firstName: string;
-  lastName: string;
-  jobTitle: string | null;
-  department: string | null;
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  jobTitle?: string | null;
+  job_title?: string | null;
+  department?: string | null;
   accommodationRoom?: string | null;
   accommodationRoomType?: string | null;
   accommodationBuilding?: string | null;
@@ -220,7 +222,9 @@ export default function CreateHostingRequest() {
     queryKey: ["hosting-history", employee?.employeeId],
     queryFn: async () => {
       if (!employee?.employeeId) return [];
-      const res = await fetch(`/api/hosting-requests/history/${encodeURIComponent(String(employee.employeeId))}`);
+      const res = await fetch(
+        `/api/hosting-requests/history/${encodeURIComponent(String(employee.employeeId))}`,
+      );
       if (!res.ok) return [];
       const data = await res.json();
       return data.data || [];
@@ -429,7 +433,9 @@ export default function CreateHostingRequest() {
             </CardHeader>
             <CardContent className="pt-6">
               {isLoadingHistory ? (
-                <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
+                <div className="flex justify-center p-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                </div>
               ) : hostingHistory && hostingHistory.length > 0 ? (
                 <div className="rounded-md border bg-card overflow-hidden">
                   <Table>
@@ -445,12 +451,24 @@ export default function CreateHostingRequest() {
                     <TableBody>
                       {hostingHistory.map((h: any) => (
                         <TableRow key={h.id}>
-                          <TableCell className="font-medium">{h.requestNumber}</TableCell>
-                          <TableCell>{new Date(h.fromDate).toLocaleDateString()}</TableCell>
-                          <TableCell>{new Date(h.toDate).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-medium">
+                            {h.requestNumber}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(h.fromDate).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(h.toDate).toLocaleDateString()}
+                          </TableCell>
                           <TableCell>{h.consumedDays}</TableCell>
                           <TableCell>
-                            <Badge variant={h.status === "approved" || h.status === "active" ? "default" : "secondary"}>
+                            <Badge
+                              variant={
+                                h.status === "approved" || h.status === "active"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
                               {h.status}
                             </Badge>
                           </TableCell>
@@ -461,7 +479,9 @@ export default function CreateHostingRequest() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  {ar ? "لا توجد استضافات سابقة لهذا الموظف" : "No previous hosting records for this employee"}
+                  {ar
+                    ? "لا توجد استضافات سابقة لهذا الموظف"
+                    : "No previous hosting records for this employee"}
                 </p>
               )}
             </CardContent>
@@ -701,7 +721,12 @@ export default function CreateHostingRequest() {
           </Button>
           <Button
             type="submit"
-            disabled={createMutation.isPending || assignedRoomInfo?.isOccupied || assignedRoomInfo?.isReserved || assignedRoomInfo?.hasPendingRequest}
+            disabled={
+              createMutation.isPending ||
+              assignedRoomInfo?.isOccupied ||
+              assignedRoomInfo?.isReserved ||
+              assignedRoomInfo?.hasPendingRequest
+            }
           >
             {createMutation.isPending ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

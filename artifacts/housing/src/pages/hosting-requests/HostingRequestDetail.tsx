@@ -213,7 +213,9 @@ export default function HostingRequestDetail() {
     queryKey: ["hosting-history", clockNumber],
     queryFn: async () => {
       if (!clockNumber) return [];
-      const res = await fetch(`/api/hosting-requests/history/${encodeURIComponent(clockNumber)}`);
+      const res = await fetch(
+        `/api/hosting-requests/history/${encodeURIComponent(clockNumber)}`,
+      );
       if (!res.ok) return [];
       const json = await res.json();
       return json.data || [];
@@ -345,10 +347,25 @@ export default function HostingRequestDetail() {
     return { signed, rejected, returned, active };
   };
 
-  const mainStatusVariant = request.status === "approved" ? "success" : request.status === "rejected" ? "danger" : "warning";
+  const mainStatusVariant =
+    request.status === "approved"
+      ? "success"
+      : request.status === "rejected"
+        ? "danger"
+        : "warning";
   const mainStatusLabel = {
-    en: request.status === "approved" ? "Approved" : request.status === "rejected" ? "Rejected" : "In Signing",
-    ar: request.status === "approved" ? "معتمد" : request.status === "rejected" ? "مرفوض" : "قيد التوقيع"
+    en:
+      request.status === "approved"
+        ? "Approved"
+        : request.status === "rejected"
+          ? "Rejected"
+          : "In Signing",
+    ar:
+      request.status === "approved"
+        ? "معتمد"
+        : request.status === "rejected"
+          ? "مرفوض"
+          : "قيد التوقيع",
   };
 
   return (
@@ -362,33 +379,46 @@ export default function HostingRequestDetail() {
       {/* Header section (Glassmorphism) */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-background/60 backdrop-blur-xl border border-white/10 shadow-lg p-6 rounded-2xl relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none" />
-        
+
         <div className="relative">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
               {ar ? "تفاصيل طلب الاستضافة" : "Hosting Request Details"}
             </h1>
-            <Badge variant="outline" className="text-xs px-2 py-0.5 rounded-full border-primary/30 bg-primary/10 text-primary">
+            <Badge
+              variant="outline"
+              className="text-xs px-2 py-0.5 rounded-full border-primary/30 bg-primary/10 text-primary"
+            >
               #{requestId}
             </Badge>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
             <span>{ar ? "تاريخ الإنشاء" : "Created Date"}:</span>
             <span className="text-foreground">
-              {new Date(request.createdAt).toLocaleDateString(ar ? "ar-EG" : "en-US", { year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date(request.createdAt).toLocaleDateString(
+                ar ? "ar-EG" : "en-US",
+                { year: "numeric", month: "long", day: "numeric" },
+              )}
             </span>
             <span className="text-foreground/50 mx-1">•</span>
             <span>{ar ? "المُنشئ" : "Creator"}:</span>
-            <span className="text-foreground">{request.creatorName || request.user_id}</span>
+            <span className="text-foreground">
+              {request.creatorName || request.user_id}
+            </span>
           </div>
         </div>
-        
+
         <div className="relative flex flex-col md:flex-row gap-3 items-end md:items-center">
           <div className="flex items-center gap-2 bg-background/50 p-1.5 pr-4 rounded-full border shadow-sm">
-            <div className={`w-2 h-2 rounded-full ${request.status === 'approved' ? 'bg-emerald-500 animate-pulse' : request.status === 'rejected' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></div>
-            <StatusBadge label={ar ? mainStatusLabel.ar : mainStatusLabel.en} variant={mainStatusVariant} />
+            <div
+              className={`w-2 h-2 rounded-full ${request.status === "approved" ? "bg-emerald-500 animate-pulse" : request.status === "rejected" ? "bg-red-500" : "bg-amber-500 animate-pulse"}`}
+            ></div>
+            <StatusBadge
+              label={ar ? mainStatusLabel.ar : mainStatusLabel.en}
+              variant={mainStatusVariant}
+            />
           </div>
-          {canDelete && request.status === "in_signing" && (
+          {canDelete("hosting_requests") && request.status === "in_signing" && (
             <Button
               variant="destructive"
               size="sm"
@@ -404,7 +434,6 @@ export default function HostingRequestDetail() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
         {/* Left Column: Details */}
         <div className="lg:col-span-8 space-y-8">
           <Card className="bg-background/60 backdrop-blur-xl border-white/10 shadow-xl overflow-hidden rounded-2xl">
@@ -418,53 +447,92 @@ export default function HostingRequestDetail() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">{ar ? "رقم الساعة / اسم الموظف" : "Clock Number / Name"}</span>
-                  <p className="font-semibold text-lg">{request.clockNumber || request.employeeName || "N/A"}</p>
+                  <span className="text-sm text-muted-foreground block">
+                    {ar ? "رقم الساعة / اسم الموظف" : "Clock Number / Name"}
+                  </span>
+                  <p className="font-semibold text-lg">
+                    {request.clockNumber || request.employeeName || "N/A"}
+                  </p>
                 </div>
                 <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">{ar ? "الصلة / الأشخاص" : "Relation / Included"}</span>
-                  <p className="font-semibold text-lg">{request.familyMembersIncluded || "N/A"}</p>
+                  <span className="text-sm text-muted-foreground block">
+                    {ar ? "الصلة / الأشخاص" : "Relation / Included"}
+                  </span>
+                  <p className="font-semibold text-lg">
+                    {request.familyMembersIncluded || "N/A"}
+                  </p>
                 </div>
                 <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">{ar ? "عدد الضيوف" : "Number of Guests"}</span>
-                  <p className="font-semibold text-lg text-primary">{request.familyMembersCount}</p>
+                  <span className="text-sm text-muted-foreground block">
+                    {ar ? "عدد الضيوف" : "Number of Guests"}
+                  </span>
+                  <p className="font-semibold text-lg text-primary">
+                    {request.familyMembersCount}
+                  </p>
                 </div>
                 <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">{ar ? "عدد الغرف" : "Number of Rooms"}</span>
-                  <p className="font-semibold text-lg">{request.numberOfRooms}</p>
+                  <span className="text-sm text-muted-foreground block">
+                    {ar ? "عدد الغرف" : "Number of Rooms"}
+                  </span>
+                  <p className="font-semibold text-lg">
+                    {request.numberOfRooms}
+                  </p>
                 </div>
-                
+
                 {/* Dates */}
                 <div className="sm:col-span-2 grid grid-cols-2 gap-4 p-5 rounded-xl bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 relative overflow-hidden">
                   <div className="absolute right-0 top-0 opacity-5">
                     <Clock className="w-32 h-32 -mt-4 -mr-4" />
                   </div>
                   <div className="relative">
-                    <span className="text-sm text-muted-foreground block mb-1">{ar ? "تاريخ الوصول" : "Expected Check-in"}</span>
-                    <p className="font-bold text-xl">{request.fromDate ? new Date(request.fromDate).toLocaleDateString() : "N/A"}</p>
+                    <span className="text-sm text-muted-foreground block mb-1">
+                      {ar ? "تاريخ الوصول" : "Expected Check-in"}
+                    </span>
+                    <p className="font-bold text-xl">
+                      {request.fromDate
+                        ? new Date(request.fromDate).toLocaleDateString()
+                        : "N/A"}
+                    </p>
                   </div>
                   <div className="relative">
-                    <span className="text-sm text-muted-foreground block mb-1">{ar ? "تاريخ المغادرة" : "Expected Check-out"}</span>
-                    <p className="font-bold text-xl">{request.toDate ? new Date(request.toDate).toLocaleDateString() : "N/A"}</p>
+                    <span className="text-sm text-muted-foreground block mb-1">
+                      {ar ? "تاريخ المغادرة" : "Expected Check-out"}
+                    </span>
+                    <p className="font-bold text-xl">
+                      {request.toDate
+                        ? new Date(request.toDate).toLocaleDateString()
+                        : "N/A"}
+                    </p>
                   </div>
                 </div>
 
                 {/* Additional Info */}
                 <div className="sm:col-span-2 grid grid-cols-2 gap-4">
                   <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                    <span className="text-sm text-muted-foreground block">{ar ? "الأيام المستهلكة" : "Consumed Days"}</span>
-                    <p className="font-semibold text-lg">{request.consumedDays ?? "0"}</p>
+                    <span className="text-sm text-muted-foreground block">
+                      {ar ? "الأيام المستهلكة" : "Consumed Days"}
+                    </span>
+                    <p className="font-semibold text-lg">
+                      {request.consumedDays ?? "0"}
+                    </p>
                   </div>
                   <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                    <span className="text-sm text-muted-foreground block">{ar ? "الغرفة المعينة" : "Assigned Room"}</span>
-                    <p className="font-semibold text-lg text-primary">{request.assignedRoomNumber || (ar ? "لم يتم التعيين" : "Not Assigned")}</p>
+                    <span className="text-sm text-muted-foreground block">
+                      {ar ? "الغرفة المعينة" : "Assigned Room"}
+                    </span>
+                    <p className="font-semibold text-lg text-primary">
+                      {request.assignedRoomNumber ||
+                        (ar ? "لم يتم التعيين" : "Not Assigned")}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {request.remarks && (
                 <div className="mt-6 space-y-2">
-                  <span className="text-sm font-medium text-muted-foreground">{ar ? "ملاحظات / سبب الزيارة" : "Remarks / Reason"}</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {ar ? "ملاحظات / سبب الزيارة" : "Remarks / Reason"}
+                  </span>
                   <div className="p-4 rounded-xl bg-muted/30 border border-white/5 leading-relaxed">
                     {request.remarks}
                   </div>
@@ -498,7 +566,9 @@ export default function HostingRequestDetail() {
             </CardHeader>
             <CardContent>
               {isLoadingHistory ? (
-                <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
+                <div className="flex justify-center p-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                </div>
               ) : hostingHistory && hostingHistory.length > 0 ? (
                 <div className="rounded-md border bg-card overflow-hidden">
                   <Table>
@@ -514,12 +584,24 @@ export default function HostingRequestDetail() {
                     <TableBody>
                       {hostingHistory.map((h: any) => (
                         <TableRow key={h.id}>
-                          <TableCell className="font-medium">{h.requestNumber}</TableCell>
-                          <TableCell>{new Date(h.fromDate).toLocaleDateString()}</TableCell>
-                          <TableCell>{new Date(h.toDate).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-medium">
+                            {h.requestNumber}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(h.fromDate).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(h.toDate).toLocaleDateString()}
+                          </TableCell>
                           <TableCell>{h.consumedDays}</TableCell>
                           <TableCell>
-                            <Badge variant={h.status === "approved" || h.status === "active" ? "default" : "secondary"}>
+                            <Badge
+                              variant={
+                                h.status === "approved" || h.status === "active"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
                               {h.status}
                             </Badge>
                           </TableCell>
@@ -530,12 +612,14 @@ export default function HostingRequestDetail() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  {ar ? "لا توجد استضافات سابقة لهذا الموظف" : "No previous hosting records for this employee"}
+                  {ar
+                    ? "لا توجد استضافات سابقة لهذا الموظف"
+                    : "No previous hosting records for this employee"}
                 </p>
               )}
             </CardContent>
           </Card>
-          
+
           {/* Housing Card */}
           {request.status === "approved" && (
             <Card className="bg-background/60 backdrop-blur-xl border-emerald-500/20 shadow-xl overflow-hidden rounded-2xl">
@@ -556,12 +640,18 @@ export default function HostingRequestDetail() {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-foreground">
-                            {ar ? "طلب الاستضافة الفعلي" : "Active Guest Hosting"}
+                            {ar
+                              ? "طلب الاستضافة الفعلي"
+                              : "Active Guest Hosting"}
                           </p>
                           {hostingStatusLabel && (
                             <div className="mt-1">
                               <StatusBadge
-                                label={ar ? hostingStatusLabel.ar : hostingStatusLabel.en}
+                                label={
+                                  ar
+                                    ? hostingStatusLabel.ar
+                                    : hostingStatusLabel.en
+                                }
                                 variant={hostingStatusVariant}
                               />
                             </div>
@@ -572,7 +662,9 @@ export default function HostingRequestDetail() {
                         variant="outline"
                         size="sm"
                         className="rounded-full shadow-sm hover:shadow border-emerald-200 text-emerald-700"
-                        onClick={() => setLocation(`/accommodation/guest-hosting`)}
+                        onClick={() =>
+                          setLocation(`/accommodation/guest-hosting`)
+                        }
                       >
                         {ar ? "عرض السجل" : "View Record"}
                         <ExternalLink className="w-4 h-4 ml-2" />
@@ -581,20 +673,38 @@ export default function HostingRequestDetail() {
                     {guestHosting && (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
                         <div>
-                          <span className="text-xs text-muted-foreground block mb-1">{ar ? "رقم السجل" : "Record ID"}</span>
+                          <span className="text-xs text-muted-foreground block mb-1">
+                            {ar ? "رقم السجل" : "Record ID"}
+                          </span>
                           <p className="font-bold">#{guestHosting.id}</p>
                         </div>
                         <div>
-                          <span className="text-xs text-muted-foreground block mb-1">{ar ? "الغرفة" : "Room"}</span>
-                          <p className="font-bold">{guestHosting.roomId || "-"}</p>
+                          <span className="text-xs text-muted-foreground block mb-1">
+                            {ar ? "الغرفة" : "Room"}
+                          </span>
+                          <p className="font-bold">
+                            {guestHosting.roomId || "-"}
+                          </p>
                         </div>
                         <div>
-                          <span className="text-xs text-muted-foreground block mb-1">{ar ? "من" : "From"}</span>
-                          <p className="font-bold">{new Date(guestHosting.expectedFrom).toLocaleDateString()}</p>
+                          <span className="text-xs text-muted-foreground block mb-1">
+                            {ar ? "من" : "From"}
+                          </span>
+                          <p className="font-bold">
+                            {new Date(
+                              guestHosting.expectedFrom,
+                            ).toLocaleDateString()}
+                          </p>
                         </div>
                         <div>
-                          <span className="text-xs text-muted-foreground block mb-1">{ar ? "إلى" : "To"}</span>
-                          <p className="font-bold">{new Date(guestHosting.expectedTo).toLocaleDateString()}</p>
+                          <span className="text-xs text-muted-foreground block mb-1">
+                            {ar ? "إلى" : "To"}
+                          </span>
+                          <p className="font-bold">
+                            {new Date(
+                              guestHosting.expectedTo,
+                            ).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
                     )}
@@ -608,12 +718,16 @@ export default function HostingRequestDetail() {
                           : "Request approved and Guest Hosting record created."}
                       </p>
                       <p className="text-xs text-emerald-600/70">
-                        {ar ? "يمكنك الآن متابعة إجراءات التسكين من قسم السكن." : "You can proceed to housing management now."}
+                        {ar
+                          ? "يمكنك الآن متابعة إجراءات التسكين من قسم السكن."
+                          : "You can proceed to housing management now."}
                       </p>
                     </div>
                     <Button
                       className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full whitespace-nowrap shadow-lg shadow-emerald-500/20"
-                      onClick={() => setLocation("/accommodation/guest-hosting")}
+                      onClick={() =>
+                        setLocation("/accommodation/guest-hosting")
+                      }
                     >
                       <Home className="w-4 h-4 mr-2" />
                       {ar ? "إدارة التسكين" : "Manage Housing"}
@@ -636,7 +750,7 @@ export default function HostingRequestDetail() {
             <CardContent className="p-0">
               <div className="relative p-6">
                 <div className="absolute left-[39px] top-8 bottom-8 w-0.5 bg-border z-0" />
-                
+
                 <div className="space-y-8 relative z-10">
                   {steps.length === 0 ? (
                     <p className="text-muted-foreground text-sm text-center py-4">
@@ -644,27 +758,50 @@ export default function HostingRequestDetail() {
                     </p>
                   ) : (
                     steps.map((step: any, idx: number) => {
-                      const roleName = stepRoles[step.roleRequired]?.[language] ?? step.roleRequired;
-                      const { signed, rejected, returned, active } = getStepState(step);
+                      const roleName =
+                        stepRoles[step.roleRequired]?.[language] ??
+                        step.roleRequired;
+                      const { signed, rejected, returned, active } =
+                        getStepState(step);
 
                       return (
                         <div key={step.id} className="relative flex gap-4">
-                          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 bg-background ${signed ? 'border-emerald-500 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : rejected ? 'border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : returned ? 'border-amber-500 text-amber-500' : active ? 'border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] animate-pulse' : 'border-muted-foreground/30 text-muted-foreground'}`}>
-                            {signed ? <CheckCircle className="w-5 h-5" /> : rejected ? <XCircle className="w-5 h-5" /> : active ? <Clock className="w-5 h-5" /> : <Users className="w-4 h-4" />}
+                          <div
+                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 bg-background ${signed ? "border-emerald-500 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : rejected ? "border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]" : returned ? "border-amber-500 text-amber-500" : active ? "border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] animate-pulse" : "border-muted-foreground/30 text-muted-foreground"}`}
+                          >
+                            {signed ? (
+                              <CheckCircle className="w-5 h-5" />
+                            ) : rejected ? (
+                              <XCircle className="w-5 h-5" />
+                            ) : active ? (
+                              <Clock className="w-5 h-5" />
+                            ) : (
+                              <Users className="w-4 h-4" />
+                            )}
                           </div>
 
-                          <div className={`flex-1 pt-1 space-y-2 ${active ? '' : 'opacity-80'}`}>
+                          <div
+                            className={`flex-1 pt-1 space-y-2 ${active ? "" : "opacity-80"}`}
+                          >
                             <div>
-                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{roleName}</p>
-                              <p className={`text-sm font-bold ${active ? 'text-primary' : 'text-foreground'}`}>
-                                {step.signerName || step.signed_by_user_id || (ar ? "في الانتظار" : "Pending")}
+                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
+                                {roleName}
+                              </p>
+                              <p
+                                className={`text-sm font-bold ${active ? "text-primary" : "text-foreground"}`}
+                              >
+                                {step.signerName ||
+                                  step.signed_by_user_id ||
+                                  (ar ? "في الانتظار" : "Pending")}
                               </p>
                             </div>
-                            
+
                             {step.signedAt && (
                               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {new Date(step.signedAt).toLocaleString(ar ? "ar-EG" : "en-GB")}
+                                {new Date(step.signedAt).toLocaleString(
+                                  ar ? "ar-EG" : "en-GB",
+                                )}
                               </p>
                             )}
 
@@ -684,7 +821,9 @@ export default function HostingRequestDetail() {
                                 {!userHasSignature ? (
                                   <div className="text-center p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-100 dark:border-amber-900/50">
                                     <span className="text-xs text-amber-700 block mb-2 font-medium">
-                                      {ar ? "يرجى إضافة توقيعك في الإعدادات لتتمكن من الاعتماد" : "Please add your signature in settings to approve"}
+                                      {ar
+                                        ? "يرجى إضافة توقيعك في الإعدادات لتتمكن من الاعتماد"
+                                        : "Please add your signature in settings to approve"}
                                     </span>
                                     <Button
                                       variant="outline"
@@ -692,7 +831,9 @@ export default function HostingRequestDetail() {
                                       className="rounded-full h-7 text-xs bg-white dark:bg-background"
                                       onClick={() => setLocation("/settings")}
                                     >
-                                      {ar ? "الذهاب للإعدادات" : "Go to Settings"}
+                                      {ar
+                                        ? "الذهاب للإعدادات"
+                                        : "Go to Settings"}
                                     </Button>
                                   </div>
                                 ) : (
@@ -716,7 +857,9 @@ export default function HostingRequestDetail() {
                                           size="sm"
                                           variant="outline"
                                           className="flex-1 rounded-full text-amber-600 border-amber-200 hover:bg-amber-50"
-                                          onClick={() => setShowRebackDialog(true)}
+                                          onClick={() =>
+                                            setShowRebackDialog(true)
+                                          }
                                         >
                                           <ArrowLeft className="w-3 h-3 mr-1" />
                                           {ar ? "إرجاع" : "Return"}
@@ -726,7 +869,9 @@ export default function HostingRequestDetail() {
                                         size="sm"
                                         variant="outline"
                                         className="flex-1 rounded-full text-red-600 border-red-200 hover:bg-red-50"
-                                        onClick={() => setShowRejectDialog(true)}
+                                        onClick={() =>
+                                          setShowRejectDialog(true)
+                                        }
                                       >
                                         <XCircle className="w-3 h-3 mr-1" />
                                         {ar ? "رفض" : "Reject"}
@@ -743,15 +888,35 @@ export default function HostingRequestDetail() {
                                 <Textarea
                                   rows={2}
                                   className="text-xs resize-none rounded-lg bg-background"
-                                  placeholder={ar ? "سبب الإرجاع..." : "Return reason..."}
+                                  placeholder={
+                                    ar ? "سبب الإرجاع..." : "Return reason..."
+                                  }
                                   value={rebackReason}
-                                  onChange={(e) => setRebackReason(e.target.value)}
+                                  onChange={(e) =>
+                                    setRebackReason(e.target.value)
+                                  }
                                 />
                                 <div className="flex gap-2">
-                                  <Button size="sm" className="flex-1 rounded-full h-7 text-xs bg-amber-600 hover:bg-amber-700" onClick={() => rebackMutation.mutate()} disabled={!rebackReason.trim() || rebackMutation.isPending}>
+                                  <Button
+                                    size="sm"
+                                    className="flex-1 rounded-full h-7 text-xs bg-amber-600 hover:bg-amber-700"
+                                    onClick={() => rebackMutation.mutate()}
+                                    disabled={
+                                      !rebackReason.trim() ||
+                                      rebackMutation.isPending
+                                    }
+                                  >
                                     {ar ? "تأكيد" : "Confirm"}
                                   </Button>
-                                  <Button size="sm" variant="ghost" className="flex-1 rounded-full h-7 text-xs" onClick={() => { setShowRebackDialog(false); setRebackReason(""); }}>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="flex-1 rounded-full h-7 text-xs"
+                                    onClick={() => {
+                                      setShowRebackDialog(false);
+                                      setRebackReason("");
+                                    }}
+                                  >
                                     {ar ? "إلغاء" : "Cancel"}
                                   </Button>
                                 </div>
@@ -763,15 +928,36 @@ export default function HostingRequestDetail() {
                                 <Textarea
                                   rows={2}
                                   className="text-xs resize-none rounded-lg bg-background"
-                                  placeholder={ar ? "سبب الرفض..." : "Rejection reason..."}
+                                  placeholder={
+                                    ar ? "سبب الرفض..." : "Rejection reason..."
+                                  }
                                   value={rejectReason}
-                                  onChange={(e) => setRejectReason(e.target.value)}
+                                  onChange={(e) =>
+                                    setRejectReason(e.target.value)
+                                  }
                                 />
                                 <div className="flex gap-2">
-                                  <Button size="sm" variant="destructive" className="flex-1 rounded-full h-7 text-xs" onClick={() => rejectMutation.mutate()} disabled={!rejectReason.trim() || rejectMutation.isPending}>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="flex-1 rounded-full h-7 text-xs"
+                                    onClick={() => rejectMutation.mutate()}
+                                    disabled={
+                                      !rejectReason.trim() ||
+                                      rejectMutation.isPending
+                                    }
+                                  >
                                     {ar ? "تأكيد" : "Confirm"}
                                   </Button>
-                                  <Button size="sm" variant="ghost" className="flex-1 rounded-full h-7 text-xs" onClick={() => { setShowRejectDialog(false); setRejectReason(""); }}>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="flex-1 rounded-full h-7 text-xs"
+                                    onClick={() => {
+                                      setShowRejectDialog(false);
+                                      setRejectReason("");
+                                    }}
+                                  >
                                     {ar ? "إلغاء" : "Cancel"}
                                   </Button>
                                 </div>
@@ -790,7 +976,11 @@ export default function HostingRequestDetail() {
       </div>
 
       <div className="flex justify-start pt-4">
-        <Button variant="ghost" className="rounded-full hover:bg-muted/50" onClick={() => setLocation("/hosting-requests")}>
+        <Button
+          variant="ghost"
+          className="rounded-full hover:bg-muted/50"
+          onClick={() => setLocation("/hosting-requests")}
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           {ar ? "العودة للقائمة" : "Back to List"}
         </Button>
@@ -800,7 +990,11 @@ export default function HostingRequestDetail() {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title={ar ? "حذف الطلب" : "Delete Request"}
-        description={ar ? "هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure you want to delete this request? This action cannot be undone."}
+        description={
+          ar
+            ? "هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
+            : "Are you sure you want to delete this request? This action cannot be undone."
+        }
         confirmLabel={ar ? "حذف نهائي" : "Delete Permanently"}
         cancelLabel={ar ? "إلغاء" : "Cancel"}
         variant="destructive"

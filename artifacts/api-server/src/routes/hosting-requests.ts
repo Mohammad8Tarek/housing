@@ -431,7 +431,9 @@ router.get(
     try {
       const { clockNumber } = req.params;
       if (!clockNumber) {
-        res.status(400).json({ success: false, message: "clockNumber is required" });
+        res
+          .status(400)
+          .json({ success: false, message: "clockNumber is required" });
         return;
       }
 
