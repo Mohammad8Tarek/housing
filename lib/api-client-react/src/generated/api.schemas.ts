@@ -211,6 +211,7 @@ export interface UpdateEmployeeBody {
   department?: string;
   status?: string;
   gender?: string;
+  dateOfBirth?: string;
   /** @nullable */
   idImage?: string | null;
 }
@@ -564,85 +565,86 @@ export interface OccupancyByBuilding {
 }
 
 export type ListBuildingsParams = {
-  propertyId?: number;
+propertyId?: number;
 };
 
 export type ListFloorsParams = {
-  buildingId?: number;
-  propertyId?: number;
+buildingId?: number;
+propertyId?: number;
 };
 
 export type ListRoomsParams = {
-  propertyId?: number;
-  buildingId?: number;
-  floorId?: number;
-  status?: string;
+propertyId?: number;
+buildingId?: number;
+floorId?: number;
+status?: string;
 };
 
 export type ListEmployeesParams = {
-  propertyId?: number;
-  status?: string;
-  department?: string;
-  search?: string;
+propertyId?: number;
+status?: string;
+department?: string;
+search?: string;
 };
 
 export type ListAssignmentsParams = {
-  propertyId?: number;
-  status?: string;
-  employeeId?: number;
-  roomId?: number;
+propertyId?: number;
+status?: string;
+employeeId?: number;
+roomId?: number;
 };
 
 export type ListReservationsParams = {
-  propertyId?: number;
-  status?: string;
+propertyId?: number;
+status?: string;
 };
 
 export type ListHostingsParams = {
-  propertyId?: number;
-  status?: string;
+propertyId?: number;
+status?: string;
 };
 
 export type ListMaintenanceParams = {
-  propertyId?: number;
-  status?: string;
-  priority?: string;
+propertyId?: number;
+status?: string;
+priority?: string;
 };
 
 export type ListUsersParams = {
-  propertyId?: number;
+propertyId?: number;
 };
 
 export type ListActivityLogsParams = {
-  propertyId?: number;
-  module?: string;
-  userId?: number;
-  limit?: number;
+propertyId?: number;
+module?: string;
+userId?: number;
+limit?: number;
 };
 
 export type GetSettingsParams = {
-  propertyId?: number;
+propertyId?: number;
 };
 
 export type GetDashboardStatsParams = {
-  propertyId?: number;
+propertyId?: number;
 };
 
 export type GetDepartureAlertsParams = {
-  propertyId?: number;
-  threshold?: number;
+propertyId?: number;
+threshold?: number;
 };
 
 export type GetArrivalAlertsParams = {
-  propertyId?: number;
-  threshold?: number;
+propertyId?: number;
+threshold?: number;
 };
 
 export type GetOccupancyByBuildingParams = {
-  propertyId?: number;
+propertyId?: number;
 };
 
 export type GetRecentActivityParams = {
-  propertyId?: number;
-  limit?: number;
+propertyId?: number;
+limit?: number;
 };
+
