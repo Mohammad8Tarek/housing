@@ -125,6 +125,7 @@ export function ExcelImportDialog({
         "Phone",
         "Hire_Date",
         "Level",
+        "Date_Of_Birth",
         "Address",
       ],
       [
@@ -139,6 +140,7 @@ export function ExcelImportDialog({
         "+966501234567",
         "2024-01-01",
         "Senior",
+        "1990-01-01",
         "Riyadh",
       ],
       [
@@ -153,10 +155,11 @@ export function ExcelImportDialog({
         "+966507654321",
         "2024-03-15",
         "Junior",
+        "1995-05-15",
         "Jeddah",
       ],
     ]);
-    ws["!cols"] = Array(12).fill({ wch: 18 });
+    ws["!cols"] = Array(13).fill({ wch: 18 });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Employees");
     XLSX.writeFile(wb, "employee_import_template.xlsx");
@@ -217,6 +220,7 @@ export function ExcelImportDialog({
       phone: String(r.Phone || ""),
       hireDate: String(r.Hire_Date || new Date().toISOString().split("T")[0]),
       level: String(r.Level || ""),
+      dateOfBirth: String(r.Date_Of_Birth || ""),
       address: String(r.Address || ""),
       status: "ACTIVE",
     }));
@@ -335,6 +339,7 @@ export function ExcelImportDialog({
                           "Nationality",
                           "Gender",
                           "National ID",
+                          "Date of Birth",
                         ].map((h) => (
                           <th
                             key={h}
@@ -359,6 +364,9 @@ export function ExcelImportDialog({
                           <td className="p-2">{String(row.Gender)}</td>
                           <td className="p-2 font-mono">
                             {String(row.National_ID)}
+                          </td>
+                          <td className="p-2 font-mono">
+                            {String(row.Date_Of_Birth || "")}
                           </td>
                         </tr>
                       ))}

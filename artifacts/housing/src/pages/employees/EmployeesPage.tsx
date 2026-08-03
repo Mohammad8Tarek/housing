@@ -291,6 +291,12 @@ export function EmployeesPage() {
     },
     { key: "level", label: "Level", labelAr: "الدرجة", defaultVisible: true },
     {
+      key: "dateOfBirth",
+      label: "Date of Birth",
+      labelAr: "تاريخ الميلاد",
+      defaultVisible: false,
+    },
+    {
       key: "address",
       label: "Address",
       labelAr: "العنوان",
@@ -362,6 +368,7 @@ export function EmployeesPage() {
       Department: e.department ?? "",
       "Job Title": e.jobTitle ?? "",
       Level: e.level ?? "",
+      "Date of Birth": e.dateOfBirth ? new Date(e.dateOfBirth).toLocaleDateString() : "",
       Address: e.address ?? "",
       "Hire Date": e.hireDate ? new Date(e.hireDate).toLocaleDateString() : "",
       Status: e.status,
@@ -581,6 +588,11 @@ export function EmployeesPage() {
                     {ar ? "الدرجة" : "Level"}
                   </TableHead>
                 )}
+                {isColVisible("dateOfBirth") && (
+                  <TableHead className="font-semibold">
+                    {ar ? "تاريخ الميلاد" : "Date of Birth"}
+                  </TableHead>
+                )}
                 {isColVisible("address") && (
                   <TableHead className="font-semibold">
                     {ar ? "العنوان" : "Address"}
@@ -696,6 +708,13 @@ export function EmployeesPage() {
                         {emp.level || (
                           <span className="text-muted-foreground">—</span>
                         )}
+                      </TableCell>
+                    )}
+                    {isColVisible("dateOfBirth") && (
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {emp.dateOfBirth
+                          ? new Date(emp.dateOfBirth).toLocaleDateString()
+                          : "—"}
                       </TableCell>
                     )}
                     {isColVisible("address") && (
