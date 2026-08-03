@@ -176,8 +176,8 @@ const sessionMiddleware = session({
   name: "sunrise.sid",
   secret: process.env["SESSION_SECRET"] ?? "sunrise-dev-secret",
   store: sessionStore,
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   rolling: true,
   cookie: {
     httpOnly: true,

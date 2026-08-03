@@ -188,6 +188,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   const passwordExpired = await isPasswordExpired(user, policy);
 
   // ✅ Session Regeneration — prevents Session Fixation Attack
+  // Also prevents 502 when browser sends a stale/destroyed session cookie
   const roles = (user.roles ?? []).map(normalizeRole);
   const isSystemAdmin =
     roles.includes("super_admin") ||
@@ -205,36 +206,49 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     passwordExpired,
   };
 
-  // ✅ Assign session data directly
-  Object.assign(req.session, sessionData);
+  // ✅ Regenerate session to get a fresh session ID (prevents stale cookie issues)
+  req.session.regenerate((regenErr: any) => {
+    if (regenErr) {
+      console.error("[auth/login] Session regenerate error:", regenErr.message);
+      // Fallback: assign directly if regenerate fails
+      Object.assign(req.session, sessionData);
+    } else {
+      Object.assign(req.session, sessionData);
+    }
 
-  // 🔧 Respond immediately, let express-session save in background
-  if (user.propertyId) {
-    // Log activity but don't wait for it
-    logActivity({
-      req,
-      propertyId: user.propertyId ?? 0,
-      username: user.username,
-      userId: user.id,
-      userRole: user.roles?.[0],
-      action: "LOGIN",
-      actionType: "AUTH",
-      module: "auth",
-      severity: "info",
-      details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
-      ipAddress: ip,
-    }).catch((err) => {
-      console.error("[auth/login] Activity log error:", err);
+    // Explicitly save the session before responding
+    req.session.save((saveErr: any) => {
+      if (saveErr) {
+        console.error("[auth/login] Session save error:", saveErr.message);
+      }
+
+      if (user.propertyId) {
+        logActivity({
+          req,
+          propertyId: user.propertyId ?? 0,
+          username: user.username,
+          userId: user.id,
+          userRole: user.roles?.[0],
+          action: "LOGIN",
+          actionType: "AUTH",
+          module: "auth",
+          severity: "info",
+          details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
+          ipAddress: ip,
+        }).catch((err) => {
+          console.error("[auth/login] Activity log error:", err);
+        });
+      }
+
+      const { passwordHash: _, ...safeUser } = user;
+      res.json({
+        user: {
+          ...safeUser,
+          isSystemAdmin: sessionData.isSystemAdmin,
+          passwordExpired,
+        },
+      });
     });
-  }
-
-  const { passwordHash: _, ...safeUser } = user;
-  res.json({
-    user: {
-      ...safeUser,
-      isSystemAdmin: sessionData.isSystemAdmin,
-      passwordExpired,
-    },
   });
 });
 
@@ -267,16 +281,20 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
     }
   }
 
+  // ✅ Clear cookie BEFORE sending response so the browser removes it
+  res.clearCookie("sunrise.sid", {
+    httpOnly: true,
+    secure: process.env["NODE_ENV"] === "production",
+    sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
+  });
+
   req.session.destroy((err) => {
     if (err) {
       console.error("Session destroy error:", err.message);
     }
-    // Clear cookie regardless of destroy result
-    res.clearCookie("sunrise.sid");
+    // Respond inside the callback to guarantee destroy completes first
+    res.json({ message: "Logged out" });
   });
-
-  // Respond immediately without waiting for destroy
-  res.json({ message: "Logged out" });
 });
 
 // ─── GET /auth/me ─────────────────────────────────────────────────────────
