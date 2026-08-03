@@ -438,89 +438,156 @@ export default function HostingRequestDetail() {
         <div className="lg:col-span-8 space-y-8">
           <Card className="bg-background/60 backdrop-blur-xl border-white/10 shadow-xl overflow-hidden rounded-2xl">
             <div className="h-1 w-full bg-gradient-to-r from-primary via-primary/50 to-transparent" />
-            <CardHeader className="pb-4">
+
+            {/* ── Employee Profile Section ── */}
+            <CardHeader className="pb-0">
               <CardTitle className="text-xl font-bold flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
-                {ar ? "بيانات الضيوف" : "Guests Information"}
+                {ar ? "بيانات الموظف والضيوف" : "Employee & Guest Information"}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">
-                    {ar ? "رقم الساعة / اسم الموظف" : "Clock Number / Name"}
-                  </span>
-                  <p className="font-semibold text-lg">
-                    {request.clockNumber || request.employeeName || "N/A"}
-                  </p>
+            <CardContent className="space-y-6 pt-4">
+              {/* Employee Profile Banner */}
+              <div className="flex flex-col sm:flex-row items-start gap-5 p-5 rounded-2xl bg-gradient-to-br from-primary/5 via-muted/30 to-transparent border relative overflow-hidden">
+                <div className="absolute right-0 top-0 opacity-[0.03]">
+                  <Users className="w-40 h-40 -mt-6 -mr-6" />
                 </div>
-                <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">
-                    {ar ? "الصلة / الأشخاص" : "Relation / Included"}
-                  </span>
-                  <p className="font-semibold text-lg">
-                    {request.familyMembersIncluded || "N/A"}
-                  </p>
+                {/* Avatar */}
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-primary/20">
+                    {(request.employeeName ?? "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-background flex items-center justify-center">
+                    <CheckCircle className="w-3 h-3 text-white" />
+                  </div>
                 </div>
-                <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">
-                    {ar ? "عدد الضيوف" : "Number of Guests"}
-                  </span>
-                  <p className="font-semibold text-lg text-primary">
-                    {request.familyMembersCount}
-                  </p>
+                {/* Name & Key Info */}
+                <div className="flex-1 space-y-2 relative">
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground">
+                      {request.employeeName || "N/A"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {request.position || request.department
+                        ? `${request.position || ""}${request.position && request.department ? " • " : ""}${request.department || ""}`
+                        : ar ? "لا توجد بيانات وظيفية" : "No job data available"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                      <Clock className="w-3 h-3" />
+                      {ar ? "رقم البصمة" : "Clock"}: {request.clockNumber || "N/A"}
+                    </span>
+                    {request.requestNumber && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground border">
+                        {ar ? "طلب رقم" : "Request"} #{request.requestNumber}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                  <span className="text-sm text-muted-foreground block">
-                    {ar ? "عدد الغرف" : "Number of Rooms"}
-                  </span>
-                  <p className="font-semibold text-lg">
-                    {request.numberOfRooms}
-                  </p>
-                </div>
+              </div>
 
-                {/* Dates */}
-                <div className="sm:col-span-2 grid grid-cols-2 gap-4 p-5 rounded-xl bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 relative overflow-hidden">
+              {/* Employee Details Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                    {ar ? "الاسم الكامل" : "Full Name"}
+                  </span>
+                  <p className="font-semibold text-sm text-foreground">
+                    {request.employeeName || "N/A"}
+                  </p>
+                </div>
+                <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                    {ar ? "رقم البصمة" : "Clock Number"}
+                  </span>
+                  <p className="font-semibold text-sm font-mono text-foreground">
+                    {request.clockNumber || "N/A"}
+                  </p>
+                </div>
+                <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                    {ar ? "القسم" : "Department"}
+                  </span>
+                  <p className="font-semibold text-sm text-foreground">
+                    {request.department || (ar ? "غير محدد" : "Not specified")}
+                  </p>
+                </div>
+                <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                    {ar ? "المنصب" : "Position"}
+                  </span>
+                  <p className="font-semibold text-sm text-foreground">
+                    {request.position || (ar ? "غير محدد" : "Not specified")}
+                  </p>
+                </div>
+              </div>
+
+              {/* ── Visit Details Section ── */}
+              <div className="pt-2 border-t">
+                <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  {ar ? "تفاصيل الزيارة" : "Visit Details"}
+                </h4>
+
+                {/* Dates Row */}
+                <div className="grid grid-cols-2 gap-4 p-5 rounded-xl bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 relative overflow-hidden mb-4">
                   <div className="absolute right-0 top-0 opacity-5">
                     <Clock className="w-32 h-32 -mt-4 -mr-4" />
                   </div>
                   <div className="relative">
-                    <span className="text-sm text-muted-foreground block mb-1">
-                      {ar ? "تاريخ الوصول" : "Expected Check-in"}
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">
+                      {ar ? "تاريخ الوصول" : "Check-in Date"}
                     </span>
                     <p className="font-bold text-xl">
                       {request.fromDate
-                        ? new Date(request.fromDate).toLocaleDateString()
+                        ? new Date(request.fromDate).toLocaleDateString(ar ? "ar-EG" : "en-US", { day: "numeric", month: "short", year: "numeric" })
                         : "N/A"}
                     </p>
                   </div>
                   <div className="relative">
-                    <span className="text-sm text-muted-foreground block mb-1">
-                      {ar ? "تاريخ المغادرة" : "Expected Check-out"}
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">
+                      {ar ? "تاريخ المغادرة" : "Check-out Date"}
                     </span>
                     <p className="font-bold text-xl">
                       {request.toDate
-                        ? new Date(request.toDate).toLocaleDateString()
+                        ? new Date(request.toDate).toLocaleDateString(ar ? "ar-EG" : "en-US", { day: "numeric", month: "short", year: "numeric" })
                         : "N/A"}
                     </p>
                   </div>
                 </div>
 
-                {/* Additional Info */}
-                <div className="sm:col-span-2 grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                    <span className="text-sm text-muted-foreground block">
-                      {ar ? "الأيام المستهلكة" : "Consumed Days"}
+                {/* Guest & Room Details */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                      {ar ? "عدد الضيوف" : "Guest Count"}
                     </span>
-                    <p className="font-semibold text-lg">
+                    <p className="font-bold text-lg text-primary">
+                      {request.familyMembersCount}
+                    </p>
+                  </div>
+                  <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                      {ar ? "الصلة" : "Included"}
+                    </span>
+                    <p className="font-semibold text-sm">
+                      {request.familyMembersIncluded || "N/A"}
+                    </p>
+                  </div>
+                  <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                      {ar ? "الأيام المستهلكة" : "Days"}
+                    </span>
+                    <p className="font-bold text-lg">
                       {request.consumedDays ?? "0"}
                     </p>
                   </div>
-                  <div className="space-y-1.5 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
-                    <span className="text-sm text-muted-foreground block">
+                  <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
                       {ar ? "الغرفة المعينة" : "Assigned Room"}
                     </span>
-                    <p className="font-semibold text-lg text-primary">
+                    <p className="font-bold text-lg text-primary">
                       {request.assignedRoomNumber ||
                         (ar ? "لم يتم التعيين" : "Not Assigned")}
                     </p>
@@ -528,19 +595,21 @@ export default function HostingRequestDetail() {
                 </div>
               </div>
 
+              {/* Remarks */}
               {request.remarks && (
-                <div className="mt-6 space-y-2">
-                  <span className="text-sm font-medium text-muted-foreground">
+                <div className="space-y-2 pt-2 border-t">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     {ar ? "ملاحظات / سبب الزيارة" : "Remarks / Reason"}
                   </span>
-                  <div className="p-4 rounded-xl bg-muted/30 border border-white/5 leading-relaxed">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-white/5 leading-relaxed text-sm">
                     {request.remarks}
                   </div>
                 </div>
               )}
 
+              {/* Attachment */}
               {request.attachmentData && (
-                <div className="mt-6">
+                <div className="pt-2 border-t">
                   <a
                     href={request.attachmentData}
                     target="_blank"
