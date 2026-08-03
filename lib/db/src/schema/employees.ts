@@ -21,6 +21,7 @@ export const employeesTable = pgTable("employees", {
   photoUrl: text("photo_url"),
   email: text("email").notNull().default(""),
   emergencyContact: text("emergency_contact").notNull().default(""),
+  dateOfBirth: text("date_of_birth").notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

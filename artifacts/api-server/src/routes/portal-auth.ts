@@ -1042,10 +1042,8 @@ router.post(
         employee.nationalId.trim().toLowerCase() ===
           nationalId.trim().toLowerCase();
 
-      const empDobStr = employee.dateOfBirth
-        ? new Date(employee.dateOfBirth).toISOString().split("T")[0]
-        : null;
-      const isDobMatch = empDobStr && empDobStr === dateOfBirth;
+      const empDobStr = employee.dateOfBirth ? String(employee.dateOfBirth).trim() : "";
+      const isDobMatch = empDobStr && empDobStr === dateOfBirth.trim();
       const isRoomMatch =
         assignment && assignment.roomNumber === roomNumber.trim();
 
