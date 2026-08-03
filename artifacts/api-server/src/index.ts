@@ -309,7 +309,7 @@ async function start(): Promise<void> {
 
   server.listen(httpPort, "0.0.0.0", () => {
     logger.info(`🚀 Main API HTTP listening on ${httpPort}`);
-    
+
     // 2. Start PMS V2.1 Servers (they bind to 10006 locally)
     startAllPmsServers(app).catch((err) => {
       logger.error({ err }, "Failed to start PMS Servers (async caught)");

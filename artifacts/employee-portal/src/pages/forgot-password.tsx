@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Loader2, ArrowRight, ArrowLeft, Check, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  AlertCircle,
+} from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import MaterialIcon from "../components/MaterialIcon";
@@ -12,14 +18,14 @@ export default function ForgotPassword() {
   const [, setLocation] = useLocation();
   const { t, lang } = useTheme();
   const isRtl = lang === "ar";
-  
+
   // Step 1: Verification
   const [step, setStep] = useState<1 | 2>(1);
   const [employeeId, setEmployeeId] = useState("");
   const [nationalId, setNationalId] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
-  
+
   // Step 2: Reset
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -34,7 +40,7 @@ export default function ForgotPassword() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    
+
     try {
       const res = await apiFetch("/api/portal-auth/forgot-password/verify", {
         method: "POST",
@@ -46,9 +52,9 @@ export default function ForgotPassword() {
           dateOfBirth,
         }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok || !data.success) {
         hapticFeedback("heavy");
         setError(data.message || (isRtl ? "حدث خطأ" : "An error occurred"));
@@ -71,10 +77,10 @@ export default function ForgotPassword() {
       setError(isRtl ? "كلمتا المرور غير متطابقتين" : "Passwords do not match");
       return;
     }
-    
+
     setError("");
     setIsLoading(true);
-    
+
     try {
       const res = await apiFetch("/api/portal-auth/forgot-password/reset", {
         method: "POST",
@@ -85,15 +91,20 @@ export default function ForgotPassword() {
           confirmPassword,
         }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok || !data.success) {
         hapticFeedback("heavy");
         setError(data.message || (isRtl ? "حدث خطأ" : "An error occurred"));
       } else {
         hapticFeedback("medium");
-        toast.success(data.message || (isRtl ? "تم تغيير كلمة المرور بنجاح" : "Password changed successfully"));
+        toast.success(
+          data.message ||
+            (isRtl
+              ? "تم تغيير كلمة المرور بنجاح"
+              : "Password changed successfully"),
+        );
         setLocation("/login");
       }
     } catch (err: any) {
@@ -105,7 +116,9 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className={`min-h-[100dvh] flex flex-col relative overflow-hidden bg-gradient-to-br from-[#0F2A44] via-[#1a365d] to-[#0d2238] font-sans ${isRtl ? "dir-rtl" : "dir-ltr"}`}>
+    <div
+      className={`min-h-[100dvh] flex flex-col relative overflow-hidden bg-gradient-to-br from-[#0F2A44] via-[#1a365d] to-[#0d2238] font-sans ${isRtl ? "dir-rtl" : "dir-ltr"}`}
+    >
       {/* Background patterns matching login */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#C9A24D]/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-white/5 rounded-full blur-[100px] pointer-events-none" />
@@ -116,7 +129,11 @@ export default function ForgotPassword() {
           onClick={() => setLocation("/login")}
           className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
         >
-          {isRtl ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
+          {isRtl ? (
+            <ArrowRight className="w-5 h-5" />
+          ) : (
+            <ArrowLeft className="w-5 h-5" />
+          )}
         </button>
       </div>
 
@@ -160,7 +177,7 @@ export default function ForgotPassword() {
                     disabled={isLoading}
                   />
                 </div>
-                
+
                 <div className="space-y-1.5">
                   <label className="text-[12px] font-medium text-white/80 ms-1">
                     {isRtl ? "الرقم القومي / رقم الهوية" : "National ID"}
@@ -213,7 +230,11 @@ export default function ForgotPassword() {
                   ) : (
                     <>
                       <span>{isRtl ? "تحقق" : "Verify"}</span>
-                      {isRtl ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
+                      {isRtl ? (
+                        <ArrowLeft className="w-5 h-5" />
+                      ) : (
+                        <ArrowRight className="w-5 h-5" />
+                      )}
                     </>
                   )}
                 </MotionButton>
@@ -238,7 +259,10 @@ export default function ForgotPassword() {
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       className={`absolute ${isRtl ? "left-4" : "right-4"} top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors`}
                     >
-                      <MaterialIcon icon={showNewPassword ? "visibility_off" : "visibility"} size={20} />
+                      <MaterialIcon
+                        icon={showNewPassword ? "visibility_off" : "visibility"}
+                        size={20}
+                      />
                     </button>
                   </div>
                 </div>
@@ -258,10 +282,17 @@ export default function ForgotPassword() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className={`absolute ${isRtl ? "left-4" : "right-4"} top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors`}
                     >
-                      <MaterialIcon icon={showConfirmPassword ? "visibility_off" : "visibility"} size={20} />
+                      <MaterialIcon
+                        icon={
+                          showConfirmPassword ? "visibility_off" : "visibility"
+                        }
+                        size={20}
+                      />
                     </button>
                   </div>
                 </div>
@@ -276,7 +307,9 @@ export default function ForgotPassword() {
                   ) : (
                     <>
                       <Check className="w-5 h-5" />
-                      <span>{isRtl ? "تغيير كلمة المرور" : "Reset Password"}</span>
+                      <span>
+                        {isRtl ? "تغيير كلمة المرور" : "Reset Password"}
+                      </span>
                     </>
                   )}
                 </MotionButton>

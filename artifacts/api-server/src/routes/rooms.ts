@@ -99,7 +99,7 @@ router.get("/rooms/by-number", async (req, res) => {
          WHERE assigned_room_id = $1 
          AND status IN ('in_signing', 'approved', 'pending')
          LIMIT 1`,
-        [room.id]
+        [room.id],
       );
 
       return {
