@@ -288,7 +288,7 @@ export function BuildingsTab({
   const confirmDeleteBuilding = async () => {
     if (!deleteBuilding) return;
     try {
-      await deleteBuildingMut.mutateAsync(deleteBuilding.id);
+      await deleteBuildingMut.mutateAsync({ id: deleteBuilding.id });
       toast.success(ar ? "تم حذف المبنى بنجاح" : "Building deleted");
       setDeleteBuilding(null);
       queryClient.invalidateQueries();

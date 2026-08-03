@@ -135,7 +135,7 @@ export function RoomsTab({
   const confirmDeleteRoom = async () => {
     if (!deleteRoom) return;
     try {
-      await deleteRoomMut.mutateAsync(deleteRoom.id);
+      await deleteRoomMut.mutateAsync({ id: deleteRoom.id });
       toast.success(ar ? "تم حذف الغرفة بنجاح" : "Room deleted");
       setDeleteRoom(null);
       queryClient.invalidateQueries();

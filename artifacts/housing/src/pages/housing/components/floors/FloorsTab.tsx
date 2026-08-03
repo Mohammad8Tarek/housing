@@ -111,7 +111,7 @@ export function FloorsTab({
   const confirmDeleteFloor = async () => {
     if (!deleteFloor) return;
     try {
-      await deleteFloorMut.mutateAsync(deleteFloor.id);
+      await deleteFloorMut.mutateAsync({ id: deleteFloor.id });
       toast.success(ar ? "تم حذف الطابق بنجاح" : "Floor deleted");
       setDeleteFloor(null);
       queryClient.invalidateQueries();
