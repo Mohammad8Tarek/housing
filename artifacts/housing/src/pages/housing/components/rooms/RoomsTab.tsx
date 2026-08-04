@@ -134,6 +134,10 @@ export function RoomsTab({
 
   const confirmDeleteRoom = async () => {
     if (!deleteRoom) return;
+    if (deleteRoom.id === undefined) {
+      toast.error("Error: Room ID is undefined! Cannot delete.");
+      return;
+    }
     try {
       await deleteRoomMut.mutateAsync({ id: deleteRoom.id });
       toast.success(ar ? "تم حذف الغرفة بنجاح" : "Room deleted");
