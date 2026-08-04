@@ -165,8 +165,6 @@ export default function Tickets() {
   const ar = language === "ar";
   const queryClient = useQueryClient();
   const LIMIT = 25;
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
   const [page, setPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -550,11 +548,6 @@ export default function Tickets() {
     propertyFilter,
   ]);
 
-  const paged = filtered.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-
   const exportExcel = () => {
     const rows = filtered.map((req) => ({
       [ar ? "رقم" : "ID"]: req.id,
@@ -624,7 +617,6 @@ export default function Tickets() {
             setDepartmentFilter(filters.departments ?? []);
             setCreatorTypeFilter(filters.creatorType ?? "");
             setPropertyFilter(filters.propertyId ?? "");
-            setCurrentPage(1);
           }}
         />
       </div>
@@ -913,7 +905,7 @@ export default function Tickets() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paged.map((req) => (
+                {filtered.map((req) => (
                   <TableRow key={req.id} className="hover:bg-muted/20">
                     {isVisible("id") && (
                       <TableCell className="font-mono text-sm font-semibold text-muted-foreground">
