@@ -3,6 +3,7 @@ import { Search, Building2, BedDouble, Layers } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationBar } from "@/components/ui/PaginationBar";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,8 @@ export function AvailabilityTab({
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 12; // using 12 for better grid layout (divisible by 2, 3, 4)
 
   const filteredRooms = rooms.filter((r) => {
     const matchSearch = r.roomNumber
@@ -41,6 +44,26 @@ export function AvailabilityTab({
       statusFilter === "all" || statusNorm(r.status) === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const sortedRooms = [...filteredRooms].sort((a, b) => {
+    return String(a.roomNumber).localeCompare(String(b.roomNumber), undefined, {
+      numeric: true,
+    });
+  });
+
+  const paginatedRooms = sortedRooms.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const paginationMeta = {
+    page: currentPage,
+    limit: pageSize,
+    total: sortedRooms.length,
+    totalPages: Math.ceil(sortedRooms.length / pageSize),
+    hasNextPage: currentPage * pageSize < sortedRooms.length,
+    hasPrevPage: currentPage > 1,
+  };
 
   return (
     <div className="space-y-4">
@@ -89,7 +112,7 @@ export function AvailabilityTab({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {filteredRooms.map((room) => {
+          {paginatedRooms.map((room) => {
             const building = buildings.find((b) => b.id === room.buildingId);
             const floor = floors.find((f) => f.id === room.floorId);
             return (
@@ -134,7 +157,7 @@ export function AvailabilityTab({
               </div>
             );
           })}
-          {filteredRooms.length === 0 && (
+          {paginatedRooms.length === 0 && (
             <div className="col-span-full py-12 text-center text-muted-foreground">
               <BedDouble className="w-8 h-8 opacity-30 mx-auto mb-2" />
               <p className="font-medium">
@@ -143,6 +166,13 @@ export function AvailabilityTab({
             </div>
           )}
         </div>
+      )}
+
+      {sortedRooms.length > 0 && (
+        <PaginationBar
+          pagination={paginationMeta as any}
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   );
