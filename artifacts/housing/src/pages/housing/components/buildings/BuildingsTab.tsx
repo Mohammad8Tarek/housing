@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PaginationBar } from "@/components/ui/PaginationBar";
+import { DataPagination } from "@/components/DataPagination";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -125,7 +125,7 @@ export function BuildingsTab({
   const [isBuildingGenerating, setIsBuildingGenerating] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
   
   // Apply pagination
   const paginatedBuildings = buildings.slice(
@@ -459,8 +459,14 @@ export function BuildingsTab({
       )}
 
       {buildings.length > 0 && (
-        <PaginationBar
-          pagination={paginationMeta as any}
+        <DataPagination
+          total={buildings.length}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          currentPage={currentPage}
           onPageChange={setCurrentPage}
         />
       )}

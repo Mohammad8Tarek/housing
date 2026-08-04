@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Search, Building2, Layers, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -19,7 +20,7 @@ import {
 } from "@workspace/api-client-react";
 import { statusNorm } from "../../utils";
 
-import { PaginationBar } from "@/components/ui/PaginationBar";
+import { DataPagination } from "@/components/DataPagination";
 import { RoomsTable } from "./RoomsTable";
 import { RoomModals } from "./RoomModals";
 
@@ -63,7 +64,7 @@ export function RoomsTab({
   const [roomFloorFilter, setRoomFloorFilter] = useState("all");
   const [roomStatusFilter, setRoomStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const filteredRoomsTab = rooms.filter((r) => {
     const matchB =
@@ -272,8 +273,14 @@ export function RoomsTab({
       />
 
       {sortedRooms.length > 0 && (
-        <PaginationBar
-          pagination={paginationMeta as any}
+        <DataPagination
+          total={sortedRooms.length}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          currentPage={currentPage}
           onPageChange={setCurrentPage}
         />
       )}

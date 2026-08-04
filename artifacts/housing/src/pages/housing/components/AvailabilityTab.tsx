@@ -3,7 +3,7 @@ import { Search, Building2, BedDouble, Layers } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PaginationBar } from "@/components/ui/PaginationBar";
+import { DataPagination } from "@/components/DataPagination";
 import {
   Select,
   SelectContent,
@@ -34,7 +34,7 @@ export function AvailabilityTab({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 12; // using 12 for better grid layout (divisible by 2, 3, 4)
+  const [pageSize, setPageSize] = useState(15);
 
   const filteredRooms = rooms.filter((r) => {
     const matchSearch = r.roomNumber
@@ -55,15 +55,6 @@ export function AvailabilityTab({
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
-
-  const paginationMeta = {
-    page: currentPage,
-    limit: pageSize,
-    total: sortedRooms.length,
-    totalPages: Math.ceil(sortedRooms.length / pageSize),
-    hasNextPage: currentPage * pageSize < sortedRooms.length,
-    hasPrevPage: currentPage > 1,
-  };
 
   return (
     <div className="space-y-4">
@@ -169,8 +160,14 @@ export function AvailabilityTab({
       )}
 
       {sortedRooms.length > 0 && (
-        <PaginationBar
-          pagination={paginationMeta as any}
+        <DataPagination
+          total={sortedRooms.length}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          currentPage={currentPage}
           onPageChange={setCurrentPage}
         />
       )}

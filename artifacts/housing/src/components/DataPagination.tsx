@@ -13,7 +13,7 @@ import { useLanguage } from "@/context/LanguageContext";
 interface PaginationProps {
   total: number;
   pageSize: number;
-  onPageSizeChange: (size: number) => void;
+  onPageSizeChange?: (size: number) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
 }
@@ -31,26 +31,34 @@ export function DataPagination({
   const startRecord = (currentPage - 1) * pageSize + 1;
   const endRecord = Math.min(currentPage * pageSize, total);
 
+  if (total === 0) return null;
+
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t px-4 py-3 text-sm">
       <div className="flex items-center gap-3">
-        <span className="text-muted-foreground">
-          {ar ? "عدد العناصر:" : "Show entries:"}
-        </span>
-        <Select
-          value={String(pageSize)}
-          onValueChange={(v) => onPageSizeChange(Number(v))}
-        >
-          <SelectTrigger className="w-20 h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="10">10</SelectItem>
-            <SelectItem value="25">25</SelectItem>
-            <SelectItem value="50">50</SelectItem>
-            <SelectItem value="100">100</SelectItem>
-          </SelectContent>
-        </Select>
+        {onPageSizeChange && (
+          <>
+            <span className="text-muted-foreground">
+              {ar ? "عرض المُدخلات:" : "Show entries:"}
+            </span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => onPageSizeChange(Number(v))}
+            >
+              <SelectTrigger className="w-20 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="15">15</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        )}
       </div>
 
       <span className="text-muted-foreground text-xs sm:text-sm">
