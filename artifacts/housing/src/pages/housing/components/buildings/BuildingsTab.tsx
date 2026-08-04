@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationBar } from "@/components/ui/PaginationBar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,6 +123,24 @@ export function BuildingsTab({
     new Set([0]),
   );
   const [isBuildingGenerating, setIsBuildingGenerating] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  
+  // Apply pagination
+  const paginatedBuildings = buildings.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const paginationMeta = {
+    page: currentPage,
+    limit: pageSize,
+    total: buildings.length,
+    totalPages: Math.ceil(buildings.length / pageSize),
+    hasNextPage: currentPage * pageSize < buildings.length,
+    hasPrevPage: currentPage > 1,
+  };
 
   const smartTotalRooms = smartMode
     ? floorConfigs.reduce((sum, f) => sum + f.roomsCount, 0)
@@ -355,7 +374,7 @@ export function BuildingsTab({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {buildings.map((b) => {
+              {paginatedBuildings.map((b) => {
                 const bFloors = floors.filter((f) => f.buildingId === b.id);
                 const bRooms = rooms.filter((r) => r.buildingId === b.id);
                 return (
@@ -437,6 +456,13 @@ export function BuildingsTab({
             </tbody>
           </table>
         </div>
+      )}
+
+      {buildings.length > 0 && (
+        <PaginationBar
+          pagination={paginationMeta as any}
+          onPageChange={setCurrentPage}
+        />
       )}
 
       {/* Building Modal */}
@@ -829,9 +855,20 @@ export function BuildingsTab({
               {ar ? "حذف المبنى" : "Delete Building"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {ar
-                ? "هل أنت متأكد؟ سيتم حذف المبنى وجميع الطوابق والغرف المرتبطة به. لا يمكن التراجع عن هذا الإجراء."
-                : "Are you sure? This will delete the building and all associated floors and rooms. This action cannot be undone."}
+              {(() => {
+                const bFloorsCount = deleteBuilding ? floors.filter(f => f.buildingId === deleteBuilding.id).length : 0;
+                const bRoomsCount = deleteBuilding ? rooms.filter(r => r.buildingId === deleteBuilding.id).length : 0;
+                
+                if (bRoomsCount > 0) {
+                  return ar
+                    ? `هذا المبنى يحتوي على ${bFloorsCount} طوابق و ${bRoomsCount} غرف. هل أنت متأكد من رغبتك في حذف المبنى مع جميع غرفه نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`
+                    : `This building contains ${bFloorsCount} floors and ${bRoomsCount} rooms. Are you sure you want to delete the building AND all its rooms permanently? This action cannot be undone.`;
+                }
+
+                return ar
+                  ? "هل أنت متأكد؟ سيتم حذف المبنى نهائياً. لا يمكن التراجع عن هذا الإجراء."
+                  : "Are you sure? This will delete the building permanently. This action cannot be undone.";
+              })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -841,7 +878,7 @@ export function BuildingsTab({
               onClick={confirmDeleteBuilding}
               disabled={deleteBuildingMut.isPending}
             >
-              {ar ? "حذف" : "Delete"}
+              {ar ? "حذف المبنى والغرف" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

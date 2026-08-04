@@ -19,6 +19,7 @@ import {
 } from "@workspace/api-client-react";
 import { statusNorm } from "../../utils";
 
+import { PaginationBar } from "@/components/ui/PaginationBar";
 import { RoomsTable } from "./RoomsTable";
 import { RoomModals } from "./RoomModals";
 
@@ -61,6 +62,8 @@ export function RoomsTab({
   const [roomBuildingFilter, setRoomBuildingFilter] = useState("all");
   const [roomFloorFilter, setRoomFloorFilter] = useState("all");
   const [roomStatusFilter, setRoomStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const filteredRoomsTab = rooms.filter((r) => {
     const matchB =
@@ -73,11 +76,31 @@ export function RoomsTab({
     return matchB && matchF && matchS;
   });
 
-  const openCreateRoom = () => {
+  const sortedRooms = [...filteredRoomsTab].sort((a, b) => {
+    return String(a.roomNumber).localeCompare(String(b.roomNumber), undefined, {
+      numeric: true,
+    });
+  });
+
+  const paginatedRooms = sortedRooms.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const paginationMeta = {
+    page: currentPage,
+    limit: pageSize,
+    total: sortedRooms.length,
+    totalPages: Math.ceil(sortedRooms.length / pageSize),
+    hasNextPage: currentPage * pageSize < sortedRooms.length,
+    hasPrevPage: currentPage > 1,
+  };
+
+  const openAddRoom = () => {
     setEditRoom(null);
     setRForm({
       buildingId: buildings[0]?.id || 0,
-      floorId: 0,
+      floorId: floors[0]?.id || 0,
       roomNumber: "",
       roomType: "Standard",
       capacity: 2,
@@ -90,13 +113,13 @@ export function RoomsTab({
   const openEditRoom = (r: any) => {
     setEditRoom(r);
     setRForm({
-      buildingId: r.buildingId,
-      floorId: r.floorId,
-      roomNumber: r.roomNumber,
-      roomType: r.roomType || "Standard",
+      buildingId: r.buildingId || 0,
+      floorId: r.floorId || 0,
+      roomNumber: r.roomNumber || "",
+      roomType: r.type || "Standard",
       capacity: r.capacity || 2,
       gender: r.gender || "",
-      status: r.status || "available",
+      status: statusNorm(r.status) || "available",
     });
     setRoomModal(true);
   };
@@ -105,7 +128,7 @@ export function RoomsTab({
     if (!rForm.buildingId || !rForm.floorId || !rForm.roomNumber.trim()) {
       toast.error(
         ar
-          ? "المبنى والطابق ورقم الغرفة مطلوبون"
+          ? "المبنى والطابق ورقم الغرفة مطلوبين"
           : "Building, floor, and room number are required",
       );
       return;
@@ -128,7 +151,7 @@ export function RoomsTab({
       queryClient.invalidateQueries();
       setRoomModal(false);
     } catch (err: any) {
-      toast.error(err.message || (ar ? "حدث خطأ" : "Failed to save"));
+      toast.error(err.message || (ar ? "فشل الحفظ" : "Failed to save"));
     }
   };
 
@@ -144,23 +167,23 @@ export function RoomsTab({
       setDeleteRoom(null);
       queryClient.invalidateQueries();
     } catch (err: any) {
-      toast.error(err.message || (ar ? "حدث خطأ" : "Failed to delete"));
+      toast.error(err.message || (ar ? "فشل الحذف" : "Failed to delete"));
     }
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+        <div className="flex flex-wrap gap-2 items-center">
           <Select
             value={roomBuildingFilter}
-            onValueChange={(v) => {
-              setRoomBuildingFilter(v);
-              setRoomFloorFilter("all");
+            onValueChange={(val) => {
+              setRoomBuildingFilter(val);
+              setCurrentPage(1);
             }}
           >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
+            <SelectTrigger className="w-[140px] bg-background">
+              <SelectValue placeholder={ar ? "المبنى..." : "Building..."} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
@@ -173,29 +196,44 @@ export function RoomsTab({
               ))}
             </SelectContent>
           </Select>
-          <Select value={roomFloorFilter} onValueChange={setRoomFloorFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder={ar ? "كل الطوابق" : "All Floors"} />
+
+          <Select
+            value={roomFloorFilter}
+            onValueChange={(val) => {
+              setRoomFloorFilter(val);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[140px] bg-background">
+              <SelectValue placeholder={ar ? "الطابق..." : "Floor..."} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
                 {ar ? "كل الطوابق" : "All Floors"}
               </SelectItem>
-              {(roomBuildingFilter === "all"
-                ? floors
-                : floors.filter(
-                    (f) => f.buildingId === Number(roomBuildingFilter),
-                  )
-              ).map((f) => (
-                <SelectItem key={f.id} value={String(f.id)}>
-                  {ar ? "الطابق" : "Floor"} {f.floorNumber}
-                </SelectItem>
-              ))}
+              {floors
+                .filter(
+                  (f) =>
+                    roomBuildingFilter === "all" ||
+                    f.buildingId === Number(roomBuildingFilter),
+                )
+                .map((f) => (
+                  <SelectItem key={f.id} value={String(f.id)}>
+                    {f.floorNumber}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
-          <Select value={roomStatusFilter} onValueChange={setRoomStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder={ar ? "كل الحالات" : "All Statuses"} />
+
+          <Select
+            value={roomStatusFilter}
+            onValueChange={(val) => {
+              setRoomStatusFilter(val);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[140px] bg-background">
+              <SelectValue placeholder={ar ? "الحالة..." : "Status..."} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
@@ -213,12 +251,13 @@ export function RoomsTab({
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground">
-            {filteredRoomsTab.length} {ar ? "غرفة" : "rooms"}
+            {sortedRooms.length} {ar ? "غرفة" : "rooms"}
           </p>
         </div>
         <PermissionGate module="housing" action="create">
-          <Button onClick={openCreateRoom} size="sm">
-            <Plus className="w-4 h-4 mr-1" /> {ar ? "إضافة غرفة" : "Add Room"}
+          <Button onClick={openAddRoom} className="gap-2">
+            <Plus className="w-4 h-4" />
+            {ar ? "إضافة غرفة" : "Add Room"}
           </Button>
         </PermissionGate>
       </div>
@@ -227,10 +266,17 @@ export function RoomsTab({
         buildings={buildings}
         floors={floors}
         rLoading={rLoading}
-        filteredRoomsTab={filteredRoomsTab}
+        filteredRoomsTab={paginatedRooms}
         onEditRoom={openEditRoom}
         onDeleteRoom={setDeleteRoom}
       />
+
+      {sortedRooms.length > 0 && (
+        <PaginationBar
+          pagination={paginationMeta as any}
+          onPageChange={setCurrentPage}
+        />
+      )}
 
       <RoomModals
         buildings={buildings}
