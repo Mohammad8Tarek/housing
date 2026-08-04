@@ -512,20 +512,11 @@ export default function Tickets() {
           (t.priority || "").toLowerCase() === priorityFilter.toLowerCase(),
       );
     }
-    if (departmentFilter.length > 0) {
-      items = items.filter((t) =>
-        departmentFilter.includes(t.department || ""),
-      );
-    }
-    if (creatorTypeFilter) {
-      if (creatorTypeFilter === "staff") {
-        items = items.filter((t) => t.createdByStaff === true);
-      } else if (creatorTypeFilter === "guest") {
-        items = items.filter((t) => t.createdByStaff === false);
-      }
-    }
     if (propertyFilter) {
-      items = items.filter((t) => String(t.propertyId) === propertyFilter);
+      items = items.filter((t) => {
+        const room = rooms.find((r) => r.id === t.roomId);
+        return room && String(room.propertyId) === propertyFilter;
+      });
     }
     const statusOrder = { open: 0, in_progress: 1, resolved: 2, closed: 3 };
     items.sort((a, b) => {

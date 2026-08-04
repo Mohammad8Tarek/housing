@@ -228,77 +228,8 @@ export default function MaintenanceFilterBar({
           </select>
         </div>
 
-        {/* Departments */}
-        <div className="space-y-1">
-          <label className={labelClass}>{ar ? "الأقسام" : "Departments"}</label>
-          <div className="relative">
-            <button
-              onClick={() => toggleDropdown("departments")}
-              className="w-full px-3 py-1.5 bg-muted/50 border border-border rounded text-left text-xs text-foreground hover:border-primary/40 focus:outline-none flex items-center justify-between transition-colors"
-            >
-              <span className="truncate">
-                {filters.departments.length === 0
-                  ? ar
-                    ? "اختر..."
-                    : "Select..."
-                  : getSelectedLabel(filters.departments)}
-              </span>
-              <svg
-                className="w-3 h-3 text-muted-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-            {openDropdowns["departments"] && (
-              <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded shadow-lg">
-                <div className="max-h-40 overflow-y-auto">
-                  {departments.map((dept) => (
-                    <label
-                      key={dept}
-                      className="flex items-center px-3 py-1.5 hover:bg-accent cursor-pointer text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filters.departments.includes(dept)}
-                        onChange={() => handleMultiSelect(dept)}
-                        className="rounded"
-                      />
-                      <span className="ml-2 text-xs text-foreground">
-                        {dept}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Creator Type */}
-        <div className="space-y-1">
-          <label className={labelClass}>
-            {ar ? "نوع المنشئ" : "Creator Type"}
-          </label>
-          <select
-            value={filters.creatorType}
-            onChange={(e) => handleSingleSelect("creatorType", e.target.value)}
-            className={selectClass}
-          >
-            {CREATOR_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {ar ? opt.labelAr : opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Departments (Removed - Not in Schema) */}
+        {/* Creator Type (Removed - Not in Schema) */}
       </div>
 
       {/* Action Bar */}
