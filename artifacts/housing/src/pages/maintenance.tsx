@@ -164,7 +164,9 @@ export default function Tickets() {
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
-  const LIMIT = 25;
+  const LIMIT = 1000;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -184,6 +186,7 @@ export default function Tickets() {
   const [priorityFilter, setPriorityFilter] = useState("");
   useEffect(() => {
     setPage(1);
+    setCurrentPage(1);
   }, [searchTerm, statusFilter, priorityFilter]);
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [creatorTypeFilter, setCreatorTypeFilter] = useState("");
@@ -548,6 +551,11 @@ export default function Tickets() {
     propertyFilter,
   ]);
 
+  const paged = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   const exportExcel = () => {
     const rows = filtered.map((req) => ({
       [ar ? "رقم" : "ID"]: req.id,
@@ -617,6 +625,7 @@ export default function Tickets() {
             setDepartmentFilter(filters.departments ?? []);
             setCreatorTypeFilter(filters.creatorType ?? "");
             setPropertyFilter(filters.propertyId ?? "");
+            setCurrentPage(1);
           }}
         />
       </div>
@@ -905,7 +914,7 @@ export default function Tickets() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((req) => (
+                {paged.map((req) => (
                   <TableRow key={req.id} className="hover:bg-muted/20">
                     {isVisible("id") && (
                       <TableCell className="font-mono text-sm font-semibold text-muted-foreground">
@@ -1094,11 +1103,16 @@ export default function Tickets() {
                 )}
               </TableBody>
             </Table>
-            {allTicketsWrapper?.pagination && (
-              <PaginationBar
-                pagination={allTicketsWrapper.pagination}
-                isFetching={isFetching}
-                onPageChange={setPage}
+            {filtered.length > 0 && (
+              <DataPagination
+                total={filtered.length}
+                pageSize={pageSize}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
               />
             )}
           </div>
