@@ -218,20 +218,24 @@ export function BuildingsTab({
           }
 
           setIsBuildingGenerating(true);
-          // 1. Create Building
-          const bData = await createBuildingMut.mutateAsync({
-            ...bForm,
-            capacity: smartTotalBeds,
-            propertyId,
-          });
+            // 1. Create Building
+            const bData = await createBuildingMut.mutateAsync({
+              data: {
+                ...bForm,
+                capacity: smartTotalBeds,
+                propertyId,
+              }
+            });
           const newBuildingId = bData.id;
 
           // 2. Create Floors & Rooms sequentially to avoid overwhelming the DB
           for (const fc of floorConfigs) {
             const fData = await createFloorMut.mutateAsync({
-              propertyId,
-              buildingId: newBuildingId,
-              floorNumber: fc.floorNumber,
+              data: {
+                propertyId,
+                buildingId: newBuildingId,
+                floorNumber: fc.floorNumber,
+              }
             });
             const newFloorId = fData.id;
 
@@ -254,7 +258,7 @@ export function BuildingsTab({
             for (let i = 0; i < roomsData.length; i += chunkSize) {
               const chunk = roomsData.slice(i, i + chunkSize);
               await Promise.all(
-                chunk.map((rData) => createRoomMut.mutateAsync(rData)),
+                chunk.map((rData) => createRoomMut.mutateAsync({ data: rData })),
               );
             }
           }
@@ -270,10 +274,12 @@ export function BuildingsTab({
         } else {
           // Normal mode
           await createBuildingMut.mutateAsync({
-            ...bForm,
-            propertyId,
+            data: {
+              ...bForm,
+              propertyId,
+            },
           });
-          toast.success(ar ? "تم إضافة المبنى بنجاح" : "Building added");
+          toast.success(ar ? "تمت إضافة المبنى بنجاح" : "Building created successfully");
           queryClient.invalidateQueries();
           setBuildingModal(false);
         }
