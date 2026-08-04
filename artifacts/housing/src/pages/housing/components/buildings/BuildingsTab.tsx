@@ -287,6 +287,12 @@ export function BuildingsTab({
 
   const confirmDeleteBuilding = async () => {
     if (!deleteBuilding) return;
+    console.log("Confirming delete for building:", deleteBuilding);
+    if (deleteBuilding.id === undefined) {
+      toast.error("Error: Building ID is undefined! Cannot delete.");
+      console.error("Missing ID in building object:", deleteBuilding);
+      return;
+    }
     try {
       await deleteBuildingMut.mutateAsync({ id: deleteBuilding.id });
       toast.success(ar ? "تم حذف المبنى بنجاح" : "Building deleted");
