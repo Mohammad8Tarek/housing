@@ -78,7 +78,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { DataPagination } from "@/components/DataPagination";
-import { PaginationBar } from "@/components/ui/PaginationBar";
 import * as XLSX from "xlsx";
 
 export default function Reservations() {
@@ -995,9 +994,10 @@ export default function Reservations() {
             </TableBody>
           </Table>
           {_resWrapper?.pagination && (
-            <PaginationBar
-              pagination={_resWrapper.pagination}
-              isFetching={isFetching}
+            <DataPagination
+              total={_resWrapper.pagination.total}
+              pageSize={LIMIT}
+              currentPage={page}
               onPageChange={setPage}
             />
           )}

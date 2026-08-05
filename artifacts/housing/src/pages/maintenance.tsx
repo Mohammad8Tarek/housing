@@ -584,6 +584,13 @@ export default function Tickets() {
     XLSX.writeFile(wb, `tickets_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const totalCount = allTickets?.length || 0;
+  const openCount = allTickets?.filter((t) => t.status === "open").length || 0;
+  const inProgressCount =
+    allTickets?.filter((t) => t.status === "in_progress").length || 0;
+  const closedCount =
+    allTickets?.filter((t) => t.status === "closed").length || 0;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -596,6 +603,26 @@ export default function Tickets() {
             ? "تصفية وإدارة جميع طلبات الصيانة والنظافة والخدمات"
             : "Filter and manage all maintenance, housekeeping, and service requests"}
         </p>
+      </div>
+
+      {/* Analytics Cards */}
+      <div className="px-4 sm:px-6 pb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-sm">
+          <span className="text-sm font-medium text-muted-foreground">{ar ? "إجمالي التذاكر" : "Total Tickets"}</span>
+          <span className="text-3xl font-bold mt-2">{totalCount}</span>
+        </div>
+        <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-sm">
+          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{ar ? "مفتوحة" : "Open"}</span>
+          <span className="text-3xl font-bold mt-2 text-blue-700 dark:text-blue-300">{openCount}</span>
+        </div>
+        <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-sm">
+          <span className="text-sm font-medium text-purple-600 dark:text-purple-400">{ar ? "قيد التنفيذ" : "In Progress"}</span>
+          <span className="text-3xl font-bold mt-2 text-purple-700 dark:text-purple-300">{inProgressCount}</span>
+        </div>
+        <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-sm">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{ar ? "مغلقة" : "Closed"}</span>
+          <span className="text-3xl font-bold mt-2 text-gray-700 dark:text-gray-300">{closedCount}</span>
+        </div>
       </div>
 
       {/* FilterBar */}
@@ -1076,18 +1103,32 @@ export default function Tickets() {
                   <TableRow>
                     <TableCell
                       colSpan={visible.size}
-                      className="py-12 text-center"
+                      className="py-16 text-center"
                     >
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Wrench className="w-8 h-8 opacity-30" />
-                        <p className="font-medium">
-                          {ar ? "لا توجد طلبات" : "No tickets found"}
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-2">
+                          <Wrench className="w-8 h-8 text-muted-foreground/50" />
+                        </div>
+                        <p className="text-lg font-semibold text-foreground">
+                          {ar ? "لم يتم العثور على تذاكر" : "No tickets found"}
                         </p>
-                        <p className="text-sm">
+                        <p className="text-sm text-muted-foreground max-w-sm text-center">
                           {ar
-                            ? 'اضغط "طلب جديد" للإبلاغ'
-                            : 'Click "New Request" to report'}
+                            ? "يبدو أنه لا توجد تذاكر تطابق معايير البحث الخاصة بك. جرب تغيير الفلاتر أو أنشئ تذكرة جديدة."
+                            : "It looks like there are no tickets matching your search criteria. Try changing the filters or create a new ticket."}
                         </p>
+                        <Button
+                          variant="outline"
+                          className="mt-4"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setCategoryFilter("all");
+                            setStatusFilter("all");
+                            setPriorityFilter("");
+                          }}
+                        >
+                          {ar ? "مسح الفلاتر" : "Clear Filters"}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

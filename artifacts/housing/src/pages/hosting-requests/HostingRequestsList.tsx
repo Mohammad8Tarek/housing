@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PaginationBar } from "@/components/ui/PaginationBar";
+import { DataPagination } from "@/components/DataPagination";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { useLocation } from "wouter";
 import { Plus, Search } from "lucide-react";
@@ -312,9 +312,10 @@ export default function HostingRequestsList() {
       </Card>
 
       {data?.pagination && (
-        <PaginationBar
-          pagination={data.pagination}
-          isFetching={isFetching}
+        <DataPagination
+          total={data.pagination.total}
+          pageSize={limit}
+          currentPage={page}
           onPageChange={setPage}
         />
       )}
