@@ -4,10 +4,6 @@
   "outputDirectory": "dist/public",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://sunrise-api-production-2410.up.railway.app/api/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

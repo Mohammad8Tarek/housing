@@ -7,7 +7,10 @@ import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 
 const isNative = Capacitor.isNativePlatform();
-const SERVER_URL = "http://192.168.0.103:4000";
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+const SERVER_URL = (
+  configuredApiUrl || (isNative ? "http://192.168.0.103:4000" : "")
+).replace(/\/+$/, "");
 
 // Cache session_id in memory to avoid slow Preferences.get on every request
 let _cachedSid: string | null | undefined = undefined;
@@ -29,7 +32,7 @@ export function setCachedSessionId(sid: string) {
 }
 
 export function apiUrl(path: string): string {
-  if (isNative) return SERVER_URL + path;
+  if (SERVER_URL) return SERVER_URL + path;
   return path;
 }
 

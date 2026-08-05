@@ -4,6 +4,8 @@ import App from "./App";
 import "./index.css";
 import { registerServiceWorker } from "./register-service-worker";
 import * as Sentry from "@sentry/react";
+import { setBaseUrl } from "@workspace/api-client-react";
+import { getApiBaseUrl, installApiFetchInterceptor } from "@/lib/api-origin";
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
@@ -18,7 +20,8 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
-// API base URL is handled by Vercel proxy (see vercel.json)
+setBaseUrl(getApiBaseUrl());
+installApiFetchInterceptor();
 
 createRoot(document.getElementById("root")!).render(<App />);
 registerServiceWorker();

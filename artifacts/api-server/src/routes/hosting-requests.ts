@@ -936,8 +936,7 @@ router.post(
         stepOrder = request.current_step_order;
         requiredRole = STEP_ROLES[stepOrder];
 
-        const hasRole =
-          user.isSystemAdmin || userMatchesApprovalRole(user, requiredRole);
+        const hasRole = userMatchesApprovalRole(user, requiredRole);
         if (!hasRole) {
           logger.warn(
             {
@@ -1209,8 +1208,7 @@ router.post(
         stepOrder = request.current_step_order;
         requiredRole = STEP_ROLES[stepOrder];
 
-        const hasRole =
-          user.isSystemAdmin || userMatchesApprovalRole(user, requiredRole);
+        const hasRole = userMatchesApprovalRole(user, requiredRole);
         if (!hasRole) {
           await client.query("ROLLBACK");
           res.status(403).json({
@@ -1367,8 +1365,7 @@ router.post(
         }
 
         requiredRole = stepRes.rows[0].role_required;
-        const hasRole =
-          user.isSystemAdmin || userMatchesApprovalRole(user, requiredRole);
+        const hasRole = userMatchesApprovalRole(user, requiredRole);
         if (!hasRole) {
           await client.query("ROLLBACK");
           res.status(403).json({

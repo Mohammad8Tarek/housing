@@ -16,6 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useProperty } from "@/context/PropertyContext";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
+import { createWebSocketUrl } from "@/lib/api-origin";
 
 const MODULE_QUERY_KEYS: Record<string, string[]> = {
   assignments: ["/api/assignments"],
@@ -130,22 +131,10 @@ export function useWebSocket(): { isConnected: boolean } {
       return;
     }
 
-    let wsUrl = "";
-    if (import.meta.env.VITE_API_URL) {
-      try {
-        const url = new URL(import.meta.env.VITE_API_URL);
-        url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-        url.pathname = "/ws";
-        url.search = `?propertyId=${currentPropertyId}`;
-        wsUrl = url.toString();
-      } catch (e) {
-        // Ignored
-      }
-    }
-
-    if (!wsUrl) {
-      wsUrl = `wss://sunrise-api-production-2410.up.railway.app/ws?propertyId=${currentPropertyId}`;
-    }
+    const wsUrl = createWebSocketUrl(
+      "/ws",
+      new URLSearchParams({ propertyId: String(currentPropertyId) }),
+    );
 
     console.info("[WS] Attempting connection:", wsUrl.replace(/\?.*/, "?***"));
 

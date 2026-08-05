@@ -13,10 +13,17 @@ const net = require("net");
 const WebSocket = require("ws");
 
 // --- CONFIGURATION ---
-const LOCAL_PORT = 10003;
-const PROPERTY_ID = 1; // Change this if your property ID in the database is different
+const LOCAL_PORT = Number(process.env.HOTEK_LOCAL_PORT || 10003);
+const PROPERTY_ID = Number(process.env.HOTEK_PROPERTY_ID || 1);
 const BRIDGE_SECRET = process.env.HOTEK_BRIDGE_SECRET || process.env.SESSION_SECRET || "";
-const CLOUD_URL = `wss://sunrise-api-production-b3f9.up.railway.app/ws?propertyId=${PROPERTY_ID}&tunnel=hotek`;
+const CLOUD_API_URL = process.env.CLOUD_API_URL || process.env.VITE_API_URL || "http://localhost:4000";
+const cloudUrl = new URL("/ws", CLOUD_API_URL);
+cloudUrl.protocol = cloudUrl.protocol === "https:" ? "wss:" : "ws:";
+cloudUrl.search = new URLSearchParams({
+  propertyId: String(PROPERTY_ID),
+  tunnel: "hotek",
+}).toString();
+const CLOUD_URL = cloudUrl.toString();
 // ---------------------
 
 console.log(`

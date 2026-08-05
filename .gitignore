@@ -31,8 +31,21 @@ test-*.ts
 .env.local
 .env.*.local
 
+# Generated bundles, database dumps, and one-off repair artifacts
+/source-bundle.md
+/dump.sql
+/full_dump.sql
+/corrupted_strings.json
+/corrupted_english_strings.txt
+*.bak
+*.rar
+
+# Local one-off debug scripts
+test-*.js
+test-*.mjs
+check-*.js
+
 # IDE / OS files
 .vscode/
 .DS_Store
 Thumbs.db
-
