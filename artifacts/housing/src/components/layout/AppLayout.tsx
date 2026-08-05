@@ -305,7 +305,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-full flex-col bg-card/95 backdrop-blur-xl text-card-foreground w-64 border-r border-white/10 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.1)] dark:shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]">
       <div className="px-6 py-5 flex flex-col items-center gap-3 border-b border-white/5 relative overflow-hidden">
         {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/4" />
         
         {systemLogo ? (
           <img
@@ -315,7 +315,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             fetchpriority="high"
           />
         ) : (
-          <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 z-10 relative">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 z-10 relative">
             <Building2 className="w-6 h-6 text-white" />
           </div>
         )}
@@ -343,11 +343,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   onClick={() => setAccommodationOpen((o) => !o)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
                     isGroupActive
-                      ? "bg-primary/10 text-primary font-semibold shadow-sm"
+                      ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold shadow-sm"
                       : "text-foreground/70 hover:bg-muted/50 hover:text-foreground"
                   }`}
                 >
-                  <div className={`p-1.5 rounded-lg transition-colors ${isGroupActive ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}>
+                  <div className={`p-1.5 rounded-lg transition-colors ${isGroupActive ? 'bg-violet-500/20 text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`}>
                     <item.icon className="h-4 w-4 flex-shrink-0" />
                   </div>
                   <span className="flex-1 text-start font-medium">{item.label}</span>
@@ -376,7 +376,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           <span
                             className={`block px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                               active
-                                ? "bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 translate-x-1"
+                                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-500/20 translate-x-1"
                                 : "text-foreground/60 hover:text-foreground hover:bg-muted/50 hover:translate-x-1"
                             }`}
                           >
@@ -401,24 +401,36 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <span
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
                   active
-                    ? "bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 scale-[1.02]"
+                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg shadow-violet-500/25 scale-[1.02]"
                     : "text-foreground/70 hover:bg-muted/50 hover:text-foreground hover:scale-[1.01]"
                 }`}
               >
-                <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-primary-foreground/20 text-primary-foreground' : 'text-muted-foreground'}`}>
+                <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-white/20 text-white' : 'text-muted-foreground'}`}>
                   <item.icon
                     className={`h-4 w-4 flex-shrink-0`}
                   />
                 </div>
                 <span className="font-medium">{item.label}</span>
                 {active && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" />
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 )}
               </span>
             </Link>
           );
         })}
       </div>
+      
+      {/* Bottom Profile / Footer Section inside sidebar */}
+      <div className="p-4 border-t border-white/5 bg-muted/20">
+        <div className="flex items-center gap-3 p-2 rounded-xl bg-card border border-white/5 shadow-sm">
+           <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-violet-500 to-indigo-500 flex items-center justify-center flex-shrink-0 shadow-inner">
+             <span className="text-white text-xs font-bold">IT</span>
+           </div>
+           <div className="flex-1 min-w-0">
+             <p className="text-xs font-bold text-foreground truncate">SUNRISE IT Team</p>
+             <p className="text-[9px] text-muted-foreground truncate uppercase tracking-wider">Staff Housing System</p>
+           </div>
+        </div>
       </div>
     </div>
   );
