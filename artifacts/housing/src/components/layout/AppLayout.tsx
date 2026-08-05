@@ -50,10 +50,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const SEEN_KEY = "notif_seen_ids";
 
@@ -100,25 +99,6 @@ function NotificationIcon({ type }: { type: string }) {
   return <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0" />;
 }
 
-
-function NavLink({ href, children, isActive }: { href: string; children: React.ReactNode; isActive: boolean }) {
-  const { setOpenMobile } = useSidebar();
-  return (
-    <Link href={href} onClick={() => setOpenMobile(false)}>
-      <div className={`flex items-center w-full cursor-pointer ${isActive ? 'text-sidebar-accent-foreground font-semibold' : ''}`}>{children}</div>
-    </Link>
-  );
-}
-
-function SubNavLink({ href, children, isActive }: { href: string; children: React.ReactNode; isActive: boolean }) {
-  const { setOpenMobile } = useSidebar();
-  return (
-    <Link href={href} onClick={() => setOpenMobile(false)}>
-      <div className={`block w-full cursor-pointer ${isActive ? 'text-sidebar-accent-foreground font-semibold' : ''}`}>{children}</div>
-    </Link>
-  );
-}
-
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const {
@@ -133,6 +113,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { language, setLanguage, dir } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [accommodationOpen, setAccommodationOpen] = useState(
     location.startsWith("/accommodation"),
   );
@@ -320,104 +301,141 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) =>
     location === href || (href !== "/" && location.startsWith(href + "/"));
 
+  const renderSidebar = () => (
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground w-64 border-r border-sidebar-border">
+      <div className="px-4 py-2 flex flex-col items-center gap-1.5 border-b border-sidebar-border/50">
+        {systemLogo ? (
+          <img
+            src={systemLogo}
+            alt="Logo"
+            className="h-10 w-auto max-w-[150px] object-contain"
+            fetchpriority="high"
+          />
+        ) : (
+          <div className="h-10 w-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-sidebar-primary-foreground" />
+          </div>
+        )}
+        <div className="text-center">
+          <span className="text-sm font-bold tracking-tight leading-none block">
+            {systemName}
+          </span>
+          <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest mt-0.5">
+            {ar ? "نظام الإسكان" : "Staff Housing"}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-3 px-2 flex flex-col gap-0.5 no-scrollbar">
+        {visibleNavItems.map((item, idx) => {
+          if (item.subItems) {
+            const isGroupActive = item.subItems.some((s) => isActive(s.href));
+            const open = accommodationOpen || isGroupActive;
+            return (
+              <div key={idx}>
+                <button
+                  onClick={() => setAccommodationOpen((o) => !o)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    isGroupActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-1 text-start">{item.label}</span>
+                  {open ? (
+                    <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-60" />
+                  ) : (
+                    <ChevronRight
+                      className={`h-3.5 w-3.5 flex-shrink-0 opacity-60 ${ar ? "rotate-180" : ""}`}
+                    />
+                  )}
+                </button>
+                {open && (
+                  <div
+                    className={`mt-0.5 ${ar ? "mr-4 pr-3 border-r" : "ml-4 pl-3 border-l"} border-sidebar-border/60 flex flex-col gap-0.5`}
+                  >
+                    {item.subItems.map((sub, sIdx) => (
+                      <Link
+                        key={sIdx}
+                        href={sub.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <span
+                          className={`block px-3 py-2 text-sm rounded-md transition-colors ${
+                            isActive(sub.href)
+                              ? "bg-sidebar-accent/80 text-sidebar-accent-foreground font-semibold"
+                              : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
+                          }`}
+                        >
+                          {sub.label}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          const active = isActive(item.href!);
+          return (
+            <Link
+              key={idx}
+              href={item.href!}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <span
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                }`}
+              >
+                <item.icon
+                  className={`h-4 w-4 flex-shrink-0 ${active ? "text-sidebar-primary" : ""}`}
+                />
+                {item.label}
+                {active && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                )}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
-    <SidebarProvider dir={dir}>
+    <>
       <ChangePasswordDialog
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
       />
-      
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border/50">
-        <SidebarHeader className="flex flex-col items-center gap-2 py-4 border-b border-sidebar-border/50">
-          {systemLogo ? (
-            <img
-              src={systemLogo}
-              alt="Logo"
-              className="h-10 w-auto max-w-[150px] object-contain group-data-[collapsible=icon]:max-w-[30px]"
-              fetchpriority="high"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-          )}
-          <div className="text-center group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-bold tracking-tight leading-none block text-sidebar-foreground">
-              {systemName}
-            </span>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
-              {ar ? "نظام الإسكان" : "Staff Housing"}
-            </p>
-          </div>
-        </SidebarHeader>
+      <div
+        className="flex h-[100dvh] w-full bg-background overflow-hidden"
+        dir={dir}
+      >
+        <div className="hidden md:block flex-shrink-0">{renderSidebar()}</div>
 
-        <SidebarContent className="px-2 py-2 gap-1 no-scrollbar">
-          <SidebarGroup>
-            <SidebarMenu className="gap-1">
-              {visibleNavItems.map((item, idx) => {
-                if (item.subItems) {
-                  const isGroupActive = item.subItems.some((s) => isActive(s.href));
-                  const defaultOpen = accommodationOpen || isGroupActive;
-                  return (
-                    <Collapsible key={idx} defaultOpen={defaultOpen} className="group/collapsible">
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton isActive={isGroupActive} tooltip={item.label} className="font-medium text-sm">
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                            <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 ${ar ? "rotate-180 group-data-[state=open]/collapsible:-rotate-90" : ""}`} />
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <SidebarMenuSub className="mr-4 pr-3 border-r-2 border-sidebar-border/30 rtl:ml-4 rtl:pl-3 rtl:mr-0 rtl:border-r-0 rtl:border-l-2">
-                            {item.subItems.map((sub, sIdx) => {
-                              const active = isActive(sub.href);
-                              return (
-                                <SidebarMenuSubItem key={sIdx}>
-                                  <SidebarMenuSubButton asChild isActive={active}>
-                                    <SubNavLink href={sub.href} isActive={active}>{sub.label}</SubNavLink>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              );
-                            })}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
-                  );
-                }
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="sticky top-0 z-30 h-14 border-b border-border bg-card flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side={dir === "rtl" ? "right" : "left"}
+                  className="p-0 w-64 bg-sidebar border-none"
+                >
+                  {renderSidebar()}
+                </SheetContent>
+              </Sheet>
 
-                const active = isActive(item.href!);
-                return (
-                  <SidebarMenuItem key={idx}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.label} className="font-medium text-sm">
-                      <NavLink href={item.href!} isActive={active}>
-                        <div className="flex items-center gap-2 w-full">
-                          <item.icon className={`h-4 w-4 ${active ? 'text-primary' : ''}`} />
-                          <span>{item.label}</span>
-                          {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </div>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
-
-        <SidebarFooter className="border-t border-sidebar-border/50 p-4 text-center group-data-[collapsible=icon]:hidden bg-sidebar/50">
-          <p className="text-[10px] font-medium text-muted-foreground/80 flex flex-col items-center justify-center gap-1">
-            <span className="font-semibold uppercase tracking-wider text-primary/80">SUNRISE IT Team</span>
-            <span>© 2026 White Hills</span>
-          </p>
-        </SidebarFooter>
-      </Sidebar>
-
-      <div className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-hidden bg-background">
-        <header className="sticky top-0 z-30 h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-sm transition-all duration-300">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="-ml-2 text-muted-foreground hover:text-foreground md:hidden" />
               {/* Property Switcher in Topbar with property logo */}
               {(isSuperAdmin || activeProperty) &&
                 (isSuperAdmin || properties.length > 1 ? (
@@ -803,6 +821,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </footer>
           </main>
         </div>
-    </SidebarProvider>
+      </div>
+    </>
   );
 }
