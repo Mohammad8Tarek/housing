@@ -253,9 +253,10 @@ export default function Dashboard() {
         className={`grid gap-4 md:grid-cols-2 ${isAll ? "lg:grid-cols-4" : "lg:grid-cols-5"}`}
       >
         {statCards.map((card, i) => (
-          <div key={i} className="block h-full">
-            <Card className="h-full flex flex-col border-border hover:shadow-md hover:border-primary/30 transition-all">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div key={i} className="block h-full group">
+            <Card className="h-full flex flex-col bg-card/60 backdrop-blur-2xl border-border/50 shadow-lg hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40 transition-all duration-500 relative overflow-hidden">
+              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-[0.15] pointer-events-none transition-opacity duration-500 group-hover:opacity-30 ${card.bg}`} />
+              <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
                 <CardTitle className="text-sm font-medium">
                   {card.title}
                 </CardTitle>
@@ -263,7 +264,7 @@ export default function Dashboard() {
                   <card.icon className={`h-4 w-4 ${card.color}`} />
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-end">
+              <CardContent className="flex-1 flex flex-col justify-end relative z-10">
                 <div className="flex items-end justify-between">
                   <div>
                     <div
@@ -284,7 +285,7 @@ export default function Dashboard() {
 
       {/* Per-Property Table (only in 'all' mode) */}
       {isAll && perProperty.length > 0 && (
-        <Card className="border-border">
+        <Card className="bg-card/70 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">
               {ar ? "تفاصيل كل فرع" : "Per-Property Details"}
@@ -328,7 +329,7 @@ export default function Dashboard() {
                         setActivePropertyId(p.id);
                         setLocation("/dashboard");
                       }}
-                      className="border-b border-border/50 hover:bg-muted/40 cursor-pointer transition-colors"
+                      className="border-b border-border/40 hover:bg-muted/60 cursor-pointer transition-all duration-200 hover:shadow-sm"
                     >
                       <td className="py-2.5 px-2 font-medium">{p.name}</td>
                       <td className="py-2.5 px-2 text-center">
@@ -371,7 +372,7 @@ export default function Dashboard() {
       {!isAll && (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4 border-border">
+            <Card className="col-span-4 bg-card/70 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>
@@ -445,7 +446,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="col-span-3 border-border flex flex-col">
+            <Card className="col-span-3 bg-card/70 backdrop-blur-xl border-border/50 shadow-xl flex flex-col overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
@@ -478,7 +479,7 @@ export default function Dashboard() {
                       key={alert.assignmentId}
                       href="/accommodation/in-house"
                     >
-                      <div className="flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer relative overflow-hidden">
                         <div
                           className={`p-1.5 rounded-full flex-shrink-0 ${alert.daysRemaining <= 1 ? "bg-red-100 text-red-600 dark:bg-red-950/40" : alert.daysRemaining <= 3 ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40" : "bg-primary/10 text-primary"}`}
                         >
@@ -569,9 +570,10 @@ export default function Dashboard() {
                 },
               ].map((item, i) => (
                 <Link key={i} href={item.href}>
-                  <Card className="border-border hover:shadow-sm hover:border-primary/20 transition-all cursor-pointer text-center p-4 group h-full">
+                  <Card className="bg-card/60 backdrop-blur-lg border-border/50 shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 cursor-pointer text-center p-4 group h-full relative overflow-hidden">
+                    <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-10 pointer-events-none transition-opacity duration-300 group-hover:opacity-30 ${item.color.split(' ')[1]}`} />
                     <div
-                      className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center mx-auto mb-2.5 group-hover:scale-110 transition-transform`}
+                      className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center mx-auto mb-2.5 group-hover:scale-110 transition-transform relative z-10`}
                     >
                       <item.icon className="w-5 h-5" />
                     </div>
@@ -586,7 +588,7 @@ export default function Dashboard() {
 
           {/* Recent Activity */}
           {activity && activity.length > 0 && (
-            <Card className="border-border">
+            <Card className="bg-card/70 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-base">
