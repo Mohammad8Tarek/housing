@@ -418,8 +418,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
-      </div>
-      </div>
     </div>
   );
 
