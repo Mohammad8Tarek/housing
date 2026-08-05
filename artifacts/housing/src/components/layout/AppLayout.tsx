@@ -96,7 +96,7 @@ function NotificationIcon({ type }: { type: string }) {
     return <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />;
   if (type === "NEW_ACTIVITY")
     return <CalendarCheck className="w-4 h-4 text-purple-500 flex-shrink-0" />;
-  return <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0" />;
+  return <Bell className="w-4 h-4 text-sidebar-foreground/70 flex-shrink-0" />;
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -302,7 +302,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     location === href || (href !== "/" && location.startsWith(href + "/"));
 
   const renderSidebar = () => (
-    <div className="flex h-full flex-col bg-card/95 backdrop-blur-xl text-card-foreground w-64 border-r border-white/10 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.1)] dark:shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]">
+    <div className="flex h-full flex-col bg-sidebar backdrop-blur-xl text-sidebar-foreground w-64 border-r border-white/10 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.1)] dark:shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]">
       <div className="px-6 py-5 flex flex-col items-center gap-3 border-b border-white/5 relative overflow-hidden">
         {/* Subtle decorative glow */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/4" />
@@ -320,17 +320,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
         <div className="text-center z-10 relative">
-          <span className="text-base font-extrabold tracking-tight leading-none block text-foreground">
+          <span className="text-base font-extrabold tracking-tight leading-none block text-sidebar-foreground">
             {systemName}
           </span>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1.5 font-medium">
+          <p className="text-[10px] text-sidebar-foreground/70 uppercase tracking-widest mt-1.5 font-medium">
             {ar ? "نظام الإسكان" : "Staff Housing"}
           </p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1.5 no-scrollbar">
-        <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-2 px-3">
+        <p className="text-[10px] font-semibold text-sidebar-foreground/70/50 uppercase tracking-widest mb-2 px-3">
           {ar ? "القائمة الرئيسية" : "Main Menu"}
         </p>
         {visibleNavItems.map((item, idx) => {
@@ -344,10 +344,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
                     isGroupActive
                       ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold shadow-sm"
-                      : "text-foreground/70 hover:bg-muted/50 hover:text-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                   }`}
                 >
-                  <div className={`p-1.5 rounded-lg transition-colors ${isGroupActive ? 'bg-violet-500/20 text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`}>
+                  <div className={`p-1.5 rounded-lg transition-colors ${isGroupActive ? 'bg-violet-500/20 text-violet-600 dark:text-violet-400' : 'text-sidebar-foreground/70'}`}>
                     <item.icon className="h-4 w-4 flex-shrink-0" />
                   </div>
                   <span className="flex-1 text-start font-medium">{item.label}</span>
@@ -377,7 +377,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             className={`block px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                               active
                                 ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-500/20 translate-x-1"
-                                : "text-foreground/60 hover:text-foreground hover:bg-muted/50 hover:translate-x-1"
+                                : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 hover:translate-x-1"
                             }`}
                           >
                             {sub.label}
@@ -402,10 +402,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
                   active
                     ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg shadow-violet-500/25 scale-[1.02]"
-                    : "text-foreground/70 hover:bg-muted/50 hover:text-foreground hover:scale-[1.01]"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:scale-[1.01]"
                 }`}
               >
-                <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-white/20 text-white' : 'text-muted-foreground'}`}>
+                <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-white/20 text-white' : 'text-sidebar-foreground/70'}`}>
                   <item.icon
                     className={`h-4 w-4 flex-shrink-0`}
                   />
@@ -459,7 +459,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-primary/8 border border-primary/15 hover:bg-primary/12 transition-colors">
                         {activePropertyId === "all" ? (
-                          <LayoutGrid className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                          <LayoutGrid className="w-3.5 h-3.5 text-sidebar-primary flex-shrink-0" />
                         ) : activeProperty && (activeProperty as any).logo ? (
                           <img
                             src={(activeProperty as any).logo}
@@ -467,9 +467,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             className="h-6 w-auto max-w-[56px] rounded object-contain flex-shrink-0"
                           />
                         ) : (
-                          <Building2 className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                          <Building2 className="w-3.5 h-3.5 text-sidebar-primary flex-shrink-0" />
                         )}
-                        <span className="text-xs font-semibold text-primary truncate max-w-[140px]">
+                        <span className="text-xs font-semibold text-sidebar-primary truncate max-w-[140px]">
                           {activePropertyId === "all"
                             ? ar
                               ? "كل البروبرتيز"
@@ -484,15 +484,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         {isSuperAdmin &&
                           activeProperty &&
                           activePropertyId !== "all" && (
-                            <span className="text-[9px] font-mono text-muted-foreground uppercase bg-muted px-1 rounded">
+                            <span className="text-[9px] font-mono text-sidebar-foreground/70 uppercase bg-muted px-1 rounded">
                               {activeProperty.code}
                             </span>
                           )}
-                        <ChevronsUpDown className="w-3 h-3 text-primary/50 flex-shrink-0" />
+                        <ChevronsUpDown className="w-3 h-3 text-sidebar-primary/50 flex-shrink-0" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="start">
-                      <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wide">
+                      <DropdownMenuLabel className="text-xs text-sidebar-foreground/70 uppercase tracking-wide">
                         {ar ? "اختر الفرع" : "Switch Property"}
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
@@ -503,14 +503,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             className="flex items-center gap-2 cursor-pointer border-b border-border/50 mb-1"
                           >
                             <Check
-                              className={`w-3.5 h-3.5 ${activePropertyId === "all" ? "opacity-100 text-primary" : "opacity-0"}`}
+                              className={`w-3.5 h-3.5 ${activePropertyId === "all" ? "opacity-100 text-sidebar-primary" : "opacity-0"}`}
                             />
                             <LayoutGrid className="w-4 h-4 text-violet-600" />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">
                                 {ar ? "كل البروبرتيز" : "All Properties"}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-sidebar-foreground/70">
                                 {ar
                                   ? "عرض إجمالي كل الفروع"
                                   : "Aggregated overview"}
@@ -526,13 +526,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           className="flex items-center gap-2 cursor-pointer"
                         >
                           <Check
-                            className={`w-3.5 h-3.5 ${activePropertyId !== "all" && activeProperty?.id === p.id ? "opacity-100 text-primary" : "opacity-0"}`}
+                            className={`w-3.5 h-3.5 ${activePropertyId !== "all" && activeProperty?.id === p.id ? "opacity-100 text-sidebar-primary" : "opacity-0"}`}
                           />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">
                               {p.displayName || p.name}
                             </p>
-                            <p className="text-xs text-muted-foreground font-mono">
+                            <p className="text-xs text-sidebar-foreground/70 font-mono">
                               {p.code}
                             </p>
                           </div>
@@ -557,13 +557,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         className="h-6 w-auto max-w-[56px] rounded object-contain flex-shrink-0"
                       />
                     ) : (
-                      <Building2 className="w-3.5 h-3.5 text-primary" />
+                      <Building2 className="w-3.5 h-3.5 text-sidebar-primary" />
                     )}
-                    <span className="text-xs font-semibold text-primary truncate max-w-[140px]">
+                    <span className="text-xs font-semibold text-sidebar-primary truncate max-w-[140px]">
                       {activeProperty.displayName || activeProperty.name}
                     </span>
                     {isSuperAdmin && (
-                      <span className="ml-1 text-[9px] font-mono text-muted-foreground uppercase bg-muted px-1 rounded">
+                      <span className="ml-1 text-[9px] font-mono text-sidebar-foreground/70 uppercase bg-muted px-1 rounded">
                         {activeProperty.code}
                       </span>
                     )}
@@ -613,7 +613,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             e.preventDefault();
                             markAllSeen();
                           }}
-                          className="text-[10px] text-primary hover:underline font-medium"
+                          className="text-[10px] text-sidebar-primary hover:underline font-medium"
                         >
                           {ar ? "قراءة الكل" : "Mark all read"}
                         </button>
@@ -624,7 +624,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   {notifications.length === 0 ? (
                     <div className="py-6 text-center">
                       <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-sidebar-foreground/70">
                         {ar ? "لا توجد إشعارات" : "No notifications"}
                       </p>
                     </div>
@@ -671,7 +671,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            <p className="text-xs text-sidebar-foreground/70 mt-0.5 line-clamp-2">
                               {ar ? n.descriptionAr : n.description}
                             </p>
                             <Badge
@@ -690,7 +690,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           {!isSeen && (
                             <button
                               onClick={(e) => markOneSeen(n.id, e)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 flex-shrink-0 text-sidebar-foreground/70 hover:text-sidebar-foreground"
                               title={ar ? "تعليم كمقروء" : "Mark as read"}
                             >
                               <span className="text-xs">✓</span>
@@ -763,21 +763,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button className="hidden md:flex items-center gap-2 ml-1 pl-3 border-l border-border hover:opacity-70 transition-opacity cursor-pointer">
                     <Avatar className="h-7 w-7">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                      <AvatarFallback className="bg-primary text-sidebar-primary-foreground text-xs font-bold">
                         {user?.username?.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-sm font-medium">
                       {user?.username}
                     </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                    <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/70" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuLabel>
                     <div>
                       <p className="font-semibold">{user?.username}</p>
-                      <p className="text-xs text-muted-foreground capitalize">
+                      <p className="text-xs text-sidebar-foreground/70 capitalize">
                         {user?.roles?.[0]?.replace(/_/g, " ")}
                       </p>
                     </div>
@@ -821,12 +821,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Footer التعديل الجديد هنا - حجم أصغر */}
             <footer className="py-3 border-t bg-card/30 backdrop-blur-sm mt-auto">
               <div className="container mx-auto flex flex-col items-center justify-center gap-0.5 text-center px-4">
-                <p className="text-[11px] md:text-xs font-medium text-muted-foreground/80 flex flex-wrap items-center justify-center gap-x-2">
-                  <span className="text-primary/80 font-bold">© 2026</span>
+                <p className="text-[11px] md:text-xs font-medium text-sidebar-foreground/70/80 flex flex-wrap items-center justify-center gap-x-2">
+                  <span className="text-sidebar-primary/80 font-bold">© 2026</span>
                   <span className="font-semibold uppercase tracking-wider">
                     SUNRISE IT Team
                   </span>
-                  <span className="hidden md:inline text-muted-foreground/20">
+                  <span className="hidden md:inline text-sidebar-foreground/70/20">
                     |
                   </span>
                   <span className="font-normal">
