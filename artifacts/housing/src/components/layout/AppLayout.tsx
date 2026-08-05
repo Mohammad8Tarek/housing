@@ -419,19 +419,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           );
         })}
       </div>
-      
-      {/* Bottom Profile / Footer Section inside sidebar */}
-      <div className="p-4 border-t border-white/5 bg-muted/20">
-        <div className="flex items-center gap-3 p-2 rounded-xl bg-card border border-white/5 shadow-sm">
-           <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-violet-500 to-indigo-500 flex items-center justify-center flex-shrink-0 shadow-inner">
-             <span className="text-white text-xs font-bold">IT</span>
-           </div>
-           <div className="flex-1 min-w-0">
-             <p className="text-xs font-bold text-foreground truncate">SUNRISE IT Team</p>
-             <p className="text-[9px] text-muted-foreground truncate uppercase tracking-wider">Staff Housing System</p>
-           </div>
-        </div>
-      </div>
+
     </div>
   );
 
