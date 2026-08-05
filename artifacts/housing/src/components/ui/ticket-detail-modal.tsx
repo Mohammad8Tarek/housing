@@ -735,7 +735,48 @@ export default function TicketDetailModal({
                   {ar ? "المرفقات" : "Attachments"}
                 </h3>
                 {ticket.photoUrl ? (
-                  <div className="space-y-3"></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="group relative rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ring-1 ring-black/5 dark:ring-white/10">
+                      <div 
+                        className="aspect-video bg-muted/30 overflow-hidden relative cursor-pointer"
+                        onClick={() => setLightboxSrc(ticket.photoUrl)}
+                      >
+                        <img 
+                          src={ticket.photoUrl} 
+                          alt="Ticket Attachment" 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="bg-white/20 backdrop-blur-md p-2 rounded-full">
+                            <Eye className="w-5 h-5 text-white drop-shadow-md" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-card flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+                            <Paperclip className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold leading-none mb-1 text-foreground">
+                              {ar ? "صورة العطل المرفقة" : "Issue Attachment"}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                              {ar ? "صورة" : "IMAGE"}
+                            </p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={() => setLightboxSrc(ticket.photoUrl)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Paperclip className="w-8 h-8 mx-auto mb-2 opacity-30" />
