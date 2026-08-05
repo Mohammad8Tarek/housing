@@ -1,3 +1,5 @@
+const DEFAULT_RAILWAY_API_URL = "https://sunrise-api-production-2410.up.railway.app";
+
 export function getApiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_URL?.trim();
   if (configured) return configured.replace(/\/+$/, "");
@@ -15,7 +17,14 @@ export function createWebSocketUrl(
   path: string,
   search: URLSearchParams,
 ): string {
-  const baseUrl = getApiBaseUrl();
+  const configured =
+    import.meta.env.VITE_WS_URL?.trim() || import.meta.env.VITE_API_URL?.trim();
+  const baseUrl =
+    configured ||
+    (typeof window !== "undefined" &&
+    window.location.hostname.endsWith(".vercel.app")
+      ? DEFAULT_RAILWAY_API_URL
+      : getApiBaseUrl());
   const url = new URL(path, baseUrl || window.location.origin);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.search = search.toString();

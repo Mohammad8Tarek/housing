@@ -16,6 +16,7 @@ import { pool } from "@workspace/db";
 import { unsign } from "cookie-signature";
 import { logger } from "./logger.js";
 import { registerHotekBridge } from "./pms-server.js";
+import { verifyWsAuthToken } from "./ws-auth-token.js";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 export type WsModule =
@@ -246,10 +247,14 @@ export function initWebSocket(server: Server): WebSocketServer {
       return;
     }
 
-    const auth = await loadSessionAuth(req.headers.cookie).catch((err) => {
-      logger.warn({ err }, "[WS] Session auth lookup failed");
-      return null;
-    });
+    const token = url.searchParams.get("token") ?? "";
+    const tokenAuth = token ? verifyWsAuthToken(token) : null;
+    const auth =
+      tokenAuth ??
+      (await loadSessionAuth(req.headers.cookie).catch((err) => {
+        logger.warn({ err }, "[WS] Session auth lookup failed");
+        return null;
+      }));
 
     // Reject unauthenticated connections immediately
     if (!auth) {

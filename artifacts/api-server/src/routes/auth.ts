@@ -20,6 +20,7 @@ import {
 } from "../lib/password-policy.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { formatZodError } from "../utils/error-response.js";
+import { createWsAuthToken } from "../lib/ws-auth-token.js";
 
 const router: Router = Router();
 
@@ -250,6 +251,34 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       });
     });
   });
+});
+
+router.get("/auth/ws-token", (req, res): void => {
+  const session = req.session as any;
+  const userId = Number(session?.userId);
+  const sessionPropertyId = Number(session?.propertyId);
+  const requestedPropertyId = Number(req.query["propertyId"] ?? 0);
+  const isSystemAdmin = Boolean(session?.isSystemAdmin);
+  const propertyId = requestedPropertyId || sessionPropertyId;
+
+  if (!userId || !sessionPropertyId || !propertyId) {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+    return;
+  }
+
+  if (!isSystemAdmin && propertyId !== sessionPropertyId) {
+    res.status(403).json({ success: false, message: "Access denied" });
+    return;
+  }
+
+  const token = createWsAuthToken({
+    userId,
+    propertyId,
+    username: String(session?.username ?? "unknown"),
+    isSystemAdmin,
+  });
+
+  res.json({ token, expiresIn: 60 });
 });
 
 // ─── POST /auth/logout ────────────────────────────────────────────────────

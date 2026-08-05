@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useProperty } from "@/context/PropertyContext";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
-import { createWebSocketUrl } from "@/lib/api-origin";
+import { createWebSocketUrl, resolveApiUrl } from "@/lib/api-origin";
 
 const MODULE_QUERY_KEYS: Record<string, string[]> = {
   assignments: ["/api/assignments"],
@@ -114,7 +114,7 @@ export function useWebSocket(): { isConnected: boolean } {
     });
   }, [queryClient]);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     const currentUserId = user?.id;
     const currentPropertyId = activePropertyId;
 
@@ -131,9 +131,30 @@ export function useWebSocket(): { isConnected: boolean } {
       return;
     }
 
+    const wsParams = new URLSearchParams({
+      propertyId: String(currentPropertyId),
+    });
+
+    try {
+      const tokenRes = await fetch(
+        resolveApiUrl(`/api/auth/ws-token?propertyId=${currentPropertyId}`),
+        { credentials: "include" },
+      );
+      if (tokenRes.ok) {
+        const tokenJson = await tokenRes.json();
+        if (tokenJson?.token) wsParams.set("token", tokenJson.token);
+      } else {
+        console.warn("[WS] Failed to issue auth token:", tokenRes.status);
+      }
+    } catch (err) {
+      console.warn("[WS] Failed to fetch auth token:", err);
+    }
+
+    if (unmountingRef.current) return;
+
     const wsUrl = createWebSocketUrl(
       "/ws",
-      new URLSearchParams({ propertyId: String(currentPropertyId) }),
+      wsParams,
     );
 
     console.info("[WS] Attempting connection:", wsUrl.replace(/\?.*/, "?***"));
