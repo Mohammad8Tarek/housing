@@ -255,6 +255,16 @@ export function EmployeeDialog({
                 <p className="text-xs text-destructive">{errors.firstName}</p>
               )}
             </FormRow>
+            <FormRow label={ar ? "الاسم الأخير *" : "Last Name *"}>
+              <Input
+                value={form.lastName}
+                onChange={(e) => set("lastName", e.target.value)}
+                className={errors.lastName ? "border-destructive" : ""}
+              />
+              {errors.lastName && (
+                <p className="text-xs text-destructive">{errors.lastName}</p>
+              )}
+            </FormRow>
             <FormRow label={ar ? "الاسم الثالث" : "Third Name"}>
               <Input
                 value={form.thirdName}
@@ -266,16 +276,6 @@ export function EmployeeDialog({
                 value={form.fourthName}
                 onChange={(e) => set("fourthName", e.target.value)}
               />
-            </FormRow>
-            <FormRow label={ar ? "الاسم الأخير *" : "Last Name *"}>
-              <Input
-                value={form.lastName}
-                onChange={(e) => set("lastName", e.target.value)}
-                className={errors.lastName ? "border-destructive" : ""}
-              />
-              {errors.lastName && (
-                <p className="text-xs text-destructive">{errors.lastName}</p>
-              )}
             </FormRow>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

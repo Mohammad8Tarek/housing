@@ -263,6 +263,12 @@ export function EditEmployeeDialog({
                     onChange={(e) => set("firstName", e.target.value)}
                   />
                 </FormRow>
+                <FormRow label={ar ? "الاسم الأخير" : "Last Name"}>
+                  <Input
+                    value={form.lastName}
+                    onChange={(e) => set("lastName", e.target.value)}
+                  />
+                </FormRow>
                 <FormRow label={ar ? "الاسم الثالث" : "Third Name"}>
                   <Input
                     value={form.thirdName}
@@ -273,12 +279,6 @@ export function EditEmployeeDialog({
                   <Input
                     value={form.fourthName}
                     onChange={(e) => set("fourthName", e.target.value)}
-                  />
-                </FormRow>
-                <FormRow label={ar ? "الاسم الأخير" : "Last Name"}>
-                  <Input
-                    value={form.lastName}
-                    onChange={(e) => set("lastName", e.target.value)}
                   />
                 </FormRow>
                 <FormRow label={ar ? "رقم الهوية" : "National ID"}>
