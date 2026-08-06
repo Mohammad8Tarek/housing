@@ -17,8 +17,9 @@ function isVercelHost(): boolean {
   );
 }
 
-const SERVER_URL = (
-  configuredApiUrl || (isNative ? DEFAULT_RAILWAY_API_URL : "")
+const SERVER_URL = (isNative
+  ? configuredApiUrl || DEFAULT_RAILWAY_API_URL
+  : ""
 ).replace(/\/+$/, "");
 
 // Cache session_id in memory to avoid slow Preferences.get on every request
@@ -53,7 +54,11 @@ export function apiUrl(path: string): string {
 
 function fallbackApiUrl(path: string): string | null {
   if (SERVER_URL || !isVercelHost() || !path.startsWith("/api")) return null;
-  return `${DEFAULT_RAILWAY_API_URL}${path}`;
+  const fallbackBaseUrl = (configuredApiUrl || DEFAULT_RAILWAY_API_URL).replace(
+    /\/+$/,
+    "",
+  );
+  return `${fallbackBaseUrl}${path}`;
 }
 
 export async function apiFetch(

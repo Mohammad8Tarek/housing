@@ -60,13 +60,20 @@ app.use(
 );
 
 // 3. إعداد الـ CORS
+const defaultAllowedOrigins = [
+  "https://housing-housing-rho.vercel.app",
+  "https://housing-employee-portal.vercel.app",
+];
 const rawOrigins = (process.env["ALLOWED_ORIGINS"] ?? "").trim();
-const allowList = rawOrigins
-  ? rawOrigins
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
-  : [];
+const allowList = [
+  ...defaultAllowedOrigins,
+  ...(rawOrigins
+    ? rawOrigins
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : []),
+];
 
 app.use(
   cors({
@@ -74,6 +81,12 @@ app.use(
       if (!origin) return cb(null, true);
       if (allowList.length === 0) return cb(null, true);
       if (allowList.includes(origin)) return cb(null, true);
+      try {
+        const { hostname } = new URL(origin);
+        if (hostname.endsWith(".vercel.app")) return cb(null, true);
+      } catch {
+        // Fall through to explicit CORS rejection.
+      }
       cb(new Error(`CORS: origin "${origin}" is not allowed.`));
     },
     credentials: true,
