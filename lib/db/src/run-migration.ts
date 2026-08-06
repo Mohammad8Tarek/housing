@@ -38,6 +38,12 @@ async function runMigration() {
         await client.query(
           `ALTER TABLE ${schemaName}.employees ADD COLUMN IF NOT EXISTS emergency_contact text DEFAULT '' NOT NULL;`,
         );
+        await client.query(
+          `ALTER TABLE ${schemaName}.employees ADD COLUMN IF NOT EXISTS third_name text DEFAULT '' NOT NULL;`,
+        );
+        await client.query(
+          `ALTER TABLE ${schemaName}.employees ADD COLUMN IF NOT EXISTS fourth_name text DEFAULT '' NOT NULL;`,
+        );
         console.log(`Updated employees table in schema: ${schemaName}`);
       } catch (err: any) {
         console.warn(
