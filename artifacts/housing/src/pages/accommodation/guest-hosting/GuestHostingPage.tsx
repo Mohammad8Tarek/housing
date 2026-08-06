@@ -1379,83 +1379,87 @@ export default function GuestHosting() {
                       )}
                       {isHVisible("actions") && (
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs gap-1"
-                              >
-                                <ArrowRightLeft className="w-3 h-3" />
-                                {ar ? "إجراءات" : "Actions"}
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              {h.status === "APPROVED" && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      checkinMutation.mutate({
-                                        id: h.id,
-                                        data: {
-                                          actualCheckIn: new Date()
-                                            .toISOString()
-                                            .split("T")[0],
-                                        } as any,
-                                      })
-                                    }
-                                  >
-                                    <LogIn className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                    {ar ? "تسجيل الوصول" : "Check-in"}
+                          {(h.status !== "COMPLETED" && h.status !== "CANCELLED") || isSystemAdmin ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs gap-1"
+                                >
+                                  <ArrowRightLeft className="w-3 h-3" />
+                                  {ar ? "إجراءات" : "Actions"}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                {h.status === "APPROVED" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        checkinMutation.mutate({
+                                          id: h.id,
+                                          data: {
+                                            actualCheckIn: new Date()
+                                              .toISOString()
+                                              .split("T")[0],
+                                          } as any,
+                                        })
+                                      }
+                                    >
+                                      <LogIn className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                      {ar ? "تسجيل الوصول" : "Check-in"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedHostingKey(h);
+                                        setKeyPromptRoomId(
+                                          h.roomId ? String(h.roomId) : "",
+                                        );
+                                        setKeyPromptOpen(true);
+                                      }}
+                                    >
+                                      <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                      {ar ? "إصدار مفتاح" : "Issue Key"}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {h.status === "ACTIVE" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedHostingKey(h);
+                                        setKeyPromptRoomId(
+                                          h.roomId ? String(h.roomId) : "",
+                                        );
+                                        setKeyPromptOpen(true);
+                                      }}
+                                    >
+                                      <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                      {ar ? "إصدار مفتاح" : "Issue Key"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        checkoutMutation.mutate({ id: h.id })
+                                      }
+                                    >
+                                      <LogIn className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 rotate-180" />
+                                      {ar ? "تسجيل المغادرة" : "Check-out"}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {(h.status === "PENDING" ||
+                                  h.status === "APPROVED" ||
+                                  isSystemAdmin) && (
+                                  <DropdownMenuItem onClick={() => openEdit(h)}>
+                                    <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                    {ar ? "تعديل" : "Edit"}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedHostingKey(h);
-                                      setKeyPromptRoomId(
-                                        h.roomId ? String(h.roomId) : "",
-                                      );
-                                      setKeyPromptOpen(true);
-                                    }}
-                                  >
-                                    <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                    {ar ? "إصدار مفتاح" : "Issue Key"}
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              {h.status === "ACTIVE" && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedHostingKey(h);
-                                      setKeyPromptRoomId(
-                                        h.roomId ? String(h.roomId) : "",
-                                      );
-                                      setKeyPromptOpen(true);
-                                    }}
-                                  >
-                                    <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                    {ar ? "إصدار مفتاح" : "Issue Key"}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      checkoutMutation.mutate({ id: h.id })
-                                    }
-                                  >
-                                    <LogIn className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 rotate-180" />
-                                    {ar ? "تسجيل المغادرة" : "Check-out"}
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              {(h.status === "PENDING" ||
-                                h.status === "APPROVED" ||
-                                isSystemAdmin) && (
-                                <DropdownMenuItem onClick={() => openEdit(h)}>
-                                  <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                  {ar ? "تعديل" : "Edit"}
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <span className="text-sm text-muted-foreground px-4">—</span>
+                          )}
                         </TableCell>
                       )}
                     </TableRow>

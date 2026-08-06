@@ -276,6 +276,20 @@ router.post(
     }
 
     const result = await withTenant(propertyId, async (tenantDb) => {
+      if (data.roomId) {
+        const [room] = await tenantDb
+          .select({
+            currentOccupancy: roomsTable.currentOccupancy,
+            capacity: roomsTable.capacity,
+          })
+          .from(roomsTable)
+          .where(eq(roomsTable.id, data.roomId))
+          .limit(1);
+        if (room && room.currentOccupancy >= room.capacity) {
+          return { conflict: true, customError: "Cannot create hosting: Room is fully occupied." } as const;
+        }
+      }
+
       const [hosting] = await tenantDb
         .insert(hostingsTable)
         .values({
@@ -297,8 +311,15 @@ router.post(
         .select()
         .from(hostingCompanionsTable)
         .where(eq(hostingCompanionsTable.hostingId, hosting.id));
-      return { hosting, companionsList };
+      return { data: { hosting, companionsList } } as const;
     });
+
+    if ("conflict" in result) {
+      res.status(409).json({ error: result.customError });
+      return;
+    }
+
+    const resData = result.data;
 
     const s = su(req);
     await logActivity({
@@ -307,17 +328,17 @@ router.post(
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `طلب استضافة جديد للموظف #${result.hosting.employeeId}`,
+      action: `طلب استضافة جديد للموظف #${resData.hosting.employeeId}`,
       actionType: "CREATE",
       module: "accommodation",
       entityType: "hosting",
-      entityId: result.hosting.id,
-      details: `Guests: ${result.hosting.guestsCount}`,
+      entityId: resData.hosting.id,
+      details: `Guests: ${resData.hosting.guestsCount}`,
     });
     res.status(201).json({
-      ...fmtHosting(result.hosting),
+      ...fmtHosting(resData.hosting),
       propertyId,
-      companions: result.companionsList.map(fmtCompanion),
+      companions: resData.companionsList.map(fmtCompanion),
     });
   },
 );
@@ -438,14 +459,35 @@ router.patch(
         return;
       }
 
-      const [updated] = await withTenant(propertyId, async (tenantDb) => {
-        return await tenantDb
+      const result = await withTenant(propertyId, async (tenantDb) => {
+        if (parsed.data.roomId) {
+          const [room] = await tenantDb
+            .select({
+              currentOccupancy: roomsTable.currentOccupancy,
+              capacity: roomsTable.capacity,
+            })
+            .from(roomsTable)
+            .where(eq(roomsTable.id, parsed.data.roomId))
+            .limit(1);
+          if (room && room.currentOccupancy >= room.capacity) {
+            return { conflict: true, customError: "Cannot update hosting: Room is fully occupied." } as const;
+          }
+        }
+
+        const [updated] = await tenantDb
           .update(hostingsTable)
           .set(parsed.data as any)
           .where(eq(hostingsTable.id, params.data.id))
           .returning();
+        return { updated } as const;
       });
 
+      if ("conflict" in result) {
+        res.status(409).json({ error: result.customError });
+        return;
+      }
+
+      const updated = result.updated;
       if (!updated) {
         res.status(404).json({ error: "Hosting not found" });
         return;
@@ -635,7 +677,7 @@ router.post(
 
       const result = await withTenant(propertyId, async (tenantDb) => {
         const current = await tenantDb
-          .select({ status: hostingsTable.status })
+          .select({ status: hostingsTable.status, roomId: hostingsTable.roomId })
           .from(hostingsTable)
           .where(eq(hostingsTable.id, params.data.id))
           .limit(1);
@@ -643,6 +685,22 @@ router.post(
         if (!current.length) return { notFound: true } as const;
         if (current[0].status !== "APPROVED") {
           return { conflict: true, status: current[0].status } as const;
+        }
+
+        const roomIdToUse = parsed.data.roomId ?? current[0].roomId;
+        if (roomIdToUse) {
+          const [room] = await tenantDb
+            .select({
+              currentOccupancy: roomsTable.currentOccupancy,
+              capacity: roomsTable.capacity,
+            })
+            .from(roomsTable)
+            .where(eq(roomsTable.id, roomIdToUse))
+            .limit(1);
+          
+          if (room && room.currentOccupancy >= room.capacity) {
+            return { conflict: true, customError: "Cannot check in: Room is fully occupied." } as const;
+          }
         }
 
         const rows = await tenantDb
@@ -658,7 +716,6 @@ router.post(
           .returning();
 
         // Update room occupancy
-        const roomIdToUse = parsed.data.roomId ?? rows[0]?.roomId;
         if (roomIdToUse) {
           const [room] = await tenantDb
             .select({
@@ -688,11 +745,16 @@ router.post(
         return;
       }
       if ("conflict" in result) {
-        res.status(409).json({
-          error: `Cannot check in: hosting is "${result.status}", expected "APPROVED"`,
-        });
+        if ("customError" in result) {
+          res.status(409).json({ error: result.customError });
+        } else {
+          res.status(409).json({
+            error: `Cannot check in: hosting is "${result.status}", expected "APPROVED"`,
+          });
+        }
         return;
       }
+
 
       const updated = result.data;
 
