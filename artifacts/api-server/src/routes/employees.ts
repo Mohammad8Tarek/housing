@@ -116,6 +116,8 @@ router.get(
           or(
             ilike(employeesTable.firstName, `%${query.data.search}%`),
             ilike(employeesTable.lastName, `%${query.data.search}%`),
+            ilike(employeesTable.thirdName, `%${query.data.search}%`),
+            ilike(employeesTable.fourthName, `%${query.data.search}%`),
             ilike(employeesTable.employeeId, `%${query.data.search}%`),
           ) as SQL,
         );

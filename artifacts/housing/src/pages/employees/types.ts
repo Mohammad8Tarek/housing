@@ -2,6 +2,8 @@ export type EmployeeForm = {
   employeeId: string;
   firstName: string;
   lastName: string;
+  thirdName: string;
+  fourthName: string;
   phone: string;
   address: string;
   nationalId: string;
@@ -19,6 +21,8 @@ export const EMPTY_FORM: EmployeeForm = {
   employeeId: "",
   firstName: "",
   lastName: "",
+  thirdName: "",
+  fourthName: "",
   phone: "",
   address: "",
   nationalId: "",
@@ -35,6 +39,8 @@ export const EMPTY_FORM: EmployeeForm = {
 export type EditEmpForm = {
   firstName: string;
   lastName: string;
+  thirdName: string;
+  fourthName: string;
   phone: string;
   address: string;
   nationalId: string;

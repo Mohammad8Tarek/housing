@@ -252,15 +252,9 @@ export function EmployeesPage() {
     { key: "photo", label: "Photo", labelAr: "صورة", defaultVisible: true },
     { key: "code", label: "Code", labelAr: "الكود", defaultVisible: true },
     {
-      key: "firstName",
-      label: "First Name",
-      labelAr: "الاسم الأول",
-      defaultVisible: true,
-    },
-    {
-      key: "lastName",
-      label: "Last Name",
-      labelAr: "الاسم الأخير",
+      key: "fullName",
+      label: "Full Name",
+      labelAr: "الاسم بالكامل",
       defaultVisible: true,
     },
     {
@@ -359,8 +353,7 @@ export function EmployeesPage() {
         : employees;
     const rows = target.map((e) => ({
       Code: e.employeeId,
-      "First Name": e.firstName,
-      "Last Name": e.lastName,
+      "Full Name": `${e.firstName} ${e.thirdName || ""} ${e.fourthName || ""} ${e.lastName}`.replace(/\s+/g, ' ').trim(),
       "National ID": e.nationalId ?? "",
       Phone: e.phone ?? "",
       Nationality: e.nationality ?? "",
@@ -543,14 +536,9 @@ export function EmployeesPage() {
                     {ar ? "الكود" : "Code"}
                   </TableHead>
                 )}
-                {isColVisible("firstName") && (
+                {isColVisible("fullName") && (
                   <TableHead className="font-semibold">
-                    {ar ? "الاسم الأول" : "First Name"}
-                  </TableHead>
-                )}
-                {isColVisible("lastName") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "الاسم الأخير" : "Last Name"}
+                    {ar ? "الاسم" : "Name"}
                   </TableHead>
                 )}
                 {isColVisible("nid") && (
@@ -645,14 +633,9 @@ export function EmployeesPage() {
                         {emp.employeeId}
                       </TableCell>
                     )}
-                    {isColVisible("firstName") && (
+                    {isColVisible("fullName") && (
                       <TableCell className="font-medium">
-                        {emp.firstName}
-                      </TableCell>
-                    )}
-                    {isColVisible("lastName") && (
-                      <TableCell className="font-medium">
-                        {emp.lastName}
+                        {`${emp.firstName} ${emp.thirdName || ""} ${emp.fourthName || ""} ${emp.lastName}`.replace(/\s+/g, ' ').trim()}
                       </TableCell>
                     )}
                     {isColVisible("nid") && (

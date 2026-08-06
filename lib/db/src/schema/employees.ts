@@ -7,6 +7,8 @@ export const employeesTable = pgTable("employees", {
   employeeId: text("employee_id").notNull(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  thirdName: text("third_name").notNull().default(""),
+  fourthName: text("fourth_name").notNull().default(""),
   nationalId: text("national_id").notNull(),
   nationality: text("nationality").notNull().default(""),
   address: text("address").notNull().default(""),

@@ -492,7 +492,7 @@ export default function EmployeeDetail() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                 <div>
                   <h1 className="text-2xl font-bold">
-                    {emp.firstName} {emp.lastName}
+                    {`${emp.firstName} ${emp.thirdName || ""} ${emp.fourthName || ""} ${emp.lastName}`.replace(/\s+/g, ' ').trim()}
                   </h1>
                   <p className="text-muted-foreground font-mono text-sm mt-0.5">
                     {emp.employeeId || emp.employeeCode}

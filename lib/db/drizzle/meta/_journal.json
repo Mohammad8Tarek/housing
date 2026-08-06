@@ -43,6 +43,13 @@
       "when": 1785753350032,
       "tag": "0005_last_sir_ram",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786039949217,
+      "tag": "0006_curly_cannonball",
+      "breakpoints": true
     }
   ]
 }

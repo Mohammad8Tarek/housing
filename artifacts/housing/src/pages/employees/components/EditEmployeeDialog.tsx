@@ -111,6 +111,8 @@ export function EditEmployeeDialog({
   const [form, setForm] = useState<EditEmpForm>({
     firstName: employee.firstName ?? "",
     lastName: employee.lastName ?? "",
+    thirdName: employee.thirdName ?? "",
+    fourthName: employee.fourthName ?? "",
     phone: employee.phone ?? "",
     address: employee.address ?? "",
     nationalId: employee.nationalId ?? "",
@@ -259,6 +261,18 @@ export function EditEmployeeDialog({
                   <Input
                     value={form.firstName}
                     onChange={(e) => set("firstName", e.target.value)}
+                  />
+                </FormRow>
+                <FormRow label={ar ? "الاسم الثالث" : "Third Name"}>
+                  <Input
+                    value={form.thirdName}
+                    onChange={(e) => set("thirdName", e.target.value)}
+                  />
+                </FormRow>
+                <FormRow label={ar ? "الاسم الرابع" : "Fourth Name"}>
+                  <Input
+                    value={form.fourthName}
+                    onChange={(e) => set("fourthName", e.target.value)}
                   />
                 </FormRow>
                 <FormRow label={ar ? "الاسم الأخير" : "Last Name"}>
