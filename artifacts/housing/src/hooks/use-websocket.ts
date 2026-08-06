@@ -200,14 +200,14 @@ export function useWebSocket(): { isConnected: boolean } {
             }
 
             console.info("[WS] 🔔 New Custom Notification Received");
-            toastRef.current({
-              title: arRef.current
-                ? msg.data.titleAr || msg.data.title
-                : msg.data.title,
-              description: arRef.current
-                ? msg.data.messageAr || msg.data.message
-                : msg.data.message,
-            });
+            toastRef.current(
+              arRef.current ? msg.data.titleAr || msg.data.title : msg.data.title,
+              {
+                description: arRef.current
+                  ? msg.data.messageAr || msg.data.message
+                  : msg.data.message,
+              }
+            );
             invalidateModule("notifications");
           } else if (msg.type === "data_updated" && msg.module) {
             console.info(
@@ -238,25 +238,29 @@ export function useWebSocket(): { isConnected: boolean } {
                   : "A new reservation was added.";
               }
               if (tTitle) {
-                toastRef.current({ title: tTitle, description: tDesc });
+                toastRef.current(tTitle, { description: tDesc });
               }
             } else if (msg.action === "updated") {
               if (msg.module === "maintenance") {
-                toastRef.current({
-                  title: arRef.current
+                toastRef.current(
+                  arRef.current
                     ? "تحديث في تذكرة صيانة"
                     : "Maintenance Ticket Updated",
-                  description: arRef.current
-                    ? "تم تحديث تذكرة صيانة."
-                    : "A maintenance ticket was updated.",
-                });
+                  {
+                    description: arRef.current
+                      ? "تم تحديث تذكرة صيانة."
+                      : "A maintenance ticket was updated.",
+                  }
+                );
               } else if (msg.module === "assignments") {
-                toastRef.current({
-                  title: arRef.current ? "تحديث التسكين" : "Assignment Updated",
-                  description: arRef.current
-                    ? "تم تحديث بيانات التسكين."
-                    : "An employee assignment was updated.",
-                });
+                toastRef.current(
+                  arRef.current ? "تحديث التسكين" : "Assignment Updated",
+                  {
+                    description: arRef.current
+                      ? "تم تحديث بيانات التسكين."
+                      : "An employee assignment was updated.",
+                  }
+                );
               }
             }
           }
