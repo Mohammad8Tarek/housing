@@ -571,6 +571,26 @@ const TENANT_MIGRATIONS = [
     name: "settings.portal_contact_ext",
     q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS portal_contact_ext TEXT",
   },
+  {
+    name: "employees.photo_url",
+    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS photo_url TEXT",
+  },
+  {
+    name: "employees.email",
+    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '' NOT NULL",
+  },
+  {
+    name: "employees.emergency_contact",
+    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS emergency_contact TEXT DEFAULT '' NOT NULL",
+  },
+  {
+    name: "employees.third_name",
+    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS third_name TEXT DEFAULT '' NOT NULL",
+  },
+  {
+    name: "employees.fourth_name",
+    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS fourth_name TEXT DEFAULT '' NOT NULL",
+  },
 
   // ─── Password Policy Columns (Tenant Settings) ──────────────────────
   {
