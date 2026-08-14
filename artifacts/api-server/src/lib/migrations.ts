@@ -591,6 +591,50 @@ const TENANT_MIGRATIONS = [
     name: "employees.fourth_name",
     q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS fourth_name TEXT DEFAULT '' NOT NULL",
   },
+  {
+    name: "employees.date_of_birth",
+    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS date_of_birth TEXT DEFAULT '' NOT NULL",
+  },
+  {
+    name: "maintenance.started_at",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ",
+  },
+  {
+    name: "maintenance.resolved_at",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ",
+  },
+  {
+    name: "maintenance.notes",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS notes TEXT",
+  },
+  {
+    name: "maintenance.reported_by",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS reported_by TEXT",
+  },
+  {
+    name: "maintenance.assigned_to",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS assigned_to INTEGER",
+  },
+  {
+    name: "maintenance.category",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'maintenance'",
+  },
+  {
+    name: "reservations.nationality",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS nationality TEXT NOT NULL DEFAULT ''",
+  },
+  {
+    name: "reservations.gender",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS gender TEXT NOT NULL DEFAULT ''",
+  },
+  {
+    name: "reservations.employee_code",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS employee_code TEXT NOT NULL DEFAULT ''",
+  },
+  {
+    name: "reservations.level",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS level TEXT NOT NULL DEFAULT ''",
+  },
 
   // ─── Password Policy Columns (Tenant Settings) ──────────────────────
   {
