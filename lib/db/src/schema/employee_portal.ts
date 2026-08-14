@@ -26,8 +26,7 @@ export const employeePortalAccountsTable = pgTable("employee_portal_accounts", {
   isActive: boolean("is_active").notNull().default(true),
   failedAttempts: integer("failed_attempts").notNull().default(0),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
-  resetFailedAttempts: integer("reset_failed_attempts").notNull().default(0),
-  resetLockedUntil: timestamp("reset_locked_until", { withTimezone: true }),
+  resetRequired: boolean("reset_required").notNull().default(false),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
