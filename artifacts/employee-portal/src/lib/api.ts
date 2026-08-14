@@ -7,7 +7,7 @@ import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 
 const isNative = Capacitor.isNativePlatform();
-const DEFAULT_RAILWAY_API_URL = "https://sunrise-api-production-2410.up.railway.app";
+const DEFAULT_RAILWAY_API_URL = "https://housing-production-302d.up.railway.app";
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 
 function isVercelHost(): boolean {
