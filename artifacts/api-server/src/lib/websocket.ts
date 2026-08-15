@@ -264,8 +264,44 @@ export function initWebSocket(server: Server): WebSocketServer {
 
     const token = url.searchParams.get("token") ?? "";
     const tokenAuth = token ? verifyWsAuthToken(token) : null;
+
+    // Also check for session_id in query param (for cross-origin WS from Vercel→Railway)
+    const querySessionId = url.searchParams.get("sessionId") ?? "";
+    let sessionAuth: Awaited<ReturnType<typeof loadSessionAuth>> | null = null;
+    if (!tokenAuth && querySessionId) {
+      try {
+        const result = await pool.query(
+          `SELECT sess FROM ${SESSION_TABLE_SQL} WHERE sid = $1 AND expire > NOW() LIMIT 1`,
+          [querySessionId],
+        );
+        const sess = result.rows[0]?.sess;
+        if (sess && typeof sess === "object") {
+          const userId = Number(sess.userId);
+          const propertyId = Number(sess.propertyId);
+          if (userId && propertyId) {
+            sessionAuth = {
+              userId,
+              propertyId,
+              username: String(sess.username ?? "unknown"),
+              isSystemAdmin: Boolean(sess.isSystemAdmin),
+            };
+          } else if (sess.portal?.employeeDbId && sess.portal?.propertyId) {
+            sessionAuth = {
+              userId: `emp_${sess.portal.employeeDbId}`,
+              propertyId: Number(sess.portal.propertyId),
+              username: sess.portal.fullName || "Employee",
+              isSystemAdmin: false,
+            };
+          }
+        }
+      } catch (err) {
+        logger.warn({ err }, "[WS] Query sessionId auth lookup failed");
+      }
+    }
+
     const auth =
       tokenAuth ??
+      sessionAuth ??
       (await loadSessionAuth(req.headers.cookie).catch((err) => {
         logger.warn({ err }, "[WS] Session auth lookup failed");
         return null;

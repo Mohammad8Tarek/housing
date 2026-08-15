@@ -541,7 +541,53 @@ function requestNotificationPermission() {
   }
 }
 
+// Reusable audio context for notification sound
+let _notifAudioCtx: AudioContext | null = null;
+function playNotificationSound() {
+  try {
+    if (!_notifAudioCtx) {
+      _notifAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    const ctx = _notifAudioCtx;
+    // Play a pleasant two-tone chime
+    const now = ctx.currentTime;
+    
+    // First tone
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.frequency.value = 830; // High note
+    osc1.type = "sine";
+    gain1.gain.setValueAtTime(0.3, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+    
+    // Second tone (slightly delayed)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.frequency.value = 1100; // Higher note
+    osc2.type = "sine";
+    gain2.gain.setValueAtTime(0.2, now + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.15);
+    osc2.stop(now + 0.4);
+  } catch {
+    /* AudioContext not available */
+  }
+}
+
 function showNotification(title: string, body: string, icon?: string) {
+  // Always play sound and vibrate (works on mobile)
+  playNotificationSound();
+  if ("vibrate" in navigator) {
+    navigator.vibrate([100, 50, 100]); // short vibration pattern
+  }
+
+  // Try browser notification (works on desktop, may fail on mobile)
   if ("Notification" in window && Notification.permission === "granted") {
     try {
       new Notification(title, {
@@ -550,7 +596,7 @@ function showNotification(title: string, body: string, icon?: string) {
         tag: "chat-message",
       });
     } catch {
-      /* ignore */
+      /* ignore — mobile doesn't support this */
     }
   }
 }
@@ -705,7 +751,10 @@ export function TabChat({
       // Always connect to Railway backend (Vercel doesn't support WebSocket)
       const RAILWAY_URL = import.meta.env.VITE_API_URL?.trim() || "https://housing-production-302d.up.railway.app";
       const wsOrigin = RAILWAY_URL.replace(/^https/, "wss").replace(/^http/, "ws");
-      const url = `${wsOrigin}/ws`;
+      
+      // Pass session_id in URL for cross-origin auth (cookie won't be sent to Railway from Vercel)
+      const sid = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("session_id") : null;
+      const url = sid ? `${wsOrigin}/ws?sessionId=${encodeURIComponent(sid)}` : `${wsOrigin}/ws`;
 
       try {
         ws = new WebSocket(url);
