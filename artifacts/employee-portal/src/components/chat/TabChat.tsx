@@ -692,7 +692,73 @@ export function TabChat({
     loadConversations(false);
   }, [loadConversations]);
 
-  // Poll every 1.5s using recursive setTimeout and visibility check
+  // WebSocket Connection for Real-time chat
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    let reconnectTimer: any;
+    
+    const connectWs = async () => {
+      // Create WS url from window or api location
+      const base = import.meta.env.VITE_API_URL || (typeof window !== "undefined" ? window.location.origin : "");
+      const wsOrigin = base.replace(/^http/, "ws");
+      
+      const sid = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("session_id") : null;
+      let url = `${wsOrigin}/ws?propertyId=${activePropertyId || 1}`;
+      
+      try {
+        ws = new WebSocket(url);
+        
+        ws.onmessage = (event) => {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed.module === "chat") {
+              // We got a chat event!
+              if (parsed.action === "new_message") {
+                const newMsg = parsed.data.message;
+                const convId = parsed.data.conversationId;
+                
+                // If it belongs to active conversation, append it
+                if (activeConvRef.current?.id === convId) {
+                  setMessages((prev) => {
+                    if (prev.find(m => m.id === newMsg.id)) return prev;
+                    const next = [...prev, newMsg];
+                    return next.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                  });
+                }
+                
+                // Always reload conversations to update last message & unread count
+                loadConversations(true);
+              } else if (parsed.action === "read_receipt") {
+                if (activeConvRef.current?.id === parsed.data.conversationId) {
+                  loadMessages(parsed.data.conversationId, true);
+                }
+                loadConversations(true);
+              } else if (parsed.action === "typing_start") {
+                // handle typing (already handled by polling or can be updated here)
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
+        };
+
+        ws.onclose = () => {
+          reconnectTimer = setTimeout(connectWs, 5000);
+        };
+      } catch (e) {
+        reconnectTimer = setTimeout(connectWs, 5000);
+      }
+    };
+
+    connectWs();
+
+    return () => {
+      if (ws) ws.close();
+      clearTimeout(reconnectTimer);
+    };
+  }, [activePropertyId, loadConversations]);
+
+  // Poll every 10s as a fallback instead of 1.5s
   useEffect(() => {
     let timeoutId: any;
     let isMounted = true;
@@ -740,18 +806,20 @@ export function TabChat({
                 }
               }
             }
-          } catch {}
+          } catch (err) {
+            console.error("Polling error:", err);
+          }
         }
       }
-      timeoutId = setTimeout(poll, 1500);
+      timeoutId = setTimeout(poll, 10000);
     };
 
-    timeoutId = setTimeout(poll, 1500);
+    poll();
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
     };
-  }, [loadConversations]);
+  }, [loadConversations, loadMessages]);
 
   useEffect(() => {
     activeConvRef.current = activeConv;
@@ -981,6 +1049,7 @@ export function TabChat({
   /* ── Helpers ── */
   /* ── Helpers ── */
   function getParticipantName(empId: number, conv?: Conversation): string {
+    if (empId === 0) return isRtl ? "الإدارة" : "Management";
     if (empId === myEmployeeId) return isRtl ? "أنا" : "Me";
 
     if (conv?.participantsData) {
@@ -1173,6 +1242,7 @@ export function TabChat({
           ) : (
             messages.map((msg, idx) => {
               const isMe = msg.senderId === myEmployeeId;
+              const isAdmin = msg.senderId === 0;
               const isRead = (msg.reads?.length || 0) > 0;
               const isTemp = msg.id < 0;
               // Group consecutive same-sender messages
@@ -1196,8 +1266,9 @@ export function TabChat({
                         width: "30px",
                         height: "30px",
                         borderRadius: "50%",
-                        background:
-                          "linear-gradient(135deg, hsl(var(--accent2)), hsl(var(--accent2)/0.6))",
+                        background: isAdmin 
+                          ? "linear-gradient(135deg, #2563eb, #1d4ed8)"
+                          : "linear-gradient(135deg, hsl(var(--accent2)), hsl(var(--accent2)/0.6))",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -1209,7 +1280,7 @@ export function TabChat({
                         alignSelf: "flex-end",
                       }}
                     >
-                      {getParticipantName(msg.senderId).charAt(0).toUpperCase()}
+                      {isAdmin ? "⚙️" : getParticipantName(msg.senderId).charAt(0).toUpperCase()}
                     </div>
                   )}
                   {!isMe && isSameSender && (
@@ -1224,7 +1295,8 @@ export function TabChat({
                       borderRadius: isMe
                         ? "16px 16px 4px 16px"
                         : "16px 16px 16px 4px",
-                      background: isMe ? "#dcf8c6" : "#ffffff",
+                      background: isMe ? "#dcf8c6" : (isAdmin ? "#eff6ff" : "#ffffff"),
+                      border: isAdmin ? "1px solid #bfdbfe" : "none",
                       color: "#000000",
                       boxShadow: "0 1px 1px rgba(0,0,0,0.1)",
                       opacity: isTemp ? 0.7 : 1,
@@ -1237,7 +1309,7 @@ export function TabChat({
                         style={{
                           fontSize: "11px",
                           fontWeight: 700,
-                          color: "hsl(var(--accent2))",
+                          color: isAdmin ? "#2563eb" : "hsl(var(--accent2))",
                           marginBottom: "3px",
                         }}
                       >
