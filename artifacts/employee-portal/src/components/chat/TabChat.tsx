@@ -694,71 +694,125 @@ export function TabChat({
 
   // WebSocket Connection for Real-time chat
   useEffect(() => {
+    if (!myEmployeeId) return;
     let ws: WebSocket | null = null;
     let reconnectTimer: any;
-    
-    const connectWs = async () => {
-      // Create WS url from window or api location
-      const base = import.meta.env.VITE_API_URL || (typeof window !== "undefined" ? window.location.origin : "");
-      const wsOrigin = base.replace(/^http/, "ws");
-      
-      const sid = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("session_id") : null;
-      let url = `${wsOrigin}/ws?propertyId=${activePropertyId || 1}`;
-      
+    let isUnmounted = false;
+
+    const connectWs = () => {
+      if (isUnmounted) return;
+
+      // Always connect to Railway backend (Vercel doesn't support WebSocket)
+      const RAILWAY_URL = import.meta.env.VITE_API_URL?.trim() || "https://housing-production-302d.up.railway.app";
+      const wsOrigin = RAILWAY_URL.replace(/^https/, "wss").replace(/^http/, "ws");
+      const url = `${wsOrigin}/ws`;
+
       try {
         ws = new WebSocket(url);
-        
+
+        ws.onopen = () => {
+          console.info("[Chat WS] Connected to", url);
+        };
+
         ws.onmessage = (event) => {
           try {
             const parsed = JSON.parse(event.data);
+            // Handle the standard data_updated format from broadcastToProperty
             if (parsed.module === "chat") {
-              // We got a chat event!
               if (parsed.action === "new_message") {
-                const newMsg = parsed.data.message;
-                const convId = parsed.data.conversationId;
-                
-                // If it belongs to active conversation, append it
+                const newMsg = parsed.data?.message;
+                const convId = parsed.data?.conversationId;
+                if (!newMsg || !convId) return;
+
+                // If the message is from me, skip (already handled optimistically)
+                if (newMsg.senderId === myEmployeeId) return;
+
+                // If it belongs to active conversation, append it instantly
                 if (activeConvRef.current?.id === convId) {
                   setMessages((prev) => {
                     if (prev.find(m => m.id === newMsg.id)) return prev;
-                    const next = [...prev, newMsg];
-                    return next.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                    return [...prev, newMsg];
                   });
+                  // Mark as read since user is viewing
+                  apiFetch(`/api/portal-chat/conversations/${convId}/read`, {
+                    method: "PUT", credentials: "include",
+                  }).catch(() => {});
                 }
-                
-                // Always reload conversations to update last message & unread count
+
+                // Fire notification if not in the active conversation or tab hidden
+                const activeId = activeConvRef.current?.id;
+                if (convId !== activeId || document.hidden) {
+                  const senderName = newMsg.senderId === 0
+                    ? (isRtl ? "الإدارة" : "Management")
+                    : (senders[newMsg.senderId]
+                      ? `${senders[newMsg.senderId].firstName} ${senders[newMsg.senderId].lastName}`
+                      : (isRtl ? "رسالة جديدة" : "New message"));
+                  showNotification(senderName, newMsg.content?.slice(0, 80) || "");
+                }
+
+                // Reload conversations list to update last message & unread
                 loadConversations(true);
+
               } else if (parsed.action === "read_receipt") {
-                if (activeConvRef.current?.id === parsed.data.conversationId) {
+                if (activeConvRef.current?.id === parsed.data?.conversationId) {
                   loadMessages(parsed.data.conversationId, true);
                 }
                 loadConversations(true);
+
               } else if (parsed.action === "typing_start") {
-                // handle typing (already handled by polling or can be updated here)
+                const convId = parsed.data?.conversationId;
+                const empId = parsed.data?.employeeId;
+                if (convId && empId && empId !== myEmployeeId) {
+                  setTypingUsers((prev) => {
+                    const current = new Set(prev[convId] || []);
+                    current.add(empId);
+                    return { ...prev, [convId]: current };
+                  });
+                  // Auto-clear typing after 4s
+                  const key = `${convId}_${empId}`;
+                  clearTimeout(typingTimeoutRef.current[key]);
+                  typingTimeoutRef.current[key] = setTimeout(() => {
+                    setTypingUsers((prev) => {
+                      const current = new Set(prev[convId] || []);
+                      current.delete(empId);
+                      return { ...prev, [convId]: current };
+                    });
+                  }, 4000);
+                }
               }
             }
-          } catch (e) {
-            // ignore
+          } catch {
+            // ignore parse errors
           }
         };
 
         ws.onclose = () => {
-          reconnectTimer = setTimeout(connectWs, 5000);
+          if (!isUnmounted) {
+            console.info("[Chat WS] Disconnected, reconnecting in 3s...");
+            reconnectTimer = setTimeout(connectWs, 3000);
+          }
         };
-      } catch (e) {
-        reconnectTimer = setTimeout(connectWs, 5000);
+
+        ws.onerror = () => {
+          // onclose will fire after onerror
+        };
+      } catch {
+        if (!isUnmounted) {
+          reconnectTimer = setTimeout(connectWs, 3000);
+        }
       }
     };
 
     connectWs();
 
     return () => {
-      if (ws) ws.close();
+      isUnmounted = true;
+      if (ws) { try { ws.close(); } catch {} }
       clearTimeout(reconnectTimer);
     };
-  }, [activePropertyId, loadConversations]);
+  }, [myEmployeeId]);
 
-  // Poll every 10s as a fallback instead of 1.5s
+  // Poll every 2s as a fallback for WebSocket
   useEffect(() => {
     let timeoutId: any;
     let isMounted = true;
@@ -811,7 +865,7 @@ export function TabChat({
           }
         }
       }
-      timeoutId = setTimeout(poll, 10000);
+      timeoutId = setTimeout(poll, 2000);
     };
 
     poll();
