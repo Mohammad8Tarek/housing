@@ -969,7 +969,7 @@ export default function Reservations() {
                   </TableRow>
                 );
               })}
-              {filtered.length === 0 && (
+              {reservations.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={resVisible.size + 1}

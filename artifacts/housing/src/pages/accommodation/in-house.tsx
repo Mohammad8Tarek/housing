@@ -858,7 +858,7 @@ export default function InHouse() {
                   </TableRow>
                 );
               })}
-              {filtered.length === 0 && (
+              {assignments.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={ihVisible.size + 1}
@@ -873,7 +873,7 @@ export default function InHouse() {
               )}
             </TableBody>
             {/* Total row */}
-            {filtered.length > 0 && (
+            {assignments.length > 0 && (
               <tfoot>
                 <tr className="bg-muted/40 border-t font-semibold text-sm">
                   <td colSpan={2} className="px-4 py-2 text-muted-foreground">
@@ -883,7 +883,7 @@ export default function InHouse() {
                     colSpan={ihVisible.size}
                     className="px-4 py-2 text-muted-foreground"
                   >
-                    {filtered.length} {ar ? "مقيم" : "residents"}
+                    {assignments.length} {ar ? "مقيم" : "residents"}
                     {selectedRows.size > 0 && (
                       <span className="ml-3 text-primary">
                         · {selectedRows.size} {ar ? "محدد" : "selected"}
