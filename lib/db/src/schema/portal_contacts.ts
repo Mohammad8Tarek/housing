@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -15,7 +15,9 @@ export const portalContactsTable = pgTable("portal_contacts", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_portal_contacts_property_id").on(table.propertyId),
+]);
 
 export const insertPortalContactSchema = createInsertSchema(
   portalContactsTable,

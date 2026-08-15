@@ -49,3 +49,4 @@ check-*.js
 .vscode/
 .DS_Store
 Thumbs.db
+postgres_bin/

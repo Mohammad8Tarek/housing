@@ -5,6 +5,7 @@ import {
   integer,
   timestamp,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -24,7 +25,11 @@ export const roomLocksTable = pgTable("room_locks", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_room_locks_room_id").on(table.roomId),
+  index("idx_room_locks_property_id").on(table.propertyId),
+  index("idx_room_locks_status").on(table.status),
+]);
 
 export const roomKeysTable = pgTable("room_keys", {
   id: serial("id").primaryKey(),
@@ -52,7 +57,13 @@ export const roomKeysTable = pgTable("room_keys", {
   revokedBy: integer("revoked_by"),
   status: text("status").notNull().default("active"),
   notes: text("notes"),
-});
+}, (table) => [
+  index("idx_room_keys_room_id").on(table.roomId),
+  index("idx_room_keys_employee_id").on(table.employeeId),
+  index("idx_room_keys_assignment_id").on(table.assignmentId),
+  index("idx_room_keys_status").on(table.status),
+  index("idx_room_keys_property_id").on(table.propertyId),
+]);
 
 export const keyAuditLogTable = pgTable("key_audit_log", {
   id: serial("id").primaryKey(),
@@ -68,7 +79,12 @@ export const keyAuditLogTable = pgTable("key_audit_log", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_key_audit_log_property_id").on(table.propertyId),
+  index("idx_key_audit_log_key_id").on(table.keyId),
+  index("idx_key_audit_log_action").on(table.action),
+  index("idx_key_audit_log_created_at").on(table.createdAt),
+]);
 
 export const insertRoomLockSchema = createInsertSchema(roomLocksTable).omit({
   id: true,

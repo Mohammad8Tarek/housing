@@ -394,8 +394,6 @@ export const ListEmployeesResponseItem = zod.object({
   "propertyId": zod.number(),
   "employeeId": zod.string(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "nationalId": zod.string(),
   "nationality": zod.string(),
@@ -419,8 +417,6 @@ export const CreateEmployeeBody = zod.object({
   "propertyId": zod.number(),
   "employeeId": zod.string(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "nationalId": zod.string(),
   "nationality": zod.string(),
@@ -448,8 +444,6 @@ export const GetEmployeeResponse = zod.object({
   "propertyId": zod.number(),
   "employeeId": zod.string(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "nationalId": zod.string(),
   "nationality": zod.string(),
@@ -473,9 +467,7 @@ export const UpdateEmployeeParams = zod.object({
 })
 
 export const UpdateEmployeeBody = zod.object({
-  "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional().optional(),
+  "firstName": zod.string().optional(),
   "lastName": zod.string().optional(),
   "nationalId": zod.string().optional(),
   "nationality": zod.string().optional(),
@@ -495,8 +487,6 @@ export const UpdateEmployeeResponse = zod.object({
   "propertyId": zod.number(),
   "employeeId": zod.string(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "nationalId": zod.string(),
   "nationality": zod.string(),
@@ -517,6 +507,44 @@ export const UpdateEmployeeResponse = zod.object({
  */
 export const DeleteEmployeeParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary List in-house assignments (paginated)
+ */
+export const listInHouseAssignmentsQueryPageDefault = 1;
+export const listInHouseAssignmentsQueryLimitDefault = 10;
+
+export const ListInHouseAssignmentsQueryParams = zod.object({
+  "propertyId": zod.coerce.number().optional(),
+  "status": zod.coerce.string().optional(),
+  "search": zod.coerce.string().optional(),
+  "buildingId": zod.coerce.number().optional(),
+  "floorId": zod.coerce.number().optional(),
+  "page": zod.coerce.number().default(listInHouseAssignmentsQueryPageDefault),
+  "limit": zod.coerce.number().default(listInHouseAssignmentsQueryLimitDefault)
+})
+
+export const ListInHouseAssignmentsResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number(),
+  "propertyId": zod.number(),
+  "employeeId": zod.number(),
+  "roomId": zod.number(),
+  "bedNumber": zod.number().nullish(),
+  "checkInDate": zod.string(),
+  "expectedCheckOutDate": zod.string().nullish(),
+  "checkOutDate": zod.string().nullish(),
+  "notes": zod.string(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+})).optional(),
+  "pagination": zod.object({
+  "total": zod.number().optional(),
+  "page": zod.number().optional(),
+  "limit": zod.number().optional()
+}).optional()
 })
 
 
@@ -679,8 +707,6 @@ export const ListReservationsResponseItem = zod.object({
   "roomId": zod.number().nullish(),
   "roomType": zod.string().nullish(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "checkInDate": zod.string(),
   "checkOutDate": zod.string().nullish(),
@@ -703,8 +729,6 @@ export const CreateReservationBody = zod.object({
   "roomId": zod.number().nullish(),
   "roomType": zod.string().nullish(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "checkInDate": zod.string(),
   "checkOutDate": zod.string().nullish(),
@@ -729,8 +753,6 @@ export const GetReservationResponse = zod.object({
   "roomId": zod.number().nullish(),
   "roomType": zod.string().nullish(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "checkInDate": zod.string(),
   "checkOutDate": zod.string().nullish(),
@@ -765,8 +787,6 @@ export const UpdateReservationResponse = zod.object({
   "roomId": zod.number().nullish(),
   "roomType": zod.string().nullish(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "checkInDate": zod.string(),
   "checkOutDate": zod.string().nullish(),
@@ -806,8 +826,6 @@ export const CheckinReservationResponse = zod.object({
   "roomId": zod.number().nullish(),
   "roomType": zod.string().nullish(),
   "firstName": zod.string(),
-  "thirdName": zod.string().optional(),
-  "fourthName": zod.string().optional(),
   "lastName": zod.string(),
   "checkInDate": zod.string(),
   "checkOutDate": zod.string().nullish(),

@@ -27,6 +27,9 @@ import smartLockRouter from "./smart-lock.js";
 import userSignatureRouter from "./user-signature.js";
 import hostingRequestsRouter from "./hosting-requests.js";
 import hotekConfigRouter from "./hotek-config.js";
+import jobsRouter from "./jobs.js";
+
+import reportsRouter from "./reports.js";
 
 // ✅ Portal Imports
 import portalAuthRouter from "./portal-auth.js";
@@ -97,5 +100,7 @@ router.use("/hotek", hotekConfigRouter);
 router.use(smartLockRouter);
 router.use(userSignatureRouter);
 router.use(hostingRequestsRouter);
+router.use("/jobs", jobsRouter);
+router.use("/reports", reportsRouter);
 
 export default router;

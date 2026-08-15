@@ -5,6 +5,7 @@ import {
   integer,
   timestamp,
   real,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -30,7 +31,11 @@ export const evaluationsTable = pgTable("evaluations", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_evaluations_employee_id").on(table.employeeId),
+  index("idx_evaluations_status").on(table.status),
+  index("idx_evaluations_category").on(table.category),
+]);
 
 export const insertEvaluationSchema = createInsertSchema(evaluationsTable).omit(
   { id: true, createdAt: true, submittedAt: true },

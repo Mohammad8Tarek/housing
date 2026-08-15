@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import {
@@ -174,6 +175,7 @@ export default function Tickets() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 500);
   const [photoDialog, setPhotoDialog] = useState<string | null>(null);
   const [filterBarFilters, setFilterBarFilters] = useState<Record<string, any>>(
     {},
@@ -187,7 +189,7 @@ export default function Tickets() {
   useEffect(() => {
     setPage(1);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, priorityFilter]);
+  }, [debouncedSearch, statusFilter, priorityFilter]);
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [creatorTypeFilter, setCreatorTypeFilter] = useState("");
   const [propertyFilter, setPropertyFilter] = useState("");
@@ -208,14 +210,24 @@ export default function Tickets() {
     isLoading,
     isFetching,
   } = useListMaintenance(
-    { propertyId: activePropertyId ?? undefined, page, limit: LIMIT },
+    { 
+      propertyId: activePropertyId ?? undefined, 
+      page: currentPage, 
+      limit: pageSize,
+      search: debouncedSearch || undefined,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      priority: priorityFilter || undefined,
+    } as any,
     {
       query: {
         queryKey: getListMaintenanceQueryKey({
           propertyId: activePropertyId ?? undefined,
-          page,
-          limit: LIMIT,
-        }),
+          page: currentPage,
+          limit: pageSize,
+          search: debouncedSearch || undefined,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          priority: priorityFilter || undefined,
+        } as any),
         enabled: !!activePropertyId,
         refetchOnMount: true,
         staleTime: 0,
@@ -227,6 +239,7 @@ export default function Tickets() {
     },
   );
   const allTickets = allTicketsWrapper?.data || allTicketsWrapper || [];
+  const paginationData = allTicketsWrapper?.pagination || { total: allTickets?.length || 0, page: currentPage, limit: pageSize };
 
   const { data: _roomsWrapper } = useListRooms(
     { propertyId: activePropertyId, limit: 1000 },
@@ -477,75 +490,8 @@ export default function Tickets() {
   );
   const empOptions = employees.filter((e) => e.status === "active");
 
-  const filtered = useMemo(() => {
-    let items = allTickets ?? [];
-    if (categoryFilter !== "all") {
-      items = items.filter((t) => t.category === categoryFilter);
-    }
-    if (statusFilter !== "all") {
-      items = items.filter(
-        (t) => (t.status || "").toLowerCase() === statusFilter,
-      );
-    }
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      items = items.filter(
-        (t) =>
-          (t.problemType ?? "").toLowerCase().includes(q) ||
-          (roomMap[t.roomId] ?? "").toLowerCase().includes(q) ||
-          (t.description ?? "").toLowerCase().includes(q),
-      );
-    }
-    if (fromDate) {
-      const from = new Date(fromDate);
-      from.setHours(0, 0, 0, 0);
-      items = items.filter((t) => new Date(t.reportedAt) >= from);
-    }
-    if (toDate) {
-      const to = new Date(toDate);
-      to.setHours(23, 59, 59, 999);
-      items = items.filter((t) => new Date(t.reportedAt) <= to);
-    }
-    if (priorityFilter) {
-      items = items.filter(
-        (t) =>
-          (t.priority || "").toLowerCase() === priorityFilter.toLowerCase(),
-      );
-    }
-    if (propertyFilter) {
-      items = items.filter((t) => {
-        const room = rooms.find((r) => r.id === t.roomId);
-        return room && String(room.propertyId) === propertyFilter;
-      });
-    }
-    const statusOrder = { open: 0, in_progress: 1, resolved: 2, closed: 3 };
-    items.sort((a, b) => {
-      const aOrder = statusOrder[(a.status || "").toLowerCase()] ?? 99;
-      const bOrder = statusOrder[(b.status || "").toLowerCase()] ?? 99;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return (
-        new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
-      );
-    });
-    return items;
-  }, [
-    allTickets,
-    categoryFilter,
-    statusFilter,
-    searchTerm,
-    roomMap,
-    fromDate,
-    toDate,
-    priorityFilter,
-    departmentFilter,
-    creatorTypeFilter,
-    propertyFilter,
-  ]);
-
-  const paged = filtered.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const filtered = allTickets;
+  const paged = filtered;
 
   const exportExcel = () => {
     const rows = filtered.map((req) => ({
@@ -584,7 +530,7 @@ export default function Tickets() {
     XLSX.writeFile(wb, `tickets_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  const totalCount = allTickets?.length || 0;
+  const totalCount = paginationData.total || 0;
   const openCount = allTickets?.filter((t) => t.status === "open").length || 0;
   const inProgressCount =
     allTickets?.filter((t) => t.status === "in_progress").length || 0;
@@ -1135,9 +1081,9 @@ export default function Tickets() {
                 )}
               </TableBody>
             </Table>
-            {filtered.length > 0 && (
+            {paginationData.total > 0 && (
               <DataPagination
-                total={filtered.length}
+                total={paginationData.total}
                 pageSize={pageSize}
                 onPageSizeChange={(size) => {
                   setPageSize(size);

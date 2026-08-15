@@ -9,6 +9,7 @@ import { useReportFilters } from "./hooks/useReportFilters";
 import { useReportDataProcessor } from "./hooks/useReportDataProcessor";
 import { useReportAnalytics } from "./hooks/useReportAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
+import { usePaginatedReports } from "./hooks/usePaginatedReports";
 
 import { ExportToolbar } from "./components/ExportToolbar";
 import { StatsCards } from "./components/StatsCards";
@@ -70,10 +71,17 @@ export default function Reports() {
   });
 
   const allData = processor.currentData();
-  const paginatedData = allData.slice(
-    (filters.currentPage - 1) * filters.pageSize,
-    filters.currentPage * filters.pageSize,
-  );
+
+  const { data: serverData, isLoading: isServerLoading } = usePaginatedReports({
+    propertyId: numericPropertyId,
+    tab: filters.activeTab,
+    page: filters.currentPage,
+    limit: filters.pageSize,
+    search: filters.search,
+  });
+
+  const paginatedData = serverData?.data || [];
+  const totalCount = serverData?.pagination?.total || 0;
 
   const { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF } =
     useReportExport({
@@ -180,7 +188,7 @@ export default function Reports() {
 
           <div className="border rounded-lg bg-card overflow-hidden shadow-sm">
             <ReportTable
-              isLoading={data.isLoading}
+              isLoading={data.isLoading || isServerLoading}
               allData={allData}
               paginatedData={paginatedData}
               selectedRows={filters.selectedRows}
@@ -196,7 +204,7 @@ export default function Reports() {
 
           <div className="mt-2">
             <DataPagination
-              total={allData.length}
+              total={totalCount}
               pageSize={filters.pageSize}
               currentPage={filters.currentPage}
               onPageChange={filters.setCurrentPage}

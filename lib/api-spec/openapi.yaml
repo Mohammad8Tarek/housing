@@ -585,6 +585,64 @@ paths:
           description: Deleted
 
   # ASSIGNMENTS
+  /assignments/in-house:
+    get:
+      operationId: listInHouseAssignments
+      tags: [assignments]
+      summary: List in-house assignments (paginated)
+      parameters:
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: buildingId
+          in: query
+          schema:
+            type: integer
+        - name: floorId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Paginated list of assignments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Assignment"
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
   /assignments:
     get:
       operationId: listAssignments

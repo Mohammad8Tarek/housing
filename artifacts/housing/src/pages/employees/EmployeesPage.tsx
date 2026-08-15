@@ -9,6 +9,7 @@ import {
   getListEmployeesQueryKey,
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
+import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
@@ -119,30 +120,38 @@ export function EmployeesPage() {
   const LIMIT = 25;
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [page, setPage] = useState(1);
   const [view, setView] = useState<"table" | "grid">("table");
 
   // Reset to page 1 when search or status changes
   useEffect(() => {
-    setPage(1);
+    setCurrentPage(1);
   }, [search, filterStatus, filterDept]);
   const [resettingPasswordId, setResettingPasswordId] = useState<number | null>(
     null,
   );
 
+  const debouncedSearch = useDebounce(search, 300);
+
+  const queryParams = {
+    propertyId: activePropertyId ?? undefined,
+    page: currentPage,
+    limit: pageSize,
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(filterStatus !== "ALL" ? { status: filterStatus } : {}),
+    ...(filterDept !== "ALL" ? { department: filterDept } : {}),
+  };
+
   const { data: _eData, isLoading } = useListEmployees(
-    { propertyId: activePropertyId ?? undefined },
+    queryParams as any,
     {
       query: {
-        queryKey: getListEmployeesQueryKey({
-          propertyId: activePropertyId ?? undefined,
-          limit: 1000,
-        }),
+        queryKey: getListEmployeesQueryKey(queryParams as any),
         enabled: !!activePropertyId,
       },
     },
   );
   const employees = _eData?.data || [];
+  const totalRecords = _eData?.pagination?.total || 0;
 
   const { data: departments = [] } = useLookupValues(
     activePropertyId,
@@ -250,8 +259,6 @@ export function EmployeesPage() {
     }
   };
 
-  const filtered = employees;
-
   const EMP_COLS = [
     { key: "photo", label: "Photo", labelAr: "صورة", defaultVisible: true },
     { key: "code", label: "Code", labelAr: "الكود", defaultVisible: true },
@@ -349,8 +356,8 @@ export function EmployeesPage() {
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
             {ar
-              ? `إجمالي ${employees.length} موظ�?`
-              : `${employees.length} total employees`}
+              ? `إجمالي ${totalRecords} موظف`
+              : `${totalRecords} total employees`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -481,7 +488,7 @@ export function EmployeesPage() {
             <Skeleton key={i} className="h-12 w-full rounded-md" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : employees.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground border rounded-md bg-card">
           <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p className="font-medium">
@@ -507,9 +514,9 @@ export function EmployeesPage() {
               onResetPassword={handleResetPassword}
               onDelete={setDeleteTarget}
             />
-            {filtered.length > 0 && (
+            {totalRecords > 0 && (
               <DataPagination
-                total={filtered.length}
+                total={totalRecords}
                 pageSize={pageSize}
                 onPageSizeChange={(size) => {
                   setPageSize(size);
@@ -717,9 +724,9 @@ export function EmployeesPage() {
                 })}
               </TableBody>
             </Table>
-            {filtered.length > 0 && (
+            {totalRecords > 0 && (
               <DataPagination
-                total={filtered.length}
+                total={totalRecords}
                 pageSize={pageSize}
                 onPageSizeChange={(size) => {
                   setPageSize(size);

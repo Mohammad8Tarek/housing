@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, withTenant, buildingsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ilike, sql, SQL } from "drizzle-orm";
 import {
   CreateBuildingBody,
   UpdateBuildingBody,
@@ -26,13 +26,41 @@ router.get(
       return;
     }
 
-    const buildings = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb.select().from(buildingsTable);
+    const conditions: SQL[] = [];
+    let page = Math.max(1, parseInt(req.query.page as string) || 1);
+    let limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 25));
+    const search = req.query.search as string;
+
+    if (search) {
+      conditions.push(ilike(buildingsTable.name, `%${search}%`));
+    }
+
+    const offset = (page - 1) * limit;
+
+    const { data, total } = await withTenant(propertyId, async (tenantDb) => {
+      let countQuery = tenantDb.select({ count: sql<number>`count(*)` }).from(buildingsTable) as any;
+      if (conditions.length > 0) countQuery = countQuery.where(and(...conditions));
+      const countResult = await countQuery;
+      const totalCount = Number(countResult[0]?.count ?? 0);
+
+      let baseQuery = tenantDb.select().from(buildingsTable).limit(limit).offset(offset) as any;
+      if (conditions.length > 0) baseQuery = baseQuery.where(and(...conditions));
+
+      const rows = await baseQuery;
+      return { data: rows, total: totalCount };
     });
 
-    res.json(
-      ListBuildingsResponse.parse(buildings.map((b) => ({ ...b, propertyId }))),
-    );
+    res.json({
+      data: data.map((b: any) => ({ ...b, propertyId })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
+      },
+    });
   },
 );
 

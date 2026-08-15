@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   real,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -24,7 +25,9 @@ export const surveyItemsTable = pgTable("survey_items", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_survey_items_template_id").on(table.templateId),
+]);
 
 export const surveyItemResponsesTable = pgTable("survey_item_responses", {
   id: serial("id").primaryKey(),

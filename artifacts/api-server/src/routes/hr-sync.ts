@@ -162,6 +162,9 @@ router.post("/receive", async (req, res): Promise<void> => {
       res.status(401).json({ success: false, error: "Unauthorized" });
       return;
     }
+  } else if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "HR_SYNC_API_KEY not configured — webhook access denied in production" });
+    return;
   }
 
   const propertyId =
@@ -624,6 +627,9 @@ router.post("/notify-departure", async (req, res): Promise<void> => {
       res.status(401).json({ success: false, error: "Unauthorized" });
       return;
     }
+  } else if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "HR_SYNC_API_KEY not configured — webhook access denied in production" });
+    return;
   }
 
   const propertyId =

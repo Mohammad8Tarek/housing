@@ -5,6 +5,8 @@ import {
   integer,
   real,
   timestamp,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -24,7 +26,10 @@ export const portalFeedbackTable = pgTable("portal_feedback", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_portal_feedback_employee_id").on(table.employeeId),
+  index("idx_portal_feedback_content").on(table.contentType, table.contentId),
+]);
 
 // Threaded comments on Portal Content
 export const portalCommentsTable = pgTable("portal_comments", {
@@ -38,7 +43,10 @@ export const portalCommentsTable = pgTable("portal_comments", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_portal_comments_content").on(table.contentType, table.contentId),
+  index("idx_portal_comments_employee_id").on(table.employeeId),
+]);
 
 // Comment likes
 export const portalCommentLikesTable = pgTable("portal_comment_likes", {
@@ -48,7 +56,9 @@ export const portalCommentLikesTable = pgTable("portal_comment_likes", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("uq_portal_comment_likes_comment_employee").on(table.commentId, table.employeeId),
+]);
 
 export const insertPortalFeedbackSchema = createInsertSchema(
   portalFeedbackTable,

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { propertiesTable } from "./properties";
@@ -36,7 +36,12 @@ export const usersTable = pgTable("users", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+  uniqueIndex("uq_users_username").on(table.username),
+  index("idx_users_role").on(table.roles),
+  index("idx_users_is_active").on(table.status),
+  index("idx_users_active_role").on(table.status, table.roles),
+]);
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({
   id: true,

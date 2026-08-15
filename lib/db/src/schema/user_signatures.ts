@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { usersTable } from "./users";
 
@@ -16,7 +16,9 @@ export const userSignaturesTable = pgTable("user_signatures", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("idx_user_signatures_user_id").on(table.userId),
+]);
 
 export const insertUserSignatureSchema = createInsertSchema(
   userSignaturesTable,

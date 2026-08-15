@@ -9,7 +9,7 @@ import {
   buildingsTable,
   floorsTable,
 } from "@workspace/db";
-import { eq, and, inArray, SQL } from "drizzle-orm";
+import { eq, and, inArray, SQL, sql } from "drizzle-orm";
 import {
   CreateHostingBody,
   UpdateHostingBody,
@@ -153,15 +153,42 @@ router.get(
     try {
       const query = ListHostingsQueryParams.safeParse(req.query);
       const conditions: SQL[] = [];
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 25));
+      const offset = (page - 1) * limit;
+      const search = (req.query.search as string) || "";
+      const excludeStatus = (req.query.excludeStatus as string) || "";
+
       if (query.success) {
         if (query.data.status)
           conditions.push(eq(hostingsTable.status, query.data.status));
       }
+      if (excludeStatus) {
+        conditions.push(sql`${hostingsTable.status} != ${excludeStatus}`);
+      }
 
-      const { hostings, companions } = await withTenant(
+      if (search.trim()) {
+        conditions.push(
+          sql`EXISTS (
+            SELECT 1 FROM employees e 
+            WHERE e.id = ${hostingsTable.employeeId} 
+            AND (e.first_name ILIKE ${`%${search}%`} OR e.last_name ILIKE ${`%${search}%`} OR e.employee_id ILIKE ${`%${search}%`})
+          )`
+        );
+      }
+
+      const { hostings, companions, total } = await withTenant(
         propertyId,
         async (tenantDb) => {
-          const hostingsQuery = tenantDb
+          let countQuery = tenantDb
+            .select({ count: sql<number>`count(*)` })
+            .from(hostingsTable) as any;
+          if (conditions.length > 0)
+            countQuery = countQuery.where(and(...conditions));
+          const countResult = await countQuery;
+          const totalCount = Number(countResult[0]?.count ?? 0);
+
+          let hostingsQuery = tenantDb
             .select({
               hosting: hostingsTable,
               employee: employeesTable,
@@ -179,7 +206,10 @@ router.get(
               buildingsTable,
               eq(roomsTable.buildingId, buildingsTable.id),
             )
-            .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id));
+            .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
+            .orderBy(sql`${hostingsTable.createdAt} DESC`)
+            .limit(limit)
+            .offset(offset);
 
           const rows =
             conditions.length > 0
@@ -195,7 +225,7 @@ router.get(
                   .where(inArray(hostingCompanionsTable.hostingId, hostingIds))
               : [];
 
-          return { hostings: rows, companions: companionsList };
+          return { hostings: rows, companions: companionsList, total: totalCount };
         },
       );
 
@@ -233,7 +263,17 @@ router.get(
         },
       );
 
-      res.json(enriched);
+      res.json({
+        data: enriched,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPrevPage: page > 1,
+        }
+      });
     } catch (error: any) {
       console.error(
         "[Hostings API] Error fetching hostings:",

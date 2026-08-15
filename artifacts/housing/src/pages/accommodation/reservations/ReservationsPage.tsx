@@ -85,10 +85,8 @@ export default function Reservations() {
   const { language } = useLanguage();
 
   const queryClient = useQueryClient();
-  const LIMIT = 25;
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [page, setPage] = useState(1);
   const { isSystemAdmin } = useAuth();
   const ar = language === "ar";
 
@@ -127,10 +125,17 @@ export default function Reservations() {
   const [checkinRoomId, setCheckinRoomId] = useState("");
   const [roomSearch, setRoomSearch] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
   const [statusFilter, setStatusFilter] = useState("all");
   useEffect(() => {
-    setPage(1);
-  }, [search, statusFilter]);
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
 
   const [empSearch, setEmpSearch] = useState("");
   const [showEmpSuggestions, setShowEmpSuggestions] = useState(false);
@@ -157,14 +162,16 @@ export default function Reservations() {
     isLoading,
     isFetching,
   } = useListReservations(
-    { propertyId: activePropertyId ?? undefined, page, limit: LIMIT },
+    { 
+      propertyId: activePropertyId ?? undefined, 
+      page: currentPage, 
+      limit: pageSize,
+      search: debouncedSearch,
+      status: statusFilter === "all" ? undefined : statusFilter 
+    } as any,
     {
       query: {
-        queryKey: getListReservationsQueryKey({
-          propertyId: activePropertyId ?? undefined,
-          page,
-          limit: LIMIT,
-        }),
+        queryKey: ["listReservations", activePropertyId, currentPage, pageSize, debouncedSearch, statusFilter],
         enabled: !!activePropertyId,
         staleTime: 0,
         placeholderData: (prev: any) => prev,
@@ -172,6 +179,7 @@ export default function Reservations() {
     },
   );
   const reservations = _resWrapper?.data || _resWrapper || [];
+  const paginationTotal = _resWrapper?.pagination?.total || 0;
 
   const { data: _rData } = useListRooms(
     { propertyId: activePropertyId },
@@ -481,25 +489,8 @@ export default function Reservations() {
     return r.roomNumber?.toLowerCase().includes(roomSearch.toLowerCase());
   });
 
-  const filtered = useMemo(() => {
-    const list = reservations || [];
-    return list.filter((r) => {
-      const matchSearch =
-        !search.trim() ||
-        `${r.firstName} ${r.lastName}`
-          .toLowerCase()
-          .includes(search.toLowerCase()) ||
-        r.guestIdCardNumber?.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === "all" || r.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [reservations, search, statusFilter]);
-
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const paged = filtered.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const paged = reservations;
   const upcomingCount = (reservations || []).filter(
     (r) => r.status === "UPCOMING",
   ).length;
@@ -995,10 +986,12 @@ export default function Reservations() {
           </Table>
           {_resWrapper?.pagination && (
             <DataPagination
-              total={_resWrapper.pagination.total}
-              pageSize={LIMIT}
-              currentPage={page}
-              onPageChange={setPage}
+              page={currentPage}
+              pageSize={pageSize}
+              total={paginationTotal}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              ar={ar}
             />
           )}
         </div>

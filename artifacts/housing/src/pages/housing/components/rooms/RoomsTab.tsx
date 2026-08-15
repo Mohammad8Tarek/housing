@@ -24,6 +24,8 @@ import { DataPagination } from "@/components/DataPagination";
 import { RoomsTable } from "./RoomsTable";
 import { RoomModals } from "./RoomModals";
 
+import { useListRooms } from "@workspace/api-client-react";
+
 type Props = {
   propertyId: number;
   buildings: any[];
@@ -32,16 +34,29 @@ type Props = {
   rLoading: boolean;
 };
 
+// Simple debounce hook for search
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  import("react").then((React) => {
+    React.useEffect(() => {
+      const handler = setTimeout(() => setDebouncedValue(value), delay);
+      return () => clearTimeout(handler);
+    }, [value, delay]);
+  });
+  return debouncedValue;
+}
+
 export function RoomsTab({
   propertyId,
   buildings,
   floors,
-  rooms,
-  rLoading,
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
+
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
 
   const createRoomMut = useCreateRoom();
   const updateRoomMut = useUpdateRoom();
@@ -66,36 +81,22 @@ export function RoomsTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const filteredRoomsTab = rooms.filter((r) => {
-    const matchB =
-      roomBuildingFilter === "all" ||
-      r.buildingId === Number(roomBuildingFilter);
-    const matchF =
-      roomFloorFilter === "all" || r.floorId === Number(roomFloorFilter);
-    const matchS =
-      roomStatusFilter === "all" || statusNorm(r.status) === roomStatusFilter;
-    return matchB && matchF && matchS;
-  });
-
-  const sortedRooms = [...filteredRoomsTab].sort((a, b) => {
-    return String(a.roomNumber).localeCompare(String(b.roomNumber), undefined, {
-      numeric: true,
-    });
-  });
-
-  const paginatedRooms = sortedRooms.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+  const { data: _rDataWrapper, isLoading: rLoadingQuery, isFetching: rFetching } = useListRooms(
+    { 
+      propertyId, 
+      limit: pageSize, 
+      page: currentPage, 
+      search: debouncedSearch,
+      buildingId: roomBuildingFilter === "all" ? undefined : Number(roomBuildingFilter),
+      floorId: roomFloorFilter === "all" ? undefined : Number(roomFloorFilter),
+      status: roomStatusFilter === "all" ? undefined : roomStatusFilter
+    } as any,
+    { query: { keepPreviousData: true } as any }
   );
 
-  const paginationMeta = {
-    page: currentPage,
-    limit: pageSize,
-    total: sortedRooms.length,
-    totalPages: Math.ceil(sortedRooms.length / pageSize),
-    hasNextPage: currentPage * pageSize < sortedRooms.length,
-    hasPrevPage: currentPage > 1,
-  };
+  const rData = (_rDataWrapper as any)?.data || [];
+  const paginationMeta = (_rDataWrapper as any)?.pagination || { total: 0 };
+  const rLoading = rLoadingQuery || rFetching;
 
   const openAddRoom = () => {
     setEditRoom(null);
@@ -251,8 +252,19 @@ export function RoomsTab({
               </SelectItem>
             </SelectContent>
           </Select>
+
+          <div className="relative w-[160px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder={ar ? "بحث..." : "Search..."}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+
           <p className="text-sm text-muted-foreground">
-            {sortedRooms.length} {ar ? "غرفة" : "rooms"}
+            {paginationMeta.total} {ar ? "غرفة" : "rooms"}
           </p>
         </div>
         <PermissionGate module="housing" action="create">
@@ -267,14 +279,14 @@ export function RoomsTab({
         buildings={buildings}
         floors={floors}
         rLoading={rLoading}
-        filteredRoomsTab={paginatedRooms}
+        filteredRoomsTab={rData}
         onEditRoom={openEditRoom}
         onDeleteRoom={setDeleteRoom}
       />
 
-      {sortedRooms.length > 0 && (
+      {paginationMeta.total > 0 && (
         <DataPagination
-          total={sortedRooms.length}
+          total={paginationMeta.total}
           pageSize={pageSize}
           onPageSizeChange={(size) => {
             setPageSize(size);

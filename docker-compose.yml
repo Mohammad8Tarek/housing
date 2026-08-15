@@ -22,6 +22,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: sunrise-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+
   backend:
     build:
       context: .
@@ -32,12 +46,15 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-staff-housing}
+      REDIS_URL: redis://redis:6379
       PORT: ${PORT:-4000}
       NODE_ENV: ${NODE_ENV:-production}
     ports:
       - "${PORT:-4000}:${PORT:-4000}"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   frontend:
@@ -64,3 +81,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

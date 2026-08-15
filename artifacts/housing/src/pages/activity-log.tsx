@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuditLog, useListActivityLogs } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -207,35 +207,32 @@ export default function ActivityLog() {
   const [keyPageSize, setKeyPageSize] = useState(20);
   const [keyCurrentPage, setKeyCurrentPage] = useState(1);
 
-  const { data: logs = [], isLoading } = useListActivityLogs(
-    { propertyId: activePropertyId },
+  const [keyLogsLoading, setKeyLogsLoading] = useState(false); // mock or replace if needed
+  const { data: keyLogs = [], isLoading: isKeyLogsLoading } =
+    useAuditLog(keyAuditPropertyId);
+
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data: logsResponse, isLoading } = useListActivityLogs(
+    { 
+      propertyId: activePropertyId,
+      page: currentPage,
+      limit: pageSize,
+      search: debouncedSearch || undefined,
+      module: moduleFilter === "all" ? undefined : moduleFilter,
+      action: actionFilter === "all" ? undefined : actionFilter,
+    } as any, // Cast as any because the types might not be regenerated yet
     { query: { enabled: !!activePropertyId } },
   );
 
-  const { data: keyLogs = [], isLoading: keyLogsLoading } =
-    useAuditLog(keyAuditPropertyId);
+  const paginated = logsResponse?.data || [];
+  const totalLogs = logsResponse?.pagination?.total || 0;
 
-  const filtered = logs.filter((log) => {
-    const matchesModule = moduleFilter === "all" || log.module === moduleFilter;
-    const matchesAction =
-      actionFilter === "all" ||
-      (log.actionType ?? "").toUpperCase().includes(actionFilter) ||
-      (log.action ?? "").toUpperCase().includes(actionFilter);
-    const term = search.toLowerCase();
-    const matchesSearch =
-      !search ||
-      (log.username ?? "").toLowerCase().includes(term) ||
-      (log.action ?? "").toLowerCase().includes(term) ||
-      ((log as any).details ?? "").toLowerCase().includes(term) ||
-      ((log as any).ipAddress ?? "").toLowerCase().includes(term) ||
-      (log.entityType ?? "").toLowerCase().includes(term);
-    return matchesModule && matchesAction && matchesSearch;
-  });
-
-  const paginated = filtered.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  // Replaced client-side filtering and pagination with server-side response
 
   const filteredKeyLogs = keyLogs.filter((log) => {
     const action = (log.action ?? "").toLowerCase();
@@ -311,7 +308,7 @@ export default function ActivityLog() {
     ]
       .map(escapeCsv)
       .join(",");
-    const rows = filtered.map((l) =>
+    const rows = paginated.map((l) =>
       [
         l.id,
         l.timestamp,
@@ -580,17 +577,17 @@ export default function ActivityLog() {
             {[
               {
                 label: ar ? "إجمالي السجلات" : "Total Records",
-                value: filtered.length,
+                value: totalLogs,
                 color: "text-foreground",
               },
               {
                 label: ar ? "تسجيلات دخول" : "Logins",
-                value: filtered.filter((l) => l.action === "LOGIN").length,
+                value: paginated.filter((l) => l.action === "LOGIN").length,
                 color: "text-purple-600",
               },
               {
                 label: ar ? "تحذيرات أمان" : "Security Alerts",
-                value: filtered.filter(
+                value: paginated.filter(
                   (l) =>
                     l.severity === "warning" || l.action === "LOGIN_FAILED",
                 ).length,
@@ -598,7 +595,7 @@ export default function ActivityLog() {
               },
               {
                 label: ar ? "إجراءات حذف" : "Deletions",
-                value: filtered.filter((l) =>
+                value: paginated.filter((l) =>
                   (l.action ?? "").includes("DELETE"),
                 ).length,
                 color: "text-red-600",
@@ -762,7 +759,7 @@ export default function ActivityLog() {
                       )}
                     </TableRow>
                   ))}
-                  {filtered.length === 0 && (
+                  {paginated.length === 0 && (
                     <TableRow>
                       <TableCell
                         colSpan={visible.size}
@@ -784,9 +781,9 @@ export default function ActivityLog() {
                   )}
                 </TableBody>
               </Table>
-              {filtered.length > 0 && (
+              {totalLogs > 0 && (
                 <DataPagination
-                  total={filtered.length}
+                  total={totalLogs}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {
                     setPageSize(size);

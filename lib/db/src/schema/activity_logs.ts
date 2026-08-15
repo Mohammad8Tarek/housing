@@ -5,6 +5,7 @@ import {
   integer,
   bigint,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -26,7 +27,13 @@ export const activityLogsTable = pgTable("activity_logs", {
   timestamp: timestamp("timestamp", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_activity_logs_user_id").on(table.userId),
+  index("idx_activity_logs_module").on(table.module),
+  index("idx_activity_logs_timestamp").on(table.timestamp),
+  index("idx_activity_logs_action_type").on(table.actionType),
+  index("idx_activity_logs_module_timestamp").on(table.module, table.timestamp),
+]);
 
 export const insertActivityLogSchema = createInsertSchema(
   activityLogsTable,

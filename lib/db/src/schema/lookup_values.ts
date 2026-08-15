@@ -5,6 +5,7 @@ import {
   integer,
   timestamp,
   boolean,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -19,7 +20,10 @@ export const lookupValuesTable = pgTable("lookup_values", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_lookup_values_category").on(table.category),
+  index("idx_lookup_values_category_disabled").on(table.category, table.disabled),
+]);
 
 export const insertLookupValueSchema = createInsertSchema(
   lookupValuesTable,

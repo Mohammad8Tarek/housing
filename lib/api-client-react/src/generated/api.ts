@@ -57,6 +57,8 @@ import type {
   ListEmployeesParams,
   ListFloorsParams,
   ListHostingsParams,
+  ListInHouseAssignments200,
+  ListInHouseAssignmentsParams,
   ListMaintenanceParams,
   ListReservationsParams,
   ListRoomsParams,
@@ -2159,6 +2161,90 @@ export const useDeleteEmployee = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getDeleteEmployeeMutationOptions(options));
     }
+
+export const getListInHouseAssignmentsUrl = (params?: ListInHouseAssignmentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/assignments/in-house?${stringifiedParams}` : `/api/assignments/in-house`
+}
+
+/**
+ * @summary List in-house assignments (paginated)
+ */
+export const listInHouseAssignments = async (params?: ListInHouseAssignmentsParams, options?: RequestInit): Promise<ListInHouseAssignments200> => {
+
+  return customFetch<ListInHouseAssignments200>(getListInHouseAssignmentsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListInHouseAssignmentsQueryKey = (params?: ListInHouseAssignmentsParams,) => {
+    return [
+    `/api/assignments/in-house`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListInHouseAssignmentsQueryOptions = <TData = Awaited<ReturnType<typeof listInHouseAssignments>>, TError = ErrorType<unknown>>(params?: ListInHouseAssignmentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listInHouseAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListInHouseAssignmentsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listInHouseAssignments>>> = ({ signal }) => listInHouseAssignments(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listInHouseAssignments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListInHouseAssignmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listInHouseAssignments>>>
+export type ListInHouseAssignmentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List in-house assignments (paginated)
+ */
+
+export function useListInHouseAssignments<TData = Awaited<ReturnType<typeof listInHouseAssignments>>, TError = ErrorType<unknown>>(
+ params?: ListInHouseAssignmentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listInHouseAssignments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListInHouseAssignmentsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getListAssignmentsUrl = (params?: ListAssignmentsParams,) => {
   const normalizedParams = new URLSearchParams();

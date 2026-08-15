@@ -83,10 +83,17 @@ router.get(
       Math.max(1, parseInt(req.query.limit as string) || 25),
     );
     const offset = (page - 1) * limit;
+    const search = (req.query.search as string) || "";
 
     if (query.success) {
       if (query.data.status)
         conditions.push(eq(reservationsTable.status, query.data.status));
+    }
+    
+    if (search.trim()) {
+      conditions.push(
+        sql`(${reservationsTable.firstName} ILIKE ${`%${search}%`} OR ${reservationsTable.lastName} ILIKE ${`%${search}%`} OR ${reservationsTable.guestIdCardNumber} ILIKE ${`%${search}%`})`
+      );
     }
 
     const { data, total } = await withTenant(propertyId, async (tenantDb) => {

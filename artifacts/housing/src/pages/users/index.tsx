@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   Table,
   TableBody,
@@ -103,12 +104,20 @@ export default function UsersPage() {
   const [editPropsUser, setEditPropsUser] = useState<any | null>(null);
   const [signatureUser, setSignatureUser] = useState<any | null>(null);
 
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
   const {
     data: _apiResponseWrapper,
     isLoading,
     isError,
     refetch,
-  } = useListUsers({ page: currentPage, limit: pageSize as any });
+  } = useListUsers({ 
+    page: currentPage, 
+    limit: pageSize as any,
+    search: debouncedSearch,
+    role: roleFilter,
+    status: statusFilter
+  });
   const { data: properties } = useListProperties();
 
   const users = _apiResponseWrapper?.data ?? [];
@@ -119,26 +128,7 @@ export default function UsersPage() {
 
   const isUserLocked = (u: any) => u.status === "LOCKED";
 
-  // ── Enterprise: filtered + searched users ──
-  const filteredUsers = useMemo(() => {
-    let list = users || [];
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((u: any) => u.username.toLowerCase().includes(q));
-    }
-    if (roleFilter !== "all") {
-      list = list.filter((u: any) =>
-        u.roles?.some((r: string) => r.toLowerCase() === roleFilter),
-      );
-    }
-    if (statusFilter !== "all") {
-      list = list.filter(
-        (u: any) =>
-          (u.status || "").toUpperCase() === statusFilter.toUpperCase(),
-      );
-    }
-    return list;
-  }, [users, searchQuery, roleFilter, statusFilter]);
+
 
   // ── Optimized Stats (Single Pass) ──
   const stats = useMemo(() => {
@@ -257,10 +247,7 @@ export default function UsersPage() {
     isVisible: isUVisible,
   } = useColumnVisibility(USER_COLS);
 
-  const pagedUsers = filteredUsers.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const pagedUsers = users;
   const pagedUserIds = pagedUsers.map((u: any) => u.id);
   const allUserPageSelected =
     pagedUserIds.length > 0 &&
@@ -543,8 +530,8 @@ export default function UsersPage() {
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {ar
-              ? `عرض ${filteredUsers.length} من ${stats.total} مستخدم`
-              : `Showing ${filteredUsers.length} of ${stats.total} users`}
+              ? `عرض ${pagination?.total ?? 0} مستخدم`
+              : `Showing ${pagination?.total ?? 0} users`}
           </p>
           <button
             onClick={() => {
@@ -1052,9 +1039,9 @@ export default function UsersPage() {
               )}
             </TableBody>
           </Table>
-          {filteredUsers.length > 0 && (
+          {pagination?.total > 0 && (
             <DataPagination
-              total={filteredUsers.length}
+              total={pagination?.total}
               pageSize={pageSize}
               onPageSizeChange={(size) => {
                 setPageSize(size);

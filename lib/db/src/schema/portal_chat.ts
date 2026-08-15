@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   foreignKey,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -22,7 +23,9 @@ export const portalConversationsTable = pgTable("portal_conversations", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_portal_conversations_property_id").on(table.propertyId),
+]);
 
 export const portalConversationParticipantsTable = pgTable(
   "portal_conversation_participants",
@@ -35,6 +38,10 @@ export const portalConversationParticipantsTable = pgTable(
       .defaultNow(),
     lastReadAt: timestamp("last_read_at", { withTimezone: true }),
   },
+  (table) => [
+    index("idx_portal_conv_participants_conversation_id").on(table.conversationId),
+    index("idx_portal_conv_participants_employee_id").on(table.employeeId),
+  ]
 );
 
 export const portalMessagesTable = pgTable("portal_messages", {
@@ -50,14 +57,21 @@ export const portalMessagesTable = pgTable("portal_messages", {
     .defaultNow(),
   editedAt: timestamp("edited_at", { withTimezone: true }),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+}, (table) => [
+  index("idx_portal_messages_conversation_id").on(table.conversationId),
+  index("idx_portal_messages_sender_id").on(table.senderId),
+  index("idx_portal_messages_created_at").on(table.createdAt),
+]);
 
 export const portalMessageReadsTable = pgTable("portal_message_reads", {
   id: serial("id").primaryKey(),
   messageId: integer("message_id").notNull(),
   employeeId: integer("employee_id").notNull(),
   readAt: timestamp("read_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("idx_portal_message_reads_message_id").on(table.messageId),
+  index("idx_portal_message_reads_employee_id").on(table.employeeId),
+]);
 
 export const insertConversationSchema = createInsertSchema(
   portalConversationsTable,

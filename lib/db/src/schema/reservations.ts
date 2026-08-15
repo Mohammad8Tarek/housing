@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { roomsTable } from "./rooms";
@@ -22,7 +22,11 @@ export const reservationsTable = pgTable("reservations", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_reservations_room_id").on(table.roomId),
+  index("idx_reservations_status").on(table.status),
+  index("idx_reservations_check_in_date").on(table.checkInDate),
+]);
 
 export const insertReservationSchema = createInsertSchema(
   reservationsTable,

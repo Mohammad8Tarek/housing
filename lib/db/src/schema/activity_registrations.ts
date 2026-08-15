@@ -5,6 +5,8 @@ import {
   integer,
   boolean,
   timestamp,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -20,7 +22,11 @@ export const activityRegistrationsTable = pgTable("activity_registrations", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_activity_registrations_employee_id").on(table.employeeId),
+  index("idx_activity_registrations_activity_id").on(table.activityId),
+  uniqueIndex("uq_activity_registrations_employee_activity").on(table.employeeId, table.activityId),
+]);
 
 export const insertActivityRegistrationSchema = createInsertSchema(
   activityRegistrationsTable,

@@ -587,6 +587,27 @@ department?: string;
 search?: string;
 };
 
+export type ListInHouseAssignmentsParams = {
+propertyId?: number;
+status?: string;
+search?: string;
+buildingId?: number;
+floorId?: number;
+page?: number;
+limit?: number;
+};
+
+export type ListInHouseAssignments200Pagination = {
+  total?: number;
+  page?: number;
+  limit?: number;
+};
+
+export type ListInHouseAssignments200 = {
+  data?: Assignment[];
+  pagination?: ListInHouseAssignments200Pagination;
+};
+
 export type ListAssignmentsParams = {
 propertyId?: number;
 status?: string;

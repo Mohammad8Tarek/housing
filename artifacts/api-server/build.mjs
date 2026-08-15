@@ -102,6 +102,8 @@ async function buildAll() {
       "puppeteer-core",
       "electron",
       "connect-pg-simple",
+      "ioredis",
+      "bullmq",
     ],
     sourcemap: "linked",
     plugins: [

@@ -1054,9 +1054,9 @@ router.post(
           await tenantDb
             .update(employeePortalAccountsTable)
             .set({
-              resetFailedAttempts: sql`${employeePortalAccountsTable.resetFailedAttempts} + 1`,
-              resetLockedUntil: sql`CASE
-              WHEN ${employeePortalAccountsTable.resetFailedAttempts} + 1 >= ${lockoutThreshold}
+              failedAttempts: sql`${employeePortalAccountsTable.failedAttempts} + 1`,
+              lockedUntil: sql`CASE
+              WHEN ${employeePortalAccountsTable.failedAttempts} + 1 >= ${lockoutThreshold}
               THEN NOW() + INTERVAL '1 minute' * ${lockoutDurationMinutes}
               ELSE NULL
             END`,
@@ -1092,8 +1092,8 @@ router.post(
         await tenantDb
           .update(employeePortalAccountsTable)
           .set({
-            resetFailedAttempts: 0,
-            resetLockedUntil: null,
+            failedAttempts: 0,
+            lockedUntil: null,
             updatedAt: new Date(),
           })
           .where(eq(employeePortalAccountsTable.id, account.id));
@@ -1218,8 +1218,6 @@ router.post(
             mustChangePassword: false,
             failedAttempts: 0,
             lockedUntil: null,
-            resetFailedAttempts: 0,
-            resetLockedUntil: null,
             passwordChangedAt: new Date(),
             updatedAt: new Date(),
           })

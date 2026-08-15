@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, withTenant, assignmentsTable, roomsTable } from "@workspace/db";
-import { eq, and, SQL } from "drizzle-orm";
+import { db, withTenant, assignmentsTable, roomsTable, employeesTable } from "@workspace/db";
+import { eq, and, or, ilike, sql, SQL, desc } from "drizzle-orm";
 import {
   CreateAssignmentBody,
   UpdateAssignmentBody,
@@ -42,6 +42,157 @@ function fmtAssignment(r: Record<string, any>) {
   }
   return out;
 }
+
+// ─── GET /assignments/in-house ────────────────────────────────────────────────
+router.get(
+  "/assignments/in-house",
+  requirePermission("accommodation", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+
+    const query = req.query as any;
+    const page = Math.max(1, parseInt(query.page || "1"));
+    const limit = Math.max(1, parseInt(query.limit || "10"));
+    const offset = (page - 1) * limit;
+
+    const conditions: SQL[] = [eq(assignmentsTable.status, "ACTIVE")];
+
+    if (query.status) {
+      conditions.push(eq(assignmentsTable.status, query.status));
+    }
+    if (query.buildingId) {
+      conditions.push(eq(roomsTable.buildingId, parseInt(query.buildingId)));
+    }
+    if (query.floorId) {
+      conditions.push(eq(roomsTable.floorId, parseInt(query.floorId)));
+    }
+    if (query.search) {
+      const q = `%${query.search}%`;
+      conditions.push(
+        or(
+          ilike(employeesTable.firstName, q),
+          ilike(employeesTable.lastName, q),
+          ilike(employeesTable.employeeId, q),
+          ilike(roomsTable.roomNumber, q)
+        )!
+      );
+    }
+
+    const result = await withTenant(propertyId, async (tenantDb) => {
+      const baseQuery = tenantDb
+        .select({
+          id: assignmentsTable.id,
+          assignment: assignmentsTable
+        })
+        .from(assignmentsTable)
+        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .where(and(...conditions));
+
+      const countResult = await tenantDb
+        .select({ count: sql<number>`count(*)` })
+        .from(assignmentsTable)
+        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .where(and(...conditions));
+
+      const total = Number(countResult[0]?.count || 0);
+
+      const items = await baseQuery
+        .orderBy(desc(assignmentsTable.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      return { total, data: items.map(i => i.assignment) };
+    });
+
+    res.json({
+      data: result.data.map((a) => fmtAssignment({ ...a, propertyId })),
+      pagination: {
+        total: result.total,
+        page,
+        limit
+      }
+    });
+  },
+);
+
+// ─── GET /assignments/history ────────────────────────────────────────────────
+router.get(
+  "/assignments/history",
+  requirePermission("accommodation", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+
+    const query = req.query as any;
+    const page = Math.max(1, parseInt(query.page || "1"));
+    const limit = Math.max(1, parseInt(query.limit || "20"));
+    const offset = (page - 1) * limit;
+
+    const conditions: SQL[] = [sql`${assignmentsTable.status} != 'ACTIVE'`];
+
+    if (query.status && query.status !== "ALL") {
+      conditions.push(eq(assignmentsTable.status, query.status));
+    }
+    if (query.search) {
+      const q = `%${query.search}%`;
+      conditions.push(
+        or(
+          ilike(employeesTable.firstName, q),
+          ilike(employeesTable.lastName, q),
+          ilike(employeesTable.employeeId, q),
+          ilike(roomsTable.roomNumber, q)
+        )!
+      );
+    }
+
+    const result = await withTenant(propertyId, async (tenantDb) => {
+      const baseQuery = tenantDb
+        .select({
+          id: assignmentsTable.id,
+          assignment: assignmentsTable
+        })
+        .from(assignmentsTable)
+        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .where(and(...conditions));
+
+      const countResult = await tenantDb
+        .select({ count: sql<number>`count(*)` })
+        .from(assignmentsTable)
+        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .where(and(...conditions));
+
+      const total = Number(countResult[0]?.count || 0);
+
+      const items = await baseQuery
+        .orderBy(desc(assignmentsTable.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      return { total, data: items.map(i => i.assignment) };
+    });
+
+    res.json({
+      data: result.data.map((a) => fmtAssignment({ ...a, propertyId })),
+      pagination: {
+        total: result.total,
+        page,
+        limit
+      }
+    });
+  },
+);
+
 
 // ─── GET /assignments ─────────────────────────────────────────────────────
 router.get(

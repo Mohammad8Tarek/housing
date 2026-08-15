@@ -14,6 +14,8 @@ import {
   integer,
   boolean,
   timestamp,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -35,7 +37,10 @@ export const employeePortalAccountsTable = pgTable("employee_portal_accounts", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("uq_portal_accounts_employee_id").on(table.employeeId),
+  index("idx_portal_accounts_is_active").on(table.isActive),
+]);
 
 export const insertEmployeePortalAccountSchema = createInsertSchema(
   employeePortalAccountsTable,
@@ -57,7 +62,11 @@ export const passwordResetTokensTable = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_reset_tokens_employee_id").on(table.employeeId),
+  index("idx_reset_tokens_token_hash").on(table.tokenHash),
+  index("idx_reset_tokens_expires_at").on(table.expiresAt),
+]);
 
 export const insertPasswordResetTokenSchema = createInsertSchema(
   passwordResetTokensTable,

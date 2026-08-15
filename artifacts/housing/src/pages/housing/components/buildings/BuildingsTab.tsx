@@ -55,12 +55,25 @@ import {
   useDeleteBuilding,
   useCreateFloor,
   useCreateRoom,
+  useListBuildings,
 } from "@workspace/api-client-react";
 import {
   buildingStatusBadge,
   makeDefaultFloor,
   FloorConfig,
 } from "../../utils";
+
+// Simple debounce hook for search
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  import("react").then((React) => {
+    React.useEffect(() => {
+      const handler = setTimeout(() => setDebouncedValue(value), delay);
+      return () => clearTimeout(handler);
+    }, [value, delay]);
+  });
+  return debouncedValue;
+}
 
 const roomTypes = [
   "Standard",
@@ -93,11 +106,13 @@ export function BuildingsTab({
   buildings,
   floors,
   rooms,
-  bLoading,
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
+
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
 
   const createBuildingMut = useCreateBuilding();
   const updateBuildingMut = useUpdateBuilding();
@@ -127,20 +142,16 @@ export function BuildingsTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   
-  // Apply pagination
-  const paginatedBuildings = buildings.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const paginationMeta = {
-    page: currentPage,
+  const { data: _bDataWrapper, isLoading: bLoadingQuery, isFetching: bFetching } = useListBuildings({
+    propertyId,
     limit: pageSize,
-    total: buildings.length,
-    totalPages: Math.ceil(buildings.length / pageSize),
-    hasNextPage: currentPage * pageSize < buildings.length,
-    hasPrevPage: currentPage > 1,
-  };
+    page: currentPage,
+    search: debouncedSearch,
+  } as any, { query: { keepPreviousData: true } as any });
+
+  const paginatedBuildings = (_bDataWrapper as any)?.data || [];
+  const paginationMeta = (_bDataWrapper as any)?.pagination || { total: 0 };
+  const bLoading = bLoadingQuery || bFetching;
 
   const smartTotalRooms = smartMode
     ? floorConfigs.reduce((sum, f) => sum + f.roomsCount, 0)
@@ -330,10 +341,21 @@ export function BuildingsTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {buildings.length} {ar ? "مبنى" : "buildings"}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="relative w-[200px]">
+            <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder={ar ? "ابحث عن مبنى..." : "Search buildings..."}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {paginationMeta.total} {ar ? "مبنى" : "buildings"}
+          </p>
+        </div>
         <PermissionGate module="housing" action="create">
           <Button onClick={openCreateBuilding} size="sm">
             <Plus className="w-4 h-4 mr-1" />{" "}
@@ -442,7 +464,7 @@ export function BuildingsTab({
                   </tr>
                 );
               })}
-              {buildings.length === 0 && (
+              {paginatedBuildings.length === 0 && (
                 <tr>
                   <td
                     colSpan={7}
@@ -458,9 +480,9 @@ export function BuildingsTab({
         </div>
       )}
 
-      {buildings.length > 0 && (
+      {paginationMeta.total > 0 && (
         <DataPagination
-          total={buildings.length}
+          total={paginationMeta.total}
           pageSize={pageSize}
           onPageSizeChange={(size) => {
             setPageSize(size);

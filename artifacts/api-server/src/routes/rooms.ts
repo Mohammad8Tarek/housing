@@ -11,7 +11,7 @@ import {
   hostingsTable,
   reservationsTable,
 } from "@workspace/db";
-import { eq, and, desc, SQL, sql } from "drizzle-orm";
+import { eq, and, desc, SQL, sql, ilike } from "drizzle-orm";
 import {
   CreateRoomBody,
   UpdateRoomBody,
@@ -29,7 +29,10 @@ import { requirePermission } from "../middlewares/permissions.js";
 
 const router: Router = Router();
 
-router.get("/rooms/by-number", async (req, res) => {
+router.get(
+  "/rooms/by-number",
+  requirePermission("accommodation", "view"),
+  async (req, res) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -139,6 +142,11 @@ router.get(
         1000,
         Math.max(1, parseInt(req.query.limit as string) || 25),
       );
+      const search = req.query.search as string;
+
+      if (search) {
+        conditions.push(ilike(roomsTable.roomNumber, `%${search}%`));
+      }
 
       if (query.success) {
         if (query.data.buildingId)

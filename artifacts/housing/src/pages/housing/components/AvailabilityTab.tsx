@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/select";
 import { roomStatusBadge, statusNorm } from "../utils";
 
+import { useListRooms } from "@workspace/api-client-react";
+
 type Props = {
+  propertyId: number;
   buildings: any[];
   floors: any[];
   rooms: any[];
@@ -21,40 +24,47 @@ type Props = {
   onSelectRoom: (room: any) => void;
 };
 
+// Simple debounce hook for search
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  import("react").then((React) => {
+    React.useEffect(() => {
+      const handler = setTimeout(() => setDebouncedValue(value), delay);
+      return () => clearTimeout(handler);
+    }, [value, delay]);
+  });
+  return debouncedValue;
+}
+
 export function AvailabilityTab({
+  propertyId,
   buildings,
   floors,
-  rooms,
-  rLoading,
   onSelectRoom,
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  const filteredRooms = rooms.filter((r) => {
-    const matchSearch = r.roomNumber
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    const matchStatus =
-      statusFilter === "all" || statusNorm(r.status) === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
-  const sortedRooms = [...filteredRooms].sort((a, b) => {
-    return String(a.roomNumber).localeCompare(String(b.roomNumber), undefined, {
-      numeric: true,
-    });
-  });
-
-  const paginatedRooms = sortedRooms.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+  const { data: _rDataWrapper, isLoading: rLoadingQuery, isFetching: rFetching } = useListRooms(
+    { 
+      propertyId, 
+      limit: pageSize, 
+      page: currentPage, 
+      search: debouncedSearch,
+      status: statusFilter === "all" ? undefined : statusFilter
+    } as any,
+    { query: { keepPreviousData: true } as any }
   );
+
+  const rData = (_rDataWrapper as any)?.data || [];
+  const paginationMeta = (_rDataWrapper as any)?.pagination || { total: 0 };
+  const rLoading = rLoadingQuery || rFetching;
 
   return (
     <div className="space-y-4">
@@ -91,7 +101,7 @@ export function AvailabilityTab({
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
-          {filteredRooms.length} {ar ? "غرفة" : "rooms"}
+          {paginationMeta.total} {ar ? "غرفة" : "rooms"}
         </span>
       </div>
 
@@ -103,7 +113,7 @@ export function AvailabilityTab({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {paginatedRooms.map((room) => {
+          {rData.map((room: any) => {
             const building = buildings.find((b) => b.id === room.buildingId);
             const floor = floors.find((f) => f.id === room.floorId);
             return (
@@ -148,7 +158,7 @@ export function AvailabilityTab({
               </div>
             );
           })}
-          {paginatedRooms.length === 0 && (
+          {rData.length === 0 && (
             <div className="col-span-full py-12 text-center text-muted-foreground">
               <BedDouble className="w-8 h-8 opacity-30 mx-auto mb-2" />
               <p className="font-medium">
@@ -159,9 +169,9 @@ export function AvailabilityTab({
         </div>
       )}
 
-      {sortedRooms.length > 0 && (
+      {paginationMeta.total > 0 && (
         <DataPagination
-          total={sortedRooms.length}
+          total={paginationMeta.total}
           pageSize={pageSize}
           onPageSizeChange={(size) => {
             setPageSize(size);

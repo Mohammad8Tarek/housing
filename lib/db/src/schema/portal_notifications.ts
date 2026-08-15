@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   uniqueIndex,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -27,7 +28,11 @@ export const portalNotificationsTable = pgTable("portal_notifications", {
     .notNull()
     .defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
-});
+}, (table) => [
+  index("idx_portal_notifications_property_id").on(table.propertyId),
+  index("idx_portal_notifications_type").on(table.type),
+  index("idx_portal_notifications_created_at").on(table.createdAt),
+]);
 
 // Read receipts — which employees read which notification
 export const portalNotificationReadsTable = pgTable(
@@ -43,6 +48,7 @@ export const portalNotificationReadsTable = pgTable(
       t.notificationId,
       t.employeeId,
     ),
+    index("idx_portal_notification_reads_employee_id").on(t.employeeId),
   ],
 );
 
@@ -62,7 +68,11 @@ export const pushSubscriptionsTable = pgTable(
       .defaultNow(),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   },
-  (t) => [uniqueIndex("uq_push_subscriptions").on(t.endpoint)],
+  (t) => [
+    uniqueIndex("uq_push_subscriptions").on(t.endpoint),
+    index("idx_push_subscriptions_employee_id").on(t.employeeId),
+    index("idx_push_subscriptions_property_id").on(t.propertyId),
+  ],
 );
 
 export const insertPortalNotificationSchema = createInsertSchema(

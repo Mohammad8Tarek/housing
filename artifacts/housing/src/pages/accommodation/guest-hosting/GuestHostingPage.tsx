@@ -203,19 +203,22 @@ export default function GuestHosting() {
   });
 
   const {
-    data: hostings,
+    data: _hWrapper,
     isLoading,
     isError,
     refetch,
   } = useListHostings(
-    { propertyId: activePropertyId },
+    { propertyId: activePropertyId, page: currentPage, limit: pageSize, excludeStatus: "PENDING" } as any,
     {
       query: {
-        queryKey: getListHostingsQueryKey({ propertyId: activePropertyId }),
+        queryKey: ["listHostings", activePropertyId, currentPage, pageSize],
         enabled: !!activePropertyId,
       },
     },
   );
+  
+  const hostings = _hWrapper?.data || _hWrapper || [];
+  const paginationTotal = _hWrapper?.pagination?.total || 0;
 
   useEffect(() => {
     if (!activePropertyId || !(hostings as any[])?.length) return;
@@ -595,14 +598,8 @@ export default function GuestHosting() {
 
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
-  // Only show APPROVED, ACTIVE, COMPLETED, CANCELLED in operations page
-  const operationalHostings = (hostings || []).filter(
-    (h) => h.status !== "PENDING",
-  );
-  const pagedHostings = operationalHostings.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  // We already excluded PENDING in the API call
+  const pagedHostings = hostings;
   const roomMap = Object.fromEntries((rooms as any[]).map((r) => [r.id, r]));
   const employeeMap = Object.fromEntries(
     (employees as any[]).map((e) => [e.id, e]),
@@ -1468,13 +1465,14 @@ export default function GuestHosting() {
               </TableBody>
             </Table>
           </div>
-          {operationalHostings.length > 0 && (
+          {hostings.length > 0 && (
             <DataPagination
-              total={operationalHostings.length}
+              page={currentPage}
               pageSize={pageSize}
-              currentPage={currentPage}
+              total={paginationTotal}
               onPageChange={setCurrentPage}
               onPageSizeChange={setPageSize}
+              ar={ar}
             />
           )}
         </div>

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, pool, usersTable } from "@workspace/db";
-import { eq, and, SQL, sql } from "drizzle-orm";
+import { eq, and, SQL, sql, or, not, ilike } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
   CreateUserBody,
@@ -74,58 +74,88 @@ router.get(
     );
     const offset = (page - 1) * limit;
 
-    let rows: any;
-    let totalRows: number;
+    const search = req.query.search as string | undefined;
+    const role = req.query.role as string | undefined;
+    const status = req.query.status as string | undefined;
 
-    if (isSystemAdmin) {
-      // Get total count for pagination
-      const countResult = await pool.query(
-        `SELECT COUNT(*) as count FROM users`,
+    const filters = [];
+    if (!isSystemAdmin) {
+      filters.push(eq(usersTable.propertyId, Number(sessionPropertyId)));
+      filters.push(
+        not(
+          or(
+            sql`'super_admin' = ANY(${usersTable.roles})`,
+            sql`'system_admin' = ANY(${usersTable.roles})`,
+            sql`'SYSTEM_ADMIN' = ANY(${usersTable.roles})`
+          )!
+        )
       );
-      totalRows = parseInt(countResult.rows[0]?.count ?? 0);
-
-      const result = await pool.query(
-        `SELECT u.id, u.property_id, u.property_ids, u.username, u.email, u.phone, u.roles, u.permissions, u.status, u.created_at, u.failed_login_attempts, u.locked_until, u.job_title,
-                CASE WHEN us.id IS NOT NULL THEN true ELSE false END AS has_signature
-         FROM users u
-         LEFT JOIN public.user_signatures us ON us.user_id = u.id
-         ORDER BY u.id LIMIT $1 OFFSET $2`,
-        [limit, offset],
-      );
-      rows = result.rows;
-    } else {
-      const countResult = await pool.query(
-        `SELECT COUNT(*) as count FROM users
-       WHERE property_id = $1
-         AND NOT (($2 = ANY(roles)) OR ($3 = ANY(roles)) OR ($4 = ANY(roles)))`,
-        [
-          Number(sessionPropertyId),
-          "super_admin",
-          "system_admin",
-          "SYSTEM_ADMIN",
-        ],
-      );
-      totalRows = parseInt(countResult.rows[0]?.count ?? 0);
-
-      const result = await pool.query(
-        `SELECT u.id, u.property_id, u.property_ids, u.username, u.email, u.phone, u.roles, u.permissions, u.status, u.created_at, u.failed_login_attempts, u.locked_until, u.job_title,
-                CASE WHEN us.id IS NOT NULL THEN true ELSE false END AS has_signature
-         FROM users u
-         LEFT JOIN public.user_signatures us ON us.user_id = u.id
-       WHERE u.property_id = $1
-         AND NOT (($2 = ANY(u.roles)) OR ($3 = ANY(u.roles)) OR ($4 = ANY(u.roles)))
-       ORDER BY u.id LIMIT $5 OFFSET $6`,
-        [
-          Number(sessionPropertyId),
-          "super_admin",
-          "system_admin",
-          "SYSTEM_ADMIN",
-          limit,
-          offset,
-        ],
-      );
-      rows = result.rows;
     }
+
+    if (search) {
+      const q = `%${search}%`;
+      filters.push(
+        or(
+          ilike(usersTable.username, q),
+          ilike(usersTable.email, q),
+          ilike(usersTable.phone, q)
+        )
+      );
+    }
+
+    if (role && role !== "all") {
+      filters.push(sql`${role} = ANY(${usersTable.roles})`);
+    }
+
+    if (status && status !== "all") {
+      if (status === "LOCKED") {
+        filters.push(sql`${usersTable.lockedUntil} > NOW()`);
+      } else if (status === "ACTIVE") {
+        filters.push(
+          or(
+            eq(usersTable.status, "ACTIVE"),
+            sql`${usersTable.status} IS NULL`
+          )
+        );
+      } else {
+        filters.push(eq(usersTable.status, status));
+      }
+    }
+
+    const whereClause = filters.length > 0 ? and(...filters) : undefined;
+
+    // Get total count for pagination
+    const [countResult] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(usersTable)
+      .where(whereClause);
+      
+    const totalRows = countResult?.count ?? 0;
+
+    const result = await db
+      .select({
+        id: usersTable.id,
+        property_id: usersTable.propertyId,
+        property_ids: usersTable.propertyIds,
+        username: usersTable.username,
+        email: usersTable.email,
+        phone: usersTable.phone,
+        roles: usersTable.roles,
+        permissions: usersTable.permissions,
+        status: usersTable.status,
+        created_at: usersTable.createdAt,
+        failed_login_attempts: usersTable.failedLoginAttempts,
+        locked_until: usersTable.lockedUntil,
+        job_title: usersTable.jobTitle,
+        has_signature: sql<boolean>`EXISTS(SELECT 1 FROM public.user_signatures us WHERE us.user_id = ${usersTable.id})`,
+      })
+      .from(usersTable)
+      .where(whereClause)
+      .orderBy(usersTable.id)
+      .limit(limit)
+      .offset(offset);
+
+    let rows: any = result;
 
     const actualRows = rows || [];
     const safeUsers = actualRows.map((u: any) => ({

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { employeesTable } from "./employees";
@@ -25,7 +25,12 @@ export const hostingsTable = pgTable("hostings", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_hostings_employee_id").on(table.employeeId),
+  index("idx_hostings_room_id").on(table.roomId),
+  index("idx_hostings_status").on(table.status),
+  index("idx_hostings_created_at").on(table.createdAt),
+]);
 
 export const insertHostingSchema = createInsertSchema(hostingsTable).omit({
   id: true,

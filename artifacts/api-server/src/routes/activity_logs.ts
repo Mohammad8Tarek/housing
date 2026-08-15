@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, withTenant, activityLogsTable } from "@workspace/db";
-import { eq, and, desc, SQL } from "drizzle-orm";
+import { eq, desc, ilike, or, and, SQL, sql } from "drizzle-orm";
 import {
   ListActivityLogsQueryParams,
   ListActivityLogsResponse,
@@ -20,27 +20,39 @@ router.get(
       return;
     }
 
-    const query = ListActivityLogsQueryParams.safeParse(req.query);
-    const limit =
-      query.success && query.data.limit
-        ? Math.min(query.data.limit, 1000)
-        : 500;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 100);
+    const offset = (page - 1) * limit;
 
-    // Support extra filters not in the generated schema
-    const actionTypeFilter = req.query.actionType as string | undefined;
+    const moduleFilter = req.query.module as string | undefined;
     const actionFilter = req.query.action as string | undefined;
+    const searchFilter = req.query.search as string | undefined;
 
-    const result = await withTenant(propertyId, async (tenantDb) => {
+    const { data: result, total } = await withTenant(propertyId, async (tenantDb) => {
       const conditions: SQL[] = [];
-      if (query.success && query.data.module) {
-        conditions.push(eq(activityLogsTable.module, query.data.module));
+      
+      if (moduleFilter && moduleFilter !== "all") {
+        conditions.push(eq(activityLogsTable.module, moduleFilter));
       }
-      if (actionTypeFilter) {
-        conditions.push(eq(activityLogsTable.actionType, actionTypeFilter));
-      }
-      if (actionFilter) {
+      if (actionFilter && actionFilter !== "all") {
         conditions.push(eq(activityLogsTable.action, actionFilter));
       }
+      
+      if (searchFilter) {
+        const searchPattern = `%${searchFilter}%`;
+        conditions.push(
+          sql`${activityLogsTable.username} ILIKE ${searchPattern} OR ${activityLogsTable.action} ILIKE ${searchPattern} OR ${activityLogsTable.details}::text ILIKE ${searchPattern} OR ${activityLogsTable.ipAddress} ILIKE ${searchPattern} OR ${activityLogsTable.entityType} ILIKE ${searchPattern}`
+        );
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [countResult] = await tenantDb
+        .select({ count: sql`count(*)`.mapWith(Number) })
+        .from(activityLogsTable)
+        .where(whereClause);
+        
+      const total = countResult?.count || 0;
 
       const queryBuilder = tenantDb
         .select({
@@ -61,15 +73,18 @@ router.get(
         })
         .from(activityLogsTable)
         .orderBy(desc(activityLogsTable.timestamp))
-        .limit(limit);
+        .limit(limit)
+        .offset(offset);
 
-      if (conditions.length > 0) {
-        return await queryBuilder.where(and(...conditions));
+      if (whereClause) {
+        queryBuilder.where(whereClause);
       }
-      return await queryBuilder;
+      
+      const data = await queryBuilder;
+      return { data, total };
     });
 
-    const formatted = (result as any[]).map((l: any) => {
+    const formatted = result.map((l: any) => {
       return {
         id: Number(l.id),
         propertyId: propertyId,
@@ -93,7 +108,14 @@ router.get(
       };
     });
 
-    res.json(formatted);
+    res.json({
+      data: formatted,
+      pagination: {
+        total,
+        page,
+        limit,
+      },
+    });
   },
 );
 

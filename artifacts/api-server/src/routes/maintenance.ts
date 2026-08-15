@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, maintenanceTable, roomsTable, withTenant } from "@workspace/db";
-import { eq, and, SQL } from "drizzle-orm";
+import { eq, and, or, ilike, sql, SQL } from "drizzle-orm";
 import {
   CreateMaintenanceBody,
   GetMaintenanceParams,
@@ -72,23 +72,55 @@ router.get(
         return;
       }
 
+      let page = 1;
+      let limit = 1000;
+      let search = "";
+      if (req.query.page) page = parseInt(req.query.page as string) || 1;
+      if (req.query.limit) limit = parseInt(req.query.limit as string) || 10;
+      if (req.query.search) search = req.query.search as string;
+
       const q = ListMaintenanceQueryParams.safeParse(req.query);
       const conditions: SQL[] = [];
       if (q.success) {
-        if (q.data.status)
+        if (q.data.status && q.data.status !== "all")
           conditions.push(eq(maintenanceTable.status, q.data.status));
         if (q.data.priority)
           conditions.push(eq(maintenanceTable.priority, q.data.priority));
       }
 
-      const rows = await withTenant(propertyId, async (tenantDb) => {
-        return tenantDb
+      if (search) {
+        conditions.push(
+          or(
+            ilike(maintenanceTable.description, `%${search}%`),
+            ilike(maintenanceTable.problemType, `%${search}%`)
+          )!
+        );
+      }
+
+      const offset = (page - 1) * limit;
+
+      const result = await withTenant(propertyId, async (tenantDb) => {
+        const whereClause = conditions.length ? and(...conditions) : undefined;
+        
+        const [countResult] = await tenantDb
+          .select({ count: sql<number>`count(*)` })
+          .from(maintenanceTable)
+          .where(whereClause);
+          
+        const rows = await tenantDb
           .select()
           .from(maintenanceTable)
-          .where(conditions.length ? and(...conditions) : undefined);
+          .where(whereClause)
+          .limit(limit)
+          .offset(offset);
+          
+        return { total: Number(countResult.count), rows };
       });
 
-      res.json(rows.map(fmt));
+      res.json({
+        data: result.rows.map(fmt),
+        pagination: { total: result.total, page, limit }
+      });
     } catch (err) {
       next(err);
     }

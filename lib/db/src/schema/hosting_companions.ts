@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { hostingsTable } from "./hostings";
@@ -19,7 +19,9 @@ export const hostingCompanionsTable = pgTable("hosting_companions", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_hosting_companions_hosting_id").on(table.hostingId),
+]);
 
 export const insertHostingCompanionSchema = createInsertSchema(
   hostingCompanionsTable,

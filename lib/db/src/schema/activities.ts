@@ -6,6 +6,7 @@ import {
   timestamp,
   date,
   boolean,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -31,7 +32,11 @@ export const activitiesTable = pgTable("activities", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_activities_status").on(table.status),
+  index("idx_activities_is_published").on(table.isPublished),
+  index("idx_activities_start_date").on(table.startDate),
+]);
 
 export const insertActivitySchema = createInsertSchema(activitiesTable).omit({
   id: true,

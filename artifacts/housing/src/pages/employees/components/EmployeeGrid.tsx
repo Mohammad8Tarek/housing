@@ -47,7 +47,7 @@ export function EmployeeGrid({
                 firstName={emp.firstName}
                 lastName={emp.lastName}
                 photoUrl={emp.photoUrl}
-                className="w-20 h-20 shadow-sm border-2 border-background"
+                size="md"
               />
               <h3 className="mt-3 text-base font-semibold text-center line-clamp-2" title={`${emp.firstName} ${emp.lastName || ""} ${emp.thirdName || ""} ${emp.fourthName || ""}`.replace(/\s+/g, " ").trim()}>
                 {`${emp.firstName} ${emp.lastName || ""} ${emp.thirdName || ""} ${emp.fourthName || ""}`.replace(/\s+/g, " ").trim()}

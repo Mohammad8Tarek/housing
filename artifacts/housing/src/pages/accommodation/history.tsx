@@ -1,15 +1,14 @@
-// @ts-nocheck
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  useListAssignments,
   useListEmployees,
   useListRooms,
   useListBuildings,
   useListFloors,
-  getListAssignmentsQueryKey,
   useGetSettings,
   useListProperties,
 } from "@workspace/api-client-react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -100,76 +99,58 @@ export default function HistoryPage() {
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
-  const { data: assignments, isLoading } = useListAssignments(
-    { propertyId: activePropertyId } as any,
-    {
-      query: {
-        queryKey: getListAssignmentsQueryKey({ propertyId: activePropertyId }),
-        enabled: !!activePropertyId,
-      },
-    },
-  );
+  const { data: assignmentsData, isLoading } = useQuery({
+    queryKey: [
+      "accommodationHistory",
+      activePropertyId,
+      currentPage,
+      pageSize,
+      debouncedSearch,
+      filterStatus,
+    ],
+    queryFn: async () => {
+      const qs = new URLSearchParams();
+      if (activePropertyId) qs.set("propertyId", activePropertyId.toString());
+      qs.set("page", currentPage.toString());
+      qs.set("limit", pageSize.toString());
+      if (debouncedSearch) qs.set("search", debouncedSearch);
+      if (filterStatus && filterStatus !== "ALL") qs.set("status", filterStatus);
 
-  const { data: _eDataWrapper } = useListEmployees(
-    { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } },
-  );
-  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
-  const { data: _rData } = useListRooms(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId } },
-  );
-  const rooms = _rData?.data || [];
-  const { data: buildings = [] } = useListBuildings(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId } },
-  );
-  const { data: floors = [] } = useListFloors(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId } },
-  );
-  const { data: settings } = useGetSettings({
-    query: { enabled: !!activePropertyId },
+      const token = localStorage.getItem("auth-storage") ? JSON.parse(localStorage.getItem("auth-storage") || "{}")?.state?.token : null;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
+      const res = await fetch(`/api/assignments/history?${qs.toString()}`, { headers });
+      if (!res.ok) throw new Error("Failed to fetch history");
+      return res.json() as Promise<{ data: any[]; pagination: { total: number } }>;
+    },
+    enabled: !!activePropertyId,
   });
+
+  const propId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+
+  const { data: _eDataWrapper } = useListEmployees({ propertyId: propId });
+  const employees = (_eDataWrapper as any)?.employees || (_eDataWrapper as any)?.data || [];
+  const { data: _rData } = useListRooms({ propertyId: propId });
+  const rooms = (_rData as any)?.data || [];
+  const { data: buildings = [] } = useListBuildings({ propertyId: propId });
+  const { data: floors = [] } = useListFloors({ propertyId: propId });
+  const { data: settings } = useGetSettings({ propertyId: propId } as any);
   const { data: properties = [] } = useListProperties();
 
-  const empMap = Object.fromEntries(employees.map((e) => [e.id, e]));
-  const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
+  const empMap = Object.fromEntries(employees.map((e: any) => [e.id, e]));
+  const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
+  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
   const floorMap = Object.fromEntries(
-    floors.map((f) => [f.id, { name: f.name, number: f.floorNumber }]),
+    floors.map((f: any) => [f.id, { name: f.floorNumber, number: f.floorNumber }]),
   );
 
-  const pastAssignments = (assignments || []).filter(
-    (a) => a.status !== "ACTIVE",
-  );
-
-  const filtered = pastAssignments.filter((a) => {
-    const emp = empMap[a.employeeId];
-    const room = roomMap[a.roomId];
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      [
-        emp?.firstName,
-        emp?.lastName,
-        emp?.employeeId,
-        emp?.department,
-        room?.roomNumber,
-        emp?.jobTitle,
-        emp?.nationalId,
-      ].some((v) => v?.toLowerCase().includes(q));
-    const matchStatus = filterStatus === "ALL" || a.status === filterStatus;
-    return matchSearch && matchStatus;
-  });
-
-  const paged = filtered.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const paged = assignmentsData?.data || [];
+  const totalItems = assignmentsData?.pagination?.total || 0;
 
   // Bulk selection helpers
   const pagedIds = paged.map((a) => a.id);
@@ -198,11 +179,11 @@ export default function HistoryPage() {
     });
   };
 
-  // Get selected or all filtered assignments
+  // Get selected or all fetched assignments
   const exportTarget = () =>
     selectedRows.size > 0
-      ? filtered.filter((a) => selectedRows.has(a.id))
-      : filtered;
+      ? paged.filter((a) => selectedRows.has(a.id))
+      : paged;
 
   const exportExcel = () => {
     const rows = exportTarget().map((a) => {
@@ -422,8 +403,8 @@ export default function HistoryPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {ar
-              ? `${pastAssignments.length} سجل — جميع من غادروا أو نُقلوا`
-              : `${pastAssignments.length} records — all who checked out or were transferred`}
+              ? `${totalItems} سجل — جميع من غادروا أو نُقلوا`
+              : `${totalItems} records — all who checked out or were transferred`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -743,7 +724,7 @@ export default function HistoryPage() {
                   </TableRow>
                 );
               })}
-              {filtered.length === 0 && (
+              {paged.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={histVisible.size + 1}
@@ -760,9 +741,9 @@ export default function HistoryPage() {
               )}
             </TableBody>
           </Table>
-          {filtered.length > 0 && (
+          {totalItems > 0 && (
             <DataPagination
-              total={filtered.length}
+              total={totalItems}
               pageSize={pageSize}
               currentPage={currentPage}
               onPageChange={setCurrentPage}

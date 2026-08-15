@@ -4,9 +4,12 @@
  * الإضافات:
  * 1. resetLoginAttempts() — تُستدعى بعد نجاح الدخول
  * 2. تنظيف دوري للـ store
+ * 3. Redis integration for distributed rate limiting across instances
  */
 
 import type { Request, Response, NextFunction } from "express";
+import { getRedisConnection } from "@workspace/queue";
+import { logger } from "../lib/logger.js";
 
 interface StoreEntry {
   count: number;
@@ -41,9 +44,45 @@ function createRateLimiter(opts: {
   message?: string;
   keyFn?: (req: Request) => string;
 }) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const key = opts.keyFn ? opts.keyFn(req) : getIp(req);
     const now = Date.now();
+    const redis = getRedisConnection();
+
+    if (redis) {
+      try {
+        const redisKey = `ratelimit:${key}`;
+        // Increment the key
+        const currentCount = await redis.incr(redisKey);
+        
+        // If it's the first request in the window, set the expiry
+        if (currentCount === 1) {
+          await redis.pexpire(redisKey, opts.windowMs);
+        } else {
+          // If the key has no expiry (shouldn't happen, but just in case), set it
+          const ttl = await redis.pttl(redisKey);
+          if (ttl === -1) {
+            await redis.pexpire(redisKey, opts.windowMs);
+          }
+        }
+
+        if (currentCount > opts.max) {
+          const ttl = await redis.pttl(redisKey);
+          const retryAfter = Math.ceil(ttl / 1000);
+          res.set("Retry-After", String(Math.max(1, retryAfter)));
+          res.status(429).json({ error: opts.message ?? "Too many requests.", retryAfter: Math.max(1, retryAfter) });
+          return;
+        }
+
+        next();
+        return;
+      } catch (err) {
+        // Fallback to in-memory if Redis errors out
+        logger.warn({ err }, "Redis rate limit failed, falling back to memory");
+      }
+    }
+
+    // In-Memory Fallback
     const entry = store.get(key);
 
     if (!entry || entry.resetTime < now) {
@@ -51,15 +90,15 @@ function createRateLimiter(opts: {
       next();
       return;
     }
+    
     entry.count++;
     if (entry.count > opts.max) {
       const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
       res.set("Retry-After", String(retryAfter));
-      res
-        .status(429)
-        .json({ error: opts.message ?? "Too many requests.", retryAfter });
+      res.status(429).json({ error: opts.message ?? "Too many requests.", retryAfter });
       return;
     }
+    
     next();
   };
 }
@@ -116,7 +155,17 @@ export const portalRateLimit = createRateLimiter({
 /**
  * resetLoginAttempts — يمسح عداد login بعد نجاح الدخول.
  */
-export function resetLoginAttempts(req: Request): void {
+export async function resetLoginAttempts(req: Request): Promise<void> {
   const key = `login:${getIp(req)}`;
+  
+  const redis = getRedisConnection();
+  if (redis) {
+    try {
+      await redis.del(`ratelimit:${key}`);
+    } catch (err) {
+      logger.warn({ err }, "Failed to clear Redis rate limit on login success");
+    }
+  }
+  
   store.delete(key);
 }

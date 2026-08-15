@@ -8,6 +8,7 @@ import {
   date,
   time,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -29,7 +30,10 @@ export const portalFoodMenuTable = pgTable("portal_food_menu", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_portal_food_menu_property_id").on(table.propertyId),
+  index("idx_portal_food_menu_meal_type").on(table.mealType),
+]);
 
 export const portalMealOrdersTable = pgTable("portal_meal_orders", {
   id: serial("id").primaryKey(),
@@ -43,7 +47,11 @@ export const portalMealOrdersTable = pgTable("portal_meal_orders", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_portal_meal_orders_property_id").on(table.propertyId),
+  index("idx_portal_meal_orders_employee_id").on(table.employeeId),
+  index("idx_portal_meal_orders_order_date").on(table.orderDate),
+]);
 
 export const portalTransportSchedulesTable = pgTable(
   "portal_transport_schedules",
@@ -67,6 +75,9 @@ export const portalTransportSchedulesTable = pgTable(
       .notNull()
       .defaultNow(),
   },
+  (table) => [
+    index("idx_portal_transport_schedules_property_id").on(table.propertyId),
+  ]
 );
 
 export const portalTransportBookingsTable = pgTable(
@@ -82,6 +93,11 @@ export const portalTransportBookingsTable = pgTable(
       .notNull()
       .defaultNow(),
   },
+  (table) => [
+    index("idx_portal_transport_bookings_property_id").on(table.propertyId),
+    index("idx_portal_transport_bookings_employee_id").on(table.employeeId),
+    index("idx_portal_transport_bookings_booking_date").on(table.bookingDate),
+  ]
 );
 
 export const insertFoodMenuSchema = createInsertSchema(

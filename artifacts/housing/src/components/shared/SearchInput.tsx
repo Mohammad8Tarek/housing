@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  /** Debounce delay in milliseconds. When set, onChange fires only after the user stops typing for this duration. */
   debounceMs?: number;
   autoFocus?: boolean;
 }
@@ -17,23 +18,59 @@ export function SearchInput({
   value,
   onChange,
   className,
+  debounceMs,
   autoFocus = false,
 }: SearchInputProps) {
   const [localValue, setLocalValue] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onChangeRef = useRef(onChange);
+
+  // Keep onChange ref up to date
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  // Sync external value changes (e.g. programmatic resets)
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const emitChange = useCallback(
+    (newValue: string) => {
+      if (debounceMs && debounceMs > 0) {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          onChangeRef.current(newValue);
+        }, debounceMs);
+      } else {
+        onChangeRef.current(newValue);
+      }
+    },
+    [debounceMs],
+  );
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       setLocalValue(newValue);
-      onChange(newValue);
+      emitChange(newValue);
     },
-    [onChange],
+    [emitChange],
   );
 
   const handleClear = useCallback(() => {
     setLocalValue("");
-    onChange("");
-  }, [onChange]);
+    // Clear fires immediately (no debounce for clear action)
+    if (timerRef.current) clearTimeout(timerRef.current);
+    onChangeRef.current("");
+  }, []);
 
   return (
     <div className={cn("relative", className)}>

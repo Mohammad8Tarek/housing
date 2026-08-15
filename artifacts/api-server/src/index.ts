@@ -76,6 +76,7 @@ import { runMigrations } from "./lib/migrations.js";
 import { runAutoSeeder } from "./lib/seeder.js";
 import { pool, healthCheck } from "@workspace/db";
 import { startAllPmsServers } from "./lib/pms-server.js";
+import { startAllWorkers, shutdownQueue } from "@workspace/queue";
 
 // ==========================================
 // ✅ SERVER INIT (Plain HTTP on PORT)
@@ -128,6 +129,13 @@ async function shutdown(signal: string): Promise<void> {
     const { stopAllPmsServers } = await import("./lib/pms-server.js");
     stopAllPmsServers();
   } catch {}
+
+  // Stop BullMQ Queue workers and Redis connection
+  try {
+    await shutdownQueue();
+  } catch (err) {
+    logger.error({ err }, "Error shutting down queue workers");
+  }
 
   // تنظيف memory monitor interval
   clearInterval(memoryMonitorInterval);
@@ -309,6 +317,13 @@ async function start(): Promise<void> {
 
   server.listen(httpPort, "0.0.0.0", () => {
     logger.info(`🚀 Main API HTTP listening on ${httpPort}`);
+
+    // Start Queue workers
+    try {
+      startAllWorkers();
+    } catch (err) {
+      logger.error({ err }, "Failed to start queue workers");
+    }
 
     // 2. Start PMS V2.1 Servers (they bind to 10006 locally)
     startAllPmsServers(app).catch((err) => {

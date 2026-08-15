@@ -210,6 +210,7 @@ export function HousingPage() {
       <div className="mt-6">
         {tab === "availability" && (
           <AvailabilityTab
+            propertyId={activePropertyId as number}
             buildings={buildings}
             floors={floors}
             rooms={rooms}

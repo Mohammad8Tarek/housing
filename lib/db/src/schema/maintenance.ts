@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { roomsTable } from "./rooms";
@@ -32,7 +32,14 @@ export const maintenanceTable = pgTable("maintenance", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_maintenance_room_id").on(table.roomId),
+  index("idx_maintenance_status").on(table.status),
+  index("idx_maintenance_priority").on(table.priority),
+  index("idx_maintenance_assigned_to").on(table.assignedTo),
+  index("idx_maintenance_parent_id").on(table.parentId),
+  index("idx_maintenance_status_priority").on(table.status, table.priority),
+]);
 
 export const insertMaintenanceSchema = createInsertSchema(
   maintenanceTable,

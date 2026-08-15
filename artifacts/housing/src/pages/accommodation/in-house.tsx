@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState } from "react";
 import {
-  useListAssignments,
+  useListInHouseAssignments,
   useListEmployees,
   useListRooms,
   useListBuildings,
@@ -10,10 +10,11 @@ import {
   useTransferAssignment,
   useGetSettings,
   useListProperties,
-  getListAssignmentsQueryKey,
+  getListInHouseAssignmentsQueryKey,
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import {
   Table,
@@ -110,6 +111,7 @@ export default function InHouse() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [checkoutDialog, setCheckoutDialog] = useState<{
     open: boolean;
@@ -155,15 +157,27 @@ export default function InHouse() {
   });
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
 
-  const { data: assignments, isLoading } = useListAssignments(
-    { propertyId: activePropertyId } as any,
+  const { data: assignmentsRes, isLoading } = useListInHouseAssignments(
+    {
+      propertyId: activePropertyId as any,
+      page: currentPage,
+      limit: pageSize,
+      search: debouncedSearch || undefined,
+    },
     {
       query: {
-        queryKey: getListAssignmentsQueryKey({ propertyId: activePropertyId }),
+        queryKey: getListInHouseAssignmentsQueryKey({
+          propertyId: activePropertyId as any,
+          page: currentPage,
+          limit: pageSize,
+          search: debouncedSearch || undefined,
+        }),
         enabled: !!activePropertyId,
       },
     },
   );
+  const assignments = assignmentsRes?.data || [];
+  const total = assignmentsRes?.pagination?.total || 0;
 
   const { data: _eDataWrapper } = useListEmployees(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
@@ -226,7 +240,7 @@ export default function InHouse() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({
-      queryKey: getListAssignmentsQueryKey({ propertyId: activePropertyId }),
+      queryKey: getListInHouseAssignmentsQueryKey({ propertyId: activePropertyId as any }),
     });
     queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
     queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
@@ -302,10 +316,6 @@ export default function InHouse() {
     targetBuildings.map((b) => [b.id, b.name]),
   );
 
-  const activeAssignments = (assignments || []).filter(
-    (a) => a.status === "ACTIVE",
-  );
-
   const transferableRooms = targetRooms.filter(
     (r) =>
       r.status?.toLowerCase() !== "maintenance" &&
@@ -323,27 +333,8 @@ export default function InHouse() {
     );
   });
 
-  const filtered = activeAssignments.filter((a) => {
-    if (!search.trim()) return true;
-    const emp = empMap[a.employeeId];
-    const room = roomMap[a.roomId];
-    const q = search.toLowerCase();
-    return [
-      emp?.firstName,
-      emp?.lastName,
-      emp?.employeeId,
-      emp?.department,
-      room?.roomNumber,
-    ].some((v) => v?.toLowerCase().includes(q));
-  });
-
-  const paged = filtered.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-
   // Row selection helpers
-  const pagedIds = paged.map((a) => a.id);
+  const pagedIds = assignments.map((a) => a.id);
   const allPageSelected =
     pagedIds.length > 0 && pagedIds.every((id) => selectedRows.has(id));
   const toggleSelectAll = () => {
@@ -501,7 +492,7 @@ export default function InHouse() {
             {ar ? "المقيمون حالياً" : "In-House"}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {filtered.length} {ar ? "مقيم نشط" : "active resident(s)"}
+            {total} {ar ? "مقيم نشط" : "active resident(s)"}
             {selectedRows.size > 0 && (
               <span className="ml-2 text-primary font-semibold">
                 · {selectedRows.size} {ar ? "محدد" : "selected"}
@@ -620,7 +611,7 @@ export default function InHouse() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paged.map((a) => {
+              {assignments.map((a) => {
                 const emp = empMap[a.employeeId];
                 const room = roomMap[a.roomId];
                 const building = room ? buildingMap[room.buildingId] : null;
@@ -903,9 +894,9 @@ export default function InHouse() {
               </tfoot>
             )}
           </Table>
-          {filtered.length > 0 && (
+          {total > 0 && (
             <DataPagination
-              total={filtered.length}
+              total={total}
               pageSize={pageSize}
               currentPage={currentPage}
               onPageChange={setCurrentPage}

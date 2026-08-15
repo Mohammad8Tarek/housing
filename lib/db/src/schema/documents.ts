@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, index } from "drizzle-orm/pg-core";
 
 export const portalDocumentsTable = pgTable("portal_documents", {
   id: serial("id").primaryKey(),
@@ -11,4 +11,6 @@ export const portalDocumentsTable = pgTable("portal_documents", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_portal_documents_category").on(table.category),
+]);
