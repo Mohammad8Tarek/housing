@@ -171,6 +171,12 @@ export default function TabRequests() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed");
+      
+      // Optimistic update
+      if (data.request) {
+        setRequests((prev) => [data.request, ...prev]);
+      }
+
       await hapticFeedback("medium");
       toast.success(
         isRtl ? "تم إرسال الطلب بنجاح" : "Request submitted successfully",

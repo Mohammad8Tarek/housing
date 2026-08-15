@@ -486,7 +486,7 @@ router.get("/my-maintenance", async (req, res): Promise<void> => {
       .select()
       .from(maintenanceTable)
       .where(eq(maintenanceTable.roomId, assignment.roomId))
-      .orderBy(desc(maintenanceTable.reportedAt));
+      .orderBy(desc(maintenanceTable.id));
   });
 
   res.json({
