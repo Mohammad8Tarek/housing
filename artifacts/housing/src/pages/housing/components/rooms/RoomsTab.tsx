@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Search, Building2, Layers, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
@@ -34,17 +35,6 @@ type Props = {
   rLoading: boolean;
 };
 
-// Simple debounce hook for search
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  import("react").then((React) => {
-    React.useEffect(() => {
-      const handler = setTimeout(() => setDebouncedValue(value), delay);
-      return () => clearTimeout(handler);
-    }, [value, delay]);
-  });
-  return debouncedValue;
-}
 
 export function RoomsTab({
   propertyId,

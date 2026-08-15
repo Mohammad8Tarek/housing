@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -63,17 +64,7 @@ import {
   FloorConfig,
 } from "../../utils";
 
-// Simple debounce hook for search
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  import("react").then((React) => {
-    React.useEffect(() => {
-      const handler = setTimeout(() => setDebouncedValue(value), delay);
-      return () => clearTimeout(handler);
-    }, [value, delay]);
-  });
-  return debouncedValue;
-}
+
 
 const roomTypes = [
   "Standard",
