@@ -11,6 +11,7 @@ import {
   useGetSettings,
   useListProperties,
   getListInHouseAssignmentsQueryKey,
+  useListAssignments,
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
