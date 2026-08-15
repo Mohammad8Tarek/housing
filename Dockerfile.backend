@@ -4,6 +4,7 @@ RUN npm install -g pnpm
 WORKDIR /app
 COPY pnpm-workspace.yaml package.json tsconfig.json tsconfig.base.json ./
 COPY lib/db/package.json ./lib/db/
+COPY lib/queue/package.json ./lib/queue/
 COPY lib/api-zod/package.json ./lib/api-zod/
 COPY lib/api-client-react/package.json ./lib/api-client-react/
 COPY lib/api-spec/package.json ./lib/api-spec/
