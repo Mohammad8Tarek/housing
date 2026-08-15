@@ -263,7 +263,7 @@ export function EditEmployeeDialog({
                     onChange={(e) => set("firstName", e.target.value)}
                   />
                 </FormRow>
-                <FormRow label={ar ? "الاسم الأخير" : "Last Name"}>
+                <FormRow label={ar ? "الاسم الثاني" : "Second Name"}>
                   <Input
                     value={form.lastName}
                     onChange={(e) => set("lastName", e.target.value)}

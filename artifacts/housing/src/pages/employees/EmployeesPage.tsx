@@ -67,6 +67,8 @@ import {
   Camera,
   Key,
   ArrowRightLeft,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import {
@@ -97,6 +99,7 @@ import { StatusBadge } from "./components/StatusBadge";
 import { EmployeeDialog } from "./components/EmployeeDialog";
 import { EditEmployeeDialog } from "./components/EditEmployeeDialog";
 import { ExcelImportDialog } from "./components/ExcelImportDialog";
+import { EmployeeGrid } from "./components/EmployeeGrid";
 export function EmployeesPage() {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
@@ -117,6 +120,7 @@ export function EmployeesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [page, setPage] = useState(1);
+  const [view, setView] = useState<"table" | "grid">("table");
 
   // Reset to page 1 when search or status changes
   useEffect(() => {
@@ -251,65 +255,22 @@ export function EmployeesPage() {
   const EMP_COLS = [
     { key: "photo", label: "Photo", labelAr: "صورة", defaultVisible: true },
     { key: "code", label: "Code", labelAr: "الكود", defaultVisible: true },
-    {
-      key: "fullName",
-      label: "Full Name",
-      labelAr: "الاسم بالكامل",
-      defaultVisible: true,
-    },
-    {
-      key: "nid",
-      label: "National ID",
-      labelAr: "رقم الهوية",
-      defaultVisible: true,
-    },
-    { key: "phone", label: "Phone", labelAr: "الهات�?", defaultVisible: true },
-    {
-      key: "nationality",
-      label: "Nationality",
-      labelAr: "الجنسية",
-      defaultVisible: true,
-    },
+    { key: "firstName", label: "First Name", labelAr: "الاسم الأول", defaultVisible: true },
+    { key: "secondName", label: "Second Name", labelAr: "الاسم الثاني", defaultVisible: true },
+    { key: "thirdName", label: "Third Name", labelAr: "الاسم الثالث", defaultVisible: true },
+    { key: "fourthName", label: "Fourth Name", labelAr: "الاسم الرابع", defaultVisible: true },
+    { key: "nid", label: "National ID", labelAr: "رقم الهوية", defaultVisible: true },
+    { key: "phone", label: "Phone", labelAr: "الهاتف", defaultVisible: true },
+    { key: "nationality", label: "Nationality", labelAr: "الجنسية", defaultVisible: true },
     { key: "gender", label: "Gender", labelAr: "الجنس", defaultVisible: true },
-    {
-      key: "dept",
-      label: "Department",
-      labelAr: "القسم",
-      defaultVisible: true,
-    },
-    {
-      key: "title",
-      label: "Job Title",
-      labelAr: "المسمى الوظي�?ي",
-      defaultVisible: true,
-    },
+    { key: "dept", label: "Department", labelAr: "القسم", defaultVisible: true },
+    { key: "title", label: "Job Title", labelAr: "المسمى الوظيفي", defaultVisible: true },
     { key: "level", label: "Level", labelAr: "الدرجة", defaultVisible: true },
-    {
-      key: "dateOfBirth",
-      label: "Date of Birth",
-      labelAr: "تاريخ الميلاد",
-      defaultVisible: false,
-    },
-    {
-      key: "address",
-      label: "Address",
-      labelAr: "العنوان",
-      defaultVisible: false,
-    },
-    {
-      key: "hiredate",
-      label: "Hire Date",
-      labelAr: "تاريخ التعيين",
-      defaultVisible: true,
-    },
+    { key: "dateOfBirth", label: "Date of Birth", labelAr: "تاريخ الميلاد", defaultVisible: false },
+    { key: "address", label: "Address", labelAr: "العنوان", defaultVisible: false },
+    { key: "hiredate", label: "Hire Date", labelAr: "تاريخ التعيين", defaultVisible: true },
     { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
-    {
-      key: "actions",
-      label: "Actions",
-      labelAr: "إجراءات",
-      defaultVisible: true,
-      fixed: true,
-    },
+    { key: "actions", label: "Actions", labelAr: "إجراءات", defaultVisible: true, fixed: true },
   ];
   const {
     visible: colVisible,
@@ -353,7 +314,10 @@ export function EmployeesPage() {
         : employees;
     const rows = target.map((e) => ({
       Code: e.employeeId,
-      "Full Name": `${e.firstName} ${e.thirdName || ""} ${e.fourthName || ""} ${e.lastName}`.replace(/\s+/g, ' ').trim(),
+      "First Name": e.firstName || "",
+      "Second Name": e.lastName || "",
+      "Third Name": e.thirdName || "",
+      "Fourth Name": e.fourthName || "",
       "National ID": e.nationalId ?? "",
       Phone: e.phone ?? "",
       Nationality: e.nationality ?? "",
@@ -398,6 +362,24 @@ export function EmployeesPage() {
             onHideAll={colHideAll}
             ar={ar}
           />
+          <div className="flex bg-muted p-1 rounded-md">
+            <Button
+              variant={view === "table" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => setView("table")}
+            >
+              <List className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={view === "grid" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => setView("grid")}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
+          </div>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
             {ar ? "استيراد Excel" : "Import Excel"}
@@ -516,280 +498,239 @@ export function EmployeesPage() {
           </p>
         </div>
       ) : (
-        <div className="border rounded-md overflow-hidden bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40">
-                <TableHead className="w-10 px-3">
-                  <Checkbox
-                    checked={allEmpPageSelected}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </TableHead>
-                {isColVisible("photo") && (
-                  <TableHead className="font-semibold w-12">
-                    {ar ? "صورة" : "Photo"}
+        view === "grid" ? (
+          <>
+            <EmployeeGrid
+              employees={currentPageEmps}
+              ar={ar}
+              onEdit={setEditingEmployee}
+              onResetPassword={handleResetPassword}
+              onDelete={setDeleteTarget}
+            />
+            {filtered.length > 0 && (
+              <DataPagination
+                total={filtered.length}
+                pageSize={pageSize}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            )}
+          </>
+        ) : (
+          <div className="border rounded-md overflow-x-auto bg-card relative scrollbar-thin max-w-full">
+            <Table className="min-w-max w-full">
+              <TableHeader>
+                <TableRow className="bg-muted/40">
+                  <TableHead className="w-10 px-3 sticky rtl:right-0 ltr:left-0 z-20 bg-muted/40">
+                    <Checkbox
+                      checked={allEmpPageSelected}
+                      onCheckedChange={toggleSelectAll}
+                    />
                   </TableHead>
-                )}
-                {isColVisible("code") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "الكود" : "Code"}
-                  </TableHead>
-                )}
-                {isColVisible("fullName") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "الاسم" : "Name"}
-                  </TableHead>
-                )}
-                {isColVisible("nid") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "رقم الهوية" : "National ID"}
-                  </TableHead>
-                )}
-                {isColVisible("phone") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "الهاتف" : "Phone"}
-                  </TableHead>
-                )}
-                {isColVisible("nationality") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "الجنسية" : "Nationality"}
-                  </TableHead>
-                )}
-                {isColVisible("gender") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "الجنس" : "Gender"}
-                  </TableHead>
-                )}
-                {isColVisible("dept") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "القسم" : "Department"}
-                  </TableHead>
-                )}
-                {isColVisible("title") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "المسمى الوظيفي" : "Job Title"}
-                  </TableHead>
-                )}
-                {isColVisible("level") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "الدرجة" : "Level"}
-                  </TableHead>
-                )}
-                {isColVisible("dateOfBirth") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "تاريخ الميلاد" : "Date of Birth"}
-                  </TableHead>
-                )}
-                {isColVisible("address") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "العنوان" : "Address"}
-                  </TableHead>
-                )}
-                {isColVisible("hiredate") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "تاريخ التعيين" : "Hire Date"}
-                  </TableHead>
-                )}
-                {isColVisible("status") && (
-                  <TableHead className="font-semibold">
-                    {ar ? "الحالة" : "Status"}
-                  </TableHead>
-                )}
-                {isColVisible("actions") && (
-                  <TableHead className="font-semibold text-center">
-                    {ar ? "إجراءات" : "Actions"}
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentPageEmps.map((emp) => {
-                const isSelected = selectedRows.has(emp.id);
-                return (
-                  <TableRow
-                    key={emp.id}
-                    className={
-                      isSelected ? "bg-primary/5" : "hover:bg-muted/20"
-                    }
-                  >
-                    <TableCell className="px-3">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleEmpRow(emp.id)}
-                      />
-                    </TableCell>
-                    {isColVisible("photo") && (
-                      <TableCell className="pr-0">
-                        <EmployeeAvatar
-                          firstName={emp.firstName}
-                          lastName={emp.lastName}
-                          photoUrl={(emp as any).photoUrl}
+                  {isColVisible("photo") && (
+                    <TableHead className="font-semibold w-12 sticky rtl:right-10 ltr:left-10 z-20 bg-muted/40 shadow-[1px_0_0_0_#e5e7eb] rtl:shadow-[-1px_0_0_0_#e5e7eb]">
+                      {ar ? "صورة" : "Photo"}
+                    </TableHead>
+                  )}
+                  {isColVisible("code") && (
+                    <TableHead className="font-semibold sticky rtl:right-[88px] ltr:left-[88px] z-20 bg-muted/40 shadow-[1px_0_0_0_#e5e7eb] rtl:shadow-[-1px_0_0_0_#e5e7eb]">
+                      {ar ? "الكود" : "Code"}
+                    </TableHead>
+                  )}
+                  {isColVisible("firstName") && (
+                    <TableHead className="font-semibold">{ar ? "الاسم الأول" : "First Name"}</TableHead>
+                  )}
+                  {isColVisible("secondName") && (
+                    <TableHead className="font-semibold">{ar ? "الاسم الثاني" : "Second Name"}</TableHead>
+                  )}
+                  {isColVisible("thirdName") && (
+                    <TableHead className="font-semibold">{ar ? "الاسم الثالث" : "Third Name"}</TableHead>
+                  )}
+                  {isColVisible("fourthName") && (
+                    <TableHead className="font-semibold">{ar ? "الاسم الرابع" : "Fourth Name"}</TableHead>
+                  )}
+                  {isColVisible("nid") && (
+                    <TableHead className="font-semibold">{ar ? "رقم الهوية" : "National ID"}</TableHead>
+                  )}
+                  {isColVisible("phone") && (
+                    <TableHead className="font-semibold">{ar ? "الهاتف" : "Phone"}</TableHead>
+                  )}
+                  {isColVisible("nationality") && (
+                    <TableHead className="font-semibold">{ar ? "الجنسية" : "Nationality"}</TableHead>
+                  )}
+                  {isColVisible("gender") && (
+                    <TableHead className="font-semibold">{ar ? "الجنس" : "Gender"}</TableHead>
+                  )}
+                  {isColVisible("dept") && (
+                    <TableHead className="font-semibold">{ar ? "القسم" : "Department"}</TableHead>
+                  )}
+                  {isColVisible("title") && (
+                    <TableHead className="font-semibold">{ar ? "المسمى الوظيفي" : "Job Title"}</TableHead>
+                  )}
+                  {isColVisible("level") && (
+                    <TableHead className="font-semibold">{ar ? "الدرجة" : "Level"}</TableHead>
+                  )}
+                  {isColVisible("dateOfBirth") && (
+                    <TableHead className="font-semibold">{ar ? "تاريخ الميلاد" : "Date of Birth"}</TableHead>
+                  )}
+                  {isColVisible("address") && (
+                    <TableHead className="font-semibold">{ar ? "العنوان" : "Address"}</TableHead>
+                  )}
+                  {isColVisible("hiredate") && (
+                    <TableHead className="font-semibold">{ar ? "تاريخ التعيين" : "Hire Date"}</TableHead>
+                  )}
+                  {isColVisible("status") && (
+                    <TableHead className="font-semibold">{ar ? "الحالة" : "Status"}</TableHead>
+                  )}
+                  {isColVisible("actions") && (
+                    <TableHead className="font-semibold text-center sticky rtl:left-0 ltr:right-0 z-20 bg-muted/40 shadow-[-1px_0_0_0_#e5e7eb] rtl:shadow-[1px_0_0_0_#e5e7eb]">
+                      {ar ? "إجراءات" : "Actions"}
+                    </TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentPageEmps.map((emp) => {
+                  const isSelected = selectedRows.has(emp.id);
+                  return (
+                    <TableRow
+                      key={emp.id}
+                      className={`group ${isSelected ? "bg-primary/5" : "hover:bg-muted/20"}`}
+                    >
+                      <TableCell className="px-3 sticky rtl:right-0 ltr:left-0 z-10 bg-background group-hover:bg-muted/50">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleEmpRow(emp.id)}
                         />
                       </TableCell>
-                    )}
-                    {isColVisible("code") && (
-                      <TableCell className="font-mono text-sm font-medium text-primary">
-                        {emp.employeeId}
-                      </TableCell>
-                    )}
-                    {isColVisible("fullName") && (
-                      <TableCell className="font-medium">
-                        {`${emp.firstName} ${emp.thirdName || ""} ${emp.fourthName || ""} ${emp.lastName}`.replace(/\s+/g, ' ').trim()}
-                      </TableCell>
-                    )}
-                    {isColVisible("nid") && (
-                      <TableCell className="font-mono text-sm">
-                        {emp.nationalId}
-                      </TableCell>
-                    )}
-                    {isColVisible("phone") && (
-                      <TableCell className="text-sm">
-                        {emp.phone || (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isColVisible("nationality") && (
-                      <TableCell className="text-sm">
-                        {emp.nationality || (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isColVisible("gender") && (
-                      <TableCell className="text-sm">
-                        {emp.gender === "M" ? (
-                          "ذكر"
-                        ) : emp.gender === "F" ? (
-                          "أنثى"
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isColVisible("dept") && (
-                      <TableCell>
-                        {emp.department ? (
-                          <Badge variant="outline" className="font-normal">
-                            {emp.department}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isColVisible("title") && (
-                      <TableCell className="text-sm">
-                        {emp.jobTitle || (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isColVisible("level") && (
-                      <TableCell className="text-sm">
-                        {emp.level || (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isColVisible("dateOfBirth") && (
-                      <TableCell className="text-sm whitespace-nowrap">
-                        {emp.dateOfBirth
-                          ? new Date(emp.dateOfBirth).toLocaleDateString()
-                          : "—"}
-                      </TableCell>
-                    )}
-                    {isColVisible("address") && (
-                      <TableCell className="text-sm">
-                        {emp.address || (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isColVisible("hiredate") && (
-                      <TableCell className="text-sm whitespace-nowrap">
-                        {emp.hireDate
-                          ? new Date(emp.hireDate).toLocaleDateString()
-                          : "—"}
-                      </TableCell>
-                    )}
-                    {isColVisible("status") && (
-                      <TableCell>
-                        <StatusBadge status={emp.status} />
-                      </TableCell>
-                    )}
-                    {isColVisible("actions") && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1"
-                            >
-                              <ArrowRightLeft className="w-3 h-3" />
-                              {ar ? "إجراءات" : "Actions"}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <PermissionGate module="employees" action="edit">
-                              <DropdownMenuItem
-                                onClick={() => setEditingEmployee(emp)}
-                              >
-                                <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                {ar ? "تعديل" : "Edit"}
+                      {isColVisible("photo") && (
+                        <TableCell className="pr-0 sticky rtl:right-10 ltr:left-10 z-10 bg-background group-hover:bg-muted/50 shadow-[1px_0_0_0_#e5e7eb] rtl:shadow-[-1px_0_0_0_#e5e7eb]">
+                          <EmployeeAvatar
+                            firstName={emp.firstName}
+                            lastName={emp.lastName}
+                            photoUrl={(emp as any).photoUrl}
+                          />
+                        </TableCell>
+                      )}
+                      {isColVisible("code") && (
+                        <TableCell className="font-mono text-sm font-medium text-primary sticky rtl:right-[88px] ltr:left-[88px] z-10 bg-background group-hover:bg-muted/50 shadow-[1px_0_0_0_#e5e7eb] rtl:shadow-[-1px_0_0_0_#e5e7eb]">
+                          {emp.employeeId}
+                        </TableCell>
+                      )}
+                      {isColVisible("firstName") && (
+                        <TableCell className="font-medium whitespace-nowrap">{emp.firstName || "—"}</TableCell>
+                      )}
+                      {isColVisible("secondName") && (
+                        <TableCell className="font-medium whitespace-nowrap">{emp.lastName || "—"}</TableCell>
+                      )}
+                      {isColVisible("thirdName") && (
+                        <TableCell className="font-medium whitespace-nowrap">{emp.thirdName || "—"}</TableCell>
+                      )}
+                      {isColVisible("fourthName") && (
+                        <TableCell className="font-medium whitespace-nowrap">{emp.fourthName || "—"}</TableCell>
+                      )}
+                      {isColVisible("nid") && (
+                        <TableCell className="font-mono text-sm whitespace-nowrap">{emp.nationalId}</TableCell>
+                      )}
+                      {isColVisible("phone") && (
+                        <TableCell className="text-sm whitespace-nowrap" dir="ltr">{emp.phone || "—"}</TableCell>
+                      )}
+                      {isColVisible("nationality") && (
+                        <TableCell className="text-sm whitespace-nowrap">{emp.nationality || "—"}</TableCell>
+                      )}
+                      {isColVisible("gender") && (
+                        <TableCell className="text-sm whitespace-nowrap">
+                          {emp.gender === "M" ? (ar ? "ذكر" : "Male") : emp.gender === "F" ? (ar ? "أنثى" : "Female") : "—"}
+                        </TableCell>
+                      )}
+                      {isColVisible("dept") && (
+                        <TableCell className="whitespace-nowrap">
+                          {emp.department ? <Badge variant="outline" className="font-normal">{emp.department}</Badge> : "—"}
+                        </TableCell>
+                      )}
+                      {isColVisible("title") && (
+                        <TableCell className="text-sm whitespace-nowrap">{emp.jobTitle || "—"}</TableCell>
+                      )}
+                      {isColVisible("level") && (
+                        <TableCell className="text-sm whitespace-nowrap">{emp.level || "—"}</TableCell>
+                      )}
+                      {isColVisible("dateOfBirth") && (
+                        <TableCell className="text-sm whitespace-nowrap">
+                          {emp.dateOfBirth ? new Date(emp.dateOfBirth).toLocaleDateString() : "—"}
+                        </TableCell>
+                      )}
+                      {isColVisible("address") && (
+                        <TableCell className="text-sm whitespace-nowrap max-w-[200px] truncate" title={emp.address}>{emp.address || "—"}</TableCell>
+                      )}
+                      {isColVisible("hiredate") && (
+                        <TableCell className="text-sm whitespace-nowrap">
+                          {emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : "—"}
+                        </TableCell>
+                      )}
+                      {isColVisible("status") && (
+                        <TableCell className="whitespace-nowrap">
+                          <StatusBadge status={emp.status} />
+                        </TableCell>
+                      )}
+                      {isColVisible("actions") && (
+                        <TableCell className="sticky rtl:left-0 ltr:right-0 z-10 bg-background group-hover:bg-muted/50 shadow-[-1px_0_0_0_#e5e7eb] rtl:shadow-[1px_0_0_0_#e5e7eb]">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                                <ArrowRightLeft className="w-3 h-3" />
+                                {ar ? "إجراءات" : "Actions"}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <PermissionGate module="employees" action="edit">
+                                <DropdownMenuItem onClick={() => setEditingEmployee(emp)}>
+                                  <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                  {ar ? "تعديل" : "Edit"}
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                              <DropdownMenuItem onClick={() => (window.location.href = `/employees/${emp.id}`)}>
+                                <Eye className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                {ar ? "عرض التفاصيل" : "View Details"}
                               </DropdownMenuItem>
-                            </PermissionGate>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                (window.location.href = `/employees/${emp.id}`)
-                              }
-                            >
-                              <Eye className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                              {ar ? "عرض التفاصيل" : "View Details"}
-                            </DropdownMenuItem>
-                            <PermissionGate module="employees" action="edit">
-                              <DropdownMenuItem
-                                onClick={() => handleResetPassword(emp)}
-                              >
-                                <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                {ar
-                                  ? "إعادة تعيين كلمة المرور"
-                                  : "Reset Password"}
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                            <PermissionGate module="employees" action="delete">
-                              <DropdownMenuItem
-                                onClick={() => setDeleteTarget(emp.id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                {ar ? "حذف" : "Delete"}
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          {filtered.length > 0 && (
-            <DataPagination
-              total={filtered.length}
-              pageSize={pageSize}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setCurrentPage(1);
-              }}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
-            />
-          )}
-        </div>
+                              <PermissionGate module="employees" action="edit">
+                                <DropdownMenuItem onClick={() => handleResetPassword(emp)}>
+                                  <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                  {ar ? "إعادة تعيين كلمة المرور" : "Reset Password"}
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                              <PermissionGate module="employees" action="delete">
+                                <DropdownMenuItem onClick={() => setDeleteTarget(emp.id)} className="text-red-600">
+                                  <Trash2 className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                  {ar ? "حذف" : "Delete"}
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {filtered.length > 0 && (
+              <DataPagination
+                total={filtered.length}
+                pageSize={pageSize}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            )}
+          </div>
+        )
       )}
 
       {/* Add Dialog */}

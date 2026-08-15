@@ -255,7 +255,7 @@ export function EmployeeDialog({
                 <p className="text-xs text-destructive">{errors.firstName}</p>
               )}
             </FormRow>
-            <FormRow label={ar ? "الاسم الأخير *" : "Last Name *"}>
+            <FormRow label={ar ? "الاسم الثاني *" : "Second Name *"}>
               <Input
                 value={form.lastName}
                 onChange={(e) => set("lastName", e.target.value)}
