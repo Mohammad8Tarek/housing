@@ -45,9 +45,13 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       ["super_admin", "system_admin"].includes(r.toLowerCase()),
     );
 
-  const { data: allProperties = [] } = useListProperties({
-    query: { enabled: !!user } as any,
+  const { data: _pData } = useListProperties({
+    query: {
+      enabled: Boolean(user),
+      staleTime: 60 * 1000,
+    },
   });
+  const allProperties = _pData?.data || _pData || [];
 
   const userPropertyIds: number[] = (() => {
     if (!user) return [];

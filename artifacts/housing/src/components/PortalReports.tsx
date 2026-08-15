@@ -150,9 +150,13 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
     { propertyId: activePropertyId },
     { query: { enabled: !!activePropertyId } },
   );
-  const { data: properties = [] } = useListProperties({
-    query: { enabled: true },
+  const { data: _pData } = useListProperties({
+    query: {
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 30 * 60 * 1000,
+    },
   });
+  const properties = _pData?.data || _pData || [];
 
   // Fetch departments for filter
   const { data: departments = [] } = useQuery({

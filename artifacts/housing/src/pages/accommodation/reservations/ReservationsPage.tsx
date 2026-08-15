@@ -191,9 +191,12 @@ export default function Reservations() {
     { query: { enabled: !!activePropertyId } },
   );
   const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
-  const { data: properties = [] } = useListProperties({
-    query: { enabled: true },
+  const { data: _pData } = useListProperties({
+    query: {
+      staleTime: 5 * 60 * 1000,
+    },
   });
+  const properties = _pData?.data || _pData || [];
   const { data: roomTypeValues = [] } = useLookupValues(
     activePropertyId,
     LOOKUP_CATEGORIES.ROOM_TYPE,

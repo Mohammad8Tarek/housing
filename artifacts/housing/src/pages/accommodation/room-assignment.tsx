@@ -106,7 +106,8 @@ export default function RoomAssignment() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchPropertyId, setSearchPropertyId] = useState<string>("all");
 
-  const { data: allProperties = [] } = useListProperties();
+  const { data: _pData } = useListProperties();
+  const allProperties = _pData?.data || _pData || [];
   const { data: settings } = useGetSettings({
     query: { enabled: !!activePropertyId },
   });
@@ -164,18 +165,21 @@ export default function RoomAssignment() {
     { query: { enabled: !!activePropertyId, staleTime: 30000 } },
   );
   const rooms = _rData?.data || [];
-  const { data: buildings = [] } = useListBuildings(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
+  const { data: _bData } = useListBuildings(
+    { propertyId: propId },
+    { query: { enabled: !!propId } },
   );
-  const { data: floors = [] } = useListFloors(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
+  const buildings = _bData?.data || [];
+  const { data: _fData } = useListFloors(
+    { propertyId: propId },
+    { query: { enabled: !!propId } },
   );
-  const { data: allAssignments = [] } = useListAssignments(
-    { propertyId: activePropertyId } as any,
-    { query: { enabled: !!activePropertyId, staleTime: 30000 } },
+  const floors = _fData?.data || [];
+  const { data: _aData } = useListAssignments(
+    { propertyId: propId } as any,
+    { query: { enabled: !!propId } },
   );
+  const allAssignments = _aData?.data || [];
 
   // Build set of occupied bed numbers for the currently selected room
   const occupiedBeds = new Set<number>(

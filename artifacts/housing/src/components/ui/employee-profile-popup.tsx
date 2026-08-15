@@ -66,32 +66,36 @@ export function EmployeeProfilePopup({
     },
   );
 
-  const { data: assignments = [] } = useListAssignments({ propertyId } as any, {
+  const { data: _aData } = useListAssignments({ propertyId } as any, {
     query: { enabled: !!propertyId },
   });
+  const assignments = _aData?.data || [];
 
   const { data: _rData } = useListRooms(
     { propertyId },
     { query: { enabled: !!propertyId } },
   );
   const rooms = _rData?.data || [];
-  const { data: buildings = [] } = useListBuildings(
+  const { data: _bData } = useListBuildings(
     { propertyId },
     { query: { enabled: !!propertyId } },
   );
-  const { data: floors = [] } = useListFloors(
+  const buildings = _bData?.data || [];
+  const { data: _fData } = useListFloors(
     { propertyId },
     { query: { enabled: !!propertyId } },
   );
+  const floors = _fData?.data || [];
   const { data: _eData, isLoading: employeesLoading } = useListEmployees(
     { propertyId },
     { query: { enabled: !!propertyId } },
   );
   const employees = _eData?.data || [];
-  const { data: hostings = [] } = useListHostings(
-    { propertyId },
-    { query: { enabled: !!propertyId && !!employeeId } },
+  const { data: _hData } = useListHostings(
+    { propertyId } as any,
+    { query: { enabled: !!propertyId } },
   );
+  const hostings = _hData?.data || _hData || [];
 
   const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
   const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));

@@ -122,7 +122,8 @@ export default function EmployeeDetail() {
   const { data: settings } = useGetSettings({
     query: { enabled: !!activePropertyId },
   });
-  const { data: properties = [] } = useListProperties();
+  const { data: _pData } = useListProperties();
+  const properties = _pData?.data || _pData || [];
   const activeProp = properties.find((p: any) => p.id === activePropertyId);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -177,14 +178,16 @@ export default function EmployeeDetail() {
     { query: { enabled: !!activePropertyId } },
   );
   const rooms = _rData?.data || [];
-  const { data: buildings = [] } = useListBuildings(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId } },
+  const { data: _bData } = useListBuildings(
+    { propertyId: employee?.propertyId },
+    { query: { enabled: !!employee?.propertyId } },
   );
-  const { data: floors = [] } = useListFloors(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId } },
+  const buildings = _bData?.data || [];
+  const { data: _fData } = useListFloors(
+    { propertyId: employee?.propertyId },
+    { query: { enabled: !!employee?.propertyId } },
   );
+  const floors = _fData?.data || [];
 
   const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
   const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));

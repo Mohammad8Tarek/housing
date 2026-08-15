@@ -137,10 +137,13 @@ export default function HistoryPage() {
   const employees = (_eDataWrapper as any)?.employees || (_eDataWrapper as any)?.data || [];
   const { data: _rData } = useListRooms({ propertyId: propId });
   const rooms = (_rData as any)?.data || [];
-  const { data: buildings = [] } = useListBuildings({ propertyId: propId });
-  const { data: floors = [] } = useListFloors({ propertyId: propId });
+  const { data: _bData } = useListBuildings({ propertyId: propId });
+  const buildings = (_bData as any)?.data || _bData || [];
+  const { data: _fData } = useListFloors({ propertyId: propId });
+  const floors = (_fData as any)?.data || _fData || [];
   const { data: settings } = useGetSettings({ propertyId: propId } as any);
-  const { data: properties = [] } = useListProperties();
+  const { data: _pData } = useListProperties();
+  const properties = (_pData as any)?.data || _pData || [];
 
   const empMap = Object.fromEntries(employees.map((e: any) => [e.id, e]));
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));

@@ -152,7 +152,8 @@ export default function InHouse() {
     floorNum: string | null;
   } | null>(null);
 
-  const { data: allProperties = [] } = useListProperties();
+  const { data: _pData } = useListProperties();
+  const allProperties = _pData?.data || _pData || [];
   const { data: settings } = useGetSettings({
     query: { enabled: !!activePropertyId },
   });
@@ -190,14 +191,16 @@ export default function InHouse() {
     { query: { enabled: !!activePropertyId, staleTime: 60000 } },
   );
   const rooms = _rData?.data || [];
-  const { data: buildings = [] } = useListBuildings(
+  const { data: _bData } = useListBuildings(
     { propertyId: activePropertyId },
     { query: { enabled: !!activePropertyId, staleTime: 300000 } },
   );
-  const { data: floors = [] } = useListFloors(
+  const buildings = _bData?.data || [];
+  const { data: _fData } = useListFloors(
     { propertyId: activePropertyId },
     { query: { enabled: !!activePropertyId, staleTime: 300000 } },
   );
+  const floors = _fData?.data || [];
 
   // For cross-property transfer: load rooms from selected target property
   const targetPropId =
@@ -209,14 +212,16 @@ export default function InHouse() {
     { query: { enabled: !!targetPropId } },
   );
   const targetRooms = _targetRoomsWrapper?.data || [];
-  const { data: targetBuildings = [] } = useListBuildings(
+  const { data: _tbData } = useListBuildings(
     { propertyId: targetPropId },
     { query: { enabled: !!targetPropId } },
   );
-  const { data: targetAssignments = [] } = useListAssignments(
+  const targetBuildings = _tbData?.data || [];
+  const { data: _taData } = useListAssignments(
     { propertyId: targetPropId } as any,
     { query: { enabled: !!targetPropId, staleTime: 30000 } },
   );
+  const targetAssignments = _taData?.data || [];
 
   // Compute occupied beds for transfer target room
   const targetOccupiedBeds = new Set<number>(
