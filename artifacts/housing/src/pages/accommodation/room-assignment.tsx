@@ -166,18 +166,18 @@ export default function RoomAssignment() {
   );
   const rooms = _rData?.data || [];
   const { data: _bData } = useListBuildings(
-    { propertyId: propId },
-    { query: { enabled: !!propId } },
+    { propertyId: activePropertyId },
+    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
   );
   const buildings = _bData?.data || [];
   const { data: _fData } = useListFloors(
-    { propertyId: propId },
-    { query: { enabled: !!propId } },
+    { propertyId: activePropertyId },
+    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
   );
   const floors = _fData?.data || [];
   const { data: _aData } = useListAssignments(
-    { propertyId: propId } as any,
-    { query: { enabled: !!propId } },
+    { propertyId: activePropertyId } as any,
+    { query: { enabled: !!activePropertyId, staleTime: 30000 } },
   );
   const allAssignments = _aData?.data || [];
 
