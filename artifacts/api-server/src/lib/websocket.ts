@@ -58,7 +58,7 @@ export interface WsPayload {
 interface Client {
   ws: WebSocket;
   propertyId: number;
-  userId: number;
+  userId: number | string;
   username: string;
   connectedAt: number;
 }
@@ -151,7 +151,7 @@ function getSessionId(cookieHeader: string | undefined): string | null {
 }
 
 async function loadSessionAuth(cookieHeader: string | undefined): Promise<{
-  userId: number;
+  userId: number | string;
   propertyId: number;
   username: string;
   isSystemAdmin: boolean;
@@ -164,19 +164,34 @@ async function loadSessionAuth(cookieHeader: string | undefined): Promise<{
   );
   const sess = result.rows[0]?.sess;
   if (!sess || typeof sess !== "object") return null;
+
+  // Check for admin session
   const userId = Number(sess.userId);
   const propertyId = Number(sess.propertyId);
-  if (!userId || !propertyId) return null;
-  return {
-    userId,
-    propertyId,
-    username: String(sess.username ?? "unknown"),
-    isSystemAdmin: Boolean(sess.isSystemAdmin),
-  };
+  if (userId && propertyId) {
+    return {
+      userId,
+      propertyId,
+      username: String(sess.username ?? "unknown"),
+      isSystemAdmin: Boolean(sess.isSystemAdmin),
+    };
+  }
+
+  // Check for employee portal session
+  if (sess.portal?.employeeDbId && sess.portal?.propertyId) {
+    return {
+      userId: `emp_${sess.portal.employeeDbId}`,
+      propertyId: Number(sess.portal.propertyId),
+      username: sess.portal.fullName || "Employee",
+      isSystemAdmin: false,
+    };
+  }
+
+  return null;
 }
 
 // ✅ FIX: stable key — same user+property always gets the same key
-function makeKey(userId: number, propertyId: number): string {
+function makeKey(userId: number | string, propertyId: number): string {
   return `${userId}:${propertyId}`;
 }
 

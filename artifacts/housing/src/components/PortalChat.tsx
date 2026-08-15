@@ -25,6 +25,7 @@ export default function PortalChat() {
   const queryClient = useQueryClient();
   const [selectedConv, setSelectedConv] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [senders, setSenders] = useState({});
 
   const { data: convData, isLoading } = useQuery({
     queryKey: ["portal-chat-conversations", activePropertyId],
@@ -56,10 +57,11 @@ export default function PortalChat() {
   const viewMessages = async (convId) => {
     setSelectedConv(convId);
     const r = await fetch(
-      `/api/portal-chat/conversations/${convId}/messages?propertyId=${activePropertyId}`,
+      `/api/portal-chat/admin/conversations/${convId}/messages?propertyId=${activePropertyId}`,
     );
     const d = await r.json();
     setMessages(d.messages ?? []);
+    setSenders(d.senders ?? {});
   };
 
   return (
@@ -158,9 +160,13 @@ export default function PortalChat() {
                       className="flex items-start justify-between p-2 rounded-lg bg-muted/30"
                     >
                       <div className="flex-1">
-                        <div className="text-xs text-muted-foreground mb-1">
-                          #{msg.senderId} ·{" "}
-                          {new Date(msg.createdAt).toLocaleString()}
+                        <div className="text-xs text-muted-foreground mb-1 font-semibold text-primary">
+                          {senders[msg.senderId]
+                            ? `${senders[msg.senderId].firstName} ${senders[msg.senderId].lastName}`
+                            : `Employee #${msg.senderId}`}{" "}
+                          <span className="font-normal text-muted-foreground">
+                            · {new Date(msg.createdAt).toLocaleString()}
+                          </span>
                         </div>
                         <div
                           className="text-sm"

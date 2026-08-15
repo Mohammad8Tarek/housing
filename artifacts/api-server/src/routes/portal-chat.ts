@@ -459,6 +459,63 @@ router.get("/admin/conversations", requireAuth, async (req, res, next) => {
   }
 });
 
+// GET /portal-chat/admin/conversations/:id/messages — رسائل محادثة (أدمن)
+// @ts-ignore
+router.get(
+  "/admin/conversations/:id/messages",
+  requireAuth,
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      const convId = Number(req.params.id);
+
+      await withTenant(propertyId, async (tenantDb) => {
+        // Fetch messages
+        const messages = await tenantDb
+          .select()
+          .from(portalMessagesTable)
+          .where(
+            and(
+              eq(portalMessagesTable.conversationId, convId),
+              eq(portalMessagesTable.isDeleted, false)
+            )
+          )
+          .orderBy(asc(portalMessagesTable.createdAt));
+
+        // Get senders
+        const senderIds = [...new Set(messages.map((m) => m.senderId))];
+        let senders: any[] = [];
+        if (senderIds.length > 0) {
+          senders = await tenantDb
+            .select({
+              id: employeesTable.id,
+              firstName: employeesTable.firstName,
+              lastName: employeesTable.lastName,
+              photoUrl: employeesTable.photoUrl,
+              department: employeesTable.department,
+              jobTitle: employeesTable.jobTitle,
+            })
+            .from(employeesTable)
+            .where(inArray(employeesTable.id, senderIds));
+        }
+
+        const sendersDict = senders.reduce((acc, emp) => {
+          acc[emp.id] = emp;
+          return acc;
+        }, {});
+
+        res.json({
+          success: true,
+          messages,
+          senders: sendersDict,
+        });
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // DELETE /portal-chat/admin/messages/:id — حذف رسالة (moderation)
 // @ts-ignore
 router.delete("/admin/messages/:id", requireAuth, async (req, res, next) => {
