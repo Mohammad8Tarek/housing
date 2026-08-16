@@ -147,7 +147,7 @@ router.get(
         failed_login_attempts: usersTable.failedLoginAttempts,
         locked_until: usersTable.lockedUntil,
         job_title: usersTable.jobTitle,
-        has_signature: sql<boolean>`EXISTS(SELECT 1 FROM public.user_signatures us WHERE us.user_id = ${usersTable.id})`,
+        has_signature: sql<boolean>`EXISTS(SELECT 1 FROM public.user_signatures us WHERE us.user_id = ${usersTable.id})`.mapWith(Boolean).as("has_signature"),
       })
       .from(usersTable)
       .where(whereClause)
