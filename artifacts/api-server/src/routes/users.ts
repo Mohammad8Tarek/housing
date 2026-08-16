@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, pool, usersTable } from "@workspace/db";
+import { db, pool, usersTable, userSignaturesTable } from "@workspace/db";
 import { eq, and, SQL, sql, or, not, ilike } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
@@ -147,9 +147,10 @@ router.get(
         failed_login_attempts: usersTable.failedLoginAttempts,
         locked_until: usersTable.lockedUntil,
         job_title: usersTable.jobTitle,
-        has_signature: sql<boolean>`EXISTS(SELECT 1 FROM public.user_signatures us WHERE us.user_id = ${usersTable.id})`.mapWith(Boolean).as("has_signature"),
+        has_signature: userSignaturesTable.id,
       })
       .from(usersTable)
+      .leftJoin(userSignaturesTable, eq(usersTable.id, userSignaturesTable.userId))
       .where(whereClause)
       .orderBy(usersTable.id)
       .limit(limit)
@@ -158,7 +159,9 @@ router.get(
     let rows: any = result;
 
     const actualRows = rows || [];
-    const safeUsers = actualRows.map((u: any) => ({
+    const safeUsers = actualRows.map((u: any) => {
+      console.log(`User ${u.id} has_signature:`, u.has_signature, typeof u.has_signature);
+      return {
       id: u.id,
       propertyId: u.property_id,
       propertyIds: u.property_ids ?? [],
@@ -174,7 +177,8 @@ router.get(
           ? "LOCKED"
           : u.status || "ACTIVE",
       createdAt: u.created_at,
-    }));
+    };
+    });
 
     // Return paginated response with metadata
     res.json({
