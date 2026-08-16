@@ -120,6 +120,7 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
         ar ? "تم حفظ التوقيع بنجاح" : "Signature saved successfully",
       );
       refetchSig();
+      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
     } catch (err: any) {
       toast.error(ar ? "فشل الرفع" : "Upload failed");
     } finally {
