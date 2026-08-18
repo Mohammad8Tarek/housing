@@ -1,4 +1,4 @@
-const CACHE_NAME = "sunrise-housing-v1";
+const CACHE_NAME = "sunrise-housing-v2";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
