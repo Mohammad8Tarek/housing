@@ -66,6 +66,9 @@ self.addEventListener("fetch", (event) => {
             caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           }
           return response;
+        }).catch((error) => {
+          console.error('Fetch failed:', error);
+          return new Response('Network error', { status: 408, headers: { 'Content-Type': 'text/plain' } });
         })
       );
     }),
