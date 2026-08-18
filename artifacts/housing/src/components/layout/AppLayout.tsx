@@ -430,7 +430,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         onOpenChange={setChangePasswordOpen}
       />
       <div
-        className="flex h-[100dvh] w-full bg-background overflow-hidden"
+        className="flex h-screen w-full bg-background overflow-hidden"
         dir={dir}
       >
         <div className="hidden md:block flex-shrink-0">{renderSidebar()}</div>
