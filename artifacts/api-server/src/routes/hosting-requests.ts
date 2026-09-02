@@ -150,6 +150,19 @@ async function ensureEmployeeInTargetSchema(
   return null;
 }
 
+async function resolveRequestId(paramId: string): Promise<number | null> {
+  let requestId = parseInt(paramId);
+  if (isNaN(requestId)) {
+    const lookupRes = await pool.query(
+      "SELECT id FROM public.hosting_requests WHERE request_number = $1 LIMIT 1",
+      [paramId],
+    );
+    if (lookupRes.rows.length === 0) return null;
+    return lookupRes.rows[0].id;
+  }
+  return requestId;
+}
+
 function approvalRoleKey(value: unknown): string {
   return String(value ?? "")
     .trim()
@@ -727,9 +740,9 @@ router.post(
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
-      const requestId = parseInt(String(req.params.id));
-      if (isNaN(requestId)) {
-        res.status(400).json({ success: false, message: "Invalid ID" });
+      const requestId = await resolveRequestId(String(req.params.id));
+      if (!requestId) {
+        res.status(404).json({ success: false, message: "Request not found" });
         return;
       }
 
@@ -879,9 +892,9 @@ router.get(
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
-      const requestId = parseInt(String(req.params.id));
-      if (isNaN(requestId)) {
-        res.status(400).json({ success: false, message: "Invalid ID" });
+      const requestId = await resolveRequestId(String(req.params.id));
+      if (!requestId) {
+        res.status(404).json({ success: false, message: "Request not found" });
         return;
       }
 
@@ -911,9 +924,9 @@ router.post(
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
-      const requestId = parseInt(String(req.params.id));
-      if (isNaN(requestId)) {
-        res.status(400).json({ success: false, message: "Invalid ID" });
+      const requestId = await resolveRequestId(String(req.params.id));
+      if (!requestId) {
+        res.status(404).json({ success: false, message: "Request not found" });
         return;
       }
 
@@ -1263,9 +1276,9 @@ router.post(
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
-      const requestId = parseInt(String(req.params.id));
-      if (isNaN(requestId)) {
-        res.status(400).json({ success: false, message: "Invalid ID" });
+      const requestId = await resolveRequestId(String(req.params.id));
+      if (!requestId) {
+        res.status(404).json({ success: false, message: "Request not found" });
         return;
       }
 
@@ -1407,9 +1420,9 @@ router.post(
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
-      const requestId = parseInt(String(req.params.id));
-      if (isNaN(requestId)) {
-        res.status(400).json({ success: false, message: "Invalid ID" });
+      const requestId = await resolveRequestId(String(req.params.id));
+      if (!requestId) {
+        res.status(404).json({ success: false, message: "Request not found" });
         return;
       }
 
@@ -1579,9 +1592,9 @@ router.put(
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
-      const requestId = parseInt(String(req.params.id));
-      if (isNaN(requestId)) {
-        res.status(400).json({ success: false, message: "Invalid ID" });
+      const requestId = await resolveRequestId(String(req.params.id));
+      if (!requestId) {
+        res.status(404).json({ success: false, message: "Request not found" });
         return;
       }
 
@@ -1699,9 +1712,9 @@ router.delete(
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
-      const requestId = parseInt(String(req.params.id));
-      if (isNaN(requestId)) {
-        res.status(400).json({ success: false, message: "Invalid ID" });
+      const requestId = await resolveRequestId(String(req.params.id));
+      if (!requestId) {
+        res.status(404).json({ success: false, message: "Request not found" });
         return;
       }
 

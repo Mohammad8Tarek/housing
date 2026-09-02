@@ -181,7 +181,7 @@ export default function EditHostingRequest() {
           ? `تم تحديث الطلب ${updated.request_number}`
           : `Request ${updated.request_number} updated`,
       );
-      setLocation(`/hosting-requests/${updated.id}`);
+      setLocation(`/hosting-requests/${updated.request_number || updated.id}`);
     },
     onError: (err: Error) => {
       toast.error(err.message);
