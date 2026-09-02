@@ -552,28 +552,28 @@ export default function HostingRequestDetail() {
               </div>
 
               {/* Employee Details Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
                   <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
                     {ar ? "الاسم الكامل" : "Full Name"}
                   </span>
-                  <p className="font-semibold text-sm text-foreground">
+                  <p className="font-semibold text-sm text-foreground truncate">
                     {request.employeeName || "N/A"}
                   </p>
                 </div>
                 <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
                   <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
-                    {ar ? "رقم البصمة" : "Clock Number"}
+                    {ar ? "الفندق" : "Base Property"}
                   </span>
-                  <p className="font-semibold text-sm font-mono text-foreground">
-                    {request.clockNumber || "N/A"}
+                  <p className="font-semibold text-sm text-foreground truncate">
+                    {request.hotelName || "N/A"}
                   </p>
                 </div>
                 <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
                   <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
                     {ar ? "القسم" : "Department"}
                   </span>
-                  <p className="font-semibold text-sm text-foreground">
+                  <p className="font-semibold text-sm text-foreground truncate">
                     {request.department || (ar ? "غير محدد" : "Not specified")}
                   </p>
                 </div>
@@ -581,8 +581,16 @@ export default function HostingRequestDetail() {
                   <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
                     {ar ? "المنصب" : "Position"}
                   </span>
-                  <p className="font-semibold text-sm text-foreground">
+                  <p className="font-semibold text-sm text-foreground truncate">
                     {request.position || (ar ? "غير محدد" : "Not specified")}
+                  </p>
+                </div>
+                <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                    {ar ? "رقم البصمة" : "Clock Number"}
+                  </span>
+                  <p className="font-semibold text-sm font-mono text-foreground truncate">
+                    {request.clockNumber || "N/A"}
                   </p>
                 </div>
               </div>
@@ -595,7 +603,7 @@ export default function HostingRequestDetail() {
                 </h4>
 
                 {/* Dates Row */}
-                <div className="grid grid-cols-2 gap-4 p-5 rounded-xl bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 relative overflow-hidden mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-xl bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 relative overflow-hidden mb-4">
                   <div className="absolute right-0 top-0 opacity-5">
                     <Clock className="w-32 h-32 -mt-4 -mr-4" />
                   </div>
@@ -617,6 +625,14 @@ export default function HostingRequestDetail() {
                       {request.toDate
                         ? new Date(request.toDate).toLocaleDateString(ar ? "ar-EG" : "en-US", { day: "numeric", month: "short", year: "numeric" })
                         : "N/A"}
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">
+                      {ar ? "فندق الزيارة (الوجهة)" : "Destination Property"}
+                    </span>
+                    <p className="font-bold text-xl text-primary truncate">
+                      {request.visitHotelName || "N/A"}
                     </p>
                   </div>
                 </div>

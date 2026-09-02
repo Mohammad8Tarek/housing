@@ -165,7 +165,7 @@ async function getRequestWithSteps(
   isSystemAdmin: boolean,
 ) {
   const requestRes = await pool.query(
-    `SELECT fvr.*, p.display_name AS property_name,
+    `SELECT fvr.*, p.display_name AS property_name, h1.display_name AS hotel_name, h2.display_name AS visit_hotel_name,
       json_agg(
         json_build_object(
           'id', fas.id,
@@ -182,10 +182,12 @@ async function getRequestWithSteps(
       ) FILTER (WHERE fas.id IS NOT NULL) AS approval_steps
     FROM public.hosting_requests fvr
     LEFT JOIN public.properties p ON p.id = fvr.property_id
+    LEFT JOIN public.properties h1 ON h1.id = fvr.hotel_id
+    LEFT JOIN public.properties h2 ON h2.id = fvr.visit_hotel_id
     LEFT JOIN public.hosting_request_approval_steps fas ON fas.request_id = fvr.id
     LEFT JOIN public.users su ON su.id = fas.signed_by_user_id
     WHERE fvr.id = $1
-    GROUP BY fvr.id, p.display_name`,
+    GROUP BY fvr.id, p.display_name, h1.display_name, h2.display_name`,
     [requestId],
   );
   if (requestRes.rows.length === 0) return null;
@@ -197,7 +199,9 @@ async function getRequestWithSteps(
     propertyId: row.property_id,
     requestNumber: row.request_number,
     hotelId: row.hotel_id,
+    hotelName: row.hotel_name,
     visitHotelId: row.visit_hotel_id,
+    visitHotelName: row.visit_hotel_name,
     employeeName: row.employee_name,
     clockNumber: row.clock_number,
     department: row.department,
@@ -529,7 +533,7 @@ router.get(
 
       const offset = (q.page - 1) * q.limit;
       const rowsRes = await pool.query(
-        `SELECT fvr.*,
+        `SELECT fvr.*, h1.display_name AS hotel_name, h2.display_name AS visit_hotel_name,
         json_agg(
           json_build_object(
             'id', fas.id, 'stepOrder', fas.step_order, 'roleRequired', fas.role_required,
@@ -539,9 +543,11 @@ router.get(
           ) ORDER BY fas.step_order
         ) FILTER (WHERE fas.id IS NOT NULL) AS approval_steps
       FROM public.hosting_requests fvr
+      LEFT JOIN public.properties h1 ON h1.id = fvr.hotel_id
+      LEFT JOIN public.properties h2 ON h2.id = fvr.visit_hotel_id
       LEFT JOIN public.hosting_request_approval_steps fas ON fas.request_id = fvr.id
       WHERE ${whereClause}
-      GROUP BY fvr.id
+      GROUP BY fvr.id, h1.display_name, h2.display_name
       ORDER BY fvr.created_at DESC
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
         [...params, q.limit, offset],
