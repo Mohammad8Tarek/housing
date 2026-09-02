@@ -32,7 +32,8 @@ export type WsModule =
   | "floors"
   | "users"
   | "settings"
-  | "properties";
+  | "properties"
+  | "hosting-requests";
 
 export type WsAction =
   | "created"

@@ -1080,13 +1080,18 @@ router.post(
         details: `Step ${stepOrder} (${requiredRole}) signed with stored signature`,
       });
 
-      // Notify clients to refresh accommodation data and show a notification
-      broadcastToProperty(user.propertyId, {
+      // Use the request's own property_id for broadcast — supports cross-property requests
+      const requestPropertyId = request.property_id ?? user.propertyId;
+
+      // Notify clients to refresh hosting-requests data
+      broadcastToProperty(requestPropertyId, {
         type: "data_updated",
-        module: "accommodation",
+        module: "hosting-requests",
         action: "updated",
       });
-      broadcastToProperty(user.propertyId, {
+
+      // Broadcast signed notification to all users in that property
+      broadcastToProperty(requestPropertyId, {
         type: "notification",
         module: "notifications",
         action: "created",
@@ -1099,15 +1104,31 @@ router.post(
         },
       });
 
+      // If there's a next step, notify the users whose role matches
       if (nextStepOrder) {
         const nextRole = STEP_ROLES[nextStepOrder];
-        const nextRoleUsers = await pool.query(
-          `SELECT id, username FROM public.users WHERE property_id = $1 AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
-          [user.propertyId, nextRole],
-        );
+        // Search across all properties the current user manages (cross-property support)
+        const propertyIdsForQuery = user.isSystemAdmin
+          ? null
+          : user.propertyIds.length > 0
+            ? user.propertyIds
+            : [requestPropertyId];
+
+        const nextRoleUsers = propertyIdsForQuery
+          ? await pool.query(
+              `SELECT id, username FROM public.users
+               WHERE property_id = ANY($1::int[])
+                 AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
+              [propertyIdsForQuery, nextRole],
+            )
+          : await pool.query(
+              `SELECT id, username FROM public.users
+               WHERE roles @> ARRAY[$1]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $1`,
+              [nextRole],
+            );
 
         for (const row of nextRoleUsers.rows) {
-          broadcastToProperty(user.propertyId, {
+          broadcastToProperty(requestPropertyId, {
             type: "notification",
             module: "notifications",
             action: "created",
@@ -1120,6 +1141,84 @@ router.post(
               targetUserId: row.id,
             },
           });
+        }
+      }
+
+      // Auto create-guest-hosting when request is fully approved (final step)
+      if (stepOrder >= 3) {
+        try {
+          // Check if guest_hosting_id is not yet set
+          const checkGH = await pool.query(
+            `SELECT guest_hosting_id FROM public.hosting_requests WHERE id = $1`,
+            [requestId],
+          );
+          if (!checkGH.rows[0]?.guest_hosting_id) {
+            // Call create-guest-hosting internally
+            const ghClient = await pool.connect();
+            try {
+              await ghClient.query("BEGIN");
+              const propRes = await ghClient.query(
+                "SELECT schema_name FROM public.properties WHERE id = $1",
+                [requestPropertyId],
+              );
+              if (propRes.rows.length > 0) {
+                const schemaName =
+                  propRes.rows[0].schema_name || `prop_${requestPropertyId}`;
+                if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schemaName)) {
+                  // Find employee
+                  let employeeId: number | null = null;
+                  const empByClock = await ghClient.query(
+                    `SELECT id FROM "${schemaName}".employees WHERE employee_id = $1 LIMIT 1`,
+                    [request.clock_number],
+                  );
+                  if (empByClock.rows.length > 0) {
+                    employeeId = empByClock.rows[0].id;
+                  }
+                  if (employeeId) {
+                    const hostingRes = await ghClient.query(
+                      `INSERT INTO "${schemaName}".hostings
+                       (employee_id, hosting_type, guests_count, expected_from, expected_to, notes, created_by, status, room_id)
+                       VALUES ($1, 'SEPARATE_ROOM', $2, $3, $4, $5, $6, 'APPROVED', $7)
+                       RETURNING id`,
+                      [
+                        employeeId,
+                        request.family_members_count,
+                        request.from_date,
+                        request.to_date,
+                        request.remarks || "",
+                        user.username || String(user.userId),
+                        request.assigned_room_id || null,
+                      ],
+                    );
+                    const hostingId = hostingRes.rows[0].id;
+                    await ghClient.query(
+                      `UPDATE public.hosting_requests SET guest_hosting_id = $1, guest_hosting_status = 'APPROVED', updated_at = NOW() WHERE id = $2`,
+                      [hostingId, requestId],
+                    );
+                    await ghClient.query("COMMIT");
+                    // Notify to refresh accommodation
+                    broadcastToProperty(requestPropertyId, {
+                      type: "data_updated",
+                      module: "accommodation",
+                      action: "updated",
+                    });
+                  } else {
+                    await ghClient.query("ROLLBACK");
+                  }
+                } else {
+                  await ghClient.query("ROLLBACK");
+                }
+              } else {
+                await ghClient.query("ROLLBACK");
+              }
+            } catch {
+              await ghClient.query("ROLLBACK").catch(() => {});
+            } finally {
+              ghClient.release();
+            }
+          }
+        } catch {
+          // Auto-create failed silently — user can create manually
         }
       }
 

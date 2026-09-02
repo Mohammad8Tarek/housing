@@ -753,8 +753,8 @@ export default function HostingRequestDetail() {
             </CardContent>
           </Card>
 
-          {/* Housing Card */}
-          {request.status === "approved" && (
+          {/* Housing Card — only show when guestHostingId is linked */}
+          {request.status === "approved" && request.guestHostingId && (
             <Card className="bg-background/60 backdrop-blur-xl border-emerald-500/20 shadow-xl overflow-hidden rounded-2xl">
               <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-transparent" />
               <CardHeader className="pb-2">
@@ -764,107 +764,65 @@ export default function HostingRequestDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
-                {request.guestHostingId ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-lg">
-                          <CheckCircle className="w-5 h-5 text-emerald-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-foreground">
-                            {ar
-                              ? "طلب الاستضافة الفعلي"
-                              : "Active Guest Hosting"}
-                          </p>
-                          {hostingStatusLabel && (
-                            <div className="mt-1">
-                              <StatusBadge
-                                label={
-                                  ar
-                                    ? hostingStatusLabel.ar
-                                    : hostingStatusLabel.en
-                                }
-                                variant={hostingStatusVariant}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full shadow-sm hover:shadow border-emerald-200 text-emerald-700"
-                        onClick={() =>
-                          setLocation(`/accommodation/guest-hosting`)
-                        }
-                      >
-                        {ar ? "عرض السجل" : "View Record"}
-                        <ExternalLink className="w-4 h-4 ml-2" />
-                      </Button>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-lg">
+                      <CheckCircle className="w-5 h-5 text-emerald-600" />
                     </div>
-                    {guestHosting && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                        <div>
-                          <span className="text-xs text-muted-foreground block mb-1">
-                            {ar ? "رقم السجل" : "Record ID"}
-                          </span>
-                          <p className="font-bold">#{guestHosting.id}</p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-muted-foreground block mb-1">
-                            {ar ? "الغرفة" : "Room"}
-                          </span>
-                          <p className="font-bold">
-                            {guestHosting.roomId || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-muted-foreground block mb-1">
-                            {ar ? "من" : "From"}
-                          </span>
-                          <p className="font-bold">
-                            {new Date(
-                              guestHosting.expectedFrom,
-                            ).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-muted-foreground block mb-1">
-                            {ar ? "إلى" : "To"}
-                          </span>
-                          <p className="font-bold">
-                            {new Date(
-                              guestHosting.expectedTo,
-                            ).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                    <div className="flex-1 space-y-1 text-center sm:text-start">
-                      <p className="text-sm text-emerald-700 dark:text-emerald-400 font-bold">
-                        {ar
-                          ? "تم اعتماد الطلب وتم إنشاء سجل الاستضافة تلقائياً."
-                          : "Request approved and Guest Hosting record created."}
+                    <div>
+                      <p className="text-sm font-bold text-foreground">
+                        {ar ? "طلب الاستضافة الفعلي" : "Active Guest Hosting"}
                       </p>
-                      <p className="text-xs text-emerald-600/70">
-                        {ar
-                          ? "يمكنك الآن متابعة إجراءات التسكين من قسم السكن."
-                          : "You can proceed to housing management now."}
+                      {hostingStatusLabel && (
+                        <div className="mt-1">
+                          <StatusBadge
+                            label={ar ? hostingStatusLabel.ar : hostingStatusLabel.en}
+                            variant={hostingStatusVariant}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full shadow-sm hover:shadow border-emerald-200 text-emerald-700"
+                    onClick={() => setLocation(`/accommodation/guest-hosting`)}
+                  >
+                    {ar ? "عرض السجل" : "View Record"}
+                    <ExternalLink className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+                {guestHosting && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1">
+                        {ar ? "رقم السجل" : "Record ID"}
+                      </span>
+                      <p className="font-bold">#{guestHosting.id}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1">
+                        {ar ? "الغرفة" : "Room"}
+                      </span>
+                      <p className="font-bold">{guestHosting.roomId || "-"}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1">
+                        {ar ? "من" : "From"}
+                      </span>
+                      <p className="font-bold">
+                        {new Date(guestHosting.expectedFrom).toLocaleDateString()}
                       </p>
                     </div>
-                    <Button
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full whitespace-nowrap shadow-lg shadow-emerald-500/20"
-                      onClick={() =>
-                        setLocation("/accommodation/guest-hosting")
-                      }
-                    >
-                      <Home className="w-4 h-4 mr-2" />
-                      {ar ? "إدارة التسكين" : "Manage Housing"}
-                    </Button>
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1">
+                        {ar ? "إلى" : "To"}
+                      </span>
+                      <p className="font-bold">
+                        {new Date(guestHosting.expectedTo).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                 )}
               </CardContent>
