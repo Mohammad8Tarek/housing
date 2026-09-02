@@ -323,9 +323,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="text-base font-extrabold tracking-tight leading-none block text-sidebar-foreground">
             {systemName}
           </span>
-          <p className="text-[10px] text-sidebar-foreground/70 uppercase tracking-widest mt-1.5 font-medium">
-            {ar ? "نظام الإسكان" : "Staff Housing"}
-          </p>
         </div>
       </div>
 

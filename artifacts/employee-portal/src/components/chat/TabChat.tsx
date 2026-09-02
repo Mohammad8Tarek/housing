@@ -734,6 +734,22 @@ export function TabChat({
     [isRtl],
   );
 
+  const loadMessages = useCallback(async (convId: number, silent = false) => {
+    try {
+      const r = await apiFetch(`/api/portal-chat/conversations/${convId}/messages`, { credentials: "include" });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.success) {
+          setMessages(Array.isArray(d.messages) ? d.messages : []);
+          setSenders((prev) => ({ ...prev, ...(d.senders || {}) }));
+          lastMsgCountRef.current = (d.messages || []).length;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     loadConversations(false);
   }, [loadConversations]);
