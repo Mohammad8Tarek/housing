@@ -138,10 +138,8 @@ export default function HostingRequestDetail() {
             { method: "POST" },
           );
         } catch {}
-        setLocation("/accommodation/guest-hosting");
-      } else {
-        refetch();
       }
+      refetch();
     },
     onError: (err: Error) => toast.error(err.message),
   });
