@@ -75,6 +75,81 @@ function su(req: any) {
   };
 }
 
+async function ensureEmployeeInTargetSchema(
+  client: any,
+  sourcePropertyId: number,
+  targetPropertyId: number,
+  clockNumber: string,
+) {
+  if (!clockNumber) return null;
+
+  const propRes = await client.query(
+    "SELECT id, schema_name FROM public.properties WHERE id IN ($1, $2)",
+    [sourcePropertyId, targetPropertyId],
+  );
+  let sourceSchema = `prop_${sourcePropertyId}`;
+  let targetSchema = `prop_${targetPropertyId}`;
+  for (const p of propRes.rows) {
+    if (p.id === sourcePropertyId && p.schema_name) sourceSchema = p.schema_name;
+    if (p.id === targetPropertyId && p.schema_name) targetSchema = p.schema_name;
+  }
+
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(sourceSchema) || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(targetSchema)) {
+     return null;
+  }
+
+  // 1. Check target
+  const targetCheck = await client.query(
+    `SELECT id FROM "${targetSchema}".employees WHERE employee_id = $1 LIMIT 1`,
+    [clockNumber],
+  );
+  if (targetCheck.rows.length > 0) return { employeeId: targetCheck.rows[0].id, targetSchema };
+
+  // 2. Try source if different
+  if (sourceSchema !== targetSchema) {
+    const sourceCheck = await client.query(
+      `SELECT * FROM "${sourceSchema}".employees WHERE employee_id = $1 LIMIT 1`,
+      [clockNumber],
+    );
+    if (sourceCheck.rows.length > 0) {
+      const emp = sourceCheck.rows[0];
+      const insertRes = await client.query(
+        `
+        INSERT INTO "${targetSchema}".employees 
+        (employee_id, first_name, last_name, third_name, fourth_name, national_id, nationality, address, job_title, level, phone, department, status, hire_date, gender, id_image, photo_url, email, emergency_contact, date_of_birth)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        RETURNING id
+      `,
+        [
+          emp.employee_id,
+          emp.first_name,
+          emp.last_name,
+          emp.third_name,
+          emp.fourth_name,
+          emp.national_id,
+          emp.nationality,
+          emp.address,
+          emp.job_title,
+          emp.level,
+          emp.phone,
+          emp.department,
+          emp.status,
+          emp.hire_date,
+          emp.gender,
+          emp.id_image,
+          emp.photo_url,
+          emp.email,
+          emp.emergency_contact,
+          emp.date_of_birth,
+        ],
+      );
+      return { employeeId: insertRes.rows[0].id, targetSchema };
+    }
+  }
+
+  return null;
+}
+
 function approvalRoleKey(value: unknown): string {
   return String(value ?? "")
     .trim()
@@ -720,74 +795,27 @@ router.post(
           return;
         }
 
-        // 2. Get tenant schema name
-        const propRes = await client.query(
-          "SELECT schema_name FROM public.properties WHERE id = $1",
-          [visit.property_id],
-        );
-        if (propRes.rows.length === 0) {
-          await client.query("ROLLBACK");
-          res
-            .status(500)
-            .json({ success: false, message: "Property not found" });
-          return;
-        }
-        const schemaName =
-          propRes.rows[0].schema_name || `prop_${visit.property_id}`;
+        // 2. Resolve target schema and ensure employee exists there
+        const targetPropId = visit.visit_hotel_id || visit.property_id;
+        const employeeCheck = await ensureEmployeeInTargetSchema(client, visit.property_id, targetPropId, visit.clock_number);
 
-        // Validate schemaName against safe pattern before use in dynamic SQL
-        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schemaName)) {
+        if (!employeeCheck) {
           await client.query("ROLLBACK");
-          res
-            .status(500)
-            .json({ success: false, message: "Invalid tenant schema name" });
+          res.status(404).json({
+            success: false,
+            message: "لم يتم العثور على الموظف في النظام لتسكينه / Employee not found in housing system to accommodate",
+          });
           return;
         }
+
+        const { employeeId, targetSchema: schemaName } = employeeCheck;
 
         // 3. Set search_path to tenant schema
         await client.query(
           "SET LOCAL search_path TO " + schemaName + ", public",
         );
 
-        // 4. Find employee by clock_number then by name
-        let employeeId: number | null = null;
-        const empByClock = await client.query(
-          `SELECT id FROM "${schemaName}".employees WHERE employee_id = $1 LIMIT 1`,
-          [visit.clock_number],
-        );
-        if (empByClock.rows.length > 0) {
-          employeeId = empByClock.rows[0].id;
-        } else {
-          // Fallback by name — fail loudly if more than one match
-          const empByName = await client.query(
-            `SELECT id FROM "${schemaName}".employees 
-           WHERE (first_name || ' ' || last_name) ILIKE $1`,
-            [`%${visit.employee_name}%`],
-          );
-          if (empByName.rows.length === 1) {
-            employeeId = empByName.rows[0].id;
-          } else if (empByName.rows.length > 1) {
-            await client.query("ROLLBACK");
-            res.status(400).json({
-              success: false,
-              message:
-                "توجد عدة موظفين بهذا الاسم. يرجى تأكيد الرقم الوظيفي / Multiple employees match this name. Please verify the clock number.",
-            });
-            return;
-          }
-        }
-
-        if (!employeeId) {
-          await client.query("ROLLBACK");
-          res.status(404).json({
-            success: false,
-            message:
-              "لم يتم العثور على الموظف في نظام السكن / Employee not found in housing system",
-          });
-          return;
-        }
-
-        // 5. Create hosting record (pre-approved since family visit was already approved)
+        // 4. Create hosting record
         const hostingRes = await client.query(
           `INSERT INTO "${schemaName}".hostings
          (employee_id, hosting_type, guests_count, expected_from, expected_to, notes, created_by, status, room_id)
@@ -1163,23 +1191,12 @@ router.post(
             const ghClient = await pool.connect();
             try {
               await ghClient.query("BEGIN");
-              const propRes = await ghClient.query(
-                "SELECT schema_name FROM public.properties WHERE id = $1",
-                [requestPropertyId],
-              );
-              if (propRes.rows.length > 0) {
-                const schemaName =
-                  propRes.rows[0].schema_name || `prop_${requestPropertyId}`;
-                if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schemaName)) {
-                  // Find employee
-                  let employeeId: number | null = null;
-                  const empByClock = await ghClient.query(
-                    `SELECT id FROM "${schemaName}".employees WHERE employee_id = $1 LIMIT 1`,
-                    [request.clock_number],
-                  );
-                  if (empByClock.rows.length > 0) {
-                    employeeId = empByClock.rows[0].id;
-                  }
+              const targetPropId = request.visit_hotel_id || requestPropertyId;
+              const employeeCheck = await ensureEmployeeInTargetSchema(ghClient, requestPropertyId, targetPropId, request.clock_number);
+              
+              if (employeeCheck) {
+                  const { employeeId, targetSchema: schemaName } = employeeCheck;
+                  
                   if (employeeId) {
                     const hostingRes = await ghClient.query(
                       `INSERT INTO "${schemaName}".hostings
@@ -1211,9 +1228,6 @@ router.post(
                   } else {
                     await ghClient.query("ROLLBACK");
                   }
-                } else {
-                  await ghClient.query("ROLLBACK");
-                }
               } else {
                 await ghClient.query("ROLLBACK");
               }
