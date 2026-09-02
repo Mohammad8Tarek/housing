@@ -116,16 +116,14 @@ async function ensureEmployeeInTargetSchema(
       const insertRes = await client.query(
         `
         INSERT INTO "${targetSchema}".employees 
-        (employee_id, first_name, last_name, third_name, fourth_name, national_id, nationality, address, job_title, level, phone, department, status, hire_date, gender, id_image, photo_url, email, emergency_contact, date_of_birth)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        (employee_id, first_name, last_name, national_id, nationality, address, job_title, level, phone, department, status, hire_date, gender, id_image, photo_url, email)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         RETURNING id
       `,
         [
           emp.employee_id,
           emp.first_name,
           emp.last_name,
-          emp.third_name,
-          emp.fourth_name,
           emp.national_id,
           emp.nationality,
           emp.address,
@@ -139,8 +137,6 @@ async function ensureEmployeeInTargetSchema(
           emp.id_image,
           emp.photo_url,
           emp.email,
-          emp.emergency_contact,
-          emp.date_of_birth,
         ],
       );
       return { employeeId: insertRes.rows[0].id, targetSchema };
@@ -1244,8 +1240,9 @@ router.post(
               } else {
                 await ghClient.query("ROLLBACK");
               }
-            } catch {
+            } catch (e: any) {
               await ghClient.query("ROLLBACK").catch(() => {});
+              logger.error("Auto guest-hosting creation failed: " + e.message);
             } finally {
               ghClient.release();
             }

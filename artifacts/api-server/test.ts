@@ -1,0 +1,1 @@
+import { pool } from '@workspace/db'; pool.query('SELECT id, request_number, property_id, visit_hotel_id, guest_hosting_id FROM public.hosting_requests ORDER BY id DESC LIMIT 1').then(r => console.log(r.rows)).catch(console.error).finally(() => process.exit(0));

@@ -241,7 +241,7 @@ export default function CreateHostingRequest() {
           ? `تم إنشاء الطلب ${created.requestNumber || created.request_number}`
           : `Request ${created.requestNumber || created.request_number} created`,
       );
-      setLocation(`/hosting-requests/${created.request_number || created.id}`);
+      setLocation(`/hosting-requests/${created.requestNumber || created.request_number || created.id}`);
     },
     onError: (err: Error) => {
       toast.error(err.message);
