@@ -346,9 +346,10 @@ router.post(
       }
 
       const [room] = await withTenant(propertyId, async (tenantDb) => {
+        const { propertyId: _skip, ...roomData } = parsed.data as any;
         return await tenantDb
           .insert(roomsTable)
-          .values({ ...(parsed.data as any), currentOccupancy: 0 })
+          .values({ ...roomData, currentOccupancy: 0 })
           .returning();
       });
 
@@ -368,8 +369,13 @@ router.post(
       });
       res.status(201).json({ ...GetRoomResponse.parse(room), propertyId });
     } catch (err: any) {
-      console.error("[rooms/create] Error:", err.message);
-      res.status(500).json({ error: "Failed to create room" });
+      console.error("[rooms/create] Error:", err);
+      // Check for Postgres Foreign Key constraint violation
+      if (err.code === "23503") {
+         res.status(400).json({ error: "Building or floor does not exist." });
+         return;
+      }
+      res.status(500).json({ error: "Failed to create room: " + err.message });
     }
   },
 );
