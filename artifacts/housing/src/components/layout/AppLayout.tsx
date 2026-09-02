@@ -54,7 +54,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
-const SEEN_KEY = "notif_seen_ids";
+const SEEN_KEY = (userId?: number) => `notif_seen_ids_u${userId ?? 0}`;
 
 type NavItem = {
   href?: string;
@@ -90,6 +90,8 @@ function NotificationIcon({ type }: { type: string }) {
     return <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />;
   if (type === "OPEN_MAINTENANCE")
     return <Wrench className="w-4 h-4 text-orange-500 flex-shrink-0" />;
+  if (type === "HOSTING_REQUEST_PENDING")
+    return <UserPlus className="w-4 h-4 text-rose-500 flex-shrink-0" />;
   if (type === "NEW_SURVEY")
     return <Trophy className="w-4 h-4 text-green-500 flex-shrink-0" />;
   if (type === "NEW_DOCUMENT")
@@ -119,13 +121,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  // Per-user seen IDs — different users on same browser get separate state
+  const userSeenKey = SEEN_KEY(user?.id);
   const [seenIds, setSeenIds] = useState<Set<string>>(() => {
     try {
-      return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]"));
+      return new Set(JSON.parse(localStorage.getItem(userSeenKey) ?? "[]"));
     } catch {
       return new Set();
     }
   });
+
 
   const { data: sysSettings } = useGetSettings(
     { propertyId: activePropertyId },
@@ -165,9 +170,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const updated = new Set([...seenIds, ...ids]);
     setSeenIds(updated);
     try {
-      localStorage.setItem(SEEN_KEY, JSON.stringify([...updated]));
+      localStorage.setItem(userSeenKey, JSON.stringify([...updated]));
     } catch {}
-  }, [allNotifications, seenIds]);
+  }, [allNotifications, seenIds, userSeenKey]);
 
   const markOneSeen = useCallback(
     (id: string, e: React.MouseEvent) => {
@@ -175,11 +180,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       const updated = new Set([...seenIds, id]);
       setSeenIds(updated);
       try {
-        localStorage.setItem(SEEN_KEY, JSON.stringify([...updated]));
+        localStorage.setItem(userSeenKey, JSON.stringify([...updated]));
       } catch {}
     },
-    [seenIds],
+    [seenIds, userSeenKey],
   );
+
 
   const handleSwitchProperty = async (id: number | "all") => {
     if (id === activePropertyId) return;

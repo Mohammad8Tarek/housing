@@ -516,7 +516,7 @@ export function getConnectedClients(): Array<{
   connectedAt: string;
 }> {
   return Array.from(clients.values()).map((c) => ({
-    userId: c.userId,
+    userId: Number(c.userId),
     propertyId: c.propertyId,
     username: c.username,
     connectedAt: new Date(c.connectedAt).toISOString(),

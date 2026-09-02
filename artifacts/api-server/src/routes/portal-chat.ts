@@ -528,9 +528,10 @@ router.post(
       const { content } = req.body;
 
       if (!content || !content.trim()) {
-        return res
+        res
           .status(400)
           .json({ success: false, message: "Content required" });
+        return;
       }
 
       // To send as admin, we can use a special senderId or just -1
