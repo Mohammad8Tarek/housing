@@ -5,6 +5,16 @@ import { z } from "zod/v4";
 
 const router: Router = Router();
 
+// All signature routes require an authenticated session.
+// (Previously su() silently produced userId=undefined for anonymous callers.)
+router.use((req, res, next) => {
+  if (!Number((req.session as any)?.userId)) {
+    res.status(401).json({ success: false, message: "Not authenticated" });
+    return;
+  }
+  next();
+});
+
 const SIGNATURE_DATA_RE = /^data:image\/(?:png|jpe?g);base64,[A-Za-z0-9+/=]+$/i;
 const MAX_SIGNATURE_LENGTH = 5 * 1024 * 1024; // 5MB as base64 string to allow higher-res PNGs
 
@@ -38,9 +48,9 @@ router.get("/users/me/signature", async (req, res): Promise<void> => {
       signatureImageUrl: rows.rows[0].signature_image_url,
       uploadedAt: rows.rows[0].uploaded_at,
     });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
+  } catch {
+    console.error("user-signature: database error");
+    res.status(500).json({ success: false, message: "Failed to load signature" });
   }
 });
 
@@ -69,7 +79,7 @@ router.post("/users/me/signature", async (req, res): Promise<void> => {
     if (signatureImage.length > MAX_SIGNATURE_LENGTH) {
       res.status(400).json({
         success: false,
-        message: "Signature image must be under 2MB",
+        message: "Signature image must be under 5MB",
       });
       return;
     }
@@ -105,15 +115,19 @@ router.post("/users/me/signature", async (req, res): Promise<void> => {
     });
 
     res.json({ success: true, message: "Signature saved" });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
+  } catch {
+    console.error("user-signature: database error");
+    res.status(500).json({ success: false, message: "Failed to save signature" });
   }
 });
 
 router.get("/users/:id/signature", async (req, res): Promise<void> => {
   const admin = su(req);
   const targetUserId = parseInt(String(req.params.id));
+  if (!Number.isFinite(targetUserId)) {
+    res.status(400).json({ success: false, message: "Invalid id" });
+    return;
+  }
   if (!admin.isSystemAdmin && targetUserId !== admin.userId) {
     res.status(403).json({
       success: false,
@@ -135,15 +149,19 @@ router.get("/users/:id/signature", async (req, res): Promise<void> => {
       signatureImageUrl: rows.rows[0].signature_image_url,
       uploadedAt: rows.rows[0].uploaded_at,
     });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
+  } catch {
+    console.error("user-signature: database error");
+    res.status(500).json({ success: false, message: "Failed to load signature" });
   }
 });
 
 router.post("/users/:id/signature", async (req, res): Promise<void> => {
   const admin = su(req);
   const targetUserId = parseInt(String(req.params.id));
+  if (!Number.isFinite(targetUserId)) {
+    res.status(400).json({ success: false, message: "Invalid id" });
+    return;
+  }
   const isSelf = targetUserId === admin.userId;
   if (!admin.isSystemAdmin && !isSelf) {
     res.status(403).json({
@@ -176,7 +194,7 @@ router.post("/users/:id/signature", async (req, res): Promise<void> => {
     if (signatureImage.length > MAX_SIGNATURE_LENGTH) {
       res.status(400).json({
         success: false,
-        message: "Signature image must be under 2MB",
+        message: "Signature image must be under 5MB",
       });
       return;
     }
@@ -212,9 +230,9 @@ router.post("/users/:id/signature", async (req, res): Promise<void> => {
     });
 
     res.json({ success: true, message: "Signature saved" });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, message });
+  } catch {
+    console.error("user-signature: database error");
+    res.status(500).json({ success: false, message: "Failed to save signature" });
   }
 });
 
