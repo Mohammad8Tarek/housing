@@ -7,6 +7,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as net from "node:net";
+import v8 from "node:v8";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -207,18 +208,25 @@ app.use((req, res, next) => {
 const { getPoolStats } = await import("@workspace/db");
 const memoryMonitorInterval = setInterval(() => {
   const mem = process.memoryUsage();
+  const heapStats = v8.getHeapStatistics();
   const heapUsedMB = (mem.heapUsed / 1024 / 1024).toFixed(2);
   const heapTotalMB = (mem.heapTotal / 1024 / 1024).toFixed(2);
+  const heapLimitMB = (heapStats.heap_size_limit / 1024 / 1024).toFixed(0);
   const poolStats = getPoolStats();
 
-  // Warning if memory usage > 85% of heap
-  if (mem.heapUsed / mem.heapTotal > 0.85) {
+  // True warning only if memory usage exceeds 80% of the actual V8 heap limit AND used > 400MB
+  const isHighMemory =
+    mem.heapUsed > 400 * 1024 * 1024 &&
+    mem.heapUsed / heapStats.heap_size_limit > 0.8;
+
+  if (isHighMemory) {
     logger.warn(
       {
         memory: {
-          heapUsedMB,
-          heapTotalMB,
-          usage: `${((mem.heapUsed / mem.heapTotal) * 100).toFixed(0)}%`,
+          heapUsedMB: `${heapUsedMB} MB`,
+          heapTotalMB: `${heapTotalMB} MB`,
+          heapLimitMB: `${heapLimitMB} MB`,
+          usagePct: `${((mem.heapUsed / heapStats.heap_size_limit) * 100).toFixed(1)}%`,
         },
         pool: poolStats,
         requests: requestCount,
