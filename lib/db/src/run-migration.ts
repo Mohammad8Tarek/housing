@@ -1,59 +1,25 @@
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { pool } from "./index.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function runMigration() {
   const client = await pool.connect();
   try {
-    console.log("Running migrations to add new columns...");
-    await client.query(
-      "ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_published boolean DEFAULT false NOT NULL;",
-    );
-    await client.query(
-      "ALTER TABLE activities ADD COLUMN IF NOT EXISTS target_departments text[] DEFAULT '{}' NOT NULL;",
-    );
-    await client.query(
-      "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending' NOT NULL;",
-    );
-    await client.query(
-      "ALTER TABLE users ADD COLUMN IF NOT EXISTS department text;",
-    );
-    await client.query(
-      "ALTER TABLE users ADD COLUMN IF NOT EXISTS job_title text;",
-    );
+    console.log("🚀 Running complete database schema & constraints migration...");
 
-    // Also apply the propertyId nullable fix for users if it's not already done
-    await client.query(
-      "ALTER TABLE users ALTER COLUMN property_id DROP NOT NULL;",
-    );
-
-    // Add email and emergency_contact to profiles table in all tenant schemas
-    const schemasRes = await client.query(
-      "SELECT schema_name FROM public.properties WHERE schema_name IS NOT NULL",
-    );
-    for (const row of schemasRes.rows) {
-      const schemaName = row.schema_name;
-      try {
-        await client.query(
-          `ALTER TABLE ${schemaName}.profiles ADD COLUMN IF NOT EXISTS email text DEFAULT '' NOT NULL;`,
-        );
-        await client.query(
-          `ALTER TABLE ${schemaName}.profiles ADD COLUMN IF NOT EXISTS emergency_contact text DEFAULT '' NOT NULL;`,
-        );
-        await client.query(
-          `ALTER TABLE ${schemaName}.profiles ADD COLUMN IF NOT EXISTS third_name text DEFAULT '' NOT NULL;`,
-        );
-        await client.query(
-          `ALTER TABLE ${schemaName}.profiles ADD COLUMN IF NOT EXISTS fourth_name text DEFAULT '' NOT NULL;`,
-        );
-        console.log(`Updated profiles table in schema: ${schemaName}`);
-      } catch (err: any) {
-        console.warn(
-          `Could not update profiles in ${schemaName}:`,
-          err.message,
-        );
-      }
+    const sqlPath = resolve(__dirname, "migrations", "20260904_complete_schema_and_constraints.sql");
+    if (!existsSync(sqlPath)) {
+      throw new Error(`Migration SQL file not found at: ${sqlPath}`);
     }
 
-    console.log("✅ Migrations applied successfully!");
+    const sql = readFileSync(sqlPath, "utf-8");
+    await client.query(sql);
+
+    console.log("✅ 20260904_complete_schema_and_constraints.sql applied successfully across all schemas!");
   } catch (err: any) {
     console.error("❌ Migration failed:", err.message);
     process.exit(1);
