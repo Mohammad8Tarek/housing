@@ -233,7 +233,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       href: "/accommodation/reservations",
       label: ar ? "الحجوزات" : "Reservations",
       icon: CalendarCheck,
-      permissionModule: "accommodation",
+      permissionModule: "reservations",
     },
     {
       href: "/accommodation/in-house",
@@ -294,7 +294,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       href: "/portal",
       label: ar ? "البوابة" : "Portal",
       icon: Trophy,
-      permissionModule: "employees",
+      permissionModule: "portal_content",
     },
     {
       href: "/settings",

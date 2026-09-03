@@ -49,20 +49,35 @@ export function usePermission() {
     if (!user) return new Set();
     if (isAdmin) return new Set(["*"]);
 
-    const combined = new Set<string>();
-    const resolvedRoles = resolveInheritedRoles(user.roles ?? []);
-
     const explicit = (user as any).permissions as string[] | undefined;
-    if (explicit) {
+
+    // 1. If explicit permissions are configured for this user:
+    // STRICT MODE: We ONLY use explicit permissions. Do NOT add role defaults back!
+    if (Array.isArray(explicit) && explicit.length > 0) {
+      const combined = new Set<string>();
       for (const permission of explicit) {
+        if (permission === "none") continue;
         const normalized = normalize(permission);
-        if (normalized) combined.add(normalized);
+        if (normalized) {
+          combined.add(normalized);
+          if (normalized.includes(".")) combined.add(normalized.replace(".", ":"));
+          if (normalized.includes(":")) combined.add(normalized.replace(":", "."));
+        }
       }
+      return combined;
     }
 
+    // 2. Default fallback ONLY for fresh users whose permissions were never customized:
+    const combined = new Set<string>();
+    const resolvedRoles = resolveInheritedRoles(user.roles ?? []);
     for (const role of resolvedRoles) {
       const defaults = ROLE_DEFAULT_PERMISSIONS[normalize(role)] ?? [];
-      defaults.forEach((p) => combined.add(p));
+      defaults.forEach((p) => {
+        const norm = normalize(p);
+        combined.add(norm);
+        if (norm.includes(".")) combined.add(norm.replace(".", ":"));
+        if (norm.includes(":")) combined.add(norm.replace(":", "."));
+      });
     }
 
     return combined;
@@ -74,12 +89,13 @@ export function usePermission() {
     if (!user) return false;
     if (isAdmin) return true;
     if (perms.has("*")) return true;
-    if (perms.has(permKey(module, action))) return true;
-    if (
-      module === "reservations" &&
-      perms.has(permKey("accommodation" as Module, action))
-    )
-      return true;
+
+    // Check module.action with dot or colon format
+    const dotKey = `${module}.${action}`.toLowerCase();
+    const colonKey = `${module}:${action}`.toLowerCase();
+
+    if (perms.has(dotKey) || perms.has(colonKey)) return true;
+
     return false;
   };
 
@@ -90,6 +106,7 @@ export function usePermission() {
   const canCreate = (m: Module) => can(m, "create");
   const canEdit = (m: Module) => can(m, "edit");
   const canDelete = (m: Module) => can(m, "delete");
+  const canExport = (m: Module) => can(m, "export");
 
   return {
     can,
@@ -98,6 +115,7 @@ export function usePermission() {
     canCreate,
     canEdit,
     canDelete,
+    canExport,
     isAdmin,
     perms,
   };

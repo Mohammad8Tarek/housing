@@ -236,52 +236,53 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
-const MODULE_ALIASES: Partial<Record<PermissionModule, PermissionModule[]>> = {
-  reservations: ["reservations", "accommodation"],
-};
-
 function normalize(value: unknown): string {
   return String(value ?? "")
     .trim()
     .toLowerCase();
 }
 
-function isSystemRole(role: string): boolean {
-  return SYSTEM_ROLES.has(normalize(role));
-}
-
-function normalizePermissions(permissions: unknown): string[] {
-  return Array.isArray(permissions)
-    ? permissions.map(normalize).filter(Boolean)
-    : [];
-}
-
-function normalizeRoles(roles: unknown): string[] {
-  return Array.isArray(roles) ? roles.map(normalize).filter(Boolean) : [];
-}
-
 function permissionKeys(
   module: PermissionModule,
   action: PermissionAction,
 ): string[] {
-  const modules = MODULE_ALIASES[module] ?? [module];
-  return modules.map((m) => permissionKey(m, action));
+  return [
+    `${module}.${action}`.toLowerCase(),
+    `${module}:${action}`.toLowerCase(),
+  ];
 }
 
 function effectivePermissions(user: AuthUser): Set<string> {
   if (user.isSystemAdmin) return new Set(["*"]);
 
   const permissions = new Set<string>();
-  const resolvedRoles = resolveInheritedRoles(user.roles);
 
-  for (const role of resolvedRoles) {
-    for (const permission of ROLE_DEFAULT_PERMISSIONS[role] ?? []) {
-      permissions.add(normalize(permission));
+  // 1. If explicit permissions are configured for this user:
+  // STRICT MODE: We ONLY use explicit permissions. Do NOT add role defaults back!
+  if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+    for (const permission of user.permissions) {
+      if (permission === "none") continue;
+      const norm = normalize(permission);
+      if (norm) {
+        permissions.add(norm);
+        if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
+        if (norm.includes(":")) permissions.add(norm.replace(":", "."));
+      }
     }
+    return permissions;
   }
 
-  for (const permission of user.permissions) {
-    permissions.add(normalize(permission));
+  // 2. Otherwise, fallback to role default permissions for uncustomized users:
+  const resolvedRoles = resolveInheritedRoles(user.roles);
+  for (const role of resolvedRoles) {
+    for (const permission of ROLE_DEFAULT_PERMISSIONS[role] ?? []) {
+      const norm = normalize(permission);
+      if (norm) {
+        permissions.add(norm);
+        if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
+        if (norm.includes(":")) permissions.add(norm.replace(":", "."));
+      }
+    }
   }
 
   return permissions;

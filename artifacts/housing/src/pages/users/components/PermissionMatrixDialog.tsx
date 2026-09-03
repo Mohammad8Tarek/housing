@@ -44,7 +44,10 @@ export function PermissionMatrixDialog({
 
   const initialPerms = (): Set<string> => {
     const explicit = (user.permissions as string[] | undefined) ?? [];
-    if (explicit.length > 0) return new Set(explicit);
+    if (explicit.length > 0) {
+      if (explicit.length === 1 && explicit[0] === "none") return new Set();
+      return new Set(explicit);
+    }
     const role = user.roles?.[0]?.toLowerCase() ?? "";
     return new Set(ROLE_DEFAULT_PERMISSIONS[role] ?? []);
   };
@@ -110,9 +113,10 @@ export function PermissionMatrixDialog({
 
   const save = () => {
     setSaving(true);
+    const toSave = Array.from(perms);
     updateMutation.mutate({
       id: user.id,
-      data: { permissions: Array.from(perms) },
+      data: { permissions: toSave.length === 0 ? ["none"] : toSave },
     });
   };
 
