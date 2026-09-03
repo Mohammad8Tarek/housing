@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { applyBrandColors } from "@/lib/brand-colors";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
@@ -38,6 +38,11 @@ import {
   MessageSquare,
   LayoutGrid,
   Sparkles,
+  AlertCircle,
+  FileWarning,
+  Key,
+  Award,
+  CheckCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout, useGetSettings } from "@workspace/api-client-react";
@@ -69,6 +74,7 @@ type NavItem = {
 type Notification = {
   id: string;
   type: string;
+  category?: string;
   priority: "high" | "medium" | "low";
   title: string;
   titleAr: string;
@@ -76,7 +82,28 @@ type Notification = {
   descriptionAr: string;
   entityId: number;
   entityType: string;
+  targetUrl?: string;
+  createdAt?: string;
 };
+
+function playNotificationSound() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
+  } catch (_) {}
+}
 
 function NotificationIcon({ type }: { type: string }) {
   if (type === "OVERDUE_CHECKOUT")
@@ -89,10 +116,26 @@ function NotificationIcon({ type }: { type: string }) {
     return <UserPlus className="w-4 h-4 text-purple-500 flex-shrink-0" />;
   if (type === "NO_CHECKOUT_DATE")
     return <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />;
+  if (type === "EMERGENCY_MAINTENANCE")
+    return <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse flex-shrink-0" />;
   if (type === "OPEN_MAINTENANCE")
     return <Wrench className="w-4 h-4 text-orange-500 flex-shrink-0" />;
   if (type === "HOSTING_REQUEST_PENDING")
     return <UserPlus className="w-4 h-4 text-rose-500 flex-shrink-0" />;
+  if (type === "DIRTY_ROOMS")
+    return <Sparkles className="w-4 h-4 text-orange-500 flex-shrink-0" />;
+  if (type === "OUT_OF_SERVICE_ROOMS")
+    return <AlertCircle className="w-4 h-4 text-slate-500 flex-shrink-0" />;
+  if (type === "EXPIRING_CONTRACT")
+    return <FileWarning className="w-4 h-4 text-rose-500 flex-shrink-0" />;
+  if (type === "UNASSIGNED_PROFILES")
+    return <Users className="w-4 h-4 text-amber-500 flex-shrink-0" />;
+  if (type === "EXPIRED_KEYS")
+    return <Key className="w-4 h-4 text-red-500 flex-shrink-0" />;
+  if (type === "PENDING_EVALUATION")
+    return <Award className="w-4 h-4 text-indigo-500 flex-shrink-0" />;
+  if (type === "UNREAD_PORTAL_CHAT")
+    return <MessageSquare className="w-4 h-4 text-blue-500 flex-shrink-0" />;
   if (type === "NEW_SURVEY")
     return <Trophy className="w-4 h-4 text-green-500 flex-shrink-0" />;
   if (type === "NEW_DOCUMENT")
@@ -146,6 +189,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [sysSettings]);
 
+  const [notifCategory, setNotifCategory] = useState<string>("all");
+
   const { data: notifData } = useQuery<{
     count: number;
     notifications: Notification[];
@@ -158,12 +203,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       const r = await fetch(url);
       return r.json();
     },
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 15000,
+    staleTime: 10000,
   });
 
   const allNotifications = notifData?.notifications ?? [];
-  const notifications = allNotifications;
+  
+  // Sound alert on new high priority notifications
+  const prevHighCountRef = useRef<number>(0);
+  useEffect(() => {
+    const highUnseen = allNotifications.filter(
+      (n) => n.priority === "high" && !seenIds.has(n.id),
+    ).length;
+    if (highUnseen > prevHighCountRef.current && prevHighCountRef.current !== 0) {
+      playNotificationSound();
+    }
+    prevHighCountRef.current = highUnseen;
+  }, [allNotifications, seenIds]);
+
+  const notifications = allNotifications.filter((n) => {
+    if (notifCategory === "all") return true;
+    if (notifCategory === "accommodation") {
+      return n.category === "accommodation" || n.category === "reservations";
+    }
+    return n.category === notifCategory;
+  });
+
   const notifCount = allNotifications.filter((n) => !seenIds.has(n.id)).length;
 
   const markAllSeen = useCallback(() => {
@@ -614,10 +679,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   align="end"
                   className="w-80 max-h-[480px] overflow-y-auto"
                 >
-                  <DropdownMenuLabel className="flex items-center justify-between">
+                  <DropdownMenuLabel className="flex items-center justify-between pb-1">
                     <span>{ar ? "الإشعارات" : "Notifications"}</span>
                     <div className="flex items-center gap-2">
-                      {notifications.length > 0 && (
+                      {allNotifications.length > 0 && (
                         <Badge variant="secondary" className="text-xs">
                           {notifCount} {ar ? "جديد" : "new"}
                         </Badge>
@@ -628,26 +693,52 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             e.preventDefault();
                             markAllSeen();
                           }}
-                          className="text-[10px] text-sidebar-primary hover:underline font-medium"
+                          className="text-[10px] text-sidebar-primary hover:underline font-medium flex items-center gap-1"
                         >
+                          <CheckCheck className="w-3 h-3" />
                           {ar ? "قراءة الكل" : "Mark all read"}
                         </button>
                       )}
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                  {/* Category Filter Pills */}
+                  <div className="flex items-center gap-1 px-2.5 pb-2 pt-1 overflow-x-auto border-b border-border/40">
+                    {[
+                      { id: "all", label: ar ? "الكل" : "All" },
+                      { id: "accommodation", label: ar ? "تسكين وحجوزات" : "Housing" },
+                      { id: "maintenance", label: ar ? "صيانة" : "Maintenance" },
+                      { id: "housekeeping", label: ar ? "نظافة" : "Housekeeping" },
+                      { id: "profiles", label: ar ? "موظفين" : "Profiles" },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setNotifCategory(cat.id);
+                        }}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors ${
+                          notifCategory === cat.id
+                            ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                            : "bg-muted/70 text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
                   {notifications.length === 0 ? (
                     <div className="py-6 text-center">
                       <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
                       <p className="text-sm text-sidebar-foreground/70">
-                        {ar ? "لا توجد إشعارات" : "No notifications"}
+                        {ar ? "لا توجد إشعارات حالياً" : "No notifications right now"}
                       </p>
                     </div>
                   ) : (
                     notifications.map((n) => {
                       const isSeen = seenIds.has(n.id);
                       const notifHref =
-                        n.type === "OVERDUE_CHECKOUT" ||
+                        n.targetUrl ||
+                        (n.type === "OVERDUE_CHECKOUT" ||
                         n.type === "UPCOMING_CHECKOUT" ||
                         n.type === "NO_CHECKOUT_DATE"
                           ? "/accommodation/in-house"
@@ -657,15 +748,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               ? "/accommodation/guest-hosting"
                               : n.type === "HOSTING_REQUEST_PENDING"
                                 ? `/hosting-requests/${n.entityId}`
-                                : n.type === "OPEN_MAINTENANCE"
+                                : n.type === "OPEN_MAINTENANCE" || n.type === "EMERGENCY_MAINTENANCE"
                                   ? "/maintenance"
-                                  : n.type === "NEW_SURVEY"
-                                    ? "/portal"
-                                    : n.type === "NEW_DOCUMENT"
-                                      ? "/portal"
-                                      : n.type === "NEW_ACTIVITY"
-                                        ? "/portal"
-                                        : "/dashboard";
+                                  : n.type === "DIRTY_ROOMS"
+                                    ? "/housekeeping"
+                                    : n.type === "OUT_OF_SERVICE_ROOMS"
+                                      ? "/housing"
+                                      : n.type === "EXPIRING_CONTRACT"
+                                        ? "/profiles"
+                                        : n.type === "UNASSIGNED_PROFILES"
+                                          ? "/accommodation/in-house"
+                                          : n.type === "EXPIRED_KEYS"
+                                            ? "/housing"
+                                            : n.type === "UNREAD_PORTAL_CHAT" || n.type === "PENDING_EVALUATION"
+                                              ? "/portal"
+                                              : "/dashboard");
                       return (
                         <DropdownMenuItem
                           key={n.id}

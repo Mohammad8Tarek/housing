@@ -2,6 +2,22 @@ import { db, pool } from "@workspace/db";
 
 // ====== PUBLIC SCHEMA MIGRATIONS (run once on public schema) ======
 const MIGRATIONS = [
+  {
+    name: "public.user_sessions_table",
+    q: `CREATE TABLE IF NOT EXISTS public.user_sessions (
+      "sid" varchar NOT NULL COLLATE "default",
+      "sess" json NOT NULL,
+      "expire" timestamp(6) NOT NULL
+    )`,
+  },
+  {
+    name: "public.user_sessions_pkey",
+    q: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_sessions_pkey' AND conrelid = 'public.user_sessions'::regclass) THEN ALTER TABLE public.user_sessions ADD CONSTRAINT user_sessions_pkey PRIMARY KEY ("sid"); END IF; END $$`,
+  },
+  {
+    name: "public.user_sessions_expire_index",
+    q: `CREATE INDEX IF NOT EXISTS idx_public_user_sessions_expire ON public.user_sessions ("expire")`,
+  },
   // Existing column additions
   {
     name: "profiles.photo_url",
