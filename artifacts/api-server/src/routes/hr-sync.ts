@@ -560,6 +560,18 @@ router.get(
 // GET /api/hr-sync/profiles/:profileId — Full profile data for HR system
 // ========================
 router.get("/profiles/:profileId", async (req, res): Promise<void> => {
+  const expectedKey = process.env["HR_SYNC_API_KEY"];
+  if (expectedKey) {
+    const providedKey = req.headers["x-api-key"];
+    if (providedKey !== expectedKey) {
+      res.status(401).json({ success: false, error: "Unauthorized" });
+      return;
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "HR_SYNC_API_KEY not configured — access denied in production" });
+    return;
+  }
+
   const propertyId = getTenantId(req);
   if (!propertyId) {
     res.status(400).json({ error: "propertyId required" });
