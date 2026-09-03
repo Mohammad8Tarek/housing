@@ -22,6 +22,7 @@ import { verifyWsAuthToken } from "./ws-auth-token.js";
 export type WsModule =
   | "profiles"
   | "accommodation"
+  | "assignments"
   | "housing"
   | "maintenance"
   | "housekeeping"

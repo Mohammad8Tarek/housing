@@ -242,6 +242,29 @@ function normalize(value: unknown): string {
     .toLowerCase();
 }
 
+function normalizeRoles(roles: unknown): string[] {
+  if (Array.isArray(roles)) return roles.map(normalize).filter(Boolean);
+  if (typeof roles === "string")
+    return roles
+      .split(",")
+      .map(normalize)
+      .filter(Boolean);
+  return [];
+}
+
+function isSystemRole(role: unknown): boolean {
+  return SYSTEM_ROLES.has(normalize(role));
+}
+
+function normalizePermissions(permissions: unknown): string[] {
+  const list = Array.isArray(permissions)
+    ? permissions
+    : typeof permissions === "string"
+      ? permissions.split(",")
+      : [];
+  return [...new Set(list.map(normalize).filter(Boolean))];
+}
+
 function permissionKeys(
   module: PermissionModule,
   action: PermissionAction,
