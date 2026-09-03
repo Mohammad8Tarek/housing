@@ -215,10 +215,11 @@ export function auditLogMiddleware(
       try {
         const authUser = (req as any).authUser;
         const session = req.session as any;
-        const userId = authUser?.id ?? session?.userId ?? undefined;
-        const username = authUser?.username ?? session?.username ?? "system";
-        const userRole = (authUser?.roles && authUser.roles[0]) ?? session?.userRole ?? undefined;
-        const propertyId = extractPropertyId(req, body);
+        const portal = session?.portal;
+        const userId = authUser?.id ?? portal?.profileDbId ?? session?.userId ?? undefined;
+        const username = authUser?.username ?? (portal ? `الموظف: ${portal.fullName}` : session?.username) ?? "system";
+        const userRole = (authUser?.roles && authUser.roles[0]) ?? (portal ? "portal_employee" : session?.userRole) ?? undefined;
+        const propertyId = extractPropertyId(req, body) || portal?.propertyId || 1;
 
         const analysis = analyzeMutation(
           req.method,
