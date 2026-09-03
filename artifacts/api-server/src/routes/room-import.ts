@@ -21,6 +21,7 @@ const router = Router();
  */
 router.post(
   "/rooms/import/execute",
+  requirePermission("housing", "create"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = getTenantId(req) || req.body.propertyId;
@@ -350,7 +351,10 @@ router.post(
  * GET /api/rooms/import/history
  * Fetches recent import logs for the property
  */
-router.get("/rooms/import/history", async (req: Request, res: Response) => {
+router.get(
+  "/rooms/import/history",
+  requirePermission("housing", "view"),
+  async (req: Request, res: Response) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -376,7 +380,10 @@ router.get("/rooms/import/history", async (req: Request, res: Response) => {
  * GET /api/rooms/import/templates
  * Fetches saved column mapping templates
  */
-router.get("/rooms/import/templates", async (req: Request, res: Response) => {
+router.get(
+  "/rooms/import/templates",
+  requirePermission("housing", "view"),
+  async (req: Request, res: Response) => {
   try {
     const propertyId = getTenantId(req);
 
@@ -397,7 +404,10 @@ router.get("/rooms/import/templates", async (req: Request, res: Response) => {
  * POST /api/rooms/import/templates
  * Saves or updates a column mapping template
  */
-router.post("/rooms/import/templates", async (req: Request, res: Response) => {
+router.post(
+  "/rooms/import/templates",
+  requirePermission("housing", "create"),
+  async (req: Request, res: Response) => {
   try {
     const propertyId = getTenantId(req) || req.body.propertyId;
     const { name, description = "", columnMapping } = req.body;
