@@ -23,6 +23,14 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   Activity,
@@ -32,6 +40,9 @@ import {
   Monitor,
   Printer,
   ShieldAlert,
+  Copy,
+  Eye,
+  Terminal,
 } from "lucide-react";
 import { DataPagination } from "@/components/DataPagination";
 import {
@@ -123,8 +134,31 @@ const prettyKeyAction = (action: string, ar: boolean) => {
   return a ? a.charAt(0).toUpperCase() + a.slice(1) : "-";
 };
 
+const parseDetails = (rawDetails: any): { isJson: boolean; data: any; summary?: string } => {
+  if (!rawDetails) return { isJson: false, data: null };
+  if (typeof rawDetails === "object") {
+    return {
+      isJson: true,
+      data: rawDetails,
+      summary: rawDetails.summary || rawDetails.message || undefined,
+    };
+  }
+  try {
+    const parsed = JSON.parse(rawDetails);
+    return {
+      isJson: typeof parsed === "object" && parsed !== null,
+      data: parsed,
+      summary: parsed?.summary || parsed?.message || undefined,
+    };
+  } catch {
+    return { isJson: false, data: rawDetails, summary: String(rawDetails) };
+  }
+};
+
 const formatDetails = (details: any) => {
   if (!details) return "";
+  const parsed = parseDetails(details);
+  if (parsed.summary) return parsed.summary;
   if (typeof details === "string") return details;
   try {
     return Object.entries(details)
@@ -194,6 +228,7 @@ export default function ActivityLog() {
   }
 
   const [activeView, setActiveView] = useState<"activity" | "keys">("activity");
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
   const [moduleFilter, setModuleFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -748,13 +783,31 @@ export default function ActivityLog() {
                         </TableCell>
                       )}
                       {isVisible("details") && (
-                        <TableCell className="text-sm text-muted-foreground max-w-[200px]">
-                          <p
-                            className="truncate"
-                            title={(log as any).details ?? ""}
-                          >
-                            {(log as any).details || "-"}
-                          </p>
+                        <TableCell className="text-sm text-muted-foreground max-w-[280px]">
+                          <div className="flex items-center justify-between gap-2">
+                            <p
+                              className="truncate text-xs text-foreground/80 font-medium"
+                              title={(log as any).details ?? ""}
+                            >
+                              {(() => {
+                                const p = parseDetails((log as any).details);
+                                return p.summary || (typeof p.data === "string" ? p.data : (log as any).details) || "-";
+                              })()}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-1.5 text-[11px] gap-1 text-primary hover:bg-primary/10 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLog(log);
+                              }}
+                              title={ar ? "عرض التفاصيل الكاملة" : "View full details"}
+                            >
+                              <Eye className="w-3 h-3" />
+                              {ar ? "تفاصيل" : "Details"}
+                            </Button>
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>
@@ -768,9 +821,9 @@ export default function ActivityLog() {
                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                           <Activity className="w-8 h-8 opacity-30" />
                           <p className="font-medium">
-                            {ar ? "لا توجد سجلات" : "No activity logs found"}
+                            {ar ? "لا توجد سجلات مطابقة" : "No matching logs"}
                           </p>
-                          <p className="text-sm">
+                          <p className="text-xs text-muted-foreground">
                             {ar
                               ? "ستظهر أحداث النظام هنا"
                               : "System activities will appear here"}
@@ -781,6 +834,118 @@ export default function ActivityLog() {
                   )}
                 </TableBody>
               </Table>
+
+              <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                  {selectedLog && (
+                    (() => {
+                      const detailsParsed = parseDetails((selectedLog as any).details);
+                      return (
+                        <div className="space-y-4">
+                          <DialogHeader>
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${actionColor(selectedLog.action)}`}>
+                                  {selectedLog.action}
+                                </span>
+                                {selectedLog.module && (
+                                  <Badge variant="outline" className="text-xs uppercase">
+                                    {selectedLog.module}
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground font-mono">
+                                {selectedLog.timestamp ? format(new Date(selectedLog.timestamp), "yyyy-MM-dd HH:mm:ss") : "-"}
+                              </span>
+                            </div>
+                            <DialogTitle className="text-lg font-bold mt-2">
+                              {ar ? "تفاصيل العملية والنشاط" : "Activity Log Details"}
+                            </DialogTitle>
+                            <DialogDescription className="text-xs text-muted-foreground">
+                              {ar ? `رقم السجل: #${selectedLog.id}` : `Record ID: #${selectedLog.id}`}
+                            </DialogDescription>
+                          </DialogHeader>
+
+                          {detailsParsed.summary && (
+                            <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-sm">
+                              <p className="font-semibold text-primary mb-1">
+                                {ar ? "ملخص الإجراء:" : "Action Summary:"}
+                              </p>
+                              <p className="text-foreground leading-relaxed">
+                                {detailsParsed.summary}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                            <div className="p-3 rounded-lg bg-muted/40 border">
+                              <p className="text-muted-foreground font-medium mb-1">{ar ? "المستخدم:" : "User:"}</p>
+                              <p className="font-semibold text-foreground">{selectedLog.username || "-"}</p>
+                              {selectedLog.userRole && (
+                                <p className="text-[10px] text-muted-foreground capitalize mt-0.5">{selectedLog.userRole}</p>
+                              )}
+                            </div>
+                            <div className="p-3 rounded-lg bg-muted/40 border">
+                              <p className="text-muted-foreground font-medium mb-1">{ar ? "العنصر المرتبط:" : "Entity:"}</p>
+                              <p className="font-semibold text-foreground">
+                                {selectedLog.entityType ? `${selectedLog.entityType} #${selectedLog.entityId || ""}` : "-"}
+                              </p>
+                            </div>
+                            <div className="p-3 rounded-lg bg-muted/40 border col-span-2 sm:col-span-1">
+                              <p className="text-muted-foreground font-medium mb-1">{ar ? "عنوان IP:" : "IP Address:"}</p>
+                              <p className="font-mono text-foreground">{(selectedLog as any).ipAddress || "-"}</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                <Terminal className="w-3.5 h-3.5 text-primary" />
+                                {ar ? "البيانات المسجلة (Payload & Parameters):" : "Recorded Payload & Data:"}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => {
+                                  const content = typeof detailsParsed.data === "object"
+                                    ? JSON.stringify(detailsParsed.data, null, 2)
+                                    : String((selectedLog as any).details || "");
+                                  navigator.clipboard.writeText(content);
+                                  toast.success(ar ? "تم نسخ التفاصيل للحافظة" : "Copied to clipboard");
+                                }}
+                              >
+                                <Copy className="w-3 h-3" />
+                                {ar ? "نسخ JSON" : "Copy JSON"}
+                              </Button>
+                            </div>
+
+                            <div className="rounded-xl border bg-slate-950 p-3.5 text-slate-50 text-xs font-mono overflow-x-auto max-h-[280px]">
+                              {detailsParsed.isJson ? (
+                                <pre className="whitespace-pre-wrap break-all leading-relaxed">
+                                  {JSON.stringify(detailsParsed.data, null, 2)}
+                                </pre>
+                              ) : (
+                                <p className="whitespace-pre-wrap leading-relaxed">
+                                  {(selectedLog as any).details || (ar ? "لا توجد تفاصيل إضافية" : "No extra details recorded")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {(selectedLog as any).userAgent && (
+                            <div className="text-[11px] text-muted-foreground pt-1 border-t">
+                              <span className="font-medium text-foreground">{ar ? "المتصفح والنظام:" : "User Agent:"} </span>
+                              <span className="font-mono text-[10px] break-all">{(selectedLog as any).userAgent}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()
+                  )}
+                </DialogContent>
+              </Dialog>
+
               {totalLogs > 0 && (
                 <DataPagination
                   total={totalLogs}
