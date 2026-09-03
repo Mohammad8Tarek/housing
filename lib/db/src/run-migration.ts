@@ -25,7 +25,7 @@ async function runMigration() {
       "ALTER TABLE users ALTER COLUMN property_id DROP NOT NULL;",
     );
 
-    // Add email and emergency_contact to employees table in all tenant schemas
+    // Add email and emergency_contact to profiles table in all tenant schemas
     const schemasRes = await client.query(
       "SELECT schema_name FROM public.properties WHERE schema_name IS NOT NULL",
     );
@@ -33,21 +33,21 @@ async function runMigration() {
       const schemaName = row.schema_name;
       try {
         await client.query(
-          `ALTER TABLE ${schemaName}.employees ADD COLUMN IF NOT EXISTS email text DEFAULT '' NOT NULL;`,
+          `ALTER TABLE ${schemaName}.profiles ADD COLUMN IF NOT EXISTS email text DEFAULT '' NOT NULL;`,
         );
         await client.query(
-          `ALTER TABLE ${schemaName}.employees ADD COLUMN IF NOT EXISTS emergency_contact text DEFAULT '' NOT NULL;`,
+          `ALTER TABLE ${schemaName}.profiles ADD COLUMN IF NOT EXISTS emergency_contact text DEFAULT '' NOT NULL;`,
         );
         await client.query(
-          `ALTER TABLE ${schemaName}.employees ADD COLUMN IF NOT EXISTS third_name text DEFAULT '' NOT NULL;`,
+          `ALTER TABLE ${schemaName}.profiles ADD COLUMN IF NOT EXISTS third_name text DEFAULT '' NOT NULL;`,
         );
         await client.query(
-          `ALTER TABLE ${schemaName}.employees ADD COLUMN IF NOT EXISTS fourth_name text DEFAULT '' NOT NULL;`,
+          `ALTER TABLE ${schemaName}.profiles ADD COLUMN IF NOT EXISTS fourth_name text DEFAULT '' NOT NULL;`,
         );
-        console.log(`Updated employees table in schema: ${schemaName}`);
+        console.log(`Updated profiles table in schema: ${schemaName}`);
       } catch (err: any) {
         console.warn(
-          `Could not update employees in ${schemaName}:`,
+          `Could not update profiles in ${schemaName}:`,
           err.message,
         );
       }

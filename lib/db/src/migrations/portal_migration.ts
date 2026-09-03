@@ -49,7 +49,7 @@ if (!DB) {
 }
 const pool = new Pool({ connectionString: DB });
 function temporaryPassword() {
-  return process.env["DEFAULT_EMPLOYEE_PORTAL_PASSWORD"] || "1234";
+  return process.env["DEFAULT_PROFILE_PORTAL_PASSWORD"] || "1234";
 }
 async function run() {
   const client = await pool.connect();
@@ -57,10 +57,10 @@ async function run() {
   try {
     await client.query("BEGIN");
     await client.query(`
-      CREATE TABLE IF NOT EXISTS employee_portal_accounts (
+      CREATE TABLE IF NOT EXISTS profile_portal_accounts (
         id SERIAL PRIMARY KEY,
         property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
-        employee_id TEXT NOT NULL,
+        profile_id TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
         is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -73,17 +73,17 @@ async function run() {
       )`);
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_portal_emp
-        ON employee_portal_accounts(property_id, employee_id)`);
+        ON profile_portal_accounts(property_id, profile_id)`);
     const { rows: emps } = await client.query(
-      `SELECT property_id, employee_id, first_name, last_name FROM employees`,
+      `SELECT property_id, profile_id, first_name, last_name FROM profiles`,
     );
-    console.log(`Found ${emps.length} employees`);
+    console.log(`Found ${emps.length} profiles`);
     let created = 0,
       skipped = 0;
     for (const e of emps) {
       const { rows: ex } = await client.query(
-        `SELECT id FROM employee_portal_accounts WHERE property_id=$1 AND employee_id=$2`,
-        [e.property_id, e.employee_id],
+        `SELECT id FROM profile_portal_accounts WHERE property_id=$1 AND profile_id=$2`,
+        [e.property_id, e.profile_id],
       );
       if (ex.length) {
         skipped++;
@@ -92,12 +92,12 @@ async function run() {
       const password = temporaryPassword();
       const hash = await bcrypt.hash(password, 12);
       await client.query(
-        `INSERT INTO employee_portal_accounts(property_id,employee_id,password_hash,must_change_password)
+        `INSERT INTO profile_portal_accounts(property_id,profile_id,password_hash,must_change_password)
          VALUES($1,$2,$3,TRUE)`,
-        [e.property_id, e.employee_id, hash],
+        [e.property_id, e.profile_id, hash],
       );
       console.log(
-        `  + ${e.first_name} ${e.last_name} (${e.employee_id}) temporary password: ${password}`,
+        `  + ${e.first_name} ${e.last_name} (${e.profile_id}) temporary password: ${password}`,
       );
       created++;
     }

@@ -34,21 +34,21 @@ export const portalNotificationsTable = pgTable("portal_notifications", {
   index("idx_portal_notifications_created_at").on(table.createdAt),
 ]);
 
-// Read receipts — which employees read which notification
+// Read receipts — which profiles read which notification
 export const portalNotificationReadsTable = pgTable(
   "portal_notification_reads",
   {
     id: serial("id").primaryKey(),
     notificationId: integer("notification_id").notNull(),
-    employeeId: integer("employee_id").notNull(),
+    profileId: integer("profile_id").notNull(),
     readAt: timestamp("read_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex("uq_portal_notification_reads").on(
       t.notificationId,
-      t.employeeId,
+      t.profileId,
     ),
-    index("idx_portal_notification_reads_employee_id").on(t.employeeId),
+    index("idx_portal_notification_reads_profile_id").on(t.profileId),
   ],
 );
 
@@ -57,7 +57,7 @@ export const pushSubscriptionsTable = pgTable(
   "push_subscriptions",
   {
     id: serial("id").primaryKey(),
-    employeeId: integer("employee_id").notNull(),
+    profileId: integer("profile_id").notNull(),
     propertyId: integer("property_id").notNull(),
     endpoint: text("endpoint").notNull(),
     p256dhKey: text("p256dh_key").notNull(),
@@ -70,7 +70,7 @@ export const pushSubscriptionsTable = pgTable(
   },
   (t) => [
     uniqueIndex("uq_push_subscriptions").on(t.endpoint),
-    index("idx_push_subscriptions_employee_id").on(t.employeeId),
+    index("idx_push_subscriptions_profile_id").on(t.profileId),
     index("idx_push_subscriptions_property_id").on(t.propertyId),
   ],
 );

@@ -15,7 +15,7 @@ type Props = {
   buildings: any[];
   rooms: any[];
   assignments: any[];
-  employees: any[];
+  profiles: any[];
   propertyId: number | null;
 };
 
@@ -23,7 +23,7 @@ export function KeysTab({
   buildings,
   rooms,
   assignments,
-  employees,
+  profiles,
   propertyId,
 }: Props) {
   const { language } = useLanguage();
@@ -99,16 +99,16 @@ export function KeysTab({
           const activeAssignment = assignments.find(
             (a: any) => a.roomId === roomIdNum && a.status === "ACTIVE",
           );
-          const assignedEmployee = activeAssignment
-            ? employees.find((e: any) => e.id === activeAssignment.employeeId)
+          const assignedProfile = activeAssignment
+            ? profiles.find((e: any) => e.id === activeAssignment.profileId)
             : undefined;
           return (
             <div className="max-w-lg space-y-2">
-              {activeAssignment && assignedEmployee && (
+              {activeAssignment && assignedProfile && (
                 <div className="flex items-center gap-2 rounded-lg border bg-amber-50 px-3 py-2 text-xs text-amber-800">
                   <span className="font-semibold">الساكن الحالي:</span>
                   <span>
-                    {assignedEmployee.firstName} {assignedEmployee.lastName}
+                    {assignedProfile.firstName} {assignedProfile.lastName}
                   </span>
                   <span className="text-muted-foreground">
                     — غرفة{" "}
@@ -120,15 +120,15 @@ export function KeysTab({
                 propertyId={propertyId}
                 roomId={roomIdNum}
                 assignmentId={activeAssignment?.id}
-                employeeId={activeAssignment?.employeeId}
+                profileId={activeAssignment?.profileId}
                 checkInDate={activeAssignment?.checkInDate}
                 checkOutDate={
                   activeAssignment?.expectedCheckOutDate ||
                   activeAssignment?.checkOutDate
                 }
                 notes={
-                  assignedEmployee
-                    ? `${assignedEmployee.firstName} ${assignedEmployee.lastName}`
+                  assignedProfile
+                    ? `${assignedProfile.firstName} ${assignedProfile.lastName}`
                     : undefined
                 }
               />

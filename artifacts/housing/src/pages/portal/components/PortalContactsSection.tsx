@@ -180,7 +180,7 @@ export function PortalContactsSection() {
           <p className="text-xs text-muted-foreground mt-1">
             {ar
               ? "أضف عدة جهات اتصال تظهر للموظفين في البوابة (مشرف سكن، موارد بشرية، إلخ)"
-              : "Add multiple contacts visible to employees (Housing Supervisor, HR, etc.)"}
+              : "Add multiple contacts visible to profiles (Housing Supervisor, HR, etc.)"}
           </p>
         </div>
         <Button size="sm" onClick={openAdd}>

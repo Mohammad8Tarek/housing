@@ -9,7 +9,6 @@ import { useReportFilters } from "./hooks/useReportFilters";
 import { useReportDataProcessor } from "./hooks/useReportDataProcessor";
 import { useReportAnalytics } from "./hooks/useReportAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
-import { usePaginatedReports } from "./hooks/usePaginatedReports";
 
 import { ExportToolbar } from "./components/ExportToolbar";
 import { StatsCards } from "./components/StatsCards";
@@ -40,7 +39,7 @@ export default function Reports() {
   const floorOptions =
     filters.filterBuilding === "all" ||
     filters.filterBuilding === "undefined" ||
-    filters.filterBuilding === ""
+    !filters.filterBuilding
       ? data.floors
       : data.floors.filter(
           (f: any) => f.buildingId === Number(filters.filterBuilding),
@@ -49,9 +48,11 @@ export default function Reports() {
   const { stats, analytics } = useReportAnalytics({
     rooms: data.rooms,
     assignments: data.assignments,
-    employees: data.employees,
+    profiles: data.profiles,
     buildings: data.buildings,
     maintenance: data.maintenance,
+    reservations: data.reservations,
+    hostings: data.hostings,
   });
 
   const processor = useReportDataProcessor({
@@ -59,7 +60,7 @@ export default function Reports() {
     buildings: data.buildings,
     floors: data.floors,
     rooms: data.rooms,
-    employees: data.employees,
+    profiles: data.profiles,
     assignments: data.assignments,
     reservations: data.reservations,
     maintenance: data.maintenance,
@@ -71,17 +72,11 @@ export default function Reports() {
   });
 
   const allData = processor.currentData();
+  const totalCount = allData.length;
 
-  const { data: serverData, isLoading: isServerLoading } = usePaginatedReports({
-    propertyId: numericPropertyId,
-    tab: filters.activeTab,
-    page: filters.currentPage,
-    limit: filters.pageSize,
-    search: filters.search,
-  });
-
-  const paginatedData = serverData?.data || [];
-  const totalCount = serverData?.pagination?.total || 0;
+  // Real-time responsive pagination based on filtered data
+  const startIndex = (filters.currentPage - 1) * filters.pageSize;
+  const paginatedData = allData.slice(startIndex, startIndex + filters.pageSize);
 
   const { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF } =
     useReportExport({
@@ -97,7 +92,7 @@ export default function Reports() {
       settings: data.settings,
       analytics,
       rooms: data.rooms,
-      employees: data.employees,
+      profiles: data.profiles,
       evalStats: data.evalStats,
       floorMap: data.floorMap,
       buildingMap: data.buildingMap,
@@ -107,11 +102,16 @@ export default function Reports() {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {ar ? "مركز التقارير الشاملة" : "Comprehensive Reports"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Analyze and export housing data across all modules
+            {ar
+              ? "استخراج وجرد وتحليل بيانات التسكين، الغرف الشاغرة والمشغولة، المقيمين، العقود، والصيانة"
+              : "Analyze, filter, and export occupancy, vacant beds, profiles, contracts, and maintenance"}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -126,8 +126,10 @@ export default function Reports() {
         </div>
       </div>
 
-      <StatsCards stats={stats} isLoading={data.isLoading} />
+      {/* KPI Cards */}
+      <StatsCards stats={stats} isLoading={data.isLoading} ar={ar} />
 
+      {/* Tabs Navigation */}
       <TabsNav
         activeTab={filters.activeTab}
         setActiveTab={filters.setActiveTab}
@@ -136,6 +138,7 @@ export default function Reports() {
         ar={ar}
       />
 
+      {/* Tab 1: Analytics Dashboard */}
       {filters.activeTab === "analytics" && (
         <AnalyticsTab
           ar={ar}
@@ -146,6 +149,7 @@ export default function Reports() {
         />
       )}
 
+      {/* Other Tabs: Data Table & Filters */}
       {filters.activeTab !== "analytics" && (
         <>
           <ReportFilters
@@ -166,6 +170,10 @@ export default function Reports() {
             setFilterFloor={filters.setFilterFloor}
             filterStatus={filters.filterStatus}
             setFilterStatus={filters.setFilterStatus}
+            filterRoomType={filters.filterRoomType}
+            setFilterRoomType={filters.setFilterRoomType}
+            filterEmploymentType={filters.filterEmploymentType}
+            setFilterEmploymentType={filters.setFilterEmploymentType}
             filterCategory={filters.filterCategory}
             setFilterCategory={filters.setFilterCategory}
             filterDepartment={filters.filterDepartment}
@@ -182,13 +190,13 @@ export default function Reports() {
             setDateTo={filters.setDateTo}
             resetReportFilters={filters.resetReportFilters}
             hasActiveReportFilters={filters.hasActiveReportFilters}
-            currentDataLength={allData.length}
+            currentDataLength={totalCount}
             selectedRowsSize={filters.selectedRows.size}
           />
 
-          <div className="border rounded-lg bg-card overflow-hidden shadow-sm">
+          <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
             <ReportTable
-              isLoading={data.isLoading || isServerLoading}
+              isLoading={data.isLoading}
               allData={allData}
               paginatedData={paginatedData}
               selectedRows={filters.selectedRows}

@@ -182,7 +182,7 @@ export const exportPDF = async (
 export const exportAnalyticsPDF = async (
   analytics: any,
   rooms: any[],
-  employees: any[],
+  profiles: any[],
   evalStats: any,
   properties: any[],
   propId: number | undefined,
@@ -265,7 +265,7 @@ export const exportAnalyticsPDF = async (
       ["Occupied Beds", String(analytics.totalOccupied)],
       ["Available Beds", String(analytics.availableBeds)],
       ["Occupancy Rate", `${analytics.occRate}%`],
-      ["Total Employees", String(employees.length)],
+      ["Total Profiles", String(profiles.length)],
       ["Active Residents", String(analytics.totalOccupied)],
       ["Open Maintenance", String(analytics.openMaint)],
       ["In-Progress Maint.", String(analytics.inProg)],
@@ -397,7 +397,7 @@ export const exportAnalyticsPDF = async (
   const hasPage2Data =
     analytics.openMaint > 0 ||
     analytics.inProg > 0 ||
-    analytics.topEmployees.length > 0 ||
+    analytics.topProfiles.length > 0 ||
     evalStats.total > 0 ||
     analytics.byGender.length > 0;
 
@@ -506,11 +506,11 @@ export const exportAnalyticsPDF = async (
       });
     }
 
-    if (analytics.topEmployees.length > 0) {
+    if (analytics.topProfiles.length > 0) {
       sH("Top Technician Performance", colR, p2row2Y);
       autoTable(doc, {
         head: [["Technician", "Total", "Open", "Resolved"]],
-        body: analytics.topEmployees.map((e: any) => [
+        body: analytics.topProfiles.map((e: any) => [
           pdfTextSafe(e.name, `Emp #${e.empId}`),
           String(e.total),
           String(e.open),

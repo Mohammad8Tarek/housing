@@ -5,7 +5,7 @@ import {
   portalConversationParticipantsTable,
   portalMessagesTable,
   portalMessageReadsTable,
-  employeesTable,
+  profilesTable,
 } from "@workspace/db";
 import { eq, and, desc, asc, inArray, sql, not } from "drizzle-orm";
 import { z } from "zod";
@@ -34,8 +34,8 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
           .from(portalConversationParticipantsTable)
           .where(
             eq(
-              portalConversationParticipantsTable.employeeId,
-              sess.employeeDbId,
+              portalConversationParticipantsTable.profileId,
+              sess.profileDbId,
             ),
           );
 
@@ -76,34 +76,34 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
                 eq(portalMessagesTable.conversationId, conv.id),
                 eq(portalMessagesTable.isDeleted, false),
                 not(
-                  sql`EXISTS (SELECT 1 FROM portal_message_reads WHERE message_id = portal_messages.id AND employee_id = ${sess.employeeDbId})`,
+                  sql`EXISTS (SELECT 1 FROM portal_message_reads WHERE message_id = portal_messages.id AND profile_id = ${sess.profileDbId})`,
                 ),
-                not(eq(portalMessagesTable.senderId, sess.employeeDbId)),
+                not(eq(portalMessagesTable.senderId, sess.profileDbId)),
               ),
             );
 
           // Get participants
           const participants = await tenantDb
             .select({
-              employeeId: portalConversationParticipantsTable.employeeId,
+              profileId: portalConversationParticipantsTable.profileId,
             })
             .from(portalConversationParticipantsTable)
             .where(
               eq(portalConversationParticipantsTable.conversationId, conv.id),
             );
 
-          const participantIds = participants.map((p) => p.employeeId);
+          const participantIds = participants.map((p) => p.profileId);
           let participantsData: any[] = [];
           if (participantIds.length > 0) {
             participantsData = await tenantDb
               .select({
-                id: employeesTable.id,
-                firstName: employeesTable.firstName,
-                lastName: employeesTable.lastName,
-                photoUrl: employeesTable.photoUrl,
+                id: profilesTable.id,
+                firstName: profilesTable.firstName,
+                lastName: profilesTable.lastName,
+                photoUrl: profilesTable.photoUrl,
               })
-              .from(employeesTable)
-              .where(inArray(employeesTable.id, participantIds));
+              .from(profilesTable)
+              .where(inArray(profilesTable.id, participantIds));
           }
 
           result.push({
@@ -140,7 +140,7 @@ router.post("/conversations", requirePortalAuth, async (req, res, next) => {
     }
 
     const allParticipantIds = [
-      ...new Set([sess.employeeDbId, ...participantIds]),
+      ...new Set([sess.profileDbId, ...participantIds]),
     ];
     const isGroup = allParticipantIds.length > 2;
 
@@ -153,7 +153,7 @@ router.post("/conversations", requirePortalAuth, async (req, res, next) => {
             propertyId: sess.propertyId,
             subject: subject || null,
             isGroup,
-            createdBy: sess.employeeDbId,
+            createdBy: sess.profileDbId,
           })
           .returning();
       },
@@ -163,7 +163,7 @@ router.post("/conversations", requirePortalAuth, async (req, res, next) => {
       await tenantDb.insert(portalConversationParticipantsTable).values(
         allParticipantIds.map((empId) => ({
           conversationId: conversation.id,
-          employeeId: empId,
+          profileId: empId,
         })),
       );
     });
@@ -175,18 +175,18 @@ router.post("/conversations", requirePortalAuth, async (req, res, next) => {
 });
 
 // ─── Typing State Tracking (In-Memory) ──────────────────────────
-const typingState = new Map<number, Set<number>>(); // convId -> Set of employeeIds
+const typingState = new Map<number, Set<number>>(); // convId -> Set of profileIds
 
-function setTyping(convId: number, employeeId: number) {
+function setTyping(convId: number, profileId: number) {
   if (!typingState.has(convId)) {
     typingState.set(convId, new Set());
   }
-  typingState.get(convId)!.add(employeeId);
+  typingState.get(convId)!.add(profileId);
   // Clear after 3 seconds
   setTimeout(() => {
     const s = typingState.get(convId);
     if (s) {
-      s.delete(employeeId);
+      s.delete(profileId);
       if (s.size === 0) typingState.delete(convId);
     }
   }, 3000);
@@ -213,8 +213,8 @@ router.get(
             and(
               eq(portalConversationParticipantsTable.conversationId, convId),
               eq(
-                portalConversationParticipantsTable.employeeId,
-                sess.employeeDbId,
+                portalConversationParticipantsTable.profileId,
+                sess.profileDbId,
               ),
             ),
           )
@@ -265,15 +265,15 @@ router.get(
         if (senderIds.length > 0) {
           senders = await tenantDb
             .select({
-              id: employeesTable.id,
-              firstName: employeesTable.firstName,
-              lastName: employeesTable.lastName,
-              photoUrl: employeesTable.photoUrl,
-              department: employeesTable.department,
-              jobTitle: employeesTable.jobTitle,
+              id: profilesTable.id,
+              firstName: profilesTable.firstName,
+              lastName: profilesTable.lastName,
+              photoUrl: profilesTable.photoUrl,
+              department: profilesTable.department,
+              jobTitle: profilesTable.jobTitle,
             })
-            .from(employeesTable)
-            .where(inArray(employeesTable.id, senderIds));
+            .from(profilesTable)
+            .where(inArray(profilesTable.id, senderIds));
         }
 
         const sendersDict = senders.reduce((acc, emp) => {
@@ -282,7 +282,7 @@ router.get(
         }, {});
 
         const typingUsers = Array.from(typingState.get(convId) || []).filter(
-          (id) => id !== sess.employeeDbId,
+          (id) => id !== sess.profileDbId,
         );
 
         res.json({
@@ -325,7 +325,7 @@ router.post(
           .insert(portalMessagesTable)
           .values({
             conversationId: convId,
-            senderId: sess.employeeDbId,
+            senderId: sess.profileDbId,
             content: content.trim(),
             contentType: contentType === "image" ? "image" : "text",
           })
@@ -365,8 +365,8 @@ router.put(
             and(
               eq(portalConversationParticipantsTable.conversationId, convId),
               eq(
-                portalConversationParticipantsTable.employeeId,
-                sess.employeeDbId,
+                portalConversationParticipantsTable.profileId,
+                sess.profileDbId,
               ),
             ),
           );
@@ -379,9 +379,9 @@ router.put(
             and(
               eq(portalMessagesTable.conversationId, convId),
               eq(portalMessagesTable.isDeleted, false),
-              not(eq(portalMessagesTable.senderId, sess.employeeDbId)),
+              not(eq(portalMessagesTable.senderId, sess.profileDbId)),
               not(
-                sql`EXISTS (SELECT 1 FROM portal_message_reads WHERE message_id = portal_messages.id AND employee_id = ${sess.employeeDbId})`,
+                sql`EXISTS (SELECT 1 FROM portal_message_reads WHERE message_id = portal_messages.id AND profile_id = ${sess.profileDbId})`,
               ),
             ),
           );
@@ -390,7 +390,7 @@ router.put(
           await tenantDb.insert(portalMessageReadsTable).values(
             unreadMessages.map((m) => ({
               messageId: m.id,
-              employeeId: sess.employeeDbId,
+              profileId: sess.profileDbId,
             })),
           );
         }
@@ -400,7 +400,7 @@ router.put(
       await broadcastToProperty(sess.propertyId, {
         module: "chat",
         action: "read_receipt",
-        data: { conversationId: convId, readerId: sess.employeeDbId },
+        data: { conversationId: convId, readerId: sess.profileDbId },
       });
 
       return res.json({ success: true });
@@ -420,12 +420,12 @@ router.post(
       const sess = portalSession(req)!;
       const convId = Number(req.params.id);
 
-      setTyping(convId, sess.employeeDbId);
+      setTyping(convId, sess.profileDbId);
 
       await broadcastToProperty(sess.propertyId, {
         module: "chat",
         action: "typing_start",
-        data: { conversationId: convId, employeeId: sess.employeeDbId },
+        data: { conversationId: convId, profileId: sess.profileDbId },
       });
 
       return res.json({ success: true });
@@ -488,15 +488,15 @@ router.get(
         if (senderIds.length > 0) {
           senders = await tenantDb
             .select({
-              id: employeesTable.id,
-              firstName: employeesTable.firstName,
-              lastName: employeesTable.lastName,
-              photoUrl: employeesTable.photoUrl,
-              department: employeesTable.department,
-              jobTitle: employeesTable.jobTitle,
+              id: profilesTable.id,
+              firstName: profilesTable.firstName,
+              lastName: profilesTable.lastName,
+              photoUrl: profilesTable.photoUrl,
+              department: profilesTable.department,
+              jobTitle: profilesTable.jobTitle,
             })
-            .from(employeesTable)
-            .where(inArray(employeesTable.id, senderIds));
+            .from(profilesTable)
+            .where(inArray(profilesTable.id, senderIds));
         }
 
         const sendersDict = senders.reduce((acc, emp) => {
@@ -536,12 +536,12 @@ router.post(
 
       // To send as admin, we can use a special senderId or just -1
       // But portalMessagesTable requires senderId. We can use a system user ID or -1 if the foreign key allows.
-      // Wait, senderId is integer and usually references employees.
-      // If we don't have a specific admin employee, we can just use 0 or a dedicated system ID.
+      // Wait, senderId is integer and usually references profiles.
+      // If we don't have a specific admin profile, we can just use 0 or a dedicated system ID.
       // Let's check the schema for portalMessagesTable.
       // For now we will insert senderId = 0 (assuming it doesn't violate foreign key, or if we have to, we will bypass it).
-      // Wait, we can't assume 0 works if there is a foreign key to employeesTable.
-      // Let's look up a valid employee or skip.
+      // Wait, we can't assume 0 works if there is a foreign key to profilesTable.
+      // Let's look up a valid profile or skip.
       
       const [message] = await withTenant(propertyId, async (tenantDb) => {
         // Update conversation updatedAt

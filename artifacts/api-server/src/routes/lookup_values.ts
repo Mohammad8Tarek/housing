@@ -3,9 +3,11 @@ import { db, withTenant, lookupValuesTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { getTenantId } from "../lib/request-utils.js";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { broadcastToProperty } from "../lib/websocket.js";
 
 const router: Router = Router();
 
+// ─── GET /lookup-values ───────────────────────────────────────────────────────
 router.get("/lookup-values", requireAuth, async (req, res): Promise<void> => {
   const propertyId = getTenantId(req);
   const category = req.query.category as string | undefined;
@@ -28,12 +30,13 @@ router.get("/lookup-values", requireAuth, async (req, res): Promise<void> => {
   res.json(values.map((v) => ({ ...v, propertyId })));
 });
 
+// ─── POST /lookup-values ──────────────────────────────────────────────────────
 router.post(
   "/lookup-values",
   requirePermission("settings", "create"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
-    const { category, value, parentValue, sortOrder } = req.body;
+    const { category, value, parentValue, extraValue, sortOrder } = req.body;
     if (!propertyId || !category || !value) {
       res.status(400).json({ error: "Missing fields" });
       return;
@@ -46,15 +49,18 @@ router.post(
           category,
           value,
           parentValue: parentValue ?? null,
+          extraValue: extraValue ?? null,
           sortOrder: sortOrder ?? 0,
         } as any)
         .returning();
     });
 
+    broadcastToProperty(propertyId, { module: "settings", action: "updated" });
     res.status(201).json({ ...created, propertyId });
   },
 );
 
+// ─── PATCH /lookup-values/:id ─────────────────────────────────────────────────
 router.patch(
   "/lookup-values/:id",
   requirePermission("settings", "edit"),
@@ -71,12 +77,15 @@ router.patch(
       return;
     }
 
-    const { value, parentValue, disabled, sortOrder } = req.body;
+    const { value, parentValue, extraValue, disabled, sortOrder } = req.body;
     const updateData: Record<string, any> = {};
 
     if (value !== undefined) updateData.value = String(value);
     if (sortOrder !== undefined)
       updateData.sortOrder = parseInt(String(sortOrder));
+    if (extraValue !== undefined) {
+      updateData.extraValue = (extraValue === null || extraValue === "") ? null : String(extraValue);
+    }
     if (parentValue !== undefined) {
       if (
         parentValue === null ||
@@ -108,10 +117,13 @@ router.patch(
       res.status(404).json({ error: "Not found" });
       return;
     }
+
+    broadcastToProperty(propertyId, { module: "settings", action: "updated" });
     res.json({ ...updated, propertyId });
   },
 );
 
+// ─── DELETE /lookup-values/:id ────────────────────────────────────────────────
 router.delete(
   "/lookup-values/:id",
   requirePermission("settings", "delete"),
@@ -134,6 +146,7 @@ router.delete(
         .where(eq(lookupValuesTable.id, id));
     });
 
+    broadcastToProperty(propertyId, { module: "settings", action: "updated" });
     res.sendStatus(204);
   },
 );

@@ -4,7 +4,7 @@ import { useParams, useLocation } from "wouter";
 import {
   useListMaintenance,
   useUpdateMaintenance,
-  useListEmployees,
+  useListProfiles,
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -86,11 +86,11 @@ export default function MaintenanceDetails() {
   });
   const allTickets = _allTicketsWrapper?.data || [];
 
-  const { data: _eDataWrapper } = useListEmployees(
+  const { data: _eDataWrapper } = useListProfiles(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
     { query: { enabled: !!activePropertyId } },
   );
-  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
 
   const updateMutation = useUpdateMaintenance({
     mutation: {
@@ -127,7 +127,7 @@ export default function MaintenanceDetails() {
     );
   }
 
-  const empOptions = employees.filter((e) => e.status === "active");
+  const empOptions = profiles.filter((e) => e.status === "active");
   const priorityColor = (p) => {
     switch ((p || "").toLowerCase()) {
       case "urgent":

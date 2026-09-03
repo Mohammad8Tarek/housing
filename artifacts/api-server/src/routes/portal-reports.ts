@@ -3,7 +3,7 @@ import {
   withTenant,
   activitiesTable,
   evaluationsTable,
-  employeesTable,
+  profilesTable,
   surveyItemsTable,
   surveyItemResponsesTable,
   activityRegistrationsTable,
@@ -47,7 +47,7 @@ router.get("/", requireAuth, async (req, res, next) => {
         withTenant(propertyId, async (tenantDb) => {
           const evaluations = await tenantDb.select().from(evaluationsTable);
           const activities = await tenantDb.select().from(activitiesTable);
-          const employees = await tenantDb.select().from(employeesTable);
+          const profiles = await tenantDb.select().from(profilesTable);
           const registrations = await tenantDb
             .select()
             .from(activityRegistrationsTable);
@@ -55,12 +55,12 @@ router.get("/", requireAuth, async (req, res, next) => {
           const templateEvals = evaluations.filter((e) => !e.surveyTemplateId);
           const responses = evaluations.filter((e) => e.surveyTemplateId);
           const avgRating =
-            responses.filter((e) => e.employeeRating).length > 0
+            responses.filter((e) => e.profileRating).length > 0
               ? (
                   responses.reduce(
-                    (sum, e) => sum + (e.employeeRating || 0),
+                    (sum, e) => sum + (e.profileRating || 0),
                     0,
-                  ) / responses.filter((e) => e.employeeRating).length
+                  ) / responses.filter((e) => e.profileRating).length
                 ).toFixed(1)
               : "0.0";
           const totalRegistered = registrations.length;
@@ -106,7 +106,7 @@ router.get("/", requireAuth, async (req, res, next) => {
               stats: {
                 evaluations: responses.length,
                 activities: activities.length,
-                employees: employees.length,
+                profiles: profiles.length,
                 registrations: totalRegistered,
               },
             },
@@ -345,7 +345,7 @@ router.get("/engagement-report", requireAuth, async (req, res, next) => {
 
     if (!report) {
       res.json({
-        summary: { totalEmployees: 0, engagedEmployees: 0 },
+        summary: { totalProfiles: 0, engagedProfiles: 0 },
         mostActive: [],
         departmentEngagement: [],
         nonEngaged: [],
@@ -434,7 +434,7 @@ router.get("/templates/list", requireAuth, async (req, res, next) => {
         id: "engagement_analysis",
         name: "Engagement Analysis",
         nameAr: "تحليل المشاركة",
-        description: "Employee engagement analysis",
+        description: "Profile engagement analysis",
         descriptionAr: "تحليل مشاركة الموظفين",
         type: "engagement",
         icon: "👥",
@@ -468,11 +468,11 @@ router.get("/departments", requireAuth, async (req, res, next) => {
         .json({ success: false, message: "propertyId required" });
 
     const departments = await withTenant(propertyId, async (tenantDb) => {
-      const employees = await tenantDb
-        .select({ department: employeesTable.department })
-        .from(employeesTable);
+      const profiles = await tenantDb
+        .select({ department: profilesTable.department })
+        .from(profilesTable);
       return [
-        ...new Set(employees.map((e) => e.department).filter(Boolean)),
+        ...new Set(profiles.map((e) => e.department).filter(Boolean)),
       ].sort();
     });
 
@@ -515,25 +515,25 @@ async function buildEvaluationsReport(
           .where(inArray(surveyItemResponsesTable.templateId, templateIds))
       : [];
 
-  const allEmployees = await tenantDb.select().from(employeesTable);
-  const totalEmployees = allEmployees.length;
+  const allProfiles = await tenantDb.select().from(profilesTable);
+  const totalProfiles = allProfiles.length;
   const departmentCounts: Record<string, number> = {};
-  allEmployees.forEach((e: any) => {
+  allProfiles.forEach((e: any) => {
     const dept = e.department || "General";
     departmentCounts[dept] = (departmentCounts[dept] || 0) + 1;
   });
 
-  const employeeIds = [
-    ...new Set(allResponses.map((r: any) => r.employeeId as number)),
+  const profileIds = [
+    ...new Set(allResponses.map((r: any) => r.profileId as number)),
   ] as number[];
-  const employees =
-    employeeIds.length > 0
+  const profiles =
+    profileIds.length > 0
       ? await tenantDb
           .select()
-          .from(employeesTable)
-          .where(inArray(employeesTable.id, employeeIds))
+          .from(profilesTable)
+          .where(inArray(profilesTable.id, profileIds))
       : [];
-  const empMap = Object.fromEntries(employees.map((e: any) => [e.id, e]));
+  const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
 
   // Per-template report
   const templateReport = templates.map((template: any) => {
@@ -541,8 +541,8 @@ async function buildEvaluationsReport(
     const responses = allResponses.filter(
       (r: any) => r.templateId === template.id,
     );
-    const uniqueEmployees = [
-      ...new Set(responses.map((r: any) => r.employeeId)),
+    const uniqueProfiles = [
+      ...new Set(responses.map((r: any) => r.profileId)),
     ];
 
     const itemBreakdown = items.map((item: any) => {
@@ -571,8 +571,8 @@ async function buildEvaluationsReport(
         required: item.required,
         responseCount: itemResponses.length,
         responseRate:
-          totalEmployees > 0
-            ? Math.round((itemResponses.length / totalEmployees) * 100)
+          totalProfiles > 0
+            ? Math.round((itemResponses.length / totalProfiles) * 100)
             : 0,
         avgRating: Math.round(avgRating * 10) / 10,
         distribution,
@@ -599,16 +599,16 @@ async function buildEvaluationsReport(
     // Department breakdown
     const deptMap: Record<
       string,
-      { count: number; avgRating: number; employees: number }
+      { count: number; avgRating: number; profiles: number }
     > = {};
     for (const resp of responses) {
-      const emp = empMap[resp.employeeId];
+      const emp = empMap[resp.profileId];
       const dept = emp?.department || "General";
       if (!deptMap[dept])
         deptMap[dept] = {
           count: 0,
           avgRating: 0,
-          employees: departmentCounts[dept] || 0,
+          profiles: departmentCounts[dept] || 0,
         };
       deptMap[dept].count++;
       if (resp.ratingValue) deptMap[dept].avgRating += resp.ratingValue;
@@ -616,10 +616,10 @@ async function buildEvaluationsReport(
     const departmentBreakdown = Object.entries(deptMap).map(([dept, data]) => ({
       department: dept,
       responseCount: data.count,
-      employees: data.employees,
+      profiles: data.profiles,
       responseRate:
-        data.employees > 0
-          ? Math.round((data.count / data.employees) * 100)
+        data.profiles > 0
+          ? Math.round((data.count / data.profiles) * 100)
           : 0,
       avgRating:
         data.count > 0
@@ -663,10 +663,10 @@ async function buildEvaluationsReport(
       descriptionEn: template.descriptionEn,
       expiresAt: template.expiresAt,
       createdAt: template.createdAt,
-      totalResponses: uniqueEmployees.length,
+      totalResponses: uniqueProfiles.length,
       responseRate:
-        totalEmployees > 0
-          ? Math.round((uniqueEmployees.length / totalEmployees) * 100)
+        totalProfiles > 0
+          ? Math.round((uniqueProfiles.length / totalProfiles) * 100)
           : 0,
       overallAvgRating: Math.round(overallAvg * 10) / 10,
       starDistribution: starDist,
@@ -678,7 +678,7 @@ async function buildEvaluationsReport(
 
   // Global stats
   const totalResponses = allResponses.length;
-  const uniqueRespondents = new Set(allResponses.map((r: any) => r.employeeId))
+  const uniqueRespondents = new Set(allResponses.map((r: any) => r.profileId))
     .size;
   const allRatingValues = allResponses
     .filter((r: any) => r.ratingValue != null)
@@ -747,7 +747,7 @@ async function buildEvaluationsReport(
   const deptRanking = Object.entries(departmentCounts)
     .map(([dept, empCount]) => {
       const deptResponses = allResponses.filter((r: any) => {
-        const emp = empMap[r.employeeId];
+        const emp = empMap[r.profileId];
         return (emp?.department || "General") === dept;
       });
       const deptRatings = deptResponses.filter(
@@ -762,7 +762,7 @@ async function buildEvaluationsReport(
           : 0;
       return {
         department: dept,
-        totalEmployees: empCount,
+        totalProfiles: empCount,
         responses: deptResponses.length,
         responseRate:
           empCount > 0
@@ -783,11 +783,11 @@ async function buildEvaluationsReport(
       totalResponses,
       uniqueRespondents,
       responseRate:
-        totalEmployees > 0
-          ? Math.round((uniqueRespondents / totalEmployees) * 100)
+        totalProfiles > 0
+          ? Math.round((uniqueRespondents / totalProfiles) * 100)
           : 0,
       globalAvgRating: Math.round(globalAvg * 10) / 10,
-      totalEmployees,
+      totalProfiles,
     },
     starDistribution: globalStarDist,
     categoryBreakdown,
@@ -832,20 +832,20 @@ async function buildActivitiesReport(
           .where(inArray(activityRegistrationsTable.activityId, allActivityIds))
       : [];
 
-  const regEmployeeIds = [
-    ...new Set(registrations.map((r: any) => r.employeeId)),
+  const regProfileIds = [
+    ...new Set(registrations.map((r: any) => r.profileId)),
   ] as number[];
-  const employees =
-    regEmployeeIds.length > 0
+  const profiles =
+    regProfileIds.length > 0
       ? await tenantDb
           .select()
-          .from(employeesTable)
-          .where(inArray(employeesTable.id, regEmployeeIds))
+          .from(profilesTable)
+          .where(inArray(profilesTable.id, regProfileIds))
       : [];
-  const empMap = Object.fromEntries(employees.map((e: any) => [e.id, e]));
+  const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
 
-  const allEmployees = await tenantDb.select().from(employeesTable);
-  const totalEmployees = allEmployees.length;
+  const allProfiles = await tenantDb.select().from(profilesTable);
+  const totalProfiles = allProfiles.length;
 
   const activityReport = filtered.map((activity: any) => {
     const actRegistrations = registrations.filter(
@@ -859,13 +859,13 @@ async function buildActivitiesReport(
 
     const deptMap: Record<
       string,
-      { registered: number; attended: number; employees: number }
+      { registered: number; attended: number; profiles: number }
     > = {};
     for (const reg of actRegistrations) {
-      const emp = empMap[reg.employeeId];
+      const emp = empMap[reg.profileId];
       const dept = emp?.department || "General";
       if (!deptMap[dept])
-        deptMap[dept] = { registered: 0, attended: 0, employees: 0 };
+        deptMap[dept] = { registered: 0, attended: 0, profiles: 0 };
       deptMap[dept].registered++;
       if (reg.attended) deptMap[dept].attended++;
     }
@@ -924,7 +924,7 @@ async function buildActivitiesReport(
   // Global department summary
   const globalDeptMap: Record<
     string,
-    { registered: number; attended: number; employees: number }
+    { registered: number; attended: number; profiles: number }
   > = {};
   for (const ar of activityReport) {
     for (const dept of ar.departmentBreakdown) {
@@ -932,16 +932,16 @@ async function buildActivitiesReport(
         globalDeptMap[dept.department] = {
           registered: 0,
           attended: 0,
-          employees: 0,
+          profiles: 0,
         };
       globalDeptMap[dept.department].registered += dept.registered;
       globalDeptMap[dept.department].attended += dept.attended;
     }
   }
-  // Add employee counts
-  allEmployees.forEach((e: any) => {
+  // Add profile counts
+  allProfiles.forEach((e: any) => {
     const dept = e.department || "General";
-    if (globalDeptMap[dept]) globalDeptMap[dept].employees++;
+    if (globalDeptMap[dept]) globalDeptMap[dept].profiles++;
   });
 
   const totalRegistrations = registrations.length;
@@ -978,14 +978,14 @@ async function buildActivitiesReport(
       overallAttendanceRate:
         totalJoined > 0 ? Math.round((totalAttended / totalJoined) * 100) : 0,
       participationRate:
-        totalEmployees > 0
+        totalProfiles > 0
           ? Math.round(
-              (new Set(registrations.map((r: any) => r.employeeId)).size /
-                totalEmployees) *
+              (new Set(registrations.map((r: any) => r.profileId)).size /
+                totalProfiles) *
                 100,
             )
           : 0,
-      totalEmployees,
+      totalProfiles,
     },
     topActivities,
     emptyActivities,
@@ -1002,8 +1002,8 @@ async function buildActivitiesReport(
             ? Math.round((data.attended / data.registered) * 100)
             : 0,
         participationRate:
-          data.employees > 0
-            ? Math.round((data.registered / data.employees) * 100)
+          data.profiles > 0
+            ? Math.round((data.registered / data.profiles) * 100)
             : 0,
       }),
     ),
@@ -1029,8 +1029,8 @@ async function buildEngagementReport(
   departmentFilter?: string,
   includeCharts = true,
 ) {
-  const allEmployees = await tenantDb.select().from(employeesTable);
-  const totalEmployees = allEmployees.length;
+  const allProfiles = await tenantDb.select().from(profilesTable);
+  const totalProfiles = allProfiles.length;
 
   // Evaluations data
   const templates = await tenantDb
@@ -1045,7 +1045,7 @@ async function buildEngagementReport(
           .from(surveyItemResponsesTable)
           .where(inArray(surveyItemResponsesTable.templateId, templateIds))
       : [];
-  const uniqueRespondents = new Set(allResponses.map((r: any) => r.employeeId))
+  const uniqueRespondents = new Set(allResponses.map((r: any) => r.profileId))
     .size;
 
   // Activities data
@@ -1059,32 +1059,32 @@ async function buildEngagementReport(
           .where(inArray(activityRegistrationsTable.activityId, allActivityIds))
       : [];
   const uniqueParticipants = new Set(
-    registrations.map((r: any) => r.employeeId),
+    registrations.map((r: any) => r.profileId),
   ).size;
   const totalAttended = registrations.filter((r: any) => r.attended).length;
 
-  // Employee engagement map
+  // Profile engagement map
   const empEngagement: Record<
     number,
     { evaluations: number; activities: number; attended: number }
   > = {};
-  allEmployees.forEach((e: any) => {
+  allProfiles.forEach((e: any) => {
     empEngagement[e.id] = { evaluations: 0, activities: 0, attended: 0 };
   });
   allResponses.forEach((r: any) => {
-    if (empEngagement[r.employeeId]) empEngagement[r.employeeId].evaluations++;
+    if (empEngagement[r.profileId]) empEngagement[r.profileId].evaluations++;
   });
   registrations.forEach((r: any) => {
-    if (empEngagement[r.employeeId]) {
-      empEngagement[r.employeeId].activities++;
-      if (r.attended) empEngagement[r.employeeId].attended++;
+    if (empEngagement[r.profileId]) {
+      empEngagement[r.profileId].activities++;
+      if (r.attended) empEngagement[r.profileId].attended++;
     }
   });
 
-  // Most active employees
-  const mostActive = allEmployees
+  // Most active profiles
+  const mostActive = allProfiles
     .map((e: any) => ({
-      employeeId: e.employeeId,
+      profileId: e.profileId,
       name: `${e.firstName} ${e.lastName}`.trim(),
       department: e.department || "General",
       evaluations: empEngagement[e.id]?.evaluations || 0,
@@ -1101,22 +1101,22 @@ async function buildEngagementReport(
   const deptMap: Record<
     string,
     {
-      employees: number;
+      profiles: number;
       evaluators: number;
       participants: number;
       attended: number;
     }
   > = {};
-  allEmployees.forEach((e: any) => {
+  allProfiles.forEach((e: any) => {
     const dept = e.department || "General";
     if (!deptMap[dept])
       deptMap[dept] = {
-        employees: 0,
+        profiles: 0,
         evaluators: 0,
         participants: 0,
         attended: 0,
       };
-    deptMap[dept].employees++;
+    deptMap[dept].profiles++;
     if (empEngagement[e.id]?.evaluations) deptMap[dept].evaluators++;
     if (empEngagement[e.id]?.activities) deptMap[dept].participants++;
     if (empEngagement[e.id]?.attended) deptMap[dept].attended++;
@@ -1126,21 +1126,21 @@ async function buildEngagementReport(
       department: dept,
       ...data,
       evaluationRate:
-        data.employees > 0
-          ? Math.round((data.evaluators / data.employees) * 100)
+        data.profiles > 0
+          ? Math.round((data.evaluators / data.profiles) * 100)
           : 0,
       participationRate:
-        data.employees > 0
-          ? Math.round((data.participants / data.employees) * 100)
+        data.profiles > 0
+          ? Math.round((data.participants / data.profiles) * 100)
           : 0,
       attendanceRate:
         data.participants > 0
           ? Math.round((data.attended / data.participants) * 100)
           : 0,
       overallScore:
-        data.employees > 0
+        data.profiles > 0
           ? Math.round(
-              ((data.evaluators + data.participants) / (data.employees * 2)) *
+              ((data.evaluators + data.participants) / (data.profiles * 2)) *
                 100,
             )
           : 0,
@@ -1170,26 +1170,26 @@ async function buildEngagementReport(
     total: (evalTrend[month] || 0) + (actTrend[month] || 0),
   }));
 
-  // Non-engaged employees
-  const nonEngaged = allEmployees
+  // Non-engaged profiles
+  const nonEngaged = allProfiles
     .filter(
       (e: any) =>
         !empEngagement[e.id]?.evaluations && !empEngagement[e.id]?.activities,
     )
     .map((e: any) => ({
-      employeeId: e.employeeId,
+      profileId: e.profileId,
       name: `${e.firstName} ${e.lastName}`.trim(),
       department: e.department || "General",
     }));
 
   // Overall engagement score
-  const engagedEmployees = new Set([
-    ...allResponses.map((r: any) => r.employeeId),
-    ...registrations.map((r: any) => r.employeeId),
+  const engagedProfiles = new Set([
+    ...allResponses.map((r: any) => r.profileId),
+    ...registrations.map((r: any) => r.profileId),
   ]).size;
   const overallScore =
-    totalEmployees > 0
-      ? Math.round((engagedEmployees / totalEmployees) * 100)
+    totalProfiles > 0
+      ? Math.round((engagedProfiles / totalProfiles) * 100)
       : 0;
 
   return {
@@ -1198,17 +1198,17 @@ async function buildEngagementReport(
     type: "engagement",
     period: { from: fromDate.toISOString(), to: toDate.toISOString() },
     summary: {
-      totalEmployees,
-      engagedEmployees,
-      nonEngagedEmployees: totalEmployees - engagedEmployees,
+      totalProfiles,
+      engagedProfiles,
+      nonEngagedProfiles: totalProfiles - engagedProfiles,
       overallScore,
       evaluationRate:
-        totalEmployees > 0
-          ? Math.round((uniqueRespondents / totalEmployees) * 100)
+        totalProfiles > 0
+          ? Math.round((uniqueRespondents / totalProfiles) * 100)
           : 0,
       participationRate:
-        totalEmployees > 0
-          ? Math.round((uniqueParticipants / totalEmployees) * 100)
+        totalProfiles > 0
+          ? Math.round((uniqueParticipants / totalProfiles) * 100)
           : 0,
       attendanceRate:
         registrations.length > 0
@@ -1369,7 +1369,7 @@ function generateCSV(report: any): string {
         addArrayToCSV(section.topActivities);
       }
       if (section.mostActive) {
-        csv += "\nMost Active Employees\n";
+        csv += "\nMost Active Profiles\n";
         addArrayToCSV(section.mostActive);
       }
     }
@@ -1389,11 +1389,11 @@ function generateCSV(report: any): string {
       addArrayToCSV(report.departmentEngagement);
     }
     if (report.mostActive) {
-      csv += "\nMost Active Employees\n";
+      csv += "\nMost Active Profiles\n";
       addArrayToCSV(report.mostActive);
     }
     if (report.nonEngaged) {
-      csv += "\nNon-Engaged Employees\n";
+      csv += "\nNon-Engaged Profiles\n";
       addArrayToCSV(report.nonEngaged);
     }
     if (Array.isArray(report.data) && report.data.length > 0) {

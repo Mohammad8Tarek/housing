@@ -62,7 +62,7 @@ router.get("/", requireAuth, async (req, res, next) => {
   }
 });
 
-// GET /statuses — activity statuses shared with employee portal
+// GET /statuses — activity statuses shared with profile portal
 // @ts-ignore
 router.get("/statuses", requireAuth, async (req, res, next) => {
   try {

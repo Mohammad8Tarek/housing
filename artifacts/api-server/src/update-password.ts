@@ -2,7 +2,7 @@ import {
   db,
   propertiesTable,
   withTenant,
-  employeePortalAccountsTable,
+  profilePortalAccountsTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -15,13 +15,13 @@ async function updatePassword() {
       await withTenant(p.id, async (tenantDb) => {
         const [acc] = await tenantDb
           .select()
-          .from(employeePortalAccountsTable)
-          .where(eq(employeePortalAccountsTable.employeeId, "10575"));
+          .from(profilePortalAccountsTable)
+          .where(eq(profilePortalAccountsTable.profileId, "10575"));
         if (acc) {
           await tenantDb
-            .update(employeePortalAccountsTable)
+            .update(profilePortalAccountsTable)
             .set({ passwordHash: hash, failedAttempts: 0, lockedUntil: null })
-            .where(eq(employeePortalAccountsTable.id, acc.id));
+            .where(eq(profilePortalAccountsTable.id, acc.id));
           console.log(`Password updated to 1234 for 10575 in prop_${p.id}`);
         }
       });

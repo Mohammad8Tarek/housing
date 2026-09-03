@@ -20,21 +20,21 @@ type Props = {
   room: any | null;
   onClose: () => void;
   assignments: any[];
-  employees: any[];
+  profiles: any[];
 };
 
 export function RoomLogDialog({
   room,
   onClose,
   assignments,
-  employees,
+  profiles,
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
 
   if (!room) return null;
 
-  const empMap = Object.fromEntries((employees ?? []).map((e) => [e.id, e]));
+  const empMap = Object.fromEntries((profiles ?? []).map((e) => [e.id, e]));
   const roomHistory = (assignments ?? [])
     .filter((a) => a.roomId === room.id)
     .sort(
@@ -62,7 +62,7 @@ export function RoomLogDialog({
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30">
-                <TableHead>{ar ? "الموظف" : "Employee"}</TableHead>
+                <TableHead>{ar ? "الموظف" : "Profile"}</TableHead>
                 <TableHead>{ar ? "الكود" : "Code"}</TableHead>
                 <TableHead>{ar ? "السرير" : "Bed"}</TableHead>
                 <TableHead>{ar ? "الدخول" : "Check-in"}</TableHead>
@@ -73,7 +73,7 @@ export function RoomLogDialog({
             </TableHeader>
             <TableBody>
               {roomHistory.map((a) => {
-                const emp = empMap[a.employeeId];
+                const emp = empMap[a.profileId];
                 const checkOut =
                   a.checkOutDate || (a as any).actualCheckOutDate;
                 const statusColors: Record<string, string> = {
@@ -86,10 +86,10 @@ export function RoomLogDialog({
                     <TableCell className="font-medium">
                       {emp
                         ? `${emp.firstName} ${emp.lastName}`
-                        : `#${a.employeeId}`}
+                        : `#${a.profileId}`}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      {emp?.employeeId ?? "—"}
+                      {emp?.profileId ?? "—"}
                     </TableCell>
                     <TableCell>{a.bedNumber ?? "—"}</TableCell>
                     <TableCell className="text-sm whitespace-nowrap">

@@ -8,7 +8,7 @@ import {
   surveyItemResponsesTable,
 } from "@workspace/db";
 import {
-  employeesTable,
+  profilesTable,
   assignmentsTable,
   roomsTable,
   buildingsTable,
@@ -47,19 +47,19 @@ router.use(requirePortalAuth);
 router.get("/profile", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   const result = await withTenant(sess.propertyId, async (tenantDb) => {
-    const [employee] = await tenantDb
+    const [profile] = await tenantDb
       .select()
-      .from(employeesTable)
-      .where(eq(employeesTable.id, sess.employeeDbId))
+      .from(profilesTable)
+      .where(eq(profilesTable.id, sess.profileDbId))
       .limit(1);
-    if (!employee) return null;
+    if (!profile) return null;
     return {
-      id: employee.id,
-      name: `${employee.firstName} ${employee.lastName}`,
-      employeeId: employee.employeeId,
-      department: employee.department,
-      position: employee.jobTitle,
-      photo: employee.photoUrl,
+      id: profile.id,
+      name: `${profile.firstName} ${profile.lastName}`,
+      profileId: profile.profileId,
+      department: profile.department,
+      position: profile.jobTitle,
+      photo: profile.photoUrl,
     };
   });
   res.json(result || {});
@@ -73,7 +73,7 @@ router.get("/room", async (req, res): Promise<void> => {
       .from(assignmentsTable)
       .where(
         and(
-          eq(assignmentsTable.employeeId, sess.employeeDbId),
+          eq(assignmentsTable.profileId, sess.profileDbId),
           eq(assignmentsTable.status, "ACTIVE"),
         ),
       )
@@ -99,14 +99,14 @@ router.get("/room", async (req, res): Promise<void> => {
       .select()
       .from(assignmentsTable)
       .leftJoin(
-        employeesTable,
-        eq(assignmentsTable.employeeId, employeesTable.id),
+        profilesTable,
+        eq(assignmentsTable.profileId, profilesTable.id),
       )
       .where(
         and(
           eq(assignmentsTable.roomId, room.id),
           eq(assignmentsTable.status, "ACTIVE"),
-          sql`${assignmentsTable.employeeId} != ${sess.employeeDbId}`,
+          sql`${assignmentsTable.profileId} != ${sess.profileDbId}`,
         ),
       );
     return {
@@ -116,10 +116,10 @@ router.get("/room", async (req, res): Promise<void> => {
       assignedSince: assignment.checkInDate,
       roommates: roommates
         .map((r) =>
-          r.employees
+          r.profiles
             ? {
-                id: r.employees.id,
-                name: `${r.employees.firstName} ${r.employees.lastName}`,
+                id: r.profiles.id,
+                name: `${r.profiles.firstName} ${r.profiles.lastName}`,
               }
             : null,
         )
@@ -141,7 +141,7 @@ router.get("/alerts", async (req, res): Promise<void> => {
       .from(maintenanceTable)
       .where(
         and(
-          eq(maintenanceTable.reportedBy, String(sess.employeeDbId)),
+          eq(maintenanceTable.reportedBy, String(sess.profileDbId)),
           inArray(maintenanceTable.status, ["open", "in_progress"]),
         ),
       );
@@ -160,15 +160,15 @@ router.get("/alerts", async (req, res): Promise<void> => {
 router.get("/my-profile", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
 
-  const [employee] = await withTenant(sess.propertyId, async (tenantDb) => {
+  const [profile] = await withTenant(sess.propertyId, async (tenantDb) => {
     return await tenantDb
       .select()
-      .from(employeesTable)
-      .where(eq(employeesTable.id, sess.employeeDbId))
+      .from(profilesTable)
+      .where(eq(profilesTable.id, sess.profileDbId))
       .limit(1);
   });
 
-  if (!employee) {
+  if (!profile) {
     res.status(404).json({ success: false, message: "Profile not found" });
     return;
   }
@@ -176,21 +176,21 @@ router.get("/my-profile", async (req, res): Promise<void> => {
   res.json({
     success: true,
     profile: {
-      employeeId: employee.employeeId,
-      fullName: `${employee.firstName} ${employee.lastName}`,
-      firstName: employee.firstName,
-      lastName: employee.lastName,
-      jobTitle: employee.jobTitle,
-      department: employee.department,
-      nationality: employee.nationality,
-      phone: employee.phone,
-      gender: employee.gender,
-      hireDate: employee.hireDate,
-      status: employee.status,
-      address: employee.address,
-      photoUrl: employee.photoUrl ?? null,
-      email: employee.email ?? null,
-      emergencyContact: employee.emergencyContact ?? null,
+      profileId: profile.profileId,
+      fullName: `${profile.firstName} ${profile.lastName}`,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      jobTitle: profile.jobTitle,
+      department: profile.department,
+      nationality: profile.nationality,
+      phone: profile.phone,
+      gender: profile.gender,
+      hireDate: profile.hireDate,
+      status: profile.status,
+      address: profile.address,
+      photoUrl: profile.photoUrl ?? null,
+      email: profile.email ?? null,
+      emergencyContact: profile.emergencyContact ?? null,
     },
   });
 });
@@ -214,9 +214,9 @@ router.patch("/my-profile", async (req, res): Promise<void> => {
 
   const [updated] = await withTenant(sess.propertyId, async (tenantDb) => {
     return await tenantDb
-      .update(employeesTable)
+      .update(profilesTable)
       .set(updateData)
-      .where(eq(employeesTable.id, sess.employeeDbId))
+      .where(eq(profilesTable.id, sess.profileDbId))
       .returning();
   });
 
@@ -233,11 +233,11 @@ router.patch("/my-profile", async (req, res): Promise<void> => {
     req,
     propertyId: sess.propertyId,
     username: sess.fullName,
-    userRole: "employee",
+    userRole: "profile",
     action: `تحديث البيانات الشخصية من البوابة`,
     actionType: "UPDATE",
-    module: "employees",
-    entityType: "employee",
+    module: "profiles",
+    entityType: "profile",
     entityId: updated.id,
     details,
   });
@@ -262,7 +262,7 @@ router.get("/my-room", async (req, res): Promise<void> => {
       .from(assignmentsTable)
       .where(
         and(
-          eq(assignmentsTable.employeeId, sess.employeeDbId),
+          eq(assignmentsTable.profileId, sess.profileDbId),
           eq(assignmentsTable.status, "ACTIVE"),
         ),
       )
@@ -309,7 +309,7 @@ router.get("/my-room", async (req, res): Promise<void> => {
       );
 
     const roommates = roomAssignments.filter(
-      (a) => a.employeeId !== sess.employeeDbId,
+      (a) => a.profileId !== sess.profileDbId,
     ).length;
     const currentOccupancy = roomAssignments.length;
 
@@ -386,7 +386,7 @@ router.get("/roommates", async (req, res): Promise<void> => {
         .from(assignmentsTable)
         .where(
           and(
-            eq(assignmentsTable.employeeId, sess.employeeDbId),
+            eq(assignmentsTable.profileId, sess.profileDbId),
             eq(assignmentsTable.status, "ACTIVE"),
           ),
         )
@@ -405,8 +405,8 @@ router.get("/roommates", async (req, res): Promise<void> => {
         );
 
       const roommateIds = roomAssignments
-        .filter((a) => a.employeeId !== sess.employeeDbId)
-        .map((a) => a.employeeId)
+        .filter((a) => a.profileId !== sess.profileDbId)
+        .map((a) => a.profileId)
         .filter(Boolean);
 
       if (roommateIds.length === 0) return { roommates: [] };
@@ -414,28 +414,28 @@ router.get("/roommates", async (req, res): Promise<void> => {
       console.debug(
         "[portal-data]/roommates: propertyId=",
         sess.propertyId,
-        "employeeDbId=",
-        sess.employeeDbId,
+        "profileDbId=",
+        sess.profileDbId,
         "roommateCount=",
         roommateIds.length,
       );
 
-      const employees = await tenantDb
+      const profiles = await tenantDb
         .select()
-        .from(employeesTable)
-        .where(inArray(employeesTable.id, roommateIds));
+        .from(profilesTable)
+        .where(inArray(profilesTable.id, roommateIds));
 
       return {
-        roommates: employees.map((employee: any) => ({
-          id: employee.id,
-          firstName: employee.firstName,
-          lastName: employee.lastName,
-          employeeCode: employee.employeeId,
-          email: employee.email,
-          phone: employee.phone ?? null,
-          department: employee.department ?? "",
-          jobTitle: employee.jobTitle ?? null,
-          photoUrl: employee.photoUrl ?? null,
+        roommates: profiles.map((profile: any) => ({
+          id: profile.id,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          profileCode: profile.profileId,
+          email: profile.email,
+          phone: profile.phone ?? null,
+          department: profile.department ?? "",
+          jobTitle: profile.jobTitle ?? null,
+          photoUrl: profile.photoUrl ?? null,
         })),
       };
     });
@@ -446,10 +446,10 @@ router.get("/roommates", async (req, res): Promise<void> => {
         req,
         propertyId: sess.propertyId,
         username: sess.fullName,
-        userRole: "employee",
+        userRole: "profile",
         action: `جلب رفقاء الغرفة`,
         actionType: "READ",
-        module: "employees",
+        module: "profiles",
         entityType: "room",
         entityId: (result as any)?.roomId ?? null,
         details: `roommateCount=${(result.roommates || []).length}`,
@@ -474,7 +474,7 @@ router.get("/my-maintenance", async (req, res): Promise<void> => {
       .from(assignmentsTable)
       .where(
         and(
-          eq(assignmentsTable.employeeId, sess.employeeDbId),
+          eq(assignmentsTable.profileId, sess.profileDbId),
           eq(assignmentsTable.status, "ACTIVE"),
         ),
       )
@@ -543,7 +543,7 @@ router.post("/my-maintenance", async (req, res): Promise<void> => {
       .from(assignmentsTable)
       .where(
         and(
-          eq(assignmentsTable.employeeId, sess.employeeDbId),
+          eq(assignmentsTable.profileId, sess.profileDbId),
           eq(assignmentsTable.status, "ACTIVE"),
         ),
       )
@@ -580,7 +580,7 @@ router.post("/my-maintenance", async (req, res): Promise<void> => {
     module: "maintenance",
     action: "created",
     entityId: request.id,
-    data: { source: "employee_portal", reportedBy: sess.fullName },
+    data: { source: "profile_portal", reportedBy: sess.fullName },
   });
   broadcastToProperty(sess.propertyId, { module: "dashboard", action: "sync" });
 
@@ -589,10 +589,10 @@ router.post("/my-maintenance", async (req, res): Promise<void> => {
     req,
     propertyId: sess.propertyId,
     username: sess.fullName,
-    userRole: "employee",
+    userRole: "profile",
     action: `طلب جديد من البوابة (${request.category}) - ${request.problemType}`,
     actionType: "CREATE",
-    module: "employee_portal",
+    module: "profile_portal",
     entityType: "maintenance",
     entityId: request.id,
     details: `البلاغ: ${request.description} | الأولوية: ${request.priority}`,
@@ -731,7 +731,7 @@ router.get("/my-activities", async (req, res): Promise<void> => {
       const regRows = await tenantDb
         .select()
         .from(activityRegistrationsTable)
-        .where(eq(activityRegistrationsTable.employeeId, sess.employeeDbId));
+        .where(eq(activityRegistrationsTable.profileId, sess.profileDbId));
       registrations = regRows.map((r) => ({
         activityId: r.activityId,
         status: r.status,
@@ -766,7 +766,7 @@ router.get("/my-activities", async (req, res): Promise<void> => {
 });
 
 // ─── Portal Evaluations ──────────────────────────────────────
-// Employees see evaluations that are: no department set, or match their department
+// Profiles see evaluations that are: no department set, or match their department
 router.get("/my-evaluations", async (req, res): Promise<void> => {
   try {
     const sess = portalSession(req)!;
@@ -775,15 +775,15 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
       return;
     }
 
-    const [employee] = await withTenant(sess.propertyId, async (tenantDb) => {
+    const [profile] = await withTenant(sess.propertyId, async (tenantDb) => {
       return await tenantDb
         .select()
-        .from(employeesTable)
-        .where(eq(employeesTable.id, sess.employeeDbId))
+        .from(profilesTable)
+        .where(eq(profilesTable.id, sess.profileDbId))
         .limit(1);
     });
 
-    const employeeDept = employee?.department || null;
+    const profileDept = profile?.department || null;
 
     const rows = await withTenant(sess.propertyId, async (tenantDb) => {
       const templates = await tenantDb
@@ -795,8 +795,8 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
             or(
               isNull(evaluationsTable.department),
               eq(evaluationsTable.department, ""),
-              employeeDept
-                ? eq(evaluationsTable.department, employeeDept)
+              profileDept
+                ? eq(evaluationsTable.department, profileDept)
                 : sql`false`,
             ),
             or(
@@ -824,7 +824,7 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
         itemsByTemplate[item.templateId].push(item);
       }
 
-      // Check if employee has responded via survey_item_responses
+      // Check if profile has responded via survey_item_responses
       const respondedTemplateIds: Set<number> = new Set();
       if (templateIds.length > 0) {
         const myResponses = await tenantDb
@@ -834,7 +834,7 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
           .from(surveyItemResponsesTable)
           .where(
             and(
-              eq(surveyItemResponsesTable.employeeId, sess.employeeDbId),
+              eq(surveyItemResponsesTable.profileId, sess.profileDbId),
               inArray(surveyItemResponsesTable.templateId, templateIds),
             ),
           )
@@ -842,14 +842,14 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
         for (const r of myResponses) respondedTemplateIds.add(r.templateId);
       }
 
-      // Also check old-style responses (employeeRating in evaluations table)
+      // Also check old-style responses (profileRating in evaluations table)
       const oldResponses = await tenantDb
         .select()
         .from(evaluationsTable)
         .where(
           and(
             isNotNull(evaluationsTable.surveyTemplateId),
-            eq(evaluationsTable.employeeId, sess.employeeDbId),
+            eq(evaluationsTable.profileId, sess.profileDbId),
           ),
         );
       const oldResponseByTemplate = Object.fromEntries(
@@ -862,16 +862,16 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
         const _hasResponded =
           hasItemResponses ||
           Boolean(
-            oldResp?.employeeRating != null ||
-            (oldResp?.employeeResponse &&
-              String(oldResp.employeeResponse).trim()),
+            oldResp?.profileRating != null ||
+            (oldResp?.profileResponse &&
+              String(oldResp.profileResponse).trim()),
           );
         return {
           ...template,
           items: itemsByTemplate[template.id] || [],
-          employeeRating: oldResp?.employeeRating ?? template.employeeRating,
-          employeeResponse:
-            oldResp?.employeeResponse ?? template.employeeResponse,
+          profileRating: oldResp?.profileRating ?? template.profileRating,
+          profileResponse:
+            oldResp?.profileResponse ?? template.profileResponse,
           _hasResponded,
           _responseId: oldResp?.id ?? null,
         };
@@ -897,7 +897,7 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
   }
 });
 
-// Employee submits multi-item responses to an evaluation
+// Profile submits multi-item responses to an evaluation
 router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
   try {
     const sess = portalSession(req)!;
@@ -906,9 +906,9 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
       return;
     }
     const evaluationId = Number(req.params.id);
-    const { employeeRating, employeeResponse, itemResponses } = req.body as {
-      employeeRating?: number;
-      employeeResponse?: string;
+    const { profileRating, profileResponse, itemResponses } = req.body as {
+      profileRating?: number;
+      profileResponse?: string;
       itemResponses?: Array<{
         itemId: number;
         ratingValue?: number;
@@ -943,20 +943,20 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
     // Save multi-item responses if provided
     if (itemResponses && itemResponses.length > 0) {
       await withTenant(sess.propertyId, async (tenantDb) => {
-        // Delete existing responses for this employee+template
+        // Delete existing responses for this profile+template
         await tenantDb
           .delete(surveyItemResponsesTable)
           .where(
             and(
               eq(surveyItemResponsesTable.templateId, evaluationId),
-              eq(surveyItemResponsesTable.employeeId, sess.employeeDbId),
+              eq(surveyItemResponsesTable.profileId, sess.profileDbId),
             ),
           );
 
         // Insert new responses
         const values = itemResponses.map((ir) => ({
           templateId: evaluationId,
-          employeeId: sess.employeeDbId,
+          profileId: sess.profileDbId,
           itemId: ir.itemId,
           ratingValue: ir.ratingValue ?? null,
           textValue: ir.textValue ?? null,
@@ -967,18 +967,18 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
 
     // Also save old-style rating/response if provided (backward compat)
     const updateData: Record<string, unknown> = {};
-    if (employeeRating !== undefined) {
-      const r = Number(employeeRating);
+    if (profileRating !== undefined) {
+      const r = Number(profileRating);
       if (!isNaN(r) && r >= 1 && r <= 5) {
-        updateData.employeeRating = r;
+        updateData.profileRating = r;
       }
     }
     if (
-      employeeResponse &&
-      typeof employeeResponse === "string" &&
-      employeeResponse.trim()
+      profileResponse &&
+      typeof profileResponse === "string" &&
+      profileResponse.trim()
     ) {
-      updateData.employeeResponse = employeeResponse.trim();
+      updateData.profileResponse = profileResponse.trim();
     }
 
     if (
@@ -992,7 +992,7 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
           .where(
             and(
               eq(evaluationsTable.surveyTemplateId, evaluationId),
-              eq(evaluationsTable.employeeId, sess.employeeDbId),
+              eq(evaluationsTable.profileId, sess.profileDbId),
             ),
           );
 
@@ -1004,7 +1004,7 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
         } else if (!existing && Object.keys(updateData).length > 0) {
           await tenantDb.insert(evaluationsTable).values({
             surveyTemplateId: evaluationId,
-            employeeId: sess.employeeDbId,
+            profileId: sess.profileDbId,
             category: template.category,
             titleAr: template.titleAr,
             titleEn: template.titleEn,
@@ -1022,7 +1022,7 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
       req,
       propertyId: sess.propertyId,
       username: sess.fullName,
-      userRole: "employee",
+      userRole: "profile",
       action: `تقييم موظف: ${template.titleAr || template.titleEn || template.category}`,
       actionType: "UPDATE",
       module: "evaluations",
@@ -1066,7 +1066,7 @@ router.post("/activity-registration", async (req, res): Promise<void> => {
         .select()
         .from(activityRegistrationsTable)
         .where(
-          sql`employee_id = ${sess.employeeDbId} AND activity_id = ${activityId}`,
+          sql`profile_id = ${sess.profileDbId} AND activity_id = ${activityId}`,
         )
         .limit(1);
 
@@ -1077,7 +1077,7 @@ router.post("/activity-registration", async (req, res): Promise<void> => {
           .where(sql`id = ${existing.id}`);
       } else {
         await tenantDb.insert(activityRegistrationsTable).values({
-          employeeId: sess.employeeDbId,
+          profileId: sess.profileDbId,
           activityId,
           badgeNumber: badgeNumber || null,
           status,
@@ -1092,7 +1092,7 @@ router.post("/activity-registration", async (req, res): Promise<void> => {
 });
 
 // ─── DELETE /portal-data/activity-registration ──────────────────
-// Employee cancels their own registration
+// Profile cancels their own registration
 router.delete("/activity-registration", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   if (!sess) {
@@ -1111,7 +1111,7 @@ router.delete("/activity-registration", async (req, res): Promise<void> => {
       await tenantDb
         .delete(activityRegistrationsTable)
         .where(
-          sql`employee_id = ${sess.employeeDbId} AND activity_id = ${activityId}`,
+          sql`profile_id = ${sess.profileDbId} AND activity_id = ${activityId}`,
         );
     });
 

@@ -188,7 +188,7 @@ router.patch(
       entityType: "building",
       entityId: updated.id,
     });
-    res.json({ ...UpdateBuildingResponse.parse(updated), propertyId });
+    res.json(UpdateBuildingResponse.parse({ ...updated, propertyId }));
   },
 );
 

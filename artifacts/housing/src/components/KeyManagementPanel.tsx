@@ -34,7 +34,7 @@ interface KeyManagementPanelProps {
   propertyId: number;
   roomId?: number;
   assignmentId?: number;
-  employeeId?: number;
+  profileId?: number;
   checkInDate?: string;
   checkOutDate?: string;
   defaultCardType?: string;
@@ -63,7 +63,7 @@ export default function KeyManagementPanel({
   propertyId,
   roomId,
   assignmentId,
-  employeeId,
+  profileId,
   checkInDate,
   checkOutDate,
   defaultCardType = "guest",
@@ -157,7 +157,7 @@ export default function KeyManagementPanel({
           propertyId,
           roomId,
           assignmentId,
-          employeeId,
+          profileId,
           cardType,
           cardNumber: useManualEntry ? manualCardNumber.trim() : undefined,
           encodeCard: !useManualEntry,

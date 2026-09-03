@@ -3,7 +3,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { roomStatusBadge } from "../../utils";
+import { roomStatusBadge, getRoomStatusLabel } from "../../utils";
 
 type Props = {
   buildings: any[];
@@ -12,6 +12,9 @@ type Props = {
   filteredRoomsTab: any[];
   onEditRoom: (r: any) => void;
   onDeleteRoom: (r: any) => void;
+  selectedRoomIds: Set<number>;
+  onToggleRoom: (id: number) => void;
+  onToggleAll: () => void;
 };
 
 export function RoomsTable({
@@ -21,6 +24,9 @@ export function RoomsTable({
   filteredRoomsTab,
   onEditRoom,
   onDeleteRoom,
+  selectedRoomIds,
+  onToggleRoom,
+  onToggleAll,
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -35,11 +41,23 @@ export function RoomsTable({
     );
   }
 
+  const allSelected =
+    filteredRoomsTab.length > 0 &&
+    filteredRoomsTab.every((r) => selectedRoomIds.has(r.id));
+
   return (
     <div className="rounded-xl border overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr>
+            <th className="p-3 w-10 text-center">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={onToggleAll}
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+              />
+            </th>
             <th className="text-left p-3 font-semibold text-muted-foreground">
               {ar ? "الغرفة" : "Room"}
             </th>
@@ -67,6 +85,14 @@ export function RoomsTable({
             const floor = floors.find((f) => f.id === r.floorId);
             return (
               <tr key={r.id} className="hover:bg-muted/30 transition-colors">
+                <td className="p-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedRoomIds.has(r.id)}
+                    onChange={() => onToggleRoom(r.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                </td>
                 <td className="p-3">
                   <span className="font-bold text-primary">
                     #{r.roomNumber}
@@ -93,9 +119,9 @@ export function RoomsTable({
                 </td>
                 <td className="p-3">
                   <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${roomStatusBadge(r.status)}`}
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${roomStatusBadge(r.status)}`}
                   >
-                    {r.status}
+                    {getRoomStatusLabel(r.status, ar)}
                   </span>
                 </td>
                 <td className="p-3">
@@ -128,7 +154,7 @@ export function RoomsTable({
           {filteredRoomsTab.length === 0 && (
             <tr>
               <td
-                colSpan={7}
+                colSpan={8}
                 className="py-12 text-center text-muted-foreground"
               >
                 <Home className="w-8 h-8 opacity-30 mx-auto mb-2" />

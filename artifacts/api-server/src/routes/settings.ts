@@ -7,7 +7,7 @@ import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 
 const router: Router = Router();
 
-router.get("/settings", requireAuth, async (req, res): Promise<void> => {
+router.get("/settings", requirePermission("settings", "view"), async (req, res): Promise<void> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -136,7 +136,7 @@ router.patch(
 // ─── Portal Contacts endpoint ──────────────────────────────────────────
 router.get(
   "/settings/portal-contacts",
-  requireAuth,
+  requirePermission("settings", "view"),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

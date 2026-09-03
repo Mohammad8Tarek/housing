@@ -48,7 +48,7 @@ router.post("/subscribe", requirePortalAuth, async (req, res, next) => {
       await tenantDb
         .insert(pushSubscriptionsTable)
         .values({
-          employeeId: sess.employeeDbId,
+          profileId: sess.profileDbId,
           propertyId: sess.propertyId,
           endpoint,
           p256dhKey,
@@ -58,7 +58,7 @@ router.post("/subscribe", requirePortalAuth, async (req, res, next) => {
         .onConflictDoUpdate({
           target: pushSubscriptionsTable.endpoint,
           set: {
-            employeeId: sess.employeeDbId,
+            profileId: sess.profileDbId,
             p256dhKey,
             authKey,
             userAgent: (req.headers["user-agent"] as string) || "",
@@ -98,7 +98,7 @@ router.post("/unsubscribe", requirePortalAuth, async (req, res, next) => {
   }
 });
 
-// ─── Helper: Send push notification to all employees of a property ───
+// ─── Helper: Send push notification to all profiles of a property ───
 export async function sendPushToProperty(
   propertyId: number,
   payload: {

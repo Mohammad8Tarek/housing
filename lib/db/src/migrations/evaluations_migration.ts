@@ -3,11 +3,11 @@
  * Run: DATABASE_URL="..." npx tsx src/migrations/evaluations_migration.ts
  *
  * Changes:
- * 1. Make employee_id nullable (allow property-wide evaluations)
- * 2. Drop FK constraint on employee_id
+ * 1. Make profile_id nullable (allow property-wide evaluations)
+ * 2. Drop FK constraint on profile_id
  * 3. Add titleAr, titleEn, descriptionAr, descriptionEn, department columns
  * 4. Make rating nullable (admin doesn't have to set a rating)
- * 5. Add employeeRating column (employee's rating response)
+ * 5. Add profileRating column (profile's rating response)
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -67,16 +67,16 @@ async function run() {
     // Drop the FK constraint if it exists
     await client.query(`
       ALTER TABLE evaluations
-      DROP CONSTRAINT IF EXISTS evaluations_employee_id_employees_id_fk
+      DROP CONSTRAINT IF EXISTS evaluations_profile_id_profiles_id_fk
     `);
     console.log("  ✓ Dropped FK constraint");
 
-    // Make employee_id nullable
+    // Make profile_id nullable
     await client.query(`
       ALTER TABLE evaluations
-      ALTER COLUMN employee_id DROP NOT NULL
+      ALTER COLUMN profile_id DROP NOT NULL
     `);
-    console.log("  ✓ Made employee_id nullable");
+    console.log("  ✓ Made profile_id nullable");
 
     // Make rating nullable
     await client.query(`
@@ -120,12 +120,12 @@ async function run() {
     `);
     console.log("  ✓ Added department");
 
-    // Add employeeRating column
+    // Add profileRating column
     await client.query(`
       ALTER TABLE evaluations
-      ADD COLUMN IF NOT EXISTS employee_rating REAL
+      ADD COLUMN IF NOT EXISTS profile_rating REAL
     `);
-    console.log("  ✓ Added employee_rating");
+    console.log("  ✓ Added profile_rating");
 
     await client.query("COMMIT");
     console.log("\n✅ Migration completed successfully");

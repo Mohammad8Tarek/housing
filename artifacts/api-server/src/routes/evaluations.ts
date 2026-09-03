@@ -5,7 +5,7 @@ import {
   surveyItemsTable,
   surveyItemResponsesTable,
   portalNotificationsTable,
-  employeesTable,
+  profilesTable,
 } from "@workspace/db";
 import { eq, desc, sql, isNull, and, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -42,7 +42,7 @@ const CreateEvaluationSchema = z.object({
 // @ts-ignore
 router.get(
   "/evaluations",
-  requirePermission("employees", "view"),
+  requirePermission("evaluations", "view"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -82,7 +82,7 @@ router.get(
                 ? await tenantDb
                     .select({
                       templateId: surveyItemResponsesTable.templateId,
-                      count: sql<number>`count(distinct ${surveyItemResponsesTable.employeeId})::int`,
+                      count: sql<number>`count(distinct ${surveyItemResponsesTable.profileId})::int`,
                     })
                     .from(surveyItemResponsesTable)
                     .where(
@@ -122,7 +122,7 @@ router.get(
 // @ts-ignore
 router.post(
   "/evaluations",
-  requirePermission("employees", "create"),
+  requirePermission("evaluations", "create"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -242,7 +242,7 @@ const UpdateItemsSchema = z.object({
 // @ts-ignore
 router.put(
   "/evaluations/:id/items",
-  requirePermission("employees", "edit"),
+  requirePermission("evaluations", "edit"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -320,7 +320,7 @@ router.get(
 
             // Get unique respondents
             const uniqueRespondents = new Set(
-              responses.map((r) => r.employeeId),
+              responses.map((r) => r.profileId),
             );
 
             // Rating stats (only from rating-type items)
@@ -341,7 +341,7 @@ router.get(
                 (r) => r.templateId === t.id,
               );
               const uniqueForTemplate = new Set(
-                templateResponses.map((r) => r.employeeId),
+                templateResponses.map((r) => r.profileId),
               );
               const templateRatings = templateResponses.filter(
                 (r) => r.ratingValue != null,
@@ -433,7 +433,7 @@ router.get(
 // @ts-ignore
 router.get(
   "/evaluations/:id/responses",
-  requirePermission("employees", "view"),
+  requirePermission("evaluations", "view"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -459,54 +459,54 @@ router.get(
           .where(eq(surveyItemsTable.templateId, templateId))
           .orderBy(surveyItemsTable.orderIndex);
 
-        // Get all responses grouped by employeeId
+        // Get all responses grouped by profileId
         const responses = await tenantDb
           .select()
           .from(surveyItemResponsesTable)
           .where(eq(surveyItemResponsesTable.templateId, templateId));
 
-        // Group by employeeId
-        const employeeMap: Record<
+        // Group by profileId
+        const profileMap: Record<
           number,
-          { employeeId: number; items: any[]; submittedAt: Date | null }
+          { profileId: number; items: any[]; submittedAt: Date | null }
         > = {};
         for (const r of responses) {
-          if (!employeeMap[r.employeeId]) {
-            employeeMap[r.employeeId] = {
-              employeeId: r.employeeId,
+          if (!profileMap[r.profileId]) {
+            profileMap[r.profileId] = {
+              profileId: r.profileId,
               items: [],
               submittedAt: r.createdAt,
             };
           }
-          employeeMap[r.employeeId].items.push({
+          profileMap[r.profileId].items.push({
             itemId: r.itemId,
             ratingValue: r.ratingValue,
             textValue: r.textValue,
           });
           if (
             r.createdAt &&
-            (!employeeMap[r.employeeId].submittedAt ||
-              r.createdAt > employeeMap[r.employeeId].submittedAt!)
+            (!profileMap[r.profileId].submittedAt ||
+              r.createdAt > profileMap[r.profileId].submittedAt!)
           ) {
-            employeeMap[r.employeeId].submittedAt = r.createdAt;
+            profileMap[r.profileId].submittedAt = r.createdAt;
           }
         }
 
-        // Get employee names
-        const employeeIds = Object.keys(employeeMap).map(Number);
-        const employees =
-          employeeIds.length > 0
+        // Get profile names
+        const profileIds = Object.keys(profileMap).map(Number);
+        const profiles =
+          profileIds.length > 0
             ? await tenantDb
                 .select({
-                  id: employeesTable.id,
-                  firstName: employeesTable.firstName,
-                  lastName: employeesTable.lastName,
-                  employeeId: employeesTable.employeeId,
+                  id: profilesTable.id,
+                  firstName: profilesTable.firstName,
+                  lastName: profilesTable.lastName,
+                  profileId: profilesTable.profileId,
                 })
-                .from(employeesTable)
-                .where(inArray(employeesTable.id, employeeIds))
+                .from(profilesTable)
+                .where(inArray(profilesTable.id, profileIds))
             : [];
-        const empMap = Object.fromEntries(employees.map((e) => [e.id, e]));
+        const empMap = Object.fromEntries(profiles.map((e) => [e.id, e]));
 
         return {
           template: {
@@ -521,19 +521,19 @@ router.get(
                 : template.createdAt,
           },
           items,
-          responses: Object.values(employeeMap).map((r) => ({
-            employeeId: r.employeeId,
-            employeeName: empMap[r.employeeId]
-              ? `${empMap[r.employeeId].firstName || ""} ${empMap[r.employeeId].lastName || ""}`.trim()
-              : `Employee #${r.employeeId}`,
-            employeeCode: empMap[r.employeeId]?.employeeId || null,
+          responses: Object.values(profileMap).map((r) => ({
+            profileId: r.profileId,
+            profileName: empMap[r.profileId]
+              ? `${empMap[r.profileId].firstName || ""} ${empMap[r.profileId].lastName || ""}`.trim()
+              : `Profile #${r.profileId}`,
+            profileCode: empMap[r.profileId]?.profileId || null,
             items: r.items,
             submittedAt:
               r.submittedAt instanceof Date
                 ? r.submittedAt.toISOString()
                 : r.submittedAt,
           })),
-          totalResponses: Object.keys(employeeMap).length,
+          totalResponses: Object.keys(profileMap).length,
         };
       });
 
@@ -552,7 +552,7 @@ router.get(
 // @ts-ignore
 router.delete(
   "/evaluations/:id",
-  requirePermission("employees", "delete"),
+  requirePermission("evaluations", "delete"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);

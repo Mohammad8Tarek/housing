@@ -1,5 +1,4 @@
 import { exportExcel, exportPDF, exportAnalyticsPDF } from "../utils/export";
-import { getGuestNames } from "../utils/helpers";
 
 export function useReportExport({
   activeTab,
@@ -14,7 +13,7 @@ export function useReportExport({
   settings,
   analytics,
   rooms,
-  employees,
+  profiles,
   evalStats,
   floorMap,
   buildingMap,
@@ -24,139 +23,177 @@ export function useReportExport({
   const toExcelRows = (): Record<string, any>[] => {
     const data = currentData();
     switch (activeTab) {
+      case "assignments":
+        return data.map((a: any) => ({
+          "كود الموظف / Code": a.profileCode,
+          "الاسم / Full Name": a.fullName,
+          "نوع التوظيف / Type": a.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "داخلي (فندق)",
+          "الشركة / Works At": a.companyName,
+          "رقم الغرفة / Room No": a.roomNumber,
+          "رقم السرير / Bed No": a.bedNumber,
+          "المبنى / Building": a.buildingName,
+          "الطابق / Floor": a.floorName,
+          "القسم / Department": a.department,
+          "الوظيفة / Job Title": a.jobTitle,
+          "الهاتف / Phone": a.phone,
+          "الرقم القومي / National ID": a.nationalId,
+          "تاريخ التسكين / Check-In": a.checkInDate,
+          "انتهاء العقد / Contract End": a.contractEndDate,
+          "المغادرة المتوقعة / Expected Out": a.expectedCheckOutDate,
+          "الحالة / Status": a.status,
+        }));
+
+      case "vacant_rooms":
+        return data.map((r: any) => ({
+          "رقم الغرفة / Room No": r.roomNumber,
+          "المبنى / Building": r.buildingName,
+          "الطابق / Floor": r.floorName,
+          "نوع الغرفة / Room Type": r.roomType,
+          "السعة الإجمالية / Capacity": r.capacity,
+          "المشغول / Occupied": r.currentOccupancy,
+          "عدد الأسرة الشاغرة / Vacant Beds": r.vacantBedsCount,
+          "الأسرة المتاحة / Available Beds": r.availableBedsText,
+          "سياسة الجنس / Gender Policy": r.genderPolicy,
+          "حالة الغرفة / Status": r.status,
+        }));
+
       case "housing":
         return data.map((r: any) => ({
-          "Room No": r.roomNumber,
-          Type: r.roomType ?? "—",
-          Capacity: r.capacity,
-          Gender: r.genderPolicy ?? "—",
-          Floor: floorMap[r.floorId] ?? r.floorId,
-          Building: buildingMap[r.buildingId] ?? r.buildingId,
-          Status: r.status,
+          "رقم الغرفة / Room No": r.roomNumber,
+          "المبنى / Building": r.buildingName,
+          "الطابق / Floor": r.floorName,
+          "نوع الغرفة / Type": r.roomType,
+          "السعة / Capacity": r.capacity,
+          "المشغول / Occupied": r.currentOccupancy,
+          "الشاغر / Vacant Beds": r.vacantBeds,
+          "نسبة الإشغال / Occupancy Rate": r.occupancyRate,
+          "سياسة الجنس / Gender Policy": r.genderPolicy,
+          "حالة الغرفة / Status": r.status,
         }));
-      case "employees":
+
+      case "profiles":
         return data.map((e: any) => ({
-          Code: e.employeeCode,
-          "First Name": e.firstName,
-          "Last Name": e.lastName,
-          "National ID": e.nationalId ?? "—",
-          Nationality: e.nationality ?? "—",
-          Phone: e.phone ?? "—",
-          Gender: e.gender ?? "—",
-          Department: e.department ?? "—",
-          "Job Title": e.jobTitle ?? "—",
-          Level: e.level ?? "—",
-          "Hire Date": e.hireDate ?? "—",
-          Address: e.address ?? "—",
-          Status: e.status,
+          "كود الموظف / Code": e.profileCode,
+          "الاسم الأول / First Name": e.firstName,
+          "الاسم الأخير / Last Name": e.lastName,
+          "نوع التوظيف / Type": e.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "داخلي (فندق)",
+          "الشركة / Works At": e.companyName,
+          "الرقم القومي / National ID": e.nationalId,
+          "الهاتف / Phone": e.phone,
+          "الجنسية / Nationality": e.nationality,
+          "الجنس / Gender": e.gender,
+          "القسم / Department": e.department,
+          "الوظيفة / Job Title": e.jobTitle,
+          "الدرجة / Level": e.level,
+          "السكن الحالي / Current Housing": e.assignedRoom,
+          "تاريخ التعيين / Hire Date": e.hireDate,
+          "انتهاء العقد / Contract End": e.contractEndDate,
+          "الحالة / Status": e.status,
         }));
-      case "assignments":
-        return data.map((a: any) => {
-          const emp = empMap[a.employeeId];
-          const room = roomMap[a.roomId];
-          return {
-            Employee: emp
-              ? `${emp.firstName} ${emp.lastName}`
-              : `#${a.employeeId}`,
-            "Room No": room?.roomNumber ?? `#${a.roomId}`,
-            Building: room ? (buildingMap[room.buildingId] ?? "—") : "—",
-            "Check-In": a.checkInDate,
-            "Expected Out": a.expectedCheckOutDate ?? "—",
-            "Check-Out": a.checkOutDate ?? "—",
-            Status: a.status,
-          };
-        });
-      case "maintenance":
-        return data.map((m: any) => {
-          const room = roomMap[m.roomId];
-          return {
-            Category: m.category ?? "—",
-            "Room No": room?.roomNumber ?? `#${m.roomId}`,
-            Building: room ? (buildingMap[room.buildingId] ?? "—") : "—",
-            Problem: m.problemType,
-            Priority: m.priority,
-            Status: m.status,
-            "Assigned To": m.assignedToName ?? "—",
-            "Reported By": m.reportedBy ?? "—",
-            Reported: m.reportedAt,
-            Started: m.startedAt ?? "—",
-            Resolved: m.resolvedAt ?? "—",
-            "Due Date": m.dueDate ?? "—",
-            Notes: m.notes ?? "—",
-          };
-        });
+
+      case "expiring_contracts":
+        return data.map((c: any) => ({
+          "كود الموظف / Code": c.profileCode,
+          "اسم الموظف / Name": c.fullName,
+          "القسم / Department": c.department,
+          "الوظيفة / Job Title": c.jobTitle,
+          "السكن الحالي / Housing": c.assignedRoom,
+          "الهاتف / Phone": c.phone,
+          "الرقم القومي / National ID": c.nationalId,
+          "تاريخ انتهاء العقد / Contract End Date": c.contractEndDate,
+          "الأيام المتبقية / Days Remaining": c.daysRemaining,
+          "حالة العقد / Status": c.expStatus,
+        }));
+
       case "reservations":
         return data.map((r: any) => ({
-          Name: `${r.firstName} ${r.lastName}`,
-          "Room No": r.roomId
-            ? (roomMap[r.roomId]?.roomNumber ?? `#${r.roomId}`)
-            : "—",
-          "Room Type": r.roomType ?? "—",
-          Department: r.department ?? "—",
-          "Check-In": r.checkInDate,
-          "Check-Out": r.checkOutDate ?? "—",
-          Status: r.status,
+          "اسم الضيف / Guest Name": r.guestName,
+          "الرقم القومي / ID Card": r.nationalId,
+          "الهاتف / Phone": r.phone,
+          "القسم / Department": r.department,
+          "الوظيفة / Job Title": r.jobTitle,
+          "نوع الغرفة / Room Type": r.roomType,
+          "الغرفة المحجوزة / Reserved Room": r.roomNumber,
+          "تاريخ الوصول / Check-In": r.checkInDate,
+          "تاريخ المغادرة / Check-Out": r.checkOutDate,
+          "الحالة / Status": r.status,
         }));
+
       case "hostings":
-        return data.map((h: any) => {
-          const emp = empMap[h.employeeId];
-          const room = h.roomId ? roomMap[h.roomId] : undefined;
-          const names = getGuestNames(h);
-          return {
-            Employee: emp
-              ? `${emp.firstName} ${emp.lastName}`
-              : `#${h.employeeId}`,
-            Code: emp?.employeeCode ?? "—",
-            Dept: emp?.department ?? "—",
-            Room: room?.roomNumber ?? (h.roomId ? `#${h.roomId}` : "—"),
-            Building: room ? (buildingMap[room.buildingId] ?? "—") : "—",
-            Type: h.hostingType ?? "—",
-            Guests: `${h.guestsCount ?? 0}${names !== "—" ? ` · ${names}` : ""}`,
-            From: h.expectedFrom?.slice(0, 10) ?? "—",
-            To: h.expectedTo?.slice(0, 10) ?? "—",
-            "Check In": h.actualCheckIn?.slice(0, 10) ?? "—",
-            "Check Out": h.actualCheckOut?.slice(0, 10) ?? "—",
-            Status: h.status,
-          };
-        });
+        return data.map((h: any) => ({
+          "الموظف المستضيف / Host": h.hostEmployee,
+          "القسم / Department": h.hostDept,
+          "اسم الضيف / Guest Name": h.guestName,
+          "صلة القرابة / Relation": h.relation,
+          "رقم الهوية / ID": h.guestId,
+          "رقم الغرفة / Room No": h.roomNumber,
+          "تاريخ الدخول / Check-In": h.checkInDate,
+          "تاريخ المغادرة / Check-Out": h.checkOutDate,
+          "سعر اليوم / Daily Rate": h.dailyRate,
+          "الإجمالي / Total Fee": h.totalAmount,
+          "الحالة / Status": h.status,
+        }));
+
+      case "maintenance":
+        return data.map((m: any) => ({
+          "رقم الغرفة / Room No": m.roomNumber,
+          "المبنى / Building": m.buildingName,
+          "الفئة / Category": m.category,
+          "وصف المشكلة / Problem Details": m.problemType,
+          "الأولوية / Priority": m.priority,
+          "الفني المعين / Assigned To": m.assignedTo,
+          "تاريخ البلاغ / Reported Date": m.reportedAt,
+          "الحالة / Status": m.status,
+        }));
+
       default:
-        return [];
+        return data;
     }
   };
 
   const handleExportExcel = () => {
     if (!canExportReports) return;
-    exportExcel(activeTab, toExcelRows());
+    const rows = toExcelRows();
+    exportExcel(activeTab, rows);
   };
 
   const handleExportPDF = () => {
     if (!canExportReports) return;
-    exportPDF(
+    const data = currentData();
+    exportPDF({
       activeTab,
-      toExcelRows(),
-      properties,
-      propId,
-      activePropertyId,
+      data,
       dateFrom,
       dateTo,
       search,
       settings,
-    );
+      properties,
+      propId,
+      activePropertyId,
+      floorMap,
+      buildingMap,
+      empMap,
+      roomMap,
+    });
   };
 
   const handleExportAnalyticsPDF = () => {
     if (!canExportReports) return;
-    exportAnalyticsPDF(
+    exportAnalyticsPDF({
       analytics,
       rooms,
-      employees,
+      profiles,
       evalStats,
+      settings,
       properties,
       propId,
       activePropertyId,
-      settings,
-    );
+    });
   };
 
-  return { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF };
+  return {
+    handleExportExcel,
+    handleExportPDF,
+    handleExportAnalyticsPDF,
+  };
 }

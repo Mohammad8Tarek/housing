@@ -2,7 +2,7 @@
 import { useState } from "react";
 import {
   useListInHouseAssignments,
-  useListEmployees,
+  useListProfiles,
   useListRooms,
   useListBuildings,
   useListFloors,
@@ -55,6 +55,8 @@ import {
   UserCircle,
   X,
   Check,
+  CheckCircle,
+  Palmtree,
   Key,
   Printer,
 } from "lucide-react";
@@ -62,7 +64,7 @@ import {
   ColumnChooser,
   useColumnVisibility,
 } from "@/components/ui/column-chooser";
-import { EmployeeProfilePopup } from "@/components/ui/employee-profile-popup";
+import { ProfileProfilePopup } from "@/components/ui/profile-profile-popup";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,6 +80,8 @@ import {
   usePrintLanguage,
   PrintLanguageDialog,
 } from "@/lib/PrintLanguageDialog";
+import { usePermission } from "@/hooks/use-permission";
+import { PermissionGate } from "@/components/ui/permission-gate";
 
 function EmpAvatar({ emp }: { emp: any }) {
   if (!emp) return null;
@@ -103,6 +107,7 @@ export default function InHouse() {
     properties: contextProperties,
   } = useProperty();
   const { language } = useLanguage();
+  const { can } = usePermission();
 
   const queryClient = useQueryClient();
   const ar = language === "ar";
@@ -119,6 +124,26 @@ export default function InHouse() {
     id: number | null;
     emp?: any;
   }>({ open: false, id: null });
+  const [vacationDialog, setVacationDialog] = useState<{
+    open: boolean;
+    emp: any;
+    room?: any;
+  }>({ open: false, emp: null });
+  const [vacationStartDate, setVacationStartDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [vacationEndDate, setVacationEndDate] = useState("");
+  const [vacationNotes, setVacationNotes] = useState("");
+  const [vacationSubmitting, setVacationSubmitting] = useState(false);
+
+  const vacationDurationDays = () => {
+    if (!vacationStartDate || !vacationEndDate) return null;
+    const s = new Date(vacationStartDate);
+    const e = new Date(vacationEndDate);
+    const diff = Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+    return diff >= 0 ? diff : null;
+  };
+
   const [transferDialog, setTransferDialog] = useState<{
     open: boolean;
     id: number | null;
@@ -181,11 +206,11 @@ export default function InHouse() {
   const assignments = assignmentsRes?.data || [];
   const total = assignmentsRes?.pagination?.total || 0;
 
-  const { data: _eDataWrapper } = useListEmployees(
+  const { data: _eDataWrapper } = useListProfiles(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
     { query: { enabled: !!activePropertyId } },
   );
-  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
   const { data: _rData } = useListRooms(
     { propertyId: activePropertyId, limit: 1000 },
     { query: { enabled: !!activePropertyId, staleTime: 60000 } },
@@ -252,7 +277,96 @@ export default function InHouse() {
     queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
   };
 
-  const checkoutMutation = useCheckoutAssignment({
+  
+  const handleConfirmVacation = async () => {
+    if (!vacationDialog.emp) return;
+    if (!vacationStartDate || !vacationEndDate) {
+      toast.error(ar ? "يرجى تحديد تاريخ البدء وتاريخ الانتهاء" : "Please select start and end dates");
+      return;
+    }
+    if (new Date(vacationEndDate) < new Date(vacationStartDate)) {
+      toast.error(ar ? "تاريخ العودة يجب أن يكون بعد تاريخ البدء" : "Return date must be after start date");
+      return;
+    }
+
+    setVacationSubmitting(true);
+    try {
+      let res = await fetch(`/api/profiles/${vacationDialog.emp.id}/vacation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId: activePropertyId,
+          startDate: vacationStartDate,
+          endDate: vacationEndDate,
+          notes: vacationNotes,
+        }),
+      });
+      if (res.status === 404) {
+        res = await fetch(`/api/profiles/${vacationDialog.emp.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            propertyId: activePropertyId,
+            status: "VACATION",
+            vacationStartDate,
+            vacationEndDate,
+            vacationNotes,
+          }),
+        });
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed");
+      }
+      toast.success(
+        ar
+          ? `تم تسجيل إجازة ${vacationDialog.emp.firstName} بنجاح (من ${vacationStartDate} إلى ${vacationEndDate})`
+          : `Vacation recorded for ${vacationDialog.emp.firstName}`
+      );
+      setVacationDialog({ open: false, emp: null });
+      invalidate();
+    } catch (err: any) {
+      toast.error(err.message || (ar ? "فشل تسجيل الإجازة" : "Failed to record vacation"));
+    } finally {
+      setVacationSubmitting(false);
+    }
+  };
+
+  const handleReturnFromVacation = async (emp: any) => {
+    if (!emp) return;
+    try {
+      let res = await fetch(`/api/profiles/${emp.id}/return-vacation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId: activePropertyId,
+        }),
+      });
+      if (res.status === 404) {
+        res = await fetch(`/api/profiles/${emp.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            propertyId: activePropertyId,
+            status: "ACTIVE",
+            vacationStartDate: null,
+            vacationEndDate: null,
+            vacationNotes: "",
+          }),
+        });
+      }
+      if (!res.ok) throw new Error();
+      toast.success(
+        ar
+          ? `تم تسجيل عودة ${emp.firstName} من الإجازة بنجاح (مقيم بالسكن)`
+          : `${emp.firstName} returned from vacation`
+      );
+      invalidate();
+    } catch {
+      toast.error(ar ? "فشل تسجيل العودة من الإجازة" : "Failed to record return");
+    }
+  };
+const checkoutMutation = useCheckoutAssignment({
     mutation: {
       onSuccess: () => {
         invalidate();
@@ -274,7 +388,7 @@ export default function InHouse() {
         const targetRoom = targetRooms.find(
           (r) => r.id === parseInt(transferRoomId),
         );
-        toast.success(ar ? "تم النقل بنجاح" : "Transfer successful");
+        toast.success(ar ? "تم الروم موف بنجاح" : "Room Move successful");
         setPrintAfterTransfer({
           assignment: data,
           emp,
@@ -312,7 +426,7 @@ export default function InHouse() {
     },
   });
 
-  const empMap = Object.fromEntries(employees.map((e) => [e.id, e]));
+  const empMap = Object.fromEntries(profiles.map((e) => [e.id, e]));
   const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
   const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
   const floorMap = Object.fromEntries(
@@ -384,7 +498,7 @@ export default function InHouse() {
     const floorNum = room ? floorMap[room.floorId]?.number : null;
     await generateHousingLetterPdf({
       isArabic: chosenAr,
-      employee: emp,
+      profile: emp,
       assignment,
       room,
       building,
@@ -422,8 +536,8 @@ export default function InHouse() {
     { key: "photo", label: "Photo", labelAr: "صورة", defaultVisible: true },
     { key: "code", label: "Code", labelAr: "الكود", defaultVisible: true },
     {
-      key: "employee",
-      label: "Employee",
+      key: "profile",
+      label: "Profile",
       labelAr: "الموظف",
       defaultVisible: true,
       fixed: true,
@@ -554,9 +668,9 @@ export default function InHouse() {
                     {ar ? "الكود" : "Code"}
                   </TableHead>
                 )}
-                {isIHVisible("employee") && (
+                {isIHVisible("profile") && (
                   <TableHead className="font-semibold">
-                    {ar ? "الموظف" : "Employee"}
+                    {ar ? "الموظف" : "Profile"}
                   </TableHead>
                 )}
                 {isIHVisible("nationality") && (
@@ -618,7 +732,7 @@ export default function InHouse() {
             </TableHeader>
             <TableBody>
               {assignments.map((a) => {
-                const emp = empMap[a.employeeId];
+                const emp = empMap[a.profileId];
                 const room = roomMap[a.roomId];
                 const building = room ? buildingMap[room.buildingId] : null;
                 const floor = room ? floorMap[room.floorId] : null;
@@ -657,18 +771,18 @@ export default function InHouse() {
                     )}
                     {isIHVisible("code") && (
                       <TableCell className="font-mono text-xs text-muted-foreground font-semibold">
-                        {emp?.employeeId ?? "—"}
+                        {emp?.profileId ?? "—"}
                       </TableCell>
                     )}
-                    {isIHVisible("employee") && (
+                    {isIHVisible("profile") && (
                       <TableCell className="font-medium whitespace-nowrap">
                         <div className="flex flex-col">
                           <span>
                             {emp?.firstName ?? ""} {emp?.lastName ?? ""}
                           </span>
-                          {emp?.employeeId && (
+                          {emp?.profileId && (
                             <span className="text-[10px] text-muted-foreground font-mono">
-                              #{emp.employeeId}
+                              #{emp.profileId}
                             </span>
                           )}
                         </div>
@@ -802,61 +916,99 @@ export default function InHouse() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setReissueNotes("");
-                                setReissueDialog({
-                                  open: true,
-                                  assignment: a,
-                                  emp,
-                                  room,
-                                });
-                              }}
-                            >
-                              <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                              {ar ? "إعادة إصدار مفتاح" : "Re-issue Key"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => printHousingLetter(a, emp)}
-                            >
-                              <Printer className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                              {ar ? "طباعة خطاب السكن" : "Print Housing Letter"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setCheckoutDate(
-                                  new Date().toISOString().split("T")[0],
-                                );
-                                setCheckoutNotes("");
-                                setCheckoutDialog({
-                                  open: true,
-                                  id: a.id,
-                                  emp,
-                                });
-                              }}
-                            >
-                              <LogOut className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                              {ar ? "خروج" : "Checkout"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setTransferRoomId("");
-                                setSelectedTransferBed("");
-                                setTransferReason("");
-                                setRoomSearch("");
-                                setTransferPropertyId(
-                                  String(activePropertyId ?? ""),
-                                );
-                                setTransferDialog({
-                                  open: true,
-                                  id: a.id,
-                                  emp,
-                                });
-                              }}
-                            >
-                              <ArrowRightLeft className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                              {ar ? "نقل" : "Transfer"}
-                            </DropdownMenuItem>
+                            <PermissionGate module="accommodation" action="edit">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setReissueNotes("");
+                                  setReissueDialog({
+                                    open: true,
+                                    assignment: a,
+                                    emp,
+                                    room,
+                                  });
+                                }}
+                              >
+                                <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                {ar ? "إعادة إصدار مفتاح" : "Re-issue Key"}
+                              </DropdownMenuItem>
+                            </PermissionGate>
+                            <PermissionGate module="accommodation" action="export">
+                              <DropdownMenuItem
+                                onClick={() => printHousingLetter(a, emp)}
+                              >
+                                <Printer className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                {ar ? "طباعة خطاب السكن" : "Print Housing Letter"}
+                              </DropdownMenuItem>
+                            </PermissionGate>
+                            <PermissionGate module="accommodation" action="edit">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (emp?.status === "VACATION") {
+                                    handleReturnFromVacation(emp);
+                                  } else {
+                                    const today = new Date().toISOString().split("T")[0];
+                                    setVacationStartDate(today);
+                                    const future = new Date();
+                                    future.setDate(future.getDate() + 14);
+                                    setVacationEndDate(future.toISOString().split("T")[0]);
+                                    setVacationNotes("");
+                                    setVacationDialog({ open: true, emp, room });
+                                  }
+                                }}
+                                className={emp?.status === "VACATION" ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}
+                              >
+                                {emp?.status === "VACATION" ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600" />
+                                    {ar ? "تسجيل عودة من الإجازة (ان هاوس)" : "Return from Vacation"}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Palmtree className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-amber-600" />
+                                    {ar ? "تسجيل خروج في إجازة (فيكيشن)" : "Set on Vacation"}
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            </PermissionGate>
+                            <PermissionGate module="accommodation" action="checkout">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setCheckoutDate(
+                                    new Date().toISOString().split("T")[0],
+                                  );
+                                  setCheckoutNotes("");
+                                  setCheckoutDialog({
+                                    open: true,
+                                    id: a.id,
+                                    emp,
+                                  });
+                                }}
+                              >
+                                <LogOut className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                {ar ? "خروج" : "Checkout"}
+                              </DropdownMenuItem>
+                            </PermissionGate>
+                            <PermissionGate module="accommodation" action="transfer">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setTransferRoomId("");
+                                  setSelectedTransferBed("");
+                                  setTransferReason("");
+                                  setRoomSearch("");
+                                  setTransferPropertyId(
+                                    String(activePropertyId ?? ""),
+                                  );
+                                  setTransferDialog({
+                                    open: true,
+                                    id: a.id,
+                                    emp,
+                                  });
+                                }}
+                              >
+                                <ArrowRightLeft className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                {ar ? "روم موف" : "Room Move"}
+                              </DropdownMenuItem>
+                            </PermissionGate>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -921,12 +1073,12 @@ export default function InHouse() {
       >
         <DialogContent
           className="max-w-sm"
-          srTitle={ar ? "تسجيل خروج" : "Checkout Employee"}
+          srTitle={ar ? "تسجيل خروج" : "Checkout Profile"}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <LogOut className="w-5 h-5" />
-              {ar ? "تسجيل خروج" : "Checkout Employee"}
+              {ar ? "تسجيل خروج" : "Checkout Profile"}
             </DialogTitle>
           </DialogHeader>
           {checkoutDialog.emp && (
@@ -937,7 +1089,7 @@ export default function InHouse() {
                   {checkoutDialog.emp.firstName} {checkoutDialog.emp.lastName}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {checkoutDialog.emp.employeeId}
+                  {checkoutDialog.emp.profileId}
                 </p>
               </div>
             </div>
@@ -984,6 +1136,127 @@ export default function InHouse() {
         </DialogContent>
       </Dialog>
 
+      {/* Vacation Dialog */}
+      <Dialog
+        open={vacationDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setVacationDialog({ open: false, emp: null });
+        }}
+      >
+        <DialogContent
+          className="max-w-md"
+          srTitle={ar ? "تسجيل إجازة موظف" : "Record Employee Vacation"}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <Palmtree className="w-5 h-5" />
+              {ar ? "تسجيل خروج في إجازة (فيكيشن)" : "Set Employee on Vacation"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {vacationDialog.emp && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <EmpAvatar emp={vacationDialog.emp} />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm text-foreground truncate">
+                  {vacationDialog.emp.firstName} {vacationDialog.emp.lastName}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                  <span>{vacationDialog.emp.employeeId || vacationDialog.emp.profileId}</span>
+                  {vacationDialog.room && (
+                    <Badge variant="outline" className="text-[10px] py-0">
+                      {ar ? "غرفة" : "Room"} {vacationDialog.room.roomNumber}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4 pt-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  {ar ? "تاريخ بدء الإجازة (من)" : "Start Date"}
+                </Label>
+                <Input
+                  type="date"
+                  value={vacationStartDate}
+                  onChange={(e) => setVacationStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  {ar ? "تاريخ العودة المتوقع (إلى)" : "Return Date"}
+                </Label>
+                <Input
+                  type="date"
+                  value={vacationEndDate}
+                  onChange={(e) => setVacationEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {vacationDurationDays() !== null && (
+              <div className="p-2.5 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-200 flex items-center justify-between text-xs font-bold">
+                <span>{ar ? "مدة الإجازة المحسوبة:" : "Vacation Duration:"}</span>
+                <span className="text-sm px-2 py-0.5 rounded bg-teal-200/60 dark:bg-teal-900/60">
+                  {vacationDurationDays()} {ar ? "يوم" : "Days"}
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                {ar ? "ملاحظات الإجازة (اختياري)" : "Vacation Notes"}
+              </Label>
+              <Textarea
+                placeholder={
+                  ar
+                    ? "اكتب أي تفاصيل إضافية مثل رقم الطوارئ أو سبب الإجازة..."
+                    : "Add any notes or contact info..."
+                }
+                value={vacationNotes}
+                onChange={(e) => setVacationNotes(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-muted/40 border text-[11px] text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <span>ℹ️</span> {ar ? "تأثير الإجراء:" : "Action Effect:"}
+              </p>
+              <p>• {ar ? "سيتحول الموظف إلى حالة 'في إجازة (فيكيشن)' مع حفظ التواريخ." : "Employee status will change to Vacation with dates saved."}</p>
+              <p>• {ar ? "ستتحول غرفته تلقائياً إلى 'مشغولة - إجازة' ويبقى سريره محجوزاً له." : "Room will automatically switch to Occupied Vacation holding his bed."}</p>
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setVacationDialog({ open: false, emp: null })}
+                disabled={vacationSubmitting}
+              >
+                {ar ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button
+                onClick={handleConfirmVacation}
+                disabled={vacationSubmitting || !vacationStartDate || !vacationEndDate}
+                className="bg-amber-600 hover:bg-amber-700 text-white gap-2 font-semibold"
+              >
+                <Palmtree className="w-4 h-4" />
+                {vacationSubmitting
+                  ? ar
+                    ? "جاري الحفظ..."
+                    : "Saving..."
+                  : ar
+                    ? "تأكيد الإجازة"
+                    : "Confirm Vacation"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Transfer Dialog */}
       <Dialog
         open={transferDialog.open}
@@ -999,12 +1272,12 @@ export default function InHouse() {
       >
         <DialogContent
           className="max-w-md"
-          srTitle={ar ? "نقل إلى غرفة أخرى" : "Transfer to New Room"}
+          srTitle={ar ? "روم موف - نقل لغرفة جديدة" : "Room Move"}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowRightLeft className="w-5 h-5" />
-              {ar ? "نقل إلى غرفة أخرى" : "Transfer to New Room"}
+              {ar ? "روم موف — نقل لغرفة جديدة" : "Room Move"}
             </DialogTitle>
           </DialogHeader>
           {transferDialog.emp && (
@@ -1015,7 +1288,7 @@ export default function InHouse() {
                   {transferDialog.emp.firstName} {transferDialog.emp.lastName}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {transferDialog.emp.employeeId}
+                  {transferDialog.emp.profileId}
                 </p>
               </div>
             </div>
@@ -1196,11 +1469,11 @@ export default function InHouse() {
               >
                 {transferMutation.isPending
                   ? ar
-                    ? "جاري النقل..."
-                    : "Transferring..."
+                    ? "جاري الروم موف..."
+                    : "Moving..."
                   : ar
-                    ? "تأكيد النقل"
-                    : "Confirm Transfer"}
+                    ? "تأكيد روم موف"
+                    : "Confirm Room Move"}
               </Button>
             </div>
           </div>
@@ -1258,7 +1531,7 @@ export default function InHouse() {
                   propertyId={activePropertyId}
                   roomId={reissueDialog.assignment.roomId}
                   assignmentId={reissueDialog.assignment.id}
-                  employeeId={reissueDialog.assignment.employeeId}
+                  profileId={reissueDialog.assignment.profileId}
                   defaultCardType="guest"
                   notes={
                     reissueNotes ||
@@ -1295,9 +1568,9 @@ export default function InHouse() {
         </DialogContent>
       </Dialog>
 
-      {/* Employee Profile Popup */}
-      <EmployeeProfilePopup
-        employeeId={profileEmpId}
+      {/* Profile Profile Popup */}
+      <ProfileProfilePopup
+        profileId={profileEmpId}
         propertyId={activePropertyId}
         onClose={() => setProfileEmpId(null)}
       />

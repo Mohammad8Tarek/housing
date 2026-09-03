@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  useListEmployees,
+  useListProfiles,
   useListRooms,
   useListBuildings,
   useListFloors,
@@ -59,7 +59,7 @@ const statusBadge = (status: string) => {
   return map[status] ?? "bg-gray-100 text-gray-600";
 };
 
-function EmployeeMini({
+function ProfileMini({
   emp,
   photoUrl,
 }: {
@@ -133,8 +133,8 @@ export default function HistoryPage() {
 
   const propId = typeof activePropertyId === "number" ? activePropertyId : undefined;
 
-  const { data: _eDataWrapper } = useListEmployees({ propertyId: propId });
-  const employees = (_eDataWrapper as any)?.employees || (_eDataWrapper as any)?.data || [];
+  const { data: _eDataWrapper } = useListProfiles({ propertyId: propId });
+  const profiles = (_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || [];
   const { data: _rData } = useListRooms({ propertyId: propId });
   const rooms = (_rData as any)?.data || [];
   const { data: _bData } = useListBuildings({ propertyId: propId });
@@ -145,7 +145,7 @@ export default function HistoryPage() {
   const { data: _pData } = useListProperties();
   const properties = (_pData as any)?.data || _pData || [];
 
-  const empMap = Object.fromEntries(employees.map((e: any) => [e.id, e]));
+  const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
   const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
   const floorMap = Object.fromEntries(
@@ -190,7 +190,7 @@ export default function HistoryPage() {
 
   const exportExcel = () => {
     const rows = exportTarget().map((a) => {
-      const emp = empMap[a.employeeId];
+      const emp = empMap[a.profileId];
       const room = roomMap[a.roomId];
       const building = room ? buildingMap[room.buildingId] : null;
       const floor = room ? floorMap[room.floorId] : null;
@@ -207,8 +207,8 @@ export default function HistoryPage() {
             )
           : null;
       return {
-        Name: emp ? `${emp.firstName} ${emp.lastName}` : `#${a.employeeId}`,
-        Code: emp?.employeeId ?? "",
+        Name: emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`,
+        Code: emp?.profileId ?? "",
         "National ID": emp?.nationalId ?? "",
         Nationality: (emp as any)?.nationality ?? "",
         "Job Title": emp?.jobTitle ?? "",
@@ -255,7 +255,7 @@ export default function HistoryPage() {
     });
 
     const rows = exportTarget().map((a) => {
-      const emp = empMap[a.employeeId];
+      const emp = empMap[a.profileId];
       const room = roomMap[a.roomId];
       const building = room ? buildingMap[room.buildingId] : null;
       const floor = room ? floorMap[room.floorId] : null;
@@ -272,8 +272,8 @@ export default function HistoryPage() {
             )
           : null;
       return [
-        emp ? `${emp.firstName} ${emp.lastName}` : `#${a.employeeId}`,
-        emp?.employeeId ?? "",
+        emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`,
+        emp?.profileId ?? "",
         emp?.nationalId ?? "",
         emp?.department ?? "",
         pdfTextSafe(building ?? "") || "—",
@@ -290,7 +290,7 @@ export default function HistoryPage() {
     autoTable(doc, {
       head: [
         [
-          "Employee",
+          "Profile",
           "Code",
           "National ID",
           "Department",
@@ -339,8 +339,8 @@ export default function HistoryPage() {
 
   const HIST_COLS = [
     {
-      key: "employee",
-      label: "Employee",
+      key: "profile",
+      label: "Profile",
       labelAr: "الموظف",
       defaultVisible: true,
     },
@@ -514,9 +514,9 @@ export default function HistoryPage() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                {isHistVisible("employee") && (
+                {isHistVisible("profile") && (
                   <TableHead className="font-semibold">
-                    {ar ? "الموظف" : "Employee"}
+                    {ar ? "الموظف" : "Profile"}
                   </TableHead>
                 )}
                 {isHistVisible("code") && (
@@ -588,7 +588,7 @@ export default function HistoryPage() {
             </TableHeader>
             <TableBody>
               {paged.map((a) => {
-                const emp = empMap[a.employeeId];
+                const emp = empMap[a.profileId];
                 const room = roomMap[a.roomId];
                 const building = room ? buildingMap[room.buildingId] : null;
                 const floor = room ? floorMap[room.floorId] : null;
@@ -620,9 +620,9 @@ export default function HistoryPage() {
                         onCheckedChange={() => toggleRow(a.id)}
                       />
                     </TableCell>
-                    {isHistVisible("employee") && (
+                    {isHistVisible("profile") && (
                       <TableCell>
-                        <EmployeeMini
+                        <ProfileMini
                           emp={emp}
                           photoUrl={(emp as any)?.photoUrl}
                         />
@@ -630,7 +630,7 @@ export default function HistoryPage() {
                     )}
                     {isHistVisible("code") && (
                       <TableCell className="font-mono text-xs text-muted-foreground">
-                        {emp?.employeeId ?? `#${a.employeeId}`}
+                        {emp?.profileId ?? `#${a.profileId}`}
                       </TableCell>
                     )}
                     {isHistVisible("nationalid") && (

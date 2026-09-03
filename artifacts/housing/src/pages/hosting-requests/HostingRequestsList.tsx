@@ -244,7 +244,7 @@ export default function HostingRequestsList() {
                       {ar ? "رقم الطلب" : "ID"}
                     </th>
                     <th className="text-left p-3 font-medium text-muted-foreground">
-                      {ar ? "الموظف" : "Employee"}
+                      {ar ? "الموظف" : "Profile"}
                     </th>
                     <th className="text-left p-3 font-medium text-muted-foreground">
                       {ar ? "القسم" : "Dept"}
@@ -272,7 +272,7 @@ export default function HostingRequestsList() {
                       <td className="p-3 font-medium">
                         {request.request_number}
                       </td>
-                      <td className="p-3">{request.employee_name}</td>
+                      <td className="p-3">{request.profile_name}</td>
                       <td className="p-3 text-muted-foreground">
                         {request.department}
                       </td>

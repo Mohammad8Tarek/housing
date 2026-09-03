@@ -3,7 +3,7 @@ import {
   withTenant,
   activitiesTable,
   activityRegistrationsTable,
-  employeesTable,
+  profilesTable,
   portalNotificationsTable,
 } from "@workspace/db";
 import { eq, desc, inArray } from "drizzle-orm";
@@ -36,7 +36,7 @@ const CreateActivitySchema = z.object({
 // @ts-ignore
 router.get(
   "/activities",
-  requirePermission("accommodation", "view"),
+  requirePermission("activities", "view"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -87,7 +87,7 @@ router.get(
 // @ts-ignore
 router.post(
   "/activities",
-  requirePermission("accommodation", "create"),
+  requirePermission("activities", "create"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -196,7 +196,7 @@ const UpdateActivitySchema = z.object({
 // @ts-ignore
 router.put(
   "/activities/:id",
-  requirePermission("accommodation", "edit"),
+  requirePermission("activities", "edit"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -260,7 +260,7 @@ router.put(
 // @ts-ignore
 router.get(
   "/activities/:id/registrations",
-  requirePermission("accommodation", "view"),
+  requirePermission("activities", "view"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -277,23 +277,23 @@ router.get(
           .where(eq(activityRegistrationsTable.activityId, activityId))
           .orderBy(desc(activityRegistrationsTable.createdAt));
 
-        const employeeIds = [
-          ...new Set(registrations.map((r) => r.employeeId)),
+        const profileIds = [
+          ...new Set(registrations.map((r) => r.profileId)),
         ];
-        const employees =
-          employeeIds.length > 0
+        const profiles =
+          profileIds.length > 0
             ? await tenantDb
                 .select({
-                  id: employeesTable.id,
-                  firstName: employeesTable.firstName,
-                  lastName: employeesTable.lastName,
-                  employeeId: employeesTable.employeeId,
-                  nationalId: employeesTable.nationalId,
+                  id: profilesTable.id,
+                  firstName: profilesTable.firstName,
+                  lastName: profilesTable.lastName,
+                  profileId: profilesTable.profileId,
+                  nationalId: profilesTable.nationalId,
                 })
-                .from(employeesTable)
-                .where(inArray(employeesTable.id, employeeIds))
+                .from(profilesTable)
+                .where(inArray(profilesTable.id, profileIds))
             : [];
-        const empMap = Object.fromEntries(employees.map((e) => [e.id, e]));
+        const empMap = Object.fromEntries(profiles.map((e) => [e.id, e]));
 
         return registrations.map((r) => ({
           ...r,
@@ -305,11 +305,11 @@ router.get(
             r.attendedAt instanceof Date
               ? r.attendedAt.toISOString()
               : r.attendedAt,
-          employeeName: empMap[r.employeeId]
-            ? `${empMap[r.employeeId].firstName || ""} ${empMap[r.employeeId].lastName || ""}`.trim()
-            : `Employee #${r.employeeId}`,
-          employeeCode: empMap[r.employeeId]?.employeeId || null,
-          nationalId: empMap[r.employeeId]?.nationalId || null,
+          profileName: empMap[r.profileId]
+            ? `${empMap[r.profileId].firstName || ""} ${empMap[r.profileId].lastName || ""}`.trim()
+            : `Profile #${r.profileId}`,
+          profileCode: empMap[r.profileId]?.profileId || null,
+          nationalId: empMap[r.profileId]?.nationalId || null,
         }));
       });
 
@@ -323,7 +323,7 @@ router.get(
 // @ts-ignore
 router.delete(
   "/activities/:id",
-  requirePermission("accommodation", "delete"),
+  requirePermission("activities", "delete"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);

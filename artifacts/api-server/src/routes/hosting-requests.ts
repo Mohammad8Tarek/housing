@@ -75,7 +75,7 @@ function su(req: any) {
   };
 }
 
-async function ensureEmployeeInTargetSchema(
+export async function ensureProfileInTargetSchema(
   client: any,
   sourcePropertyId: number,
   targetPropertyId: number,
@@ -100,28 +100,28 @@ async function ensureEmployeeInTargetSchema(
 
   // 1. Check target
   const targetCheck = await client.query(
-    `SELECT id FROM "${targetSchema}".employees WHERE employee_id = $1 LIMIT 1`,
+    `SELECT id FROM "${targetSchema}".profiles WHERE profile_id = $1 LIMIT 1`,
     [clockNumber],
   );
-  if (targetCheck.rows.length > 0) return { employeeId: targetCheck.rows[0].id, targetSchema };
+  if (targetCheck.rows.length > 0) return { profileId: targetCheck.rows[0].id, targetSchema };
 
   // 2. Try source if different
   if (sourceSchema !== targetSchema) {
     const sourceCheck = await client.query(
-      `SELECT * FROM "${sourceSchema}".employees WHERE employee_id = $1 LIMIT 1`,
+      `SELECT * FROM "${sourceSchema}".profiles WHERE profile_id = $1 LIMIT 1`,
       [clockNumber],
     );
     if (sourceCheck.rows.length > 0) {
       const emp = sourceCheck.rows[0];
       const insertRes = await client.query(
         `
-        INSERT INTO "${targetSchema}".employees 
-        (employee_id, first_name, last_name, national_id, nationality, address, job_title, level, phone, department, status, hire_date, gender, id_image, photo_url, email)
+        INSERT INTO "${targetSchema}".profiles 
+        (profile_id, first_name, last_name, national_id, nationality, address, job_title, level, phone, department, status, hire_date, gender, id_image, photo_url, email)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         RETURNING id
       `,
         [
-          emp.employee_id,
+          emp.profile_id,
           emp.first_name,
           emp.last_name,
           emp.national_id,
@@ -139,7 +139,7 @@ async function ensureEmployeeInTargetSchema(
           emp.email,
         ],
       );
-      return { employeeId: insertRes.rows[0].id, targetSchema };
+      return { profileId: insertRes.rows[0].id, targetSchema };
     }
   }
 
@@ -286,7 +286,7 @@ async function getRequestWithSteps(
     hotelName: row.hotel_name,
     visitHotelId: row.visit_hotel_id,
     visitHotelName: row.visit_hotel_name,
-    employeeName: row.employee_name,
+    profileName: row.profile_name,
     clockNumber: row.clock_number,
     department: row.department,
     position: row.position,
@@ -361,14 +361,14 @@ router.post(
       }
       const requester = userRes.rows[0];
 
-      // Look up employee in tenant schema to get real name, clock number, dept & position
+      // Look up profile in tenant schema to get real name, clock number, dept & position
       const propId = body.hotelId || user.propertyId;
       const requestedClock = body.clockNumber || requester.username;
-      let employeeName = requestedClock;
+      let profileName = requestedClock;
       let clockNumber = requestedClock;
-      // Always start from requester's dept/position, override with employee data if found
-      let employeeDepartment = requester.department ?? "";
-      let employeePosition = requester.job_title ?? "";
+      // Always start from requester's dept/position, override with profile data if found
+      let profileDepartment = requester.department ?? "";
+      let profilePosition = requester.job_title ?? "";
       try {
         const propRes = await pool.query(
           "SELECT schema_name FROM public.properties WHERE id = $1",
@@ -378,16 +378,16 @@ router.post(
           const schemaName = propRes.rows[0].schema_name || `prop_${propId}`;
           if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schemaName)) {
             const empRes = await pool.query(
-              `SELECT first_name, last_name, employee_id, department, job_title FROM "${schemaName}".employees WHERE employee_id = $1 LIMIT 1`,
+              `SELECT first_name, last_name, profile_id, department, job_title FROM "${schemaName}".profiles WHERE profile_id = $1 LIMIT 1`,
               [requestedClock],
             );
             if (empRes.rows.length > 0) {
               const emp = empRes.rows[0];
-              employeeName = `${emp.first_name} ${emp.last_name}`;
-              clockNumber = emp.employee_id;
-              // Always use the looked-up employee's dept & position (not just when different from requester)
-              if (emp.department) employeeDepartment = emp.department;
-              if (emp.job_title) employeePosition = emp.job_title;
+              profileName = `${emp.first_name} ${emp.last_name}`;
+              clockNumber = emp.profile_id;
+              // Always use the looked-up profile's dept & position (not just when different from requester)
+              if (emp.department) profileDepartment = emp.department;
+              if (emp.job_title) profilePosition = emp.job_title;
             }
           }
         }
@@ -396,7 +396,7 @@ router.post(
       }
 
       // ── Duplicate Detection ────────────────────────────────────────────────
-      // Reject if this employee already has an active (in_signing or approved)
+      // Reject if this profile already has an active (in_signing or approved)
       // hosting request whose date range overlaps with the new request's dates.
       const duplicateRes = await pool.query(
         `SELECT id, request_number
@@ -413,7 +413,7 @@ router.post(
         const dup = duplicateRes.rows[0];
         res.status(409).json({
           success: false,
-          message: `يوجد طلب استضافة مكرر للموظف في نفس الفترة الزمنية (طلب رقم ${dup.request_number}) / A duplicate hosting request already exists for this employee in the same date range (Request ${dup.request_number})`,
+          message: `يوجد طلب استضافة مكرر للموظف في نفس الفترة الزمنية (طلب رقم ${dup.request_number}) / A duplicate hosting request already exists for this profile in the same date range (Request ${dup.request_number})`,
         });
         return;
       }
@@ -428,7 +428,7 @@ router.post(
         const result = await client.query(
           `INSERT INTO public.hosting_requests
           (request_number, property_id, hotel_id, visit_hotel_id,
-           requester_user_id, employee_name, clock_number, department, position,
+           requester_user_id, profile_name, clock_number, department, position,
            number_of_rooms, assigned_room_id, family_members_count, family_members_included,
            from_date, to_date, consumed_days, remarks, attachment_data)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
@@ -439,10 +439,10 @@ router.post(
             body.hotelId ?? null,
             body.visitHotelId ?? null,
             user.userId,
-            employeeName,
+            profileName,
             clockNumber,
-            employeeDepartment,
-            employeePosition,
+            profileDepartment,
+            profilePosition,
             body.numberOfRooms,
             body.assignedRoomId ?? null,
             body.familyMembersCount,
@@ -534,7 +534,7 @@ router.post(
   },
 );
 
-// GET /api/hosting-requests/history/:clockNumber — Get history of hosting requests for an employee
+// GET /api/hosting-requests/history/:clockNumber — Get history of hosting requests for an profile
 router.get(
   "/hosting-requests/history/:clockNumber",
   requirePermission("hosting_requests", "view"),
@@ -592,7 +592,7 @@ router.get(
       }
       if (q.search) {
         conditions.push(
-          `(fvr.employee_name ILIKE $${paramIdx} OR fvr.request_number ILIKE $${paramIdx} OR fvr.clock_number ILIKE $${paramIdx})`,
+          `(fvr.profile_name ILIKE $${paramIdx} OR fvr.request_number ILIKE $${paramIdx} OR fvr.clock_number ILIKE $${paramIdx})`,
         );
         paramIdx++;
         params.push(`%${q.search}%`);
@@ -708,7 +708,7 @@ router.get(
     const user = su(req);
     try {
       const rows = await pool.query(
-        `SELECT fvr.id, fvr.request_number, fvr.employee_name, fvr.created_at,
+        `SELECT fvr.id, fvr.request_number, fvr.profile_name, fvr.created_at,
         fas.step_order, fas.role_required
       FROM public.hosting_requests fvr
       JOIN public.hosting_request_approval_steps fas ON fas.request_id = fvr.id
@@ -755,7 +755,7 @@ router.post(
 
         // 1. Lock family visit request row (with property scoping)
         const lockRes = await client.query(
-          `SELECT id, status, guest_hosting_id, employee_name, clock_number,
+          `SELECT id, status, guest_hosting_id, profile_name, clock_number,
                 family_members_count, from_date, to_date, remarks, property_id, assigned_room_id
          FROM public.hosting_requests
          WHERE id = $1 AND property_id = ANY($2::int[]) FOR UPDATE`,
@@ -804,20 +804,20 @@ router.post(
           return;
         }
 
-        // 2. Resolve target schema and ensure employee exists there
+        // 2. Resolve target schema and ensure profile exists there
         const targetPropId = visit.visit_hotel_id || visit.property_id;
-        const employeeCheck = await ensureEmployeeInTargetSchema(client, visit.property_id, targetPropId, visit.clock_number);
+        const profileCheck = await ensureProfileInTargetSchema(client, visit.property_id, targetPropId, visit.clock_number);
 
-        if (!employeeCheck) {
+        if (!profileCheck) {
           await client.query("ROLLBACK");
           res.status(404).json({
             success: false,
-            message: "لم يتم العثور على الموظف في النظام لتسكينه / Employee not found in housing system to accommodate",
+            message: "لم يتم العثور على الموظف في النظام لتسكينه / Profile not found in housing system to accommodate",
           });
           return;
         }
 
-        const { employeeId, targetSchema: schemaName } = employeeCheck;
+        const { profileId, targetSchema: schemaName } = profileCheck;
 
         // 3. Set search_path to tenant schema
         await client.query(
@@ -827,11 +827,11 @@ router.post(
         // 4. Create hosting record
         const hostingRes = await client.query(
           `INSERT INTO "${schemaName}".hostings
-         (employee_id, hosting_type, guests_count, expected_from, expected_to, notes, created_by, status, room_id)
+         (profile_id, hosting_type, guests_count, expected_from, expected_to, notes, created_by, status, room_id)
          VALUES ($1, 'SEPARATE_ROOM', $2, $3, $4, $5, $6, 'APPROVED', $7)
          RETURNING id`,
           [
-            employeeId,
+            profileId,
             visit.family_members_count,
             visit.from_date,
             visit.to_date,
@@ -859,7 +859,7 @@ router.post(
           userId: user.userId,
           userRole: user.userRole,
           module: "accommodation",
-          action: `إنشاء طلب استضافة ضيوف للموظف #${visit.employee_name}`,
+          action: `إنشاء طلب استضافة ضيوف للموظف #${visit.profile_name}`,
           entityType: "hosting",
           entityId: hostingId,
           details: `Created from hosting request #${requestId}`,
@@ -1201,19 +1201,19 @@ router.post(
             try {
               await ghClient.query("BEGIN");
               const targetPropId = request.visit_hotel_id || requestPropertyId;
-              const employeeCheck = await ensureEmployeeInTargetSchema(ghClient, requestPropertyId, targetPropId, request.clock_number);
+              const profileCheck = await ensureProfileInTargetSchema(ghClient, requestPropertyId, targetPropId, request.clock_number);
               
-              if (employeeCheck) {
-                  const { employeeId, targetSchema: schemaName } = employeeCheck;
+              if (profileCheck) {
+                  const { profileId, targetSchema: schemaName } = profileCheck;
                   
-                  if (employeeId) {
+                  if (profileId) {
                     const hostingRes = await ghClient.query(
                       `INSERT INTO "${schemaName}".hostings
-                       (employee_id, hosting_type, guests_count, expected_from, expected_to, notes, created_by, status, room_id)
+                       (profile_id, hosting_type, guests_count, expected_from, expected_to, notes, created_by, status, room_id)
                        VALUES ($1, 'SEPARATE_ROOM', $2, $3, $4, $5, $6, 'APPROVED', $7)
                        RETURNING id`,
                       [
-                        employeeId,
+                        profileId,
                         request.family_members_count,
                         request.from_date,
                         request.to_date,

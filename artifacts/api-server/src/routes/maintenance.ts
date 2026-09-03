@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, maintenanceTable, roomsTable, withTenant } from "@workspace/db";
-import { eq, and, or, ilike, sql, SQL } from "drizzle-orm";
+import { eq, and, or, ilike, sql, SQL, desc } from "drizzle-orm";
 import {
   CreateMaintenanceBody,
   GetMaintenanceParams,
@@ -111,6 +111,7 @@ router.get(
           .select()
           .from(maintenanceTable)
           .where(whereClause)
+          .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
           .limit(limit)
           .offset(offset);
           
@@ -146,10 +147,19 @@ router.post(
       }
 
       const [record] = await withTenant(propertyId, async (tenantDb) => {
-        return tenantDb
+        const inserted = await tenantDb
           .insert(maintenanceTable)
           .values({ ...parsed.data, status: "open" } as any)
           .returning();
+          
+        if (inserted[0]?.roomId) {
+          await tenantDb
+            .update(roomsTable)
+            .set({ status: "out_of_service" })
+            .where(eq(roomsTable.id, inserted[0].roomId));
+        }
+        
+        return inserted;
       });
 
       const s = session(req);
@@ -171,6 +181,7 @@ router.post(
         action: "sync",
       });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+      broadcastToProperty(propertyId, { module: "rooms", action: "sync" });
 
       return res.status(201).json(fmt(record));
     } catch (err) {
@@ -198,11 +209,46 @@ router.patch(
       }
 
       const [updated] = await withTenant(propertyId, async (tenantDb) => {
-        return tenantDb
+        const result = await tenantDb
           .update(maintenanceTable)
           .set(req.body as any)
           .where(eq(maintenanceTable.id, p.data.id))
           .returning();
+          
+        if (result[0]?.roomId && req.body.status) {
+           const newStatus = req.body.status;
+           if (newStatus === "resolved" || newStatus === "closed") {
+             const [openTickets] = await tenantDb
+               .select({ count: sql<number>`count(*)` })
+               .from(maintenanceTable)
+               .where(and(
+                  eq(maintenanceTable.roomId, result[0].roomId),
+                  or(eq(maintenanceTable.status, "open"), eq(maintenanceTable.status, "in_progress"))
+               ));
+               
+             if (Number(openTickets?.count || 0) === 0) {
+                // Determine if occupied to set to occupied_dirty or dirty
+                const roomData = await tenantDb
+                  .select({ currentOccupancy: roomsTable.currentOccupancy })
+                  .from(roomsTable)
+                  .where(eq(roomsTable.id, result[0].roomId))
+                  .limit(1);
+                  
+                const isOccupied = (roomData[0]?.currentOccupancy || 0) > 0;
+                await tenantDb
+                  .update(roomsTable)
+                  .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
+                  .where(eq(roomsTable.id, result[0].roomId));
+             }
+           } else if (newStatus === "open" || newStatus === "in_progress") {
+             await tenantDb
+               .update(roomsTable)
+               .set({ status: "out_of_service" })
+               .where(eq(roomsTable.id, result[0].roomId));
+           }
+        }
+        
+        return result;
       });
 
       if (!updated) {
@@ -229,6 +275,7 @@ router.patch(
         action: "sync",
       });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+      broadcastToProperty(propertyId, { module: "rooms", action: "sync" });
 
       return res.json(fmt(updated));
     } catch (err) {

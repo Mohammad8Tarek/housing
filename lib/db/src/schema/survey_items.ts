@@ -34,7 +34,7 @@ export const surveyItemResponsesTable = pgTable("survey_item_responses", {
   templateId: integer("template_id")
     .notNull()
     .references(() => evaluationsTable.id, { onDelete: "cascade" }),
-  employeeId: integer("employee_id").notNull(),
+  profileId: integer("profile_id").notNull(),
   itemId: integer("item_id")
     .notNull()
     .references(() => surveyItemsTable.id, { onDelete: "cascade" }),

@@ -28,7 +28,7 @@ export const familyVisitRequestsTable = pgTable(
     requesterUserId: integer("requester_user_id")
       .notNull()
       .references(() => usersTable.id),
-    employeeName: varchar("employee_name", { length: 200 }).notNull(),
+    profileName: varchar("profile_name", { length: 200 }).notNull(),
     clockNumber: varchar("clock_number", { length: 50 }).notNull(),
     department: varchar("department", { length: 150 }).notNull(),
     position: varchar("position", { length: 150 }).notNull(),

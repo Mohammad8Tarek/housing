@@ -3,7 +3,7 @@ import {
   assignmentsTable,
   reservationsTable,
   hostingsTable,
-  employeesTable,
+  profilesTable,
   withTenant,
 } from "@workspace/db";
 import { eq, and, lte, gte, isNull, sql } from "drizzle-orm";
@@ -68,11 +68,11 @@ router.get(
               .select({
                 id: assignmentsTable.id,
                 expectedCheckOutDate: assignmentsTable.expectedCheckOutDate,
-                empFirst: employeesTable.firstName,
-                empLast: employeesTable.lastName,
+                empFirst: profilesTable.firstName,
+                empLast: profilesTable.lastName,
               })
               .from(assignmentsTable)
-              .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+              .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
               .where(
                 and(
                   eq(assignmentsTable.status, "ACTIVE"),
@@ -90,11 +90,11 @@ router.get(
               .select({
                 id: assignmentsTable.id,
                 expectedCheckOutDate: assignmentsTable.expectedCheckOutDate,
-                empFirst: employeesTable.firstName,
-                empLast: employeesTable.lastName,
+                empFirst: profilesTable.firstName,
+                empLast: profilesTable.lastName,
               })
               .from(assignmentsTable)
-              .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+              .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
               .where(
                 and(
                   eq(assignmentsTable.status, "ACTIVE"),
@@ -130,11 +130,11 @@ router.get(
                 id: hostingsTable.id,
                 guestsCount: hostingsTable.guestsCount,
                 expectedFrom: hostingsTable.expectedFrom,
-                empFirst: employeesTable.firstName,
-                empLast: employeesTable.lastName,
+                empFirst: profilesTable.firstName,
+                empLast: profilesTable.lastName,
               })
               .from(hostingsTable)
-              .leftJoin(employeesTable, eq(hostingsTable.employeeId, employeesTable.id))
+              .leftJoin(profilesTable, eq(hostingsTable.profileId, profilesTable.id))
               .where(eq(hostingsTable.status, "PENDING")),
           );
           queryLabels.push("pendingHostings");
@@ -146,11 +146,11 @@ router.get(
             tenantDb
               .select({
                 id: assignmentsTable.id,
-                empFirst: employeesTable.firstName,
-                empLast: employeesTable.lastName,
+                empFirst: profilesTable.firstName,
+                empLast: profilesTable.lastName,
               })
               .from(assignmentsTable)
-              .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+              .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
               .where(
                 and(
                   eq(assignmentsTable.status, "ACTIVE"),
@@ -182,7 +182,7 @@ router.get(
           queries.push(
             isSystemAdmin
               ? tenantDb.execute(
-                  sql`SELECT f.id, f.employee_name, f.current_step_order, s.role_required
+                  sql`SELECT f.id, f.profile_name, f.current_step_order, s.role_required
                       FROM hosting_requests f
                       JOIN hosting_request_approval_steps s
                         ON f.id = s.request_id AND f.current_step_order = s.step_order
@@ -190,7 +190,7 @@ router.get(
                       LIMIT 20`,
                 )
               : tenantDb.execute(
-                  sql`SELECT f.id, f.employee_name, f.current_step_order, s.role_required
+                  sql`SELECT f.id, f.profile_name, f.current_step_order, s.role_required
                       FROM hosting_requests f
                       JOIN hosting_request_approval_steps s
                         ON f.id = s.request_id AND f.current_step_order = s.step_order
@@ -218,8 +218,8 @@ router.get(
             priority: "high",
             title: `Pending Hosting Request Approval`,
             titleAr: `طلب استضافة في انتظار الاعتماد`,
-            description: `Hosting request for ${row.employee_name} is waiting for ${row.role_required} approval`,
-            descriptionAr: `طلب استضافة للموظف ${row.employee_name} بانتظار اعتماد ${row.role_required}`,
+            description: `Hosting request for ${row.profile_name} is waiting for ${row.role_required} approval`,
+            descriptionAr: `طلب استضافة للموظف ${row.profile_name} بانتظار اعتماد ${row.role_required}`,
             entityId: row.id,
             entityType: "hosting_requests",
             createdAt: new Date().toISOString(),

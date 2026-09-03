@@ -435,10 +435,10 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
       );
     }
 
-    // Most active employees
+    // Most active profiles
     if (data.mostActive && data.mostActive.length > 0) {
       drawTable(
-        ar ? "الموظفون الأكثر نشاطاً" : "Most Active Employees",
+        ar ? "الموظفون الأكثر نشاطاً" : "Most Active Profiles",
         data.mostActive.map((e: any) => ({
           Name: e.name,
           Department: e.department,
@@ -452,7 +452,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
     // Non-engaged
     if (data.nonEngaged && data.nonEngaged.length > 0) {
       drawTable(
-        ar ? "موظفون غير مشاركين" : "Non-Engaged Employees",
+        ar ? "موظفون غير مشاركين" : "Non-Engaged Profiles",
         data.nonEngaged,
       );
     }
@@ -719,7 +719,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
                 sub={
                   ar
                     ? `${summary.uniqueRespondents ?? 0} موظف`
-                    : `${summary.uniqueRespondents ?? 0} employees`
+                    : `${summary.uniqueRespondents ?? 0} profiles`
                 }
                 color="text-blue-500"
               />
@@ -729,8 +729,8 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
                 value={`${summary.responseRate ?? 0}%`}
                 sub={
                   ar
-                    ? `من ${summary.totalEmployees ?? 0} موظف`
-                    : `of ${summary.totalEmployees ?? 0} employees`
+                    ? `من ${summary.totalProfiles ?? 0} موظف`
+                    : `of ${summary.totalProfiles ?? 0} profiles`
                 }
                 color="text-green-500"
               />
@@ -783,11 +783,11 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
               <KPICard
                 icon={Users}
                 label={ar ? "الموظفون النشطون" : "Engaged"}
-                value={summary.engagedEmployees ?? 0}
+                value={summary.engagedProfiles ?? 0}
                 sub={
                   ar
-                    ? `من ${summary.totalEmployees ?? 0}`
-                    : `of ${summary.totalEmployees ?? 0}`
+                    ? `من ${summary.totalProfiles ?? 0}`
+                    : `of ${summary.totalProfiles ?? 0}`
                 }
                 color="text-blue-500"
               />
@@ -1075,7 +1075,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
                           {ar ? "القسم" : "Department"}
                         </th>
                         <th className="text-center py-2 px-3 text-muted-foreground font-medium">
-                          {ar ? "الموظفون" : "Employees"}
+                          {ar ? "الموظفون" : "Profiles"}
                         </th>
                         <th className="text-center py-2 px-3 text-muted-foreground font-medium">
                           {ar ? "الردود" : "Responses"}
@@ -1095,7 +1095,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
                             {d.department}
                           </td>
                           <td className="py-2 px-3 text-center">
-                            {d.totalEmployees}
+                            {d.totalProfiles}
                           </td>
                           <td className="py-2 px-3 text-center">
                             {d.responses}
@@ -1286,10 +1286,10 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
               </CollapsibleSection>
             )}
 
-          {/* Most Active Employees */}
+          {/* Most Active Profiles */}
           {reportData.mostActive && reportData.mostActive.length > 0 && (
             <CollapsibleSection
-              title={ar ? "الموظفون الأكثر نشاطاً" : "Most Active Employees"}
+              title={ar ? "الموظفون الأكثر نشاطاً" : "Most Active Profiles"}
               icon={<Users className="w-4 h-4" />}
               expanded={expandedSections.mostActive !== false}
               onToggle={() => toggleSection("mostActive")}
@@ -1351,7 +1351,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
               title={
                 ar
                   ? `موظفون غير مشاركين (${reportData.nonEngaged.length})`
-                  : `Non-Engaged Employees (${reportData.nonEngaged.length})`
+                  : `Non-Engaged Profiles (${reportData.nonEngaged.length})`
               }
               icon={<Users className="w-4 h-4 text-red-500" />}
               expanded={expandedSections.nonEngaged !== false}
@@ -1362,7 +1362,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
                   <thead>
                     <tr className="border-b">
                       <th className="text-start py-2 px-3 text-muted-foreground font-medium">
-                        {ar ? "الرقم الوظيفي" : "Employee ID"}
+                        {ar ? "الرقم الوظيفي" : "Profile ID"}
                       </th>
                       <th className="text-start py-2 px-3 text-muted-foreground font-medium">
                         {ar ? "الاسم" : "Name"}
@@ -1376,7 +1376,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
                     {reportData.nonEngaged.map((e: any, i: number) => (
                       <tr key={i} className="border-b hover:bg-muted/20">
                         <td className="py-2 px-3 font-mono text-muted-foreground">
-                          {e.employeeId}
+                          {e.profileId}
                         </td>
                         <td className="py-2 px-3 font-medium">{e.name}</td>
                         <td className="py-2 px-3 text-muted-foreground">
@@ -1501,11 +1501,11 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
                     </div>
                   </div>
                 )}
-                {/* Most Active Employees */}
+                {/* Most Active Profiles */}
                 {section.mostActive && section.mostActive.length > 0 && (
                   <div className="mb-4">
                     <p className="text-sm font-medium mb-2">
-                      {ar ? "الموظفون الأكثر نشاطاً" : "Most Active Employees"}
+                      {ar ? "الموظفون الأكثر نشاطاً" : "Most Active Profiles"}
                     </p>
                     <div className="space-y-1.5">
                       {section.mostActive.map((emp: any, j: number) => (

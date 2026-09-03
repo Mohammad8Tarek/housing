@@ -4,7 +4,7 @@ import {
   evaluationsTable,
   activitiesTable,
   portalDocumentsTable,
-  employeesTable,
+  profilesTable,
 } from "@workspace/db";
 import { desc, sql, and, gte, isNull, isNotNull } from "drizzle-orm";
 import { getCategoryLabel } from "../lib/portal-catalog.js";
@@ -38,34 +38,34 @@ router.get("/", requireAuth, async (req, res, next) => {
             .where(isNotNull(evaluationsTable.surveyTemplateId));
           const totalEvaluations = templates.length;
 
-          const employees = await tenantDb
+          const profiles = await tenantDb
             .select({
-              id: employeesTable.id,
-              department: employeesTable.department,
+              id: profilesTable.id,
+              department: profilesTable.department,
             })
-            .from(employeesTable);
+            .from(profilesTable);
           let expectedResponses = 0;
           for (const t of templates) {
             if (t.department) {
-              expectedResponses += employees.filter(
+              expectedResponses += profiles.filter(
                 (e) => e.department === t.department,
               ).length;
             } else {
-              expectedResponses += employees.length;
+              expectedResponses += profiles.length;
             }
           }
 
           const respondedEvals = responses.filter(
             (e) =>
-              e.employeeRating != null ||
-              (e.employeeResponse && e.employeeResponse.trim()),
+              e.profileRating != null ||
+              (e.profileResponse && e.profileResponse.trim()),
           ).length;
-          const ratedEvals = responses.filter((e) => e.employeeRating != null);
+          const ratedEvals = responses.filter((e) => e.profileRating != null);
           const avgRating =
             ratedEvals.length > 0
               ? (
                   ratedEvals.reduce(
-                    (sum: number, e: any) => sum + (e.employeeRating || 0),
+                    (sum: number, e: any) => sum + (e.profileRating || 0),
                     0,
                   ) / ratedEvals.length
                 ).toFixed(2)
@@ -217,13 +217,13 @@ router.get("/content-performance", requireAuth, async (req, res, next) => {
           const activities = await tenantDb.select().from(activitiesTable);
 
           const topEvaluations = evaluations
-            .filter((e) => e.employeeRating)
-            .sort((a: any, b: any) => b.employeeRating - a.employeeRating)
+            .filter((e) => e.profileRating)
+            .sort((a: any, b: any) => b.profileRating - a.profileRating)
             .slice(0, 5)
             .map((e) => ({
               id: e.id,
               title: e.titleAr || e.titleEn,
-              rating: e.employeeRating,
+              rating: e.profileRating,
               category: e.category,
             }));
 

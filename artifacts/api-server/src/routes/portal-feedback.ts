@@ -8,7 +8,7 @@ import {
   portalFeedbackTable,
   portalCommentsTable,
   portalCommentLikesTable,
-  employeesTable,
+  profilesTable,
 } from "@workspace/db";
 import { eq, and, desc, sql, isNull, isNotNull, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -79,24 +79,24 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
           : 0;
 
       const myFeedback =
-        feedbackRows.find((f) => f.employeeId === sess.employeeDbId) || null;
+        feedbackRows.find((f) => f.profileId === sess.profileDbId) || null;
 
       // Get top-level comments with author names
       const comments = await tenantDb
         .select({
           id: portalCommentsTable.id,
           text: portalCommentsTable.text,
-          employeeId: portalCommentsTable.employeeId,
+          profileId: portalCommentsTable.profileId,
           parentCommentId: portalCommentsTable.parentCommentId,
           likesCount: portalCommentsTable.likesCount,
           createdAt: portalCommentsTable.createdAt,
-          firstName: employeesTable.firstName,
-          lastName: employeesTable.lastName,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
         })
         .from(portalCommentsTable)
         .leftJoin(
-          employeesTable,
-          eq(portalCommentsTable.employeeId, employeesTable.id),
+          profilesTable,
+          eq(portalCommentsTable.profileId, profilesTable.id),
         )
         .where(
           and(
@@ -113,17 +113,17 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
         .select({
           id: portalCommentsTable.id,
           text: portalCommentsTable.text,
-          employeeId: portalCommentsTable.employeeId,
+          profileId: portalCommentsTable.profileId,
           parentCommentId: portalCommentsTable.parentCommentId,
           likesCount: portalCommentsTable.likesCount,
           createdAt: portalCommentsTable.createdAt,
-          firstName: employeesTable.firstName,
-          lastName: employeesTable.lastName,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
         })
         .from(portalCommentsTable)
         .leftJoin(
-          employeesTable,
-          eq(portalCommentsTable.employeeId, employeesTable.id),
+          profilesTable,
+          eq(portalCommentsTable.profileId, profilesTable.id),
         )
         .where(
           and(
@@ -138,7 +138,7 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
       const myLikes = await tenantDb
         .select({ commentId: portalCommentLikesTable.commentId })
         .from(portalCommentLikesTable)
-        .where(eq(portalCommentLikesTable.employeeId, sess.employeeDbId));
+        .where(eq(portalCommentLikesTable.profileId, sess.profileDbId));
       const myLikedSet = new Set(myLikes.map((l) => l.commentId));
 
       // Build comment tree
@@ -147,7 +147,7 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
         commentMap[c.id] = {
           ...c,
           authorName: `${c.firstName || ""} ${c.lastName || ""}`.trim(),
-          isOwn: c.employeeId === sess.employeeDbId,
+          isOwn: c.profileId === sess.profileDbId,
           isLiked: myLikedSet.has(c.id),
           replies: [],
         };
@@ -158,7 +158,7 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
           commentMap[r.parentCommentId].replies.push({
             ...r,
             authorName: `${r.firstName || ""} ${r.lastName || ""}`.trim(),
-            isOwn: r.employeeId === sess.employeeDbId,
+            isOwn: r.profileId === sess.profileDbId,
             isLiked: myLikedSet.has(r.id),
           });
         }
@@ -187,7 +187,7 @@ router.post("/feedback", async (req, res, next) => {
     const validated = FeedbackSchema.parse(req.body);
 
     const feedback = await withTenant(sess.propertyId, async (tenantDb) => {
-      // Upsert feedback (one per employee per content)
+      // Upsert feedback (one per profile per content)
       const existing = await tenantDb
         .select()
         .from(portalFeedbackTable)
@@ -195,7 +195,7 @@ router.post("/feedback", async (req, res, next) => {
           and(
             eq(portalFeedbackTable.contentType, validated.contentType),
             eq(portalFeedbackTable.contentId, validated.contentId),
-            eq(portalFeedbackTable.employeeId, sess.employeeDbId),
+            eq(portalFeedbackTable.profileId, sess.profileDbId),
           ),
         )
         .limit(1);
@@ -220,7 +220,7 @@ router.post("/feedback", async (req, res, next) => {
           .values({
             contentType: validated.contentType,
             contentId: validated.contentId,
-            employeeId: sess.employeeDbId,
+            profileId: sess.profileDbId,
             rating: validated.rating ?? null,
             comment: validated.comment ? stripHtml(validated.comment) : null,
             helpful: validated.helpful ?? null,
@@ -259,7 +259,7 @@ router.post("/comments", async (req, res, next) => {
         .values({
           contentType: validated.contentType,
           contentId: validated.contentId,
-          employeeId: sess.employeeDbId,
+          profileId: sess.profileDbId,
           text: stripHtml(validated.text),
           parentCommentId: validated.parentCommentId ?? null,
         })
@@ -268,11 +268,11 @@ router.post("/comments", async (req, res, next) => {
       // Get author name
       const [emp] = await tenantDb
         .select({
-          firstName: employeesTable.firstName,
-          lastName: employeesTable.lastName,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
         })
-        .from(employeesTable)
-        .where(eq(employeesTable.id, sess.employeeDbId))
+        .from(profilesTable)
+        .where(eq(profilesTable.id, sess.profileDbId))
         .limit(1);
 
       return {
@@ -313,7 +313,7 @@ router.delete("/comments/:id", async (req, res, next) => {
         .where(
           and(
             eq(portalCommentsTable.id, id),
-            eq(portalCommentsTable.employeeId, sess.employeeDbId),
+            eq(portalCommentsTable.profileId, sess.profileDbId),
           ),
         )
         .limit(1);
@@ -372,7 +372,7 @@ router.post("/comments/:id/like", async (req, res, next) => {
         .where(
           and(
             eq(portalCommentLikesTable.commentId, id),
-            eq(portalCommentLikesTable.employeeId, sess.employeeDbId),
+            eq(portalCommentLikesTable.profileId, sess.profileDbId),
           ),
         )
         .limit(1);
@@ -390,7 +390,7 @@ router.post("/comments/:id/like", async (req, res, next) => {
         // Like
         await tenantDb.insert(portalCommentLikesTable).values({
           commentId: id,
-          employeeId: sess.employeeDbId,
+          profileId: sess.profileDbId,
         });
         await tenantDb.execute(sql`
           UPDATE portal_comments SET likes_count = likes_count + 1 WHERE id = ${id}

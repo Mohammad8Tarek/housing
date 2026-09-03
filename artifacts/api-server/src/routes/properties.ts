@@ -76,8 +76,8 @@ router.post(
       "buildings",
       "floors",
       "rooms",
-      "employees",
-      "employee_portal_accounts",
+      "profiles",
+      "profile_portal_accounts",
       "assignments",
       "maintenance",
       "reservations",
@@ -99,6 +99,9 @@ router.post(
       "room_keys",
       "key_audit_log",
       "push_subscriptions",
+      "room_import_history",
+      "room_import_templates",
+      "room_beds",
     ];
 
     // Tables that need property_id column (smart lock + push subscription tables)
@@ -107,6 +110,8 @@ router.post(
       "room_keys",
       "key_audit_log",
       "push_subscriptions",
+      "room_import_history",
+      "room_import_templates",
     ]);
 
     const client = await pool.connect();

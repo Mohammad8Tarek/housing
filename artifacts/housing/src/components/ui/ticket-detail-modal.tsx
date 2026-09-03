@@ -45,7 +45,7 @@ interface TicketDetailModalProps {
   open: boolean;
   onClose: () => void;
   ticket: any;
-  employees: any[];
+  profiles: any[];
   ar: boolean;
   onStatusChange: (id: number, data: any) => void;
   onAssignChange: (id: number, empId: number | null) => void;
@@ -126,7 +126,7 @@ export default function TicketDetailModal({
   open,
   onClose,
   ticket,
-  employees = [],
+  profiles = [],
   ar,
   onStatusChange,
   onAssignChange,
@@ -150,7 +150,7 @@ export default function TicketDetailModal({
   if (!ticket) return null;
 
   const empMap = Object.fromEntries(
-    employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
+    profiles.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
   );
 
   const reportedDate = ticket.reportedAt
@@ -378,7 +378,7 @@ export default function TicketDetailModal({
                             <SelectItem value="unassigned">
                               — {ar ? "غير مسند" : "Unassigned"} —
                             </SelectItem>
-                            {employees.map((e) => (
+                            {profiles.map((e) => (
                               <SelectItem key={e.id} value={String(e.id)}>
                                 {e.firstName} {e.lastName}
                               </SelectItem>

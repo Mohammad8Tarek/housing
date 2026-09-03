@@ -212,7 +212,7 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
               {ar ? "توزيع التقييمات" : "Evaluation Ratings"}
             </CardTitle>
             <CardDescription>
-              {ar ? "توزيع تقييمات الموظفين" : "Employee rating distribution"}
+              {ar ? "توزيع تقييمات الموظفين" : "Profile rating distribution"}
             </CardDescription>
           </CardHeader>
           <CardContent>

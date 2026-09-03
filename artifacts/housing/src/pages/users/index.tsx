@@ -53,8 +53,13 @@ import {
   X,
   Pen,
   Upload,
+  Fingerprint,
+  Gauge,
+  LockKeyhole,
+  ClipboardCheck,
 } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
+import { usePermission } from "@/hooks/use-permission";
 import {
   ColumnChooser,
   useColumnVisibility,
@@ -89,6 +94,7 @@ export default function UsersPage() {
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
+  const { can, isAdmin } = usePermission();
 
   const [deleteUser, setDeleteUser] = useState<any | null>(null);
   const [matrixUser, setMatrixUser] = useState<any | null>(null);
@@ -141,9 +147,23 @@ export default function UsersPage() {
       receptionist: 0,
       maintenance: 0,
       active: 0,
+      locked: 0,
+      inactive: 0,
+      workflowUsers: 0,
+      signedWorkflowUsers: 0,
+      customPermissionUsers: 0,
+      customPermissionTotal: 0,
     };
     for (const u of all) {
       if (u.status === "ACTIVE") s.active++;
+      if (u.status === "LOCKED") s.locked++;
+      if (u.status === "INACTIVE") s.inactive++;
+      if (u.jobTitle) s.workflowUsers++;
+      if (u.jobTitle && u.hasSignature) s.signedWorkflowUsers++;
+      if ((u.permissions || []).length > 0) {
+        s.customPermissionUsers++;
+        s.customPermissionTotal += (u.permissions || []).length;
+      }
       const roles = u.roles || [];
       if (roles.some((r: string) => r.toLowerCase() === "super_admin"))
         s.superAdmin++;
@@ -369,7 +389,9 @@ export default function UsersPage() {
             onHideAll={uHideAll}
             ar={ar}
           />
-          <CreateUserDialog properties={properties ?? []} />
+          <PermissionGate module="users" action="create">
+            <CreateUserDialog properties={properties ?? []} />
+          </PermissionGate>
         </div>
       </div>
 
@@ -440,6 +462,89 @@ export default function UsersPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <section className="rounded-xl border bg-card p-4 shadow-sm lg:col-span-7">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="flex items-center gap-2 text-base font-bold">
+                <Gauge className="h-4 w-4 text-[#0F2A44]" />
+                {ar ? "ملخص التشغيل والصلاحيات" : "Operations & Access Overview"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {ar
+                  ? "نظرة سريعة على الحسابات، أدوار الاعتماد، والصلاحيات المخصصة."
+                  : "A quick health check for accounts, approval roles, and custom access."}
+              </p>
+            </div>
+            <Badge variant="outline" className="rounded-md">
+              {stats.customPermissionTotal} {ar ? "صلاحية" : "permissions"}
+            </Badge>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[
+              {
+                label: ar ? "نشط" : "Active",
+                value: stats.active,
+                icon: ShieldCheck,
+                tone: "text-emerald-600 bg-emerald-50 border-emerald-100",
+              },
+              {
+                label: ar ? "مقفول" : "Locked",
+                value: stats.locked,
+                icon: LockKeyhole,
+                tone: "text-rose-600 bg-rose-50 border-rose-100",
+              },
+              {
+                label: ar ? "أدوار اعتماد" : "Approval roles",
+                value: stats.workflowUsers,
+                icon: ClipboardCheck,
+                tone: "text-amber-700 bg-amber-50 border-amber-100",
+              },
+              {
+                label: ar ? "بتوقيع" : "Signed",
+                value: stats.signedWorkflowUsers,
+                icon: Fingerprint,
+                tone: "text-sky-700 bg-sky-50 border-sky-100",
+              },
+            ].map((item) => (
+              <div key={item.label} className={`rounded-lg border p-3 ${item.tone}`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">{item.label}</span>
+                  <item.icon className="h-4 w-4" />
+                </div>
+                <div className="mt-2 text-2xl font-bold">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl border bg-card p-4 shadow-sm lg:col-span-5">
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            <Shield className="h-4 w-4 text-[#C9A24D]" />
+            {ar ? "تقسيمة الصلاحيات" : "Permission Groups"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {ar
+              ? "الصلاحيات اتقسمت حسب شغل الفندق بدل أسماء تقنية صعبة."
+              : "Permissions are grouped by hotel workflows, not technical screens."}
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {[
+              ar ? "التشغيل اليومي" : "Daily operations",
+              ar ? "مسار التسكين" : "Accommodation flow",
+              ar ? "بوابة الموظف" : "Employee portal",
+              ar ? "الإدارة" : "Management",
+              ar ? "الأمان والتدقيق" : "Security & audit",
+            ].map((label) => (
+              <div key={label} className="rounded-lg border bg-muted/20 px-3 py-2 text-sm font-medium">
+                {label}
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
       {/* ── Search & Filter Bar ── */}
@@ -913,25 +1018,29 @@ export default function UsersPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem
-                                onClick={() => setEditUser(u)}
-                                className="cursor-pointer"
-                              >
-                                <UserCog className="w-4 h-4 me-2 text-blue-600" />
-                                <span>
-                                  {ar ? "تعديل البيانات" : "Edit User Data"}
-                                </span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setMatrixUser(u)}
-                                className="cursor-pointer"
-                              >
-                                <Shield className="w-4 h-4 me-2 text-[#C9A24D]" />
-                                <span>
-                                  {ar ? "تعديل الصلاحيات" : "Edit Permissions"}
-                                </span>
-                              </DropdownMenuItem>
-                              {(isSuperAdmin || u.id === currentUser?.id) && (
+                              <PermissionGate module="users" action="edit">
+                                <DropdownMenuItem
+                                  onClick={() => setEditUser(u)}
+                                  className="cursor-pointer"
+                                >
+                                  <UserCog className="w-4 h-4 me-2 text-blue-600" />
+                                  <span>
+                                    {ar ? "تعديل البيانات" : "Edit User Data"}
+                                  </span>
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                              <PermissionGate module="users" action="manage_permissions">
+                                <DropdownMenuItem
+                                  onClick={() => setMatrixUser(u)}
+                                  className="cursor-pointer"
+                                >
+                                  <Shield className="w-4 h-4 me-2 text-[#C9A24D]" />
+                                  <span>
+                                    {ar ? "تعديل الصلاحيات" : "Edit Permissions"}
+                                  </span>
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                              {(isAdmin || u.id === currentUser?.id) && (
                                 <DropdownMenuItem
                                   onClick={() => setSignatureUser(u)}
                                   className="cursor-pointer"
@@ -954,17 +1063,19 @@ export default function UsersPage() {
                                     </span>
                                   </DropdownMenuItem>
                                 )}
-                              <DropdownMenuItem
-                                onClick={() => setResetUser(u)}
-                                className="cursor-pointer"
-                              >
-                                <KeyRound className="w-4 h-4 me-2 text-blue-500" />
-                                <span>
-                                  {ar
-                                    ? "إعادة تعيين كلمة المرور"
-                                    : "Reset Password"}
-                                </span>
-                              </DropdownMenuItem>
+                              <PermissionGate module="users" action="reset_password">
+                                <DropdownMenuItem
+                                  onClick={() => setResetUser(u)}
+                                  className="cursor-pointer"
+                                >
+                                  <KeyRound className="w-4 h-4 me-2 text-blue-500" />
+                                  <span>
+                                    {ar
+                                      ? "إعادة تعيين كلمة المرور"
+                                      : "Reset Password"}
+                                  </span>
+                                </DropdownMenuItem>
+                              </PermissionGate>
                               {isUserLocked(u) && (
                                 <PermissionGate module="users" action="unlock">
                                   <DropdownMenuItem

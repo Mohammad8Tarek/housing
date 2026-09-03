@@ -315,7 +315,7 @@ async function start(): Promise<void> {
 
   const httpPort = Number(process.env.PORT || 4000);
 
-  server.listen(httpPort, "0.0.0.0", () => {
+  server.listen(httpPort, "0.0.0.0", async () => {
     logger.info(`🚀 Main API HTTP listening on ${httpPort}`);
 
     // Start Queue workers
@@ -323,6 +323,14 @@ async function start(): Promise<void> {
       startAllWorkers();
     } catch (err) {
       logger.error({ err }, "Failed to start queue workers");
+    }
+    
+    // Start Housekeeping Cron Job
+    try {
+      const { initHousekeepingCron } = await import("./lib/housekeeping-cron.js");
+      initHousekeepingCron();
+    } catch (err) {
+      logger.error({ err }, "Failed to start housekeeping cron job");
     }
 
     // 2. Start PMS V2.1 Servers (they bind to 10006 locally)

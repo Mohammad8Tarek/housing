@@ -6,7 +6,7 @@ import {
   assignmentsTable,
   reservationsTable,
   roomsTable,
-  employeesTable,
+  profilesTable,
   maintenanceTable,
   activityLogsTable,
   buildingsTable,
@@ -48,7 +48,7 @@ function statusEq(column: any, status: string) {
 // ─── GET /dashboard/all-stats (aggregated across all properties) ───────
 router.get(
   "/dashboard/all-stats",
-  requireAuth,
+  requirePermission("dashboard", "audit"),
   async (req, res): Promise<void> => {
     if (!(req.session as any)?.isSystemAdmin) {
       res.status(403).json({ success: false, message: "Access denied" });
@@ -72,7 +72,7 @@ router.get(
               const [
                 totalRooms,
                 occupiedRooms,
-                totalEmployees,
+                totalProfiles,
                 activeAssignments,
                 openMaintenance,
                 upcomingReservations,
@@ -90,8 +90,8 @@ router.get(
                 safeCount(() =>
                   tenantDb
                     .select({ count: count() })
-                    .from(employeesTable)
-                    .where(statusEq(employeesTable.status, "active")),
+                    .from(profilesTable)
+                    .where(statusEq(profilesTable.status, "active")),
                 ),
                 safeCount(() =>
                   tenantDb
@@ -122,7 +122,7 @@ router.get(
               return {
                 totalRooms,
                 occupiedRooms,
-                totalEmployees,
+                totalProfiles,
                 activeAssignments,
                 openMaintenance,
                 upcomingReservations,
@@ -136,7 +136,7 @@ router.get(
               ...p,
               totalRooms: 0,
               occupiedRooms: 0,
-              totalEmployees: 0,
+              totalProfiles: 0,
               activeAssignments: 0,
               openMaintenance: 0,
               upcomingReservations: 0,
@@ -151,7 +151,7 @@ router.get(
     const totals = perProperty.reduce(
       (acc: any, p: any) => ({
         totalRooms: acc.totalRooms + p.totalRooms,
-        totalEmployees: acc.totalEmployees + p.totalEmployees,
+        totalProfiles: acc.totalProfiles + p.totalProfiles,
         activeAssignments: acc.activeAssignments + p.activeAssignments,
         openMaintenance: acc.openMaintenance + p.openMaintenance,
         upcomingReservations: acc.upcomingReservations + p.upcomingReservations,
@@ -159,7 +159,7 @@ router.get(
       }),
       {
         totalRooms: 0,
-        totalEmployees: 0,
+        totalProfiles: 0,
         activeAssignments: 0,
         openMaintenance: 0,
         upcomingReservations: 0,
@@ -191,7 +191,7 @@ router.get(
         totalRooms,
         occupiedRooms,
         availableRooms,
-        totalEmployees,
+        totalProfiles,
         activeAssignments,
         openMaintenance,
         inProgressMaint,
@@ -217,8 +217,8 @@ router.get(
         safeCount(() =>
           tenantDb
             .select({ count: count() })
-            .from(employeesTable)
-            .where(statusEq(employeesTable.status, "active")),
+            .from(profilesTable)
+            .where(statusEq(profilesTable.status, "active")),
         ),
         safeCount(() =>
           tenantDb
@@ -255,7 +255,7 @@ router.get(
         totalRooms,
         occupiedRooms,
         availableRooms,
-        totalEmployees,
+        totalProfiles,
         activeAssignments,
         openMaintenance,
         inProgressMaint,
@@ -269,7 +269,7 @@ router.get(
       totalRooms,
       occupiedRooms,
       availableRooms,
-      totalEmployees,
+      totalProfiles,
       activeAssignments,
       openMaintenance,
       inProgressMaint,
@@ -280,15 +280,15 @@ router.get(
 
     const occupancyRate =
       totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 1000) / 10 : 0;
-    const unhousedEmployees = Math.max(0, totalEmployees - activeAssignments);
+    const unhousedProfiles = Math.max(0, totalProfiles - activeAssignments);
     const pendingMaintenance = openMaintenance + inProgressMaint;
 
     res.json({
-      totalEmployees,
+      totalProfiles,
       occupancyRate,
       pendingMaintenance,
-      activeEmployees: totalEmployees,
-      unhousedEmployees,
+      activeProfiles: totalProfiles,
+      unhousedProfiles,
       totalRooms,
       occupiedRooms,
       availableRooms,
@@ -325,13 +325,13 @@ router.get(
         tenantDb
           .select({
             assignment: assignmentsTable,
-            employee: employeesTable,
+            profile: profilesTable,
             room: roomsTable,
           })
           .from(assignmentsTable)
           .leftJoin(
-            employeesTable,
-            eq(assignmentsTable.employeeId, employeesTable.id),
+            profilesTable,
+            eq(assignmentsTable.profileId, profilesTable.id),
           )
           .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
           .where(
@@ -372,7 +372,7 @@ router.get(
     res.json({
       checkOuts: result.checkOuts.map((r) => ({
         ...r.assignment,
-        employeeName: r.employee?.firstName,
+        profileName: r.profile?.firstName,
         roomNumber: r.room?.roomNumber,
       })),
       checkIns: result.checkIns,

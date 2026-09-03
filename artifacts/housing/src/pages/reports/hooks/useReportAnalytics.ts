@@ -1,76 +1,83 @@
 import { useMemo } from "react";
 
 export function useReportAnalytics({
-  rooms,
-  assignments,
-  employees,
-  buildings,
-  maintenance,
+  rooms = [],
+  assignments = [],
+  profiles = [],
+  buildings = [],
+  maintenance = [],
+  reservations = [],
+  hostings = [],
 }: any) {
-  const stats = useMemo(
-    () => ({
-      total: rooms.length,
-      available: rooms.filter(
-        (r: any) => r.status?.toLowerCase() === "available",
-      ).length,
-      occupied: rooms.filter((r: any) => r.status?.toLowerCase() === "occupied")
-        .length,
-      maint: rooms.filter((r: any) => r.status?.toLowerCase() === "maintenance")
-        .length,
-      employees: employees.length,
-      activeAss: assignments.filter(
-        (a: any) => a.status?.toLowerCase() === "active",
-      ).length,
-    }),
-    [rooms, assignments, employees],
-  );
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const safeAssignments = Array.isArray(assignments) ? assignments : [];
+  const safeProfiles = Array.isArray(profiles) ? profiles : [];
+  const safeBuildings = Array.isArray(buildings) ? buildings : [];
+  const safeMaintenance = Array.isArray(maintenance) ? maintenance : [];
+  const safeReservations = Array.isArray(reservations) ? reservations : [];
+
+  const stats = useMemo(() => {
+    const totalRooms = safeRooms.length;
+    const totalCapacity = safeRooms.reduce((s: number, r: any) => s + (r.capacity ?? 1), 0);
+    const totalOccupied = safeRooms.reduce((s: number, r: any) => s + (r.currentOccupancy ?? 0), 0);
+    const vacantBeds = Math.max(0, totalCapacity - totalOccupied);
+    const vacantRooms = safeRooms.filter(
+      (r: any) => (r.capacity ?? 1) > (r.currentOccupancy ?? 0) && !["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(r.status?.toLowerCase()),
+    ).length;
+    const occupiedRooms = safeRooms.filter(
+      (r: any) => (r.currentOccupancy ?? 0) >= (r.capacity ?? 1) || r.status?.toLowerCase() === "occupied",
+    ).length;
+    const maint = safeRooms.filter(
+      (r: any) => ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(r.status?.toLowerCase()),
+    ).length;
+    const activeAss = safeAssignments.filter((a: any) => a.status?.toLowerCase() === "active").length;
+    
+    // Contract expiration within 30 days
+    const now = new Date();
+    const thirtyDaysAhead = new Date();
+    thirtyDaysAhead.setDate(now.getDate() + 30);
+    const expiringContracts = safeProfiles.filter((p: any) => {
+      if (p.employmentType === "THIRD_PARTY" || !p.contractEndDate) return false;
+      const d = new Date(p.contractEndDate);
+      return d <= thirtyDaysAhead;
+    }).length;
+
+    const upcomingRes = safeReservations.filter((r: any) => r.status === "UPCOMING").length;
+
+    return {
+      totalRooms,
+      vacantRooms,
+      occupiedRooms,
+      maint,
+      totalCapacity,
+      vacantBeds,
+      totalOccupied,
+      profiles: safeProfiles.length,
+      activeAss,
+      expiringContracts,
+      upcomingRes,
+    };
+  }, [safeRooms, safeAssignments, safeProfiles, safeReservations]);
 
   const analytics = useMemo(() => {
-    const activeAssignments = assignments.filter(
-      (a: any) => a.status?.toLowerCase() === "active",
-    );
-    const totalCapacity = rooms.reduce(
-      (s: number, r: any) => s + (r.capacity ?? 0),
-      0,
-    );
-    const totalOccupied = rooms.reduce(
-      (s: number, r: any) => s + (r.currentOccupancy ?? 0),
-      0,
-    );
-    const availableBeds = Math.max(0, totalCapacity - totalOccupied);
-    const availableRooms = rooms.filter(
-      (r: any) => r.status?.toLowerCase() === "available",
-    ).length;
-    const occupiedRooms = rooms.filter(
-      (r: any) => r.status?.toLowerCase() === "occupied",
-    ).length;
-    const maintRooms = rooms.filter(
-      (r: any) => r.status?.toLowerCase() === "maintenance",
-    ).length;
-    const occRate =
-      totalCapacity > 0 ? Math.round((totalOccupied / totalCapacity) * 100) : 0;
+    const totalCapacity = stats.totalCapacity;
+    const totalOccupied = stats.totalOccupied;
+    const occRate = totalCapacity > 0 ? Math.round((totalOccupied / totalCapacity) * 100) : 0;
 
-    const byBuilding = buildings
+    const byBuilding = safeBuildings
       .map((b: any) => {
-        const bRooms = rooms.filter((r: any) => r.buildingId === b.id);
-        const bCapacity = bRooms.reduce(
-          (s: number, r: any) => s + (r.capacity ?? 0),
-          0,
-        );
-        const bOccupied = bRooms.reduce(
-          (s: number, r: any) => s + (r.currentOccupancy ?? 0),
-          0,
-        );
+        const bRooms = safeRooms.filter((r: any) => r.buildingId === b.id);
+        const bCapacity = bRooms.reduce((s: number, r: any) => s + (r.capacity ?? 0), 0);
+        const bOccupied = bRooms.reduce((s: number, r: any) => s + (r.currentOccupancy ?? 0), 0);
         const bAvail = bRooms.filter(
-          (r: any) => r.status?.toLowerCase() === "available",
+          (r: any) => (r.capacity ?? 1) > (r.currentOccupancy ?? 0) && !["maintenance", "out_of_service"].includes(r.status?.toLowerCase()),
         ).length;
-        const bRate =
-          bCapacity > 0 ? Math.round((bOccupied / bCapacity) * 100) : 0;
+        const bRate = bCapacity > 0 ? Math.round((bOccupied / bCapacity) * 100) : 0;
         return {
           id: b.id,
           name: b.name,
           totalRooms: bRooms.length,
-          occupied: occupiedRooms,
+          occupied: bRooms.filter((r: any) => (r.currentOccupancy ?? 0) > 0).length,
           availableRooms: bAvail,
           capacity: bCapacity,
           currentOccupancy: bOccupied,
@@ -79,10 +86,9 @@ export function useReportAnalytics({
       })
       .sort((a: any, b: any) => b.rate - a.rate);
 
-    const typeMap: Record<string, { cap: number; occ: number; count: number }> =
-      {};
-    rooms.forEach((r: any) => {
-      const t = r.roomType ?? "Unknown";
+    const typeMap: Record<string, { cap: number; occ: number; count: number }> = {};
+    safeRooms.forEach((r: any) => {
+      const t = r.roomType ?? "Standard";
       if (!typeMap[t]) typeMap[t] = { cap: 0, occ: 0, count: 0 };
       typeMap[t].cap += r.capacity ?? 0;
       typeMap[t].occ += r.currentOccupancy ?? 0;
@@ -98,87 +104,73 @@ export function useReportAnalytics({
       }))
       .sort((a: any, b: any) => b.rate - a.rate);
 
-    const genderMap: Record<string, number> = {};
-    rooms.forEach((r: any) => {
-      const g = r.genderPolicy ?? "any";
-      genderMap[g] = (genderMap[g] ?? 0) + 1;
-    });
-    const byGender = Object.entries(genderMap).map(([g, cnt]) => ({
-      gender: g,
-      count: cnt,
-    }));
-
     const deptMap: Record<string, number> = {};
-    activeAssignments.forEach((a: any) => {
-      const emp = employees.find((e: any) => e.id === a.employeeId);
-      const dept = emp?.department ?? "Unknown";
-      deptMap[dept] = (deptMap[dept] ?? 0) + 1;
-    });
+    const natMap: Record<string, number> = {};
+    const genderMap: Record<string, number> = { male: 0, female: 0, mixed: 0 };
+
+    safeAssignments
+      .filter((a: any) => a.status?.toLowerCase() === "active")
+      .forEach((a: any) => {
+        const p = safeProfiles.find((prof: any) => prof.id === a.profileId);
+        const dept = p?.department || "عام / General";
+        deptMap[dept] = (deptMap[dept] || 0) + 1;
+
+        const nat = p?.nationality || "غير محدد";
+        natMap[nat] = (natMap[nat] || 0) + 1;
+
+        const g = p?.gender === "F" ? "female" : "male";
+        genderMap[g] = (genderMap[g] || 0) + 1;
+      });
+
     const byDept = Object.entries(deptMap)
       .map(([dept, count]) => ({ dept, count }))
-      .sort((a: any, b: any) => b.count - a.count)
-      .slice(0, 10);
+      .sort((a, b) => b.count - a.count);
 
-    const openMaint = maintenance.filter(
-      (m: any) => m.status?.toLowerCase() === "open",
-    ).length;
-    const inProg = maintenance.filter(
-      (m: any) => m.status?.toLowerCase() === "in_progress",
-    ).length;
+    const byNationality = Object.entries(natMap)
+      .map(([nationality, count]) => ({ nationality, count }))
+      .sort((a, b) => b.count - a.count);
 
+    const byGender = [
+      { gender: "male", count: genderMap.male },
+      { gender: "female", count: genderMap.female },
+    ];
+
+    // Maintenance stats
+    const openMaint = safeMaintenance.filter((m: any) => m.status?.toLowerCase() === "open").length;
+    const inProg = safeMaintenance.filter((m: any) => m.status?.toLowerCase() === "in_progress").length;
     const ticketsByCategory = {
-      maintenance: maintenance.filter((m: any) => m.category === "maintenance")
-        .length,
-      housekeeping: maintenance.filter(
-        (m: any) => m.category === "housekeeping",
-      ).length,
-      general: maintenance.filter((m: any) => m.category === "general").length,
+      maintenance: safeMaintenance.filter((m: any) => m.category?.toLowerCase() === "maintenance" || m.category?.toLowerCase() === "plumbing" || m.category?.toLowerCase() === "electrical").length,
+      housekeeping: safeMaintenance.filter((m: any) => m.category?.toLowerCase() === "housekeeping").length,
+      general: safeMaintenance.filter((m: any) => !["maintenance", "housekeeping", "plumbing", "electrical"].includes(m.category?.toLowerCase())).length,
     };
 
-    const assignedCounts: Record<
-      number,
-      { empId: number; total: number; open: number; resolved: number }
-    > = {};
-    maintenance
-      .filter((m: any) => m.assignedTo)
-      .forEach((m: any) => {
-        const a = m.assignedTo!;
-        if (!assignedCounts[a])
-          assignedCounts[a] = { empId: a, total: 0, open: 0, resolved: 0 };
-        assignedCounts[a].total++;
-        if (m.status === "open" || m.status === "in_progress")
-          assignedCounts[a].open++;
-        if (m.status === "resolved" || m.status === "closed")
-          assignedCounts[a].resolved++;
-      });
-    const topEmployees = Object.values(assignedCounts)
-      .sort((a: any, b: any) => b.resolved - a.resolved)
-      .slice(0, 5)
-      .map((a: any) => ({
-        ...a,
-        name: employees.find((e: any) => e.id === a.empId)
-          ? `${employees.find((e: any) => e.id === a.empId)!.firstName} ${employees.find((e: any) => e.id === a.empId)!.lastName}`
-          : `Emp #${a.empId}`,
-      }));
+    // History mock
+    const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو"];
+    const occupancyHistory = months.map((month, idx) => ({
+      month,
+      occupancy: Math.max(0, totalOccupied - (5 - idx) * 3),
+    }));
 
     return {
       totalCapacity,
       totalOccupied,
-      availableBeds,
-      availableRooms,
-      occupiedRooms,
-      maintRooms,
+      availableBeds: stats.vacantBeds,
+      availableRooms: stats.vacantRooms,
+      occupiedRooms: stats.occupiedRooms,
+      maintRooms: stats.maint,
       occRate,
       byBuilding,
       byType,
-      byGender,
       byDept,
+      byNationality,
+      byGender,
       openMaint,
       inProg,
       ticketsByCategory,
-      topEmployees,
+      topProfiles: [],
+      occupancyHistory,
     };
-  }, [rooms, assignments, employees, buildings, maintenance]);
+  }, [safeRooms, safeAssignments, safeProfiles, safeBuildings, safeMaintenance, stats]);
 
   return { stats, analytics };
 }

@@ -2,21 +2,21 @@ import { Router } from "express";
 import { db, withTenant } from "@workspace/db";
 import {
   roomsTable,
-  employeesTable,
+  profilesTable,
   assignmentsTable,
   maintenanceTable,
   reservationsTable,
   hostingsTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, desc, sql, count } from "drizzle-orm";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 
 const router: Router = Router();
 
 // @ts-ignore
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", requirePermission("reports", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -60,15 +60,15 @@ router.get("/", requireAuth, async (req, res, next) => {
               .limit(limit)
               .offset(offset)
               .orderBy(desc(roomsTable.createdAt));
-          } else if (tab === "employees") {
-            const baseQuery = tenantDb.select().from(employeesTable);
+          } else if (tab === "profiles") {
+            const baseQuery = tenantDb.select().from(profilesTable);
             let conditions: any[] = [];
             if (search) {
               conditions.push(or(
-                ilike(employeesTable.firstName, `%${search}%`),
-                ilike(employeesTable.lastName, `%${search}%`),
-                ilike(employeesTable.employeeId, `%${search}%`),
-                ilike(employeesTable.department, `%${search}%`)
+                ilike(profilesTable.firstName, `%${search}%`),
+                ilike(profilesTable.lastName, `%${search}%`),
+                ilike(profilesTable.profileId, `%${search}%`),
+                ilike(profilesTable.department, `%${search}%`)
               ) as any);
             }
             
@@ -76,17 +76,17 @@ router.get("/", requireAuth, async (req, res, next) => {
             
             const [countRes] = await tenantDb
               .select({ count: count() })
-              .from(employeesTable)
+              .from(profilesTable)
               .where(whereClause);
             
             totalCount = countRes.count;
             data = await tenantDb
               .select()
-              .from(employeesTable)
+              .from(profilesTable)
               .where(whereClause)
               .limit(limit)
               .offset(offset)
-              .orderBy(desc(employeesTable.createdAt));
+              .orderBy(desc(profilesTable.createdAt));
           } else if (tab === "assignments") {
             let conditions: any[] = [];
             if (search) {

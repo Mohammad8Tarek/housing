@@ -204,7 +204,7 @@ export default function PortalNotifications() {
           <p className="text-sm text-muted-foreground mt-1">
             {ar
               ? "إدارة إشعارات البوابة وإرسالها للموظفين"
-              : "Manage and send portal notifications to employees"}
+              : "Manage and send portal notifications to profiles"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -258,7 +258,7 @@ export default function PortalNotifications() {
           <CardDescription>
             {ar
               ? "قائمة بكل الإشعارات المُرسلة للموظفين"
-              : "All notifications sent to employees"}
+              : "All notifications sent to profiles"}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -90,17 +90,17 @@ export function PortalAccountsSection() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({
-      employeeId,
+      profileId,
       isActive,
     }: {
-      employeeId: string;
+      profileId: string;
       isActive: boolean;
     }) => {
       const r = await fetch("/api/portal-auth/toggle-access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          employeeId,
+          profileId,
           isActive,
           propertyId: activePropertyId,
         }),
@@ -126,11 +126,11 @@ export function PortalAccountsSection() {
   });
 
   const resetMutation = useMutation({
-    mutationFn: async (employeeId: string) => {
+    mutationFn: async (profileId: string) => {
       const r = await fetch("/api/portal-auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, propertyId: activePropertyId }),
+        body: JSON.stringify({ profileId, propertyId: activePropertyId }),
       });
       if (!r.ok) throw new Error("Failed");
       return r.json();
@@ -148,8 +148,8 @@ export function PortalAccountsSection() {
   const filtered = (accounts || []).filter(
     (a: any) =>
       !search ||
-      a.employeeName?.toLowerCase().includes(search.toLowerCase()) ||
-      a.employeeId?.toLowerCase().includes(search.toLowerCase()),
+      a.profileName?.toLowerCase().includes(search.toLowerCase()) ||
+      a.profileId?.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -163,7 +163,7 @@ export function PortalAccountsSection() {
           <p className="text-xs text-muted-foreground mt-1">
             {ar
               ? "تفعيل وتعطيل صلاحية الموظفين للدخول إلى البوابة وإعادة تعيين كلمات المرور"
-              : "Enable/disable employee portal access and reset passwords"}
+              : "Enable/disable profile portal access and reset passwords"}
           </p>
         </div>
         <div className="flex gap-2 items-center">
@@ -177,7 +177,7 @@ export function PortalAccountsSection() {
 
       <Input
         placeholder={
-          ar ? "بحث باسم أو رقم الموظف..." : "Search by name or employee ID..."
+          ar ? "بحث باسم أو رقم الموظف..." : "Search by name or profile ID..."
         }
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -191,8 +191,8 @@ export function PortalAccountsSection() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30">
-                <TableHead>{ar ? "الموظف" : "Employee"}</TableHead>
-                <TableHead>{ar ? "رقم الموظف" : "Employee ID"}</TableHead>
+                <TableHead>{ar ? "الموظف" : "Profile"}</TableHead>
+                <TableHead>{ar ? "رقم الموظف" : "Profile ID"}</TableHead>
                 <TableHead>{ar ? "آخر دخول" : "Last Login"}</TableHead>
                 <TableHead>{ar ? "الحالة" : "Status"}</TableHead>
                 <TableHead className="text-center">
@@ -202,12 +202,12 @@ export function PortalAccountsSection() {
             </TableHeader>
             <TableBody>
               {filtered.map((acc: any) => (
-                <TableRow key={acc.employeeId}>
+                <TableRow key={acc.profileId}>
                   <TableCell className="font-medium text-sm">
-                    {acc.employeeName ?? acc.employeeId}
+                    {acc.profileName ?? acc.profileId}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground font-mono">
-                    {acc.employeeId}
+                    {acc.profileId}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {acc.lastLoginAt
@@ -240,9 +240,9 @@ export function PortalAccountsSection() {
                               : "No account"}
                         </Badge>
                       )}
-                      {acc.employeeStatus && (
+                      {acc.profileStatus && (
                         <span className="text-[10px] text-muted-foreground">
-                          {acc.employeeStatus}
+                          {acc.profileStatus}
                         </span>
                       )}
                     </div>
@@ -255,7 +255,7 @@ export function PortalAccountsSection() {
                         className="h-7 text-xs"
                         onClick={() =>
                           toggleMutation.mutate({
-                            employeeId: acc.employeeId,
+                            profileId: acc.profileId,
                             isActive: !acc.isActive,
                           })
                         }
@@ -273,7 +273,7 @@ export function PortalAccountsSection() {
                         variant="outline"
                         size="sm"
                         className="h-7 text-xs"
-                        onClick={() => resetMutation.mutate(acc.employeeId)}
+                        onClick={() => resetMutation.mutate(acc.profileId)}
                         disabled={resetMutation.isPending}
                       >
                         <RefreshCw className="w-3 h-3 me-1" />

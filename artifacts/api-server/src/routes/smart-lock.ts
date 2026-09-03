@@ -8,7 +8,7 @@ import {
   keyAuditLogTable,
   roomsTable,
   assignmentsTable,
-  employeesTable,
+  profilesTable,
 } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions.js";
@@ -70,7 +70,7 @@ function getEncoder(
 // ─── Encoder Status ───
 router.get(
   "/encoder/status",
-  requirePermission("accommodation", "view"),
+  requirePermission("smart_locks", "view"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = getTenantId(req);
@@ -89,7 +89,7 @@ router.get(
 // ─── Connect to Encoder ───
 router.post(
   "/encoder/connect",
-  requirePermission("accommodation", "edit"),
+  requirePermission("smart_locks", "edit"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = getTenantId(req);
@@ -116,7 +116,7 @@ router.post(
 // ─── Disconnect from Encoder ───
 router.post(
   "/encoder/disconnect",
-  requirePermission("accommodation", "edit"),
+  requirePermission("smart_locks", "edit"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = getTenantId(req);
@@ -138,7 +138,7 @@ router.post(
 // ─── Read Card ───
 router.post(
   "/encoder/read-card",
-  requirePermission("accommodation", "view"),
+  requirePermission("smart_locks", "view"),
   async (req: Request, res: Response) => {
     res.status(400).json({
       error:
@@ -150,7 +150,7 @@ router.post(
 // ─── Eject Card ───
 router.post(
   "/encoder/eject",
-  requirePermission("accommodation", "edit"),
+  requirePermission("smart_locks", "edit"),
   async (req: Request, res: Response) => {
     res.status(400).json({
       error:
@@ -175,7 +175,7 @@ const DirectEncodeBody = z.object({
 
 router.post(
   "/encoder/encode",
-  requirePermission("accommodation", "create"),
+  requirePermission("smart_locks", "create"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = getTenantId(req);
@@ -237,7 +237,7 @@ const SmartIssueBody = z.object({
 
 router.post(
   "/encoder/smart/checkin-issue-key",
-  requirePermission("accommodation", "create"),
+  requirePermission("smart_locks", "create"),
   async (req: Request, res: Response) => {
     try {
       const parsed = SmartIssueBody.safeParse(req.body);
@@ -346,7 +346,7 @@ const CreateLockBody = z.object({
 
 router.get(
   "/locks",
-  requirePermission("accommodation", "view"),
+  requirePermission("smart_locks", "view"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -373,7 +373,7 @@ router.get(
 
 router.post(
   "/locks",
-  requirePermission("accommodation", "create"),
+  requirePermission("smart_locks", "create"),
   async (req: Request, res: Response) => {
     try {
       const parsed = CreateLockBody.safeParse(req.body);
@@ -408,7 +408,7 @@ router.post(
 
 router.patch(
   "/locks/:id",
-  requirePermission("accommodation", "edit"),
+  requirePermission("smart_locks", "edit"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -456,7 +456,7 @@ router.patch(
 const IssueKeyBody = z.object({
   roomId: z.number(),
   assignmentId: z.number().optional(),
-  employeeId: z.number().optional(),
+  profileId: z.number().optional(),
   cardNumber: z.string().optional(),
   cardType: z
     .enum(["guest", "master", "floor", "building", "emergency", "lost"])
@@ -477,7 +477,7 @@ const IssueKeyBody = z.object({
 
 router.get(
   "/keys",
-  requirePermission("accommodation", "view"),
+  requirePermission("smart_locks", "view"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -511,7 +511,7 @@ router.get(
 
 router.post(
   "/keys/issue",
-  requirePermission("accommodation", "create"),
+  requirePermission("smart_locks", "create"),
   async (req: Request, res: Response) => {
     try {
       const parsed = IssueKeyBody.safeParse(req.body);
@@ -532,7 +532,7 @@ router.post(
 
       let cardNumber = parsed.data.cardNumber;
 
-      // ─── Fetch lock number (real room number like "201") and employee name ───
+      // ─── Fetch lock number (real room number like "201") and profile name ───
       const lockInfo = await withTenant(propertyId, async (dbTx: any) => {
         const [lock] = await dbTx
           .select()
@@ -554,25 +554,25 @@ router.post(
       const realRoomNumber = lockInfo.lockNumber;
       const realLockId = lockInfo.lockId;
 
-      // Fetch employee full name (for printing on card)
-      let employeeName: string | undefined;
-      let employeeJobNumber: string | undefined;
-      const empId = parsed.data.employeeId;
+      // Fetch profile full name (for printing on card)
+      let profileName: string | undefined;
+      let profileJobNumber: string | undefined;
+      const empId = parsed.data.profileId;
       if (empId) {
         const [emp] = await withTenant(propertyId, async (dbTx: any) => {
           return dbTx
             .select({
-              firstName: employeesTable.firstName,
-              lastName: employeesTable.lastName,
-              employeeId: employeesTable.employeeId,
+              firstName: profilesTable.firstName,
+              lastName: profilesTable.lastName,
+              profileId: profilesTable.profileId,
             })
-            .from(employeesTable)
-            .where(eq(employeesTable.id, empId))
+            .from(profilesTable)
+            .where(eq(profilesTable.id, empId))
             .limit(1);
         });
         if (emp) {
-          employeeName = `${emp.firstName} ${emp.lastName}`.trim();
-          employeeJobNumber = emp.employeeId;
+          profileName = `${emp.firstName} ${emp.lastName}`.trim();
+          profileJobNumber = emp.profileId;
         }
       }
 
@@ -590,6 +590,31 @@ router.post(
         if (asgn) {
           checkIn = checkIn || asgn.checkInDate;
           checkOut = checkOut || asgn.expectedCheckOutDate || asgn.checkOutDate;
+          if (!checkOut && asgn.profileId) {
+            const [prof] = await withTenant(propertyId, async (dbTx: any) => {
+              return dbTx
+                .select({ contractEndDate: profilesTable.contractEndDate, employmentType: profilesTable.employmentType })
+                .from(profilesTable)
+                .where(eq(profilesTable.id, asgn.profileId))
+                .limit(1);
+            });
+            if (prof?.contractEndDate && prof.employmentType !== "THIRD_PARTY") {
+              checkOut = prof.contractEndDate;
+            }
+          }
+        }
+      }
+
+      if (!checkOut && parsed.data.profileId) {
+        const [prof] = await withTenant(propertyId, async (dbTx: any) => {
+          return dbTx
+            .select({ contractEndDate: profilesTable.contractEndDate, employmentType: profilesTable.employmentType })
+            .from(profilesTable)
+            .where(eq(profilesTable.id, parsed.data.profileId!))
+            .limit(1);
+        });
+        if (prof?.contractEndDate && prof.employmentType !== "THIRD_PARTY") {
+          checkOut = prof.contractEndDate;
         }
       }
 
@@ -600,12 +625,12 @@ router.post(
             const result = await issueCardViaHotek(
               propertyId,
               realRoomNumber,
-              employeeName || "GUEST",
+              profileName || "GUEST",
               parsed.data.isDuplicate || false,
               parsed.data.workstationId,
               60000,
               checkOut ? String(checkOut) : null,
-              employeeJobNumber,
+              profileJobNumber,
             );
             if (!result.success || !result.cardNumber) {
               res.status(500).json({
@@ -642,11 +667,11 @@ router.post(
               cardType: parsed.data.cardType,
               ejectionType: parsed.data.ejectionType,
               user:
-                employeeName ||
+                profileName ||
                 ((req.session as any)?.userId
                   ? String((req.session as any).userId)
                   : undefined),
-              guestName: employeeName,
+              guestName: profileName,
             };
 
             const encodeResult = await encoder.issueCard(cardData);
@@ -672,7 +697,7 @@ router.post(
             assignmentId: parsed.data.assignmentId,
             roomId: parsed.data.roomId,
             lockId: realLockId,
-            employeeId: parsed.data.employeeId,
+            profileId: parsed.data.profileId,
             cardNumber,
             cardType: parsed.data.cardType,
             issuedBy: (req.session as any)?.userId
@@ -702,7 +727,7 @@ router.post(
             cardType: parsed.data.cardType,
             encoded: parsed.data.encodeCard,
             encoderType: parsed.data.encoderType,
-            employeeName,
+            profileName,
           },
         });
       });
@@ -726,7 +751,7 @@ router.post(
 
 router.post(
   "/keys/:id/revoke",
-  requirePermission("accommodation", "edit"),
+  requirePermission("smart_locks", "edit"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -829,7 +854,7 @@ router.post(
 
 router.post(
   "/keys/:id/extend",
-  requirePermission("accommodation", "edit"),
+  requirePermission("smart_locks", "edit"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -883,7 +908,7 @@ router.post(
 // ─── Audit Log ───
 router.get(
   "/keys/audit",
-  requirePermission("accommodation", "view"),
+  requirePermission("smart_locks", "view"),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(

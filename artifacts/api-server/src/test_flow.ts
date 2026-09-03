@@ -1,5 +1,4 @@
 import { pool } from "@workspace/db";
-import fetch from "node-fetch"; // or just use pool directly to bypass auth
 
 async function run() {
     const client = await pool.connect();

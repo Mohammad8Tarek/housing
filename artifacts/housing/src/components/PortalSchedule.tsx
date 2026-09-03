@@ -213,7 +213,7 @@ export default function PortalSchedule() {
                     setNewEvent({ ...newEvent, titleAr: e.target.value })
                   }
                   placeholder={
-                    ar ? "مثال: استبيان المشاركة" : "e.g. Employee Survey"
+                    ar ? "مثال: استبيان المشاركة" : "e.g. Profile Survey"
                   }
                 />
               </div>

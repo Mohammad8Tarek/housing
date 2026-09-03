@@ -4,8 +4,8 @@ import { db, pool } from "@workspace/db";
 const MIGRATIONS = [
   // Existing column additions
   {
-    name: "employees.photo_url",
-    q: "ALTER TABLE employees    ADD COLUMN IF NOT EXISTS photo_url     TEXT",
+    name: "profiles.photo_url",
+    q: "ALTER TABLE profiles    ADD COLUMN IF NOT EXISTS photo_url     TEXT",
   },
   {
     name: "maintenance.started_at",
@@ -40,8 +40,8 @@ const MIGRATIONS = [
     q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS gender        TEXT NOT NULL DEFAULT ''",
   },
   {
-    name: "reservations.employee_code",
-    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS employee_code TEXT NOT NULL DEFAULT ''",
+    name: "reservations.profile_code",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS profile_code TEXT NOT NULL DEFAULT ''",
   },
   {
     name: "reservations.level",
@@ -110,7 +110,7 @@ const MIGRATIONS = [
   // ===== Activity Registrations =====
   {
     name: "public.activity_registrations",
-    q: "CREATE TABLE IF NOT EXISTS public.activity_registrations (id SERIAL PRIMARY KEY, employee_id INTEGER NOT NULL, activity_id INTEGER NOT NULL, badge_number TEXT, status TEXT NOT NULL DEFAULT 'joined', attended BOOLEAN NOT NULL DEFAULT false, attended_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())",
+    q: "CREATE TABLE IF NOT EXISTS public.activity_registrations (id SERIAL PRIMARY KEY, profile_id INTEGER NOT NULL, activity_id INTEGER NOT NULL, badge_number TEXT, status TEXT NOT NULL DEFAULT 'joined', attended BOOLEAN NOT NULL DEFAULT false, attended_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())",
   },
   {
     name: "public.portal_contacts",
@@ -147,7 +147,7 @@ const MIGRATIONS = [
   {
     name: "public.evaluations",
     q: `CREATE TABLE IF NOT EXISTS public.evaluations (
-    id SERIAL PRIMARY KEY, employee_id INTEGER, employee_response TEXT, employee_rating REAL,
+    id SERIAL PRIMARY KEY, profile_id INTEGER, profile_response TEXT, profile_rating REAL,
     category TEXT NOT NULL DEFAULT 'general', title_ar TEXT, title_en TEXT,
     description_ar TEXT, description_en TEXT, department TEXT, survey_template_id INTEGER,
     status TEXT NOT NULL DEFAULT 'pending', submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ,
@@ -170,7 +170,7 @@ const MIGRATIONS = [
   {
     name: "public.survey_item_responses",
     q: `CREATE TABLE IF NOT EXISTS public.survey_item_responses (
-    id SERIAL PRIMARY KEY, template_id INTEGER NOT NULL, employee_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY, template_id INTEGER NOT NULL, profile_id INTEGER NOT NULL,
     item_id INTEGER NOT NULL, rating_value REAL, text_value TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
@@ -187,7 +187,7 @@ const MIGRATIONS = [
     name: "public.room_keys",
     q: `CREATE TABLE IF NOT EXISTS public.room_keys (
     id SERIAL PRIMARY KEY, property_id INTEGER NOT NULL, assignment_id INTEGER,
-    room_id INTEGER NOT NULL, lock_id INTEGER, employee_id INTEGER,
+    room_id INTEGER NOT NULL, lock_id INTEGER, profile_id INTEGER,
     card_number TEXT, card_type TEXT NOT NULL DEFAULT 'guest', issued_by INTEGER,
     issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ,
     revoked_at TIMESTAMPTZ, revoked_by INTEGER, status TEXT NOT NULL DEFAULT 'active',
@@ -274,13 +274,13 @@ const MIGRATIONS = [
     name: "public.portal_notification_reads",
     q: `CREATE TABLE IF NOT EXISTS public.portal_notification_reads (
     id SERIAL PRIMARY KEY, notification_id INTEGER NOT NULL,
-    employee_id INTEGER NOT NULL, read_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    profile_id INTEGER NOT NULL, read_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   },
   {
     name: "public.push_subscriptions",
     q: `CREATE TABLE IF NOT EXISTS public.push_subscriptions (
-    id SERIAL PRIMARY KEY, employee_id INTEGER NOT NULL, property_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY, profile_id INTEGER NOT NULL, property_id INTEGER NOT NULL,
     endpoint TEXT NOT NULL, p256dh_key TEXT NOT NULL, auth_key TEXT NOT NULL,
     user_agent TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), last_used_at TIMESTAMPTZ
   )`,
@@ -294,16 +294,16 @@ const MIGRATIONS = [
 
   // ===== PERFORMANCE INDEXES =====
   {
-    name: "idx_employees_employee_id",
-    q: "CREATE INDEX IF NOT EXISTS idx_employees_employee_id ON employees(employee_id)",
+    name: "idx_profiles_profile_id",
+    q: "CREATE INDEX IF NOT EXISTS idx_profiles_profile_id ON profiles(profile_id)",
   },
   {
-    name: "idx_employees_status",
-    q: "CREATE INDEX IF NOT EXISTS idx_employees_status ON employees(status)",
+    name: "idx_profiles_status",
+    q: "CREATE INDEX IF NOT EXISTS idx_profiles_status ON profiles(status)",
   },
   {
-    name: "idx_assignments_employee_status",
-    q: "CREATE INDEX IF NOT EXISTS idx_assignments_employee_status ON assignments(employee_id, status)",
+    name: "idx_assignments_profile_status",
+    q: "CREATE INDEX IF NOT EXISTS idx_assignments_profile_status ON assignments(profile_id, status)",
   },
   {
     name: "idx_assignments_checkout_date",
@@ -381,7 +381,7 @@ const MIGRATIONS = [
   {
     name: "public.portal_meal_orders",
     q: `CREATE TABLE IF NOT EXISTS public.portal_meal_orders (
-    id SERIAL PRIMARY KEY, property_id INTEGER NOT NULL, employee_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY, property_id INTEGER NOT NULL, profile_id INTEGER NOT NULL,
     menu_item_id INTEGER NOT NULL, quantity INTEGER NOT NULL DEFAULT 1,
     order_date DATE NOT NULL, status TEXT NOT NULL DEFAULT 'confirmed',
     notes TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -401,7 +401,7 @@ const MIGRATIONS = [
   {
     name: "public.portal_transport_bookings",
     q: `CREATE TABLE IF NOT EXISTS public.portal_transport_bookings (
-    id SERIAL PRIMARY KEY, property_id INTEGER NOT NULL, employee_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY, property_id INTEGER NOT NULL, profile_id INTEGER NOT NULL,
     schedule_id INTEGER NOT NULL, booking_date DATE NOT NULL,
     status TEXT NOT NULL DEFAULT 'confirmed', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
@@ -418,7 +418,7 @@ const MIGRATIONS = [
     name: "public.portal_conversation_participants",
     q: `CREATE TABLE IF NOT EXISTS public.portal_conversation_participants (
     id SERIAL PRIMARY KEY, conversation_id INTEGER NOT NULL,
-    employee_id INTEGER NOT NULL, joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    profile_id INTEGER NOT NULL, joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_read_at TIMESTAMPTZ
   )`,
   },
@@ -437,7 +437,7 @@ const MIGRATIONS = [
     name: "public.portal_message_reads",
     q: `CREATE TABLE IF NOT EXISTS public.portal_message_reads (
     id SERIAL PRIMARY KEY, message_id INTEGER NOT NULL,
-    employee_id INTEGER NOT NULL, read_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    profile_id INTEGER NOT NULL, read_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   },
   {
@@ -491,7 +491,7 @@ const MIGRATIONS = [
     hotel_id INTEGER,
     visit_hotel_id INTEGER,
     requester_user_id INTEGER NOT NULL REFERENCES public.users(id),
-    employee_name VARCHAR(200) NOT NULL,
+    profile_name VARCHAR(200) NOT NULL,
     clock_number VARCHAR(50) NOT NULL,
     department VARCHAR(150) NOT NULL,
     position VARCHAR(150) NOT NULL,
@@ -572,28 +572,28 @@ const TENANT_MIGRATIONS = [
     q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS portal_contact_ext TEXT",
   },
   {
-    name: "employees.photo_url",
-    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS photo_url TEXT",
+    name: "profiles.photo_url",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS photo_url TEXT",
   },
   {
-    name: "employees.email",
-    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '' NOT NULL",
+    name: "profiles.email",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '' NOT NULL",
   },
   {
-    name: "employees.emergency_contact",
-    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS emergency_contact TEXT DEFAULT '' NOT NULL",
+    name: "profiles.emergency_contact",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS emergency_contact TEXT DEFAULT '' NOT NULL",
   },
   {
-    name: "employees.third_name",
-    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS third_name TEXT DEFAULT '' NOT NULL",
+    name: "profiles.third_name",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS third_name TEXT DEFAULT '' NOT NULL",
   },
   {
-    name: "employees.fourth_name",
-    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS fourth_name TEXT DEFAULT '' NOT NULL",
+    name: "profiles.fourth_name",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS fourth_name TEXT DEFAULT '' NOT NULL",
   },
   {
-    name: "employees.date_of_birth",
-    q: "ALTER TABLE employees ADD COLUMN IF NOT EXISTS date_of_birth TEXT DEFAULT '' NOT NULL",
+    name: "profiles.date_of_birth",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS date_of_birth TEXT DEFAULT '' NOT NULL",
   },
   {
     name: "maintenance.started_at",
@@ -628,8 +628,8 @@ const TENANT_MIGRATIONS = [
     q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS gender TEXT NOT NULL DEFAULT ''",
   },
   {
-    name: "reservations.employee_code",
-    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS employee_code TEXT NOT NULL DEFAULT ''",
+    name: "reservations.profile_code",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS profile_code TEXT NOT NULL DEFAULT ''",
   },
   {
     name: "reservations.level",
@@ -688,8 +688,8 @@ const TENANT_MIGRATIONS = [
   {
     name: "evaluations",
     q: `CREATE TABLE IF NOT EXISTS evaluations (
-    id SERIAL PRIMARY KEY, employee_id INTEGER, rating REAL,
-    comment TEXT, employee_response TEXT, employee_rating REAL,
+    id SERIAL PRIMARY KEY, profile_id INTEGER, rating REAL,
+    comment TEXT, profile_response TEXT, profile_rating REAL,
     category TEXT NOT NULL DEFAULT 'general',
     title_ar TEXT, title_en TEXT, description_ar TEXT, description_en TEXT,
     department TEXT,
@@ -719,20 +719,20 @@ const TENANT_MIGRATIONS = [
     q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS department TEXT",
   },
   {
-    name: "evaluations.employee_rating",
-    q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS employee_rating REAL",
+    name: "evaluations.profile_rating",
+    q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS profile_rating REAL",
   },
   {
-    name: "evaluations.employee_response",
-    q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS employee_response TEXT",
+    name: "evaluations.profile_response",
+    q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS profile_response TEXT",
   },
   {
     name: "evaluations.expires_at",
     q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ",
   },
   {
-    name: "evaluations.make_employee_id_nullable",
-    q: "ALTER TABLE evaluations ALTER COLUMN employee_id DROP NOT NULL",
+    name: "evaluations.make_profile_id_nullable",
+    q: "ALTER TABLE evaluations ALTER COLUMN profile_id DROP NOT NULL",
   },
   {
     name: "evaluations.make_rating_nullable",
@@ -825,7 +825,7 @@ const TENANT_MIGRATIONS = [
   {
     name: "activity_registrations",
     q: `CREATE TABLE IF NOT EXISTS activity_registrations (
-    id SERIAL PRIMARY KEY, employee_id INTEGER NOT NULL, activity_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY, profile_id INTEGER NOT NULL, activity_id INTEGER NOT NULL,
     badge_number TEXT,
     status TEXT NOT NULL DEFAULT 'joined',
     attended BOOLEAN NOT NULL DEFAULT false,
@@ -870,7 +870,7 @@ const TENANT_MIGRATIONS = [
     assignment_id INTEGER REFERENCES assignments(id) ON DELETE SET NULL,
     room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
     lock_id INTEGER REFERENCES room_locks(id) ON DELETE SET NULL,
-    employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+    profile_id INTEGER REFERENCES profiles(id) ON DELETE SET NULL,
     card_number TEXT,
     card_type TEXT NOT NULL DEFAULT 'guest',
     issued_by INTEGER,
@@ -921,10 +921,10 @@ const TENANT_MIGRATIONS = [
     q: "CREATE INDEX IF NOT EXISTS idx_key_audit_log_property ON key_audit_log(property_id)",
   },
 
-  // === Fix duplicate active assignments: checkout the older one for employee 10575 ===
+  // === Fix duplicate active assignments: checkout the older one for profile 10575 ===
   {
     name: "fix.duplicate_assignment_10575",
-    q: "UPDATE assignments SET status = 'CHECKED_OUT', check_out_date = NOW()::text WHERE employee_id = '10575' AND status = 'ACTIVE' AND id < (SELECT id FROM assignments WHERE employee_id = '10575' AND status = 'ACTIVE' ORDER BY created_at DESC LIMIT 1)",
+    q: "UPDATE assignments SET status = 'CHECKED_OUT', check_out_date = NOW()::text WHERE profile_id = '10575' AND status = 'ACTIVE' AND id < (SELECT id FROM assignments WHERE profile_id = '10575' AND status = 'ACTIVE' ORDER BY created_at DESC LIMIT 1)",
   },
 
   // === Survey Items (multi-question surveys) ===
@@ -946,7 +946,7 @@ const TENANT_MIGRATIONS = [
     q: `CREATE TABLE IF NOT EXISTS survey_item_responses (
     id SERIAL PRIMARY KEY,
     template_id INTEGER NOT NULL REFERENCES evaluations(id) ON DELETE CASCADE,
-    employee_id INTEGER NOT NULL,
+    profile_id INTEGER NOT NULL,
     item_id INTEGER NOT NULL REFERENCES survey_items(id) ON DELETE CASCADE,
     rating_value REAL,
     text_value TEXT,
@@ -962,8 +962,8 @@ const TENANT_MIGRATIONS = [
     q: "CREATE INDEX IF NOT EXISTS idx_survey_item_responses_template ON survey_item_responses(template_id)",
   },
   {
-    name: "idx_survey_item_responses_employee",
-    q: "CREATE INDEX IF NOT EXISTS idx_survey_item_responses_employee ON survey_item_responses(employee_id)",
+    name: "idx_survey_item_responses_profile",
+    q: "CREATE INDEX IF NOT EXISTS idx_survey_item_responses_profile ON survey_item_responses(profile_id)",
   },
   {
     name: "idx_survey_item_responses_item",
@@ -994,13 +994,13 @@ const TENANT_MIGRATIONS = [
     q: `CREATE TABLE IF NOT EXISTS portal_notification_reads (
     id SERIAL PRIMARY KEY,
     notification_id INTEGER NOT NULL,
-    employee_id INTEGER NOT NULL,
+    profile_id INTEGER NOT NULL,
     read_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   },
   {
     name: "portal_notification_reads_unique",
-    q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_portal_notification_reads ON portal_notification_reads (notification_id, employee_id)",
+    q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_portal_notification_reads ON portal_notification_reads (notification_id, profile_id)",
   },
 
   // === Activity Registration: badge number + attendance ===
@@ -1022,7 +1022,7 @@ const TENANT_MIGRATIONS = [
     name: "push_subscriptions",
     q: `CREATE TABLE IF NOT EXISTS push_subscriptions (
     id SERIAL PRIMARY KEY,
-    employee_id INTEGER NOT NULL,
+    profile_id INTEGER NOT NULL,
     property_id INTEGER NOT NULL,
     endpoint TEXT NOT NULL,
     p256dh_key TEXT NOT NULL,
@@ -1037,8 +1037,8 @@ const TENANT_MIGRATIONS = [
     q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_push_subscriptions ON push_subscriptions (endpoint)",
   },
   {
-    name: "push_subscriptions_employee",
-    q: "CREATE INDEX IF NOT EXISTS idx_push_subscriptions_employee ON push_subscriptions (employee_id)",
+    name: "push_subscriptions_profile",
+    q: "CREATE INDEX IF NOT EXISTS idx_push_subscriptions_profile ON push_subscriptions (profile_id)",
   },
 
   // === User Sessions for connect-pg-simple ===
@@ -1058,20 +1058,20 @@ const TENANT_MIGRATIONS = [
     name: "user_sessions_expire_index",
     q: `CREATE INDEX IF NOT EXISTS idx_user_sessions_expire ON user_sessions ("expire")`,
   },
-  // === Fix existing duplicate portal accounts (keep most recent per employee_id) ===
+  // === Fix existing duplicate portal accounts (keep most recent per profile_id) ===
   {
-    name: "employee_portal_accounts.dedup_keep_latest",
-    q: `DELETE FROM employee_portal_accounts
+    name: "profile_portal_accounts.dedup_keep_latest",
+    q: `DELETE FROM profile_portal_accounts
     WHERE id NOT IN (
-      SELECT DISTINCT ON (employee_id) id
-      FROM employee_portal_accounts
-      ORDER BY employee_id, id DESC
+      SELECT DISTINCT ON (profile_id) id
+      FROM profile_portal_accounts
+      ORDER BY profile_id, id DESC
     )`,
   },
-  // === Add unique constraint on employee_portal_accounts.employee_id ===
+  // === Add unique constraint on profile_portal_accounts.profile_id ===
   {
-    name: "employee_portal_accounts.unique_employee_id",
-    q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_portal_accounts_employee_id ON employee_portal_accounts (employee_id)",
+    name: "profile_portal_accounts.unique_profile_id",
+    q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_portal_accounts_profile_id ON profile_portal_accounts (profile_id)",
   },
 ];
 

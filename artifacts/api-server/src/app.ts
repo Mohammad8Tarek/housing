@@ -25,6 +25,7 @@ import { sanitizeDates } from "./middlewares/sanitize-date.js";
 import { pool } from "@workspace/db";
 // @sentry/node imported dynamically below to prevent crash if not installed
 import { setupSwagger } from "./lib/swagger.js";
+import { broadcastSyncAll, broadcastSyncEverywhere } from "./lib/websocket.js";
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();
@@ -62,7 +63,7 @@ app.use(
 // 3. إعداد الـ CORS
 const defaultAllowedOrigins = [
   "https://housing-housing-rho.vercel.app",
-  "https://housing-employee-portal.vercel.app",
+  "https://housing-profile-portal.vercel.app",
 ];
 const rawOrigins = (process.env["ALLOWED_ORIGINS"] ?? "").trim();
 const allowList = [
@@ -101,8 +102,8 @@ app.use(
 );
 
 // 4. الـ Body Parsers
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // 4.1. Custom JSON replacer لمعالجة Date objects بشكل آمن
 app.set("json replacer", (key: string, value: any) => {
@@ -191,6 +192,63 @@ app.use((req, res, next) => {
 });
 
 // 7. الـ API Routes والـ Middlewares الخاصة بها
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const GLOBAL_SYNC_PATHS = [
+  "/users",
+  "/properties",
+  "/settings",
+  "/lookup-values",
+];
+
+function collectSyncPropertyIds(req: Request): number[] {
+  const ids = new Set<number>();
+  const candidates = [
+    (req.query as any)?.propertyId,
+    (req.body as any)?.propertyId,
+    (req.session as any)?.propertyId,
+    (req.session as any)?.portal?.propertyId,
+  ];
+
+  for (const value of candidates) {
+    const id = Number(value);
+    if (Number.isFinite(id) && id > 0) ids.add(id);
+  }
+
+  const propertyIds = (req.body as any)?.propertyIds;
+  if (Array.isArray(propertyIds)) {
+    for (const value of propertyIds) {
+      const id = Number(value);
+      if (Number.isFinite(id) && id > 0) ids.add(id);
+    }
+  }
+
+  return [...ids];
+}
+
+app.use("/api", (req, res, next) => {
+  if (!MUTATING_METHODS.has(req.method)) return next();
+
+  res.on("finish", () => {
+    if (res.statusCode < 200 || res.statusCode >= 400) return;
+
+    const shouldGlobalSync = GLOBAL_SYNC_PATHS.some((path) =>
+      req.path.startsWith(path),
+    );
+    const propertyIds = collectSyncPropertyIds(req);
+
+    if (shouldGlobalSync || propertyIds.length === 0) {
+      broadcastSyncEverywhere();
+      return;
+    }
+
+    for (const propertyId of propertyIds) {
+      broadcastSyncAll(propertyId);
+    }
+  });
+
+  next();
+});
+
 app.use("/api", apiRateLimit);
 app.use("/api", auditLogMiddleware);
 

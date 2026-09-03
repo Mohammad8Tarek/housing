@@ -6,7 +6,7 @@ import {
   useUpdateMaintenance,
   useDeleteMaintenance,
   useListRooms,
-  useListEmployees,
+  useListProfiles,
   useListAssignments,
   getListMaintenanceQueryKey,
 } from "@workspace/api-client-react";
@@ -246,25 +246,25 @@ export default function Tickets() {
     { query: { enabled: !!activePropertyId } },
   );
   const rooms = _roomsWrapper?.data || [];
-  const { data: _eDataWrapper } = useListEmployees(
+  const { data: _eDataWrapper } = useListProfiles(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
     { query: { enabled: !!activePropertyId } },
   );
-  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
   const { data: assignments } = useListAssignments(
     { propertyId: activePropertyId } as any,
     { query: { enabled: !!activePropertyId } },
   );
 
-  // Build room → occupant name(s) map from active assignments + employees
+  // Build room → occupant name(s) map from active assignments + profiles
   const roomOccupantMap = useMemo(() => {
     const empLookup = Object.fromEntries(
-      employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
+      profiles.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
     );
     const map: Record<number, string> = {};
     (assignments || []).forEach((a: any) => {
       if (a.status === "ACTIVE" && a.roomId) {
-        const name = empLookup[a.employeeId];
+        const name = empLookup[a.profileId];
         if (name) {
           if (map[a.roomId]) {
             // Multiple occupants — append
@@ -278,7 +278,7 @@ export default function Tickets() {
       }
     });
     return map;
-  }, [assignments, employees]);
+  }, [assignments, profiles]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({
@@ -310,6 +310,8 @@ export default function Tickets() {
   const createMutation = useCreateMaintenance({
     mutation: {
       onSuccess: () => {
+        setCurrentPage(1);
+        setPage(1);
         invalidate();
         toast.success(ar ? "تم إنشاء الطلب" : "Request created");
         setIsOpen(false);
@@ -484,13 +486,21 @@ export default function Tickets() {
     (rooms || []).map((r) => [r.id, r.roomNumber]),
   );
   const empMap = Object.fromEntries(
-    employees
+    profiles
       .filter((e) => e.status === "active")
       .map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
   );
-  const empOptions = employees.filter((e) => e.status === "active");
+  const empOptions = profiles.filter((e) => e.status === "active");
 
-  const filtered = allTickets;
+  const filtered = useMemo(() => {
+    if (!Array.isArray(allTickets)) return [];
+    return [...allTickets].sort((a, b) => {
+      const dateA = a.reportedAt ? new Date(a.reportedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const dateB = b.reportedAt ? new Date(b.reportedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      if (dateB !== dateA) return dateB - dateA;
+      return (Number(b.id) || 0) - (Number(a.id) || 0);
+    });
+  }, [allTickets]);
   const paged = filtered;
 
   const exportExcel = () => {
@@ -577,7 +587,7 @@ export default function Tickets() {
           ar={ar}
           properties={properties || []}
           departments={["Front Office", "Engineering", "House Keeping"]}
-          employees={employees}
+          profiles={profiles}
           onCreateNew={() => setIsOpen(true)}
           onFiltersChange={(filters) => {
             setFilterBarFilters(filters);
@@ -1155,7 +1165,7 @@ export default function Tickets() {
         open={selectedTicketId !== null}
         onClose={() => setSelectedTicketId(null)}
         ticket={allTickets?.find((t) => t.id === selectedTicketId)}
-        employees={empOptions}
+        profiles={empOptions}
         ar={ar}
         onStatusChange={(id, data) => {
           updateMutation.mutate({ id, data });

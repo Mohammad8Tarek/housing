@@ -29,7 +29,7 @@ import type {
   CheckoutBody,
   CreateAssignmentBody,
   CreateBuildingBody,
-  CreateEmployeeBody,
+  CreateProfileBody,
   CreateFloorBody,
   CreateHostingBody,
   CreateMaintenanceBody,
@@ -39,7 +39,7 @@ import type {
   CreateUserBody,
   DashboardStats,
   DepartureAlert,
-  Employee,
+  Profile,
   ErrorResponse,
   Floor,
   GetArrivalAlertsParams,
@@ -54,7 +54,7 @@ import type {
   ListActivityLogsParams,
   ListAssignmentsParams,
   ListBuildingsParams,
-  ListEmployeesParams,
+  ListProfilesParams,
   ListFloorsParams,
   ListHostingsParams,
   ListInHouseAssignments200,
@@ -75,7 +75,7 @@ import type {
   TransferBody,
   UpdateAssignmentBody,
   UpdateBuildingBody,
-  UpdateEmployeeBody,
+  UpdateProfileBody,
   UpdateFloorBody,
   UpdateHostingBody,
   UpdateMaintenanceBody,
@@ -1790,7 +1790,7 @@ export const useDeleteRoom = <TError = ErrorType<unknown>,
       return useMutation(getDeleteRoomMutationOptions(options));
     }
 
-export const getListEmployeesUrl = (params?: ListEmployeesParams,) => {
+export const getListProfilesUrl = (params?: ListProfilesParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -1802,15 +1802,15 @@ export const getListEmployeesUrl = (params?: ListEmployeesParams,) => {
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/employees?${stringifiedParams}` : `/api/employees`
+  return stringifiedParams.length > 0 ? `/api/profiles?${stringifiedParams}` : `/api/profiles`
 }
 
 /**
- * @summary List employees
+ * @summary List profiles
  */
-export const listEmployees = async (params?: ListEmployeesParams, options?: RequestInit): Promise<Employee[]> => {
+export const listProfiles = async (params?: ListProfilesParams, options?: RequestInit): Promise<Profile[]> => {
 
-  return customFetch<Employee[]>(getListEmployeesUrl(params),
+  return customFetch<Profile[]>(getListProfilesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1823,45 +1823,45 @@ export const listEmployees = async (params?: ListEmployeesParams, options?: Requ
 
 
 
-export const getListEmployeesQueryKey = (params?: ListEmployeesParams,) => {
+export const getListProfilesQueryKey = (params?: ListProfilesParams,) => {
     return [
-    `/api/employees`, ...(params ? [params] : [])
+    `/api/profiles`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListEmployeesQueryOptions = <TData = Awaited<ReturnType<typeof listEmployees>>, TError = ErrorType<unknown>>(params?: ListEmployeesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployees>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listProfiles>>, TError = ErrorType<unknown>>(params?: ListProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListEmployeesQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getListProfilesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmployees>>> = ({ signal }) => listEmployees(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProfiles>>> = ({ signal }) => listProfiles(params, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmployees>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData> & { queryKey: QueryKey }
 }
 
-export type ListEmployeesQueryResult = NonNullable<Awaited<ReturnType<typeof listEmployees>>>
-export type ListEmployeesQueryError = ErrorType<unknown>
+export type ListProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof listProfiles>>>
+export type ListProfilesQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List employees
+ * @summary List profiles
  */
 
-export function useListEmployees<TData = Awaited<ReturnType<typeof listEmployees>>, TError = ErrorType<unknown>>(
- params?: ListEmployeesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployees>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListProfiles<TData = Awaited<ReturnType<typeof listProfiles>>, TError = ErrorType<unknown>>(
+ params?: ListProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListEmployeesQueryOptions(params,options)
+  const queryOptions = getListProfilesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1874,36 +1874,36 @@ export function useListEmployees<TData = Awaited<ReturnType<typeof listEmployees
 
 
 
-export const getCreateEmployeeUrl = () => {
+export const getCreateProfileUrl = () => {
 
 
 
 
-  return `/api/employees`
+  return `/api/profiles`
 }
 
 /**
- * @summary Create employee
+ * @summary Create profile
  */
-export const createEmployee = async (createEmployeeBody: CreateEmployeeBody, options?: RequestInit): Promise<Employee> => {
+export const createProfile = async (createProfileBody: CreateProfileBody, options?: RequestInit): Promise<Profile> => {
 
-  return customFetch<Employee>(getCreateEmployeeUrl(),
+  return customFetch<Profile>(getCreateProfileUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createEmployeeBody)
+    body: JSON.stringify(createProfileBody)
   }
 );}
 
 
 
 
-export const getCreateEmployeeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployee>>, TError,{data: BodyType<CreateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createEmployee>>, TError,{data: BodyType<CreateEmployeeBody>}, TContext> => {
+export const getCreateProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProfile>>, TError,{data: BodyType<CreateProfileBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProfile>>, TError,{data: BodyType<CreateProfileBody>}, TContext> => {
 
-const mutationKey = ['createEmployee'];
+const mutationKey = ['createProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1913,10 +1913,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEmployee>>, {data: BodyType<CreateEmployeeBody>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProfile>>, {data: BodyType<CreateProfileBody>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createEmployee(data,requestOptions)
+          return  createProfile(data,requestOptions)
         }
 
 
@@ -1926,38 +1926,38 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof createEmployee>>>
-    export type CreateEmployeeMutationBody = BodyType<CreateEmployeeBody>
-    export type CreateEmployeeMutationError = ErrorType<unknown>
+    export type CreateProfileMutationResult = NonNullable<Awaited<ReturnType<typeof createProfile>>>
+    export type CreateProfileMutationBody = BodyType<CreateProfileBody>
+    export type CreateProfileMutationError = ErrorType<unknown>
 
     /**
- * @summary Create employee
+ * @summary Create profile
  */
-export const useCreateEmployee = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployee>>, TError,{data: BodyType<CreateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useCreateProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProfile>>, TError,{data: BodyType<CreateProfileBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof createEmployee>>,
+        Awaited<ReturnType<typeof createProfile>>,
         TError,
-        {data: BodyType<CreateEmployeeBody>},
+        {data: BodyType<CreateProfileBody>},
         TContext
       > => {
-      return useMutation(getCreateEmployeeMutationOptions(options));
+      return useMutation(getCreateProfileMutationOptions(options));
     }
 
-export const getGetEmployeeUrl = (id: number,) => {
+export const getGetProfileUrl = (id: number,) => {
 
 
 
 
-  return `/api/employees/${id}`
+  return `/api/profiles/${id}`
 }
 
 /**
- * @summary Get employee
+ * @summary Get profile
  */
-export const getEmployee = async (id: number, options?: RequestInit): Promise<Employee> => {
+export const getProfile = async (id: number, options?: RequestInit): Promise<Profile> => {
 
-  return customFetch<Employee>(getGetEmployeeUrl(id),
+  return customFetch<Profile>(getGetProfileUrl(id),
   {
     ...options,
     method: 'GET'
@@ -1970,45 +1970,45 @@ export const getEmployee = async (id: number, options?: RequestInit): Promise<Em
 
 
 
-export const getGetEmployeeQueryKey = (id: number,) => {
+export const getGetProfileQueryKey = (id: number,) => {
     return [
-    `/api/employees/${id}`
+    `/api/profiles/${id}`
     ] as const;
     }
 
 
-export const getGetEmployeeQueryOptions = <TData = Awaited<ReturnType<typeof getEmployee>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetProfileQueryOptions = <TData = Awaited<ReturnType<typeof getProfile>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetEmployeeQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileQueryKey(id);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmployee>>> = ({ signal }) => getEmployee(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfile>>> = ({ signal }) => getProfile(id, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfile>>, TError, TData> & { queryKey: QueryKey }
 }
 
-export type GetEmployeeQueryResult = NonNullable<Awaited<ReturnType<typeof getEmployee>>>
-export type GetEmployeeQueryError = ErrorType<unknown>
+export type GetProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getProfile>>>
+export type GetProfileQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get employee
+ * @summary Get profile
  */
 
-export function useGetEmployee<TData = Awaited<ReturnType<typeof getEmployee>>, TError = ErrorType<unknown>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetProfile<TData = Awaited<ReturnType<typeof getProfile>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetEmployeeQueryOptions(id,options)
+  const queryOptions = getGetProfileQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2021,37 +2021,37 @@ export function useGetEmployee<TData = Awaited<ReturnType<typeof getEmployee>>, 
 
 
 
-export const getUpdateEmployeeUrl = (id: number,) => {
+export const getUpdateProfileUrl = (id: number,) => {
 
 
 
 
-  return `/api/employees/${id}`
+  return `/api/profiles/${id}`
 }
 
 /**
- * @summary Update employee
+ * @summary Update profile
  */
-export const updateEmployee = async (id: number,
-    updateEmployeeBody: UpdateEmployeeBody, options?: RequestInit): Promise<Employee> => {
+export const updateProfile = async (id: number,
+    updateProfileBody: UpdateProfileBody, options?: RequestInit): Promise<Profile> => {
 
-  return customFetch<Employee>(getUpdateEmployeeUrl(id),
+  return customFetch<Profile>(getUpdateProfileUrl(id),
   {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateEmployeeBody)
+    body: JSON.stringify(updateProfileBody)
   }
 );}
 
 
 
 
-export const getUpdateEmployeeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployee>>, TError,{id: number;data: BodyType<UpdateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateEmployee>>, TError,{id: number;data: BodyType<UpdateEmployeeBody>}, TContext> => {
+export const getUpdateProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfile>>, TError,{id: number;data: BodyType<UpdateProfileBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProfile>>, TError,{id: number;data: BodyType<UpdateProfileBody>}, TContext> => {
 
-const mutationKey = ['updateEmployee'];
+const mutationKey = ['updateProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2061,10 +2061,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEmployee>>, {id: number;data: BodyType<UpdateEmployeeBody>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProfile>>, {id: number;data: BodyType<UpdateProfileBody>}> = (props) => {
           const {id,data} = props ?? {};
 
-          return  updateEmployee(id,data,requestOptions)
+          return  updateProfile(id,data,requestOptions)
         }
 
 
@@ -2074,38 +2074,38 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmployee>>>
-    export type UpdateEmployeeMutationBody = BodyType<UpdateEmployeeBody>
-    export type UpdateEmployeeMutationError = ErrorType<unknown>
+    export type UpdateProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateProfile>>>
+    export type UpdateProfileMutationBody = BodyType<UpdateProfileBody>
+    export type UpdateProfileMutationError = ErrorType<unknown>
 
     /**
- * @summary Update employee
+ * @summary Update profile
  */
-export const useUpdateEmployee = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployee>>, TError,{id: number;data: BodyType<UpdateEmployeeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useUpdateProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfile>>, TError,{id: number;data: BodyType<UpdateProfileBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof updateEmployee>>,
+        Awaited<ReturnType<typeof updateProfile>>,
         TError,
-        {id: number;data: BodyType<UpdateEmployeeBody>},
+        {id: number;data: BodyType<UpdateProfileBody>},
         TContext
       > => {
-      return useMutation(getUpdateEmployeeMutationOptions(options));
+      return useMutation(getUpdateProfileMutationOptions(options));
     }
 
-export const getDeleteEmployeeUrl = (id: number,) => {
+export const getDeleteProfileUrl = (id: number,) => {
 
 
 
 
-  return `/api/employees/${id}`
+  return `/api/profiles/${id}`
 }
 
 /**
- * @summary Delete employee
+ * @summary Delete profile
  */
-export const deleteEmployee = async (id: number, options?: RequestInit): Promise<void> => {
+export const deleteProfile = async (id: number, options?: RequestInit): Promise<void> => {
 
-  return customFetch<void>(getDeleteEmployeeUrl(id),
+  return customFetch<void>(getDeleteProfileUrl(id),
   {
     ...options,
     method: 'DELETE'
@@ -2117,11 +2117,11 @@ export const deleteEmployee = async (id: number, options?: RequestInit): Promise
 
 
 
-export const getDeleteEmployeeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{id: number}, TContext> => {
+export const getDeleteProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProfile>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteProfile>>, TError,{id: number}, TContext> => {
 
-const mutationKey = ['deleteEmployee'];
+const mutationKey = ['deleteProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2131,10 +2131,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEmployee>>, {id: number}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProfile>>, {id: number}> = (props) => {
           const {id} = props ?? {};
 
-          return  deleteEmployee(id,requestOptions)
+          return  deleteProfile(id,requestOptions)
         }
 
 
@@ -2144,22 +2144,22 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type DeleteEmployeeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEmployee>>>
+    export type DeleteProfileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProfile>>>
 
-    export type DeleteEmployeeMutationError = ErrorType<unknown>
+    export type DeleteProfileMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete employee
+ * @summary Delete profile
  */
-export const useDeleteEmployee = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmployee>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useDeleteProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProfile>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteEmployee>>,
+        Awaited<ReturnType<typeof deleteProfile>>,
         TError,
         {id: number},
         TContext
       > => {
-      return useMutation(getDeleteEmployeeMutationOptions(options));
+      return useMutation(getDeleteProfileMutationOptions(options));
     }
 
 export const getListInHouseAssignmentsUrl = (params?: ListInHouseAssignmentsParams,) => {
@@ -2339,7 +2339,7 @@ export const getCreateAssignmentUrl = () => {
 }
 
 /**
- * @summary Create assignment (check-in employee)
+ * @summary Create assignment (check-in profile)
  */
 export const createAssignment = async (createAssignmentBody: CreateAssignmentBody, options?: RequestInit): Promise<Assignment> => {
 
@@ -2387,7 +2387,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateAssignmentMutationError = ErrorType<unknown>
 
     /**
- * @summary Create assignment (check-in employee)
+ * @summary Create assignment (check-in profile)
  */
 export const useCreateAssignment = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAssignment>>, TError,{data: BodyType<CreateAssignmentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -2557,7 +2557,7 @@ export const getCheckoutAssignmentUrl = (id: number,) => {
 }
 
 /**
- * @summary Check out employee from room
+ * @summary Check out profile from room
  */
 export const checkoutAssignment = async (id: number,
     checkoutBody: CheckoutBody, options?: RequestInit): Promise<Assignment> => {
@@ -2606,7 +2606,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CheckoutAssignmentMutationError = ErrorType<unknown>
 
     /**
- * @summary Check out employee from room
+ * @summary Check out profile from room
  */
 export const useCheckoutAssignment = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutAssignment>>, TError,{id: number;data: BodyType<CheckoutBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -2628,7 +2628,7 @@ export const getTransferAssignmentUrl = (id: number,) => {
 }
 
 /**
- * @summary Transfer employee to another room
+ * @summary Transfer profile to another room
  */
 export const transferAssignment = async (id: number,
     transferBody: TransferBody, options?: RequestInit): Promise<Assignment> => {
@@ -2677,7 +2677,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type TransferAssignmentMutationError = ErrorType<unknown>
 
     /**
- * @summary Transfer employee to another room
+ * @summary Transfer profile to another room
  */
 export const useTransferAssignment = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferAssignment>>, TError,{id: number;data: BodyType<TransferBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -3149,7 +3149,7 @@ export const getListHostingsUrl = (params?: ListHostingsParams,) => {
 }
 
 /**
- * @summary List employee hostings
+ * @summary List profile hostings
  */
 export const listHostings = async (params?: ListHostingsParams, options?: RequestInit): Promise<Hosting[]> => {
 
@@ -3196,7 +3196,7 @@ export type ListHostingsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List employee hostings
+ * @summary List profile hostings
  */
 
 export function useListHostings<TData = Awaited<ReturnType<typeof listHostings>>, TError = ErrorType<unknown>>(

@@ -1,5 +1,5 @@
 /**
- * Shared portal category/status catalog for admin + employee portals.
+ * Shared portal category/status catalog for admin + profile portals.
  * Custom entries are kept in memory per property until a DB table exists.
  */
 

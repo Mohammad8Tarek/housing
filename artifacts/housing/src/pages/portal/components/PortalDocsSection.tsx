@@ -82,7 +82,7 @@ export function PortalDocsSection() {
         <p className="text-xs text-muted-foreground mt-1">
           {ar
             ? "إدارة المستندات التي تظهر للموظفين في البوابة"
-            : "Manage documents visible to employees in the portal"}
+            : "Manage documents visible to profiles in the portal"}
         </p>
       </div>
       <PortalDocuments />

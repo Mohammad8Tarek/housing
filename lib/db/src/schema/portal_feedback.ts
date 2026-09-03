@@ -16,7 +16,7 @@ export const portalFeedbackTable = pgTable("portal_feedback", {
   id: serial("id").primaryKey(),
   contentType: text("content_type").notNull(), // activity | evaluation | document
   contentId: integer("content_id").notNull(),
-  employeeId: integer("employee_id").notNull(),
+  profileId: integer("profile_id").notNull(),
   rating: real("rating"), // 1-5 optional star rating
   comment: text("comment"),
   helpful: text("helpful"), // yes | no | null
@@ -27,7 +27,7 @@ export const portalFeedbackTable = pgTable("portal_feedback", {
     .notNull()
     .defaultNow(),
 }, (table) => [
-  index("idx_portal_feedback_employee_id").on(table.employeeId),
+  index("idx_portal_feedback_profile_id").on(table.profileId),
   index("idx_portal_feedback_content").on(table.contentType, table.contentId),
 ]);
 
@@ -36,7 +36,7 @@ export const portalCommentsTable = pgTable("portal_comments", {
   id: serial("id").primaryKey(),
   contentType: text("content_type").notNull(), // activity | evaluation | document
   contentId: integer("content_id").notNull(),
-  employeeId: integer("employee_id").notNull(),
+  profileId: integer("profile_id").notNull(),
   text: text("text").notNull(),
   parentCommentId: integer("parent_comment_id"), // for replies
   likesCount: integer("likes_count").notNull().default(0),
@@ -45,19 +45,19 @@ export const portalCommentsTable = pgTable("portal_comments", {
     .defaultNow(),
 }, (table) => [
   index("idx_portal_comments_content").on(table.contentType, table.contentId),
-  index("idx_portal_comments_employee_id").on(table.employeeId),
+  index("idx_portal_comments_profile_id").on(table.profileId),
 ]);
 
 // Comment likes
 export const portalCommentLikesTable = pgTable("portal_comment_likes", {
   id: serial("id").primaryKey(),
   commentId: integer("comment_id").notNull(),
-  employeeId: integer("employee_id").notNull(),
+  profileId: integer("profile_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 }, (table) => [
-  uniqueIndex("uq_portal_comment_likes_comment_employee").on(table.commentId, table.employeeId),
+  uniqueIndex("uq_portal_comment_likes_comment_profile").on(table.commentId, table.profileId),
 ]);
 
 export const insertPortalFeedbackSchema = createInsertSchema(

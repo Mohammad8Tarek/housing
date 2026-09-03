@@ -32,6 +32,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Trash2, FileText } from "lucide-react";
+import { PermissionGate } from "@/components/ui/permission-gate";
 
 const CATEGORIES = [
   { value: "policy", label: "Policy", labelAr: "سياسة" },
@@ -181,10 +182,12 @@ export default function Documents() {
             {ar ? "إدارة مستندات البوابة" : "Manage portal documents"}
           </p>
         </div>
-        <Button onClick={() => setIsOpen(true)}>
-          <Upload className="w-4 h-4 mr-2" />
-          {ar ? "رفع مستند" : "Upload Document"}
-        </Button>
+        <PermissionGate module="documents" action="create">
+          <Button onClick={() => setIsOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            {ar ? "رفع مستند" : "Upload Document"}
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Table */}
@@ -264,14 +267,16 @@ export default function Documents() {
                       {formatDate(doc.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(doc.id, doc.titleAr)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <PermissionGate module="documents" action="delete">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(doc.id, doc.titleAr)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </PermissionGate>
                     </TableCell>
                   </TableRow>
                 ))

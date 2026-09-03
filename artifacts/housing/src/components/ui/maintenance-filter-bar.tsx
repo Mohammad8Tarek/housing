@@ -4,7 +4,7 @@ import { Plus, RotateCcw } from "lucide-react";
 interface MaintenanceFilterBarProps {
   properties?: any[];
   departments?: string[];
-  employees?: any[];
+  profiles?: any[];
   onCreateNew?: () => void;
   onFiltersChange?: (filters: MaintenanceFilterState) => void;
   ar?: boolean;
@@ -58,7 +58,7 @@ const CREATOR_OPTIONS = [
 export default function MaintenanceFilterBar({
   properties = [],
   departments = ["Front Office", "Engineering", "House Keeping"],
-  employees = [],
+  profiles = [],
   onCreateNew,
   onFiltersChange,
   ar = false,

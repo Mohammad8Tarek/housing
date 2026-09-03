@@ -1,22 +1,22 @@
-import { employeePortalAccountsTable, withTenant } from "@workspace/db";
+import { profilePortalAccountsTable, withTenant } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
 
 export type PortalAccountSyncResult = {
-  employeeId: string;
+  profileId: string;
   created: boolean;
   moved?: boolean;
   deactivatedPrevious?: boolean;
   temporaryPassword?: string;
 };
 
-export function defaultEmployeePortalPassword(): string {
-  const env = process.env["DEFAULT_EMPLOYEE_PORTAL_PASSWORD"];
+export function defaultProfilePortalPassword(): string {
+  const env = process.env["DEFAULT_PROFILE_PORTAL_PASSWORD"];
   if (!env) {
     const generated = randomBytes(12).toString("hex");
     console.error(
-      "[WARN] DEFAULT_EMPLOYEE_PORTAL_PASSWORD not set — generated random password. " +
+      "[WARN] DEFAULT_PROFILE_PORTAL_PASSWORD not set — generated random password. " +
         "Set this env var to avoid unexpected passwords between restarts.",
     );
     return generated;
@@ -24,19 +24,19 @@ export function defaultEmployeePortalPassword(): string {
   return env;
 }
 
-function normalizeEmployeeId(employeeId: string | null | undefined): string {
-  return String(employeeId ?? "").trim();
+function normalizeProfileId(profileId: string | null | undefined): string {
+  return String(profileId ?? "").trim();
 }
 
 async function createAccount(
   tenantDb: any,
-  employeeId: string,
+  profileId: string,
 ): Promise<PortalAccountSyncResult> {
-  const temporaryPassword = defaultEmployeePortalPassword();
+  const temporaryPassword = defaultProfilePortalPassword();
   const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
-  await tenantDb.insert(employeePortalAccountsTable).values({
-    employeeId,
+  await tenantDb.insert(profilePortalAccountsTable).values({
+    profileId,
     passwordHash,
     mustChangePassword: true,
     isActive: true,
@@ -44,26 +44,26 @@ async function createAccount(
     lockedUntil: null,
   } as any);
 
-  return { employeeId, created: true, temporaryPassword };
+  return { profileId, created: true, temporaryPassword };
 }
 
-export async function ensureEmployeePortalAccount(
+export async function ensureProfilePortalAccount(
   propertyId: number,
-  employeeId: string | null | undefined,
+  profileId: string | null | undefined,
 ): Promise<PortalAccountSyncResult> {
-  const normalizedEmployeeId = normalizeEmployeeId(employeeId);
-  if (!normalizedEmployeeId) {
-    throw new Error("employeeId is required to create portal account");
+  const normalizedProfileId = normalizeProfileId(profileId);
+  if (!normalizedProfileId) {
+    throw new Error("profileId is required to create portal account");
   }
 
   return await withTenant(propertyId, async (tenantDb) => {
     // Use INSERT ... ON CONFLICT to avoid TOCTOU race between SELECT and INSERT
-    const temporaryPassword = defaultEmployeePortalPassword();
+    const temporaryPassword = defaultProfilePortalPassword();
     const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
     try {
-      await tenantDb.insert(employeePortalAccountsTable).values({
-        employeeId: normalizedEmployeeId,
+      await tenantDb.insert(profilePortalAccountsTable).values({
+        profileId: normalizedProfileId,
         passwordHash,
         mustChangePassword: true,
         isActive: true,
@@ -71,53 +71,53 @@ export async function ensureEmployeePortalAccount(
         lockedUntil: null,
       } as any);
       return {
-        employeeId: normalizedEmployeeId,
+        profileId: normalizedProfileId,
         created: true,
         temporaryPassword,
       };
     } catch {
       // If insert fails (unique violation), account already exists
-      return { employeeId: normalizedEmployeeId, created: false };
+      return { profileId: normalizedProfileId, created: false };
     }
   });
 }
 
-export async function moveOrEnsureEmployeePortalAccount(
+export async function moveOrEnsureProfilePortalAccount(
   propertyId: number,
-  previousEmployeeId: string | null | undefined,
-  nextEmployeeId: string | null | undefined,
+  previousProfileId: string | null | undefined,
+  nextProfileId: string | null | undefined,
 ): Promise<PortalAccountSyncResult> {
-  const previous = normalizeEmployeeId(previousEmployeeId);
-  const next = normalizeEmployeeId(nextEmployeeId);
+  const previous = normalizeProfileId(previousProfileId);
+  const next = normalizeProfileId(nextProfileId);
   if (!next) {
-    throw new Error("employeeId is required to create portal account");
+    throw new Error("profileId is required to create portal account");
   }
   if (!previous || previous === next) {
-    return await ensureEmployeePortalAccount(propertyId, next);
+    return await ensureProfilePortalAccount(propertyId, next);
   }
 
   return await withTenant(propertyId, async (tenantDb) => {
     const [nextAccount] = await tenantDb
-      .select({ id: employeePortalAccountsTable.id })
-      .from(employeePortalAccountsTable)
-      .where(eq(employeePortalAccountsTable.employeeId, next))
+      .select({ id: profilePortalAccountsTable.id })
+      .from(profilePortalAccountsTable)
+      .where(eq(profilePortalAccountsTable.profileId, next))
       .limit(1);
 
     const [previousAccount] = await tenantDb
-      .select({ id: employeePortalAccountsTable.id })
-      .from(employeePortalAccountsTable)
-      .where(eq(employeePortalAccountsTable.employeeId, previous))
+      .select({ id: profilePortalAccountsTable.id })
+      .from(profilePortalAccountsTable)
+      .where(eq(profilePortalAccountsTable.profileId, previous))
       .limit(1);
 
     if (nextAccount) {
       if (previousAccount) {
         await tenantDb
-          .update(employeePortalAccountsTable)
+          .update(profilePortalAccountsTable)
           .set({ isActive: false, updatedAt: new Date() })
-          .where(eq(employeePortalAccountsTable.id, previousAccount.id));
+          .where(eq(profilePortalAccountsTable.id, previousAccount.id));
       }
       return {
-        employeeId: next,
+        profileId: next,
         created: false,
         deactivatedPrevious: Boolean(previousAccount),
       };
@@ -125,10 +125,10 @@ export async function moveOrEnsureEmployeePortalAccount(
 
     if (previousAccount) {
       await tenantDb
-        .update(employeePortalAccountsTable)
-        .set({ employeeId: next, updatedAt: new Date() })
-        .where(eq(employeePortalAccountsTable.id, previousAccount.id));
-      return { employeeId: next, created: false, moved: true };
+        .update(profilePortalAccountsTable)
+        .set({ profileId: next, updatedAt: new Date() })
+        .where(eq(profilePortalAccountsTable.id, previousAccount.id));
+      return { profileId: next, created: false, moved: true };
     }
 
     return await createAccount(tenantDb, next);

@@ -4,7 +4,7 @@ title Sunrise Backend (Fast)
 
 :: Database and Environment Settings
 set DATABASE_URL=postgresql://postgres:admin123@localhost:5432/staff-housing
-set PORT=4100
+set PORT=4000
 set SESSION_SECRET=sunrise-secret-2025
 set NODE_ENV=development
 

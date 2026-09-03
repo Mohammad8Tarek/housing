@@ -2,12 +2,15 @@ import { ReactNode } from "react";
 
 export type Tab =
   | "analytics"
-  | "housing"
-  | "employees"
   | "assignments"
+  | "vacant_rooms"
+  | "housing"
+  | "profiles"
+  | "expiring_contracts"
+  | "reservations"
   | "hostings"
   | "maintenance"
-  | "reservations";
+  | "housekeeping";
 
 export interface TabConfig {
   id: Tab;

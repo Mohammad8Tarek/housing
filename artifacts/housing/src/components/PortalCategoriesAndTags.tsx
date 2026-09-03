@@ -293,7 +293,7 @@ export default function PortalCategoriesAndTags() {
           <CardDescription>
             {ar
               ? "تظهر للموظفين على بطاقات الفعاليات في البوابة"
-              : "Shown to employees on activity cards in the portal"}
+              : "Shown to profiles on activity cards in the portal"}
           </CardDescription>
         </CardHeader>
         <CardContent>

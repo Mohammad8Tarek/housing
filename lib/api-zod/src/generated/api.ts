@@ -380,19 +380,19 @@ export const DeleteRoomParams = zod.object({
 
 
 /**
- * @summary List employees
+ * @summary List profiles
  */
-export const ListEmployeesQueryParams = zod.object({
+export const ListProfilesQueryParams = zod.object({
   "propertyId": zod.coerce.number().optional(),
   "status": zod.coerce.string().optional(),
   "department": zod.coerce.string().optional(),
   "search": zod.coerce.string().optional()
 })
 
-export const ListEmployeesResponseItem = zod.object({
+export const ListProfilesResponseItem = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.string(),
+  "profileId": zod.string(),
   "firstName": zod.string(),
   "lastName": zod.string(),
   "nationalId": zod.string(),
@@ -405,17 +405,26 @@ export const ListEmployeesResponseItem = zod.object({
   "status": zod.string(),
   "hireDate": zod.string(),
   "gender": zod.string(),
-  "idImage": zod.string().nullish()
+  "employmentType": zod.string().optional(),
+  "companyName": zod.string().optional(),
+  "idImage": zod.string().nullish(),
+  "idDocuments": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "fileName": zod.string().optional(),
+  "fileType": zod.string().optional(),
+  "fileData": zod.string().optional(),
+  "uploadedAt": zod.coerce.date().optional()
+})).optional()
 })
-export const ListEmployeesResponse = zod.array(ListEmployeesResponseItem)
+export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
 
 
 /**
- * @summary Create employee
+ * @summary Create profile
  */
-export const CreateEmployeeBody = zod.object({
+export const CreateProfileBody = zod.object({
   "propertyId": zod.number(),
-  "employeeId": zod.string(),
+  "profileId": zod.string(),
   "firstName": zod.string(),
   "lastName": zod.string(),
   "nationalId": zod.string(),
@@ -428,21 +437,31 @@ export const CreateEmployeeBody = zod.object({
   "status": zod.string().optional(),
   "hireDate": zod.string(),
   "gender": zod.string(),
-  "idImage": zod.string().nullish()
+  "employmentType": zod.string().optional(),
+  "companyName": zod.string().optional(),
+  "contractEndDate": zod.string().nullish(),
+  "idImage": zod.string().nullish(),
+  "idDocuments": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "fileName": zod.string().optional(),
+  "fileType": zod.string().optional(),
+  "fileData": zod.string().optional(),
+  "uploadedAt": zod.coerce.date().optional()
+})).optional()
 })
 
 
 /**
- * @summary Get employee
+ * @summary Get profile
  */
-export const GetEmployeeParams = zod.object({
+export const GetProfileParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const GetEmployeeResponse = zod.object({
+export const GetProfileResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.string(),
+  "profileId": zod.string(),
   "firstName": zod.string(),
   "lastName": zod.string(),
   "nationalId": zod.string(),
@@ -455,18 +474,31 @@ export const GetEmployeeResponse = zod.object({
   "status": zod.string(),
   "hireDate": zod.string(),
   "gender": zod.string(),
-  "idImage": zod.string().nullish()
-})
+  "employmentType": zod.string().nullish(),
+  "companyName": zod.string().nullish(),
+  "contractEndDate": zod.string().nullish(),
+  "idImage": zod.string().nullish(),
+  "vacationStartDate": zod.string().nullish(),
+  "vacationEndDate": zod.string().nullish(),
+  "vacationNotes": zod.string().nullish(),
+  "idDocuments": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "fileName": zod.string().optional(),
+  "fileType": zod.string().optional(),
+  "fileData": zod.string().optional(),
+  "uploadedAt": zod.coerce.date().optional()
+})).optional()
+}).passthrough()
 
 
 /**
- * @summary Update employee
+ * @summary Update profile
  */
-export const UpdateEmployeeParams = zod.object({
+export const UpdateProfileParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const UpdateEmployeeBody = zod.object({
+export const UpdateProfileBody = zod.object({
   "firstName": zod.string().optional(),
   "lastName": zod.string().optional(),
   "nationalId": zod.string().optional(),
@@ -479,13 +511,26 @@ export const UpdateEmployeeBody = zod.object({
   "status": zod.string().optional(),
   "gender": zod.string().optional(),
   "dateOfBirth": zod.string().optional(),
-  "idImage": zod.string().nullish()
-})
+  "employmentType": zod.string().optional(),
+  "companyName": zod.string().optional(),
+  "contractEndDate": zod.string().nullish(),
+  "vacationStartDate": zod.string().nullish(),
+  "vacationEndDate": zod.string().nullish(),
+  "vacationNotes": zod.string().nullish(),
+  "idImage": zod.string().nullish(),
+  "idDocuments": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "fileName": zod.string().optional(),
+  "fileType": zod.string().optional(),
+  "fileData": zod.string().optional(),
+  "uploadedAt": zod.coerce.date().optional()
+})).optional()
+}).passthrough()
 
-export const UpdateEmployeeResponse = zod.object({
+export const UpdateProfileResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.string(),
+  "profileId": zod.string(),
   "firstName": zod.string(),
   "lastName": zod.string(),
   "nationalId": zod.string(),
@@ -498,14 +543,26 @@ export const UpdateEmployeeResponse = zod.object({
   "status": zod.string(),
   "hireDate": zod.string(),
   "gender": zod.string(),
-  "idImage": zod.string().nullish()
-})
+  "employmentType": zod.string().optional(),
+  "companyName": zod.string().optional(),
+  "vacationStartDate": zod.string().nullish(),
+  "vacationEndDate": zod.string().nullish(),
+  "vacationNotes": zod.string().nullish(),
+  "idImage": zod.string().nullish(),
+  "idDocuments": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "fileName": zod.string().optional(),
+  "fileType": zod.string().optional(),
+  "fileData": zod.string().optional(),
+  "uploadedAt": zod.coerce.date().optional()
+})).optional()
+}).passthrough()
 
 
 /**
- * @summary Delete employee
+ * @summary Delete profile
  */
-export const DeleteEmployeeParams = zod.object({
+export const DeleteProfileParams = zod.object({
   "id": zod.coerce.number()
 })
 
@@ -530,7 +587,7 @@ export const ListInHouseAssignmentsResponse = zod.object({
   "data": zod.array(zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
   "checkInDate": zod.string(),
@@ -554,14 +611,14 @@ export const ListInHouseAssignmentsResponse = zod.object({
 export const ListAssignmentsQueryParams = zod.object({
   "propertyId": zod.coerce.number().optional(),
   "status": zod.coerce.string().optional(),
-  "employeeId": zod.coerce.number().optional(),
+  "profileId": zod.coerce.number().optional(),
   "roomId": zod.coerce.number().optional()
 })
 
 export const ListAssignmentsResponseItem = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
   "checkInDate": zod.string(),
@@ -575,11 +632,11 @@ export const ListAssignmentsResponse = zod.array(ListAssignmentsResponseItem)
 
 
 /**
- * @summary Create assignment (check-in employee)
+ * @summary Create assignment (check-in profile)
  */
 export const CreateAssignmentBody = zod.object({
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
   "checkInDate": zod.string(),
@@ -598,7 +655,7 @@ export const GetAssignmentParams = zod.object({
 export const GetAssignmentResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
   "checkInDate": zod.string(),
@@ -625,7 +682,7 @@ export const UpdateAssignmentBody = zod.object({
 export const UpdateAssignmentResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
   "checkInDate": zod.string(),
@@ -638,7 +695,7 @@ export const UpdateAssignmentResponse = zod.object({
 
 
 /**
- * @summary Check out employee from room
+ * @summary Check out profile from room
  */
 export const CheckoutAssignmentParams = zod.object({
   "id": zod.coerce.number()
@@ -652,7 +709,7 @@ export const CheckoutAssignmentBody = zod.object({
 export const CheckoutAssignmentResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
   "checkInDate": zod.string(),
@@ -665,7 +722,7 @@ export const CheckoutAssignmentResponse = zod.object({
 
 
 /**
- * @summary Transfer employee to another room
+ * @summary Transfer profile to another room
  */
 export const TransferAssignmentParams = zod.object({
   "id": zod.coerce.number()
@@ -681,7 +738,7 @@ export const TransferAssignmentBody = zod.object({
 export const TransferAssignmentResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
   "checkInDate": zod.string(),
@@ -840,7 +897,7 @@ export const CheckinReservationResponse = zod.object({
 
 
 /**
- * @summary List employee hostings
+ * @summary List profile hostings
  */
 export const ListHostingsQueryParams = zod.object({
   "propertyId": zod.coerce.number().optional(),
@@ -850,7 +907,7 @@ export const ListHostingsQueryParams = zod.object({
 export const ListHostingsResponseItem = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "hostingType": zod.string(),
   "guestsCount": zod.number(),
   "expectedFrom": zod.string(),
@@ -882,7 +939,7 @@ export const ListHostingsResponse = zod.array(ListHostingsResponseItem)
  */
 export const CreateHostingBody = zod.object({
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "hostingType": zod.string(),
   "guestsCount": zod.number(),
   "expectedFrom": zod.string(),
@@ -922,7 +979,7 @@ export const UpdateHostingBody = zod.object({
 export const UpdateHostingResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "hostingType": zod.string(),
   "guestsCount": zod.number(),
   "expectedFrom": zod.string(),
@@ -966,7 +1023,7 @@ export const ApproveHostingParams = zod.object({
 export const ApproveHostingResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "hostingType": zod.string(),
   "guestsCount": zod.number(),
   "expectedFrom": zod.string(),
@@ -1007,7 +1064,7 @@ export const CheckinHostingBody = zod.object({
 export const CheckinHostingResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "hostingType": zod.string(),
   "guestsCount": zod.number(),
   "expectedFrom": zod.string(),
@@ -1043,7 +1100,7 @@ export const CheckoutHostingParams = zod.object({
 export const CheckoutHostingResponse = zod.object({
   "id": zod.number(),
   "propertyId": zod.number(),
-  "employeeId": zod.number(),
+  "profileId": zod.number(),
   "hostingType": zod.string(),
   "guestsCount": zod.number(),
   "expectedFrom": zod.string(),
@@ -1338,9 +1395,9 @@ export const GetDashboardStatsQueryParams = zod.object({
 })
 
 export const GetDashboardStatsResponse = zod.object({
-  "totalEmployees": zod.number(),
-  "activeEmployees": zod.number(),
-  "unhousedEmployees": zod.number(),
+  "totalProfiles": zod.number(),
+  "activeProfiles": zod.number(),
+  "unhousedProfiles": zod.number(),
   "totalRooms": zod.number(),
   "occupiedRooms": zod.number(),
   "availableRooms": zod.number(),
@@ -1363,8 +1420,8 @@ export const GetDepartureAlertsQueryParams = zod.object({
 
 export const GetDepartureAlertsResponseItem = zod.object({
   "assignmentId": zod.number(),
-  "employeeId": zod.number(),
-  "employeeName": zod.string(),
+  "profileId": zod.number(),
+  "profileName": zod.string(),
   "roomId": zod.number(),
   "roomNumber": zod.string(),
   "buildingName": zod.string(),

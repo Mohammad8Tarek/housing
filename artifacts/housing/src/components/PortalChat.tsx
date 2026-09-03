@@ -193,7 +193,7 @@ export default function PortalChat() {
                     const sender = senders[msg.senderId];
                     const senderName = isAdmin 
                       ? (ar ? "الإدارة" : "Management")
-                      : (sender ? `${sender.firstName} ${sender.lastName}` : `Employee #${msg.senderId}`);
+                      : (sender ? `${sender.firstName} ${sender.lastName}` : `Profile #${msg.senderId}`);
 
                     return (
                       <div

@@ -132,6 +132,62 @@ router.get(
       
     const totalRows = countResult?.count ?? 0;
 
+    const summaryRows = await db
+      .select({
+        roles: usersTable.roles,
+        permissions: usersTable.permissions,
+        status: usersTable.status,
+        locked_until: usersTable.lockedUntil,
+        job_title: usersTable.jobTitle,
+        has_signature: userSignaturesTable.id,
+      })
+      .from(usersTable)
+      .leftJoin(userSignaturesTable, eq(usersTable.id, userSignaturesTable.userId))
+      .where(whereClause);
+
+    const summary = summaryRows.reduce(
+      (acc, u: any) => {
+        const status =
+          u.locked_until && new Date(u.locked_until) > new Date()
+            ? "LOCKED"
+            : u.status || "ACTIVE";
+        const roles = u.roles ?? [];
+        const permissions = u.permissions ?? [];
+
+        acc.total += 1;
+        if (status === "ACTIVE") acc.active += 1;
+        if (status === "LOCKED") acc.locked += 1;
+        if (status === "INACTIVE") acc.inactive += 1;
+        if (u.job_title) acc.workflowUsers += 1;
+        if (u.job_title && u.has_signature) acc.signedWorkflowUsers += 1;
+        if (permissions.length > 0) {
+          acc.customPermissionUsers += 1;
+          acc.customPermissionTotal += permissions.length;
+        }
+        if (roles.some((r: string) => String(r).toLowerCase() === "super_admin")) acc.superAdmin += 1;
+        if (roles.some((r: string) => String(r).toLowerCase() === "admin")) acc.admin += 1;
+        if (roles.some((r: string) => String(r).toLowerCase() === "manager")) acc.manager += 1;
+        if (roles.some((r: string) => String(r).toLowerCase() === "receptionist")) acc.receptionist += 1;
+        if (roles.some((r: string) => String(r).toLowerCase() === "maintenance_staff")) acc.maintenance += 1;
+        return acc;
+      },
+      {
+        total: 0,
+        superAdmin: 0,
+        admin: 0,
+        manager: 0,
+        receptionist: 0,
+        maintenance: 0,
+        active: 0,
+        locked: 0,
+        inactive: 0,
+        workflowUsers: 0,
+        signedWorkflowUsers: 0,
+        customPermissionUsers: 0,
+        customPermissionTotal: 0,
+      },
+    );
+
     const result = await db
       .select({
         id: usersTable.id,
@@ -160,7 +216,6 @@ router.get(
 
     const actualRows = rows || [];
     const safeUsers = actualRows.map((u: any) => {
-      console.log(`User ${u.id} has_signature:`, u.has_signature, typeof u.has_signature);
       return {
       id: u.id,
       propertyId: u.property_id,
@@ -189,6 +244,7 @@ router.get(
         total: totalRows,
         totalPages: Math.ceil(totalRows / limit),
       },
+      summary,
     });
   },
 );

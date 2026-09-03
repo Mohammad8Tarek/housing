@@ -46,7 +46,7 @@ const TransportScheduleSchema = z.object({
   active: z.boolean().default(true),
 });
 
-// ─── FOOD: Employee-facing ─────────────────────────────────────
+// ─── FOOD: Profile-facing ─────────────────────────────────────
 
 // GET /portal-food/menu — قائمة الطعام
 // @ts-ignore
@@ -92,7 +92,7 @@ router.get("/my-orders", requirePortalAuth, async (req, res, next) => {
         .from(portalMealOrdersTable)
         .where(
           and(
-            eq(portalMealOrdersTable.employeeId, sess.employeeDbId),
+            eq(portalMealOrdersTable.profileId, sess.profileDbId),
             eq(portalMealOrdersTable.propertyId, sess.propertyId),
           ),
         )
@@ -121,7 +121,7 @@ router.post("/order", requirePortalAuth, async (req, res, next) => {
         .insert(portalMealOrdersTable)
         .values({
           propertyId: sess.propertyId,
-          employeeId: sess.employeeDbId,
+          profileId: sess.profileDbId,
           menuItemId,
           quantity: quantity || 1,
           orderDate,
@@ -149,7 +149,7 @@ router.put("/order/:id/cancel", requirePortalAuth, async (req, res, next) => {
         .where(
           and(
             eq(portalMealOrdersTable.id, id),
-            eq(portalMealOrdersTable.employeeId, sess.employeeDbId),
+            eq(portalMealOrdersTable.profileId, sess.profileDbId),
           ),
         );
     });
@@ -159,7 +159,7 @@ router.put("/order/:id/cancel", requirePortalAuth, async (req, res, next) => {
   }
 });
 
-// ─── TRANSPORT: Employee-facing ─────────────────────────────────
+// ─── TRANSPORT: Profile-facing ─────────────────────────────────
 
 // GET /portal-transport/schedules — مواعيد المواصلات
 // @ts-ignore
@@ -195,7 +195,7 @@ router.get("/my-bookings", requirePortalAuth, async (req, res, next) => {
         .from(portalTransportBookingsTable)
         .where(
           and(
-            eq(portalTransportBookingsTable.employeeId, sess.employeeDbId),
+            eq(portalTransportBookingsTable.profileId, sess.profileDbId),
             eq(portalTransportBookingsTable.propertyId, sess.propertyId),
           ),
         )
@@ -225,7 +225,7 @@ router.post("/book", requirePortalAuth, async (req, res, next) => {
         .insert(portalTransportBookingsTable)
         .values({
           propertyId: sess.propertyId,
-          employeeId: sess.employeeDbId,
+          profileId: sess.profileDbId,
           scheduleId,
           bookingDate,
         })
@@ -251,7 +251,7 @@ router.put("/booking/:id/cancel", requirePortalAuth, async (req, res, next) => {
         .where(
           and(
             eq(portalTransportBookingsTable.id, id),
-            eq(portalTransportBookingsTable.employeeId, sess.employeeDbId),
+            eq(portalTransportBookingsTable.profileId, sess.profileDbId),
           ),
         );
     });

@@ -7,6 +7,7 @@ export type LookupValue = {
   category: string;
   value: string;
   parentValue: string | null;
+  extraValue: string | null;
   sortOrder: number;
   disabled: boolean;
 };
@@ -36,6 +37,7 @@ async function createLookupValue(data: {
   category: string;
   value: string;
   parentValue?: string;
+  extraValue?: string;
 }): Promise<LookupValue> {
   const res = await fetch("/api/lookup-values", {
     method: "POST",
@@ -84,6 +86,7 @@ export function useCreateLookupValue(propertyId: number | undefined) {
       category: string;
       value: string;
       parentValue?: string;
+      extraValue?: string;
     }) => createLookupValue({ ...data, propertyId: propertyId! }),
     onSuccess: (created) => {
       queryClient.invalidateQueries({

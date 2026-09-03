@@ -20,6 +20,7 @@ import {
   MODULE_ACTIONS,
   MODULE_LABELS,
   ACTION_LABELS,
+  PERMISSION_GROUPS,
   permKey,
   ROLE_DEFAULT_PERMISSIONS,
   type Module,
@@ -234,7 +235,123 @@ export function PermissionMatrixDialog({
           </div>
 
           {/* Matrix Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-5">
+            {PERMISSION_GROUPS.map((group) => {
+              const groupTotal = group.modules.reduce(
+                (sum, m) => sum + (MODULE_ACTIONS[m] ?? []).length,
+                0,
+              );
+              const groupChecked = group.modules.reduce(
+                (sum, m) =>
+                  sum +
+                  (MODULE_ACTIONS[m] ?? []).filter((a) =>
+                    perms.has(permKey(m, a)),
+                  ).length,
+                0,
+              );
+              const progress =
+                groupTotal > 0
+                  ? Math.round((groupChecked / groupTotal) * 100)
+                  : 0;
+
+              return (
+                <section
+                  key={group.id}
+                  className="rounded-2xl border bg-card overflow-hidden shadow-sm"
+                >
+                  <div className="flex flex-col gap-3 border-b bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold">
+                          {ar ? group.label.ar : group.label.en}
+                        </h3>
+                        <Badge variant="outline" className="h-5 rounded-md text-[10px]">
+                          {groupChecked}/{groupTotal}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {ar ? group.description.ar : group.description.en}
+                      </p>
+                    </div>
+                    <div className="flex min-w-[140px] items-center gap-2">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-[#C9A24D] transition-all duration-500"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className="w-9 text-end text-xs font-semibold text-muted-foreground">
+                        {progress}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
+                    {group.modules.map((m) => {
+                      const modulePerms = MODULE_ACTIONS[m] ?? [];
+                      const checkedCount = modulePerms.filter((a) =>
+                        perms.has(permKey(m, a)),
+                      ).length;
+                      const allChecked =
+                        modulePerms.length > 0 &&
+                        checkedCount === modulePerms.length;
+
+                      return (
+                        <div key={m} className="rounded-xl border bg-background overflow-hidden">
+                          <div className="flex items-center justify-between border-b bg-muted/10 p-3">
+                            <div>
+                              <div className="font-semibold text-sm">
+                                {ar ? MODULE_LABELS[m].ar : MODULE_LABELS[m].en}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {checkedCount} / {modulePerms.length} {ar ? "مفعل" : "active"}
+                              </div>
+                            </div>
+                            <Switch
+                              checked={allChecked}
+                              onCheckedChange={() => toggleModule(m)}
+                            />
+                          </div>
+
+                          <div className="p-3 flex flex-col gap-2">
+                            {modulePerms.map((a) => {
+                              const isActive = perms.has(permKey(m, a));
+                              return (
+                                <button
+                                  type="button"
+                                  key={a}
+                                  className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-muted/50"
+                                  onClick={() => toggle(m, a)}
+                                >
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <Badge variant="outline" className={`capitalize px-2 py-0.5 text-[10px] font-semibold tracking-wide ${getActionColor(a)}`}>
+                                      {a}
+                                    </Badge>
+                                    <span className="truncate text-sm font-medium text-foreground/80">
+                                      {ar ? ACTION_LABELS[a].ar : ACTION_LABELS[a].en}
+                                    </span>
+                                  </div>
+                                  <span onClick={(event) => event.stopPropagation()}>
+                                    <Switch
+                                      checked={isActive}
+                                      onCheckedChange={() => toggle(m, a)}
+                                      className="scale-75"
+                                    />
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+
+          <div className="hidden">
             {MODULES.map((m) => {
               const modulePerms = MODULE_ACTIONS[m] ?? [];
               const checkedCount = modulePerms.filter((a) => perms.has(permKey(m, a))).length;

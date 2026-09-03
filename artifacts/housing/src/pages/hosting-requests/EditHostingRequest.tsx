@@ -19,9 +19,9 @@ import { PageLoader } from "@/components/ui/loader";
 import { ArrowLeft, Loader2, Upload, Trash2, Paperclip } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 
-type EmployeeResult = {
+type ProfileResult = {
   id: number;
-  employeeId: string;
+  profileId: string;
   firstName: string;
   lastName: string;
   jobTitle: string | null;
@@ -88,14 +88,14 @@ export default function EditHostingRequest() {
     }
   }, [requestRes?.data]);
 
-  const [employee, setEmployee] = useState<EmployeeResult | null>(null);
+  const [profile, setProfile] = useState<ProfileResult | null>(null);
   const [isSearchingEmp, setIsSearchingEmp] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-fetch employee by Clock Number
+  // Auto-fetch profile by Clock Number
   useEffect(() => {
     if (!form.clockNumber || form.clockNumber.length < 2) {
-      setEmployee(null);
+      setProfile(null);
       return;
     }
 
@@ -106,20 +106,20 @@ export default function EditHostingRequest() {
       try {
         const propId = form.hotelId || activePropertyId || "";
         const resp = await fetch(
-          `/api/employees/search?q=${encodeURIComponent(form.clockNumber)}&propertyId=${propId}`,
+          `/api/profiles/search?q=${encodeURIComponent(form.clockNumber)}&propertyId=${propId}`,
         );
         const data = await resp.json();
         if (Array.isArray(data) && data.length > 0) {
           // Find exact match or first result
           const exact = data.find(
-            (e) => String(e.employeeId) === String(form.clockNumber),
+            (e) => String(e.profileId) === String(form.clockNumber),
           );
-          setEmployee(exact || data[0]);
+          setProfile(exact || data[0]);
         } else {
-          setEmployee(null);
+          setProfile(null);
         }
       } catch (err) {
-        setEmployee(null);
+        setProfile(null);
       } finally {
         setIsSearchingEmp(false);
       }
@@ -299,11 +299,11 @@ export default function EditHostingRequest() {
           </CardContent>
         </Card>
 
-        {/* Section 2: Employee Data */}
+        {/* Section 2: Profile Data */}
         <Card className="border-t-4 border-t-primary/20 bg-muted/10">
           <CardHeader className="bg-muted/30 pb-4 flex flex-row items-center gap-3 space-y-0">
             <CardTitle className="text-lg flex items-center gap-2">
-              {ar ? "بيانات الموظف" : "Employee Data"}
+              {ar ? "بيانات الموظف" : "Profile Data"}
             </CardTitle>
             <span className="px-2 py-0.5 text-[10px] uppercase font-semibold bg-blue-100 text-blue-700 rounded-full">
               {ar ? "تعبئة تلقائية" : "Auto-filled"}
@@ -316,7 +316,7 @@ export default function EditHostingRequest() {
                 readOnly
                 className="bg-muted/50"
                 value={
-                  employee ? `${employee.firstName} ${employee.lastName}` : ""
+                  profile ? `${profile.firstName} ${profile.lastName}` : ""
                 }
                 placeholder={ar ? "الاسم" : "Name"}
               />
@@ -326,7 +326,7 @@ export default function EditHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee?.department || ""}
+                value={profile?.department || ""}
                 placeholder={ar ? "القسم" : "Department"}
               />
             </div>
@@ -335,7 +335,7 @@ export default function EditHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee?.jobTitle || ""}
+                value={profile?.jobTitle || ""}
                 placeholder={ar ? "المنصب" : "Position"}
               />
             </div>
@@ -344,7 +344,7 @@ export default function EditHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee?.accommodationBuilding || ""}
+                value={profile?.accommodationBuilding || ""}
                 placeholder={ar ? "المبنى" : "Building"}
               />
             </div>
@@ -353,7 +353,7 @@ export default function EditHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee?.accommodationFloor || ""}
+                value={profile?.accommodationFloor || ""}
                 placeholder={ar ? "الدور" : "Floor"}
               />
             </div>
@@ -362,7 +362,7 @@ export default function EditHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee?.accommodationRoom || ""}
+                value={profile?.accommodationRoom || ""}
                 placeholder={ar ? "رقم الغرفة" : "Room Number"}
               />
             </div>
@@ -371,7 +371,7 @@ export default function EditHostingRequest() {
               <Input
                 readOnly
                 className="bg-muted/50"
-                value={employee?.accommodationRoomType || ""}
+                value={profile?.accommodationRoomType || ""}
                 placeholder={ar ? "نوع الغرفة" : "Room Type"}
               />
             </div>

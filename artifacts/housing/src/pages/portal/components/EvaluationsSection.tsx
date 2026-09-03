@@ -190,7 +190,7 @@ export function EvaluationsSection() {
   const evals = evaluations || [];
   const totalEvals = stats?.total ?? evals.length;
   const responded =
-    stats?.responded ?? evals.filter((ev) => ev.employeeRating != null).length;
+    stats?.responded ?? evals.filter((ev) => ev.profileRating != null).length;
   const avgRating = stats?.average_rating
     ? Number(stats.average_rating).toFixed(1)
     : "—";
@@ -236,12 +236,12 @@ export function EvaluationsSection() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-bold">
-            {ar ? "استبيانات الموظفين" : "Employee Surveys"}
+            {ar ? "استبيانات الموظفين" : "Profile Surveys"}
           </h3>
           <p className="text-xs text-muted-foreground">
             {ar
               ? "إنشاء استبيانات وتقييمات يشارك فيها الموظفون"
-              : "Create surveys and evaluations for employees to rate"}
+              : "Create surveys and evaluations for profiles to rate"}
           </p>
         </div>
         <Button size="sm" onClick={() => setIsOpen(true)}>
@@ -491,7 +491,7 @@ export function EvaluationsSection() {
               <p className="text-[10px] text-muted-foreground">
                 {ar
                   ? "بعد هذا التاريخ لن يرى الموظفون هذا التقييم"
-                  : "After this date, employees will no longer see this evaluation"}
+                  : "After this date, profiles will no longer see this evaluation"}
               </p>
             </div>
 
@@ -515,7 +515,7 @@ export function EvaluationsSection() {
                 <p className="text-xs text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
                   {ar
                     ? "لم تتم إضافة أسئلة بعد. الموظفون سيرون تقييم عام فقط."
-                    : "No questions added yet. Employees will see a general rating only."}
+                    : "No questions added yet. Profiles will see a general rating only."}
                 </p>
               )}
               {items.map((item, idx) => (
@@ -643,15 +643,15 @@ export function EvaluationsSection() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
-                            {resp.employeeName?.[0]?.toUpperCase() || "?"}
+                            {resp.profileName?.[0]?.toUpperCase() || "?"}
                           </div>
                           <div>
                             <p className="text-sm font-medium">
-                              {resp.employeeName}
+                              {resp.profileName}
                             </p>
-                            {resp.employeeCode && (
+                            {resp.profileCode && (
                               <p className="text-[10px] text-muted-foreground font-mono">
-                                {resp.employeeCode}
+                                {resp.profileCode}
                               </p>
                             )}
                           </div>

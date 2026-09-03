@@ -805,7 +805,7 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                         <TableRow className="bg-muted/30">
                           <TableHead>{ar ? "الاسم" : "Name"}</TableHead>
                           <TableHead>
-                            {ar ? "الرقم الوظيفي" : "Employee Code"}
+                            {ar ? "الرقم الوظيفي" : "Profile Code"}
                           </TableHead>
                           <TableHead>
                             {ar ? "رقم البطاقة" : "National ID"}
@@ -818,10 +818,10 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                         {registrations.map((reg: any) => (
                           <TableRow key={reg.id}>
                             <TableCell className="font-medium text-sm">
-                              {reg.employeeName}
+                              {reg.profileName}
                             </TableCell>
                             <TableCell className="text-xs font-mono text-muted-foreground">
-                              {reg.employeeCode || "—"}
+                              {reg.profileCode || "—"}
                             </TableCell>
                             <TableCell className="text-xs font-mono text-muted-foreground">
                               {reg.nationalId || "—"}

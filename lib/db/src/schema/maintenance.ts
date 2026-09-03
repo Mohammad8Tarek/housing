@@ -2,7 +2,7 @@ import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { roomsTable } from "./rooms";
-import { employeesTable } from "./employees";
+import { profilesTable } from "./profiles";
 
 export const maintenanceTable = pgTable("maintenance", {
   id: serial("id").primaryKey(),
@@ -18,7 +18,7 @@ export const maintenanceTable = pgTable("maintenance", {
   status: text("status").notNull().default("open"),
   priority: text("priority").notNull().default("medium"),
   reportedBy: text("reported_by"),
-  assignedTo: integer("assigned_to").references(() => employeesTable.id, {
+  assignedTo: integer("assigned_to").references(() => profilesTable.id, {
     onDelete: "set null",
   }),
   reportedAt: timestamp("reported_at", { withTimezone: true })

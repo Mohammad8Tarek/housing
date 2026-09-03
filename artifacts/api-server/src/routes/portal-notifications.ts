@@ -48,7 +48,7 @@ const NotificationSchema = z.object({
   expiresAt: z.string().optional(),
 });
 
-// ─── PORTAL (employee-facing) routes ──────────────────────────────────────
+// ─── PORTAL (profile-facing) routes ──────────────────────────────────────
 
 // GET /portal-notifications/my — إشعارات الموظف الحالي
 // @ts-ignore
@@ -82,7 +82,7 @@ router.get("/my", requirePortalAuth, async (req, res, next) => {
 
         if (rows.length === 0) return [];
 
-        // Get read receipts for this employee
+        // Get read receipts for this profile
         const notifIds = rows.map((n) => n.id);
         const reads = await tenantDb
           .select({
@@ -91,7 +91,7 @@ router.get("/my", requirePortalAuth, async (req, res, next) => {
           .from(portalNotificationReadsTable)
           .where(
             and(
-              eq(portalNotificationReadsTable.employeeId, sess.employeeDbId),
+              eq(portalNotificationReadsTable.profileId, sess.profileDbId),
               inArray(portalNotificationReadsTable.notificationId, notifIds),
             ),
           );
@@ -122,9 +122,9 @@ router.put("/read/:id", requirePortalAuth, async (req, res, next) => {
     await withTenant(sess.propertyId, async (tenantDb) => {
       // Upsert read receipt
       await tenantDb.execute(sql`
-        INSERT INTO portal_notification_reads (notification_id, employee_id)
-        VALUES (${notifId}, ${sess.employeeDbId})
-        ON CONFLICT (notification_id, employee_id) DO NOTHING
+        INSERT INTO portal_notification_reads (notification_id, profile_id)
+        VALUES (${notifId}, ${sess.profileDbId})
+        ON CONFLICT (notification_id, profile_id) DO NOTHING
       `);
     });
 
@@ -148,9 +148,9 @@ router.put("/read-all", requirePortalAuth, async (req, res, next) => {
 
       for (const row of rows) {
         await tenantDb.execute(sql`
-          INSERT INTO portal_notification_reads (notification_id, employee_id)
-          VALUES (${row.id}, ${sess.employeeDbId})
-          ON CONFLICT (notification_id, employee_id) DO NOTHING
+          INSERT INTO portal_notification_reads (notification_id, profile_id)
+          VALUES (${row.id}, ${sess.profileDbId})
+          ON CONFLICT (notification_id, profile_id) DO NOTHING
         `);
       }
     });

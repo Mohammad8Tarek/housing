@@ -1,23 +1,65 @@
 interface StatsCardsProps {
   stats: {
-    total: number;
-    available: number;
-    occupied: number;
+    totalRooms: number;
+    vacantRooms: number;
+    occupiedRooms: number;
     maint: number;
-    employees: number;
+    totalCapacity: number;
+    vacantBeds: number;
+    totalOccupied: number;
+    profiles: number;
     activeAss: number;
+    expiringContracts: number;
+    upcomingRes: number;
   };
   isLoading: boolean;
+  ar?: boolean;
 }
 
-export function StatsCards({ stats, isLoading }: StatsCardsProps) {
+export function StatsCards({ stats, isLoading, ar }: StatsCardsProps) {
   const cards = [
-    { label: "Total Rooms", value: stats.total, color: "text-foreground" },
-    { label: "Available", value: stats.available, color: "text-green-600" },
-    { label: "Occupied", value: stats.occupied, color: "text-blue-600" },
-    { label: "Maintenance", value: stats.maint, color: "text-orange-600" },
-    { label: "Employees", value: stats.employees, color: "text-purple-600" },
-    { label: "Active Stays", value: stats.activeAss, color: "text-indigo-600" },
+    {
+      label: ar ? "إجمالي الغرف" : "Total Rooms",
+      value: stats.totalRooms,
+      sub: ar ? `السعة: ${stats.totalCapacity} سرير` : `Cap: ${stats.totalCapacity} beds`,
+      color: "text-foreground",
+      bg: "bg-card",
+    },
+    {
+      label: ar ? "الأسرة الشاغرة (المتاحة)" : "Vacant Beds (Avail.)",
+      value: stats.vacantBeds,
+      sub: ar ? `${stats.vacantRooms} غرفة شاغرة` : `${stats.vacantRooms} vacant rooms`,
+      color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40",
+    },
+    {
+      label: ar ? "المقيمين حالياً (In-House)" : "Current Occupants",
+      value: stats.activeAss,
+      sub: ar ? `${stats.occupiedRooms} غرفة مشغولة` : `${stats.occupiedRooms} rooms occ.`,
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-50/40 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/40",
+    },
+    {
+      label: ar ? "غرف تحت الصيانة" : "Maintenance / OOS",
+      value: stats.maint,
+      sub: ar ? "خارج التسكين" : "Out of order",
+      color: "text-rose-600 dark:text-rose-400",
+      bg: "bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/40",
+    },
+    {
+      label: ar ? "انتهاء عقود قريبة" : "Expiring Contracts",
+      value: stats.expiringContracts,
+      sub: ar ? "خلال 30 يوم" : "Within 30 days",
+      color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/40",
+    },
+    {
+      label: ar ? "حجوزات وصول قادمة" : "Arrival Reservations",
+      value: stats.upcomingRes,
+      sub: ar ? "تنتظر التسكين" : "Awaiting check-in",
+      color: "text-purple-600 dark:text-purple-400",
+      bg: "bg-purple-50/40 dark:bg-purple-950/20 border-purple-200/60 dark:border-purple-900/40",
+    },
   ];
 
   return (
@@ -25,12 +67,13 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
       {cards.map((s) => (
         <div
           key={s.label}
-          className="bg-card border rounded-lg p-3 text-center shadow-sm"
+          className={`border rounded-xl p-3 text-center shadow-xs transition-shadow hover:shadow-sm ${s.bg}`}
         >
-          <p className={`text-xl font-bold ${s.color}`}>
+          <p className={`text-2xl font-bold tracking-tight ${s.color}`}>
             {isLoading ? "—" : s.value}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+          <p className="text-xs font-semibold text-foreground mt-0.5">{s.label}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{s.sub}</p>
         </div>
       ))}
     </div>

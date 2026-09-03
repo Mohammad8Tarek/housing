@@ -32,7 +32,7 @@ export const portalConversationParticipantsTable = pgTable(
   {
     id: serial("id").primaryKey(),
     conversationId: integer("conversation_id").notNull(),
-    employeeId: integer("employee_id").notNull(),
+    profileId: integer("profile_id").notNull(),
     joinedAt: timestamp("joined_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -40,7 +40,7 @@ export const portalConversationParticipantsTable = pgTable(
   },
   (table) => [
     index("idx_portal_conv_participants_conversation_id").on(table.conversationId),
-    index("idx_portal_conv_participants_employee_id").on(table.employeeId),
+    index("idx_portal_conv_participants_profile_id").on(table.profileId),
   ]
 );
 
@@ -66,11 +66,11 @@ export const portalMessagesTable = pgTable("portal_messages", {
 export const portalMessageReadsTable = pgTable("portal_message_reads", {
   id: serial("id").primaryKey(),
   messageId: integer("message_id").notNull(),
-  employeeId: integer("employee_id").notNull(),
+  profileId: integer("profile_id").notNull(),
   readAt: timestamp("read_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("idx_portal_message_reads_message_id").on(table.messageId),
-  index("idx_portal_message_reads_employee_id").on(table.employeeId),
+  index("idx_portal_message_reads_profile_id").on(table.profileId),
 ]);
 
 export const insertConversationSchema = createInsertSchema(
@@ -82,7 +82,7 @@ export const insertMessageSchema = createInsertSchema(portalMessagesTable)
     content: z.string().min(1),
   });
 export const addParticipantSchema = z.object({
-  employeeId: z.number(),
+  profileId: z.number(),
 });
 
 export type Conversation = typeof portalConversationsTable.$inferSelect;

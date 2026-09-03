@@ -106,10 +106,10 @@ export const drawPdfHeader = async (
   return textY + 10;
 };
 
-/** Generate Housing Letter PDF — used from employee detail, check-in, and transfer */
+/** Generate Housing Letter PDF — used from profile detail, check-in, and transfer */
 export const generateHousingLetterPdf = async (opts: {
   isArabic?: boolean;
-  employee: any;
+  profile: any;
   assignment: any;
   room: any;
   building: string | null;
@@ -119,7 +119,7 @@ export const generateHousingLetterPdf = async (opts: {
   systemLogoUrl?: string | null;
   propLogoUrl?: string | null;
 }): Promise<void> => {
-  const emp = opts.employee;
+  const emp = opts.profile;
   const assignment = opts.assignment;
   const room = opts.room;
   const building = opts.building;
@@ -202,8 +202,8 @@ export const generateHousingLetterPdf = async (opts: {
     d ? new Date(d).toLocaleDateString("en-CA") : "—";
 
   const infoLabels = [
-    "Employee Name",
-    "Employee Code",
+    "Profile Name",
+    "Profile Code",
     "ID No",
     "Nationality",
     "Department",
@@ -219,8 +219,8 @@ export const generateHousingLetterPdf = async (opts: {
   ];
   const infoValues = [
     `${emp.firstName || ""} ${emp.lastName || ""}`,
-    emp.employeeId || "—",
-    emp.employeeId || "—",
+    emp.profileId || "—",
+    emp.profileId || "—",
     emp.nationality || "—",
     emp.department || "—",
     emp.jobTitle || "—",
@@ -338,7 +338,7 @@ export const generateHousingLetterPdf = async (opts: {
   const sc = (bw - 20) / 3;
   doc.setFontSize(7);
   doc.setTextColor(0);
-  doc.text("Recipient (Employee):", ml, y);
+  doc.text("Recipient (Profile):", ml, y);
   doc.text("HR Manager:", ml + sc + 10, y);
   doc.text("Housing Manager:", ml + sc * 2 + 20, y);
   y += 5;
@@ -361,7 +361,7 @@ export const generateHousingLetterPdf = async (opts: {
     { align: "right" },
   );
 
-  outputPdfBlob(doc, `housing-letter-${emp.employeeId || emp.id}_${today}.pdf`);
+  outputPdfBlob(doc, `housing-letter-${emp.profileId || emp.id}_${today}.pdf`);
 };
 
 /**
@@ -374,7 +374,7 @@ async function generateArabicHousingLetterPdf(
   opts: any,
   today: string,
 ): Promise<void> {
-  const emp = opts.employee;
+  const emp = opts.profile;
   const assignment = opts.assignment;
   const room = opts.room;
 
@@ -504,7 +504,7 @@ async function generateArabicHousingLetterPdf(
     <table>
       <tr><th style="width:160px">البيان</th><th>القيمة</th></tr>
       <tr><td>اسم الموظف</td><td>${emp.firstName || ""} ${emp.lastName || ""}</td></tr>
-      <tr><td>كود الموظف</td><td>${emp.employeeId || "—"}</td></tr>
+      <tr><td>كود الموظف</td><td>${emp.profileId || "—"}</td></tr>
       <tr><td>رقم الهوية</td><td>${emp.nationalId || "—"}</td></tr>
       <tr><td>الجنسية</td><td>${emp.nationality || "—"}</td></tr>
       <tr><td>القسم</td><td>${emp.department || "—"}</td></tr>
@@ -590,7 +590,7 @@ async function generateArabicHousingLetterPdf(
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `housing-letter-${emp.employeeId || emp.id}_${today}.html`;
+    a.download = `housing-letter-${emp.profileId || emp.id}_${today}.html`;
     a.click();
     return;
   }

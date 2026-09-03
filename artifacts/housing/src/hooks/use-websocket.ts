@@ -20,12 +20,31 @@ import { createWebSocketUrl, resolveApiUrl } from "@/lib/api-origin";
 
 const MODULE_QUERY_KEYS: Record<string, string[]> = {
   assignments: ["/api/assignments"],
-  employees: ["/api/employees"],
+  profiles: ["/api/profiles"],
   rooms: ["/api/rooms"],
+  housekeeping: ["/api/rooms", "/api/maintenance"],
   maintenance: ["/api/maintenance"],
   reservations: ["/api/reservations"],
   hostings: ["/api/hostings"],
   "hosting-requests": ["/api/hosting-requests"],
+  hosting_requests: ["/api/hosting-requests"],
+  activities: ["/api/activities"],
+  evaluations: ["/api/evaluations"],
+  reports: ["/api/reports"],
+  documents: ["/api/documents"],
+  smart_locks: ["/api/encoder", "/api/locks", "/api/keys"],
+  portal_content: [
+    "/api/portal-categories",
+    "/api/portal-schedule",
+    "/api/portal-reports",
+    "/api/portal-food",
+  ],
+  portal_categories: ["/api/portal-categories"],
+  portal_tags: ["/api/portal-categories"],
+  portal_notifications: ["/api/portal-notifications"],
+  portal_food_transport: ["/api/portal-food"],
+  portal_auth: ["/api/portal-auth"],
+  profile_portal: ["/api/portal-data", "/api/portal-auth"],
   accommodation: [
     "/api/assignments",
     "/api/rooms",
@@ -46,12 +65,14 @@ const MODULE_QUERY_KEYS: Record<string, string[]> = {
   users: ["/api/users"],
   settings: ["/api/settings"],
   properties: ["/api/properties"],
+  activity_log: ["/api/activity-logs"],
 };
 
 const DASHBOARD_MODULES = new Set([
   "assignments",
   "rooms",
-  "employees",
+  "profiles",
+  "housekeeping",
   "maintenance",
   "reservations",
   "hostings",
@@ -98,6 +119,10 @@ export function useWebSocket(): { isConnected: boolean } {
         },
         refetchType: "active",
       });
+      queryClient.invalidateQueries({
+        type: "active",
+        refetchType: "active",
+      });
     },
     [queryClient],
   );
@@ -105,11 +130,7 @@ export function useWebSocket(): { isConnected: boolean } {
   const invalidateAll = useCallback(() => {
     console.info("[WS] Invalidating ALL queries");
     queryClient.invalidateQueries({
-      predicate: (query) => {
-        const first = query.queryKey[0];
-        if (typeof first !== "string") return false;
-        return ALL_KEYS.some((k) => first === k || first.startsWith(`${k}/`));
-      },
+      type: "active",
       refetchType: "active",
     });
   }, [queryClient]);
@@ -209,11 +230,16 @@ export function useWebSocket(): { isConnected: boolean } {
               }
             );
             invalidateModule("notifications");
-          } else if (msg.type === "data_updated" && msg.module) {
+          } else if (msg.module || msg.type === "data_updated") {
+            const targetMod = msg.module || "all";
             console.info(
-              `[WS] 🔔 ${msg.module}/${msg.action} — invalidating module`,
+              `[WS] 🔔 ${targetMod}/${msg.action} — invalidating`,
             );
-            invalidateModule(msg.module as string);
+            if (msg.module) {
+              invalidateModule(msg.module as string);
+            } else {
+              invalidateAll();
+            }
 
             // Show toast for specific module events
             if (msg.action === "created") {
@@ -230,7 +256,7 @@ export function useWebSocket(): { isConnected: boolean } {
                 tTitle = arRef.current ? "تسكين جديد" : "New Assignment";
                 tDesc = arRef.current
                   ? "تم تسكين موظف جديد."
-                  : "A new employee assignment was created.";
+                  : "A new profile assignment was created.";
               } else if (msg.module === "reservations") {
                 tTitle = arRef.current ? "حجز جديد" : "New Reservation";
                 tDesc = arRef.current
@@ -258,7 +284,7 @@ export function useWebSocket(): { isConnected: boolean } {
                   {
                     description: arRef.current
                       ? "تم تحديث بيانات التسكين."
-                      : "An employee assignment was updated.",
+                      : "An profile assignment was updated.",
                   }
                 );
               }

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { roomStatusBadge, statusNorm } from "../utils";
+import { roomStatusBadge, statusNorm, getRoomStatusLabel } from "../utils";
 
 import { useListRooms } from "@workspace/api-client-react";
 
@@ -78,16 +78,25 @@ export function AvailabilityTab({
               {ar ? "كل الحالات" : "All Statuses"}
             </SelectItem>
             <SelectItem value="available">
-              {ar ? "متاح" : "Available"}
+              🟢 {ar ? "شاغرة" : "Vacant (Clean)"}
+            </SelectItem>
+            <SelectItem value="dirty">
+              🟠 {ar ? "تحتاج تنظيف" : "Dirty (Vacant)"}
             </SelectItem>
             <SelectItem value="occupied">
-              {ar ? "مشغول" : "Occupied"}
+              🔵 {ar ? "مشغولة" : "Occupied (Clean)"}
             </SelectItem>
-            <SelectItem value="maintenance">
-              {ar ? "صيانة" : "Maintenance"}
+            <SelectItem value="occupied_dirty">
+              🟣 {ar ? "مشغولة تحتاج تنظيف" : "Occupied (Dirty)"}
             </SelectItem>
-            <SelectItem value="reserved">
-              {ar ? "محجوز" : "Reserved"}
+            <SelectItem value="occupied_vacation">
+              🟡 {ar ? "مشغولة (في إجازة)" : "Occupied (Vacation)"}
+            </SelectItem>
+            <SelectItem value="out_of_service">
+              ⚪ {ar ? "صيانة مؤقتة" : "Out of Service"}
+            </SelectItem>
+            <SelectItem value="out_of_order">
+              🔴 {ar ? "خارج الخدمة" : "Out of Order"}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -123,9 +132,9 @@ export function AvailabilityTab({
                     </p>
                   </div>
                   <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${roomStatusBadge(room.status)}`}
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${roomStatusBadge(room.status)}`}
                   >
-                    {room.status}
+                    {getRoomStatusLabel(room.status, ar)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">

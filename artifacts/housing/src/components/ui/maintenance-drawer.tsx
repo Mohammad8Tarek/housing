@@ -13,7 +13,7 @@ interface MaintenanceDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   ticket?: any;
-  employees?: any[];
+  profiles?: any[];
   ar?: boolean;
   onStatusChange?: (status: string) => void;
   onAssignChange?: (empId: number | null) => void;
@@ -23,7 +23,7 @@ export default function MaintenanceDrawer({
   isOpen,
   onClose,
   ticket,
-  employees = [],
+  profiles = [],
   ar = false,
   onStatusChange,
   onAssignChange,
@@ -31,7 +31,7 @@ export default function MaintenanceDrawer({
   if (!isOpen || !ticket) return null;
 
   const empMap = Object.fromEntries(
-    employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
+    profiles.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
   );
 
   const formatDuration = (startedAt: any, resolvedAt: any, reportedAt: any) => {
@@ -163,7 +163,7 @@ export default function MaintenanceDrawer({
                       <SelectItem value="unassigned">
                         — {ar ? "غير مسند" : "Unassigned"} —
                       </SelectItem>
-                      {employees.map((e) => (
+                      {profiles.map((e) => (
                         <SelectItem key={e.id} value={String(e.id)}>
                           {e.firstName} {e.lastName}
                         </SelectItem>

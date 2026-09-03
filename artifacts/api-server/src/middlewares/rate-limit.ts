@@ -114,7 +114,7 @@ export const portalLoginRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message:
-    "Too many employee portal login attempts. Try again after 15 minutes.",
+    "Too many profile portal login attempts. Try again after 15 minutes.",
   keyFn: (req) => `portal_login:${getIp(req)}`,
 });
 
@@ -147,7 +147,7 @@ export const portalRateLimit = createRateLimiter({
   max: 200,
   message: "Too many portal requests.",
   keyFn: (req) => {
-    const empId = (req.session as any)?.portal?.employeeId;
+    const empId = (req.session as any)?.portal?.profileId;
     return empId ? `portal:emp:${empId}` : `portal:ip:${getIp(req)}`;
   },
 });

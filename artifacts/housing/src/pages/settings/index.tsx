@@ -10,6 +10,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -153,9 +154,13 @@ export default function Settings() {
                 isLoading={isLoading}
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? "Saving..." : "Save Settings"}
-                </Button>
+                <PermissionGate module="settings" action="edit">
+                  <Button type="submit" disabled={updateMutation.isPending}>
+                    {updateMutation.isPending
+                      ? (ar ? "جاري الحفظ..." : "Saving...")
+                      : (ar ? "حفظ الإعدادات" : "Save Settings")}
+                  </Button>
+                </PermissionGate>
               </div>
             </TabsContent>
 
@@ -167,7 +172,7 @@ export default function Settings() {
                       propertyId={selectedPropertyId}
                       category={LOOKUP_CATEGORIES.DEPARTMENT}
                       label="Department"
-                      description="Manage departments list"
+                      description={ar ? "إدارة قائمة الأقسام" : "Manage departments list"}
                     />
                   )}
                 </CardContent>
@@ -182,9 +187,10 @@ export default function Settings() {
                       propertyId={selectedPropertyId}
                       category={LOOKUP_CATEGORIES.JOB_TITLE}
                       label="Job Title"
-                      description="Manage job titles"
+                      description={ar ? "إدارة المسميات الوظيفية وربطها بالدرجة" : "Manage job titles"}
                       parentCategory={LOOKUP_CATEGORIES.DEPARTMENT}
                       parentLabel="Department"
+                      extraLabel="Level"
                     />
                   )}
                 </CardContent>
@@ -199,7 +205,7 @@ export default function Settings() {
                       propertyId={selectedPropertyId}
                       category={LOOKUP_CATEGORIES.ROOM_TYPE}
                       label="Room Type"
-                      description="Manage room types"
+                      description={ar ? "إدارة أنواع الغرف وسعة كل نوع" : "Manage room types"}
                       showCapacity
                     />
                   )}
@@ -210,11 +216,13 @@ export default function Settings() {
             <TabsContent value="security" className="space-y-4">
               <SecuritySettings language={language} isLoading={isLoading} />
               <div className="flex justify-end">
-                <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending
-                    ? "Saving..."
-                    : "Save Security Settings"}
-                </Button>
+                <PermissionGate module="settings" action="edit">
+                  <Button type="submit" disabled={updateMutation.isPending}>
+                    {updateMutation.isPending
+                      ? (ar ? "جاري الحفظ..." : "Saving...")
+                      : (ar ? "حفظ إعدادات الأمان" : "Save Security Settings")}
+                  </Button>
+                </PermissionGate>
               </div>
             </TabsContent>
 

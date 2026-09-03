@@ -1,4 +1,4 @@
-import { Building2, BedDouble, Users, Wrench, Home } from "lucide-react";
+import { Building2, BedDouble, Users, Wrench, Home, TrendingUp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -7,6 +7,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface AnalyticsTabProps {
   ar: boolean;
@@ -115,6 +124,42 @@ export function AnalyticsTab({
           <span>0%</span>
           <span>50%</span>
           <span>100%</span>
+        </div>
+      </div>
+
+      {/* Occupancy History Chart */}
+      <div className="bg-card border rounded-xl p-5">
+        <h3 className="font-bold mb-4 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary" />
+          {ar ? "سجل الإشغال (آخر 6 أشهر)" : "Occupancy History (Last 6 Months)"}
+        </h3>
+        <div className="h-[250px] w-full mt-4">
+          {analytics.occupancyHistory && analytics.occupancyHistory.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={analytics.occupancyHistory} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  labelStyle={{ fontWeight: 'bold', color: '#0f172a' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="occupancy"
+                  name={ar ? "الإشغال (أفراد)" : "Occupancy (Pax)"}
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  activeDot={{ r: 6 }}
+                  dot={{ r: 4, strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm text-muted-foreground">{ar ? "لا بيانات" : "No data"}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -256,6 +301,43 @@ export function AnalyticsTab({
           )}
         </div>
 
+
+        {/* By Nationality */}
+        <div className="bg-card border rounded-xl p-4">
+          <h3 className="font-bold mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary" />
+            {ar ? "السكان حسب الجنسية" : "Residents by Nationality"}
+          </h3>
+          {analytics.byNationality?.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              {ar ? "لا بيانات" : "No data"}
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {analytics.byNationality?.map((n: any) => {
+                const maxCount = analytics.byNationality[0]?.count ?? 1;
+                const pct = Math.round((n.count / maxCount) * 100);
+                return (
+                  <div key={n.nationality}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium truncate">{n.nationality}</span>
+                      <span className="text-muted-foreground text-xs ml-2 flex-shrink-0">
+                        {n.count} {ar ? "موظف" : "residents"}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500/70 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Gender Policy & Maintenance */}
         <div className="space-y-4">
           <div className="bg-card border rounded-xl p-4">
@@ -347,14 +429,14 @@ export function AnalyticsTab({
               ))}
             </div>
           </div>
-          {analytics.topEmployees.length > 0 && (
+          {analytics.topProfiles.length > 0 && (
             <div className="bg-card border rounded-xl p-4">
               <h3 className="font-bold mb-3 flex items-center gap-2 text-xs">
                 <Users className="w-4 h-4 text-primary" />
                 {ar ? "أداء الفنيين" : "Technician Performance"}
               </h3>
               <div className="space-y-2">
-                {analytics.topEmployees.map((e: any) => (
+                {analytics.topProfiles.map((e: any) => (
                   <div
                     key={e.empId}
                     className="flex items-center justify-between text-sm"

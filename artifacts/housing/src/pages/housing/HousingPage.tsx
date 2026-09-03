@@ -1,7 +1,13 @@
+import { RoomImportWizard } from "./components/import/RoomImportWizard";
+import { FileSpreadsheet, Download } from "lucide-react";
 import { useState } from "react";
-import { Building, MapPin, Users, Key, Info } from "lucide-react";
+import { Building, MapPin, Users, Key, Info, LayoutGrid, Sparkles, BedDouble } from "lucide-react";
+import { downloadRoomImportTemplate } from "@/lib/room-importer-engine";
+import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -9,9 +15,10 @@ import {
   useListFloors,
   useListRooms,
   useListAssignments,
-  useListEmployees,
+  useListProfiles,
 } from "@workspace/api-client-react";
 
+import { RoomSpaceViewTab } from "./components/RoomSpaceViewTab";
 import { AvailabilityTab } from "./components/AvailabilityTab";
 import { OccupancyTab } from "./components/OccupancyTab";
 import { BuildingsTab } from "./components/buildings/BuildingsTab";
@@ -22,12 +29,23 @@ import { RoomDetailsDialog } from "./components/RoomDetailsDialog";
 import { RoomLogDialog } from "./components/RoomLogDialog";
 
 export function HousingPage() {
-  const { activePropertyId } = useProperty();
+  const { activePropertyId, properties } = useProperty();
+  const qc = useQueryClient();
   const { language } = useLanguage();
   const ar = language === "ar";
 
-  const [tab, setTab] = useState("availability");
+  const [tab, setTab] = useState(() => {
+    try {
+      if (typeof window !== "undefined" && window.location.pathname === "/room-space-view") {
+        return "room_space_view";
+      }
+      return new URLSearchParams(window.location.search).get("tab") || "room_space_view";
+    } catch {
+      return "room_space_view";
+    }
+  });
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [roomLogRoom, setRoomLogRoom] = useState<any>(null);
 
   const { data: bData, isLoading: bLoading } = useListBuildings({
@@ -48,7 +66,7 @@ export function HousingPage() {
     limit: 1000,
   } as any);
 
-  const { data: eDataWrapper } = useListEmployees({
+  const { data: eDataWrapper } = useListProfiles({
     propertyId: activePropertyId as number,
     limit: 1000,
   } as any);
@@ -71,22 +89,24 @@ export function HousingPage() {
   const floors = (fData as any)?.data || fData || [];
   const rooms = (rData as any)?.data || rData || [];
   const assignments = (aData as any)?.data || aData || [];
-  const employees = (eData as any)?.employees || eData || [];
+  const profiles = (eData as any)?.profiles || eData || [];
 
   const isLoading = bLoading || fLoading || rLoading;
 
-  const totalCapacity = buildings.reduce(
-    (s: number, b: any) => s + (b.capacity || 0),
-    0,
-  );
-  const currentOccupancy = rooms.reduce(
-    (s: number, r: any) => s + (r.currentOccupancy || 0),
-    0,
-  );
-  const freeBeds = totalCapacity - currentOccupancy;
+  const totalRooms = rooms.length;
+  const occupiedRooms = rooms.filter((r: any) => (r.currentOccupancy || 0) > 0).length;
+  const availableRooms = rooms.filter((r: any) => {
+    const s = (r.status || "").toLowerCase();
+    return s === "available" || s === "vacant" || ((r.capacity || 1) > (r.currentOccupancy || 0) && s !== "out_of_service" && s !== "out_of_order");
+  }).length;
+
+  const totalBeds = rooms.reduce((s: number, r: any) => s + (r.capacity || 1), 0);
+  const occupiedBeds = rooms.reduce((s: number, r: any) => s + (r.currentOccupancy || 0), 0);
+  const freeBeds = Math.max(0, totalBeds - occupiedBeds);
+
   const occPct =
-    totalCapacity > 0
-      ? Math.round((currentOccupancy / totalCapacity) * 100)
+    totalRooms > 0
+      ? Math.round((occupiedRooms / totalRooms) * 100)
       : 0;
 
   return (
@@ -102,6 +122,29 @@ export function HousingPage() {
               ? "إدارة المباني، الطوابق، الغرف والتسكين"
               : "Manage buildings, floors, rooms, and assignments"}
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <PermissionGate module="housing" action="export">
+            <Button
+              variant="outline"
+              onClick={() => downloadRoomImportTemplate("xlsx")}
+              className="gap-1.5 text-xs font-semibold h-9 shadow-xs"
+              title={ar ? "تحميل نموذج ملف تكوين واستيراد الغرف" : "Download Room Import Template"}
+            >
+              <Download className="w-3.5 h-3.5 text-primary" />
+              {ar ? "تحميل نموذج Excel" : "Excel Template"}
+            </Button>
+          </PermissionGate>
+          <PermissionGate module="housing" action="create">
+            <Button
+              onClick={() => setImportWizardOpen(true)}
+              className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-white shadow-md text-xs h-9"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              {ar ? "استيراد غرف (Excel / CSV)" : "Import Rooms (Excel / CSV)"}
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -137,7 +180,7 @@ export function HousingPage() {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="text-sm font-medium">
-                {ar ? "الإشغال الحالي" : "Current Occupancy"}
+                {ar ? "إشغال الغرف" : "Room Occupancy"}
               </span>
             </div>
             {!isLoading && (
@@ -149,9 +192,9 @@ export function HousingPage() {
           ) : (
             <div className="space-y-2">
               <div className="flex items-end gap-2">
-                <span className="text-2xl font-bold">{currentOccupancy}</span>
+                <span className="text-2xl font-bold">{occupiedRooms}</span>
                 <span className="text-sm text-muted-foreground pb-1">
-                  / {totalCapacity} {ar ? "سرير" : "beds"}
+                  / {totalRooms} {ar ? "غرفة" : "rooms"}
                 </span>
               </div>
               <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
@@ -160,20 +203,31 @@ export function HousingPage() {
                   style={{ width: `${occPct}%` }}
                 />
               </div>
+              <div className="text-[11px] text-muted-foreground">
+                {occupiedBeds} / {totalBeds} {ar ? "سرير مشغول" : "beds occupied"}
+              </div>
             </div>
           )}
         </div>
         <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm bg-primary/5 border-primary/10">
           <div className="flex items-center gap-2 mb-2 text-primary/80">
-            <Users className="w-4 h-4" />
+            <BedDouble className="w-4 h-4" />
             <span className="text-sm font-medium">
-              {ar ? "الأسرة المتاحة" : "Available Beds"}
+              {ar ? "الغرف المتاحة" : "Available Rooms"}
             </span>
           </div>
           {isLoading ? (
             <Skeleton className="h-8 w-16" />
           ) : (
-            <div className="text-2xl font-bold text-primary">{freeBeds}</div>
+            <div className="space-y-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-primary">{availableRooms}</span>
+                <span className="text-sm text-muted-foreground">{ar ? "غرفة" : "rooms"}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {freeBeds} {ar ? "سرير شاغر" : "free beds"}
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -181,6 +235,11 @@ export function HousingPage() {
       {/* ── TABS ── */}
       <div className="flex border-b overflow-x-auto no-scrollbar">
         {[
+          {
+            id: "room_space_view",
+            label: ar ? "مخطط الغرف والأسرة (روم فيو)" : "Room Space View",
+            icon: <LayoutGrid className="w-4 h-4 text-primary" />,
+          },
           { id: "availability", label: ar ? "توافر الغرف" : "Availability" },
           { id: "occupancy", label: ar ? "مخطط الإشغال" : "Occupancy Tree" },
           { id: "buildings", label: ar ? "المباني" : "Buildings" },
@@ -208,6 +267,17 @@ export function HousingPage() {
       </div>
 
       <div className="mt-6">
+        {tab === "room_space_view" && (
+          <RoomSpaceViewTab
+            propertyId={activePropertyId as number}
+            buildings={buildings}
+            floors={floors}
+            rooms={rooms}
+            assignments={assignments}
+            profiles={profiles}
+            onSelectRoom={setSelectedRoom}
+          />
+        )}
         {tab === "availability" && (
           <AvailabilityTab
             propertyId={activePropertyId as number}
@@ -259,9 +329,10 @@ export function HousingPage() {
             buildings={buildings}
             rooms={rooms}
             assignments={assignments}
-            employees={employees}
+            profiles={profiles}
           />
         )}
+
       </div>
 
       {/* Shared Dialogs */}
@@ -272,14 +343,26 @@ export function HousingPage() {
         buildings={buildings}
         floors={floors}
         assignments={assignments}
-        employees={employees}
+        profiles={profiles}
       />
 
       <RoomLogDialog
         room={roomLogRoom}
         onClose={() => setRoomLogRoom(null)}
         assignments={assignments}
-        employees={employees}
+        profiles={profiles}
+      />
+
+      <RoomImportWizard
+        open={importWizardOpen}
+        onOpenChange={setImportWizardOpen}
+        properties={properties}
+        currentPropertyId={activePropertyId as number}
+        buildings={buildings}
+        existingRooms={rooms}
+        onImportSuccess={() => {
+          qc.invalidateQueries();
+        }}
       />
     </div>
   );

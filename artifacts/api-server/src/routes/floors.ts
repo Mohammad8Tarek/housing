@@ -164,7 +164,7 @@ router.patch(
       entityType: "floor",
       entityId: updated.id,
     });
-    res.json({ ...UpdateFloorResponse.parse(updated), propertyId });
+    res.json(UpdateFloorResponse.parse({ ...updated, propertyId }));
   },
 );
 

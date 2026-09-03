@@ -77,7 +77,7 @@ function buildFiasKrCommand(
   isDuplicate: boolean,
   workstationId: string,
   checkOutDate?: string | null,
-  employeeJobNumber?: string | null,
+  profileJobNumber?: string | null,
 ): Buffer {
   const arrival = formatFiasDate(new Date());
   // If no checkOutDate provided, use far-future date (2099) so card works indefinitely
@@ -87,8 +87,8 @@ function buildFiasKrCommand(
   const departure = formatFiasDate(depDate);
   const kt = isDuplicate ? "KTD" : "KTN";
   const kc = workstationId.replace("WS", "KC");
-  const fullName = employeeJobNumber
-    ? `${guestName} - ${employeeJobNumber}`
+  const fullName = profileJobNumber
+    ? `${guestName} - ${profileJobNumber}`
     : guestName;
   const payload = `KR|${workstationId}|${kc}|RN${roomNumber}|${kt}|G#1|GA${arrival}|GD${departure}|DT120000|GN${fullName}|`;
   return buildFiasFrame(payload);
@@ -180,7 +180,7 @@ export function issueCardViaHotek(
   workstationId: string = "WS1",
   timeoutMs: number = 30000,
   checkOutDate?: string | null,
-  employeeJobNumber?: string | null,
+  profileJobNumber?: string | null,
 ): Promise<HotekCmdResult> {
   return new Promise((resolve, reject) => {
     const port = propertyPorts.get(propertyId);
@@ -220,7 +220,7 @@ export function issueCardViaHotek(
       isDuplicate,
       workstationId,
       checkOutDate,
-      employeeJobNumber,
+      profileJobNumber,
     );
     // console.log(`[PMS-Bridge - Port ${port}] → Sending FIAS KR (Key Request) for room ${roomNumber} (Prop: ${propertyId})`);
     pms.socket.write(frame);

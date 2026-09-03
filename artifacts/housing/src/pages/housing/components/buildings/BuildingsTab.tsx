@@ -63,6 +63,7 @@ import {
   makeDefaultFloor,
   FloorConfig,
 } from "../../utils";
+import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 
 
@@ -104,6 +105,25 @@ export function BuildingsTab({
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
+
+  const { data: lookupRoomTypes = [] } = useLookupValues(
+    propertyId,
+    LOOKUP_CATEGORIES.ROOM_TYPE
+  );
+
+  const activeLookupTypes = lookupRoomTypes.filter((t: any) => !t.disabled);
+  const activeRoomTypeValues =
+    activeLookupTypes.length > 0
+      ? activeLookupTypes.map((t: any) => ({
+          value: t.value,
+          parentValue: t.parentValue || "2",
+        }))
+      : roomTypeValues;
+
+  const activeRoomTypeNames =
+    activeLookupTypes.length > 0
+      ? activeLookupTypes.map((t: any) => t.value)
+      : roomTypes;
 
   const createBuildingMut = useCreateBuilding();
   const updateBuildingMut = useUpdateBuilding();
@@ -675,7 +695,7 @@ export function BuildingsTab({
                                 <Select
                                   value={fc.roomType}
                                   onValueChange={(v) => {
-                                    const match = roomTypeValues.find(
+                                    const match = activeRoomTypeValues.find(
                                       (rt) => rt.value === v,
                                     );
                                     const autoCap = match?.parentValue
@@ -693,11 +713,16 @@ export function BuildingsTab({
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {roomTypes.map((t) => (
+                                    {activeRoomTypeNames.map((t) => (
                                       <SelectItem key={t} value={t}>
                                         {t}
                                       </SelectItem>
                                     ))}
+                                    {fc.roomType && !activeRoomTypeNames.includes(fc.roomType) && (
+                                      <SelectItem value={fc.roomType}>
+                                        {fc.roomType}
+                                      </SelectItem>
+                                    )}
                                   </SelectContent>
                                 </Select>
                               </div>

@@ -2,8 +2,8 @@ import {
   db,
   propertiesTable,
   withTenant,
-  employeesTable,
-  employeePortalAccountsTable,
+  profilesTable,
+  profilePortalAccountsTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -14,8 +14,8 @@ async function check() {
       await withTenant(p.id, async (tenantDb) => {
         const [emp] = await tenantDb
           .select()
-          .from(employeesTable)
-          .where(eq(employeesTable.employeeId, "10575"));
+          .from(profilesTable)
+          .where(eq(profilesTable.profileId, "10575"));
         if (emp) {
           console.log(
             `Found in prop_${p.id}:`,
@@ -25,8 +25,8 @@ async function check() {
           );
           const [acc] = await tenantDb
             .select()
-            .from(employeePortalAccountsTable)
-            .where(eq(employeePortalAccountsTable.employeeId, "10575"));
+            .from(profilePortalAccountsTable)
+            .where(eq(profilePortalAccountsTable.profileId, "10575"));
           console.log(`Account in prop_${p.id}:`, acc ? "Exists" : "MISSING!");
         }
       });

@@ -20,14 +20,16 @@ import { verifyWsAuthToken } from "./ws-auth-token.js";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 export type WsModule =
-  | "employees"
+  | "profiles"
   | "accommodation"
   | "housing"
   | "maintenance"
+  | "housekeeping"
   | "reservations"
   | "notifications"
   | "dashboard"
   | "chat"
+  | "rooms"
   | "buildings"
   | "floors"
   | "users"
@@ -178,12 +180,12 @@ async function loadSessionAuth(cookieHeader: string | undefined): Promise<{
     };
   }
 
-  // Check for employee portal session
-  if (sess.portal?.employeeDbId && sess.portal?.propertyId) {
+  // Check for profile portal session
+  if (sess.portal?.profileDbId && sess.portal?.propertyId) {
     return {
-      userId: `emp_${sess.portal.employeeDbId}`,
+      userId: `emp_${sess.portal.profileDbId}`,
       propertyId: Number(sess.portal.propertyId),
-      username: sess.portal.fullName || "Employee",
+      username: sess.portal.fullName || "Profile",
       isSystemAdmin: false,
     };
   }
@@ -286,11 +288,11 @@ export function initWebSocket(server: Server): WebSocketServer {
               username: String(sess.username ?? "unknown"),
               isSystemAdmin: Boolean(sess.isSystemAdmin),
             };
-          } else if (sess.portal?.employeeDbId && sess.portal?.propertyId) {
+          } else if (sess.portal?.profileDbId && sess.portal?.propertyId) {
             sessionAuth = {
-              userId: `emp_${sess.portal.employeeDbId}`,
+              userId: `emp_${sess.portal.profileDbId}`,
               propertyId: Number(sess.portal.propertyId),
-              username: sess.portal.fullName || "Employee",
+              username: sess.portal.fullName || "Profile",
               isSystemAdmin: false,
             };
           }
@@ -502,6 +504,20 @@ export function broadcastSyncAll(propertyId: number): void {
     }
   }
   logger.info({ propertyId, recipients: sent }, "[WS] SYNC_DATA broadcast");
+}
+
+export function broadcastSyncEverywhere(): void {
+  const payload: WsPayload = {
+    type: "SYNC_DATA",
+    timestamp: new Date().toISOString(),
+  };
+
+  let sent = 0;
+  for (const client of clients.values()) {
+    safeSend(client.ws, payload);
+    sent++;
+  }
+  logger.info({ recipients: sent }, "[WS] Global SYNC_DATA broadcast");
 }
 
 /** Returns count of currently connected clients */

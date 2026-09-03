@@ -7,6 +7,8 @@ export function useReportFilters() {
   const [filterBuilding, setFilterBuilding] = useState<string>("all");
   const [filterFloor, setFilterFloor] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterRoomType, setFilterRoomType] = useState<string>("all");
+  const [filterEmploymentType, setFilterEmploymentType] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
@@ -17,7 +19,7 @@ export function useReportFilters() {
   const [filterNationality, setFilterNationality] = useState<string>("all");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
 
   const resetReportFilters = () => {
     setFilterProperty("all");
@@ -30,8 +32,11 @@ export function useReportFilters() {
     setFilterBuilding("all");
     setFilterFloor("all");
     setFilterStatus("all");
+    setFilterRoomType("all");
+    setFilterEmploymentType("all");
     setFilterCategory("all");
     setSelectedRows(new Set());
+    setCurrentPage(1);
   };
 
   const hasActiveReportFilters = Boolean(
@@ -45,6 +50,8 @@ export function useReportFilters() {
     filterBuilding !== "all" ||
     filterFloor !== "all" ||
     filterStatus !== "all" ||
+    filterRoomType !== "all" ||
+    filterEmploymentType !== "all" ||
     filterCategory !== "all",
   );
 
@@ -59,6 +66,10 @@ export function useReportFilters() {
     setFilterFloor,
     filterStatus,
     setFilterStatus,
+    filterRoomType,
+    setFilterRoomType,
+    filterEmploymentType,
+    setFilterEmploymentType,
     search,
     setSearch,
     dateFrom,

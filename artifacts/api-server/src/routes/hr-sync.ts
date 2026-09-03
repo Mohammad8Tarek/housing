@@ -3,7 +3,7 @@ import {
   db,
   pool,
   withTenant,
-  employeesTable,
+  profilesTable,
   assignmentsTable,
   roomsTable,
   buildingsTable,
@@ -12,7 +12,7 @@ import {
 import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { ensureEmployeePortalAccount } from "../lib/portal-accounts.js";
+import { ensureProfilePortalAccount } from "../lib/portal-accounts.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { broadcastToProperty } from "../lib/websocket.js";
@@ -151,8 +151,8 @@ router.put(
 );
 
 // ========================
-// POST /api/hr-sync/receive — Receive employee data pushed from HR system
-// Body: { propertyId, employees: [{ employeeId, firstName, lastName, nationalId, ... }] }
+// POST /api/hr-sync/receive — Receive profile data pushed from HR system
+// Body: { propertyId, profiles: [{ profileId, firstName, lastName, nationalId, ... }] }
 // ========================
 router.post("/receive", async (req, res): Promise<void> => {
   const expectedKey = process.env["HR_SYNC_API_KEY"];
@@ -174,9 +174,9 @@ router.post("/receive", async (req, res): Promise<void> => {
     return;
   }
 
-  const { employees } = req.body as any;
-  if (!Array.isArray(employees) || employees.length === 0) {
-    res.status(400).json({ error: "employees array required" });
+  const { profiles } = req.body as any;
+  if (!Array.isArray(profiles) || profiles.length === 0) {
+    res.status(400).json({ error: "profiles array required" });
     return;
   }
 
@@ -184,33 +184,33 @@ router.post("/receive", async (req, res): Promise<void> => {
     updated = 0,
     errors: string[] = [];
 
-  // Batch: fetch all existing employeeIds in one query, then insert/update in one transaction
+  // Batch: fetch all existing profileIds in one query, then insert/update in one transaction
   await withTenant(propertyId, async (tenantDb) => {
-    const empIds = employees
-      .filter((e: any) => e.employeeId)
-      .map((e: any) => String(e.employeeId));
+    const empIds = profiles
+      .filter((e: any) => e.profileId)
+      .map((e: any) => String(e.profileId));
     const existingRows =
       empIds.length > 0
         ? await tenantDb
             .select()
-            .from(employeesTable)
-            .where(inArray(employeesTable.employeeId, empIds))
+            .from(profilesTable)
+            .where(inArray(profilesTable.profileId, empIds))
         : [];
     const existingMap = new Map(
-      existingRows.map((e: any) => [e.employeeId, e]),
+      existingRows.map((e: any) => [e.profileId, e]),
     );
 
-    for (const emp of employees) {
+    for (const emp of profiles) {
       try {
-        if (!emp.employeeId) {
-          errors.push(`Missing employeeId for record`);
+        if (!emp.profileId) {
+          errors.push(`Missing profileId for record`);
           continue;
         }
-        const existing = existingMap.get(String(emp.employeeId));
+        const existing = existingMap.get(String(emp.profileId));
 
         if (existing) {
           await tenantDb
-            .update(employeesTable)
+            .update(profilesTable)
             .set({
               firstName: emp.firstName || existing.firstName,
               lastName: emp.lastName || existing.lastName,
@@ -225,11 +225,11 @@ router.post("/receive", async (req, res): Promise<void> => {
               level: emp.level || existing.level,
               hireDate: emp.hireDate || existing.hireDate,
             })
-            .where(eq(employeesTable.employeeId, emp.employeeId));
+            .where(eq(profilesTable.profileId, emp.profileId));
           updated++;
         } else {
-          await tenantDb.insert(employeesTable).values({
-            employeeId: emp.employeeId,
+          await tenantDb.insert(profilesTable).values({
+            profileId: emp.profileId,
             firstName: emp.firstName || "",
             lastName: emp.lastName || "",
             nationalId: emp.nationalId || "",
@@ -246,16 +246,16 @@ router.post("/receive", async (req, res): Promise<void> => {
           created++;
         }
       } catch (err: any) {
-        errors.push(`${emp.employeeId || "unknown"}: sync error`);
+        errors.push(`${emp.profileId || "unknown"}: sync error`);
       }
     }
   });
 
-  // Ensure portal accounts (outside tenant transaction, one per employee)
-  for (const emp of employees) {
-    if (emp.employeeId) {
+  // Ensure portal accounts (outside tenant transaction, one per profile)
+  for (const emp of profiles) {
+    if (emp.profileId) {
       try {
-        await ensureEmployeePortalAccount(propertyId, emp.employeeId);
+        await ensureProfilePortalAccount(propertyId, emp.profileId);
       } catch {}
     }
   }
@@ -267,7 +267,7 @@ router.post("/receive", async (req, res): Promise<void> => {
     [
       propertyId,
       errors.length > 0 ? "completed_with_errors" : "completed",
-      employees.length,
+      profiles.length,
       created,
       updated,
       errors.join("; ") || null,
@@ -284,14 +284,14 @@ router.post("/receive", async (req, res): Promise<void> => {
     action: `استقبال بيانات موظفين من HR — تم إنشاء ${created} وتحديث ${updated}`,
     actionType: "SYNC",
     module: "hr_sync",
-    entityType: "employee",
+    entityType: "profile",
     entityId: propertyId,
   });
 
   res.json({
     success: true,
     stats: {
-      received: employees.length,
+      received: profiles.length,
       created,
       updated,
       errors: errors.length,
@@ -301,7 +301,7 @@ router.post("/receive", async (req, res): Promise<void> => {
 });
 
 // ========================
-// POST /api/hr-sync/sync — Pull employees from external HR API
+// POST /api/hr-sync/sync — Pull profiles from external HR API
 // ========================
 router.post(
   "/sync",
@@ -356,17 +356,17 @@ router.post(
         );
 
       const data = (await response.json()) as any;
-      const employees = Array.isArray(data)
+      const profiles = Array.isArray(data)
         ? data
-        : data.employees || data.data || [];
+        : data.profiles || data.data || [];
 
-      if (!Array.isArray(employees) || employees.length === 0) {
-        throw new Error("No employees data received from HR API");
+      if (!Array.isArray(profiles) || profiles.length === 0) {
+        throw new Error("No profiles data received from HR API");
       }
 
       // Map fields if mapping is configured
       const mapping = config.field_mapping || {};
-      const mappedEmployees = employees.map((emp: any) => {
+      const mappedProfiles = profiles.map((emp: any) => {
         if (Object.keys(mapping).length > 0) {
           const mapped: any = {};
           for (const [targetField, sourceField] of Object.entries(mapping)) {
@@ -379,7 +379,7 @@ router.post(
 
       // Process via receive handler
       const receiveRes = await new Promise<any>((resolve, reject) => {
-        const mockReq = { body: { propertyId, employees: mappedEmployees } };
+        const mockReq = { body: { propertyId, profiles: mappedProfiles } };
         const mockRes: any = {
           json: (data: any) => resolve(data),
           status: () => mockRes,
@@ -387,7 +387,7 @@ router.post(
         // Forward to receive endpoint
         const receiveRouter = Router();
         // Instead of re-calling, process inline
-        processReceive(propertyId, mappedEmployees, mockReq, mockRes).catch(
+        processReceive(propertyId, mappedProfiles, mockReq, mockRes).catch(
           reject,
         );
       });
@@ -426,7 +426,7 @@ router.post(
 // Inline receive processor (batched for performance)
 async function processReceive(
   propertyId: number,
-  employees: any[],
+  profiles: any[],
   req: any,
   res: any,
 ) {
@@ -435,31 +435,31 @@ async function processReceive(
     errors: string[] = [];
 
   await withTenant(propertyId, async (tenantDb) => {
-    const empIds = employees
-      .filter((e: any) => e.employeeId)
-      .map((e: any) => String(e.employeeId));
+    const empIds = profiles
+      .filter((e: any) => e.profileId)
+      .map((e: any) => String(e.profileId));
     const existingRows =
       empIds.length > 0
         ? await tenantDb
             .select()
-            .from(employeesTable)
-            .where(inArray(employeesTable.employeeId, empIds))
+            .from(profilesTable)
+            .where(inArray(profilesTable.profileId, empIds))
         : [];
     const existingMap = new Map(
-      existingRows.map((e: any) => [e.employeeId, e]),
+      existingRows.map((e: any) => [e.profileId, e]),
     );
 
-    for (const emp of employees) {
+    for (const emp of profiles) {
       try {
-        if (!emp.employeeId) {
-          errors.push(`Missing employeeId for record`);
+        if (!emp.profileId) {
+          errors.push(`Missing profileId for record`);
           continue;
         }
-        const existing = existingMap.get(String(emp.employeeId));
+        const existing = existingMap.get(String(emp.profileId));
 
         if (existing) {
           await tenantDb
-            .update(employeesTable)
+            .update(profilesTable)
             .set({
               firstName: emp.firstName || existing.firstName,
               lastName: emp.lastName || existing.lastName,
@@ -474,11 +474,11 @@ async function processReceive(
               level: emp.level || existing.level,
               hireDate: emp.hireDate || existing.hireDate,
             })
-            .where(eq(employeesTable.employeeId, emp.employeeId));
+            .where(eq(profilesTable.profileId, emp.profileId));
           updated++;
         } else {
-          await tenantDb.insert(employeesTable).values({
-            employeeId: emp.employeeId,
+          await tenantDb.insert(profilesTable).values({
+            profileId: emp.profileId,
             firstName: emp.firstName || "",
             lastName: emp.lastName || "",
             nationalId: emp.nationalId || "",
@@ -495,15 +495,15 @@ async function processReceive(
           created++;
         }
       } catch (err: any) {
-        errors.push(`${emp.employeeId || "unknown"}: sync error`);
+        errors.push(`${emp.profileId || "unknown"}: sync error`);
       }
     }
   });
 
-  for (const emp of employees) {
-    if (emp.employeeId) {
+  for (const emp of profiles) {
+    if (emp.profileId) {
       try {
-        await ensureEmployeePortalAccount(propertyId, emp.employeeId);
+        await ensureProfilePortalAccount(propertyId, emp.profileId);
       } catch {}
     }
   }
@@ -514,7 +514,7 @@ async function processReceive(
     [
       propertyId,
       errors.length > 0 ? "completed_with_errors" : "completed",
-      employees.length,
+      profiles.length,
       created,
       updated,
       errors.length > 0 ? `${errors.length} errors` : null,
@@ -524,7 +524,7 @@ async function processReceive(
   return {
     success: true,
     stats: {
-      received: employees.length,
+      received: profiles.length,
       created,
       updated,
       errors: errors.length,
@@ -557,29 +557,29 @@ router.get(
 );
 
 // ========================
-// GET /api/hr-sync/employees/:employeeId — Full employee data for HR system
+// GET /api/hr-sync/profiles/:profileId — Full profile data for HR system
 // ========================
-router.get("/employees/:employeeId", async (req, res): Promise<void> => {
+router.get("/profiles/:profileId", async (req, res): Promise<void> => {
   const propertyId = getTenantId(req);
   if (!propertyId) {
     res.status(400).json({ error: "propertyId required" });
     return;
   }
 
-  const { employeeId } = req.params;
-  if (!employeeId) {
-    res.status(400).json({ error: "employeeId required" });
+  const { profileId } = req.params;
+  if (!profileId) {
+    res.status(400).json({ error: "profileId required" });
     return;
   }
 
   await withTenant(propertyId, async (tenantDb) => {
-    const [employee] = await tenantDb
+    const [profile] = await tenantDb
       .select()
-      .from(employeesTable)
-      .where(eq(employeesTable.employeeId, employeeId));
+      .from(profilesTable)
+      .where(eq(profilesTable.profileId, profileId));
 
-    if (!employee) {
-      res.status(404).json({ success: false, error: "Employee not found" });
+    if (!profile) {
+      res.status(404).json({ success: false, error: "Profile not found" });
       return;
     }
 
@@ -602,22 +602,22 @@ router.get("/employees/:employeeId", async (req, res): Promise<void> => {
       .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
       .where(
         and(
-          eq(assignmentsTable.employeeId, employee.id),
+          eq(assignmentsTable.profileId, profile.id),
           eq(assignmentsTable.status, "ACTIVE"),
         ),
       );
 
     res.json({
       success: true,
-      employee,
+      profile,
       currentAssignment: assignment || null,
     });
   });
 });
 
 // ========================
-// POST /api/hr-sync/notify-departure — HR system notifies that an employee has left/been terminated
-// Body: { employeeId, departureDate?, reason? }
+// POST /api/hr-sync/notify-departure — HR system notifies that an profile has left/been terminated
+// Body: { profileId, departureDate?, reason? }
 // ========================
 router.post("/notify-departure", async (req, res): Promise<void> => {
   const expectedKey = process.env["HR_SYNC_API_KEY"];
@@ -639,33 +639,33 @@ router.post("/notify-departure", async (req, res): Promise<void> => {
     return;
   }
 
-  const { employeeId, departureDate, reason } = req.body as any;
-  if (!employeeId) {
-    res.status(400).json({ error: "employeeId required" });
+  const { profileId, departureDate, reason } = req.body as any;
+  if (!profileId) {
+    res.status(400).json({ error: "profileId required" });
     return;
   }
 
   let checkoutResult: any = null;
-  let updatedEmployee: any = null;
+  let updatedProfile: any = null;
 
   await withTenant(propertyId, async (tenantDb) => {
-    const [employee] = await tenantDb
+    const [profile] = await tenantDb
       .select()
-      .from(employeesTable)
-      .where(eq(employeesTable.employeeId, String(employeeId)));
+      .from(profilesTable)
+      .where(eq(profilesTable.profileId, String(profileId)));
 
-    if (!employee) {
-      res.status(404).json({ success: false, error: "Employee not found" });
+    if (!profile) {
+      res.status(404).json({ success: false, error: "Profile not found" });
       return;
     }
 
-    // Update employee status to departed
+    // Update profile status to departed
     const [emp] = await tenantDb
-      .update(employeesTable)
+      .update(profilesTable)
       .set({ status: "departed" })
-      .where(eq(employeesTable.employeeId, String(employeeId)))
+      .where(eq(profilesTable.profileId, String(profileId)))
       .returning();
-    updatedEmployee = emp;
+    updatedProfile = emp;
 
     // Find active assignment and auto-checkout
     const [assignment] = await tenantDb
@@ -673,7 +673,7 @@ router.post("/notify-departure", async (req, res): Promise<void> => {
       .from(assignmentsTable)
       .where(
         and(
-          eq(assignmentsTable.employeeId, employee.id),
+          eq(assignmentsTable.profileId, profile.id),
           eq(assignmentsTable.status, "ACTIVE"),
         ),
       );
@@ -739,12 +739,12 @@ router.post("/notify-departure", async (req, res): Promise<void> => {
     userId: s?.userId || 0,
     userRole: s?.userRole || "system",
     action:
-      `مغادرة تلقائية للموظف #${employeeId} من HR` +
+      `مغادرة تلقائية للموظف #${profileId} من HR` +
       (checkoutResult ? " — تم إنهاء السكن" : ""),
     actionType: "UPDATE",
     module: "hr_sync",
-    entityType: "employee",
-    entityId: employeeId,
+    entityType: "profile",
+    entityId: profileId,
   });
 
   // Sync log
@@ -757,9 +757,9 @@ router.post("/notify-departure", async (req, res): Promise<void> => {
   res.json({
     success: true,
     message:
-      "Employee marked as departed" +
+      "Profile marked as departed" +
       (checkoutResult ? " and checked out" : ""),
-    employee: updatedEmployee,
+    profile: updatedProfile,
     autoCheckout: checkoutResult,
   });
 });

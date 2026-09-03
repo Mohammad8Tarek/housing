@@ -5,6 +5,14 @@
  * Sunrise Staff Housing Management System API
  * OpenAPI spec version: 0.1.0
  */
+export interface ProfileDocument {
+  id?: number;
+  fileName?: string;
+  fileType?: string;
+  fileData?: string;
+  uploadedAt?: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -160,10 +168,10 @@ export interface UpdateRoomBody {
   gender?: string | null;
 }
 
-export interface Employee {
+export interface Profile {
   id: number;
   propertyId: number;
-  employeeId: string;
+  profileId: string;
   firstName: string;
   lastName: string;
   nationalId: string;
@@ -178,11 +186,12 @@ export interface Employee {
   gender: string;
   /** @nullable */
   idImage?: string | null;
+  idDocuments?: ProfileDocument[];
 }
 
-export interface CreateEmployeeBody {
+export interface CreateProfileBody {
   propertyId: number;
-  employeeId: string;
+  profileId: string;
   firstName: string;
   lastName: string;
   nationalId: string;
@@ -197,9 +206,10 @@ export interface CreateEmployeeBody {
   gender: string;
   /** @nullable */
   idImage?: string | null;
+  idDocuments?: ProfileDocument[];
 }
 
-export interface UpdateEmployeeBody {
+export interface UpdateProfileBody {
   firstName?: string;
   lastName?: string;
   nationalId?: string;
@@ -214,12 +224,13 @@ export interface UpdateEmployeeBody {
   dateOfBirth?: string;
   /** @nullable */
   idImage?: string | null;
+  idDocuments?: ProfileDocument[];
 }
 
 export interface Assignment {
   id: number;
   propertyId: number;
-  employeeId: number;
+  profileId: number;
   roomId: number;
   /** @nullable */
   bedNumber?: number | null;
@@ -235,7 +246,7 @@ export interface Assignment {
 
 export interface CreateAssignmentBody {
   propertyId: number;
-  employeeId: number;
+  profileId: number;
   roomId: number;
   /** @nullable */
   bedNumber?: number | null;
@@ -337,7 +348,7 @@ export type HostingCompanionsItem = {
 export interface Hosting {
   id: number;
   propertyId: number;
-  employeeId: number;
+  profileId: number;
   hostingType: string;
   guestsCount: number;
   expectedFrom: string;
@@ -376,7 +387,7 @@ export type CreateHostingBodyCompanionsItem = {
 
 export interface CreateHostingBody {
   propertyId: number;
-  employeeId: number;
+  profileId: number;
   hostingType: string;
   guestsCount: number;
   expectedFrom: string;
@@ -518,9 +529,9 @@ export interface UpdateSettingsBody {
 }
 
 export interface DashboardStats {
-  totalEmployees: number;
-  activeEmployees: number;
-  unhousedEmployees: number;
+  totalProfiles: number;
+  activeProfiles: number;
+  unhousedProfiles: number;
   totalRooms: number;
   occupiedRooms: number;
   availableRooms: number;
@@ -534,8 +545,8 @@ export interface DashboardStats {
 
 export interface DepartureAlert {
   assignmentId: number;
-  employeeId: number;
-  employeeName: string;
+  profileId: number;
+  profileName: string;
   roomId: number;
   roomNumber: string;
   buildingName: string;
@@ -580,7 +591,7 @@ floorId?: number;
 status?: string;
 };
 
-export type ListEmployeesParams = {
+export type ListProfilesParams = {
 propertyId?: number;
 status?: string;
 department?: string;
@@ -611,7 +622,7 @@ export type ListInHouseAssignments200 = {
 export type ListAssignmentsParams = {
 propertyId?: number;
 status?: string;
-employeeId?: number;
+profileId?: number;
 roomId?: number;
 };
 

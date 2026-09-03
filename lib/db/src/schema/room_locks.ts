@@ -10,7 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { roomsTable } from "./rooms";
-import { employeesTable } from "./employees";
+import { profilesTable } from "./profiles";
 import { assignmentsTable } from "./assignments";
 
 export const roomLocksTable = pgTable("room_locks", {
@@ -43,7 +43,7 @@ export const roomKeysTable = pgTable("room_keys", {
   lockId: integer("lock_id").references(() => roomLocksTable.id, {
     onDelete: "set null",
   }),
-  employeeId: integer("employee_id").references(() => employeesTable.id, {
+  profileId: integer("profile_id").references(() => profilesTable.id, {
     onDelete: "set null",
   }),
   cardNumber: text("card_number"),
@@ -59,7 +59,7 @@ export const roomKeysTable = pgTable("room_keys", {
   notes: text("notes"),
 }, (table) => [
   index("idx_room_keys_room_id").on(table.roomId),
-  index("idx_room_keys_employee_id").on(table.employeeId),
+  index("idx_room_keys_profile_id").on(table.profileId),
   index("idx_room_keys_assignment_id").on(table.assignmentId),
   index("idx_room_keys_status").on(table.status),
   index("idx_room_keys_property_id").on(table.propertyId),

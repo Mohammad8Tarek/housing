@@ -1,5 +1,7 @@
+import { recommendBestRooms } from "@/lib/room-recommender";
+import { Sparkles } from "lucide-react";
 // @ts-nocheck
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListRooms,
@@ -59,11 +61,11 @@ import {
   PrintLanguageDialog,
 } from "@/lib/PrintLanguageDialog";
 
-type EmployeeResult = {
+type ProfileResult = {
   id: number;
   propertyId: number;
   propertyName: string | null;
-  employeeId: string;
+  profileId: string;
   firstName: string;
   lastName: string;
   nationalId: string;
@@ -99,9 +101,9 @@ export default function RoomAssignment() {
     usePrintLanguage();
 
   const [empSearch, setEmpSearch] = useState("");
-  const [empResults, setEmpResults] = useState<EmployeeResult[]>([]);
-  const [selectedEmployee, setSelectedEmployee] =
-    useState<EmployeeResult | null>(null);
+  const [empResults, setEmpResults] = useState<ProfileResult[]>([]);
+  const [selectedProfile, setSelectedProfile] =
+    useState<ProfileResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchPropertyId, setSearchPropertyId] = useState<string>("all");
@@ -115,8 +117,20 @@ export default function RoomAssignment() {
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [selectedRoomId, setSelectedRoomId] = useState("");
-  const [selectedBed, setSelectedBed] = useState("");
+  const [selectedRoomId, setSelectedRoomId] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("roomId") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [selectedBed, setSelectedBed] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("bed") || "";
+    } catch {
+      return "";
+    }
+  });
   const [checkInDate, setCheckInDate] = useState(
     new Date().toISOString().split("T")[0],
   );
@@ -133,9 +147,15 @@ export default function RoomAssignment() {
   const [keyIssuing, setKeyIssuing] = useState(false);
   const [lastAssignment, setLastAssignment] = useState<any>(null);
 
+  // Vacation temporary assignment prompt state
+  const [vacationPromptData, setVacationPromptData] = useState<{
+    occupantName: string;
+    vacationEndDate?: string;
+  } | null>(null);
+
   const printHousingLetter = async () => {
     const chosenAr = await openDialog();
-    const emp = selectedEmployee;
+    const emp = selectedProfile;
     const assignment = lastAssignment;
     if (!emp || !assignment) return;
     const room = rooms.find(
@@ -145,7 +165,7 @@ export default function RoomAssignment() {
     const floorNum = room ? floorMap[room.floorId]?.number : null;
     await generateHousingLetterPdf({
       isArabic: chosenAr,
-      employee: emp,
+      profile: emp,
       assignment: {
         ...assignment,
         bedNumber: assignment.bedNumber || selectedBed,
@@ -198,9 +218,12 @@ export default function RoomAssignment() {
     floors.map((f) => [f.id, { name: f.name, number: f.floorNumber }]),
   );
 
-  // كل الغرف غير الصيانة، مرتبة: المتاحة أولاً
+  // استبعاد الغرف غير الصالحة للسكن (صيانة، خارج الخدمة، خارج النظام)
   const availableRooms = rooms
-    .filter((r) => r.status?.toLowerCase() !== "maintenance")
+    .filter((r) => {
+      const s = r.status?.toLowerCase() || "";
+      return !["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(s);
+    })
     .sort((a, b) => {
       const aFull = a.currentOccupancy >= a.capacity;
       const bFull = b.currentOccupancy >= b.capacity;
@@ -225,6 +248,30 @@ export default function RoomAssignment() {
       return false;
     return true;
   });
+
+  const recommendation = useMemo(() => {
+    if (!selectedProfile || !rooms.length) return null;
+    return recommendBestRooms({
+      profile: selectedProfile,
+      rooms,
+      assignments: allAssignments,
+      profiles: [],
+    });
+  }, [selectedProfile, rooms, allAssignments]);
+
+  // Pre-sort filtered rooms so recommended ones appear first
+  const sortedFilteredRooms = useMemo(() => {
+    if (!recommendation) return filteredRooms;
+    return [...filteredRooms].sort((a, b) => {
+      const isRecA = recommendation.recommendedMap[a.id]?.levelMatch ? 1 : 0;
+      const isRecB = recommendation.recommendedMap[b.id]?.levelMatch ? 1 : 0;
+      if (isRecA !== isRecB) return isRecB - isRecA;
+      const scoreA = recommendation.recommendedMap[a.id]?.score ?? 0;
+      const scoreB = recommendation.recommendedMap[b.id]?.score ?? 0;
+      return scoreB - scoreA;
+    });
+  }, [filteredRooms, recommendation]);
+
 
   const selectedRoom = rooms.find((r) => r.id === parseInt(selectedRoomId));
   const bedOptions = selectedRoom
@@ -254,16 +301,25 @@ export default function RoomAssignment() {
         let description = err.message;
         try {
           const body = await err?.response?.json?.();
+          if (body?.code === "BED_OCCUPANT_ON_VACATION" && body?.canOverride) {
+            setVacationPromptData({
+              occupantName: body.occupantName || (ar ? "الموظف الأصلي" : "Original Occupant"),
+              vacationEndDate: body.vacationEndDate,
+            });
+            return;
+          }
           if (body?.code === "BED_TAKEN") {
-            description = ar
-              ? `هذا السرير مشغول بالفعل. اختر سريرًا آخر.`
-              : `This bed is already occupied. Please choose a different bed.`;
-          } else if (body?.code === "EMPLOYEE_ALREADY_ASSIGNED") {
+            description = body.error || (ar
+              ? `هذا السرير مشغول بالفعل بمقيم بالسكن. ممنوع منعاً باتاً تسكين شخص فوق شخص على نفس السرير.`
+              : `This bed is already occupied. Double-rooming on the same bed is strictly forbidden.`);
+          } else if (body?.code === "ROOM_NOT_ELIGIBLE") {
+            description = body.error || (ar ? "الغرفة غير صالحة للتسكين حالياً (صيانة / خارج الخدمة)." : "Room is not eligible.");
+          } else if (body?.code === "PROFILE_ALREADY_ASSIGNED") {
             description = ar
               ? `الموظف مسكّن بالفعل في غرفة رقم ${body.existingRoomId}. يجب تسجيل الخروج أولاً.`
-              : `Employee already assigned to room ${body.existingRoomId}. Please check out first.`;
+              : `Profile already assigned to room ${body.existingRoomId}. Please check out first.`;
           } else if (body?.code === "ROOM_FULL") {
-            description = ar ? `الغرفة ممتلئة.` : `Room is full.`;
+            description = ar ? `الغرفة وصلت للحد الأقصى لطاقتها الاستيعابية.` : `Room is full.`;
           } else if (body?.error) {
             description = body.error;
           }
@@ -273,7 +329,7 @@ export default function RoomAssignment() {
     },
   });
 
-  /* Cross-property employee search */
+  /* Cross-property profile search */
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!empSearch.trim() || empSearch.trim().length < 2) {
@@ -287,7 +343,7 @@ export default function RoomAssignment() {
         const propParam =
           searchPropertyId !== "all" ? `&propertyId=${searchPropertyId}` : "";
         const resp = await fetch(
-          `/api/employees/search?q=${encodeURIComponent(empSearch.trim())}${propParam}`,
+          `/api/profiles/search?q=${encodeURIComponent(empSearch.trim())}${propParam}`,
         );
         const data = await resp.json();
         setEmpResults(data);
@@ -311,21 +367,21 @@ export default function RoomAssignment() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const selectEmployee = (emp: EmployeeResult) => {
-    setSelectedEmployee(emp);
-    setEmpSearch(`${emp.firstName} ${emp.lastName} (${emp.employeeId})`);
+  const selectProfile = (emp: ProfileResult) => {
+    setSelectedProfile(emp);
+    setEmpSearch(`${emp.firstName} ${emp.lastName} (${emp.profileId})`);
     setShowDropdown(false);
   };
 
-  const clearEmployee = () => {
-    setSelectedEmployee(null);
+  const clearProfile = () => {
+    setSelectedProfile(null);
     setEmpSearch("");
     setEmpResults([]);
   };
 
   const handleSubmit = () => {
-    if (!selectedEmployee) {
-      toast.error(ar ? "الرجاء اختيار موظف" : "Please select an employee");
+    if (!selectedProfile) {
+      toast.error(ar ? "الرجاء اختيار موظف" : "Please select an profile");
       return;
     }
     if (!selectedRoomId) {
@@ -346,7 +402,7 @@ export default function RoomAssignment() {
     createMutation.mutate({
       data: {
         propertyId: activePropertyId!,
-        employeeId: selectedEmployee.id,
+        profileId: selectedProfile.id,
         roomId: parseInt(selectedRoomId),
         checkInDate: new Date(checkInDate).toISOString(),
         expectedCheckOutDate: expectedCheckOut
@@ -358,6 +414,33 @@ export default function RoomAssignment() {
     });
   };
 
+  const handleConfirmVacationOverride = () => {
+    if (!selectedProfile || !selectedRoomId) return;
+    const checkout = expectedCheckOut || vacationPromptData?.vacationEndDate;
+    if (!checkout) {
+      toast.error(
+        ar
+          ? "يرجى تحديد تاريخ خروج متوقع للتسكين المؤقت لضمان عدم التعارض مع عودة المقيم الأصلي"
+          : "Please set an expected check-out date for the temporary assignment"
+      );
+      return;
+    }
+
+    createMutation.mutate({
+      data: {
+        propertyId: activePropertyId!,
+        profileId: selectedProfile.id,
+        roomId: parseInt(selectedRoomId),
+        checkInDate: new Date(checkInDate).toISOString(),
+        expectedCheckOutDate: new Date(checkout).toISOString(),
+        bedNumber: selectedBed ? parseInt(selectedBed) : undefined,
+        notes: notes || undefined,
+        isTemporaryVacationOverride: true,
+      } as any,
+    });
+    setVacationPromptData(null);
+  };
+
   return (
     <div className="space-y-5 max-w-3xl mx-auto">
       <div>
@@ -367,7 +450,7 @@ export default function RoomAssignment() {
         <p className="text-sm text-muted-foreground mt-1">
           {ar
             ? "تعيين موظف لغرفة محددة مع تحديد السرير عند الحاجة"
-            : "Assign an employee to a specific room with optional bed selection"}
+            : "Assign an profile to a specific room with optional bed selection"}
         </p>
       </div>
 
@@ -376,7 +459,7 @@ export default function RoomAssignment() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-primary" />
-            {ar ? "بيانات الموظف" : "Employee"}
+            {ar ? "بيانات الموظف" : "Profile"}
           </CardTitle>
           <CardDescription>
             {ar ? "ابحث عن موظف من أي فرع" : "Search across all properties"}
@@ -389,7 +472,7 @@ export default function RoomAssignment() {
                 value={searchPropertyId}
                 onValueChange={(v) => {
                   setSearchPropertyId(v);
-                  clearEmployee();
+                  clearProfile();
                 }}
               >
                 <SelectTrigger className="h-8 text-sm">
@@ -424,13 +507,13 @@ export default function RoomAssignment() {
                 value={empSearch}
                 onChange={(e) => {
                   setEmpSearch(e.target.value);
-                  if (selectedEmployee) clearEmployee();
+                  if (selectedProfile) clearProfile();
                 }}
                 autoComplete="off"
               />
               {empSearch && (
                 <button
-                  onClick={clearEmployee}
+                  onClick={clearProfile}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-4 h-4" />
@@ -454,7 +537,7 @@ export default function RoomAssignment() {
                   <button
                     key={emp.id}
                     className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-start gap-3 border-b last:border-0 transition-colors"
-                    onClick={() => selectEmployee(emp)}
+                    onClick={() => selectProfile(emp)}
                   >
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-primary">
@@ -467,7 +550,7 @@ export default function RoomAssignment() {
                         {emp.firstName} {emp.lastName}
                       </p>
                       <p className="text-xs text-muted-foreground font-mono">
-                        {emp.employeeId} • {emp.nationalId}
+                        {emp.profileId} • {emp.nationalId}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         {emp.jobTitle && (
@@ -497,27 +580,27 @@ export default function RoomAssignment() {
             )}
           </div>
 
-          {selectedEmployee && (
+          {selectedProfile && (
             <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm">
-                  {selectedEmployee.firstName} {selectedEmployee.lastName}
+                  {selectedProfile.firstName} {selectedProfile.lastName}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedEmployee.employeeId} •{" "}
-                  {selectedEmployee.jobTitle || "—"} •{" "}
-                  {selectedEmployee.department || "—"}
+                  {selectedProfile.profileId} •{" "}
+                  {selectedProfile.jobTitle || "—"} •{" "}
+                  {selectedProfile.department || "—"}
                 </p>
-                {selectedEmployee.propertyId !== activePropertyId && (
+                {selectedProfile.propertyId !== activePropertyId && (
                   <Badge className="mt-1 text-[10px] bg-amber-500">
                     <Building2 className="w-2.5 h-2.5 mr-1" />
-                    {selectedEmployee.propertyName}
+                    {selectedProfile.propertyName}
                   </Badge>
                 )}
               </div>
               <button
-                onClick={clearEmployee}
+                onClick={clearProfile}
                 className="text-muted-foreground hover:text-foreground flex-shrink-0"
               >
                 <X className="w-4 h-4" />
@@ -526,6 +609,52 @@ export default function RoomAssignment() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── كارت الترشيح الذكي حسب المستوى ── */}
+      {selectedProfile && recommendation?.bestRoom && (
+        <div className="p-4 rounded-2xl border-2 border-amber-400 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-in fade-in">
+          <div className="flex items-start gap-3.5">
+            <div className="p-3 rounded-xl bg-amber-500 text-white shadow-md">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-extrabold text-sm text-foreground">
+                  {ar ? "أفضل غرفة مقترحة تلقائياً للموظف:" : "Best Recommended Room for Employee:"}
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-xs font-black bg-amber-500 text-white shadow-sm">
+                  {recommendation.recommendedMap[recommendation.bestRoom.id]?.badgeLabelAr || "⭐ موصى بها"}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {ar ? `غرفة رقم ${recommendation.bestRoom.roomNumber} (${recommendation.bestRoom.roomType || "قياسية"} - سعة ${recommendation.bestRoom.capacity} سرير)` : `Room ${recommendation.bestRoom.roomNumber}`}
+                {recommendation.recommendedMap[recommendation.bestRoom.id]?.matchReasonAr
+                  ? ` • ${recommendation.recommendedMap[recommendation.bestRoom.id].matchReasonAr}`
+                  : ""}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            onClick={() => {
+              const best = recommendation.bestRoom;
+              setSelectedRoomId(String(best.id));
+              // Pick first free bed
+              const bCap = best.capacity || 1;
+              const curOccs = (allAssignments || []).filter(
+                (a: any) => a.status === "ACTIVE" && a.roomId === best.id && a.bedNumber != null
+              ).map((a: any) => a.bedNumber);
+              const freeBed = Array.from({ length: bCap }, (_, i) => i + 1).find(b => !curOccs.includes(b));
+              if (freeBed) setSelectedBed(String(freeBed));
+              toast.success(ar ? `تم اختيار الغرفة المقترحة رقم ${best.roomNumber} بنجاح` : `Selected room ${best.roomNumber}`);
+            }}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-md flex-shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            {ar ? "اختيار هذه الغرفة وتسكينه فوراً" : "Select Recommended Room"}
+          </Button>
+        </div>
+      )}
 
       {/* بطاقة الغرفة */}
       <Card>
@@ -676,7 +805,7 @@ export default function RoomAssignment() {
                     </p>
                   </div>
                 ) : (
-                  filteredRooms.map((r) => {
+                  sortedFilteredRooms.map((r) => {
                     const isFull = r.currentOccupancy >= r.capacity;
                     const building = buildingMap[r.buildingId] ?? "—";
                     const floor = floorMap[r.floorId];
@@ -692,6 +821,12 @@ export default function RoomAssignment() {
                           <span className="font-mono font-bold text-primary">
                             {r.roomNumber}
                           </span>
+                          {recommendation?.recommendedMap[r.id]?.levelMatch && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded font-extrabold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400 flex items-center gap-1">
+                              <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                              {recommendation.recommendedMap[r.id].badgeLabelAr}
+                            </span>
+                          )}
                           <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                             {building}
                           </span>
@@ -907,7 +1042,7 @@ export default function RoomAssignment() {
             onClick={handleSubmit}
             disabled={
               createMutation.isPending ||
-              !selectedEmployee ||
+              !selectedProfile ||
               !selectedRoomId ||
               (!!selectedRoom &&
                 selectedRoom.currentOccupancy >= selectedRoom.capacity)
@@ -930,6 +1065,9 @@ export default function RoomAssignment() {
         onOpenChange={(open) => {
           if (!open && keyIssuing) return;
           setKeyPromptOpen(open);
+          if (!open) {
+            setLocation("/accommodation/in-house");
+          }
         }}
       >
         <DialogContent className="max-w-xl">
@@ -963,9 +1101,9 @@ export default function RoomAssignment() {
                 propertyId={activePropertyId}
                 roomId={selectedRoom.id}
                 assignmentId={lastAssignment.id}
-                employeeId={
-                  selectedEmployee
-                    ? parseInt(selectedEmployee.id as any)
+                profileId={
+                  selectedProfile
+                    ? parseInt(selectedProfile.id as any)
                     : undefined
                 }
                 checkInDate={checkInDate}
@@ -1010,6 +1148,70 @@ export default function RoomAssignment() {
                 {ar ? "متابعة" : "Continue"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── ديالوج تأكيد تصريح الإدارة للتسكين المؤقت (بديل إجازة) ── */}
+      <Dialog
+        open={!!vacationPromptData}
+        onOpenChange={(open) => !open && setVacationPromptData(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              {ar ? "تصريح إدارة السكن: تسكين مؤقت بديل إجازة" : "Manager Override: Temporary Vacation Housing"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-sm">
+            <p className="text-foreground">
+              {ar
+                ? `السرير رقم (${selectedBed}) مخصص للموظف (${vacationPromptData?.occupantName}) وهو حالياً في إجازة رسمية${
+                    vacationPromptData?.vacationEndDate ? ` حتى تاريخ ${vacationPromptData.vacationEndDate}` : ""
+                  }.`
+                : `Bed #${selectedBed} is assigned to ${vacationPromptData?.occupantName} who is currently on vacation.`}
+            </p>
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs space-y-1 text-amber-900 dark:text-amber-200">
+              <p className="font-bold">
+                {ar ? "⚠️ ضوابط التسكين المؤقت وفقاً لسياسة السكن:" : "Policy Rules:"}
+              </p>
+              <p>• {ar ? "يُسمح بالتسكين المؤقت فقط بقرار وتصريح من مدير السكن أو الآدمن." : "Allowed only by Housing Manager or Admin permission."}</p>
+              <p>• {ar ? "ممنوع منعاً باتاً تسكين شخصين معاً؛ هذا التسكين مؤقت فقط طالما أن الموظف الأصلي في إجازة." : "No double rooming allowed; only valid while resident is away."}</p>
+              <p>• {ar ? "يجب مغادرة أو نقل الموظف البديل فور عودة الموظف الأصلي من الإجازة." : "Temporary occupant must vacate before original resident returns."}</p>
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs font-bold">
+                {ar ? "تاريخ مغادرة الموظف المؤقت (إلزامي):" : "Expected Check-out Date (Required):"}
+              </label>
+              <Input
+                type="date"
+                value={expectedCheckOut || vacationPromptData?.vacationEndDate || ""}
+                max={vacationPromptData?.vacationEndDate || undefined}
+                onChange={(e) => setExpectedCheckOut(e.target.value)}
+              />
+              {vacationPromptData?.vacationEndDate && (
+                <p className="text-[11px] text-muted-foreground">
+                  {ar ? `تاريخ عودة المقيم الأصلي من الإجازة: ${vacationPromptData.vacationEndDate}` : `Return date: ${vacationPromptData.vacationEndDate}`}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end pt-3">
+            <Button
+              variant="outline"
+              onClick={() => setVacationPromptData(null)}
+            >
+              {ar ? "إلغاء والتراجع" : "Cancel"}
+            </Button>
+            <Button
+              onClick={handleConfirmVacationOverride}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              {ar ? "تأكيد التسكين المؤقت (بتصريح الإدارة)" : "Authorize Temporary Assignment"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

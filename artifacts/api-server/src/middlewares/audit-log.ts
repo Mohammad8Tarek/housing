@@ -24,7 +24,7 @@ function inferAction(method: string, url: string): string {
 function inferModule(url: string): string {
   const map: Record<string, string> = {
     assignments: "assignments",
-    employees: "employees",
+    profiles: "profiles",
     rooms: "rooms",
     buildings: "buildings",
     floors: "floors",

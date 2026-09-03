@@ -127,8 +127,8 @@ export default function Dashboard() {
   const statCards = isAll
     ? [
         {
-          title: ar ? "إجمالي الموظفين" : "Total Employees",
-          value: totals?.totalEmployees ?? 0,
+          title: ar ? "إجمالي الموظفين" : "Total Profiles",
+          value: totals?.totalProfiles ?? 0,
           sub: ar ? "عبر كل الفروع" : "Across all properties",
           icon: Users,
           color: "text-blue-600",
@@ -152,7 +152,7 @@ export default function Dashboard() {
           alert: (totals?.openMaintenance ?? 0) > 0,
         },
         {
-          title: ar ? "الحجوزات القادمة" : "Upcoming Reservations",
+          title: ar ? "حجوزات الوصول" : "Arrival Reservations",
           value: totals?.upcomingReservations ?? 0,
           sub: ar ? "عبر كل الفروع" : "Across all properties",
           icon: CalendarCheck,
@@ -171,11 +171,11 @@ export default function Dashboard() {
           bg: "bg-violet-50 dark:bg-violet-950/30",
         },
         {
-          title: ar ? "إجمالي الموظفين" : "Total Employees",
-          value: stats?.totalEmployees ?? 0,
-          sub: `${stats?.activeEmployees ?? 0} ${ar ? "نشط" : "active"}, ${stats?.unhousedEmployees ?? 0} ${ar ? "غير مسكن" : "unhoused"}`,
+          title: ar ? "إجمالي الموظفين" : "Total Profiles",
+          value: stats?.totalProfiles ?? 0,
+          sub: `${stats?.activeProfiles ?? 0} ${ar ? "نشط" : "active"}, ${stats?.unhousedProfiles ?? 0} ${ar ? "غير مسكن" : "unhoused"}`,
           icon: Users,
-          href: "/employees",
+          href: "/profiles",
           color: "text-blue-600",
           bg: "bg-blue-50 dark:bg-blue-950/30",
         },
@@ -189,9 +189,9 @@ export default function Dashboard() {
           bg: "bg-primary/8 dark:bg-primary/15",
         },
         {
-          title: ar ? "الحجوزات القادمة" : "Upcoming Reservations",
+          title: ar ? "حجوزات الوصول" : "Arrival Reservations",
           value: stats?.upcomingReservations ?? 0,
-          sub: ar ? "حجوزات نشطة قادمة" : "Pending upcoming check-ins",
+          sub: ar ? "حجوزات وصول قيد الانتظار" : "Pending arrival check-ins",
           icon: CalendarCheck,
           href: "/accommodation/reservations",
           color: "text-purple-600",
@@ -305,7 +305,7 @@ export default function Dashboard() {
                       {ar ? "الفرع" : "Property"}
                     </th>
                     <th className="text-center py-2 px-2 font-semibold">
-                      {ar ? "الموظفون" : "Employees"}
+                      {ar ? "الموظفون" : "Profiles"}
                     </th>
                     <th className="text-center py-2 px-2 font-semibold">
                       {ar ? "الغرف" : "Rooms"}
@@ -333,7 +333,7 @@ export default function Dashboard() {
                     >
                       <td className="py-2.5 px-2 font-medium">{p.name}</td>
                       <td className="py-2.5 px-2 text-center">
-                        {p.totalEmployees}
+                        {p.totalProfiles}
                       </td>
                       <td className="py-2.5 px-2 text-center">
                         {p.totalRooms}
@@ -460,7 +460,7 @@ export default function Dashboard() {
                   <CardDescription className="text-xs mt-0.5">
                     {ar
                       ? "مغادرات الموظفين القادمة"
-                      : "Upcoming employee checkouts"}
+                      : "Upcoming profile checkouts"}
                   </CardDescription>
                 </div>
                 <Link href="/accommodation/in-house">
@@ -487,7 +487,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
-                            {alert.employeeName}
+                            {alert.profileName}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
                             {alert.buildingName}, {ar ? "الغرفة" : "Room"}{" "}
@@ -533,9 +533,9 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {[
                 {
-                  label: ar ? "تعيين غرفة" : "Room Assignment",
+                  label: ar ? "الحجوزات والتسكين" : "Reservations & Housing",
                   icon: UserCheck,
-                  href: "/accommodation/room-assignment",
+                  href: "/accommodation/reservations",
                   color: "text-primary bg-primary/10",
                 },
                 {

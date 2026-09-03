@@ -195,7 +195,7 @@ export function OccupancyTab({
                                         {room.roomNumber}
                                       </span>
                                       <span
-                                        className={`w-2 h-2 rounded-full flex-shrink-0 ${statusNorm(room.status) === "available" ? "bg-green-500" : statusNorm(room.status) === "occupied" ? "bg-blue-500" : "bg-red-500"}`}
+                                        className={`w-2 h-2 rounded-full flex-shrink-0 ${statusNorm(room.status) === "available" ? "bg-emerald-500" : statusNorm(room.status) === "occupied_vacation" ? "bg-amber-500" : statusNorm(room.status) === "occupied" ? "bg-blue-500" : statusNorm(room.status) === "dirty" ? "bg-orange-500" : statusNorm(room.status) === "occupied_dirty" ? "bg-purple-500" : "bg-red-500"}`}
                                       />
                                     </div>
                                     <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1.5">

@@ -3,7 +3,8 @@
 export const MODULES = [
   "dashboard",
   "housing",
-  "employees",
+  "housekeeping",
+  "profiles",
   "accommodation",
   "reservations",
   "maintenance",
@@ -71,7 +72,8 @@ export const ACTIONS: Action[] = [
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
   dashboard: ["view", "export"],
   housing: ["view", "create", "edit", "delete", "export", "bulk_export"],
-  employees: [
+  housekeeping: ["view", "edit", "assign", "approve", "bulk_export"],
+  profiles: [
     "view",
     "create",
     "edit",
@@ -190,9 +192,15 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     // Housing
     ...crudPerms("housing"),
     "housing.bulk_export",
-    // Employees
-    ...crudPerms("employees"),
-    "employees.export",
+    // Housekeeping
+    "housekeeping.view",
+    "housekeeping.edit",
+    "housekeeping.assign",
+    "housekeeping.approve",
+    "housekeeping.bulk_export",
+    // Profiles
+    ...crudPerms("profiles"),
+    "profiles.export",
     // Accommodation
     ...crudPerms("accommodation"),
     "accommodation.assign",
@@ -247,7 +255,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "dashboard.view",
     "housing.view",
     "housing.export",
-    "employees.view",
+    "housekeeping.view",
+    "profiles.view",
     "accommodation.view",
     "accommodation.create",
     "accommodation.edit",
@@ -276,20 +285,22 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   maintenance_staff: [
     "dashboard.view",
     "housing.view",
+    "housekeeping.view",
+    "housekeeping.edit",
     "maintenance.view",
     "maintenance.create",
     "maintenance.edit",
     "maintenance.assign",
     "maintenance.approve",
-    "employees.view",
+    "profiles.view",
     "activity_log.view",
     "documents.view",
   ],
   hr_admin: [
     "dashboard.view",
     "dashboard.export",
-    ...crudPerms("employees"),
-    "employees.export",
+    ...crudPerms("profiles"),
+    "profiles.export",
     ...crudPerms("evaluations"),
     "evaluations.export",
     ...crudPerms("surveys"),
@@ -323,7 +334,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
 export const MODULE_LABELS: Record<Module, { en: string; ar: string }> = {
   dashboard: { en: "Dashboard", ar: "لوحة القيادة" },
   housing: { en: "Housing", ar: "الإسكان" },
-  employees: { en: "Employees", ar: "الموظفين" },
+  housekeeping: { en: "Housekeeping", ar: "النظافة" },
+  profiles: { en: "Profiles", ar: "الموظفين" },
   accommodation: { en: "Accommodation", ar: "الإقامة" },
   reservations: { en: "Reservations", ar: "الحجوزات" },
   maintenance: { en: "Tickets", ar: "التذاكر" },
@@ -364,3 +376,62 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   archive: { en: "Archive", ar: "أرشفة" },
   unlock: { en: "Unlock", ar: "فتح القفل" },
 };
+
+export const PERMISSION_GROUPS: Array<{
+  id: string;
+  label: { en: string; ar: string };
+  description: { en: string; ar: string };
+  modules: Module[];
+}> = [
+  {
+    id: "daily_operations",
+    label: { en: "Daily Operations", ar: "التشغيل اليومي" },
+    description: {
+      en: "Dashboard, housing setup, rooms, housekeeping, and maintenance.",
+      ar: "لوحة المتابعة والسكن والغرف والنظافة والصيانة.",
+    },
+    modules: ["dashboard", "housing", "housekeeping", "maintenance"],
+  },
+  {
+    id: "accommodation_flow",
+    label: { en: "Accommodation Flow", ar: "مسار التسكين" },
+    description: {
+      en: "Profiles, assignments, reservations, hosting, and approvals.",
+      ar: "الموظفين والتسكين والحجوزات وطلبات الاعتماد.",
+    },
+    modules: ["profiles", "accommodation", "reservations", "hosting_requests"],
+  },
+  {
+    id: "employee_portal",
+    label: { en: "Employee Portal", ar: "بوابة الموظف" },
+    description: {
+      en: "Portal content, activities, documents, surveys, and communications.",
+      ar: "محتوى البوابة والأنشطة والمستندات والاستبيانات والتواصل.",
+    },
+    modules: [
+      "portal_content",
+      "activities",
+      "documents",
+      "surveys",
+      "communications",
+    ],
+  },
+  {
+    id: "management",
+    label: { en: "Management", ar: "الإدارة" },
+    description: {
+      en: "Reports, evaluations, billing, settings, and properties.",
+      ar: "التقارير والتقييمات والفواتير والإعدادات والفروع.",
+    },
+    modules: ["reports", "evaluations", "billing", "settings", "properties"],
+  },
+  {
+    id: "security",
+    label: { en: "Security & Audit", ar: "الأمان والتدقيق" },
+    description: {
+      en: "Users, permission management, activity log, and smart locks.",
+      ar: "المستخدمين وإدارة الصلاحيات وسجل النشاط والأقفال الذكية.",
+    },
+    modules: ["users", "activity_log", "smart_locks"],
+  },
+];

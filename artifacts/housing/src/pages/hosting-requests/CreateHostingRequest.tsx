@@ -37,9 +37,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-type EmployeeResult = {
+type ProfileResult = {
   id: number;
-  employeeId: string;
+  profileId: string;
   firstName?: string;
   lastName?: string;
   jobTitle?: string | null;
@@ -110,14 +110,14 @@ export default function CreateHostingRequest() {
   const [isSearchingRoom, setIsSearchingRoom] = useState(false);
   const searchRoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [employee, setEmployee] = useState<EmployeeResult | null>(null);
+  const [profile, setProfile] = useState<ProfileResult | null>(null);
   const [isSearchingEmp, setIsSearchingEmp] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-fetch employee by Clock Number (debounced)
+  // Auto-fetch profile by Clock Number (debounced)
   useEffect(() => {
     if (!form.clockNumber || form.clockNumber.length < 2) {
-      setEmployee(null);
+      setProfile(null);
       return;
     }
 
@@ -128,19 +128,19 @@ export default function CreateHostingRequest() {
       try {
         const propId = form.hotelId || activePropertyId || "";
         const resp = await fetch(
-          `/api/employees/search?q=${encodeURIComponent(form.clockNumber)}&propertyId=${propId}`,
+          `/api/profiles/search?q=${encodeURIComponent(form.clockNumber)}&propertyId=${propId}`,
         );
         const data = await resp.json();
         if (Array.isArray(data) && data.length > 0) {
           const exact = data.find(
-            (e) => String(e.employeeId) === String(form.clockNumber),
+            (e) => String(e.profileId) === String(form.clockNumber),
           );
-          setEmployee(exact || data[0]);
+          setProfile(exact || data[0]);
         } else {
-          setEmployee(null);
+          setProfile(null);
         }
       } catch {
-        setEmployee(null);
+        setProfile(null);
       } finally {
         setIsSearchingEmp(false);
       }
@@ -248,19 +248,19 @@ export default function CreateHostingRequest() {
     },
   });
 
-  // Hosting history for this employee
+  // Hosting history for this profile
   const { data: hostingHistory = [], isLoading: isLoadingHistory } = useQuery<HistoryRecord[]>({
-    queryKey: ["hosting-history", employee?.employeeId],
+    queryKey: ["hosting-history", profile?.profileId],
     queryFn: async () => {
-      if (!employee?.employeeId) return [];
+      if (!profile?.profileId) return [];
       const res = await fetch(
-        `/api/hosting-requests/history/${encodeURIComponent(String(employee.employeeId))}`,
+        `/api/hosting-requests/history/${encodeURIComponent(String(profile.profileId))}`,
       );
       if (!res.ok) return [];
       const data = await res.json();
       return data.data || [];
     },
-    enabled: !!employee?.employeeId,
+    enabled: !!profile?.profileId,
   });
 
   // Detect if selected dates overlap with any active/in_signing history record
@@ -299,15 +299,15 @@ export default function CreateHostingRequest() {
       toast.error(
         ar
           ? `يوجد طلب مكرر للموظف في نفس الفترة (طلب رقم ${hasDateConflict.requestNumber})`
-          : `Duplicate request exists for this employee in the same period (Request ${hasDateConflict.requestNumber})`,
+          : `Duplicate request exists for this profile in the same period (Request ${hasDateConflict.requestNumber})`,
       );
       return;
     }
     createMutation.mutate();
   };
 
-  const empFullName = employee
-    ? `${employee.firstName ?? ""} ${employee.lastName ?? ""}`.trim()
+  const empFullName = profile
+    ? `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim()
     : "";
 
   return (
@@ -388,7 +388,7 @@ export default function CreateHostingRequest() {
             </CardContent>
           </Card>
 
-          {/* Section 2: Employee Data */}
+          {/* Section 2: Profile Data */}
           <Card className="border-t-4 border-t-blue-400/40 bg-blue-50/20 dark:bg-blue-950/10">
             <CardHeader className="bg-blue-50/40 dark:bg-blue-900/10 pb-4 flex flex-row items-center gap-3 space-y-0">
               <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
@@ -396,7 +396,7 @@ export default function CreateHostingRequest() {
               </div>
               <div className="flex-1">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  {ar ? "بيانات الموظف" : "Employee Data"}
+                  {ar ? "بيانات الموظف" : "Profile Data"}
                   <span className="px-2 py-0.5 text-[10px] uppercase font-semibold bg-blue-100 text-blue-700 rounded-full">
                     {ar ? "تعبئة تلقائية" : "Auto-filled"}
                   </span>
@@ -424,9 +424,9 @@ export default function CreateHostingRequest() {
                   value={form.clockNumber}
                   onChange={(e) => updateField("clockNumber", e.target.value)}
                 />
-                {form.clockNumber.length >= 2 && !isSearchingEmp && !employee && (
+                {form.clockNumber.length >= 2 && !isSearchingEmp && !profile && (
                   <p className="text-xs text-rose-500">
-                    {ar ? "لم يُعثر على موظف بهذا الرقم" : "No employee found with this ID"}
+                    {ar ? "لم يُعثر على موظف بهذا الرقم" : "No profile found with this ID"}
                   </p>
                 )}
               </div>
@@ -444,7 +444,7 @@ export default function CreateHostingRequest() {
                 <Input
                   readOnly
                   className="bg-muted/50"
-                  value={employee?.department || ""}
+                  value={profile?.department || ""}
                   placeholder={ar ? "القسم" : "Department"}
                 />
               </div>
@@ -453,7 +453,7 @@ export default function CreateHostingRequest() {
                 <Input
                   readOnly
                   className="bg-muted/50"
-                  value={employee?.jobTitle || ""}
+                  value={profile?.jobTitle || ""}
                   placeholder={ar ? "المنصب" : "Position"}
                 />
               </div>
@@ -462,7 +462,7 @@ export default function CreateHostingRequest() {
                 <Input
                   readOnly
                   className="bg-muted/50"
-                  value={employee?.accommodationBuilding || ""}
+                  value={profile?.accommodationBuilding || ""}
                   placeholder={ar ? "المبنى" : "Building"}
                 />
               </div>
@@ -471,7 +471,7 @@ export default function CreateHostingRequest() {
                 <Input
                   readOnly
                   className="bg-muted/50"
-                  value={employee?.accommodationFloor || ""}
+                  value={profile?.accommodationFloor || ""}
                   placeholder={ar ? "الدور" : "Floor"}
                 />
               </div>
@@ -480,7 +480,7 @@ export default function CreateHostingRequest() {
                 <Input
                   readOnly
                   className="bg-muted/50"
-                  value={employee?.accommodationRoom || ""}
+                  value={profile?.accommodationRoom || ""}
                   placeholder={ar ? "الغرفة" : "Room"}
                 />
               </div>
@@ -489,7 +489,7 @@ export default function CreateHostingRequest() {
                 <Input
                   readOnly
                   className="bg-muted/50"
-                  value={employee?.accommodationRoomType || ""}
+                  value={profile?.accommodationRoomType || ""}
                   placeholder={ar ? "النوع" : "Type"}
                 />
               </div>
@@ -497,7 +497,7 @@ export default function CreateHostingRequest() {
           </Card>
 
           {/* Section 2.5: Hosting History */}
-          {employee && (
+          {profile && (
             <Card className="border-t-4 border-t-indigo-400/40">
               <CardHeader className="bg-indigo-50/30 dark:bg-indigo-900/10 pb-4 flex flex-row items-center gap-3 space-y-0">
                 <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
@@ -556,7 +556,7 @@ export default function CreateHostingRequest() {
                     <p className="text-sm">
                       {ar
                         ? "لا توجد استضافات سابقة لهذا الموظف"
-                        : "No previous hosting records for this employee"}
+                        : "No previous hosting records for this profile"}
                     </p>
                   </div>
                 )}
@@ -575,7 +575,7 @@ export default function CreateHostingRequest() {
                 <p className="text-sm mt-0.5 opacity-80">
                   {ar
                     ? `يوجد طلب ${hasDateConflict.status === "approved" ? "معتمد" : "قيد المراجعة"} رقم ${hasDateConflict.requestNumber} للموظف في نفس الفترة الزمنية.`
-                    : `A ${hasDateConflict.status === "approved" ? "approved" : "pending"} request (${hasDateConflict.requestNumber}) already exists for this employee covering the same dates.`}
+                    : `A ${hasDateConflict.status === "approved" ? "approved" : "pending"} request (${hasDateConflict.requestNumber}) already exists for this profile covering the same dates.`}
                 </p>
               </div>
             </div>

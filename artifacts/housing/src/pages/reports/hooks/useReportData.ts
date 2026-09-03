@@ -4,7 +4,7 @@ import {
   useListRooms,
   useListBuildings,
   useListFloors,
-  useListEmployees,
+  useListProfiles,
   useListAssignments,
   useListReservations,
   useListMaintenance,
@@ -69,11 +69,11 @@ export function useReportData(
   );
   const rooms: any[] = (_rData as any)?.data || _rData || [];
 
-  const { data: _eData, isLoading: empLoad } = useListEmployees(
+  const { data: _eData, isLoading: empLoad } = useListProfiles(
     { propertyId: propId } as any,
-    { query: { queryKey: ["employees", propId, 1000], enabled: !!propId } },
+    { query: { queryKey: ["profiles", propId, 1000], enabled: !!propId } },
   );
-  const employees: any[] = (_eData as any)?.data || _eData || [];
+  const profiles: any[] = (_eData as any)?.data || _eData || [];
 
   const { data: _aData, isLoading: assLoad } = useListAssignments(
     { propertyId: propId } as any,
@@ -146,28 +146,28 @@ export function useReportData(
 
   const departments = useMemo(() => {
     const set = new Set<string>();
-    employees.forEach((e: any) => {
+    profiles.forEach((e: any) => {
       if (e.department) set.add(e.department.trim());
     });
     reservations.forEach((r: any) => {
       if (r.department) set.add(r.department.trim());
     });
     return Array.from(set).sort();
-  }, [employees, reservations]);
+  }, [profiles, reservations]);
 
   const nationalities = useMemo(() => {
     const set = new Set<string>();
-    employees.forEach((e: any) => {
+    profiles.forEach((e: any) => {
       if (e.nationality) set.add(e.nationality.trim());
     });
     return Array.from(set).sort();
-  }, [employees]);
+  }, [profiles]);
 
   const empMap = useMemo(() => {
     const m: Record<number, any> = {};
-    employees.forEach((e: any) => (m[e.id] = e));
+    profiles.forEach((e: any) => (m[e.id] = e));
     return m;
-  }, [employees]);
+  }, [profiles]);
 
   return {
     properties,
@@ -176,7 +176,7 @@ export function useReportData(
     buildings,
     floors,
     rooms,
-    employees,
+    profiles,
     assignments,
     reservations,
     maintenance,

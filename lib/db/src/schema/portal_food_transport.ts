@@ -38,7 +38,7 @@ export const portalFoodMenuTable = pgTable("portal_food_menu", {
 export const portalMealOrdersTable = pgTable("portal_meal_orders", {
   id: serial("id").primaryKey(),
   propertyId: integer("property_id").notNull(),
-  employeeId: integer("employee_id").notNull(),
+  profileId: integer("profile_id").notNull(),
   menuItemId: integer("menu_item_id").notNull(),
   quantity: integer("quantity").notNull().default(1),
   orderDate: date("order_date").notNull(),
@@ -49,7 +49,7 @@ export const portalMealOrdersTable = pgTable("portal_meal_orders", {
     .defaultNow(),
 }, (table) => [
   index("idx_portal_meal_orders_property_id").on(table.propertyId),
-  index("idx_portal_meal_orders_employee_id").on(table.employeeId),
+  index("idx_portal_meal_orders_profile_id").on(table.profileId),
   index("idx_portal_meal_orders_order_date").on(table.orderDate),
 ]);
 
@@ -85,7 +85,7 @@ export const portalTransportBookingsTable = pgTable(
   {
     id: serial("id").primaryKey(),
     propertyId: integer("property_id").notNull(),
-    employeeId: integer("employee_id").notNull(),
+    profileId: integer("profile_id").notNull(),
     scheduleId: integer("schedule_id").notNull(),
     bookingDate: date("booking_date").notNull(),
     status: text("status").notNull().default("confirmed"), // confirmed | boarded | cancelled
@@ -95,7 +95,7 @@ export const portalTransportBookingsTable = pgTable(
   },
   (table) => [
     index("idx_portal_transport_bookings_property_id").on(table.propertyId),
-    index("idx_portal_transport_bookings_employee_id").on(table.employeeId),
+    index("idx_portal_transport_bookings_profile_id").on(table.profileId),
     index("idx_portal_transport_bookings_booking_date").on(table.bookingDate),
   ]
 );

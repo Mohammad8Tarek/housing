@@ -7,7 +7,7 @@ import propertiesRouter from "./properties";
 import buildingsRouter from "./buildings";
 import floorsRouter from "./floors";
 import roomsRouter from "./rooms";
-import employeesRouter from "./employees";
+import profilesRouter from "./profiles";
 import assignmentsRouter from "./assignments";
 import reservationsRouter from "./reservations";
 import hostingsRouter from "./hostings";
@@ -30,6 +30,7 @@ import hotekConfigRouter from "./hotek-config.js";
 import jobsRouter from "./jobs.js";
 
 import reportsRouter from "./reports.js";
+import roomImportRouter from "./room-import.js";
 
 // ✅ Portal Imports
 import portalAuthRouter from "./portal-auth.js";
@@ -52,7 +53,7 @@ router.use(healthRouter);
 router.post("/auth/login", loginRateLimit);
 router.use(authRouter);
 
-// Employee portal routes use their own portal session. Admin-only portal
+// Profile portal routes use their own portal session. Admin-only portal
 // maintenance actions add permission checks inside portal-auth.ts.
 router.use("/portal-auth", portalAuthRouter);
 router.use("/portal-data", portalRateLimit, portalDataRouter);
@@ -81,7 +82,7 @@ router.use(settingsRouter);
 router.use(buildingsRouter);
 router.use(floorsRouter);
 router.use(roomsRouter);
-router.use(employeesRouter);
+router.use(profilesRouter);
 router.use(assignmentsRouter);
 router.use(reservationsRouter);
 router.use(hostingsRouter);
@@ -102,5 +103,6 @@ router.use(userSignatureRouter);
 router.use(hostingRequestsRouter);
 router.use("/jobs", jobsRouter);
 router.use("/reports", reportsRouter);
+router.use(roomImportRouter);
 
 export default router;

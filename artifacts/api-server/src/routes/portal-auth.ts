@@ -2,8 +2,8 @@ import { Router } from "express";
 import { randomBytes, createHash } from "node:crypto";
 import { db, withTenant } from "@workspace/db";
 import {
-  employeesTable,
-  employeePortalAccountsTable,
+  profilesTable,
+  profilePortalAccountsTable,
   propertiesTable,
   settingsTable,
   assignmentsTable,
@@ -15,8 +15,8 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
 import {
-  defaultEmployeePortalPassword,
-  ensureEmployeePortalAccount,
+  defaultProfilePortalPassword,
+  ensureProfilePortalAccount,
 } from "../lib/portal-accounts.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { portalLoginRateLimit } from "../middlewares/rate-limit.js";
@@ -31,14 +31,14 @@ const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
 
 function generateTemporaryPassword(): string {
-  return defaultEmployeePortalPassword();
+  return defaultProfilePortalPassword();
 }
 
 export function portalSession(req: any) {
   return req.session?.portal as
     | {
-        employeeDbId: number;
-        employeeId: string;
+        profileDbId: number;
+        profileId: string;
         propertyId: number;
         fullName: string;
       }
@@ -80,7 +80,7 @@ export async function requirePortalAuth(req: any, res: any, next: any) {
       if (storedSess.portal) {
         req.session.portal = storedSess.portal;
         req.sessionID = xSid;
-        checkEmployeeIsActive(req, res, next);
+        checkProfileIsActive(req, res, next);
       } else {
         res.status(401).json({ success: false, message: "Not authenticated" });
       }
@@ -88,10 +88,10 @@ export async function requirePortalAuth(req: any, res: any, next: any) {
     return;
   }
 
-  checkEmployeeIsActive(req, res, next);
+  checkProfileIsActive(req, res, next);
 }
 
-async function checkEmployeeIsActive(req: any, res: any, next: any) {
+async function checkProfileIsActive(req: any, res: any, next: any) {
   const sess = portalSession(req);
   if (!sess) {
     res.status(401).json({ success: false, message: "Not authenticated" });
@@ -101,9 +101,9 @@ async function checkEmployeeIsActive(req: any, res: any, next: any) {
   try {
     const [emp] = await withTenant(sess.propertyId, async (tenantDb) => {
       return tenantDb
-        .select({ status: employeesTable.status })
-        .from(employeesTable)
-        .where(eq(employeesTable.id, sess.employeeDbId))
+        .select({ status: profilesTable.status })
+        .from(profilesTable)
+        .where(eq(profilesTable.id, sess.profileDbId))
         .limit(1);
     });
 
@@ -124,7 +124,7 @@ async function checkEmployeeIsActive(req: any, res: any, next: any) {
 }
 
 const LoginSchema = z.object({
-  employeeId: z.string().min(1),
+  profileId: z.string().min(1),
   password: z.string().min(1),
 });
 
@@ -134,14 +134,14 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
     if (!parsed.success) {
       res.status(400).json({
         success: false,
-        message: "employeeId and password are required",
+        message: "profileId and password are required",
       });
       return;
     }
 
-    const { employeeId, password } = parsed.data;
+    const { profileId, password } = parsed.data;
 
-    // Cross-Tenant Search to find the employee (parallelized)
+    // Cross-Tenant Search to find the profile (parallelized)
     const properties = await db
       .select({ id: propertiesTable.id })
       .from(propertiesTable);
@@ -152,16 +152,16 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
           return await withTenant(p.id, async (tenantDb) => {
             const [emp] = await tenantDb
               .select()
-              .from(employeesTable)
-              .where(eq(employeesTable.employeeId, employeeId.trim()))
+              .from(profilesTable)
+              .where(eq(profilesTable.profileId, profileId.trim()))
               .limit(1);
             if (!emp) return null;
             // ✅ Always pick the most recent account (DESC) to avoid stale duplicates
             const [acc] = await tenantDb
               .select()
-              .from(employeePortalAccountsTable)
+              .from(profilePortalAccountsTable)
               .where(
-                eq(employeePortalAccountsTable.employeeId, employeeId.trim()),
+                eq(profilePortalAccountsTable.profileId, profileId.trim()),
               )
               .orderBy(sql`id DESC`)
               .limit(1);
@@ -177,34 +177,34 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       }),
     );
 
-    let employee: any = null;
+    let profile: any = null;
     let account: any = null;
     let targetPropertyId: number | null = null;
 
     for (const found of results) {
       if (!found?.emp) continue;
-      if (!employee) {
-        employee = found.emp;
+      if (!profile) {
+        profile = found.emp;
         account = found.acc;
         targetPropertyId = found.propertyId;
       }
       if (found.acc?.isActive) {
-        employee = found.emp;
+        profile = found.emp;
         account = found.acc;
         targetPropertyId = found.propertyId;
         break;
       }
     }
 
-    if (!employee) {
+    if (!profile) {
       res
         .status(401)
-        .json({ success: false, message: "Invalid employee ID or password" });
+        .json({ success: false, message: "Invalid profile ID or password" });
       return;
     }
 
-    // Block non-active employees (e.g. SUSPENDED, DEPARTED, INACTIVE)
-    if (employee.status?.toUpperCase() !== "ACTIVE") {
+    // Block non-active profiles (e.g. SUSPENDED, DEPARTED, INACTIVE)
+    if (profile.status?.toUpperCase() !== "ACTIVE") {
       res.status(403).json({
         success: false,
         message: "ليس لديك صلاحية الدخول إلى البوابة",
@@ -215,7 +215,7 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
     if (!account || !account.isActive) {
       res.status(401).json({
         success: false,
-        message: "Portal access not enabled for this employee",
+        message: "Portal access not enabled for this profile",
       });
       return;
     }
@@ -238,22 +238,22 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
         targetPropertyId!,
         async (tenantDb) => {
           await tenantDb
-            .update(employeePortalAccountsTable)
+            .update(profilePortalAccountsTable)
             .set({
-              failedAttempts: sql`${employeePortalAccountsTable.failedAttempts} + 1`,
+              failedAttempts: sql`${profilePortalAccountsTable.failedAttempts} + 1`,
               lockedUntil: sql`CASE
-              WHEN ${employeePortalAccountsTable.failedAttempts} + 1 >= ${MAX_FAILED}
+              WHEN ${profilePortalAccountsTable.failedAttempts} + 1 >= ${MAX_FAILED}
               THEN NOW() + INTERVAL '1 minute' * ${LOCK_MINUTES}
               ELSE NULL
             END`,
               updatedAt: new Date(),
             })
-            .where(eq(employeePortalAccountsTable.id, account.id));
+            .where(eq(profilePortalAccountsTable.id, account.id));
 
           return tenantDb
             .select()
-            .from(employeePortalAccountsTable)
-            .where(eq(employeePortalAccountsTable.id, account.id))
+            .from(profilePortalAccountsTable)
+            .where(eq(profilePortalAccountsTable.id, account.id))
             .limit(1);
         },
       );
@@ -264,13 +264,13 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       await logActivity({
         req,
         propertyId: targetPropertyId!,
-        username: employeeId,
-        userRole: "employee",
-        action: `محاولة دخول فاشلة - معرف الموظف: ${employeeId}`,
+        username: profileId,
+        userRole: "profile",
+        action: `محاولة دخول فاشلة - معرف الموظف: ${profileId}`,
         actionType: "LOGIN_FAILED",
-        module: "employees",
-        entityType: "employee",
-        entityId: employee.id,
+        module: "profiles",
+        entityType: "profile",
+        entityId: profile.id,
         severity: "warning",
       });
 
@@ -278,55 +278,55 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
         success: false,
         message: isLocked
           ? `Too many failed attempts. Account locked for ${LOCK_MINUTES} minutes.`
-          : "Invalid employee ID or password",
+          : "Invalid profile ID or password",
       });
       return;
     }
 
     await withTenant(targetPropertyId!, async (tenantDb) => {
       await tenantDb
-        .update(employeePortalAccountsTable)
+        .update(profilePortalAccountsTable)
         .set({
           failedAttempts: 0,
           lockedUntil: null,
           lastLoginAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(employeePortalAccountsTable.id, account.id));
+        .where(eq(profilePortalAccountsTable.id, account.id));
     });
 
     await logActivity({
       req,
       propertyId: targetPropertyId!,
-      username: employeeId,
-      userRole: "employee",
-      action: `دخول الموظف: ${employee.firstName} ${employee.lastName}`,
+      username: profileId,
+      userRole: "profile",
+      action: `دخول الموظف: ${profile.firstName} ${profile.lastName}`,
       actionType: "LOGIN",
-      module: "employees",
-      entityType: "employee",
-      entityId: employee.id,
+      module: "profiles",
+      entityType: "profile",
+      entityId: profile.id,
     });
     (req.session as any).portal = {
-      employeeDbId: employee.id,
-      employeeId: employee.employeeId,
+      profileDbId: profile.id,
+      profileId: profile.profileId,
       propertyId: targetPropertyId,
-      fullName: `${employee.firstName} ${employee.lastName}`,
+      fullName: `${profile.firstName} ${profile.lastName}`,
     };
 
     res.json({
       success: true,
       sessionId: req.sessionID,
       mustChangePassword: account.mustChangePassword,
-      employee: {
-        id: employee.id,
-        employeeId: employee.employeeId,
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        fullName: `${employee.firstName} ${employee.lastName}`,
-        email: employee.email,
-        phone: employee.phone,
-        position: employee.position,
-        department: employee.department,
+      profile: {
+        id: profile.id,
+        profileId: profile.profileId,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        fullName: `${profile.firstName} ${profile.lastName}`,
+        email: profile.email,
+        phone: profile.phone,
+        position: profile.position,
+        department: profile.department,
       },
     });
   } catch (error: any) {
@@ -337,31 +337,31 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
   }
 });
 
-// GET /employees — دليل الموظفين (للمحادثة)
+// GET /profiles — دليل الموظفين (للمحادثة)
 // @ts-ignore
-router.get("/employees", requirePortalAuth, async (req, res, next) => {
+router.get("/profiles", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const search = ((req.query.search as string) || "").trim().toLowerCase();
-    const employees = await withTenant(sess.propertyId, async (tenantDb) => {
+    const profiles = await withTenant(sess.propertyId, async (tenantDb) => {
       let query = tenantDb
         .select({
-          id: employeesTable.id,
-          employeeId: employeesTable.employeeId,
-          firstName: employeesTable.firstName,
-          lastName: employeesTable.lastName,
-          department: employeesTable.department,
-          jobTitle: employeesTable.jobTitle,
-          photoUrl: employeesTable.photoUrl,
+          id: profilesTable.id,
+          profileId: profilesTable.profileId,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
+          department: profilesTable.department,
+          jobTitle: profilesTable.jobTitle,
+          photoUrl: profilesTable.photoUrl,
         })
-        .from(employeesTable)
+        .from(profilesTable)
         .where(
           and(
-            eq(employeesTable.status, "ACTIVE"),
-            not(eq(employeesTable.id, sess.employeeDbId)),
+            eq(profilesTable.status, "ACTIVE"),
+            not(eq(profilesTable.id, sess.profileDbId)),
           ),
         )
-        .orderBy(employeesTable.firstName)
+        .orderBy(profilesTable.firstName)
         .limit(50);
 
       return await query;
@@ -370,17 +370,17 @@ router.get("/employees", requirePortalAuth, async (req, res, next) => {
     if (search) {
       return res.json({
         success: true,
-        employees: employees.filter(
+        profiles: profiles.filter(
           (e) =>
             e.firstName?.toLowerCase().includes(search) ||
             e.lastName?.toLowerCase().includes(search) ||
-            e.employeeId?.toLowerCase().includes(search) ||
+            e.profileId?.toLowerCase().includes(search) ||
             e.department?.toLowerCase().includes(search),
         ),
       });
     }
 
-    res.json({ success: true, employees });
+    res.json({ success: true, profiles });
   } catch (err) {
     next(err);
   }
@@ -391,27 +391,27 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
     const sess = portalSession(req)!;
 
     const result = await withTenant(sess.propertyId, async (tenantDb) => {
-      const [employee] = await tenantDb
+      const [profile] = await tenantDb
         .select()
-        .from(employeesTable)
-        .where(eq(employeesTable.id, sess.employeeDbId))
+        .from(profilesTable)
+        .where(eq(profilesTable.id, sess.profileDbId))
         .limit(1);
-      if (!employee) return null;
+      if (!profile) return null;
       const [account] = await tenantDb
         .select()
-        .from(employeePortalAccountsTable)
-        .where(eq(employeePortalAccountsTable.employeeId, employee.employeeId))
+        .from(profilePortalAccountsTable)
+        .where(eq(profilePortalAccountsTable.profileId, profile.profileId))
         .limit(1);
-      return { employee, account };
+      return { profile, account };
     });
 
     if (!result) {
-      res.status(404).json({ success: false, message: "Employee not found" });
+      res.status(404).json({ success: false, message: "Profile not found" });
       return;
     }
 
-    // Block if employee was suspended/departed after login
-    if (result.employee.status?.toUpperCase() !== "ACTIVE") {
+    // Block if profile was suspended/departed after login
+    if (result.profile.status?.toUpperCase() !== "ACTIVE") {
       req.session.destroy(() => {});
       res.status(403).json({
         success: false,
@@ -422,21 +422,21 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
 
     res.json({
       success: true,
-      employee: {
-        id: result.employee.id,
-        employeeId: result.employee.employeeId,
-        fullName: `${result.employee.firstName} ${result.employee.lastName}`,
-        firstName: result.employee.firstName,
-        lastName: result.employee.lastName,
-        jobTitle: result.employee.jobTitle,
-        department: result.employee.department,
-        nationality: result.employee.nationality,
-        phone: result.employee.phone,
-        gender: result.employee.gender,
-        hireDate: result.employee.hireDate,
-        address: result.employee.address,
-        level: result.employee.level,
-        status: result.employee.status,
+      profile: {
+        id: result.profile.id,
+        profileId: result.profile.profileId,
+        fullName: `${result.profile.firstName} ${result.profile.lastName}`,
+        firstName: result.profile.firstName,
+        lastName: result.profile.lastName,
+        jobTitle: result.profile.jobTitle,
+        department: result.profile.department,
+        nationality: result.profile.nationality,
+        phone: result.profile.phone,
+        gender: result.profile.gender,
+        hireDate: result.profile.hireDate,
+        address: result.profile.address,
+        level: result.profile.level,
+        status: result.profile.status,
         propertyId: sess.propertyId,
       },
       mustChangePassword: result.account?.mustChangePassword ?? false,
@@ -478,8 +478,8 @@ router.post(
     const result = await withTenant(sess.propertyId, async (tenantDb) => {
       const [account] = await tenantDb
         .select()
-        .from(employeePortalAccountsTable)
-        .where(eq(employeePortalAccountsTable.employeeId, sess.employeeId))
+        .from(profilePortalAccountsTable)
+        .where(eq(profilePortalAccountsTable.profileId, sess.profileId))
         .limit(1);
       if (!account) return { status: 404, message: "Account not found" };
 
@@ -499,21 +499,21 @@ router.post(
 
       const newHash = await bcrypt.hash(parsed.data.newPassword, 12);
       await tenantDb
-        .update(employeePortalAccountsTable)
+        .update(profilePortalAccountsTable)
         .set({
           passwordHash: newHash,
           mustChangePassword: false,
           passwordChangedAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(employeePortalAccountsTable.id, account.id));
+        .where(eq(profilePortalAccountsTable.id, account.id));
 
-      const [employee] = await tenantDb
+      const [profile] = await tenantDb
         .select()
-        .from(employeesTable)
-        .where(eq(employeesTable.employeeId, sess.employeeId))
+        .from(profilesTable)
+        .where(eq(profilesTable.profileId, sess.profileId))
         .limit(1);
-      return { employee };
+      return { profile };
     });
 
     if (result.status) {
@@ -523,17 +523,17 @@ router.post(
       return;
     }
 
-    if (result.employee) {
+    if (result.profile) {
       await logActivity({
         req,
         propertyId: sess.propertyId,
-        username: sess.employeeId,
-        userRole: "employee",
-        action: `تغيير كلمة المرور - ${result.employee.firstName} ${result.employee.lastName}`,
+        username: sess.profileId,
+        userRole: "profile",
+        action: `تغيير كلمة المرور - ${result.profile.firstName} ${result.profile.lastName}`,
         actionType: "UPDATE",
-        module: "employees",
-        entityType: "employee",
-        entityId: result.employee.id,
+        module: "profiles",
+        entityType: "profile",
+        entityId: result.profile.id,
       });
     }
 
@@ -542,7 +542,7 @@ router.post(
 );
 
 /**
- * Specifically for first-time login where the employee doesn't need to re-enter the temp password
+ * Specifically for first-time login where the profile doesn't need to re-enter the temp password
  */
 router.post(
   "/first-login-reset",
@@ -564,8 +564,8 @@ router.post(
     const result = await withTenant(sess.propertyId, async (tenantDb) => {
       const [account] = await tenantDb
         .select()
-        .from(employeePortalAccountsTable)
-        .where(eq(employeePortalAccountsTable.employeeId, sess.employeeId))
+        .from(profilePortalAccountsTable)
+        .where(eq(profilePortalAccountsTable.profileId, sess.profileId))
         .limit(1);
       if (!account) return { status: 404, message: "Account not found" };
 
@@ -578,21 +578,21 @@ router.post(
 
       const newHash = await bcrypt.hash(newPassword, 12);
       await tenantDb
-        .update(employeePortalAccountsTable)
+        .update(profilePortalAccountsTable)
         .set({
           passwordHash: newHash,
           mustChangePassword: false,
           passwordChangedAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(employeePortalAccountsTable.id, account.id));
+        .where(eq(profilePortalAccountsTable.id, account.id));
 
-      const [employee] = await tenantDb
+      const [profile] = await tenantDb
         .select()
-        .from(employeesTable)
-        .where(eq(employeesTable.employeeId, sess.employeeId))
+        .from(profilesTable)
+        .where(eq(profilesTable.profileId, sess.profileId))
         .limit(1);
-      return { employee };
+      return { profile };
     });
 
     if (result.status) {
@@ -602,17 +602,17 @@ router.post(
       return;
     }
 
-    if (result.employee) {
+    if (result.profile) {
       await logActivity({
         req,
         propertyId: sess.propertyId,
-        username: sess.employeeId,
-        userRole: "employee",
-        action: `تحديث كلمة المرور لأول مرة - ${result.employee.firstName} ${result.employee.lastName}`,
+        username: sess.profileId,
+        userRole: "profile",
+        action: `تحديث كلمة المرور لأول مرة - ${result.profile.firstName} ${result.profile.lastName}`,
         actionType: "UPDATE",
-        module: "employees",
-        entityType: "employee",
-        entityId: result.employee.id,
+        module: "profiles",
+        entityType: "profile",
+        entityId: result.profile.id,
       });
     }
 
@@ -627,13 +627,13 @@ router.post("/logout", async (req, res): Promise<void> => {
       await logActivity({
         req,
         propertyId: sess.propertyId,
-        username: sess.employeeId,
-        userRole: "employee",
+        username: sess.profileId,
+        userRole: "profile",
         action: `تسجيل الخروج - ${sess.fullName}`,
         actionType: "LOGOUT",
-        module: "employees",
-        entityType: "employee",
-        entityId: sess.employeeDbId,
+        module: "profiles",
+        entityType: "profile",
+        entityId: sess.profileDbId,
       });
     } catch {
       /* log failure is non-critical */
@@ -648,7 +648,7 @@ router.post("/logout", async (req, res): Promise<void> => {
 
 router.post(
   "/reset-password",
-  requirePermission("employees", "reset_password"),
+  requirePermission("profiles", "reset_password"),
   async (req, res): Promise<void> => {
     const adminUserId = (req.session as any)?.userId;
     if (!adminUserId) {
@@ -660,7 +660,7 @@ router.post(
 
     const parsed = z
       .object({
-        employeeId: z.string().min(1),
+        profileId: z.string().min(1),
         propertyId: z.number().int().positive(),
       })
       .safeParse(req.body);
@@ -668,26 +668,26 @@ router.post(
       res.status(400).json({ success: false, message: "Invalid input" });
       return;
     }
-    const { employeeId, propertyId } = parsed.data;
+    const { profileId, propertyId } = parsed.data;
     const temporaryPassword = generateTemporaryPassword();
 
-    const employee = await withTenant(propertyId, async (tenantDb) => {
+    const profile = await withTenant(propertyId, async (tenantDb) => {
       const [account] = await tenantDb
         .select()
-        .from(employeePortalAccountsTable)
-        .where(eq(employeePortalAccountsTable.employeeId, employeeId))
+        .from(profilePortalAccountsTable)
+        .where(eq(profilePortalAccountsTable.profileId, profileId))
         .limit(1);
       const temporaryHash = await bcrypt.hash(temporaryPassword, 12);
 
       if (!account) {
-        await tenantDb.insert(employeePortalAccountsTable).values({
-          employeeId,
+        await tenantDb.insert(profilePortalAccountsTable).values({
+          profileId,
           passwordHash: temporaryHash,
           mustChangePassword: true,
         } as any);
       } else {
         await tenantDb
-          .update(employeePortalAccountsTable)
+          .update(profilePortalAccountsTable)
           .set({
             passwordHash: temporaryHash,
             mustChangePassword: true,
@@ -695,29 +695,29 @@ router.post(
             lockedUntil: null,
             updatedAt: new Date(),
           })
-          .where(eq(employeePortalAccountsTable.id, account.id));
+          .where(eq(profilePortalAccountsTable.id, account.id));
       }
       const [emp] = await tenantDb
         .select()
-        .from(employeesTable)
-        .where(eq(employeesTable.employeeId, employeeId))
+        .from(profilesTable)
+        .where(eq(profilesTable.profileId, profileId))
         .limit(1);
       return emp;
     });
 
-    if (employee) {
+    if (profile) {
       await logActivity({
         req,
         propertyId,
         username: (req.session as any)?.username ?? "admin",
         userId: adminUserId,
         userRole: (req.session as any)?.userRole ?? "admin",
-        action: `إعادة تعيين كلمة مرور الموظف: ${employee.firstName} ${employee.lastName}`,
+        action: `إعادة تعيين كلمة مرور الموظف: ${profile.firstName} ${profile.lastName}`,
         actionType: "UPDATE",
-        module: "employees",
-        entityType: "employee",
-        entityId: employee.id,
-        details: "Temporary employee portal password generated",
+        module: "profiles",
+        entityType: "profile",
+        entityId: profile.id,
+        details: "Temporary profile portal password generated",
       });
     }
 
@@ -731,7 +731,7 @@ router.post(
 
 router.post(
   "/set-password",
-  requirePermission("employees", "reset_password"),
+  requirePermission("profiles", "reset_password"),
   async (req, res): Promise<void> => {
     const adminUserId = (req.session as any)?.userId;
     if (!adminUserId) {
@@ -743,7 +743,7 @@ router.post(
 
     const parsed = z
       .object({
-        employeeId: z.string().min(1),
+        profileId: z.string().min(1),
         propertyId: z.number().int().positive(),
         newPassword: z.string().min(6),
       })
@@ -752,19 +752,19 @@ router.post(
       res.status(400).json({ success: false, message: "Invalid input" });
       return;
     }
-    const { employeeId, propertyId, newPassword } = parsed.data;
+    const { profileId, propertyId, newPassword } = parsed.data;
 
-    const employee = await withTenant(propertyId, async (tenantDb) => {
+    const profile = await withTenant(propertyId, async (tenantDb) => {
       const [account] = await tenantDb
         .select()
-        .from(employeePortalAccountsTable)
-        .where(eq(employeePortalAccountsTable.employeeId, employeeId))
+        .from(profilePortalAccountsTable)
+        .where(eq(profilePortalAccountsTable.profileId, profileId))
         .limit(1);
       const newHash = await bcrypt.hash(newPassword, 12);
 
       if (!account) {
-        await tenantDb.insert(employeePortalAccountsTable).values({
-          employeeId,
+        await tenantDb.insert(profilePortalAccountsTable).values({
+          profileId,
           passwordHash: newHash,
           mustChangePassword: false,
           isActive: true,
@@ -774,7 +774,7 @@ router.post(
         } as any);
       } else {
         await tenantDb
-          .update(employeePortalAccountsTable)
+          .update(profilePortalAccountsTable)
           .set({
             passwordHash: newHash,
             mustChangePassword: false,
@@ -783,28 +783,28 @@ router.post(
             passwordChangedAt: new Date(),
             updatedAt: new Date(),
           })
-          .where(eq(employeePortalAccountsTable.id, account.id));
+          .where(eq(profilePortalAccountsTable.id, account.id));
       }
       const [emp] = await tenantDb
         .select()
-        .from(employeesTable)
-        .where(eq(employeesTable.employeeId, employeeId))
+        .from(profilesTable)
+        .where(eq(profilesTable.profileId, profileId))
         .limit(1);
       return emp;
     });
 
-    if (employee) {
+    if (profile) {
       await logActivity({
         req,
         propertyId,
         username: (req.session as any)?.username ?? "admin",
         userId: adminUserId,
         userRole: (req.session as any)?.userRole ?? "admin",
-        action: `تعيين كلمة مرور جديدة للموظف: ${employee.firstName} ${employee.lastName}`,
+        action: `تعيين كلمة مرور جديدة للموظف: ${profile.firstName} ${profile.lastName}`,
         actionType: "UPDATE",
-        module: "employees",
-        entityType: "employee",
-        entityId: employee.id,
+        module: "profiles",
+        entityType: "profile",
+        entityId: profile.id,
       });
     }
 
@@ -812,10 +812,10 @@ router.post(
   },
 );
 
-// ─── GET /accounts — Admin: list all portal accounts with employee info ───────
+// ─── GET /accounts — Admin: list all portal accounts with profile info ───────
 router.get(
   "/accounts",
-  requirePermission("employees", "view"),
+  requirePermission("profiles", "view"),
   async (req, res): Promise<void> => {
     const adminUserId = (req.session as any)?.userId;
     if (!adminUserId) {
@@ -835,35 +835,35 @@ router.get(
     const accounts = await withTenant(propertyId, async (tenantDb) => {
       const rows = await tenantDb
         .select({
-          employeeId: employeesTable.employeeId,
-          firstName: employeesTable.firstName,
-          lastName: employeesTable.lastName,
-          department: employeesTable.department,
-          jobTitle: employeesTable.jobTitle,
-          status: employeesTable.status,
-          isActive: employeePortalAccountsTable.isActive,
-          lastLoginAt: employeePortalAccountsTable.lastLoginAt,
-          mustChangePassword: employeePortalAccountsTable.mustChangePassword,
-          failedAttempts: employeePortalAccountsTable.failedAttempts,
-          lockedUntil: employeePortalAccountsTable.lockedUntil,
-          hasAccount: employeePortalAccountsTable.id,
+          profileId: profilesTable.profileId,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
+          department: profilesTable.department,
+          jobTitle: profilesTable.jobTitle,
+          status: profilesTable.status,
+          isActive: profilePortalAccountsTable.isActive,
+          lastLoginAt: profilePortalAccountsTable.lastLoginAt,
+          mustChangePassword: profilePortalAccountsTable.mustChangePassword,
+          failedAttempts: profilePortalAccountsTable.failedAttempts,
+          lockedUntil: profilePortalAccountsTable.lockedUntil,
+          hasAccount: profilePortalAccountsTable.id,
         })
-        .from(employeesTable)
+        .from(profilesTable)
         .leftJoin(
-          employeePortalAccountsTable,
-          eq(employeesTable.employeeId, employeePortalAccountsTable.employeeId),
+          profilePortalAccountsTable,
+          eq(profilesTable.profileId, profilePortalAccountsTable.profileId),
         )
-        .orderBy(employeesTable.firstName, employeesTable.lastName);
+        .orderBy(profilesTable.firstName, profilesTable.lastName);
 
       return rows.map((r) => ({
-        employeeId: r.employeeId,
-        employeeName:
+        profileId: r.profileId,
+        profileName:
           r.firstName && r.lastName
             ? `${r.firstName} ${r.lastName}`
-            : r.employeeId,
+            : r.profileId,
         department: r.department ?? "",
         jobTitle: r.jobTitle ?? "",
-        employeeStatus: r.status ?? "",
+        profileStatus: r.status ?? "",
         hasAccount: Boolean(r.hasAccount),
         isActive: r.hasAccount ? (r.isActive ?? false) : false,
         lastLoginAt:
@@ -880,10 +880,10 @@ router.get(
   },
 );
 
-// ─── POST /toggle-access — Admin: enable or disable an employee's portal access ─
+// ─── POST /toggle-access — Admin: enable or disable an profile's portal access ─
 router.post(
   "/toggle-access",
-  requirePermission("employees", "edit"),
+  requirePermission("profiles", "edit"),
   async (req, res): Promise<void> => {
     const adminUserId = (req.session as any)?.userId;
     if (!adminUserId) {
@@ -895,7 +895,7 @@ router.post(
 
     const parsed = z
       .object({
-        employeeId: z.string().min(1),
+        profileId: z.string().min(1),
         isActive: z.boolean(),
         propertyId: z.number().int().positive(),
       })
@@ -904,20 +904,20 @@ router.post(
       res.status(400).json({ success: false, message: "Invalid input" });
       return;
     }
-    const { employeeId, isActive, propertyId: bodyPropertyId } = parsed.data;
+    const { profileId, isActive, propertyId: bodyPropertyId } = parsed.data;
 
     const propertyId =
       bodyPropertyId || Number((req.session as any)?.propertyId);
 
     if (isActive) {
-      await ensureEmployeePortalAccount(propertyId, employeeId);
+      await ensureProfilePortalAccount(propertyId, profileId);
     }
 
     const [account] = await withTenant(propertyId, async (tenantDb) => {
       return await tenantDb
-        .update(employeePortalAccountsTable)
+        .update(profilePortalAccountsTable)
         .set({ isActive, updatedAt: new Date() })
-        .where(eq(employeePortalAccountsTable.employeeId, employeeId))
+        .where(eq(profilePortalAccountsTable.profileId, profileId))
         .returning();
     });
 
@@ -934,19 +934,19 @@ router.post(
       username: (req.session as any)?.username ?? "admin",
       userId: adminUserId,
       userRole: (req.session as any)?.userRole ?? "admin",
-      action: `${isActive ? "تفعيل" : "تعطيل"} صلاحية بوابة الموظف: ${employeeId}`,
+      action: `${isActive ? "تفعيل" : "تعطيل"} صلاحية بوابة الموظف: ${profileId}`,
       actionType: "UPDATE",
-      module: "employees",
-      entityType: "employee",
+      module: "profiles",
+      entityType: "profile",
       entityId: account.id,
     });
 
-    res.json({ success: true, isActive, employeeId });
+    res.json({ success: true, isActive, profileId });
   },
 );
 
 const ForgotPasswordVerifySchema = z.object({
-  employeeId: z.string().min(1),
+  profileId: z.string().min(1),
   nationalId: z.string().min(1),
   roomNumber: z.string().min(1),
   dateOfBirth: z.string().min(1),
@@ -965,10 +965,10 @@ router.post(
         return;
       }
 
-      const { employeeId, nationalId, roomNumber, dateOfBirth } = parsed.data;
+      const { profileId, nationalId, roomNumber, dateOfBirth } = parsed.data;
       const properties = await db.select().from(propertiesTable);
 
-      let employee: any = null;
+      let profile: any = null;
       let account: any = null;
       let targetPropertyId: number | null = null;
       let settings: any = null;
@@ -978,22 +978,22 @@ router.post(
           const result = await withTenant(p.id, async (tenantDb) => {
             const [emp] = await tenantDb
               .select()
-              .from(employeesTable)
-              .where(eq(employeesTable.employeeId, employeeId.trim()))
+              .from(profilesTable)
+              .where(eq(profilesTable.profileId, profileId.trim()))
               .limit(1);
             if (!emp) return null;
             const [acc] = await tenantDb
               .select()
-              .from(employeePortalAccountsTable)
+              .from(profilePortalAccountsTable)
               .where(
-                eq(employeePortalAccountsTable.employeeId, employeeId.trim()),
+                eq(profilePortalAccountsTable.profileId, profileId.trim()),
               )
               .limit(1);
             const [st] = await tenantDb.select().from(settingsTable).limit(1);
             return { emp, acc, propertyId: p.id, st };
           });
           if (result?.emp) {
-            employee = result.emp;
+            profile = result.emp;
             account = result.acc;
             targetPropertyId = result.propertyId;
             settings = result.st;
@@ -1004,7 +1004,7 @@ router.post(
 
       const genericErrorMsg = "المعلومات المدخلة غير صحيحة";
 
-      if (!employee || !account || !targetPropertyId) {
+      if (!profile || !account || !targetPropertyId) {
         res.status(400).json({ success: false, message: genericErrorMsg });
         return;
       }
@@ -1031,7 +1031,7 @@ router.post(
             .innerJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
             .where(
               and(
-                eq(assignmentsTable.employeeId, employee.id),
+                eq(assignmentsTable.profileId, profile.id),
                 eq(assignmentsTable.status, "ACTIVE"),
               ),
             )
@@ -1040,11 +1040,11 @@ router.post(
       );
 
       const isNationalIdMatch =
-        employee.nationalId &&
-        employee.nationalId.trim().toLowerCase() ===
+        profile.nationalId &&
+        profile.nationalId.trim().toLowerCase() ===
           nationalId.trim().toLowerCase();
 
-      const empDobStr = employee.dateOfBirth ? String(employee.dateOfBirth).trim() : "";
+      const empDobStr = profile.dateOfBirth ? String(profile.dateOfBirth).trim() : "";
       const isDobMatch = empDobStr && empDobStr === dateOfBirth.trim();
       const isRoomMatch =
         assignment && assignment.roomNumber === roomNumber.trim();
@@ -1052,23 +1052,23 @@ router.post(
       if (!isNationalIdMatch || !isDobMatch || !isRoomMatch) {
         await withTenant(targetPropertyId, async (tenantDb) => {
           await tenantDb
-            .update(employeePortalAccountsTable)
+            .update(profilePortalAccountsTable)
             .set({
-              failedAttempts: sql`${employeePortalAccountsTable.failedAttempts} + 1`,
+              failedAttempts: sql`${profilePortalAccountsTable.failedAttempts} + 1`,
               lockedUntil: sql`CASE
-              WHEN ${employeePortalAccountsTable.failedAttempts} + 1 >= ${lockoutThreshold}
+              WHEN ${profilePortalAccountsTable.failedAttempts} + 1 >= ${lockoutThreshold}
               THEN NOW() + INTERVAL '1 minute' * ${lockoutDurationMinutes}
               ELSE NULL
             END`,
               updatedAt: new Date(),
             })
-            .where(eq(employeePortalAccountsTable.id, account.id));
+            .where(eq(profilePortalAccountsTable.id, account.id));
         });
         await logActivity({
           req,
           propertyId: targetPropertyId,
-          username: employee.employeeId,
-          userRole: "employee",
+          username: profile.profileId,
+          userRole: "profile",
           action: "محاولة استعادة كلمة المرور فاشلة",
           actionType: "LOGIN_FAILED",
           module: "portal_auth",
@@ -1084,26 +1084,26 @@ router.post(
 
       await withTenant(targetPropertyId, async (tenantDb) => {
         await tenantDb.insert(passwordResetTokensTable).values({
-          employeeId: employee.employeeId,
+          profileId: profile.profileId,
           propertyId: targetPropertyId,
           tokenHash,
           expiresAt,
         });
         await tenantDb
-          .update(employeePortalAccountsTable)
+          .update(profilePortalAccountsTable)
           .set({
             failedAttempts: 0,
             lockedUntil: null,
             updatedAt: new Date(),
           })
-          .where(eq(employeePortalAccountsTable.id, account.id));
+          .where(eq(profilePortalAccountsTable.id, account.id));
       });
 
       await logActivity({
         req,
         propertyId: targetPropertyId,
-        username: employee.employeeId,
-        userRole: "employee",
+        username: profile.profileId,
+        userRole: "profile",
         action: "بدء استعادة كلمة المرور",
         actionType: "UPDATE",
         module: "portal_auth",
@@ -1179,8 +1179,8 @@ router.post(
             if (!tok) return null;
             const [acc] = await tenantDb
               .select()
-              .from(employeePortalAccountsTable)
-              .where(eq(employeePortalAccountsTable.employeeId, tok.employeeId))
+              .from(profilePortalAccountsTable)
+              .where(eq(profilePortalAccountsTable.profileId, tok.profileId))
               .limit(1);
             return { tok, acc, propertyId: p.id };
           });
@@ -1212,7 +1212,7 @@ router.post(
           .where(eq(passwordResetTokensTable.id, validToken.id));
 
         await tenantDb
-          .update(employeePortalAccountsTable)
+          .update(profilePortalAccountsTable)
           .set({
             passwordHash: hashedNew,
             mustChangePassword: false,
@@ -1221,14 +1221,14 @@ router.post(
             passwordChangedAt: new Date(),
             updatedAt: new Date(),
           })
-          .where(eq(employeePortalAccountsTable.id, account.id));
+          .where(eq(profilePortalAccountsTable.id, account.id));
       });
 
       await logActivity({
         req,
         propertyId: targetPropertyId,
-        username: account.employeeId,
-        userRole: "employee",
+        username: account.profileId,
+        userRole: "profile",
         action: "تمت استعادة كلمة المرور بنجاح",
         actionType: "UPDATE",
         module: "portal_auth",

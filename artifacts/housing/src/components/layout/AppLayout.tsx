@@ -37,6 +37,7 @@ import {
   Trophy,
   MessageSquare,
   LayoutGrid,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout, useGetSettings } from "@workspace/api-client-react";
@@ -223,35 +224,46 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       permissionModule: "housing",
     },
     {
-      href: "/employees",
-      label: ar ? "الموظفون" : "Employees",
+      href: "/profiles",
+      label: ar ? "بروفايل" : "Profiles",
       icon: Users,
-      permissionModule: "employees",
+      permissionModule: "profiles",
     },
     {
-      label: ar ? "الإقامة" : "Accommodation",
+      href: "/accommodation/reservations",
+      label: ar ? "الحجوزات" : "Reservations",
+      icon: CalendarCheck,
+      permissionModule: "accommodation",
+    },
+    {
+      href: "/accommodation/in-house",
+      label: ar ? "ان هاوس" : "In-House",
       icon: BedDouble,
       permissionModule: "accommodation",
-      subItems: [
-        {
-          href: "/accommodation/reservations",
-          label: ar ? "الحجوزات" : "Reservations",
-        },
-        { href: "/accommodation/in-house", label: ar ? "داخلي" : "In-House" },
-        {
-          href: "/accommodation/room-assignment",
-          label: ar ? "تعيين الغرف" : "Room Assignment",
-        },
-        {
-          href: "/hosting-requests",
-          label: ar ? "طلبات الاستضافة" : "Hosting Requests",
-        },
-        {
-          href: "/accommodation/guest-hosting",
-          label: ar ? "تسكين الاستضافات" : "Guest Housing",
-        },
-        { href: "/accommodation/history", label: ar ? "السجل" : "History" },
-      ],
+    },
+    {
+      href: "/hosting-requests",
+      label: ar ? "طلبات الاستضافة" : "Hosting Requests",
+      icon: MessageSquare,
+      permissionModule: "accommodation",
+    },
+    {
+      href: "/accommodation/guest-hosting",
+      label: ar ? "تسكين الاستضافات" : "Guest Housing",
+      icon: UserPlus,
+      permissionModule: "accommodation",
+    },
+    {
+      href: "/accommodation/history",
+      label: ar ? "السجل" : "History",
+      icon: FileText,
+      permissionModule: "accommodation",
+    },
+    {
+      href: "/housekeeping",
+      label: ar ? "هاوس كيبنج" : "Housekeeping",
+      icon: Sparkles,
+      permissionModule: "housekeeping",
     },
     {
       href: "/maintenance",

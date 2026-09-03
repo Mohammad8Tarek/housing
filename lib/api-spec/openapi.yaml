@@ -1425,6 +1425,20 @@ paths:
 
 components:
   schemas:
+    ProfileDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+        fileName:
+          type: string
+        fileType:
+          type: string
+        fileData:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
     HealthStatus:
       type: object
       properties:
@@ -1765,6 +1779,10 @@ components:
           type: string
         idImage:
           type: ["string", "null"]
+        idDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileDocument'
       required:
         - id
         - propertyId
@@ -1815,6 +1833,10 @@ components:
           type: string
         idImage:
           type: ["string", "null"]
+        idDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileDocument'
       required:
         - propertyId
         - employeeId
@@ -1859,6 +1881,10 @@ components:
           type: string
         idImage:
           type: ["string", "null"]
+        idDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileDocument'
 
     Assignment:
       type: object

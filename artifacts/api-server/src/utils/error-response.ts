@@ -19,7 +19,7 @@ const FIELD_LABELS: Record<string, { en: string; ar: string }> = {
   buildingId: { en: "Building", ar: "المبنى" },
   floorId: { en: "Floor", ar: "الدور" },
   propertyId: { en: "Property", ar: "الفرع" },
-  employeeId: { en: "Employee", ar: "الموظف" },
+  profileId: { en: "Profile", ar: "الموظف" },
   status: { en: "Status", ar: "الحالة" },
   date: { en: "Date", ar: "التاريخ" },
   startDate: { en: "Start date", ar: "تاريخ البداية" },

@@ -1,6 +1,10 @@
 import { Suspense, lazy } from "react";
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  MutationCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { Toaster as SonnerToaster } from "sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,8 +24,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const Properties = lazy(() => import("@/pages/properties"));
 const Housing = lazy(() => import("@/pages/housing"));
-const Employees = lazy(() => import("@/pages/employees/index"));
-const EmployeeDetail = lazy(() => import("@/pages/employees/detail"));
+const Profiles = lazy(() => import("@/pages/profiles/index"));
+const ProfileDetail = lazy(() => import("@/pages/profiles/detail"));
 const Portal = lazy(() => import("@/pages/portal"));
 const Reservations = lazy(() => import("@/pages/accommodation/reservations"));
 const InHouse = lazy(() => import("@/pages/accommodation/in-house"));
@@ -30,6 +34,7 @@ const RoomAssignment = lazy(
 );
 const GuestHosting = lazy(() => import("@/pages/accommodation/guest-hosting"));
 const History = lazy(() => import("@/pages/accommodation/history"));
+const Housekeeping = lazy(() => import("@/pages/housekeeping"));
 const Tickets = lazy(() => import("@/pages/maintenance"));
 const Reports = lazy(() => import("@/pages/reports"));
 const Users = lazy(() => import("@/pages/users"));
@@ -48,13 +53,26 @@ const HostingRequestDetail = lazy(
   () => import("@/pages/hosting-requests/HostingRequestDetail"),
 );
 
-// Employee Portal Pages (Moved to standalone app)
+// Profile Portal Pages (Moved to standalone app)
+
+let mutationRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      if (mutationRefreshTimer) clearTimeout(mutationRefreshTimer);
+      mutationRefreshTimer = setTimeout(() => {
+        queryClient.invalidateQueries({
+          type: "active",
+          refetchType: "active",
+        });
+      }, 120);
+    },
+  }),
   defaultOptions: {
     queries: {
-      staleTime: 60_000, // 1 min
-      refetchInterval: 60_000, // 1 min
+      staleTime: 0,
+      refetchInterval: 5_000, // 5s heartbeat background sync for standing on pages
       gcTime: 5 * 60_000, // 5 min cache
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
@@ -153,19 +171,24 @@ function Router() {
           </ProtectedLayout>
         </Route>
 
+        <Route path="/room-space-view">
+          <PermissionLayout module="housing">
+            <Housing />
+          </PermissionLayout>
+        </Route>
         <Route path="/housing">
           <PermissionLayout module="housing">
             <Housing />
           </PermissionLayout>
         </Route>
-        <Route path="/employees/:id">
-          <PermissionLayout module="employees">
-            <EmployeeDetail />
+        <Route path="/profiles/:id">
+          <PermissionLayout module="profiles">
+            <ProfileDetail />
           </PermissionLayout>
         </Route>
-        <Route path="/employees">
-          <PermissionLayout module="employees">
-            <Employees />
+        <Route path="/profiles">
+          <PermissionLayout module="profiles">
+            <Profiles />
           </PermissionLayout>
         </Route>
         <Route path="/accommodation/reservations">
@@ -180,7 +203,7 @@ function Router() {
         </Route>
         <Route path="/accommodation/room-assignment">
           <PermissionLayout module="accommodation">
-            <RoomAssignment />
+            <Reservations />
           </PermissionLayout>
         </Route>
         <Route path="/accommodation/guest-hosting">
@@ -191,6 +214,11 @@ function Router() {
         <Route path="/accommodation/history">
           <PermissionLayout module="accommodation">
             <History />
+          </PermissionLayout>
+        </Route>
+        <Route path="/housekeeping">
+          <PermissionLayout module="housekeeping">
+            <Housekeeping />
           </PermissionLayout>
         </Route>
         <Route path="/accommodation">
@@ -217,7 +245,7 @@ function Router() {
           </PermissionLayout>
         </Route>
         <Route path="/portal">
-          <PermissionLayout module="employees">
+          <PermissionLayout module="portal_content">
             <Portal />
           </PermissionLayout>
         </Route>

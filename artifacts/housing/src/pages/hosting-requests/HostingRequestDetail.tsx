@@ -250,26 +250,26 @@ export default function HostingRequestDetail() {
     enabled: !!clockNumber,
   });
 
-  // Fetch employee details (including photo) by clock number
-  const { data: employeeData } = useQuery({
-    queryKey: ["employee-photo", clockNumber, data?.propertyId],
+  // Fetch profile details (including photo) by clock number
+  const { data: profileData } = useQuery({
+    queryKey: ["profile-photo", clockNumber, data?.propertyId],
     queryFn: async () => {
       if (!clockNumber) return null;
       const propId = data?.propertyId || "";
       const res = await fetch(
-        `/api/employees/search?q=${encodeURIComponent(clockNumber)}&propertyId=${propId}`,
+        `/api/profiles/search?q=${encodeURIComponent(clockNumber)}&propertyId=${propId}`,
       );
       if (!res.ok) return null;
       const arr = await res.json();
       if (!Array.isArray(arr) || arr.length === 0) return null;
-      const exact = arr.find((e: any) => String(e.employeeId) === String(clockNumber));
+      const exact = arr.find((e: any) => String(e.profileId) === String(clockNumber));
       return exact || arr[0];
     },
     enabled: !!clockNumber && !!data?.propertyId,
     staleTime: 5 * 60 * 1000, // cache for 5 min
   });
 
-  const employeePhotoUrl = employeeData?.photoUrl || employeeData?.photo_url || null;
+  const profilePhotoUrl = profileData?.photoUrl || profileData?.photo_url || null;
 
   if (isLoading) {
     return (
@@ -486,25 +486,25 @@ export default function HostingRequestDetail() {
           <Card className="bg-background/60 backdrop-blur-xl border-white/10 shadow-xl overflow-hidden rounded-2xl">
             <div className="h-1 w-full bg-gradient-to-r from-primary via-primary/50 to-transparent" />
 
-            {/* ── Employee Profile Section ── */}
+            {/* ── Profile Profile Section ── */}
             <CardHeader className="pb-0">
               <CardTitle className="text-xl font-bold flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
-                {ar ? "بيانات الموظف والضيوف" : "Employee & Guest Information"}
+                {ar ? "بيانات الموظف والضيوف" : "Profile & Guest Information"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
-              {/* Employee Profile Banner */}
+              {/* Profile Profile Banner */}
               <div className="flex flex-col sm:flex-row items-start gap-5 p-5 rounded-2xl bg-gradient-to-br from-primary/5 via-muted/30 to-transparent border relative overflow-hidden">
                 <div className="absolute right-0 top-0 opacity-[0.03]">
                   <Users className="w-40 h-40 -mt-6 -mr-6" />
                 </div>
                 {/* Avatar / Photo */}
                 <div className="relative">
-                  {employeePhotoUrl ? (
+                  {profilePhotoUrl ? (
                     <img
-                      src={employeePhotoUrl}
-                      alt={request.employeeName || "Employee"}
+                      src={profilePhotoUrl}
+                      alt={request.profileName || "Profile"}
                       className="w-16 h-16 rounded-2xl object-cover shadow-lg shadow-primary/20 border-2 border-primary/20"
                       onError={(e) => {
                         // Fall back to initials if image fails to load
@@ -517,9 +517,9 @@ export default function HostingRequestDetail() {
                   ) : null}
                   <div
                     className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 items-center justify-center text-white text-2xl font-bold shadow-lg shadow-primary/20"
-                    style={{ display: employeePhotoUrl ? "none" : "flex" }}
+                    style={{ display: profilePhotoUrl ? "none" : "flex" }}
                   >
-                    {(request.employeeName ?? "?").charAt(0).toUpperCase()}
+                    {(request.profileName ?? "?").charAt(0).toUpperCase()}
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-background flex items-center justify-center">
                     <CheckCircle className="w-3 h-3 text-white" />
@@ -529,7 +529,7 @@ export default function HostingRequestDetail() {
                 <div className="flex-1 space-y-2 relative">
                   <div>
                     <h3 className="text-xl font-bold text-foreground">
-                      {request.employeeName || "N/A"}
+                      {request.profileName || "N/A"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       {request.position || request.department
@@ -551,14 +551,14 @@ export default function HostingRequestDetail() {
                 </div>
               </div>
 
-              {/* Employee Details Grid */}
+              {/* Profile Details Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
                   <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
                     {ar ? "الاسم الكامل" : "Full Name"}
                   </span>
                   <p className="font-semibold text-sm text-foreground truncate">
-                    {request.employeeName || "N/A"}
+                    {request.profileName || "N/A"}
                   </p>
                 </div>
                 <div className="space-y-1 p-4 rounded-xl bg-muted/30 border border-white/5 hover:bg-muted/50 transition-colors">
@@ -763,7 +763,7 @@ export default function HostingRequestDetail() {
                 <p className="text-sm text-muted-foreground text-center py-4">
                   {ar
                     ? "لا توجد استضافات سابقة لهذا الموظف"
-                    : "No previous hosting records for this employee"}
+                    : "No previous hosting records for this profile"}
                 </p>
               )}
             </CardContent>

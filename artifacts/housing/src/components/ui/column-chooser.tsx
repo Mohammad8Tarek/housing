@@ -44,7 +44,8 @@ export function useColumnVisibility(cols: ColDef[]) {
 }
 
 interface ColumnChooserProps {
-  cols: ColDef[];
+  cols?: ColDef[];
+  columns?: ColDef[];
   visible: Set<string>;
   onToggle: (key: string, checked: boolean) => void;
   onShowAll?: () => void;
@@ -54,13 +55,15 @@ interface ColumnChooserProps {
 
 export function ColumnChooser({
   cols,
+  columns,
   visible,
   onToggle,
   onShowAll,
   onHideAll,
   ar,
 }: ColumnChooserProps) {
-  const visibleCount = cols.filter((col) => visible.has(col.key)).length;
+  const actualCols = cols || columns || [];
+  const visibleCount = actualCols.filter((col) => visible?.has(col.key)).length;
 
   return (
     <DropdownMenu>
@@ -69,7 +72,7 @@ export function ColumnChooser({
           <Columns3 className="w-4 h-4" />
           <span>{ar ? "الأعمدة" : "Columns"}</span>
           <span className="text-muted-foreground text-xs">
-            ({visibleCount}/{cols.length})
+            ({visibleCount}/{actualCols.length})
           </span>
         </Button>
       </DropdownMenuTrigger>
@@ -106,7 +109,7 @@ export function ColumnChooser({
           </>
         )}
 
-        {cols.map((col) => (
+        {actualCols.map((col) => (
           <DropdownMenuCheckboxItem
             key={col.key}
             checked={visible.has(col.key)}

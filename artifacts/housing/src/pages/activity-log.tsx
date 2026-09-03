@@ -45,7 +45,7 @@ const MODULES = [
   "system",
   "dashboard",
   "housing",
-  "employees",
+  "profiles",
   "accommodation",
   "reservations",
   "maintenance",

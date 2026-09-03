@@ -5,7 +5,7 @@ import {
   withTenant,
   roomsTable,
   assignmentsTable,
-  employeesTable,
+  profilesTable,
   buildingsTable,
   floorsTable,
   hostingsTable,
@@ -28,6 +28,112 @@ import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission } from "../middlewares/permissions.js";
 
 const router: Router = Router();
+
+// ─── GET /rooms/:id/bed-status ─────────────────────────────────────────────
+router.get(
+  "/rooms/:id/bed-status",
+  requirePermission("accommodation", "view"),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      const roomId = parseInt(String(req.params.id), 10);
+      if (!roomId || isNaN(roomId)) {
+        res.status(400).json({ error: "Invalid roomId" });
+        return;
+      }
+
+      const result = await withTenant(propertyId, async (tenantDb) => {
+        const [room] = await tenantDb
+          .select()
+          .from(roomsTable)
+          .where(eq(roomsTable.id, roomId));
+        if (!room) return null;
+
+        const activeAssignments = await tenantDb
+          .select({
+            assignmentId: assignmentsTable.id,
+            bedNumber: assignmentsTable.bedNumber,
+            profileId: assignmentsTable.profileId,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+            profileCode: profilesTable.profileId,
+            profileStatus: profilesTable.status,
+            vacationStartDate: profilesTable.vacationStartDate,
+            vacationEndDate: profilesTable.vacationEndDate,
+            jobTitle: profilesTable.jobTitle,
+            department: profilesTable.department,
+          })
+          .from(assignmentsTable)
+          .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+          .where(
+            and(
+              eq(assignmentsTable.roomId, roomId),
+              eq(assignmentsTable.status, "ACTIVE"),
+            ),
+          );
+
+        const capacity = room.capacity || 1;
+        const beds = [];
+
+        for (let b = 1; b <= capacity; b++) {
+          const asgn = activeAssignments.find((a) => a.bedNumber === b);
+          if (!asgn) {
+            beds.push({
+              bedNumber: b,
+              status: "AVAILABLE",
+              occupant: null,
+            });
+          } else {
+            const isOnVacation = asgn.profileStatus?.toUpperCase() === "VACATION";
+            beds.push({
+              bedNumber: b,
+              status: isOnVacation ? "VACATION" : "OCCUPIED",
+              occupant: {
+                assignmentId: asgn.assignmentId,
+                profileId: asgn.profileId,
+                name: `${asgn.firstName || ""} ${asgn.lastName || ""}`.trim(),
+                profileCode: asgn.profileCode,
+                status: asgn.profileStatus,
+                isOnVacation,
+                vacationStartDate: asgn.vacationStartDate,
+                vacationEndDate: asgn.vacationEndDate,
+                jobTitle: asgn.jobTitle,
+                department: asgn.department,
+              },
+            });
+          }
+        }
+
+        const isEligible = !["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(
+          room.status?.toLowerCase() || "",
+        );
+
+        return {
+          room: {
+            id: room.id,
+            roomNumber: room.roomNumber,
+            capacity: room.capacity,
+            currentOccupancy: room.currentOccupancy,
+            status: room.status,
+            roomType: room.roomType,
+            genderPolicy: room.gender,
+            isEligible,
+          },
+          beds,
+        };
+      });
+
+      if (!result) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
 
 router.get(
   "/rooms/by-number",
@@ -178,7 +284,13 @@ router.get(
           baseQuery = baseQuery.where(and(...conditions));
 
         const rows = await baseQuery;
-        return { data: rows, total: totalCount };
+        return {
+          data: rows.map((room: any) => ({
+            ...room,
+            genderPolicy: room.gender,
+          })),
+          total: totalCount,
+        };
       });
 
       res.json({
@@ -251,22 +363,22 @@ router.get(
         return await tenantDb
           .select({
             id: assignmentsTable.id,
-            employeeId: assignmentsTable.employeeId,
+            profileId: assignmentsTable.profileId,
             checkInDate: assignmentsTable.checkInDate,
             checkOutDate: assignmentsTable.checkOutDate,
             status: assignmentsTable.status,
             notes: assignmentsTable.notes,
-            empFirst: employeesTable.firstName,
-            empLast: employeesTable.lastName,
-            empEid: employeesTable.employeeId,
-            empDept: employeesTable.department,
-            empJobTitle: employeesTable.jobTitle,
-            empNationality: employeesTable.nationality,
+            empFirst: profilesTable.firstName,
+            empLast: profilesTable.lastName,
+            empEid: profilesTable.profileId,
+            empDept: profilesTable.department,
+            empJobTitle: profilesTable.jobTitle,
+            empNationality: profilesTable.nationality,
           })
           .from(assignmentsTable)
           .leftJoin(
-            employeesTable,
-            eq(assignmentsTable.employeeId, employeesTable.id),
+            profilesTable,
+            eq(assignmentsTable.profileId, profilesTable.id),
           )
           .where(eq(assignmentsTable.roomId, id))
           .orderBy(desc(assignmentsTable.checkInDate));
@@ -274,9 +386,9 @@ router.get(
 
       const history = assignments.map((a) => ({
         id: a.id,
-        employeeId: a.employeeId,
-        employeeName: `${a.empFirst ?? ""} ${a.empLast ?? ""}`.trim(),
-        employeeCode: a.empEid,
+        profileId: a.profileId,
+        profileName: `${a.empFirst ?? ""} ${a.empLast ?? ""}`.trim(),
+        profileCode: a.empEid,
         department: a.empDept,
         jobTitle: a.empJobTitle,
         nationality: a.empNationality,
@@ -345,11 +457,44 @@ router.post(
         return;
       }
 
+      const {
+        view,
+        bedType,
+        classification,
+        separatorDoor,
+        size,
+        sizeSqm,
+        features,
+        featuresList,
+        notes,
+      } = req.body;
+
+      const extraData: any = {};
+      if (view !== undefined) extraData.view = view;
+      if (bedType !== undefined) extraData.bedType = bedType;
+      if (classification !== undefined) extraData.classification = classification;
+      if (separatorDoor !== undefined) extraData.separatorDoor = Boolean(separatorDoor);
+      if (size !== undefined) {
+        extraData.size = size;
+        const num = parseInt(String(size).replace(/[^0-9]/g, ""));
+        if (!isNaN(num)) extraData.sizeSqm = num;
+      }
+      if (sizeSqm !== undefined) extraData.sizeSqm = Number(sizeSqm);
+      if (features !== undefined) extraData.features = features;
+      if (featuresList !== undefined) {
+        extraData.featuresList = Array.isArray(featuresList)
+          ? featuresList
+          : String(featuresList).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+      } else if (features !== undefined) {
+        extraData.featuresList = String(features).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+      }
+      if (notes !== undefined) extraData.notes = notes;
+
       const [room] = await withTenant(propertyId, async (tenantDb) => {
         const { propertyId: _skip, ...roomData } = parsed.data as any;
         return await tenantDb
           .insert(roomsTable)
-          .values({ ...roomData, currentOccupancy: 0 })
+          .values({ ...roomData, ...extraData, currentOccupancy: 0 })
           .returning();
       });
 
@@ -367,7 +512,7 @@ router.post(
         entityId: room.id,
         details: `Capacity: ${room.capacity}, Type: ${room.roomType}`,
       });
-      res.status(201).json({ ...GetRoomResponse.parse(room), propertyId });
+      res.status(201).json({ ...room, genderPolicy: room.gender, propertyId });
     } catch (err: any) {
       console.error("[rooms/create] Error:", err);
       // Check for Postgres Foreign Key constraint violation
@@ -408,7 +553,7 @@ router.get(
         res.status(404).json({ error: "Room not found" });
         return;
       }
-      res.json({ ...GetRoomResponse.parse(room), propertyId });
+      res.json(GetRoomResponse.parse({ ...room, genderPolicy: room.gender, propertyId }));
     } catch (err: any) {
       console.error("[rooms/get] Error:", err.message);
       res.status(500).json({ error: "Failed to fetch room" });
@@ -456,10 +601,47 @@ router.patch(
       }
     }
 
+    const {
+      view,
+      bedType,
+      classification,
+      separatorDoor,
+      size,
+      sizeSqm,
+      features,
+      featuresList,
+      notes,
+      buildingId,
+      floorId,
+    } = req.body;
+
+    const extraData: any = {};
+    if (buildingId !== undefined) extraData.buildingId = Number(buildingId);
+    if (floorId !== undefined) extraData.floorId = Number(floorId);
+    if (view !== undefined) extraData.view = view;
+    if (bedType !== undefined) extraData.bedType = bedType;
+    if (classification !== undefined) extraData.classification = classification;
+    if (separatorDoor !== undefined) extraData.separatorDoor = Boolean(separatorDoor);
+    if (size !== undefined) {
+      extraData.size = size;
+      const num = parseInt(String(size).replace(/[^0-9]/g, ""));
+      if (!isNaN(num)) extraData.sizeSqm = num;
+    }
+    if (sizeSqm !== undefined) extraData.sizeSqm = Number(sizeSqm);
+    if (features !== undefined) extraData.features = features;
+    if (featuresList !== undefined) {
+      extraData.featuresList = Array.isArray(featuresList)
+        ? featuresList
+        : String(featuresList).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+    } else if (features !== undefined) {
+      extraData.featuresList = String(features).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+    }
+    if (notes !== undefined) extraData.notes = notes;
+
     const [updated] = await withTenant(propertyId, async (tenantDb) => {
       return await tenantDb
         .update(roomsTable)
-        .set(parsed.data as any)
+        .set({ ...parsed.data, ...extraData })
         .where(eq(roomsTable.id, params.data.id))
         .returning();
     });
@@ -470,19 +652,155 @@ router.patch(
     }
 
     const s = su(req);
-    await logActivity({
-      req,
-      propertyId,
-      username: s.username,
-      userId: s.userId,
-      userRole: s.userRole,
-      action: `تعديل غرفة: ${updated.roomNumber}`,
-      actionType: "UPDATE",
-      module: "housing",
-      entityType: "room",
-      entityId: updated.id,
-    });
-    res.json({ ...UpdateRoomResponse.parse(updated), propertyId });
+    
+    // Log specific status change if status was updated
+    if (parsed.data.status) {
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `تغيير حالة الغرفة ${updated.roomNumber} إلى: ${parsed.data.status}`,
+        actionType: "UPDATE_STATUS",
+        module: "housekeeping",
+        entityType: "room",
+        entityId: updated.id,
+      });
+    } else {
+      // General update log
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `تعديل غرفة: ${updated.roomNumber}`,
+        actionType: "UPDATE",
+        module: "housing",
+        entityType: "room",
+        entityId: updated.id,
+      });
+    }
+    
+    res.json({ ...updated, genderPolicy: updated.gender, propertyId });
+  },
+);
+
+router.patch(
+  "/rooms/:id/features",
+  requirePermission("accommodation", "edit"),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid room id" });
+        return;
+      }
+      const { features, featuresList } = req.body;
+      const list = Array.isArray(featuresList)
+        ? featuresList
+        : String(features ?? "").split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+      const rawText = features ?? list.join(", ");
+
+      const [updated] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .update(roomsTable)
+          .set({
+            features: rawText,
+            featuresList: list,
+          })
+          .where(eq(roomsTable.id, id))
+          .returning();
+      });
+
+      if (!updated) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
+      res.json({ success: true, room: { ...updated, propertyId } });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+router.patch(
+  "/rooms/:id/status",
+  async (req, res, next) => {
+    // Custom permission check: allow if user has accommodation:edit OR housekeeping:edit
+    try {
+      const { loadAuthUser, hasPermission } = await import("../middlewares/permissions.js");
+      const user = await loadAuthUser(req, res);
+      if (!user) return;
+      if (!hasPermission(user, "accommodation", "edit") && !hasPermission(user, "housekeeping", "edit")) {
+        res.status(403).json({ error: "Permission denied. Requires accommodation:edit or housekeeping:edit" });
+        return;
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  },
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid room id" });
+        return;
+      }
+      const { status } = req.body;
+      if (!status) {
+        res.status(400).json({ error: "Status is required" });
+        return;
+      }
+
+      const [updated] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .update(roomsTable)
+          .set({ status })
+          .where(eq(roomsTable.id, id))
+          .returning();
+      });
+
+      if (!updated) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `تغيير حالة الغرفة ${updated.roomNumber} إلى: ${status}`,
+        actionType: "UPDATE_STATUS",
+        module: "housekeeping",
+        entityType: "room",
+        entityId: updated.id,
+      });
+
+      // Also trigger a property broadcast for realtime UI update
+      const { broadcastToProperty } = await import("../lib/websocket.js");
+      broadcastToProperty(propertyId, { module: "rooms", action: "sync" });
+
+      res.json({ success: true, room: { ...updated, propertyId } });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   },
 );
 

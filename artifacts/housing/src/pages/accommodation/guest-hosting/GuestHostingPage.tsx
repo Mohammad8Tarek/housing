@@ -9,7 +9,7 @@ import {
   useDeleteHosting,
   useUpdateHosting,
   useListRooms,
-  useListEmployees,
+  useListProfiles,
   getListHostingsQueryKey,
   useGetSettings,
 } from "@workspace/api-client-react";
@@ -17,7 +17,7 @@ import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { EmployeeProfilePopup } from "@/components/ui/employee-profile-popup";
+import { ProfileProfilePopup } from "@/components/ui/profile-profile-popup";
 import {
   Table,
   TableBody,
@@ -81,11 +81,11 @@ import {
   TableSkeleton,
 } from "@/components/ui/page-states";
 
-type EmployeeResult = {
+type ProfileResult = {
   id: number;
   propertyId: number;
   propertyName: string | null;
-  employeeId: string;
+  profileId: string;
   firstName: string;
   lastName: string;
   jobTitle: string | null;
@@ -182,11 +182,11 @@ export default function GuestHosting() {
   const [keyPromptRoomId, setKeyPromptRoomId] = useState<string>("");
   const [keyIssuing, setKeyIssuing] = useState(false);
 
-  /* Employee search */
+  /* Profile search */
   const [empSearch, setEmpSearch] = useState("");
-  const [empResults, setEmpResults] = useState<EmployeeResult[]>([]);
-  const [selectedEmployee, setSelectedEmployee] =
-    useState<EmployeeResult | null>(null);
+  const [empResults, setEmpResults] = useState<ProfileResult[]>([]);
+  const [selectedProfile, setSelectedProfile] =
+    useState<ProfileResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchPropertyId, setSearchPropertyId] = useState(() =>
@@ -275,11 +275,11 @@ export default function GuestHosting() {
     },
   );
   const requestRooms = _requestRoomsWrapper?.data || [];
-  const { data: _eDataWrapper } = useListEmployees(
+  const { data: _eDataWrapper } = useListProfiles(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
     { query: { enabled: !!activePropertyId } },
   );
-  const employees = _eDataWrapper?.employees || _eDataWrapper?.data || [];
+  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
   const { data: settings } = useGetSettings(
     { propertyId: activePropertyId },
     { query: { enabled: !!activePropertyId } },
@@ -414,7 +414,7 @@ export default function GuestHosting() {
       setSearchPropertyId(String(activePropertyId));
   }, [activePropertyId, isOpen]);
 
-  /* Cross-property employee search */
+  /* Cross-property profile search */
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!empSearch.trim() || empSearch.trim().length < 2) {
@@ -431,7 +431,7 @@ export default function GuestHosting() {
       setIsSearching(true);
       try {
         const resp = await fetch(
-          `/api/employees/search?q=${encodeURIComponent(empSearch.trim())}&propertyId=${requestPropertyId}`,
+          `/api/profiles/search?q=${encodeURIComponent(empSearch.trim())}&propertyId=${requestPropertyId}`,
         );
         if (!resp.ok) {
           setEmpResults([]);
@@ -457,21 +457,21 @@ export default function GuestHosting() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const selectEmployee = (emp: EmployeeResult) => {
-    setSelectedEmployee(emp);
-    setEmpSearch(`${emp.firstName} ${emp.lastName} (${emp.employeeId})`);
+  const selectProfile = (emp: ProfileResult) => {
+    setSelectedProfile(emp);
+    setEmpSearch(`${emp.firstName} ${emp.lastName} (${emp.profileId})`);
     setShowDropdown(false);
   };
 
-  const clearEmployee = () => {
-    setSelectedEmployee(null);
+  const clearProfile = () => {
+    setSelectedProfile(null);
     setEmpSearch("");
     setEmpResults([]);
   };
 
   const resetAndClose = () => {
     setIsOpen(false);
-    setSelectedEmployee(null);
+    setSelectedProfile(null);
     setEmpSearch("");
     setEmpResults([]);
     setCompanions([]);
@@ -537,8 +537,8 @@ export default function GuestHosting() {
   };
 
   const onSubmit = () => {
-    if (!selectedEmployee) {
-      toast.error(ar ? "الرجاء اختيار موظف" : "Please select an employee");
+    if (!selectedProfile) {
+      toast.error(ar ? "الرجاء اختيار موظف" : "Please select an profile");
       return;
     }
     if (!form.expectedFrom || !form.expectedTo) {
@@ -583,7 +583,7 @@ export default function GuestHosting() {
     createMutation.mutate({
       data: {
         propertyId: requestPropertyId!,
-        employeeId: selectedEmployee.id,
+        profileId: selectedProfile.id,
         hostingType: form.hostingType,
         guestsCount: Math.max(1, validCompanions.length || 1),
         expectedFrom: new Date(form.expectedFrom).toISOString(),
@@ -601,8 +601,8 @@ export default function GuestHosting() {
   // We already excluded PENDING in the API call
   const pagedHostings = hostings;
   const roomMap = Object.fromEntries((rooms as any[]).map((r) => [r.id, r]));
-  const employeeMap = Object.fromEntries(
-    (employees as any[]).map((e) => [e.id, e]),
+  const profileMap = Object.fromEntries(
+    (profiles as any[]).map((e) => [e.id, e]),
   );
 
   const pagedHostIds = pagedHostings.map((h) => h.id);
@@ -636,17 +636,17 @@ export default function GuestHosting() {
     pattern = "MMM d, yyyy",
   ) => (value ? format(new Date(value), pattern) : "—");
 
-  const getHostEmployee = (h: any) =>
-    h.employee ?? employeeMap[h.employeeId] ?? null;
+  const getHostProfile = (h: any) =>
+    h.profile ?? profileMap[h.profileId] ?? null;
   const getHostName = (h: any) => {
-    const emp = getHostEmployee(h);
+    const emp = getHostProfile(h);
     const name = emp
       ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
       : "";
-    return name || `#${h.employeeId}`;
+    return name || `#${h.profileId}`;
   };
   const getHostCode = (h: any) =>
-    getHostEmployee(h)?.employeeId ?? `#${h.employeeId}`;
+    getHostProfile(h)?.profileId ?? `#${h.profileId}`;
   const getCompanions = (h: any) =>
     Array.isArray(h.companions) && h.companions.length > 0
       ? h.companions
@@ -710,7 +710,7 @@ export default function GuestHosting() {
       const room = getRoom(h);
       return {
         "Host Name": getHostName(h),
-        "Employee Code": getHostCode(h),
+        "Profile Code": getHostCode(h),
         "Guest Names": getGuestNames(h),
         "Guest Details": guestProfileLines(h)
           .map(
@@ -744,13 +744,13 @@ export default function GuestHosting() {
   const HOSTING_COLS = [
     {
       key: "host",
-      label: "Host Employee",
+      label: "Host Profile",
       labelAr: "الموظف المستضيف",
       defaultVisible: true,
     },
     {
-      key: "employeeCode",
-      label: "Employee Code",
+      key: "profileCode",
+      label: "Profile Code",
       labelAr: "كود الموظف",
       defaultVisible: false,
     },
@@ -880,7 +880,7 @@ export default function GuestHosting() {
 
   const exportGuestProfilePdf = async (
     hosting: any,
-    hostEmployee: any,
+    hostProfile: any,
     room: any,
     companions: any[],
   ) => {
@@ -910,16 +910,16 @@ export default function GuestHosting() {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     const empName = pdfTextSafe(
-      hostEmployee ? `${hostEmployee.firstName} ${hostEmployee.lastName}` : "—",
+      hostProfile ? `${hostProfile.firstName} ${hostProfile.lastName}` : "—",
     );
     doc.text(
-      `Host Employee: ${empName} (${hostEmployee?.employeeId || "—"})`,
+      `Host Profile: ${empName} (${hostProfile?.profileId || "—"})`,
       14,
       currentY,
     );
     currentY += 5;
     doc.text(
-      `Department / Job: ${pdfTextSafe(hostEmployee?.department || "—")} / ${pdfTextSafe(hostEmployee?.jobTitle || "—")}`,
+      `Department / Job: ${pdfTextSafe(hostProfile?.department || "—")} / ${pdfTextSafe(hostProfile?.jobTitle || "—")}`,
       14,
       currentY,
     );
@@ -1164,7 +1164,7 @@ export default function GuestHosting() {
               <TableBody>
                 {pagedHostings.map((h) => {
                   const isSelected = selectedRows.has(h.id);
-                  const emp = getHostEmployee(h);
+                  const emp = getHostProfile(h);
                   const room = getRoom(h);
                   const guestProfiles = guestProfileLines(h);
                   return (
@@ -1185,8 +1185,8 @@ export default function GuestHosting() {
                           <button
                             className="flex items-center gap-2 text-left text-sm font-semibold text-primary hover:underline"
                             onClick={() =>
-                              h.employeeId != null &&
-                              setProfileEmpId(Number(h.employeeId))
+                              h.profileId != null &&
+                              setProfileEmpId(Number(h.profileId))
                             }
                           >
                             {emp?.photoUrl ? (
@@ -1215,7 +1215,7 @@ export default function GuestHosting() {
                           </button>
                         </TableCell>
                       )}
-                      {isHVisible("employeeCode") && (
+                      {isHVisible("profileCode") && (
                         <TableCell className="font-mono text-xs">
                           {getHostCode(h)}
                         </TableCell>
@@ -1478,9 +1478,9 @@ export default function GuestHosting() {
         </div>
       )}
 
-      {/* Employee Profile Popup */}
-      <EmployeeProfilePopup
-        employeeId={profileEmpId}
+      {/* Profile Profile Popup */}
+      <ProfileProfilePopup
+        profileId={profileEmpId}
         propertyId={activePropertyId}
         onClose={() => setProfileEmpId(null)}
       />
@@ -1587,7 +1587,7 @@ export default function GuestHosting() {
           );
           if (!hosting) return null;
           const companions = getCompanions(hosting);
-          const hostEmployee = getHostEmployee(hosting);
+          const hostProfile = getHostProfile(hosting);
           const room = getRoom(hosting);
           return (
             <Dialog
@@ -1608,7 +1608,7 @@ export default function GuestHosting() {
                     onClick={() =>
                       exportGuestProfilePdf(
                         hosting,
-                        hostEmployee,
+                        hostProfile,
                         room,
                         companions,
                       )
@@ -1624,7 +1624,7 @@ export default function GuestHosting() {
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <div>
                       <p className="text-xs font-semibold uppercase text-muted-foreground">
-                        {ar ? "الموظف المستضيف" : "Host Employee"}
+                        {ar ? "الموظف المستضيف" : "Host Profile"}
                       </p>
                       <p className="text-sm font-bold">
                         {getHostName(hosting)}
@@ -1684,7 +1684,7 @@ export default function GuestHosting() {
                         {ar ? "القسم/الوظيفة" : "Department / Job"}
                       </p>
                       <p className="text-sm font-medium">
-                        {[hostEmployee?.department, hostEmployee?.jobTitle]
+                        {[hostProfile?.department, hostProfile?.jobTitle]
                           .filter(Boolean)
                           .join(" • ") || "—"}
                       </p>
@@ -1950,7 +1950,7 @@ export default function GuestHosting() {
                 <Label className="text-xs mb-1 block">
                   {ar
                     ? "اختر الغرفة المخصصة (غرفة الموظف)"
-                    : "Select assigned room (Employee's Room)"}
+                    : "Select assigned room (Profile's Room)"}
                 </Label>
                 <Select
                   value={keyPromptRoomId}

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, withTenant, assignmentsTable, roomsTable, employeesTable } from "@workspace/db";
-import { eq, and, or, ilike, sql, SQL, desc } from "drizzle-orm";
+import { db, withTenant, assignmentsTable, roomsTable, profilesTable } from "@workspace/db";
+import { eq, and, or, ilike, sql, SQL, desc, not } from "drizzle-orm";
 import {
   CreateAssignmentBody,
   UpdateAssignmentBody,
@@ -74,9 +74,9 @@ router.get(
       const q = `%${query.search}%`;
       conditions.push(
         or(
-          ilike(employeesTable.firstName, q),
-          ilike(employeesTable.lastName, q),
-          ilike(employeesTable.employeeId, q),
+          ilike(profilesTable.firstName, q),
+          ilike(profilesTable.lastName, q),
+          ilike(profilesTable.profileId, q),
           ilike(roomsTable.roomNumber, q)
         )!
       );
@@ -89,14 +89,14 @@ router.get(
           assignment: assignmentsTable
         })
         .from(assignmentsTable)
-        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .where(and(...conditions));
 
       const countResult = await tenantDb
         .select({ count: sql<number>`count(*)` })
         .from(assignmentsTable)
-        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .where(and(...conditions));
 
@@ -146,9 +146,9 @@ router.get(
       const q = `%${query.search}%`;
       conditions.push(
         or(
-          ilike(employeesTable.firstName, q),
-          ilike(employeesTable.lastName, q),
-          ilike(employeesTable.employeeId, q),
+          ilike(profilesTable.firstName, q),
+          ilike(profilesTable.lastName, q),
+          ilike(profilesTable.profileId, q),
           ilike(roomsTable.roomNumber, q)
         )!
       );
@@ -161,14 +161,14 @@ router.get(
           assignment: assignmentsTable
         })
         .from(assignmentsTable)
-        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .where(and(...conditions));
 
       const countResult = await tenantDb
         .select({ count: sql<number>`count(*)` })
         .from(assignmentsTable)
-        .leftJoin(employeesTable, eq(assignmentsTable.employeeId, employeesTable.id))
+        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .where(and(...conditions));
 
@@ -211,8 +211,8 @@ router.get(
     if (query.success) {
       if (query.data.status)
         conditions.push(eq(assignmentsTable.status, query.data.status));
-      if (query.data.employeeId)
-        conditions.push(eq(assignmentsTable.employeeId, query.data.employeeId));
+      if (query.data.profileId)
+        conditions.push(eq(assignmentsTable.profileId, query.data.profileId));
       if (query.data.roomId)
         conditions.push(eq(assignmentsTable.roomId, query.data.roomId));
     }
@@ -251,6 +251,8 @@ router.post(
       return;
     }
 
+    const isTemporaryVacationOverride = Boolean((req.body as any)?.isTemporaryVacationOverride);
+
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [room] = await tenantDb
         .select()
@@ -258,38 +260,51 @@ router.post(
         .where(eq(roomsTable.id, parsed.data.roomId));
       if (!room)
         return { error: "Room not found", code: "ROOM_NOT_FOUND", status: 404 };
-      if (room.currentOccupancy >= room.capacity)
-        return {
-          error: `Room is full (${room.capacity})`,
-          code: "ROOM_FULL",
-          status: 409,
-        };
 
-      // ── Prevent duplicate active assignment for the same employee ──────────
+      // ── 1. فحص صلاحية الغرفة للتسكين ──────────────────────────────────────
+      const roomStatus = room.status?.toLowerCase() || "";
+      if (["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(roomStatus)) {
+        return {
+          error: `لا يمكن التسكين في هذه الغرفة لأنها غير صالحة للسكن حالياً (الحالة: ${room.status}). يرجى إنهاء أعمال الصيانة أو إعادة الغرفة للخدمة أولاً.`,
+          code: "ROOM_NOT_ELIGIBLE",
+          status: 400,
+        };
+      }
+
+      // ── 2. منع التسكين المزدوج لنفس الموظف ─────────────────────────────────
       const existingActive = await tenantDb
         .select({ id: assignmentsTable.id, roomId: assignmentsTable.roomId })
         .from(assignmentsTable)
         .where(
           and(
-            eq(assignmentsTable.employeeId, parsed.data.employeeId),
+            eq(assignmentsTable.profileId, parsed.data.profileId),
             eq(assignmentsTable.status, "ACTIVE"),
           ),
         );
       if (existingActive.length > 0) {
         return {
-          error: `Employee #${parsed.data.employeeId} already has an active assignment (assignment #${existingActive[0].id}). Checkout the existing assignment first.`,
-          code: "EMPLOYEE_ALREADY_ASSIGNED",
+          error: `الموظف مسكّن بالفعل في غرفة أخرى (#${existingActive[0].roomId}). لا يمكن تسكين نفس الشخص في أكثر من مكان؛ يجب تسجيل خروجه أولاً.`,
+          code: "PROFILE_ALREADY_ASSIGNED",
           existingAssignmentId: existingActive[0].id,
           existingRoomId: existingActive[0].roomId,
           status: 409,
         };
       }
 
-      // ── Bed conflict check ────────────────────────────────────────────────
+      // ── 3. فحص تعارض السرير واستثناء إجازة الموظف ──────────────────────────
       if (parsed.data.bedNumber) {
-        const takenBeds = await tenantDb
-          .select({ id: assignmentsTable.id })
+        const existingBedAssignments = await tenantDb
+          .select({
+            id: assignmentsTable.id,
+            profileId: assignmentsTable.profileId,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+            profileStatus: profilesTable.status,
+            vacationStartDate: profilesTable.vacationStartDate,
+            vacationEndDate: profilesTable.vacationEndDate,
+          })
           .from(assignmentsTable)
+          .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
           .where(
             and(
               eq(assignmentsTable.roomId, parsed.data.roomId),
@@ -297,27 +312,116 @@ router.post(
               eq(assignmentsTable.status, "ACTIVE"),
             ),
           );
-        if (takenBeds.length > 0) {
-          return {
-            error: `Bed ${parsed.data.bedNumber} in this room is already occupied`,
-            code: "BED_TAKEN",
-            status: 409,
-          };
+
+        if (existingBedAssignments.length > 0) {
+          const primaryOccupant = existingBedAssignments[0];
+          const isOccupantOnVacation = primaryOccupant.profileStatus?.toUpperCase() === "VACATION";
+
+          if (!isOccupantOnVacation) {
+            // المقيم موجود فعلياً بالسكن: ممنوع قطعياً تسكين شخص فوق شخص
+            return {
+              error: `السرير رقم ${parsed.data.bedNumber} مشغول حالياً بالموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو مقيم بالسكن. ممنوع منعاً باتاً تسكين شخص فوق شخص على نفس السرير.`,
+              code: "BED_TAKEN",
+              status: 409,
+            };
+          }
+
+          // شاغل السرير في إجازة رسمية: يتطلب صلاحية مدير السكن أو الآدمن
+          const isManagerOrAdmin = ["super_admin", "system_admin", "admin", "manager"].includes(
+            su(req).userRole?.toLowerCase() || "",
+          );
+
+          if (!isManagerOrAdmin) {
+            return {
+              error: `السرير رقم ${parsed.data.bedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة. تسكين شخص بديل مؤقت يتطلب صلاحية مدير السكن أو الآدمن فقط.`,
+              code: "PERMISSION_DENIED_VACATION_OVERRIDE",
+              status: 403,
+            };
+          }
+
+          if (!isTemporaryVacationOverride) {
+            return {
+              error: `السرير رقم ${parsed.data.bedNumber} مخصص للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة حالياً${
+                primaryOccupant.vacationEndDate ? ` حتى تاريخ ${primaryOccupant.vacationEndDate}` : ""
+              }. بصفتك مسؤول السكن، هل تريد تأكيد التسكين المؤقت كبديل خلال فترة الإجازة؟`,
+              code: "BED_OCCUPANT_ON_VACATION",
+              occupantName: `${primaryOccupant.firstName} ${primaryOccupant.lastName}`,
+              vacationEndDate: primaryOccupant.vacationEndDate,
+              canOverride: true,
+              status: 409,
+            };
+          }
+
+          if (!parsed.data.expectedCheckOutDate && !(req.body as any)?.expectedCheckOutDate) {
+            return {
+              error: "التسكين المؤقت كبديل لموظف في إجازة يستلزم تحديد تاريخ المغادرة المتوقع لضمان عدم التعارض مع عودة المقيم الأصلي.",
+              code: "MISSING_TEMPORARY_CHECKOUT_DATE",
+              status: 400,
+            };
+          }
         }
       }
 
-      const newOccupancy = room.currentOccupancy + 1;
+      // ── 4. فحص استيعاب الغرفة ─────────────────────────────────────────────
+      if (room.currentOccupancy >= room.capacity && !isTemporaryVacationOverride) {
+        return {
+          error: `الغرفة مكتملة العدد (${room.capacity}/${room.capacity} سرير). لا يمكن تجاوز الطاقة الاستيعابية للغرفة مطلقاً.`,
+          code: "ROOM_FULL",
+          status: 409,
+        };
+      }
+
+      const newOccupancy = isTemporaryVacationOverride
+        ? room.currentOccupancy
+        : room.currentOccupancy + 1;
+
       await tenantDb
         .update(roomsTable)
         .set({
           currentOccupancy: newOccupancy,
-          status: newOccupancy >= room.capacity ? "occupied" : "available",
+          // Workflow: Room with active guest becomes "occupied"
+          status: "occupied",
         })
         .where(eq(roomsTable.id, parsed.data.roomId));
 
+      // Workflow: Checked-in profile becomes "ACTIVE" (ان هاوس)
+      if (parsed.data.profileId) {
+        await tenantDb
+          .update(profilesTable)
+          .set({ status: "ACTIVE" })
+          .where(eq(profilesTable.id, parsed.data.profileId));
+      }
+
+      // Fallback: If no expected check-out date is given, pull contractEndDate for internal employees
+      let expectedCheckOut = parsed.data.expectedCheckOutDate;
+      if (!expectedCheckOut && parsed.data.profileId) {
+        const [prof] = await tenantDb
+          .select({ contractEndDate: profilesTable.contractEndDate, employmentType: profilesTable.employmentType })
+          .from(profilesTable)
+          .where(eq(profilesTable.id, parsed.data.profileId))
+          .limit(1);
+        if (prof?.contractEndDate && prof.employmentType !== "THIRD_PARTY") {
+          try {
+            expectedCheckOut = new Date(prof.contractEndDate).toISOString();
+          } catch {
+            expectedCheckOut = prof.contractEndDate;
+          }
+        }
+      }
+
+      let finalNotes = parsed.data.notes || "";
+      if (isTemporaryVacationOverride) {
+        finalNotes = `[تسكين مؤقت بديل إجازة بتصريح الإدارة] ${finalNotes}`.trim();
+      }
+
       const [assignment] = await tenantDb
         .insert(assignmentsTable)
-        .values({ ...(parsed.data as any), status: "ACTIVE" })
+        .values({
+          ...(parsed.data as any),
+          notes: finalNotes,
+          expectedCheckOutDate: expectedCheckOut || undefined,
+          status: "ACTIVE",
+        })
         .returning();
 
       return { assignment, room };
@@ -329,6 +433,9 @@ router.post(
         code: result.code,
         existingAssignmentId: result.existingAssignmentId,
         existingRoomId: result.existingRoomId,
+        occupantName: (result as any).occupantName,
+        vacationEndDate: (result as any).vacationEndDate,
+        canOverride: (result as any).canOverride,
       });
       return;
     }
@@ -340,7 +447,9 @@ router.post(
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `تسكين موظف #${result.assignment!.employeeId} في غرفة ${result.room!.roomNumber}`,
+      action: isTemporaryVacationOverride
+        ? `تسكين موظف #${result.assignment!.profileId} (مؤقت بديل إجازة) في غرفة ${result.room!.roomNumber} سرير ${result.assignment!.bedNumber}`
+        : `تسكين موظف #${result.assignment!.profileId} في غرفة ${result.room!.roomNumber}`,
       actionType: "CREATE",
       module: "accommodation",
       entityType: "assignment",
@@ -405,15 +514,46 @@ router.post(
         .select()
         .from(roomsTable)
         .where(eq(roomsTable.id, assignment.roomId));
-      if (room) {
+            if (room) {
         const newOcc = Math.max(0, room.currentOccupancy - 1);
+        let nextRoomStatus = newOcc === 0 ? "dirty" : "occupied_dirty";
+
+        if (newOcc > 0) {
+          // Check if remaining occupants in this room are on vacation
+          const remaining = await tenantDb
+            .select({
+              profileId: assignmentsTable.profileId,
+              status: profilesTable.status,
+            })
+            .from(assignmentsTable)
+            .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+            .where(
+              and(
+                eq(assignmentsTable.roomId, room.id),
+                eq(assignmentsTable.status, "ACTIVE"),
+                not(eq(assignmentsTable.id, params.data.id))
+              )
+            );
+          if (remaining.length > 0 && remaining.every((r) => r.status?.toUpperCase() === "VACATION")) {
+            nextRoomStatus = "occupied_vacation";
+          }
+        }
+
         await tenantDb
           .update(roomsTable)
           .set({
             currentOccupancy: newOcc,
-            status: newOcc === 0 ? "available" : "occupied",
+            status: nextRoomStatus,
           })
           .where(eq(roomsTable.id, room.id));
+      }
+
+      // Workflow: Checked-out profile becomes "LEFT" (شيكاوت)
+      if (assignment.profileId) {
+        await tenantDb
+          .update(profilesTable)
+          .set({ status: "LEFT" })
+          .where(eq(profilesTable.id, assignment.profileId));
       }
 
       return { assignment: updated, room };
@@ -431,7 +571,7 @@ router.post(
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `مغادرة موظف #${result.assignment!.employeeId}`,
+      action: `مغادرة موظف #${result.assignment!.profileId}`,
       actionType: "UPDATE",
       module: "accommodation",
       entityType: "assignment",
@@ -478,6 +618,8 @@ router.post(
       return;
     }
 
+    const isTemporaryVacationOverride = Boolean((req.body as any)?.isTemporaryVacationOverride);
+
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [assignment] = await tenantDb
         .select()
@@ -495,18 +637,31 @@ router.post(
           code: "ROOM_NOT_FOUND",
           status: 404,
         };
-      if (newRoom.currentOccupancy >= newRoom.capacity)
-        return {
-          error: `New room is full (${newRoom.capacity})`,
-          code: "ROOM_FULL",
-          status: 409,
-        };
 
-      // ── Bed conflict check on transfer ───────────────────────────────────
+      // ── فحص صلاحية الغرفة الجديدة ─────────────────────────────────────────
+      const newRoomStatus = newRoom.status?.toLowerCase() || "";
+      if (["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(newRoomStatus)) {
+        return {
+          error: `لا يمكن نقل الموظف إلى هذه الغرفة لأنها غير صالحة للسكن حالياً (الحالة: ${newRoom.status}). يرجى إنهاء أعمال الصيانة أولاً.`,
+          code: "ROOM_NOT_ELIGIBLE",
+          status: 400,
+        };
+      }
+
+      // ── فحص السرير في الغرفة الجديدة ───────────────────────────────────────
       if (parsed.data.newBedNumber) {
         const takenBeds = await tenantDb
-          .select({ id: assignmentsTable.id })
+          .select({
+            id: assignmentsTable.id,
+            profileId: assignmentsTable.profileId,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+            profileStatus: profilesTable.status,
+            vacationStartDate: profilesTable.vacationStartDate,
+            vacationEndDate: profilesTable.vacationEndDate,
+          })
           .from(assignmentsTable)
+          .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
           .where(
             and(
               eq(assignmentsTable.roomId, parsed.data.newRoomId),
@@ -514,13 +669,52 @@ router.post(
               eq(assignmentsTable.status, "ACTIVE"),
             ),
           );
+
         if (takenBeds.length > 0) {
-          return {
-            error: `Bed ${parsed.data.newBedNumber} in this room is already occupied`,
-            code: "BED_TAKEN",
-            status: 409,
-          };
+          const primaryOccupant = takenBeds[0];
+          const isOccupantOnVacation = primaryOccupant.profileStatus?.toUpperCase() === "VACATION";
+
+          if (!isOccupantOnVacation) {
+            return {
+              error: `السرير رقم ${parsed.data.newBedNumber} في الغرفة الجديدة مشغول حالياً بالموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}). لا يمكن نقل موظف فوق موظف على نفس السرير.`,
+              code: "BED_TAKEN",
+              status: 409,
+            };
+          }
+
+          const isManagerOrAdmin = ["super_admin", "system_admin", "admin", "manager"].includes(
+            su(req).userRole?.toLowerCase() || "",
+          );
+
+          if (!isManagerOrAdmin) {
+            return {
+              error: `السرير رقم ${parsed.data.newBedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة. النقل المؤقت كبديل يتطلب صلاحية مدير السكن أو الآدمن.`,
+              code: "PERMISSION_DENIED_VACATION_OVERRIDE",
+              status: 403,
+            };
+          }
+
+          if (!isTemporaryVacationOverride) {
+            return {
+              error: `السرير رقم ${parsed.data.newBedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو حالياً في إجازة${
+                primaryOccupant.vacationEndDate ? ` حتى تاريخ ${primaryOccupant.vacationEndDate}` : ""
+              }. هل ترغب في تأكيد النقل المؤقت كبديل خلال فترة الإجازة؟`,
+              code: "BED_OCCUPANT_ON_VACATION",
+              occupantName: `${primaryOccupant.firstName} ${primaryOccupant.lastName}`,
+              vacationEndDate: primaryOccupant.vacationEndDate,
+              canOverride: true,
+              status: 409,
+            };
+          }
         }
+      }
+
+      if (newRoom.currentOccupancy >= newRoom.capacity && !isTemporaryVacationOverride) {
+        return {
+          error: `الغرفة الجديدة ممتلئة تماماً (${newRoom.capacity}/${newRoom.capacity} سرير). لا يمكن تجاوز الطاقة الاستيعابية.`,
+          code: "ROOM_FULL",
+          status: 409,
+        };
       }
 
       const [oldRoom] = await tenantDb
@@ -533,7 +727,7 @@ router.post(
           .update(roomsTable)
           .set({
             currentOccupancy: oldOcc,
-            status: oldOcc === 0 ? "available" : "occupied",
+            status: oldOcc === 0 ? "dirty" : "occupied_dirty",
           })
           .where(eq(roomsTable.id, oldRoom.id));
       }
@@ -573,7 +767,7 @@ router.post(
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `نقل موظف #${result.updated!.employeeId} من ${result.oldRoom?.roomNumber ?? "?"} إلى ${result.newRoom!.roomNumber}`,
+      action: `نقل موظف #${result.updated!.profileId} من ${result.oldRoom?.roomNumber ?? "?"} إلى ${result.newRoom!.roomNumber}`,
       actionType: "UPDATE",
       module: "accommodation",
       entityType: "assignment",

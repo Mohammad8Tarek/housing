@@ -1,14 +1,14 @@
 import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { employeesTable } from "./employees";
+import { profilesTable } from "./profiles";
 import { roomsTable } from "./rooms";
 
 export const assignmentsTable = pgTable("assignments", {
   id: serial("id").primaryKey(),
-  employeeId: integer("employee_id")
+  profileId: integer("profile_id")
     .notNull()
-    .references(() => employeesTable.id, { onDelete: "cascade" }),
+    .references(() => profilesTable.id, { onDelete: "cascade" }),
   roomId: integer("room_id")
     .notNull()
     .references(() => roomsTable.id, { onDelete: "cascade" }),
@@ -22,11 +22,11 @@ export const assignmentsTable = pgTable("assignments", {
     .notNull()
     .defaultNow(),
 }, (table) => [
-  index("idx_assignments_employee_id").on(table.employeeId),
+  index("idx_assignments_profile_id").on(table.profileId),
   index("idx_assignments_room_id").on(table.roomId),
   index("idx_assignments_status").on(table.status),
   index("idx_assignments_room_status").on(table.roomId, table.status),
-  index("idx_assignments_employee_status").on(table.employeeId, table.status),
+  index("idx_assignments_profile_status").on(table.profileId, table.status),
 ]);
 
 export const insertAssignmentSchema = createInsertSchema(assignmentsTable).omit(

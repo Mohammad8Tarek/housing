@@ -118,7 +118,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         <CardDescription>
           {ar
             ? "ربط نظام HR الخارجي لجلب بيانات الموظفين تلقائياً"
-            : "Connect external HR system to automatically import employee data"}
+            : "Connect external HR system to automatically import profile data"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -142,8 +142,8 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
               onChange={(e) => setApiUrl(e.target.value)}
               placeholder={
                 ar
-                  ? "https://hr-system.com/api/employees"
-                  : "https://hr-system.com/api/employees"
+                  ? "https://hr-system.com/api/profiles"
+                  : "https://hr-system.com/api/profiles"
               }
             />
           </div>
@@ -224,9 +224,9 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
               {JSON.stringify(
                 {
                   propertyId,
-                  employees: [
+                  profiles: [
                     {
-                      employeeId: "EMP001",
+                      profileId: "EMP001",
                       firstName: "Mohamed",
                       lastName: "Ali",
                       nationalId: "1234567890",

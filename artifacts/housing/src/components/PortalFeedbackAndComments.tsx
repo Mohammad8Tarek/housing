@@ -128,7 +128,7 @@ export default function PortalFeedbackAndComments() {
         <p className="text-sm text-muted-foreground mt-1">
           {ar
             ? "اجمع ملاحظات الموظفين وتعليقاتهم"
-            : "Collect employee feedback and comments"}
+            : "Collect profile feedback and comments"}
         </p>
       </div>
 

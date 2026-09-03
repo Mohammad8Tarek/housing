@@ -15,6 +15,7 @@ export const lookupValuesTable = pgTable("lookup_values", {
   category: text("category").notNull(),
   value: text("value").notNull(),
   parentValue: text("parent_value"),
+  extraValue: text("extra_value"),
   sortOrder: integer("sort_order").notNull().default(0),
   disabled: boolean("disabled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })

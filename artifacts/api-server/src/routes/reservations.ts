@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, withTenant, reservationsTable, roomsTable } from "@workspace/db";
-import { eq, and, sql, SQL, desc } from "drizzle-orm";
+import { db, withTenant, reservationsTable, roomsTable, assignmentsTable, profilesTable } from "@workspace/db";
+import { eq, and, sql, SQL, desc, ilike } from "drizzle-orm";
 import {
   CreateReservationBody,
   UpdateReservationBody,
@@ -42,20 +42,8 @@ function toCamel(row: Record<string, any>): Record<string, any> {
 }
 
 function fmtReservation(r: Record<string, any>) {
-  const dateFields = [
-    "checkInDate",
-    "checkOutDate",
-    "actualCheckInDate",
-    "actualCheckOutDate",
-    "createdAt",
-    "updatedAt",
-  ];
-  const out: Record<string, any> = { ...r };
-  for (const f of dateFields) {
-    if (out[f] instanceof Date) out[f] = out[f].toISOString();
-    else if (out[f] == null) out[f] = null;
-  }
-  return out;
+  if (!r) return r;
+  return toCamel(r);
 }
 
 function cleanText(value: unknown, max = 250): string {
@@ -154,7 +142,7 @@ router.post(
       const result = await withTenant(propertyId, async (tenantDb) => {
         const nat = cleanText(body.nationality, 120);
         const gen = cleanText(body.gender, 20);
-        const code = cleanText(body.employeeCode, 80);
+        const code = cleanText(body.profileCode, 80);
         const lvl = cleanText(body.level, 80);
         const fn = cleanText(body.firstName, 120);
         const ln = cleanText(body.lastName, 120);
@@ -165,14 +153,23 @@ router.post(
         const rt = cleanText(body.roomType, 80);
         const notes = cleanText(body.notes, 2000);
 
+        const rId = body.roomId ? parseInt(body.roomId) : null;
+        const bedNum = body.bedNumber ? String(body.bedNumber) : null;
+        let finalNotes = notes;
+        if (bedNum === "ALL") {
+          finalNotes = `[حجز الغرفة بالكامل] ${finalNotes}`.trim();
+        } else if (bedNum) {
+          finalNotes = `[سرير رقم: ${bedNum}] ${finalNotes}`.trim();
+        }
+
         const insertRes = (await tenantDb.execute(sql`
         INSERT INTO reservations
-          (first_name, last_name, room_type, check_in_date, check_out_date,
+          (room_id, first_name, last_name, room_type, check_in_date, check_out_date,
            notes, guest_id_card_number, guest_phone, job_title, department,
-           status, nationality, gender, employee_code, level)
+           status, nationality, gender, profile_code, level)
         VALUES
-          (${fn}, ${ln}, ${rt}, ${body.checkInDate ?? null}, ${body.checkOutDate ?? null},
-           ${notes}, ${idNum}, ${phone}, ${jt}, ${dept},
+          (${rId}, ${fn}, ${ln}, ${rt}, ${body.checkInDate ?? null}, ${body.checkOutDate ?? null},
+           ${finalNotes}, ${idNum}, ${phone}, ${jt}, ${dept},
            'UPCOMING', ${nat}, ${gen}, ${code}, ${lvl})
         RETURNING *
       `)) as any;
@@ -221,33 +218,38 @@ router.get(
   "/reservations/:id",
   requirePermission("reservations", "view"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-    const params = GetReservationParams.safeParse(req.params);
-    if (!params.success) {
-      res.status(400).json({ error: params.error.message });
-      return;
-    }
+      const params = GetReservationParams.safeParse(req.params);
+      if (!params.success) {
+        res.status(400).json({ error: params.error.message });
+        return;
+      }
 
-    const [reservation] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(reservationsTable)
-        .where(eq(reservationsTable.id, params.data.id));
-    });
+      const [reservation] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(reservationsTable)
+          .where(eq(reservationsTable.id, params.data.id));
+      });
 
-    if (!reservation) {
-      res.status(404).json({ error: "Reservation not found" });
-      return;
+      if (!reservation) {
+        res.status(404).json({ error: "Reservation not found" });
+        return;
+      }
+      res.json({
+        ...fmtReservation(reservation),
+        propertyId,
+      });
+    } catch (err: any) {
+      console.error("[GET /reservations/:id] error:", err?.message ?? err);
+      res.status(500).json({ error: "Failed to fetch reservation" });
     }
-    res.json({
-      ...GetReservationResponse.parse(fmtReservation(reservation)),
-      propertyId,
-    });
   },
 );
 
@@ -255,41 +257,46 @@ router.patch(
   "/reservations/:id",
   requirePermission("reservations", "edit"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-    const params = UpdateReservationParams.safeParse(req.params);
-    const parsed = UpdateReservationBody.safeParse(req.body);
-    if (!params.success || !parsed.success) {
-      res.status(400).json({ error: "Invalid request" });
-      return;
-    }
+      const params = UpdateReservationParams.safeParse(req.params);
+      const parsed = UpdateReservationBody.safeParse(req.body);
+      if (!params.success || !parsed.success) {
+        res.status(400).json({ error: "Invalid request" });
+        return;
+      }
 
-    const [updated] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .update(reservationsTable)
-        .set(parsed.data as any)
-        .where(eq(reservationsTable.id, params.data.id))
-        .returning();
-    });
+      const [updated] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .update(reservationsTable)
+          .set(parsed.data as any)
+          .where(eq(reservationsTable.id, params.data.id))
+          .returning();
+      });
 
-    if (!updated) {
-      res.status(404).json({ error: "Reservation not found" });
-      return;
+      if (!updated) {
+        res.status(404).json({ error: "Reservation not found" });
+        return;
+      }
+      broadcastToProperty(propertyId, {
+        module: "reservations",
+        action: "updated",
+        entityId: updated.id,
+      });
+      broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+      res.json({
+        ...fmtReservation(updated),
+        propertyId,
+      });
+    } catch (err: any) {
+      console.error("[PATCH /reservations/:id] error:", err?.message ?? err);
+      res.status(500).json({ error: "Failed to update reservation" });
     }
-    broadcastToProperty(propertyId, {
-      module: "reservations",
-      action: "updated",
-      entityId: updated.id,
-    });
-    broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
-    res.json({
-      ...UpdateReservationResponse.parse(fmtReservation(updated)),
-      propertyId,
-    });
   },
 );
 
@@ -297,53 +304,58 @@ router.delete(
   "/reservations/:id",
   requirePermission("reservations", "delete"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-    const params = DeleteReservationParams.safeParse(req.params);
-    if (!params.success) {
-      res.status(400).json({ error: params.error.message });
-      return;
-    }
+      const params = DeleteReservationParams.safeParse(req.params);
+      if (!params.success) {
+        res.status(400).json({ error: params.error.message });
+        return;
+      }
 
-    const existing = await withTenant(propertyId, async (tenantDb) => {
-      const [r] = await tenantDb
-        .select()
-        .from(reservationsTable)
-        .where(eq(reservationsTable.id, params.data.id));
-      if (r)
-        await tenantDb
-          .delete(reservationsTable)
+      const existing = await withTenant(propertyId, async (tenantDb) => {
+        const [r] = await tenantDb
+          .select()
+          .from(reservationsTable)
           .where(eq(reservationsTable.id, params.data.id));
-      return r;
-    });
+        if (r)
+          await tenantDb
+            .delete(reservationsTable)
+            .where(eq(reservationsTable.id, params.data.id));
+        return r;
+      });
 
-    if (existing) {
-      const s = su(req);
-      await logActivity({
-        req,
-        propertyId,
-        username: s.username,
-        userId: s.userId,
-        userRole: s.userRole,
-        action: `حذف حجز الضيف: ${(existing as any).guestName ?? existing.firstName}`,
-        actionType: "DELETE",
-        module: "reservations",
-        entityType: "reservation",
-        entityId: existing.id,
-        severity: "warning",
-      });
-      broadcastToProperty(propertyId, {
-        module: "reservations",
-        action: "deleted",
-        entityId: existing.id,
-      });
-      broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+      if (existing) {
+        const s = su(req);
+        await logActivity({
+          req,
+          propertyId,
+          username: s.username,
+          userId: s.userId,
+          userRole: s.userRole,
+          action: `حذف حجز الضيف: ${(existing as any).guestName ?? existing.firstName}`,
+          actionType: "DELETE",
+          module: "reservations",
+          entityType: "reservation",
+          entityId: existing.id,
+          severity: "warning",
+        });
+        broadcastToProperty(propertyId, {
+          module: "reservations",
+          action: "deleted",
+          entityId: existing.id,
+        });
+        broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+      }
+      res.sendStatus(204);
+    } catch (err: any) {
+      console.error("[DELETE /reservations/:id] error:", err?.message ?? err);
+      res.status(500).json({ error: "Failed to delete reservation" });
     }
-    res.sendStatus(204);
   },
 );
 
@@ -371,7 +383,7 @@ router.post(
 
       const result = await withTenant(propertyId, async (tenantDb) => {
         const [current] = await tenantDb
-          .select({ status: reservationsTable.status })
+          .select()
           .from(reservationsTable)
           .where(eq(reservationsTable.id, resId))
           .limit(1);
@@ -383,6 +395,8 @@ router.post(
 
         const [room] = await tenantDb
           .select({
+            id: roomsTable.id,
+            roomNumber: roomsTable.roomNumber,
             currentOccupancy: roomsTable.currentOccupancy,
             capacity: roomsTable.capacity,
           })
@@ -395,24 +409,129 @@ router.post(
           return { roomFull: true, capacity: room.capacity } as const;
         }
 
+        // 1. Find or create profile
+        let profile: any = null;
+        const pCode = (current as any).profileCode;
+        if (pCode) {
+          const [p] = await tenantDb
+            .select()
+            .from(profilesTable)
+            .where(eq(profilesTable.profileId, pCode))
+            .limit(1);
+          if (p) profile = p;
+        }
+        if (!profile && current.guestIdCardNumber) {
+          const [p] = await tenantDb
+            .select()
+            .from(profilesTable)
+            .where(eq(profilesTable.nationalId, current.guestIdCardNumber))
+            .limit(1);
+          if (p) profile = p;
+        }
+        if (!profile && current.firstName && current.lastName) {
+          const [p] = await tenantDb
+            .select()
+            .from(profilesTable)
+            .where(
+              and(
+                ilike(profilesTable.firstName, current.firstName.trim()),
+                ilike(profilesTable.lastName, current.lastName.trim()),
+              ),
+            )
+            .limit(1);
+          if (p) profile = p;
+        }
+
+        // 2. Prevent checking in if the person is ALREADY actively residing in another room!
+        if (profile) {
+          const [activeAssignment] = await tenantDb
+            .select({
+              id: assignmentsTable.id,
+              roomId: assignmentsTable.roomId,
+              roomNumber: roomsTable.roomNumber,
+            })
+            .from(assignmentsTable)
+            .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+            .where(
+              and(
+                eq(assignmentsTable.profileId, profile.id),
+                eq(assignmentsTable.status, "ACTIVE"),
+              ),
+            )
+            .limit(1);
+
+          if (activeAssignment) {
+            return {
+              alreadyAssigned: true,
+              profileName: `${profile.firstName} ${profile.lastName}`,
+              roomNumber: activeAssignment.roomNumber ?? activeAssignment.roomId,
+            } as const;
+          }
+        }
+
+        // 3. Create profile if it didn't exist
+        if (!profile) {
+          const newProfileId = pCode || `GUEST-${Date.now().toString().slice(-5)}`;
+          const [created] = await tenantDb
+            .insert(profilesTable)
+            .values({
+              profileId: newProfileId,
+              firstName: current.firstName.trim(),
+              lastName: current.lastName.trim(),
+              nationalId: current.guestIdCardNumber || "",
+              phone: current.guestPhone || "",
+              department: current.department || "",
+              jobTitle: current.jobTitle || "",
+              nationality: (current as any).nationality || "",
+              gender: (current as any).gender || "M",
+              status: "ACTIVE",
+            } as any)
+            .returning();
+          profile = created;
+        } else {
+          await tenantDb
+            .update(profilesTable)
+            .set({ status: "ACTIVE" })
+            .where(eq(profilesTable.id, profile.id));
+        }
+
+        const isEntireRoom = current.notes?.includes("[حجز الغرفة بالكامل]");
+        const bedMatch = current.notes?.match(/\[سرير رقم:?\s*(\d+)\]/);
+        const parsedBed = bedMatch ? parseInt(bedMatch[1]) : null;
+
+        const newOccupancy = isEntireRoom ? room.capacity : Math.min(room.capacity, room.currentOccupancy + 1);
+
+        // 4. Update room occupancy
         await tenantDb
           .update(roomsTable)
           .set({
-            currentOccupancy: room.currentOccupancy + 1,
-            status:
-              room.currentOccupancy + 1 >= room.capacity
-                ? "occupied"
-                : "available",
+            currentOccupancy: newOccupancy,
+            status: newOccupancy >= room.capacity ? "occupied" : "available",
           })
           .where(eq(roomsTable.id, roomId));
 
+        // 5. Create ACTIVE assignment in assignmentsTable (So he appears in In-House!)
+        const [assignment] = await tenantDb
+          .insert(assignmentsTable)
+          .values({
+            profileId: profile.id,
+            roomId: roomId,
+            bedNumber: isEntireRoom ? null : parsedBed,
+            checkInDate: String(cin),
+            expectedCheckOutDate: current.checkOutDate || null,
+            status: "ACTIVE",
+            notes: `حجز رقم #${current.id}${current.notes ? ` - ${current.notes}` : ""}`,
+          })
+          .returning();
+
+        // 6. Update reservation status to CHECKED_IN
         const [updated] = await tenantDb
           .update(reservationsTable)
           .set({ status: "CHECKED_IN", roomId, checkInDate: String(cin) })
           .where(eq(reservationsTable.id, resId))
           .returning();
 
-        return { data: updated } as const;
+        return { data: updated, assignment, profile, room } as const;
       });
 
       if ("notFound" in result) {
@@ -435,6 +554,13 @@ router.post(
         });
         return;
       }
+      if ("alreadyAssigned" in result) {
+        res.status(409).json({
+          error: `الموظف (${result.profileName}) مسكّن بالفعل في الغرفة #${result.roomNumber}. لا يمكن تسكينه مرتين دون تسجيل خروجه أولاً أو عمل روم موف.`,
+          code: "PROFILE_ALREADY_ASSIGNED",
+        });
+        return;
+      }
 
       const updated = result.data;
       const s = su(req);
@@ -447,7 +573,7 @@ router.post(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `تسجيل وصول الضيف: ${guestName}`,
+        action: `تسجيل وصول الضيف: ${guestName} في غرفة ${result.room.roomNumber}`,
         actionType: "CHECKIN",
         module: "reservations",
         entityType: "reservation",
@@ -461,13 +587,39 @@ router.post(
         entityId: updated.id,
       });
       broadcastToProperty(propertyId, {
+        module: "assignments",
+        action: "created",
+        entityId: result.assignment.id,
+      });
+      broadcastToProperty(propertyId, {
+        module: "accommodation",
+        action: "created",
+        entityId: result.assignment.id,
+      });
+      broadcastToProperty(propertyId, {
+        module: "rooms",
+        action: "updated",
+        entityId: roomId,
+      });
+      broadcastToProperty(propertyId, {
         module: "housing",
         action: "updated",
         entityId: roomId,
       });
+      broadcastToProperty(propertyId, {
+        module: "profiles",
+        action: "updated",
+        entityId: result.profile.id,
+      });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
 
-      res.status(201).json({ ...updated, propertyId });
+      res.status(201).json({
+        ...updated,
+        propertyId,
+        assignment: result.assignment,
+        profile: result.profile,
+        room: result.room,
+      });
     } catch (err: any) {
       console.error(
         "[POST /reservations/:id/checkin] error:",

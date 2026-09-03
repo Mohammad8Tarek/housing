@@ -4,7 +4,7 @@ import {
   withTenant,
   hostingsTable,
   hostingCompanionsTable,
-  employeesTable,
+  profilesTable,
   roomsTable,
   buildingsTable,
   floorsTable,
@@ -170,9 +170,9 @@ router.get(
       if (search.trim()) {
         conditions.push(
           sql`EXISTS (
-            SELECT 1 FROM employees e 
-            WHERE e.id = ${hostingsTable.employeeId} 
-            AND (e.first_name ILIKE ${`%${search}%`} OR e.last_name ILIKE ${`%${search}%`} OR e.employee_id ILIKE ${`%${search}%`})
+            SELECT 1 FROM profiles e 
+            WHERE e.id = ${hostingsTable.profileId} 
+            AND (e.first_name ILIKE ${`%${search}%`} OR e.last_name ILIKE ${`%${search}%`} OR e.profile_id ILIKE ${`%${search}%`})
           )`
         );
       }
@@ -191,15 +191,15 @@ router.get(
           let hostingsQuery = tenantDb
             .select({
               hosting: hostingsTable,
-              employee: employeesTable,
+              profile: profilesTable,
               room: roomsTable,
               building: buildingsTable,
               floor: floorsTable,
             })
             .from(hostingsTable)
             .leftJoin(
-              employeesTable,
-              eq(hostingsTable.employeeId, employeesTable.id),
+              profilesTable,
+              eq(hostingsTable.profileId, profilesTable.id),
             )
             .leftJoin(roomsTable, eq(hostingsTable.roomId, roomsTable.id))
             .leftJoin(
@@ -237,7 +237,7 @@ router.get(
       });
 
       const enriched = hostings.map(
-        ({ hosting, employee, room, building, floor }) => {
+        ({ hosting, profile, room, building, floor }) => {
           const comps = companionsByHosting.get(hosting.id) ?? [];
           const base = fmtHosting({
             ...hosting,
@@ -249,7 +249,7 @@ router.get(
           return {
             ...parsedBase,
             companions: comps,
-            employee: employee ? fmtRelated(employee) : null,
+            profile: profile ? fmtRelated(profile) : null,
             room: room
               ? {
                   ...fmtRelated(room),
@@ -368,7 +368,7 @@ router.post(
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `طلب استضافة جديد للموظف #${resData.hosting.employeeId}`,
+      action: `طلب استضافة جديد للموظف #${resData.hosting.profileId}`,
       actionType: "CREATE",
       module: "accommodation",
       entityType: "hosting",
@@ -383,7 +383,7 @@ router.post(
   },
 );
 
-// GET /hostings/:id — Fetch single hosting with employee, room, building, floor
+// GET /hostings/:id — Fetch single hosting with profile, room, building, floor
 router.get(
   "/hostings/:id",
   requirePermission("accommodation", "view"),
@@ -407,15 +407,15 @@ router.get(
           const rows = await tenantDb
             .select({
               hosting: hostingsTable,
-              employee: employeesTable,
+              profile: profilesTable,
               room: roomsTable,
               building: buildingsTable,
               floor: floorsTable,
             })
             .from(hostingsTable)
             .leftJoin(
-              employeesTable,
-              eq(hostingsTable.employeeId, employeesTable.id),
+              profilesTable,
+              eq(hostingsTable.profileId, profilesTable.id),
             )
             .leftJoin(roomsTable, eq(hostingsTable.roomId, roomsTable.id))
             .leftJoin(
@@ -442,7 +442,7 @@ router.get(
         return;
       }
 
-      const { hosting, employee, room, building, floor } = hostings[0];
+      const { hosting, profile, room, building, floor } = hostings[0];
       const base = fmtHosting({
         ...hosting,
         propertyId,
@@ -454,7 +454,7 @@ router.get(
         data: {
           ...base,
           companions: companions.map(fmtCompanion),
-          employee: employee ? fmtRelated(employee) : null,
+          profile: profile ? fmtRelated(profile) : null,
           room: room
             ? {
                 ...fmtRelated(room),
@@ -805,7 +805,7 @@ router.post(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `وصول الضيوف للموظف #${updated.employeeId}`,
+        action: `وصول الضيوف للموظف #${updated.profileId}`,
         actionType: "CHECKIN",
         module: "accommodation",
         entityType: "hosting",
@@ -908,7 +908,7 @@ router.post(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `تسجيل مغادرة ضيوف للموظف #${updated.employeeId}`,
+        action: `تسجيل مغادرة ضيوف للموظف #${updated.profileId}`,
         actionType: "CHECKOUT",
         module: "accommodation",
         entityType: "hosting",
