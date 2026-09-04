@@ -243,11 +243,9 @@ export function ProfilesPage() {
       const data = await res.json();
       if (data.success) {
         toast.success(
-          ar ? "تم إنشاء كلمة مرور مؤقتة" : "Temporary Password Generated",
+          ar ? "تمت إعادة تعيين كلمة المرور بنجاح" : "Password Reset Successfully",
           {
-            description: data.temporaryPassword
-              ? `${ar ? "كلمة المرور المؤقتة" : "Temporary password"}: ${data.temporaryPassword}`
-              : data.message,
+            description: `${ar ? "كلمة المرور الجديدة" : "New password"}: ${data.temporaryPassword || "1234"}`,
           },
         );
       } else {

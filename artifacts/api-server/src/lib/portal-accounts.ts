@@ -14,12 +14,7 @@ export type PortalAccountSyncResult = {
 export function defaultProfilePortalPassword(): string {
   const env = process.env["DEFAULT_PROFILE_PORTAL_PASSWORD"];
   if (!env) {
-    const generated = randomBytes(12).toString("hex");
-    console.error(
-      "[WARN] DEFAULT_PROFILE_PORTAL_PASSWORD not set — generated random password. " +
-        "Set this env var to avoid unexpected passwords between restarts.",
-    );
-    return generated;
+    return "1234";
   }
   return env;
 }

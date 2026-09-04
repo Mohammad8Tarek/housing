@@ -31,7 +31,7 @@ const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
 
 function generateTemporaryPassword(): string {
-  return defaultProfilePortalPassword();
+  return "1234";
 }
 
 export function portalSession(req: any) {
@@ -683,7 +683,7 @@ router.post(
       return;
     }
     const { profileId, propertyId } = parsed.data;
-    const temporaryPassword = generateTemporaryPassword();
+    const temporaryPassword = "1234";
 
     const profile = await withTenant(propertyId, async (tenantDb) => {
       const [account] = await tenantDb
@@ -697,14 +697,14 @@ router.post(
         await tenantDb.insert(profilePortalAccountsTable).values({
           profileId,
           passwordHash: temporaryHash,
-          mustChangePassword: true,
+          mustChangePassword: false,
         } as any);
       } else {
         await tenantDb
           .update(profilePortalAccountsTable)
           .set({
             passwordHash: temporaryHash,
-            mustChangePassword: true,
+            mustChangePassword: false,
             failedAttempts: 0,
             lockedUntil: null,
             updatedAt: new Date(),
@@ -759,7 +759,7 @@ router.post(
       .object({
         profileId: z.string().min(1),
         propertyId: z.number().int().positive(),
-        newPassword: z.string().min(6),
+        newPassword: z.string().min(4),
       })
       .safeParse(req.body);
     if (!parsed.success) {

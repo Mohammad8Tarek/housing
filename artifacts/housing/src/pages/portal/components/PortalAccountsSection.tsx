@@ -139,8 +139,8 @@ export function PortalAccountsSection() {
     onSuccess: (data) => {
       toast.success(
         ar
-          ? `تم إعادة تعيين كلمة المرور المؤقتة: ${data.temporaryPassword}`
-          : `Temp password: ${data.temporaryPassword}`,
+          ? `تمت إعادة تعيين كلمة المرور بنجاح: ${data.temporaryPassword || "1234"}`
+          : `Password reset successfully: ${data.temporaryPassword || "1234"}`,
       );
     },
     onError: () => toast.error(ar ? "حدث خطأ" : "Error occurred"),

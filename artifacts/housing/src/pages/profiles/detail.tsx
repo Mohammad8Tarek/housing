@@ -604,11 +604,9 @@ export default function ProfileDetail() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Request failed");
       toast.success(
-        ar ? "تم إنشاء كلمة مرور مؤقتة" : "Temporary password generated",
+        ar ? "تمت إعادة تعيين كلمة المرور بنجاح" : "Password Reset Successfully",
         {
-          description: data.temporaryPassword
-            ? `${ar ? "كلمة المرور المؤقتة" : "Temporary password"}: ${data.temporaryPassword}`
-            : data.message,
+          description: `${ar ? "كلمة المرور الجديدة" : "New password"}: ${data.temporaryPassword || "1234"}`,
         },
       );
       refetchPortalAccount();
