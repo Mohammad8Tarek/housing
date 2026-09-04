@@ -212,6 +212,20 @@ export default function RoomAssignment() {
   const rooms: Room[] = Array.isArray(_rData)
     ? _rData
     : (((_rData as unknown as { data?: Room[] })?.data as Room[] | undefined) || []);
+
+  useEffect(() => {
+    try {
+      const urlRoomId = new URLSearchParams(window.location.search).get("roomId");
+      if (urlRoomId && rooms.length > 0) {
+        const rm = rooms.find((r) => r.id === parseInt(urlRoomId));
+        if (rm) {
+          if (rm.buildingId) setSearchBuilding(String(rm.buildingId));
+          if (rm.floorId) setSearchFloor(String(rm.floorId));
+          if (rm.roomNumber) setSearchRoomNumber(String(rm.roomNumber));
+        }
+      }
+    } catch {}
+  }, [rooms]);
   const { data: _bData } = useListBuildings(
     { propertyId: activePropertyId as number },
     {
@@ -741,6 +755,9 @@ export default function RoomAssignment() {
             onClick={() => {
               const best = recommendation.bestRoom;
               setSelectedRoomId(String(best.id));
+              if (best.buildingId) setSearchBuilding(String(best.buildingId));
+              if (best.floorId) setSearchFloor(String(best.floorId));
+              if (best.roomNumber) setSearchRoomNumber(String(best.roomNumber));
               // Pick first free bed
               const bCap = best.capacity || 1;
               const curOccs = (allAssignments || []).filter(
@@ -855,6 +872,25 @@ export default function RoomAssignment() {
                 />
               </div>
             </div>
+
+            {(searchBuilding !== "all" || searchFloor !== "all" || searchRoomNumber.trim()) && (
+              <div className="md:col-span-3 flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground border border-dashed"
+                  onClick={() => {
+                    setSearchBuilding("all");
+                    setSearchFloor("all");
+                    setSearchRoomNumber("");
+                  }}
+                >
+                  <X className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+                  {ar ? "إلغاء الفلاتر وعرض الكل" : "Reset Filters / Show All"}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* ── قائمة الغرف المفلترة ── */}
@@ -874,6 +910,12 @@ export default function RoomAssignment() {
                 setSelectedRoomId(v);
                 setSelectedBed("");
                 setIsEntireRoom(false);
+                const picked = rooms.find((rm) => rm.id === parseInt(v));
+                if (picked) {
+                  if (picked.buildingId) setSearchBuilding(String(picked.buildingId));
+                  if (picked.floorId) setSearchFloor(String(picked.floorId));
+                  if (picked.roomNumber) setSearchRoomNumber(String(picked.roomNumber));
+                }
               }}
             >
               <SelectTrigger>

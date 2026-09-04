@@ -284,6 +284,21 @@ export default function ReservationsPage() {
 
   const { data: _rData } = useListRooms({ propertyId: activePropertyId, limit: 1000 }, { query: { enabled: !!activePropertyId, staleTime: 30000 } });
   const rooms = _rData?.data || [];
+
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const qRoom = sp.get("roomId");
+      if (qRoom && rooms.length > 0) {
+        const rm = rooms.find((r: any) => String(r.id) === String(qRoom));
+        if (rm) {
+          if (rm.buildingId) setSearchBuilding(String(rm.buildingId));
+          if (rm.floorId) setSearchFloor(String(rm.floorId));
+          if (rm.roomNumber) setSearchRoomNumber(String(rm.roomNumber));
+        }
+      }
+    } catch {}
+  }, [rooms]);
   const { data: _bData } = useListBuildings({ propertyId: activePropertyId }, { query: { enabled: !!activePropertyId, staleTime: 300000 } });
   const buildings = _bData?.data || [];
   const { data: _fData } = useListFloors({ propertyId: activePropertyId }, { query: { enabled: !!activePropertyId, staleTime: 300000 } });
@@ -1772,7 +1787,7 @@ export default function ReservationsPage() {
                             // Base the top filters on this room
                             if (room.buildingId) setSearchBuilding(String(room.buildingId));
                             if (room.floorId) setSearchFloor(String(room.floorId));
-                            setSearchRoomNumber("");
+                            setSearchRoomNumber(room.roomNumber || "");
                           }}
                           className={`group relative flex flex-col justify-between p-3 rounded-xl border-2 text-start transition-all duration-200 cursor-pointer ${
                             isSel
