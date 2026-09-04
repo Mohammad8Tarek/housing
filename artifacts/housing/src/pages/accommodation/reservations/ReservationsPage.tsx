@@ -65,8 +65,9 @@ import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
   Building, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
-  Phone, CreditCard,
+  Phone, CreditCard, AlertCircle,
 } from "lucide-react";
+import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 
 type ProfileResult = {
   id: number;
@@ -547,7 +548,18 @@ export default function ReservationsPage() {
     } catch {}
   };
 
+  const { duplicates: resDuplicates, hasDuplicates: resHasDuplicates } = useCheckDuplicates({
+    profileId: newForm.profileId,
+    nationalId: newForm.nationalId,
+    phone: newForm.phone,
+    enabled: newDialogOpen && personMode === "new" && step === 2,
+  });
+
   const handleSubmit = async () => {
+    if (personMode === "new" && resHasDuplicates) {
+      toast.error(ar ? "يرجى تعديل البيانات المكررة قبل المتابعة" : "Please resolve duplicate fields before proceeding");
+      return;
+    }
     if (!selectedRoomId) {
       toast.error(ar ? "الرجاء اختيار غرفة أولاً" : "Please select a room");
       return;
@@ -1443,7 +1455,22 @@ export default function ReservationsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "كود الموظف *" : "Profile Code *"}</Label>
-                    <Input value={newForm.profileId} onChange={(e) => setNewForm((f) => ({ ...f, profileId: e.target.value }))} placeholder={ar ? "مثال: EMP-001" : "e.g. EMP-001"} />
+                    <Input
+                      value={newForm.profileId}
+                      onChange={(e) => setNewForm((f) => ({ ...f, profileId: e.target.value }))}
+                      placeholder={ar ? "مثال: EMP-001" : "e.g. EMP-001"}
+                      className={resDuplicates.profileId ? "border-destructive focus-visible:ring-destructive bg-destructive/5" : ""}
+                    />
+                    {resDuplicates.profileId && (
+                      <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {ar
+                            ? `كود الموظف مسجل مسبقاً باسم: ${resDuplicates.profileId.name}`
+                            : `Code already registered to: ${resDuplicates.profileId.name}`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "الاسم الأول *" : "First Name *"}</Label>
@@ -1466,7 +1493,21 @@ export default function ReservationsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "رقم الهوية / الإقامة *" : "National ID *"}</Label>
-                    <Input value={newForm.nationalId} onChange={(e) => setNewForm((f) => ({ ...f, nationalId: e.target.value }))} />
+                    <Input
+                      value={newForm.nationalId}
+                      onChange={(e) => setNewForm((f) => ({ ...f, nationalId: e.target.value }))}
+                      className={resDuplicates.nationalId ? "border-destructive focus-visible:ring-destructive bg-destructive/5" : ""}
+                    />
+                    {resDuplicates.nationalId && (
+                      <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {ar
+                            ? `رقم الهوية مسجل مسبقاً للموظف: ${resDuplicates.nationalId.name} (كود: ${resDuplicates.nationalId.profileId})`
+                            : `ID already registered to: ${resDuplicates.nationalId.name} (Code: ${resDuplicates.nationalId.profileId})`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "الجنسية" : "Nationality"}</Label>
@@ -1480,7 +1521,22 @@ export default function ReservationsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "الهاتف *" : "Phone *"}</Label>
-                    <Input value={newForm.phone} onChange={(e) => setNewForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+201..." />
+                    <Input
+                      value={newForm.phone}
+                      onChange={(e) => setNewForm((f) => ({ ...f, phone: e.target.value }))}
+                      placeholder="+201..."
+                      className={resDuplicates.phone ? "border-destructive focus-visible:ring-destructive bg-destructive/5" : ""}
+                    />
+                    {resDuplicates.phone && (
+                      <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {ar
+                            ? `رقم الهاتف مسجل مسبقاً للموظف: ${resDuplicates.phone.name} (كود: ${resDuplicates.phone.profileId})`
+                            : `Phone already registered to: ${resDuplicates.phone.name} (Code: ${resDuplicates.phone.profileId})`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1580,6 +1636,7 @@ export default function ReservationsPage() {
                 <Button
                   onClick={() => setStep(3)}
                   disabled={
+                    resHasDuplicates ||
                     !newForm.firstName?.trim() ||
                     !newForm.lastName?.trim() ||
                     !newForm.nationalId?.trim() ||

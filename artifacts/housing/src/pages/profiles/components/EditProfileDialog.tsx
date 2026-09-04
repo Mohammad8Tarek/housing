@@ -40,7 +40,9 @@ import {
   Pencil,
   Camera,
   Eye,
+  AlertCircle,
 } from "lucide-react";
+import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 import {
   DocumentPreviewModal,
   type PreviewableDocument,
@@ -221,8 +223,23 @@ export function EditProfileDialog({
     reader.readAsDataURL(file);
   };
 
+  const { duplicates, hasDuplicates } = useCheckDuplicates({
+    nationalId: form.nationalId,
+    phone: form.phone,
+    excludeId: profile.id,
+    enabled: Boolean(profile?.id),
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasDuplicates) {
+      toast.error(
+        ar
+          ? "يرجى تعديل البيانات المكررة المحددة باللون الأحمر قبل الحفظ"
+          : "Please resolve duplicate fields before saving",
+      );
+      return;
+    }
     if (!form.firstName?.trim()) {
       toast.error(ar ? "الاسم الأول مطلوب" : "First name is required");
       return;
@@ -405,8 +422,23 @@ export function EditProfileDialog({
                 <Input
                   value={form.nationalId}
                   onChange={(e) => set("nationalId", e.target.value)}
+                  className={
+                    duplicates.nationalId
+                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                      : ""
+                  }
                   required
                 />
+                {duplicates.nationalId && (
+                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {ar
+                        ? `رقم الهوية مسجل مسبقاً للموظف: ${duplicates.nationalId.name} (كود: ${duplicates.nationalId.profileId})`
+                        : `ID already registered to: ${duplicates.nationalId.name} (Code: ${duplicates.nationalId.profileId})`}
+                    </span>
+                  </div>
+                )}
               </FormRow>
               <FormRow label={ar ? "الجنسية" : "Nationality"}>
                 {nationalities.length > 0 ? (
@@ -438,8 +470,22 @@ export function EditProfileDialog({
                   value={form.phone}
                   onChange={(e) => set("phone", e.target.value)}
                   type="tel"
-                  className="h-9"
+                  className={`h-9 ${
+                    duplicates.phone
+                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                      : ""
+                  }`}
                 />
+                {duplicates.phone && (
+                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {ar
+                        ? `رقم الهاتف مسجل مسبقاً للموظف: ${duplicates.phone.name} (كود: ${duplicates.phone.profileId})`
+                        : `Phone already registered to: ${duplicates.phone.name} (Code: ${duplicates.phone.profileId})`}
+                    </span>
+                  </div>
+                )}
               </FormRow>
             </div>
 
@@ -785,7 +831,7 @@ export function EditProfileDialog({
             </Button>
             <Button
               type="submit"
-              disabled={updateMutation.isPending}
+              disabled={updateMutation.isPending || hasDuplicates}
               className="font-semibold"
             >
               {updateMutation.isPending

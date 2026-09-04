@@ -32,7 +32,9 @@ import {
   Calendar,
   Lock,
   Eye,
+  AlertCircle,
 } from "lucide-react";
+import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 import {
   DocumentPreviewModal,
   type PreviewableDocument,
@@ -165,7 +167,23 @@ export function ProfileDialog({
 
   const isLevelLocked = Boolean(currentJobTitleObj?.extraValue);
 
+  const { duplicates, hasDuplicates } = useCheckDuplicates({
+    profileId: form.profileId,
+    nationalId: form.nationalId,
+    phone: form.phone,
+    enabled: isOpen,
+  });
+
   const validate = () => {
+    if (hasDuplicates) {
+      toast.error(
+        ar
+          ? "يرجى تعديل البيانات المكررة المحددة باللون الأحمر قبل الحفظ"
+          : "Please resolve duplicate fields before saving",
+      );
+      return false;
+    }
+
     const errs: Partial<Record<keyof ProfileForm, string>> = {};
     if (!form.firstName.trim())
       errs.firstName = ar ? "الاسم الأول مطلوب" : "First name required";
@@ -317,11 +335,26 @@ export function ProfileDialog({
                   value={form.profileId}
                   onChange={(e) => set("profileId", e.target.value)}
                   placeholder={ar ? "مثال: EMP-001" : "e.g. EMP-001"}
-                  className={errors.profileId ? "border-destructive" : ""}
+                  className={
+                    duplicates.profileId
+                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                      : errors.profileId
+                      ? "border-destructive"
+                      : ""
+                  }
                 />
-                {errors.profileId && (
+                {duplicates.profileId ? (
+                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {ar
+                        ? `كود الموظف مسجل مسبقاً باسم: ${duplicates.profileId.name}`
+                        : `Code already registered to: ${duplicates.profileId.name}`}
+                    </span>
+                  </div>
+                ) : errors.profileId ? (
                   <p className="text-xs text-destructive">{errors.profileId}</p>
-                )}
+                ) : null}
               </FormRow>
               <FormRow label={ar ? "الاسم الأول *" : "First Name *"}>
                 <Input
@@ -362,11 +395,26 @@ export function ProfileDialog({
                 <Input
                   value={form.nationalId}
                   onChange={(e) => set("nationalId", e.target.value)}
-                  className={errors.nationalId ? "border-destructive" : ""}
+                  className={
+                    duplicates.nationalId
+                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                      : errors.nationalId
+                      ? "border-destructive"
+                      : ""
+                  }
                 />
-                {errors.nationalId && (
+                {duplicates.nationalId ? (
+                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {ar
+                        ? `رقم الهوية مسجل مسبقاً للموظف: ${duplicates.nationalId.name} (كود: ${duplicates.nationalId.profileId})`
+                        : `ID already registered to: ${duplicates.nationalId.name} (Code: ${duplicates.nationalId.profileId})`}
+                    </span>
+                  </div>
+                ) : errors.nationalId ? (
                   <p className="text-xs text-destructive">{errors.nationalId}</p>
-                )}
+                ) : null}
               </FormRow>
             </div>
 
@@ -405,8 +453,22 @@ export function ProfileDialog({
                   onChange={(e) => set("phone", e.target.value)}
                   placeholder="+201..."
                   type="tel"
-                  className="h-9"
+                  className={`h-9 ${
+                    duplicates.phone
+                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                      : ""
+                  }`}
                 />
+                {duplicates.phone && (
+                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {ar
+                        ? `رقم الهاتف مسجل مسبقاً للموظف: ${duplicates.phone.name} (كود: ${duplicates.phone.profileId})`
+                        : `Phone already registered to: ${duplicates.phone.name} (Code: ${duplicates.phone.profileId})`}
+                    </span>
+                  </div>
+                )}
               </FormRow>
 
               <FormRow label={ar ? "الجنس" : "Gender"}>
@@ -780,7 +842,7 @@ export function ProfileDialog({
                 onSave(cleanedForm, photoData ?? undefined);
               }
             }}
-            disabled={isSaving}
+            disabled={isSaving || hasDuplicates}
             className="font-semibold"
           >
             {isSaving

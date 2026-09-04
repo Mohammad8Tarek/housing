@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus } from "lucide-react";
+import { X, Plus, AlertCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -85,6 +85,7 @@ type Props = {
   propertyId?: number;
   buildings: any[];
   floors: any[];
+  rooms?: any[];
   roomModal: boolean;
   setRoomModal: (v: boolean) => void;
   editRoom: any;
@@ -103,6 +104,7 @@ export function RoomModals({
   propertyId,
   buildings,
   floors,
+  rooms = [],
   roomModal,
   setRoomModal,
   editRoom,
@@ -118,6 +120,17 @@ export function RoomModals({
   const { language } = useLanguage();
   const ar = language === "ar";
   const [featureInput, setFeatureInput] = useState("");
+
+  const isDuplicateRoomNumber = useMemo(() => {
+    if (!rForm.roomNumber?.trim() || !rForm.buildingId) return false;
+    const trimmed = rForm.roomNumber.trim().toLowerCase();
+    return (rooms || []).some(
+      (r: any) =>
+        r.id !== editRoom?.id &&
+        Number(r.buildingId) === Number(rForm.buildingId) &&
+        r.roomNumber?.trim().toLowerCase() === trimmed
+    );
+  }, [rForm.roomNumber, rForm.buildingId, rooms, editRoom]);
 
   const { data: lookupRoomTypes = [] } = useLookupValues(
     propertyId || 0,
@@ -252,14 +265,25 @@ export function RoomModals({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "??? ??????" : "Room Number"} *</Label>
+                  <Label>{ar ? "رقم الغرفة" : "Room Number"} *</Label>
                   <Input
                     value={rForm.roomNumber}
                     onChange={(e) =>
                       setRForm((p: any) => ({ ...p, roomNumber: e.target.value }))
                     }
                     placeholder="e.g. 101, A-205"
+                    className={
+                      isDuplicateRoomNumber
+                        ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                        : ""
+                    }
                   />
+                  {isDuplicateRoomNumber && (
+                    <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{ar ? "رقم الغرفة هذا مسجل مسبقاً في هذا المبنى" : "This room number already exists in this building"}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>{ar ? "التصنيف" : "Classification"}</Label>
@@ -558,7 +582,7 @@ export function RoomModals({
             <Button variant="ghost" onClick={() => setRoomModal(false)}>
               {ar ? "?????" : "Cancel"}
             </Button>
-            <Button onClick={saveRoomHandler} disabled={isSaving}>
+            <Button onClick={saveRoomHandler} disabled={isSaving || isDuplicateRoomNumber}>
               {isSaving
                 ? ar ? "???? ?????..." : "Saving..."
                 : editRoom

@@ -113,6 +113,10 @@ export function RoomsTab({
   const paginationMeta = (_rDataWrapper as any)?.pagination || { total: 0 };
   const rLoading = rLoadingQuery && rData.length === 0;
 
+  // Fetch all rooms for reliable client-side duplicate room number check
+  const { data: _allRoomsRaw } = useListRooms({ propertyId, limit: 1000 } as any);
+  const allPropertyRooms = (_allRoomsRaw as any)?.data || rData;
+
   const openAddRoom = () => {
     setEditRoom(null);
     setRForm({
@@ -518,6 +522,7 @@ export function RoomsTab({
         propertyId={propertyId}
         buildings={buildings}
         floors={floors}
+        rooms={allPropertyRooms}
         roomModal={roomModal}
         setRoomModal={setRoomModal}
         editRoom={editRoom}

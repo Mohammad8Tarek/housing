@@ -249,6 +249,80 @@ router.get(
   },
 );
 
+/* Real-time duplicate check endpoint for profiles */
+router.get(
+  "/profiles/check-duplicate",
+  requirePermission("profiles", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+
+    const { profileId, nationalId, phone, excludeId } = req.query as Record<string, string>;
+    const excludeIdNum = excludeId ? Number(excludeId) : null;
+
+    const trimmedProfileId = profileId?.trim();
+    const trimmedNationalId = nationalId?.trim();
+    const trimmedPhone = phone?.trim();
+
+    const duplicates: Record<string, { exists: boolean; name: string; profileId: string; nationalId?: string; phone?: string }> = {};
+
+    if (!trimmedProfileId && !trimmedNationalId && !trimmedPhone) {
+      res.json({ duplicates });
+      return;
+    }
+
+    await withTenant(propertyId, async (tenantDb) => {
+      const orConditions: SQL[] = [];
+      if (trimmedProfileId) {
+        orConditions.push(eq(profilesTable.profileId, trimmedProfileId));
+      }
+      if (trimmedNationalId) {
+        orConditions.push(eq(profilesTable.nationalId, trimmedNationalId));
+      }
+      if (trimmedPhone) {
+        orConditions.push(eq(profilesTable.phone, trimmedPhone));
+      }
+
+      if (orConditions.length === 0) return;
+
+      const rows = await tenantDb
+        .select({
+          id: profilesTable.id,
+          profileId: profilesTable.profileId,
+          nationalId: profilesTable.nationalId,
+          phone: profilesTable.phone,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
+          thirdName: profilesTable.thirdName,
+          fourthName: profilesTable.fourthName,
+        })
+        .from(profilesTable)
+        .where(or(...orConditions));
+
+      for (const row of rows) {
+        if (excludeIdNum && row.id === excludeIdNum) continue;
+
+        const name = [row.firstName, row.lastName, row.thirdName, row.fourthName].filter(Boolean).join(" ");
+
+        if (trimmedProfileId && row.profileId?.trim().toLowerCase() === trimmedProfileId.toLowerCase()) {
+          duplicates.profileId = { exists: true, name, profileId: row.profileId };
+        }
+        if (trimmedNationalId && row.nationalId?.trim() === trimmedNationalId) {
+          duplicates.nationalId = { exists: true, name, profileId: row.profileId, nationalId: row.nationalId };
+        }
+        if (trimmedPhone && row.phone?.trim() === trimmedPhone) {
+          duplicates.phone = { exists: true, name, profileId: row.profileId, phone: row.phone };
+        }
+      }
+    });
+
+    res.json({ duplicates });
+  }
+);
+
 router.post(
   "/profiles",
   requirePermission("profiles", "create"),
@@ -265,19 +339,22 @@ router.post(
       return;
     }
 
-    // ── Prevent duplicate profile ID or national ID ─────────────────────
+    // ── Prevent duplicate profile ID, national ID, or phone ─────────────
     const existingEmp = await withTenant(propertyId, async (tenantDb) => {
-      const conditions = [];
+      const conditions: SQL[] = [];
       if (parsed.data.profileId)
         conditions.push(eq(profilesTable.profileId, parsed.data.profileId));
       if (parsed.data.nationalId)
         conditions.push(eq(profilesTable.nationalId, parsed.data.nationalId));
+      if (parsed.data.phone && parsed.data.phone.trim())
+        conditions.push(eq(profilesTable.phone, parsed.data.phone.trim()));
       if (conditions.length === 0) return [];
       return await tenantDb
         .select({
           id: profilesTable.id,
           profileId: profilesTable.profileId,
           nationalId: profilesTable.nationalId,
+          phone: profilesTable.phone,
         })
         .from(profilesTable)
         .where(or(...conditions));
@@ -286,9 +363,11 @@ router.post(
       const existing = existingEmp[0];
       let reason = "Profile already exists";
       if (existing.profileId === parsed.data.profileId)
-        reason = `Profile ID ${parsed.data.profileId} already exists`;
+        reason = `كود الملف ${parsed.data.profileId} مسجل مسبقاً (Profile ID already exists)`;
       else if (existing.nationalId === parsed.data.nationalId)
-        reason = `National ID ${parsed.data.nationalId} already exists`;
+        reason = `رقم الهوية ${parsed.data.nationalId} مسجل مسبقاً (National ID already exists)`;
+      else if (parsed.data.phone && existing.phone === parsed.data.phone.trim())
+        reason = `رقم الهاتف ${parsed.data.phone} مسجل مسبقاً (Phone number already exists)`;
       res.status(409).json({ error: reason, code: "PROFILE_DUPLICATE" });
       return;
     }
@@ -436,20 +515,23 @@ router.patch(
       return;
     }
 
-    // ── Prevent duplicate profile ID or national ID on update ─────────────
+    // ── Prevent duplicate profile ID, national ID, or phone on update ────
     const body = parsed.data as Record<string, any>;
-    if (body.profileId || body.nationalId) {
+    if (body.profileId || body.nationalId || (body.phone && body.phone.trim())) {
       const existingEmp = await withTenant(propertyId, async (tenantDb) => {
-        const conditions = [];
+        const conditions: SQL[] = [];
         if (body.profileId)
           conditions.push(eq(profilesTable.profileId, body.profileId));
         if (body.nationalId)
           conditions.push(eq(profilesTable.nationalId, body.nationalId));
+        if (body.phone && body.phone.trim())
+          conditions.push(eq(profilesTable.phone, body.phone.trim()));
         return await tenantDb
           .select({
             id: profilesTable.id,
             profileId: profilesTable.profileId,
             nationalId: profilesTable.nationalId,
+            phone: profilesTable.phone,
           })
           .from(profilesTable)
           .where(or(...conditions));
@@ -459,9 +541,11 @@ router.patch(
       if (conflict) {
         let reason = "Profile already exists";
         if (conflict.profileId === body.profileId)
-          reason = `Profile ID ${body.profileId} already exists`;
+          reason = `كود الملف ${body.profileId} مسجل مسبقاً (Profile ID already exists)`;
         else if (conflict.nationalId === body.nationalId)
-          reason = `National ID ${body.nationalId} already exists`;
+          reason = `رقم الهوية ${body.nationalId} مسجل مسبقاً (National ID already exists)`;
+        else if (body.phone && conflict.phone === body.phone.trim())
+          reason = `رقم الهاتف ${body.phone} مسجل مسبقاً (Phone number already exists)`;
         res.status(409).json({ error: reason, code: "PROFILE_DUPLICATE" });
         return;
       }
