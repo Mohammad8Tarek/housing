@@ -219,9 +219,12 @@ export default function RoomAssignment() {
       if (urlRoomId && rooms.length > 0) {
         const rm = rooms.find((r) => r.id === parseInt(urlRoomId));
         if (rm) {
-          if (rm.buildingId) setSearchBuilding(String(rm.buildingId));
-          if (rm.floorId) setSearchFloor(String(rm.floorId));
-          if (rm.roomNumber) setSearchRoomNumber(String(rm.roomNumber));
+          const bId = rm.buildingId ?? (rm as any).building_id;
+          const fId = rm.floorId ?? (rm as any).floor_id;
+          const rNum = rm.roomNumber ?? (rm as any).room_number;
+          if (bId != null) setSearchBuilding(String(bId));
+          if (fId != null) setSearchFloor(String(fId));
+          if (rNum != null) setSearchRoomNumber(String(rNum));
         }
       }
     } catch {}
@@ -313,9 +316,11 @@ export default function RoomAssignment() {
 
   // الغرف بعد تطبيق الفلاتر
   const filteredRooms = availableRooms.filter((r) => {
-    if (searchBuilding !== "all" && r.buildingId !== parseInt(searchBuilding))
+    const bId = r.buildingId ?? (r as any).building_id;
+    const fId = r.floorId ?? (r as any).floor_id;
+    if (searchBuilding !== "all" && String(bId) !== String(searchBuilding))
       return false;
-    if (searchFloor !== "all" && r.floorId !== parseInt(searchFloor))
+    if (searchFloor !== "all" && String(fId) !== String(searchFloor))
       return false;
     if (
       searchRoomNumber.trim() &&
@@ -755,9 +760,12 @@ export default function RoomAssignment() {
             onClick={() => {
               const best = recommendation.bestRoom;
               setSelectedRoomId(String(best.id));
-              if (best.buildingId) setSearchBuilding(String(best.buildingId));
-              if (best.floorId) setSearchFloor(String(best.floorId));
-              if (best.roomNumber) setSearchRoomNumber(String(best.roomNumber));
+              const bId = best.buildingId ?? (best as any).building_id;
+              const fId = best.floorId ?? (best as any).floor_id;
+              const rNum = best.roomNumber ?? (best as any).room_number;
+              if (bId != null) setSearchBuilding(String(bId));
+              if (fId != null) setSearchFloor(String(fId));
+              if (rNum != null) setSearchRoomNumber(String(rNum));
               // Pick first free bed
               const bCap = best.capacity || 1;
               const curOccs = (allAssignments || []).filter(
@@ -842,11 +850,11 @@ export default function RoomAssignment() {
                     .filter(
                       (f) =>
                         searchBuilding === "all" ||
-                        f.buildingId === parseInt(searchBuilding),
+                        String(f.buildingId ?? (f as any).building_id) === String(searchBuilding),
                     )
                     .map((f) => (
                       <SelectItem key={f.id} value={String(f.id)}>
-                        {ar ? "دور" : "Floor"} {f.floorNumber}
+                        {ar ? "دور" : "Floor"} {f.floorNumber ?? (f as any).floor_number}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -912,9 +920,12 @@ export default function RoomAssignment() {
                 setIsEntireRoom(false);
                 const picked = rooms.find((rm) => rm.id === parseInt(v));
                 if (picked) {
-                  if (picked.buildingId) setSearchBuilding(String(picked.buildingId));
-                  if (picked.floorId) setSearchFloor(String(picked.floorId));
-                  if (picked.roomNumber) setSearchRoomNumber(String(picked.roomNumber));
+                  const bId = picked.buildingId ?? (picked as any).building_id;
+                  const fId = picked.floorId ?? (picked as any).floor_id;
+                  const rNum = picked.roomNumber ?? (picked as any).room_number;
+                  if (bId != null) setSearchBuilding(String(bId));
+                  if (fId != null) setSearchFloor(String(fId));
+                  if (rNum != null) setSearchRoomNumber(String(rNum));
                 }
               }}
             >

@@ -292,9 +292,12 @@ export default function ReservationsPage() {
       if (qRoom && rooms.length > 0) {
         const rm = rooms.find((r: any) => String(r.id) === String(qRoom));
         if (rm) {
-          if (rm.buildingId) setSearchBuilding(String(rm.buildingId));
-          if (rm.floorId) setSearchFloor(String(rm.floorId));
-          if (rm.roomNumber) setSearchRoomNumber(String(rm.roomNumber));
+          const bId = rm.buildingId ?? (rm as any).building_id;
+          const fId = rm.floorId ?? (rm as any).floor_id;
+          const rNum = rm.roomNumber ?? (rm as any).room_number;
+          if (bId != null) setSearchBuilding(String(bId));
+          if (fId != null) setSearchFloor(String(fId));
+          if (rNum != null) setSearchRoomNumber(String(rNum));
         }
       }
     } catch {}
@@ -302,7 +305,9 @@ export default function ReservationsPage() {
   const { data: _bData } = useListBuildings({ propertyId: activePropertyId }, { query: { enabled: !!activePropertyId, staleTime: 300000 } });
   const buildings = _bData?.data || [];
   const { data: _fData } = useListFloors({ propertyId: activePropertyId }, { query: { enabled: !!activePropertyId, staleTime: 300000 } });
-  const floors = _fData?.data || [];
+  const floors = Array.isArray(_fData)
+    ? _fData
+    : (((_fData as any)?.data as any[]) || []);
   const { data: _aData } = useListAssignments({ propertyId: activePropertyId } as any, { query: { enabled: !!activePropertyId, staleTime: 30000 } });
   const allAssignments = _aData?.data || [];
   const { data: _pData } = useListProperties();
@@ -339,8 +344,10 @@ export default function ReservationsPage() {
     });
 
   const filteredRooms = availableRooms.filter((r: any) => {
-    if (searchBuilding !== "all" && r.buildingId !== parseInt(searchBuilding)) return false;
-    if (searchFloor !== "all" && r.floorId !== parseInt(searchFloor)) return false;
+    const bId = r.buildingId ?? r.building_id;
+    const fId = r.floorId ?? r.floor_id;
+    if (searchBuilding !== "all" && String(bId) !== String(searchBuilding)) return false;
+    if (searchFloor !== "all" && String(fId) !== String(searchFloor)) return false;
     if (searchRoomNumber.trim() && !r.roomNumber?.toString().toLowerCase().includes(searchRoomNumber.trim().toLowerCase())) return false;
     return true;
   });
@@ -1702,9 +1709,15 @@ export default function ReservationsPage() {
                   <SelectContent>
                     <SelectItem value="all">{ar ? "كل الطوابق" : "All Floors"}</SelectItem>
                     {floors
-                      .filter((f) => searchBuilding === "all" || f.buildingId === parseInt(searchBuilding))
+                      .filter(
+                        (f) =>
+                          searchBuilding === "all" ||
+                          String(f.buildingId ?? (f as any).building_id) === String(searchBuilding),
+                      )
                       .map((f) => (
-                        <SelectItem key={f.id} value={String(f.id)}>{f.name || `F${f.floorNumber}`}</SelectItem>
+                        <SelectItem key={f.id} value={String(f.id)}>
+                          {ar ? "دور" : "Floor"} {f.floorNumber ?? (f as any).floor_number ?? f.name}
+                        </SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
@@ -1785,9 +1798,12 @@ export default function ReservationsPage() {
                             setSelectedRoomId(String(room.id));
                             setSelectedBed(cap === 1 ? "1" : "");
                             // Base the top filters on this room
-                            if (room.buildingId) setSearchBuilding(String(room.buildingId));
-                            if (room.floorId) setSearchFloor(String(room.floorId));
-                            setSearchRoomNumber(room.roomNumber || "");
+                            const bId = room.buildingId ?? (room as any).building_id;
+                            const fId = room.floorId ?? (room as any).floor_id;
+                            const rNum = room.roomNumber ?? (room as any).room_number;
+                            if (bId != null) setSearchBuilding(String(bId));
+                            if (fId != null) setSearchFloor(String(fId));
+                            if (rNum != null) setSearchRoomNumber(String(rNum));
                           }}
                           className={`group relative flex flex-col justify-between p-3 rounded-xl border-2 text-start transition-all duration-200 cursor-pointer ${
                             isSel
