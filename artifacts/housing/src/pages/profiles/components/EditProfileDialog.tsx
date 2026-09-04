@@ -219,6 +219,8 @@ export function EditProfileDialog({
       id: profile.id,
       data: {
         ...form,
+        department: form.employmentType === "THIRD_PARTY" ? "" : form.department,
+        level: form.employmentType === "THIRD_PARTY" ? "" : form.level,
         contractEndDate:
           form.employmentType !== "THIRD_PARTY"
             ? form.contractEndDate || null
@@ -461,178 +463,198 @@ export function EditProfileDialog({
               {ar ? "2. بيانات العمل والوظيفة" : "2. Work & Job Information"}
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormRow
-                label={
-                  form.employmentType === "THIRD_PARTY"
-                    ? ar
-                      ? "اسم الشركة (إلزامي للطرف الثالث) *"
-                      : "Company Name *"
-                    : ar
-                      ? "يعمل لدى / الفندق"
-                      : "Works At"
-                }
-              >
-                <Input
-                  value={form.companyName}
-                  onChange={(e) => set("companyName", e.target.value)}
-                  placeholder={
-                    form.employmentType === "THIRD_PARTY"
-                      ? ar
-                        ? "أدخل اسم الشركة..."
-                        : "Enter company name..."
-                      : ar
-                        ? "أدخل اسم الفندق/المكان..."
-                        : "Enter hotel/place name..."
-                  }
-                  required={form.employmentType === "THIRD_PARTY"}
-                />
-              </FormRow>
-
-              <FormRow label={ar ? "الحالة" : "Status"}>
-                <Select
-                  value={form.status}
-                  onValueChange={(v) => set("status", v)}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">
-                      {ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}
-                    </SelectItem>
-                    <SelectItem value="LEFT">
-                      {ar ? "مغادر (شيكاوت)" : "Check-out"}
-                    </SelectItem>
-                    <SelectItem value="VACATION">
-                      {ar ? "في إجازة (فيكيشن)" : "Vacation"}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormRow>
-            </div>
-
-            {/* Contract End Date - Special Highlight Card for Internal Employees */}
-            {form.employmentType !== "THIRD_PARTY" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50 rounded-lg">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-amber-600" />
-                    {ar
-                      ? "تاريخ انتهاء العقد (خاص بالموظفين الداخليين)"
-                      : "Contract End Date (Internal Employee)"}
-                  </Label>
+            {form.employmentType === "THIRD_PARTY" ? (
+              /* Third-Party Simplified Work Information */
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <FormRow label={ar ? "اسم الشركة *" : "Company Name *"}>
                   <Input
-                    type="date"
-                    value={form.contractEndDate || ""}
-                    onChange={(e) => set("contractEndDate", e.target.value)}
-                    className="bg-background border-amber-300 dark:border-amber-700 h-9"
+                    value={form.companyName}
+                    onChange={(e) => set("companyName", e.target.value)}
+                    placeholder={ar ? "أدخل اسم شركة المقاول أو المورد..." : "Enter company name..."}
+                    required
                   />
-                </div>
-                <div className="flex items-center text-xs text-muted-foreground pt-3 sm:pt-0">
-                  <p className="leading-relaxed">
-                    ⚡{" "}
-                    {ar
-                      ? "يُستخدم تلقائياً كتاريخ مغادرة الغرفة وانتهاء صلاحية كارت المفتاح عند التسكين."
-                      : "Auto-populates room check-out date & smart key card expiry date upon assignment."}
-                  </p>
-                </div>
+                </FormRow>
+
+                <FormRow label={ar ? "الوظيفة / المهنة *" : "Job / Occupation *"}>
+                  <Input
+                    value={form.jobTitle}
+                    onChange={(e) => set("jobTitle", e.target.value)}
+                    placeholder={ar ? "مثال: أمن وحراسة، فني، نظافة، سائق..." : "e.g. Security, Tech, Cleaner..."}
+                    required
+                  />
+                </FormRow>
+
+                <FormRow label={ar ? "الحالة" : "Status"}>
+                  <Select
+                    value={form.status}
+                    onValueChange={(v) => set("status", v)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">
+                        {ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}
+                      </SelectItem>
+                      <SelectItem value="LEFT">
+                        {ar ? "مغادر (شيكاوت)" : "Check-out"}
+                      </SelectItem>
+                      <SelectItem value="VACATION">
+                        {ar ? "في إجازة (فيكيشن)" : "Vacation"}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormRow>
               </div>
-            )}
+            ) : (
+              /* Internal Employee Standard Work Information */
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormRow label={ar ? "يعمل لدى / الفندق" : "Works At"}>
+                    <Input
+                      value={form.companyName}
+                      onChange={(e) => set("companyName", e.target.value)}
+                      placeholder={ar ? "أدخل اسم الفندق/المكان..." : "Enter hotel/place name..."}
+                    />
+                  </FormRow>
 
-            {/* Department, Job Title, Level */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <FormRow label={ar ? "القسم" : "Department"}>
-                {departments.length > 0 ? (
-                  <Select
-                    value={form.department}
-                    onValueChange={(v) => set("department", v)}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.value}>
-                          {d.value}
+                  <FormRow label={ar ? "الحالة" : "Status"}>
+                    <Select
+                      value={form.status}
+                      onValueChange={(v) => set("status", v)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ACTIVE">
+                          {ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={form.department}
-                    onChange={(e) => set("department", e.target.value)}
-                    className="h-9"
-                  />
-                )}
-              </FormRow>
-
-              <FormRow label={ar ? "المسمى الوظيفي" : "Job Title"}>
-                {form.employmentType === "THIRD_PARTY" ? (
-                  <Input
-                    value={form.jobTitle}
-                    onChange={(e) => set("jobTitle", e.target.value)}
-                    placeholder={ar ? "المسمى الوظيفي..." : "Job title..."}
-                    className="h-9"
-                  />
-                ) : allJobTitles.length > 0 ? (
-                  <Select
-                    value={form.jobTitle}
-                    onValueChange={(v) => {
-                      const jt = allJobTitles.find((t) => t.value === v);
-                      setForm((p) => ({
-                        ...p,
-                        jobTitle: v,
-                        level: jt?.extraValue || p.level,
-                      }));
-                    }}
-                    disabled={!form.department && departments.length > 0}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredJobTitles.map((j) => (
-                        <SelectItem key={j.id} value={j.value}>
-                          {j.value}
+                        <SelectItem value="LEFT">
+                          {ar ? "مغادر (شيكاوت)" : "Check-out"}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={form.jobTitle}
-                    onChange={(e) => set("jobTitle", e.target.value)}
-                    className="h-9"
-                  />
-                )}
-              </FormRow>
-
-              <FormRow label={ar ? "الدرجة / المستوى" : "Level"}>
-                <div className="space-y-1 w-full">
-                  <Input
-                    value={form.level}
-                    onChange={(e) => set("level", e.target.value)}
-                    placeholder="Senior, Junior..."
-                    disabled={isLevelLocked}
-                    className={`h-9 ${
-                      isLevelLocked
-                        ? "bg-muted/60 font-semibold text-primary cursor-not-allowed"
-                        : ""
-                    }`}
-                  />
-                  {isLevelLocked && (
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
-                      <Lock className="w-3 h-3 text-amber-500" />
-                      {ar
-                        ? "تم قفل الدرجة تلقائياً حسب المسمى الوظيفي"
-                        : "Level locked from selected Job Title"}
-                    </p>
-                  )}
+                        <SelectItem value="VACATION">
+                          {ar ? "في إجازة (فيكيشن)" : "Vacation"}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormRow>
                 </div>
-              </FormRow>
-            </div>
+
+                {/* Contract End Date - Special Highlight Card for Internal Employees */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50 rounded-lg">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                      {ar
+                        ? "تاريخ انتهاء العقد (خاص بالموظفين الداخليين)"
+                        : "Contract End Date (Internal Employee)"}
+                    </Label>
+                    <Input
+                      type="date"
+                      value={form.contractEndDate || ""}
+                      onChange={(e) => set("contractEndDate", e.target.value)}
+                      className="bg-background border-amber-300 dark:border-amber-700 h-9"
+                    />
+                  </div>
+                  <div className="flex items-center text-xs text-muted-foreground pt-3 sm:pt-0">
+                    <p className="leading-relaxed">
+                      ⚡{" "}
+                      {ar
+                        ? "يُستخدم تلقائياً كتاريخ مغادرة الغرفة وانتهاء صلاحية كارت المفتاح عند التسكين."
+                        : "Auto-populates room check-out date & smart key card expiry date upon assignment."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Department, Job Title, Level */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormRow label={ar ? "القسم" : "Department"}>
+                    {departments.length > 0 ? (
+                      <Select
+                        value={form.department}
+                        onValueChange={(v) => set("department", v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((d) => (
+                            <SelectItem key={d.id} value={d.value}>
+                              {d.value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={form.department}
+                        onChange={(e) => set("department", e.target.value)}
+                        className="h-9"
+                      />
+                    )}
+                  </FormRow>
+
+                  <FormRow label={ar ? "المسمى الوظيفي" : "Job Title"}>
+                    {allJobTitles.length > 0 ? (
+                      <Select
+                        value={form.jobTitle}
+                        onValueChange={(v) => {
+                          const jt = allJobTitles.find((t) => t.value === v);
+                          setForm((p) => ({
+                            ...p,
+                            jobTitle: v,
+                            level: jt?.extraValue || p.level,
+                          }));
+                        }}
+                        disabled={!form.department && departments.length > 0}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredJobTitles.map((j) => (
+                            <SelectItem key={j.id} value={j.value}>
+                              {j.value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={form.jobTitle}
+                        onChange={(e) => set("jobTitle", e.target.value)}
+                        className="h-9"
+                      />
+                    )}
+                  </FormRow>
+
+                  <FormRow label={ar ? "الدرجة / المستوى" : "Level"}>
+                    <div className="space-y-1 w-full">
+                      <Input
+                        value={form.level}
+                        onChange={(e) => set("level", e.target.value)}
+                        placeholder="Senior, Junior..."
+                        disabled={isLevelLocked}
+                        className={`h-9 ${
+                          isLevelLocked
+                            ? "bg-muted/60 font-semibold text-primary cursor-not-allowed"
+                            : ""
+                        }`}
+                      />
+                      {isLevelLocked && (
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                          <Lock className="w-3 h-3 text-amber-500" />
+                          {ar
+                            ? "تم قفل الدرجة تلقائياً حسب المسمى الوظيفي"
+                            : "Level locked from selected Job Title"}
+                        </p>
+                      )}
+                    </div>
+                  </FormRow>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Section 4: Documents & Attachments */}

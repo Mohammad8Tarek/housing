@@ -672,17 +672,17 @@ export default function ProfileDetail() {
     {
       icon: <Briefcase className="w-4 h-4" />,
       label: ar ? "القسم" : "Department",
-      value: emp.department,
+      value: emp.employmentType === "THIRD_PARTY" ? null : emp.department,
     },
     {
       icon: <Briefcase className="w-4 h-4" />,
-      label: ar ? "المسمى الوظيفي" : "Job Title",
+      label: emp.employmentType === "THIRD_PARTY" ? (ar ? "الوظيفة / المهنة" : "Job / Role") : (ar ? "المسمى الوظيفي" : "Job Title"),
       value: emp.jobTitle,
     },
     {
       icon: <Briefcase className="w-4 h-4" />,
       label: ar ? "الدرجة" : "Level",
-      value: emp.level,
+      value: emp.employmentType === "THIRD_PARTY" ? null : emp.level,
     },
     {
       icon: <Briefcase className="w-4 h-4" />,
@@ -697,9 +697,9 @@ export default function ProfileDetail() {
     {
       icon: <Calendar className="w-4 h-4" />,
       label: ar ? "تاريخ التعيين" : "Hire Date",
-      value: emp.hireDate
+      value: emp.employmentType === "THIRD_PARTY" ? null : (emp.hireDate
         ? format(new Date(emp.hireDate), "MMM d, yyyy")
-        : null,
+        : null),
     },
     {
       icon: <Clock className="w-4 h-4 text-amber-500" />,
@@ -775,10 +775,10 @@ export default function ProfileDetail() {
                   {emp.jobTitle && (
                     <div className="flex items-center gap-2 text-sm text-primary font-medium mt-1.5">
                       <span>{emp.jobTitle}</span>
-                      {emp.department && (
+                      {emp.employmentType !== "THIRD_PARTY" && emp.department && (
                         <span className="text-muted-foreground text-xs">• {emp.department}</span>
                       )}
-                      {emp.level && (
+                      {emp.employmentType !== "THIRD_PARTY" && emp.level && (
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/25 font-bold px-2 py-0.5 text-xs shadow-2xs">
                           {emp.level}
                         </Badge>

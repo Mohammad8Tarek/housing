@@ -130,70 +130,91 @@ export function ProfileGrid({
             {/* Job Information */}
             <div className="px-4 py-3 flex-1">
               <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                {ar ? "معلومات الوظيفة" : "Job Information"}
+                {ar ? "معلومات الوظيفة والجهة" : "Job Information"}
               </h4>
-              <div className="grid grid-cols-2 gap-y-2 gap-x-2 text-sm">
-                <div className="col-span-2">
-                  <span className="text-[10px] text-muted-foreground block mb-0.5">
-                    {ar ? "المسمى الوظيفي" : "Job Title"}
-                  </span>
-                  <span className="font-medium truncate block text-xs" title={emp.jobTitle}>{emp.jobTitle || "—"}</span>
+              {emp.employmentType === "THIRD_PARTY" ? (
+                <div className="grid grid-cols-2 gap-y-2 gap-x-2 text-sm">
+                  <div className="col-span-2">
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "الوظيفة / المهنة" : "Job / Occupation"}
+                    </span>
+                    <span className="font-medium truncate block text-xs" title={emp.jobTitle}>
+                      {emp.jobTitle || "—"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "اسم الشركة" : "Company"}
+                    </span>
+                    <span className="font-semibold truncate block text-xs text-purple-700 dark:text-purple-300" title={emp.companyName}>
+                      {emp.companyName || "—"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "نوع التوظيف" : "Employment Type"}
+                    </span>
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0 font-semibold">
+                      {ar ? "طرف ثالث" : "Third Party"}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block mb-0.5">
-                    {ar ? "القسم" : "Department"}
-                  </span>
-                  <span className="font-medium truncate block text-xs" title={emp.department}>{emp.department || "—"}</span>
+              ) : (
+                <div className="grid grid-cols-2 gap-y-2 gap-x-2 text-sm">
+                  <div className="col-span-2">
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "المسمى الوظيفي" : "Job Title"}
+                    </span>
+                    <span className="font-medium truncate block text-xs" title={emp.jobTitle}>{emp.jobTitle || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "القسم" : "Department"}
+                    </span>
+                    <span className="font-medium truncate block text-xs" title={emp.department}>{emp.department || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "الدرجة" : "Level"}
+                    </span>
+                    <span className="font-medium truncate block text-xs" title={emp.level}>
+                      {emp.level ? (
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/25 font-bold px-1.5 py-0 text-[11px]">
+                          {emp.level}
+                        </Badge>
+                      ) : (
+                        "—"
+                      )}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "نوع التوظيف" : "Employment Type"}
+                    </span>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0 font-semibold">
+                      {ar ? "داخلي" : "Internal"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "يعمل لدى" : "Works For"}
+                    </span>
+                    <span className="font-medium truncate block text-xs" title={emp.companyName}>
+                      {emp.companyName || (emp.employmentType === "INTERNAL" ? (ar ? "الفندق" : "Hotel") : "—")}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-0.5">
+                      {ar ? "تاريخ التعيين" : "Hire Date"}
+                    </span>
+                    <span className="font-medium truncate block text-xs">
+                      {emp.hireDate
+                        ? new Date(emp.hireDate).toLocaleDateString()
+                        : "—"}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block mb-0.5">
-                    {ar ? "الدرجة" : "Level"}
-                  </span>
-                  <span className="font-medium truncate block text-xs" title={emp.level}>
-                    {emp.level ? (
-                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/25 font-bold px-1.5 py-0 text-[11px]">
-                        {emp.level}
-                      </Badge>
-                    ) : (
-                      "—"
-                    )}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block mb-0.5">
-                    {ar ? "نوع التوظيف" : "Employment Type"}
-                  </span>
-                  <span className="font-medium truncate block text-xs">
-                    {emp.employmentType === "THIRD_PARTY" ? (
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0 font-semibold">
-                        {ar ? "طرف ثالث" : "Third Party"}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0 font-semibold">
-                        {ar ? "داخلي" : "Internal"}
-                      </Badge>
-                    )}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block mb-0.5">
-                    {emp.employmentType === "THIRD_PARTY" ? (ar ? "الشركة" : "Company") : (ar ? "يعمل لدى" : "Works For")}
-                  </span>
-                  <span className="font-medium truncate block text-xs" title={emp.companyName}>
-                    {emp.companyName || (emp.employmentType === "INTERNAL" ? (ar ? "الفندق" : "Hotel") : "—")}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block mb-0.5">
-                    {ar ? "تاريخ التعيين" : "Hire Date"}
-                  </span>
-                  <span className="font-medium truncate block text-xs">
-                    {emp.hireDate
-                      ? new Date(emp.hireDate).toLocaleDateString()
-                      : "—"}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Actions Footer */}

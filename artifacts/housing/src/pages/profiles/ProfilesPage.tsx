@@ -668,7 +668,11 @@ export function ProfilesPage() {
                       )}
                       {isColVisible("dept") && (
                         <TableCell className="whitespace-nowrap">
-                          {emp.department ? <Badge variant="outline" className="font-normal">{emp.department}</Badge> : "—"}
+                          {emp.employmentType === "THIRD_PARTY" ? (
+                            <span className="text-muted-foreground/60 italic text-xs">—</span>
+                          ) : emp.department ? (
+                            <Badge variant="outline" className="font-normal">{emp.department}</Badge>
+                          ) : "—"}
                         </TableCell>
                       )}
                       {isColVisible("title") && (
@@ -676,7 +680,9 @@ export function ProfilesPage() {
                       )}
                       {isColVisible("level") && (
                         <TableCell className="text-xs whitespace-nowrap">
-                          {emp.level ? (
+                          {emp.employmentType === "THIRD_PARTY" ? (
+                            <span className="text-muted-foreground/60 italic text-xs">—</span>
+                          ) : emp.level ? (
                             <Badge
                               variant="outline"
                               className="bg-primary/10 text-primary border-primary/25 font-bold px-2 py-0.5"
@@ -731,7 +737,11 @@ export function ProfilesPage() {
                       )}
                       {isColVisible("hiredate") && (
                         <TableCell className="text-sm whitespace-nowrap">
-                          {emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : "—"}
+                          {emp.employmentType === "THIRD_PARTY" ? (
+                            <span className="text-muted-foreground/60 italic text-xs">—</span>
+                          ) : emp.hireDate ? (
+                            new Date(emp.hireDate).toLocaleDateString()
+                          ) : "—"}
                         </TableCell>
                       )}
                       {isColVisible("contractEndDate") && (
