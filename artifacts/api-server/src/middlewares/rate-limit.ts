@@ -38,6 +38,14 @@ function getIp(req: Request): string {
   return req.ip ?? req.socket?.remoteAddress ?? "unknown";
 }
 
+const EXEMPT_PATHS = [
+  /^\/api\/health/,
+  /^\/api\/notifications/,
+  /^\/api\/auth\/me/,
+  /^\/api\/portal-notifications/,
+  /^\/api\/activity-logs/,
+];
+
 function createRateLimiter(opts: {
   windowMs: number;
   max: number;
@@ -45,6 +53,12 @@ function createRateLimiter(opts: {
   keyFn?: (req: Request) => string;
 }) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    // Exempt background polling and health check routes
+    if (EXEMPT_PATHS.some((p) => p.test(req.originalUrl || req.path))) {
+      next();
+      return;
+    }
+
     const key = opts.keyFn ? opts.keyFn(req) : getIp(req);
     const now = Date.now();
     const redis = getRedisConnection();
@@ -105,14 +119,14 @@ function createRateLimiter(opts: {
 
 export const loginRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
   message: "Too many login attempts. Try again after 15 minutes.",
   keyFn: (req) => `login:${getIp(req)}`,
 });
 
 export const portalLoginRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
   message:
     "Too many profile portal login attempts. Try again after 15 minutes.",
   keyFn: (req) => `portal_login:${getIp(req)}`,
@@ -120,9 +134,9 @@ export const portalLoginRateLimit = createRateLimiter({
 
 export const apiRateLimit = createRateLimiter({
   windowMs: 60 * 1000,
-  max: 300,
+  max: 5000, // Generous quota of 5000 requests / minute
   keyFn: (req) => {
-    const userId = (req.session as any)?.userId;
+    const userId = (req as any).authUser?.id ?? (req.session as any)?.userId;
     return userId ? `api:user:${userId}` : `api:ip:${getIp(req)}`;
   },
 });

@@ -140,21 +140,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     data: user,
     isLoading,
     isError,
+    error,
   } = useGetMe({
     query: {
       queryKey: getGetMeQueryKey(),
       enabled: isTokenPresent,
-      retry: false,
+      retry: (failureCount, err: any) => {
+        // Never retry if 401 (unauthorized) or 403 (forbidden)
+        if (err?.status === 401 || err?.status === 403) return false;
+        // Retry up to 3 times for rate limits (429) or transient network issues
+        return failureCount < 3;
+      },
       // Re-validate session with server periodically
       refetchInterval: SESSION_CHECK_MS,
       refetchOnWindowFocus: true,
     },
   });
 
-  // If the server returns 401, token is invalid — logout silently
+  // If and ONLY if the server returns 401, token is invalid — logout silently
   useEffect(() => {
-    if (isError) logout("unauthorized");
-  }, [isError, logout]);
+    if (isError && (error as any)?.status === 401) {
+      logout("unauthorized");
+    }
+  }, [isError, error, logout]);
 
   // ─── Derived values ───────────────────────────────────────────────────
   const typedUser = user as (User & { isSystemAdmin?: boolean }) | undefined;
