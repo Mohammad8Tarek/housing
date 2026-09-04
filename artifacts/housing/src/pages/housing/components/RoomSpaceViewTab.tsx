@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DataPagination } from "@/components/DataPagination";
 import {
   ROOM_STATUS_OPTIONS,
   roomStatusBadge,
@@ -55,6 +56,8 @@ export function RoomSpaceViewTab({
   const [selectedFloorId, setSelectedFloorId] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
 
   // Map profiles and buildings/floors
   const profileMap = useMemo(() => {
@@ -141,11 +144,17 @@ export function RoomSpaceViewTab({
     return { totalRooms, totalBeds, occupiedBeds, freeBeds, vacationBeds, occPct };
   }, [rooms, assignmentsByRoom, profileMap]);
 
-  // Group rooms by Building -> Floor
+  // Paginate filtered rooms
+  const paginatedRooms = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRooms.slice(start, start + pageSize);
+  }, [filteredRooms, currentPage, pageSize]);
+
+  // Group paginated rooms by Building -> Floor
   const groupedRooms = useMemo(() => {
     const map = new Map<string, { buildingName: string; floorNum: string; rooms: any[] }>();
 
-    for (const r of filteredRooms) {
+    for (const r of paginatedRooms) {
       const bName = buildingMap[r.buildingId] || (ar ? `مبنى ${r.buildingId}` : `Building ${r.buildingId}`);
       const fNum = floorMap[r.floorId] || (ar ? `دور ${r.floorId}` : `Floor ${r.floorId}`);
       const key = `${r.buildingId}_${r.floorId}`;
@@ -167,7 +176,7 @@ export function RoomSpaceViewTab({
     });
 
     return Array.from(map.values());
-  }, [filteredRooms, buildingMap, floorMap, ar]);
+  }, [paginatedRooms, buildingMap, floorMap, ar]);
 
   const handleQuickAssign = (roomId: number, bedNum: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -237,7 +246,10 @@ export function RoomSpaceViewTab({
             <Input
               placeholder={ar ? "ابحث برقم الغرفة، اسم النزيل، كود الموظف، أو القسم..." : "Search room, occupant, code..."}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               className="pl-9 bg-muted/20"
             />
           </div>
@@ -249,6 +261,7 @@ export function RoomSpaceViewTab({
               onChange={(e) => {
                 setSelectedBuildingId(e.target.value);
                 setSelectedFloorId("all");
+                setCurrentPage(1);
               }}
               className="h-9 px-3 py-1 text-xs font-semibold rounded-lg border bg-background text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
@@ -262,7 +275,10 @@ export function RoomSpaceViewTab({
 
             <select
               value={selectedFloorId}
-              onChange={(e) => setSelectedFloorId(e.target.value)}
+              onChange={(e) => {
+                setSelectedFloorId(e.target.value);
+                setCurrentPage(1);
+              }}
               className="h-9 px-3 py-1 text-xs font-semibold rounded-lg border bg-background text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">{ar ? "📑 جميع الأدوار" : "📑 All Floors"}</option>
@@ -289,7 +305,10 @@ export function RoomSpaceViewTab({
         {/* Status Filter Badges Strip */}
         <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t">
           <button
-            onClick={() => setStatusFilter("all")}
+            onClick={() => {
+              setStatusFilter("all");
+              setCurrentPage(1);
+            }}
             className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
               statusFilter === "all"
                 ? "bg-primary text-primary-foreground shadow"
@@ -305,7 +324,10 @@ export function RoomSpaceViewTab({
             return (
               <button
                 key={opt.value}
-                onClick={() => setStatusFilter(isSel ? "all" : opt.value)}
+                onClick={() => {
+                  setStatusFilter(isSel ? "all" : opt.value);
+                  setCurrentPage(1);
+                }}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
                   isSel
                     ? "ring-2 ring-primary shadow-sm bg-primary/10 border-primary font-black"
@@ -505,6 +527,25 @@ export function RoomSpaceViewTab({
             </div>
           </div>
         ))
+      )}
+
+      {/* ── PAGINATION BAR ── */}
+      {filteredRooms.length > 0 && (
+        <div className="pt-2 bg-card rounded-xl border shadow-sm px-3 py-1">
+          <DataPagination
+            total={filteredRooms.length}
+            pageSize={pageSize}
+            currentPage={currentPage}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
       )}
     </div>
   );
