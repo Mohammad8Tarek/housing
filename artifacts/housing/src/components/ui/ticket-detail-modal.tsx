@@ -149,6 +149,8 @@ export default function TicketDetailModal({
 
   if (!ticket) return null;
 
+  const safeSubTickets = Array.isArray(subTickets) ? subTickets : [];
+
   const empMap = Object.fromEntries(
     profiles.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
   );
@@ -520,9 +522,9 @@ export default function TicketDetailModal({
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase">
                     {ar ? "التذاكر الفرعية" : "Sub-Tickets"}
-                    {subTickets.length > 0 && (
+                    {safeSubTickets.length > 0 && (
                       <Badge variant="secondary" className="ml-2">
-                        {subTickets.length}
+                        {safeSubTickets.length}
                       </Badge>
                     )}
                   </h3>
@@ -652,7 +654,7 @@ export default function TicketDetailModal({
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 text-primary animate-spin" />
                   </div>
-                ) : subTickets.length === 0 ? (
+                ) : safeSubTickets.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Wrench className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">
@@ -661,7 +663,7 @@ export default function TicketDetailModal({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {subTickets.map((st) => (
+                    {safeSubTickets.map((st) => (
                       <div
                         key={st.id}
                         className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border"

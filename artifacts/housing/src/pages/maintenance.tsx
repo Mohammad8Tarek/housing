@@ -293,8 +293,12 @@ export default function Tickets() {
       const res = await fetch(`/api/maintenance/${parentId}/sub-tickets`, {
         credentials: "include",
       });
+      if (!res.ok) {
+        setSubTickets([]);
+        return;
+      }
       const data = await res.json();
-      setSubTickets(data || []);
+      setSubTickets(Array.isArray(data) ? data : []);
     } catch (e) {
       setSubTickets([]);
     } finally {

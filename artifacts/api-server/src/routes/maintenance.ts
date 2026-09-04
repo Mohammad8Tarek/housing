@@ -146,10 +146,16 @@ router.post(
         return;
       }
 
+      const parentId = req.body.parentId ? parseInt(String(req.body.parentId)) : null;
+
       const [record] = await withTenant(propertyId, async (tenantDb) => {
         const inserted = await tenantDb
           .insert(maintenanceTable)
-          .values({ ...parsed.data, status: "open" } as any)
+          .values({
+            ...parsed.data,
+            ...(parentId ? { parentId } : {}),
+            status: "open",
+          } as any)
           .returning();
           
         if (inserted[0]?.roomId) {
@@ -341,6 +347,75 @@ router.delete(
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
 
       return res.sendStatus(204);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// 5. جلب التذاكر الفرعية لبلاغ صيانة
+router.get(
+  "/maintenance/:id/sub-tickets",
+  requirePermission("maintenance", "view"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+
+      const parentId = parseInt(String(req.params.id));
+      if (isNaN(parentId)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+      }
+
+      const subTickets = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(maintenanceTable)
+          .where(eq(maintenanceTable.parentId, parentId))
+          .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id));
+      });
+
+      return res.json(subTickets.map(fmt));
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// 6. إضافة تذكرة فرعية لبلاغ صيانة
+router.post(
+  "/maintenance/:id/sub-tickets",
+  requirePermission("maintenance", "create"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      const parentId = parseInt(String(req.params.id));
+      if (!propertyId || isNaN(parentId)) {
+        res.status(400).json({ error: "Invalid request" });
+        return;
+      }
+
+      const { problemType, description, priority, roomId } = req.body;
+      const [record] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .insert(maintenanceTable)
+          .values({
+            roomId: roomId || 0,
+            problemType: problemType || "General",
+            description: description || "",
+            priority: priority || "medium",
+            parentId,
+            status: "open",
+          } as any)
+          .returning();
+      });
+
+      broadcastToProperty(propertyId, { module: "maintenance", action: "sync" });
+      return res.status(201).json(fmt(record));
     } catch (err) {
       return next(err);
     }
