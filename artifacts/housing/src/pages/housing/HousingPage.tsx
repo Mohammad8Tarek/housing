@@ -93,16 +93,19 @@ export function HousingPage() {
 
   const isLoading = bLoading || fLoading || rLoading;
 
+  const activeAssignments = (assignments || []).filter((a: any) => a.status === "ACTIVE");
+  const occupiedRoomIds = new Set(activeAssignments.map((a: any) => a.roomId));
   const totalRooms = rooms.length;
-  const occupiedRooms = rooms.filter((r: any) => (r.currentOccupancy || 0) > 0).length;
+  const occupiedRooms = occupiedRoomIds.size;
+  const totalBeds = rooms.reduce((s: number, r: any) => s + (r.capacity || 1), 0);
+  const occupiedBeds = activeAssignments.length;
+  const freeBeds = Math.max(0, totalBeds - occupiedBeds);
+
   const availableRooms = rooms.filter((r: any) => {
     const s = (r.status || "").toLowerCase();
-    return s === "available" || s === "vacant" || ((r.capacity || 1) > (r.currentOccupancy || 0) && s !== "out_of_service" && s !== "out_of_order");
+    const roomOccCount = activeAssignments.filter((a: any) => a.roomId === r.id).length;
+    return s === "available" || s === "vacant" || ((r.capacity || 1) > roomOccCount && s !== "out_of_service" && s !== "out_of_order");
   }).length;
-
-  const totalBeds = rooms.reduce((s: number, r: any) => s + (r.capacity || 1), 0);
-  const occupiedBeds = rooms.reduce((s: number, r: any) => s + (r.currentOccupancy || 0), 0);
-  const freeBeds = Math.max(0, totalBeds - occupiedBeds);
 
   const occPct =
     totalRooms > 0
