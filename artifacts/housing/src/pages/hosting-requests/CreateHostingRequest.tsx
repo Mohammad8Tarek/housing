@@ -311,7 +311,7 @@ export default function CreateHostingRequest() {
     : "";
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="w-full space-y-6 max-w-6xl mx-auto pb-8">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
