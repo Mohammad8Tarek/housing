@@ -15,7 +15,7 @@ import ChangePassword from "./pages/change-password";
 import RequestDetails from "./pages/request-details";
 import { useEffect, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
-import { apiFetch } from "./lib/api";
+import { apiFetch, clearSessionCache, setCachedSessionId } from "./lib/api";
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 
@@ -43,24 +43,43 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
           key: "portal_employee",
         });
         if (!empJson) {
+          clearSessionCache();
           setLocation("/login");
           return;
         }
+        sessionStorage.setItem("portal_employee", empJson);
         const { value: sid } = await Preferences.get({ key: "session_id" });
-        if (sid) sessionStorage.setItem("session_id", sid);
+        if (sid) {
+          sessionStorage.setItem("session_id", sid);
+          setCachedSessionId(sid);
+        }
       } else {
-        if (!sessionStorage.getItem("portal_employee")) {
+        const empJson =
+          sessionStorage.getItem("portal_employee") ||
+          localStorage.getItem("portal_employee");
+        if (!empJson) {
+          clearSessionCache();
           setLocation("/login");
           return;
+        }
+        sessionStorage.setItem("portal_employee", empJson);
+        const sid =
+          sessionStorage.getItem("session_id") ||
+          localStorage.getItem("session_id");
+        if (sid) {
+          sessionStorage.setItem("session_id", sid);
+          setCachedSessionId(sid);
         }
       }
 
       const res = await apiFetch("/api/portal-auth/me");
       if (!res.ok) {
+        clearSessionCache();
         setLocation("/login");
         return;
       }
     } catch {
+      clearSessionCache();
       setLocation("/login");
       return;
     }

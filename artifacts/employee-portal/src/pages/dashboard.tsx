@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Moon, Sun, Bell, LogOut } from "lucide-react";
 import { useTheme } from "../lib/theme";
-import { apiFetch } from "../lib/api";
+import { apiFetch, clearSessionCache } from "../lib/api";
 import {
   usePortalProfile,
   usePortalRoom,
@@ -86,7 +86,18 @@ export default function Dashboard() {
   const isRtl = lang === "ar";
   const haptic = useHapticFeedback();
 
-  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(() => {
+    try {
+      const raw =
+        (typeof sessionStorage !== "undefined" &&
+          sessionStorage.getItem("portal_employee")) ||
+        (typeof localStorage !== "undefined" &&
+          localStorage.getItem("portal_employee"));
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
   const [portalData, setPortalData] = useState<PortalData | null>(null);
   const [documents, setDocuments] = useState<Record<string, unknown>[]>([]);
   const [evaluations, setEvaluations] = useState<Record<string, unknown>[]>([]);
@@ -102,7 +113,7 @@ export default function Dashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const prevUnreadRef = useRef(0);
 
-  const { data: profileRes, isError: isProfileError } = usePortalProfile();
+  const { data: profileRes, isError: isProfileError, error: profileError } = usePortalProfile();
   const { data: roomRes } = usePortalRoom();
   const { data: notifRes } = usePortalNotifications();
   const { data: alertsRes } = usePortalAlerts();
@@ -110,9 +121,12 @@ export default function Dashboard() {
   // Update employee and portalData when query data changes
   useEffect(() => {
     if (isProfileError) {
-      sessionStorage.removeItem("portal_employee");
-      window.location.href = "/login";
-      return;
+      const status = (profileError as any)?.status;
+      if (status === 401) {
+        clearSessionCache();
+        window.location.href = "/login";
+        return;
+      }
     }
     const profileData = profileRes as any;
     if (profileData) {
@@ -149,7 +163,7 @@ export default function Dashboard() {
   }, []);
 
   const redirectToLogin = useCallback(() => {
-    sessionStorage.removeItem("portal_employee");
+    clearSessionCache();
     window.location.href = "/login";
   }, []);
 
@@ -724,9 +738,7 @@ export default function Dashboard() {
 
           <button
             onClick={() => {
-              sessionStorage.removeItem("portal_employee");
-              Preferences.remove({ key: "portal_employee" });
-              Preferences.remove({ key: "session_id" });
+              clearSessionCache();
               setLocation("/login");
             }}
             style={{

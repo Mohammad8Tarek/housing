@@ -11,7 +11,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
-import { apiFetch, saveSessionId, setCachedSessionId } from "../lib/api";
+import { apiFetch, saveSessionId, setCachedSessionId, clearSessionCache } from "../lib/api";
 import { useBiometric } from "../hooks/useBiometric";
 import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
@@ -69,11 +69,25 @@ export default function Login() {
         }
         sessionStorage.setItem("portal_employee", empJson);
         const { value: sid } = await Preferences.get({ key: "session_id" });
-        if (sid) sessionStorage.setItem("session_id", sid);
+        if (sid) {
+          sessionStorage.setItem("session_id", sid);
+          setCachedSessionId(sid);
+        }
       } else {
-        if (!sessionStorage.getItem("portal_employee")) {
+        const empJson =
+          sessionStorage.getItem("portal_employee") ||
+          localStorage.getItem("portal_employee");
+        if (!empJson) {
           setCheckingSession(false);
           return;
+        }
+        sessionStorage.setItem("portal_employee", empJson);
+        const sid =
+          sessionStorage.getItem("session_id") ||
+          localStorage.getItem("session_id");
+        if (sid) {
+          sessionStorage.setItem("session_id", sid);
+          setCachedSessionId(sid);
         }
       }
       const res = await apiFetch("/api/portal-auth/me");
@@ -81,8 +95,7 @@ export default function Login() {
         setLocation("/dashboard");
         return;
       }
-      sessionStorage.removeItem("portal_employee");
-      if (isNative) await Preferences.remove({ key: "portal_employee" });
+      clearSessionCache();
     } catch {}
     setCheckingSession(false);
   }, [setLocation]);
@@ -109,13 +122,17 @@ export default function Login() {
       const empObj = data.employee || data.profile || { profileId: empId.trim() };
       const empJson = JSON.stringify(empObj);
       sessionStorage.setItem("portal_employee", empJson);
+      localStorage.setItem("portal_employee", empJson);
       if (isNative) {
         await Preferences.set({ key: "portal_employee", value: empJson });
       }
-      if (data.sessionId && isNative) {
-        await Preferences.set({ key: "session_id", value: data.sessionId });
+      if (data.sessionId) {
         sessionStorage.setItem("session_id", data.sessionId);
+        localStorage.setItem("session_id", data.sessionId);
         setCachedSessionId(data.sessionId);
+        if (isNative) {
+          await Preferences.set({ key: "session_id", value: data.sessionId });
+        }
       }
       return data;
     },

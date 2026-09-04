@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Camera, CheckCircle2, AlertCircle, Loader2, Save } from "lucide-react";
 import { useTheme } from "../lib/theme";
-import { apiFetch } from "../lib/api";
+import { apiFetch, clearSessionCache } from "../lib/api";
 import { useLocation } from "wouter";
 import { Preferences } from "@capacitor/preferences";
 import MaterialIcon from "./MaterialIcon";
@@ -145,9 +145,7 @@ export default function TabProfile({ photoUrl }: Props) {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("portal_employee");
-    Preferences.remove({ key: "portal_employee" });
-    Preferences.remove({ key: "session_id" });
+    clearSessionCache();
     setLocation("/login");
   };
 

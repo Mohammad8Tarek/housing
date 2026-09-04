@@ -26,24 +26,54 @@ const SERVER_URL = (isNative
 let _cachedSid: string | null | undefined = undefined;
 
 async function getSessionId(): Promise<string | null> {
-  if (_cachedSid !== undefined) return _cachedSid;
-  if (!isNative && typeof sessionStorage !== "undefined") {
-    _cachedSid = sessionStorage.getItem("session_id");
-    return _cachedSid;
+  if (_cachedSid !== undefined && _cachedSid !== null) return _cachedSid;
+  if (typeof sessionStorage !== "undefined") {
+    const sid = sessionStorage.getItem("session_id");
+    if (sid) {
+      _cachedSid = sid;
+      return _cachedSid;
+    }
   }
-  const { value } = await Preferences.get({ key: "session_id" });
-  _cachedSid = value;
-  return _cachedSid;
+  if (typeof localStorage !== "undefined") {
+    const sid = localStorage.getItem("session_id");
+    if (sid) {
+      _cachedSid = sid;
+      return _cachedSid;
+    }
+  }
+  if (isNative) {
+    try {
+      const { value } = await Preferences.get({ key: "session_id" });
+      _cachedSid = value;
+      return _cachedSid;
+    } catch {}
+  }
+  return null;
 }
 
 export function clearSessionCache() {
   _cachedSid = undefined;
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem("session_id");
+    sessionStorage.removeItem("portal_employee");
+  }
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem("session_id");
+    localStorage.removeItem("portal_employee");
+  }
+  if (isNative) {
+    Preferences.remove({ key: "session_id" }).catch(() => {});
+    Preferences.remove({ key: "portal_employee" }).catch(() => {});
+  }
 }
 
 export function setCachedSessionId(sid: string) {
   _cachedSid = sid;
-  if (!isNative && typeof sessionStorage !== "undefined") {
+  if (typeof sessionStorage !== "undefined") {
     sessionStorage.setItem("session_id", sid);
+  }
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("session_id", sid);
   }
 }
 
@@ -113,10 +143,14 @@ export async function saveSessionId(res: Response) {
     const text = await clone.text();
     const json = JSON.parse(text);
     if (json.sessionId) {
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem("session_id", json.sessionId);
+      }
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("session_id", json.sessionId);
+      }
       if (isNative) {
         await Preferences.set({ key: "session_id", value: json.sessionId });
-      } else if (typeof sessionStorage !== "undefined") {
-        sessionStorage.setItem("session_id", json.sessionId);
       }
       setCachedSessionId(json.sessionId);
     }

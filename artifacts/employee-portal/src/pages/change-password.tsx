@@ -13,7 +13,7 @@ import {
   Moon,
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
-import { apiFetch } from "../lib/api";
+import { apiFetch, clearSessionCache } from "../lib/api";
 
 export default function ChangePassword() {
   const [, setLocation] = useLocation();
@@ -36,19 +36,23 @@ export default function ChangePassword() {
           credentials: "include",
         });
         if (res.status === 401 || res.status === 403) {
-          sessionStorage.removeItem("portal_employee");
+          clearSessionCache();
           setLocation("/login");
           return;
         }
 
         const data = await res.json();
         if (!data.success || !data.employee) {
-          sessionStorage.removeItem("portal_employee");
+          clearSessionCache();
           setLocation("/login");
           return;
         }
 
         sessionStorage.setItem(
+          "portal_employee",
+          JSON.stringify(data.employee),
+        );
+        localStorage.setItem(
           "portal_employee",
           JSON.stringify(data.employee),
         );
@@ -59,13 +63,15 @@ export default function ChangePassword() {
 
         if (!cancelled) setEmployee(data.employee);
       } catch {
-        const stored = sessionStorage.getItem("portal_employee");
+        const stored =
+          sessionStorage.getItem("portal_employee") ||
+          localStorage.getItem("portal_employee");
         if (stored && !cancelled) {
           setEmployee(JSON.parse(stored));
           return;
         }
 
-        sessionStorage.removeItem("portal_employee");
+        clearSessionCache();
         setLocation("/login");
       }
     };
