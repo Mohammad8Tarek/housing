@@ -449,25 +449,22 @@ export default function Dashboard() {
         }
 
         const data = await me.json();
-        if (!data.success || !data.employee) {
+        const emp = data.employee || data.profile;
+        if (!data.success || !emp) {
           redirectToLogin();
           return;
         }
 
+        const empJson = JSON.stringify(emp);
+        sessionStorage.setItem("portal_employee", empJson);
+        localStorage.setItem("portal_employee", empJson);
+
         if (data.mustChangePassword) {
-          sessionStorage.setItem(
-            "portal_employee",
-            JSON.stringify(data.employee),
-          );
           setLocation("/change-password");
           return;
         }
 
-        sessionStorage.setItem(
-          "portal_employee",
-          JSON.stringify(data.employee),
-        );
-        if (!cancelled) setEmployee(data.employee as Employee);
+        if (!cancelled) setEmployee(emp as Employee);
 
         if ("serviceWorker" in navigator && "PushManager" in window) {
           navigator.serviceWorker?.ready?.then(async (reg) => {

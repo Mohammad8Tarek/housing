@@ -42,26 +42,22 @@ export default function ChangePassword() {
         }
 
         const data = await res.json();
-        if (!data.success || !data.employee) {
+        const emp = data.employee || data.profile;
+        if (!data.success || !emp) {
           clearSessionCache();
           setLocation("/login");
           return;
         }
 
-        sessionStorage.setItem(
-          "portal_employee",
-          JSON.stringify(data.employee),
-        );
-        localStorage.setItem(
-          "portal_employee",
-          JSON.stringify(data.employee),
-        );
+        const empJson = JSON.stringify(emp);
+        sessionStorage.setItem("portal_employee", empJson);
+        localStorage.setItem("portal_employee", empJson);
         if (!data.mustChangePassword) {
           setLocation("/dashboard");
           return;
         }
 
-        if (!cancelled) setEmployee(data.employee);
+        if (!cancelled) setEmployee(emp);
       } catch {
         const stored =
           sessionStorage.getItem("portal_employee") ||

@@ -52,7 +52,8 @@ export default function TabProfile({ photoUrl }: Props) {
       ),
     ])
       .then(([me, profile]) => {
-        if (me.success && me.employee) setEmployee(me.employee);
+        const emp = me?.employee || me?.profile;
+        if (me?.success && emp) setEmployee(emp);
         if (profile.success && profile.profile) {
           setForm((f) => ({
             ...f,

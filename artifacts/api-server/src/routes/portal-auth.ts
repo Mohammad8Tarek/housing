@@ -454,25 +454,29 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
       return;
     }
 
+    const userObj = {
+      id: result.profile.id,
+      profileId: result.profile.profileId,
+      employeeId: result.profile.profileId,
+      fullName: `${result.profile.firstName} ${result.profile.lastName}`,
+      firstName: result.profile.firstName,
+      lastName: result.profile.lastName,
+      jobTitle: result.profile.jobTitle,
+      department: result.profile.department,
+      nationality: result.profile.nationality,
+      phone: result.profile.phone,
+      gender: result.profile.gender,
+      hireDate: result.profile.hireDate,
+      address: result.profile.address,
+      level: result.profile.level,
+      status: result.profile.status,
+      propertyId: sess.propertyId,
+    };
+
     res.json({
       success: true,
-      profile: {
-        id: result.profile.id,
-        profileId: result.profile.profileId,
-        fullName: `${result.profile.firstName} ${result.profile.lastName}`,
-        firstName: result.profile.firstName,
-        lastName: result.profile.lastName,
-        jobTitle: result.profile.jobTitle,
-        department: result.profile.department,
-        nationality: result.profile.nationality,
-        phone: result.profile.phone,
-        gender: result.profile.gender,
-        hireDate: result.profile.hireDate,
-        address: result.profile.address,
-        level: result.profile.level,
-        status: result.profile.status,
-        propertyId: sess.propertyId,
-      },
+      profile: userObj,
+      employee: userObj,
       mustChangePassword: result.account?.mustChangePassword ?? false,
     });
   } catch (error: any) {
