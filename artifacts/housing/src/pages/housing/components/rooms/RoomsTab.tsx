@@ -110,7 +110,7 @@ export function RoomsTab({
 
   const rData = (_rDataWrapper as any)?.data || [];
   const paginationMeta = (_rDataWrapper as any)?.pagination || { total: 0 };
-  const rLoading = rLoadingQuery || rFetching;
+  const rLoading = rLoadingQuery && rData.length === 0;
 
   const openAddRoom = () => {
     setEditRoom(null);

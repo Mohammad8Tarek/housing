@@ -172,7 +172,7 @@ export function BuildingsTab({
 
   const paginatedBuildings = (_bDataWrapper as any)?.data || [];
   const paginationMeta = (_bDataWrapper as any)?.pagination || { total: 0 };
-  const bLoading = bLoadingQuery || bFetching;
+  const bLoading = bLoadingQuery && paginatedBuildings.length === 0;
 
   const smartTotalRooms = smartMode
     ? floorConfigs.reduce((sum, f) => sum + f.roomsCount, 0)

@@ -71,10 +71,9 @@ const queryClient = new QueryClient({
   }),
   defaultOptions: {
     queries: {
-      staleTime: 0,
-      refetchInterval: 5_000, // 5s heartbeat background sync for standing on pages
-      gcTime: 5 * 60_000, // 5 min cache
-      refetchOnWindowFocus: true,
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       retry: 1,
     },

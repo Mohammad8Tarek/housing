@@ -58,7 +58,7 @@ export function HousingPage() {
   } as any);
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { queryKey: ["rooms", activePropertyId, 1000], staleTime: 0 } },
+    { query: { queryKey: ["rooms", activePropertyId, 1000] } },
   );
   const rData = (_rDataWrapper as any)?.data || _rDataWrapper || [];
   const { data: aData } = useListAssignments({
@@ -91,7 +91,7 @@ export function HousingPage() {
   const assignments = (aData as any)?.data || aData || [];
   const profiles = (eData as any)?.profiles || eData || [];
 
-  const isLoading = bLoading || fLoading || rLoading;
+  const isLoading = (bLoading || fLoading || rLoading) && (!buildings.length && !rooms.length);
 
   const activeAssignments = (assignments || []).filter((a: any) => a.status === "ACTIVE");
   const occupiedRoomIds = new Set(activeAssignments.map((a: any) => a.roomId));
