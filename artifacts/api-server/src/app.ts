@@ -15,6 +15,7 @@ import express, {
   type NextFunction,
 } from "express";
 import cors from "cors";
+import compression from "compression";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pinoHttp from "pino-http";
@@ -32,6 +33,13 @@ import { broadcastSyncAll, broadcastSyncEverywhere } from "./lib/websocket.js";
 const app: Express = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
+
+// تمكين ضغط البيانات (Gzip/Brotli) لتسريع استجابة السيرفر وتخفيض حجم البيانات
+app.use(
+  compression({
+    threshold: 1024, // ضغط أي رد أكبر من 1KB
+  }),
+);
 
 // 2. إعداد الـ Logging
 app.use(
@@ -247,6 +255,17 @@ app.use("/api", (req, res, next) => {
     }
   });
 
+  next();
+});
+
+// منع تخزين الكاش للبيانات الديناميكية الخاصة بالـ API لضمان استرجاع أحدث البيانات دوماً
+app.use("/api", (_req, res, next) => {
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
   next();
 });
 

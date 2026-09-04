@@ -131,6 +131,20 @@ export default function Login() {
   });
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
+    if (
+      typeof window !== "undefined" &&
+      "credentials" in navigator &&
+      (window as any).PasswordCredential
+    ) {
+      try {
+        const cred = new (window as any).PasswordCredential({
+          id: values.username,
+          password: values.password,
+          name: values.username,
+        });
+        navigator.credentials.store(cred).catch(() => {});
+      } catch {}
+    }
     loginMutation.mutate({ data: values });
   };
 
@@ -242,6 +256,7 @@ export default function Login() {
           <Form {...form}>
             <form
               method="post"
+              action="#"
               autoComplete="on"
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-5"
@@ -256,6 +271,7 @@ export default function Login() {
                     </FormLabel>
                     <FormControl>
                       <Input
+                        {...field}
                         id="username"
                         name="username"
                         type="text"
@@ -268,7 +284,6 @@ export default function Login() {
                         autoCapitalize="none"
                         autoCorrect="off"
                         className="h-11 transition-all focus-visible:ring-primary/50"
-                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -290,14 +305,13 @@ export default function Login() {
                           className={`absolute ${isAr ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`}
                         />
                         <Input
+                          {...field}
                           id="password"
                           name="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="••••••••"
-                          autoComplete="off"
+                          autoComplete="current-password"
                           className="h-11 transition-all focus-visible:ring-primary/50 pl-10 pr-10"
-                          {...field}
-                          value={undefined}
                         />
                         <button
                           type="button"

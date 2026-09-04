@@ -131,6 +131,20 @@ export default function Login() {
     setError("");
     try {
       const data = await doLogin(employeeId, password);
+      if (
+        typeof window !== "undefined" &&
+        "credentials" in navigator &&
+        (window as any).PasswordCredential
+      ) {
+        try {
+          const cred = new (window as any).PasswordCredential({
+            id: employeeId,
+            password: password,
+            name: employeeId,
+          });
+          navigator.credentials.store(cred).catch(() => {});
+        } catch {}
+      }
       if (isNative) {
         await Preferences.set({
           key: "login_remember_me",
@@ -320,7 +334,13 @@ export default function Login() {
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form
+              method="post"
+              action="#"
+              autoComplete="on"
+              onSubmit={handleLogin}
+              className="space-y-5"
+            >
               {/* Employee ID */}
               <div className="space-y-1.5">
                 <label
@@ -333,7 +353,8 @@ export default function Login() {
                   <input
                     ref={inputRef}
                     id="employeeId"
-                    name="employeeId"
+                    name="username"
+                    type="text"
                     autoComplete="username"
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
@@ -366,8 +387,9 @@ export default function Login() {
                   <input
                     id="password"
                     name="password"
-                    autoComplete="off"
+                    autoComplete="current-password"
                     type={showPassword ? "text" : "password"}
+                    value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t("login.passwordPlaceholder")}
                     className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 ps-4 pe-11 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
