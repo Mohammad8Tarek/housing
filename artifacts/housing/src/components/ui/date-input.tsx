@@ -31,6 +31,53 @@ export type DateInputProps = {
 };
 
 /**
+ * Year jump field replacing the endless native years <select> (~130 options).
+ * Type any year (e.g. 1960) + Enter/blur to jump straight to it.
+ * Receives the same props DayPicker gives its default YearsDropdown
+ * ({ value, onChange }) — onChange consumes e.target.value like a select.
+ */
+function YearJump(props: any) {
+  const currentYear = () => {
+    const y = Number(props?.value ?? new Date().getFullYear());
+    return Number.isFinite(y) ? y : new Date().getFullYear();
+  };
+  const [text, setText] = React.useState(String(currentYear()));
+
+  React.useEffect(() => {
+    setText(String(currentYear()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props?.value]);
+
+  const commit = () => {
+    const y = parseInt(text.replace(/\D/g, ""), 10);
+    if (Number.isFinite(y) && y >= 1900 && y <= 2100) {
+      props?.onChange?.({ target: { value: String(y) } });
+    } else {
+      setText(String(currentYear()));
+    }
+  };
+
+  return (
+    <input
+      value={text}
+      inputMode="numeric"
+      dir="ltr"
+      aria-label="Year"
+      disabled={props?.disabled}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+        }
+      }}
+      className="h-8 w-[4.5rem] rounded-md border border-input bg-transparent px-2 text-sm text-center tabular-nums focus:outline-none focus:ring-1 focus:ring-ring"
+    />
+  );
+}
+
+/**
  * Canonical date input for the whole system.
  * Always displays Day/Month/Year (DD/MM/YYYY) while storing ISO "YYYY-MM-DD".
  * Users can type DD/MM/YYYY or pick from the calendar popup.
@@ -105,6 +152,7 @@ export function DateInput({
             captionLayout="dropdown"
             startMonth={new Date(new Date().getFullYear() - 120, 0)}
             endMonth={new Date(new Date().getFullYear() + 10, 11)}
+            components={{ YearsDropdown: YearJump }}
             disabled={(date) =>
               (minDate ? date < minDate : false) ||
               (maxDate ? date > maxDate : false)
