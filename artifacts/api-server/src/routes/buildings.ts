@@ -55,23 +55,23 @@ router.get(
             floorsCount: sql<number>`(
               SELECT count(*)::int 
               FROM floors f 
-              WHERE f.building_id = ${buildingsTable.id}
+              WHERE f.building_id = buildings.id
             )`,
             roomsCount: sql<number>`(
               SELECT count(*)::int 
               FROM rooms r 
-              WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
+              WHERE r.building_id = buildings.id AND r.is_active = true
             )`,
             totalCapacity: sql<number>`COALESCE((
               SELECT sum(r.capacity)::int 
               FROM rooms r 
-              WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
+              WHERE r.building_id = buildings.id AND r.is_active = true
             ), 0)`,
             currentOccupancy: sql<number>`COALESCE((
               SELECT count(a.id)::int 
               FROM assignments a
               JOIN rooms r ON r.id = a.room_id
-              WHERE r.building_id = ${buildingsTable.id} AND a.status = 'ACTIVE' AND r.is_active = true
+              WHERE r.building_id = buildings.id AND a.status = 'ACTIVE' AND r.is_active = true
             ), 0)`,
           })
           .from(buildingsTable) as any;
