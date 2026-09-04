@@ -97,12 +97,17 @@ export default function Login() {
       const res = await apiFetch("/api/portal-auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId: empId, password: pass }),
+        body: JSON.stringify({
+          profileId: empId.trim(),
+          employeeId: empId.trim(),
+          password: pass,
+        }),
       });
       await saveSessionId(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || t("login.failed"));
-      const empJson = JSON.stringify(data.employee);
+      const empObj = data.employee || data.profile || { profileId: empId.trim() };
+      const empJson = JSON.stringify(empObj);
       sessionStorage.setItem("portal_employee", empJson);
       if (isNative) {
         await Preferences.set({ key: "portal_employee", value: empJson });

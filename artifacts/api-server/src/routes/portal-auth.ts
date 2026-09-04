@@ -123,10 +123,15 @@ async function checkProfileIsActive(req: any, res: any, next: any) {
   next();
 }
 
-const LoginSchema = z.object({
-  profileId: z.string().min(1),
-  password: z.string().min(1),
-});
+const LoginSchema = z
+  .object({
+    profileId: z.string().min(1).optional(),
+    employeeId: z.string().min(1).optional(),
+    password: z.string().min(1),
+  })
+  .refine((d) => Boolean(d.profileId || d.employeeId), {
+    message: "profileId or employeeId is required",
+  });
 
 router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
   try {
@@ -134,12 +139,17 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
     if (!parsed.success) {
       res.status(400).json({
         success: false,
-        message: "profileId and password are required",
+        message: "profileId or employeeId and password are required",
       });
       return;
     }
 
-    const { profileId, password } = parsed.data;
+    const profileId = (
+      parsed.data.profileId ||
+      parsed.data.employeeId ||
+      ""
+    ).trim();
+    const { password } = parsed.data;
 
     // Cross-Tenant Search to find the profile (parallelized)
     const properties = await db
@@ -313,21 +323,25 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       fullName: `${profile.firstName} ${profile.lastName}`,
     };
 
+    const userObj = {
+      id: profile.id,
+      profileId: profile.profileId,
+      employeeId: profile.profileId,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      fullName: `${profile.firstName} ${profile.lastName}`,
+      email: profile.email,
+      phone: profile.phone,
+      position: profile.position,
+      department: profile.department,
+    };
+
     res.json({
       success: true,
       sessionId: req.sessionID,
       mustChangePassword: account.mustChangePassword,
-      profile: {
-        id: profile.id,
-        profileId: profile.profileId,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        fullName: `${profile.firstName} ${profile.lastName}`,
-        email: profile.email,
-        phone: profile.phone,
-        position: profile.position,
-        department: profile.department,
-      },
+      profile: userObj,
+      employee: userObj,
     });
   } catch (error: any) {
     console.error("Portal login error:", error);
