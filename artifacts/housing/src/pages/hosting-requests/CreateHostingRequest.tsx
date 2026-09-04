@@ -311,16 +311,15 @@ export default function CreateHostingRequest() {
     : "";
 
   return (
-    <div className="flex-1 flex flex-col p-4 md:p-6">
-      <div className="flex-1 space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/hosting-requests")}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setLocation("/hosting-requests")}
+        >
+          <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
+        </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">
               {ar ? "إنشاء طلب استضافة" : "Create Hosting Request"}
@@ -797,35 +796,33 @@ export default function CreateHostingRequest() {
               </div>
             </CardContent>
           </Card>
-        </form>
-      </div>
 
-      {/* Footer Actions */}
-      <div className="flex justify-end gap-3 pt-6 border-t mt-6">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setLocation("/hosting-requests")}
-        >
-          {ar ? "إلغاء" : "Cancel"}
-        </Button>
-        <Button
-          type="submit"
-          form="hosting-form"
-          disabled={
-            createMutation.isPending ||
-            !!assignedRoomInfo?.isOccupied ||
-            !!assignedRoomInfo?.isReserved ||
-            !!assignedRoomInfo?.hasPendingRequest ||
-            !!hasDateConflict
-          }
-        >
-          {createMutation.isPending ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : null}
-          {ar ? "تقديم الطلب" : "Submit Request"}
-        </Button>
-      </div>
+          {/* Footer Actions */}
+          <div className="flex justify-end gap-3 pt-6 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocation("/hosting-requests")}
+            >
+              {ar ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              type="submit"
+              disabled={
+                createMutation.isPending ||
+                !!assignedRoomInfo?.isOccupied ||
+                !!assignedRoomInfo?.isReserved ||
+                !!assignedRoomInfo?.hasPendingRequest ||
+                !!hasDateConflict
+              }
+            >
+              {createMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
+              {ar ? "تقديم الطلب" : "Submit Request"}
+            </Button>
+          </div>
+        </form>
     </div>
   );
 }
