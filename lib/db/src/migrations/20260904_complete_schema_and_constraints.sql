@@ -102,7 +102,7 @@ BEGIN
 
     ALTER TABLE assignments DROP CONSTRAINT IF EXISTS chk_assignments_status;
     ALTER TABLE assignments ADD CONSTRAINT chk_assignments_status 
-      CHECK (status IN ('ACTIVE', 'COMPLETED', 'CANCELLED', 'TRANSFERRED', 'MOVED'));
+      CHECK (status IN ('ACTIVE', 'CHECKED_OUT', 'COMPLETED', 'CANCELLED', 'TRANSFERRED', 'MOVED', 'LEFT'));
 
     CREATE INDEX IF NOT EXISTS idx_assignments_profile ON assignments(profile_id);
     CREATE INDEX IF NOT EXISTS idx_assignments_room ON assignments(room_id);
@@ -155,7 +155,7 @@ BEGIN
 
     ALTER TABLE rooms DROP CONSTRAINT IF EXISTS chk_rooms_status;
     ALTER TABLE rooms ADD CONSTRAINT chk_rooms_status 
-      CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'out_of_service', 'out_of_order'));
+      CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order'));
 
     CREATE INDEX IF NOT EXISTS idx_rooms_building ON rooms(building_id);
     CREATE INDEX IF NOT EXISTS idx_rooms_floor ON rooms(floor_id);
@@ -224,7 +224,7 @@ BEGIN
 
     ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
     ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status 
-      CHECK (status IN ('ACTIVE', 'INACTIVE', 'TERMINATED', 'VACATION', 'PENDING'));
+      CHECK (status IN ('ACTIVE', 'INACTIVE', 'TERMINATED', 'VACATION', 'PENDING', 'LEFT'));
 
     ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_gender;
     ALTER TABLE profiles ADD CONSTRAINT chk_profiles_gender 

@@ -1089,6 +1089,31 @@ const TENANT_MIGRATIONS = [
     name: "profile_portal_accounts.unique_profile_id",
     q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_portal_accounts_profile_id ON profile_portal_accounts (profile_id)",
   },
+  // === Fix CHECK constraints to include CHECKED_OUT, LEFT, and occupied_vacation ===
+  {
+    name: "fix_chk_assignments_status",
+    q: `DO $$ BEGIN
+      ALTER TABLE assignments DROP CONSTRAINT IF EXISTS chk_assignments_status;
+      ALTER TABLE assignments ADD CONSTRAINT chk_assignments_status
+        CHECK (status IN ('ACTIVE', 'CHECKED_OUT', 'COMPLETED', 'CANCELLED', 'TRANSFERRED', 'MOVED', 'LEFT'));
+    END $$`,
+  },
+  {
+    name: "fix_chk_profiles_status",
+    q: `DO $$ BEGIN
+      ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
+      ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status
+        CHECK (status IN ('ACTIVE', 'INACTIVE', 'TERMINATED', 'VACATION', 'PENDING', 'LEFT'));
+    END $$`,
+  },
+  {
+    name: "fix_chk_rooms_status",
+    q: `DO $$ BEGIN
+      ALTER TABLE rooms DROP CONSTRAINT IF EXISTS chk_rooms_status;
+      ALTER TABLE rooms ADD CONSTRAINT chk_rooms_status
+        CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order'));
+    END $$`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {
