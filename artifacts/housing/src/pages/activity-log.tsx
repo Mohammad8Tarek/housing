@@ -136,21 +136,30 @@ const prettyKeyAction = (action: string, ar: boolean) => {
   return a ? a.charAt(0).toUpperCase() + a.slice(1) : "-";
 };
 
-const parseDetails = (rawDetails: any): { isJson: boolean; data: any; summary?: string } => {
+const parseDetails = (rawDetails: any): { isJson: boolean; data: any; summary?: string; roomNumber?: string } => {
   if (!rawDetails) return { isJson: false, data: null };
   if (typeof rawDetails === "object") {
+    const roomNumber =
+      rawDetails.roomNumber ||
+      (rawDetails.fromRoomNumber ? `${rawDetails.fromRoomNumber} ➔ ${rawDetails.toRoomNumber}` : undefined);
     return {
       isJson: true,
       data: rawDetails,
       summary: rawDetails.summary || rawDetails.message || undefined,
+      roomNumber,
     };
   }
   try {
     const parsed = JSON.parse(rawDetails);
+    const isJson = typeof parsed === "object" && parsed !== null;
+    const roomNumber = isJson
+      ? parsed.roomNumber || (parsed.fromRoomNumber ? `${parsed.fromRoomNumber} ➔ ${parsed.toRoomNumber}` : undefined)
+      : undefined;
     return {
-      isJson: typeof parsed === "object" && parsed !== null,
+      isJson,
       data: parsed,
       summary: parsed?.summary || parsed?.message || undefined,
+      roomNumber,
     };
   } catch {
     return { isJson: false, data: rawDetails, summary: String(rawDetails) };
@@ -784,30 +793,43 @@ export default function ActivityLog() {
                       )}
                       {isVisible("details") && (
                         <TableCell className="text-sm text-muted-foreground max-w-[280px]">
-                          <div className="flex items-center justify-between gap-2">
-                            <p
-                              className="truncate text-xs text-foreground/80 font-medium"
-                              title={(log as any).details ?? ""}
-                            >
-                              {(() => {
-                                const p = parseDetails((log as any).details);
-                                return p.summary || (typeof p.data === "string" ? p.data : (log as any).details) || "-";
-                              })()}
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-1.5 text-[11px] gap-1 text-primary hover:bg-primary/10 flex-shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedLog(log);
-                              }}
-                              title={ar ? "عرض التفاصيل الكاملة" : "View full details"}
-                            >
-                              <Eye className="w-3 h-3" />
-                              {ar ? "تفاصيل" : "Details"}
-                            </Button>
-                          </div>
+                          {(() => {
+                            const p = parseDetails((log as any).details);
+                            return (
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                  {p.roomNumber && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="px-1.5 py-0 text-[10px] font-mono font-bold bg-blue-100/90 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 shrink-0"
+                                      title={ar ? `الغرفة: ${p.roomNumber}` : `Room: ${p.roomNumber}`}
+                                    >
+                                      🚪 {p.roomNumber}
+                                    </Badge>
+                                  )}
+                                  <p
+                                    className="truncate text-xs text-foreground/80 font-medium"
+                                    title={(log as any).details ?? ""}
+                                  >
+                                    {p.summary || (typeof p.data === "string" ? p.data : (log as any).details) || "-"}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-1.5 text-[11px] gap-1 text-primary hover:bg-primary/10 flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedLog(log);
+                                  }}
+                                  title={ar ? "عرض التفاصيل الكاملة" : "View full details"}
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  {ar ? "تفاصيل" : "Details"}
+                                </Button>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                       )}
                     </TableRow>
@@ -877,7 +899,7 @@ export default function ActivityLog() {
                             </div>
                           )}
 
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                          <div className={`grid grid-cols-2 ${detailsParsed.roomNumber ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-2.5 text-xs`}>
                             <div className="p-3 rounded-lg bg-muted/40 border">
                               <p className="text-muted-foreground font-medium mb-1">{ar ? "المستخدم:" : "User:"}</p>
                               <p className="font-semibold text-foreground">{selectedLog.username || "-"}</p>
@@ -885,6 +907,14 @@ export default function ActivityLog() {
                                 <p className="text-[10px] text-muted-foreground capitalize mt-0.5">{selectedLog.userRole}</p>
                               )}
                             </div>
+                            {detailsParsed.roomNumber && (
+                              <div className="p-3 rounded-lg bg-blue-50/80 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800">
+                                <p className="text-blue-700 dark:text-blue-300 font-semibold mb-1">{ar ? "رقم الغرفة:" : "Room Number:"}</p>
+                                <p className="font-mono font-bold text-blue-950 dark:text-blue-100 text-sm">
+                                  🚪 {detailsParsed.roomNumber}
+                                </p>
+                              </div>
+                            )}
                             <div className="p-3 rounded-lg bg-muted/40 border">
                               <p className="text-muted-foreground font-medium mb-1">{ar ? "العنصر المرتبط:" : "Entity:"}</p>
                               <p className="font-semibold text-foreground">

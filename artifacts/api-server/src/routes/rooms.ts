@@ -509,12 +509,23 @@ router.post(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `إضافة غرفة جديدة: ${room.roomNumber}`,
+        action: `إضافة غرفة جديدة: رقم ${room.roomNumber}`,
         actionType: "CREATE",
         module: "housing",
         entityType: "room",
         entityId: room.id,
-        details: `Capacity: ${room.capacity}, Type: ${room.roomType}`,
+        details: {
+          roomNumber: room.roomNumber,
+          roomId: room.id,
+          capacity: room.capacity,
+          roomType: room.roomType,
+          buildingId: room.buildingId,
+          floorId: room.floorId,
+          gender: room.gender,
+          status: room.status,
+          user: s.username,
+          role: s.userRole,
+        },
       });
       res.status(201).json({ ...room, genderPolicy: room.gender, propertyId });
     } catch (err: any) {
@@ -642,6 +653,13 @@ router.patch(
     }
     if (notes !== undefined) extraData.notes = notes;
 
+    const [existingRoom] = await withTenant(propertyId, async (tenantDb) => {
+      return await tenantDb
+        .select()
+        .from(roomsTable)
+        .where(eq(roomsTable.id, params.data.id));
+    });
+
     const [updated] = await withTenant(propertyId, async (tenantDb) => {
       return await tenantDb
         .update(roomsTable)
@@ -665,11 +683,22 @@ router.patch(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `تغيير حالة الغرفة ${updated.roomNumber} إلى: ${parsed.data.status}`,
+        action: `تغيير حالة الغرفة رقم ${updated.roomNumber} من [${existingRoom?.status ?? "-"}] إلى [${parsed.data.status}]`,
         actionType: "UPDATE_STATUS",
         module: "housekeeping",
         entityType: "room",
         entityId: updated.id,
+        details: {
+          roomNumber: updated.roomNumber,
+          roomId: updated.id,
+          previousStatus: existingRoom?.status,
+          newStatus: parsed.data.status,
+          buildingId: updated.buildingId,
+          floorId: updated.floorId,
+          capacity: updated.capacity,
+          user: s.username,
+          role: s.userRole,
+        },
       });
     } else {
       // General update log
@@ -679,11 +708,21 @@ router.patch(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `تعديل غرفة: ${updated.roomNumber}`,
+        action: `تعديل بيانات الغرفة رقم ${updated.roomNumber}`,
         actionType: "UPDATE",
         module: "housing",
         entityType: "room",
         entityId: updated.id,
+        details: {
+          roomNumber: updated.roomNumber,
+          roomId: updated.id,
+          updatedFields: Object.keys(parsed.data),
+          buildingId: updated.buildingId,
+          floorId: updated.floorId,
+          capacity: updated.capacity,
+          user: s.username,
+          role: s.userRole,
+        },
       });
     }
     
@@ -794,11 +833,18 @@ router.patch(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `تغيير حالة الغرفة ${updated.roomNumber} إلى: ${status}`,
+        action: `تغيير حالة الغرفة رقم ${updated.roomNumber} إلى: ${status}`,
         actionType: "UPDATE_STATUS",
         module: "housekeeping",
         entityType: "room",
         entityId: updated.id,
+        details: {
+          roomNumber: updated.roomNumber,
+          roomId: updated.id,
+          newStatus: status,
+          user: s.username,
+          role: s.userRole,
+        },
       });
 
       // Also trigger a property broadcast for realtime UI update
@@ -873,12 +919,19 @@ router.delete(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `حذف غرفة: ${result.room.roomNumber}`,
+        action: `حذف الغرفة رقم ${result.room.roomNumber}`,
         actionType: "DELETE",
         module: "housing",
         entityType: "room",
         entityId: result.room.id,
         severity: "warning",
+        details: {
+          roomNumber: result.room.roomNumber,
+          roomId: result.room.id,
+          capacity: result.room.capacity,
+          user: s.username,
+          role: s.userRole,
+        },
       });
     }
     res.sendStatus(204);

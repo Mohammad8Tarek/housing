@@ -710,18 +710,27 @@ router.post(
       const guestName =
         `${updated.firstName ?? ""} ${updated.lastName ?? ""}`.trim() ||
         "Guest";
+      const roomNum = result.room?.roomNumber ?? "";
       await logActivity({
         req,
         propertyId,
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `تسجيل وصول الضيف: ${guestName} في غرفة ${result.room.roomNumber}`,
+        action: `تسجيل وصول وتسكين الضيف: ${guestName} في الغرفة رقم ${roomNum}`,
         actionType: "CHECKIN",
         module: "reservations",
         entityType: "reservation",
         entityId: updated.id,
-        details: `Room: ${roomId}`,
+        details: {
+          roomNumber: roomNum,
+          roomId,
+          guestName,
+          checkInDate: updated.checkInDate,
+          checkOutDate: updated.checkOutDate,
+          performedBy: s.username,
+          performedByRole: s.userRole,
+        },
       });
 
       broadcastToProperty(propertyId, {
@@ -807,13 +816,18 @@ router.patch(
         (req.body as any).checkOutDate || new Date().toISOString();
 
       // Decrement room occupancy
+      let roomNumber: string | undefined;
       if (reservation.roomId) {
         const [room] = await tenantDb
-          .select({ currentOccupancy: roomsTable.currentOccupancy })
+          .select({
+            currentOccupancy: roomsTable.currentOccupancy,
+            roomNumber: roomsTable.roomNumber,
+          })
           .from(roomsTable)
           .where(eq(roomsTable.id, reservation.roomId))
           .limit(1);
         if (room) {
+          roomNumber = room.roomNumber;
           const newOcc = Math.max(0, room.currentOccupancy - 1);
           await tenantDb
             .update(roomsTable)
@@ -834,7 +848,7 @@ router.patch(
         .where(eq(reservationsTable.id, id))
         .returning();
 
-      return { updated, checkOutDate };
+      return { updated, checkOutDate, roomNumber };
     });
 
     if (result.error) {
@@ -846,18 +860,26 @@ router.patch(
     const guestName =
       `${result.updated.firstName ?? ""} ${result.updated.lastName ?? ""}`.trim() ||
       "Guest";
+    const roomNum = result.roomNumber;
     await logActivity({
       req,
       propertyId,
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `تسجيل مغادرة الضيف: ${guestName}`,
+      action: `تسجيل مغادرة الضيف: ${guestName}${roomNum ? ` من الغرفة رقم ${roomNum}` : ""}`,
       actionType: "CHECKOUT",
       module: "reservations",
       entityType: "reservation",
       entityId: result.updated.id,
-      details: `Check-out: ${result.checkOutDate}`,
+      details: {
+        roomNumber: roomNum,
+        roomId: result.updated.roomId,
+        guestName,
+        checkOutDate: result.checkOutDate,
+        performedBy: s.username,
+        performedByRole: s.userRole,
+      },
     });
 
     broadcastToProperty(propertyId, {

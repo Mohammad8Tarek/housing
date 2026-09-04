@@ -202,7 +202,7 @@ router.post(
 
       const parentId = req.body.parentId ? parseInt(String(req.body.parentId)) : null;
 
-      const [record] = await withTenant(propertyId, async (tenantDb) => {
+      const { record, roomNumber } = await withTenant(propertyId, async (tenantDb) => {
         const inserted = await tenantDb
           .insert(maintenanceTable)
           .values({
@@ -212,14 +212,21 @@ router.post(
           } as any)
           .returning();
           
+        let roomNum: string | undefined;
         if (inserted[0]?.roomId) {
+          const [rm] = await tenantDb
+            .select({ roomNumber: roomsTable.roomNumber })
+            .from(roomsTable)
+            .where(eq(roomsTable.id, inserted[0].roomId))
+            .limit(1);
+          roomNum = rm?.roomNumber;
           await tenantDb
             .update(roomsTable)
             .set({ status: "out_of_service" })
             .where(eq(roomsTable.id, inserted[0].roomId));
         }
         
-        return inserted;
+        return { record: inserted[0], roomNumber: roomNum };
       });
 
       const s = session(req);
@@ -229,11 +236,23 @@ router.post(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `بلاغ صيانة جديد: ${record.description}`,
+        action: roomNumber
+          ? `بلاغ صيانة في الغرفة رقم ${roomNumber}: ${record.description || record.problemType}`
+          : `بلاغ صيانة جديد: ${record.description || record.problemType}`,
         actionType: "CREATE",
         module: "maintenance",
         entityType: "maintenance",
         entityId: record.id,
+        details: {
+          roomNumber,
+          roomId: record.roomId,
+          problemType: record.problemType,
+          description: record.description,
+          priority: record.priority,
+          status: record.status,
+          user: s.username,
+          role: s.userRole,
+        },
       });
 
       broadcastToProperty(propertyId, {
@@ -268,13 +287,23 @@ router.patch(
         return;
       }
 
-      const [updated] = await withTenant(propertyId, async (tenantDb) => {
+      const { updated, roomNumber } = await withTenant(propertyId, async (tenantDb) => {
         const result = await tenantDb
           .update(maintenanceTable)
           .set(req.body as any)
           .where(eq(maintenanceTable.id, p.data.id))
           .returning();
           
+        let roomNum: string | undefined;
+        if (result[0]?.roomId) {
+          const [rm] = await tenantDb
+            .select({ roomNumber: roomsTable.roomNumber })
+            .from(roomsTable)
+            .where(eq(roomsTable.id, result[0].roomId))
+            .limit(1);
+          roomNum = rm?.roomNumber;
+        }
+
         if (result[0]?.roomId && req.body.status) {
            const newStatus = req.body.status;
            if (newStatus === "resolved" || newStatus === "closed") {
@@ -308,7 +337,7 @@ router.patch(
            }
         }
         
-        return result;
+        return { updated: result[0], roomNumber: roomNum };
       });
 
       if (!updated) {
@@ -323,11 +352,21 @@ router.patch(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `تحديث بلاغ #${updated.id} -> ${updated.status}`,
+        action: roomNumber
+          ? `تحديث بلاغ صيانة الغرفة رقم ${roomNumber} -> ${updated.status}`
+          : `تحديث بلاغ #${updated.id} -> ${updated.status}`,
         actionType: "UPDATE",
         module: "maintenance",
         entityType: "maintenance",
         entityId: updated.id,
+        details: {
+          roomNumber,
+          roomId: updated.roomId,
+          status: updated.status,
+          updatedFields: req.body,
+          user: s.username,
+          role: s.userRole,
+        },
       });
 
       broadcastToProperty(propertyId, {
@@ -362,17 +401,26 @@ router.delete(
         return;
       }
 
-      const row = await withTenant(propertyId, async (tenantDb) => {
+      const { row, roomNumber } = await withTenant(propertyId, async (tenantDb) => {
         const [existing] = await tenantDb
           .select()
           .from(maintenanceTable)
           .where(eq(maintenanceTable.id, p.data.id));
+        let roomNum: string | undefined;
         if (existing) {
+          if (existing.roomId) {
+            const [rm] = await tenantDb
+              .select({ roomNumber: roomsTable.roomNumber })
+              .from(roomsTable)
+              .where(eq(roomsTable.id, existing.roomId))
+              .limit(1);
+            roomNum = rm?.roomNumber;
+          }
           await tenantDb
             .delete(maintenanceTable)
             .where(eq(maintenanceTable.id, p.data.id));
         }
-        return existing;
+        return { row: existing, roomNumber: roomNum };
       });
 
       if (!row) {
@@ -387,11 +435,20 @@ router.delete(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `حذف بلاغ صيانة #${row.id}`,
+        action: roomNumber
+          ? `حذف بلاغ صيانة الغرفة رقم ${roomNumber} (#${row.id})`
+          : `حذف بلاغ صيانة #${row.id}`,
         actionType: "DELETE",
         module: "maintenance",
         entityType: "maintenance",
         entityId: row.id,
+        details: {
+          roomNumber,
+          roomId: row.roomId,
+          ticketId: row.id,
+          user: s.username,
+          role: s.userRole,
+        },
       });
 
       broadcastToProperty(propertyId, {

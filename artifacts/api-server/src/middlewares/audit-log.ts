@@ -109,45 +109,63 @@ function analyzeMutation(
   let entityType = module.replace(/s$/, "");
 
   // Specific Actions
+  const roomNum =
+    resBody?.roomNumber ||
+    resBody?.room?.roomNumber ||
+    resBody?.newRoom?.roomNumber ||
+    reqBody?.roomNumber ||
+    reqBody?.toRoomNumber ||
+    params?.roomNumber ||
+    "";
+  const roomDisplay = roomNum ? `الغرفة رقم ${roomNum}` : (entityId ? `الغرفة #${entityId}` : "الغرفة");
+
   if (p.includes("/checkout")) {
     actionType = "CHECKOUT";
     entityType = "assignment";
-    action = `تسجيل مغادرة (Check-out) للمقيم #${entityId || ""}`;
-    summary = `تم إنهاء التسكين وتسجيل مغادرة للمقيم #${entityId || ""}`;
+    action = `تسجيل مغادرة من ${roomDisplay} للمقيم #${entityId || ""}`;
+    summary = `تم إنهاء التسكين وتسجيل مغادرة للمقيم #${entityId || ""} من ${roomDisplay}`;
   } else if (p.includes("/checkin")) {
     actionType = "CHECKIN";
     entityType = "reservation";
-    action = `تسجيل وصول وتسكين (Check-in) للحجز #${entityId || ""}`;
-    summary = `تم تحويل الحجز #${entityId || ""} إلى تسكين نشط بنجاح`;
+    action = `تسجيل وصول وتسكين (Check-in) في ${roomDisplay} للحجز #${entityId || ""}`;
+    summary = `تم تحويل الحجز #${entityId || ""} إلى تسكين نشط في ${roomDisplay}`;
   } else if (p.includes("/transfer") || p.includes("/move")) {
     actionType = "TRANSFER";
     entityType = "assignment";
-    action = `نقل غرفة (Room Transfer) للتسكين #${entityId || ""}`;
-    summary = `تم نقل المقيم للتسكين #${entityId || ""} إلى غرفة جديدة ${reqBody?.toRoomNumber || reqBody?.toRoomId || ""}`;
+    const toRoom = reqBody?.toRoomNumber || resBody?.newRoom?.roomNumber || "";
+    const fromRoom = reqBody?.fromRoomNumber || resBody?.oldRoom?.roomNumber || "";
+    action = `نقل غرفة (Room Transfer)${fromRoom ? ` من الغرفة ${fromRoom}` : ""}${toRoom ? ` إلى الغرفة ${toRoom}` : ""} للتسكين #${entityId || ""}`;
+    summary = `تم نقل المقيم للتسكين #${entityId || ""}${fromRoom ? ` من الغرفة ${fromRoom}` : ""}${toRoom ? ` إلى الغرفة ${toRoom}` : ""}`;
   } else if (p.includes("/issue") || p.includes("/keys")) {
     actionType = "ISSUE_KEY";
     entityType = "room_key";
-    action = `إصدار كرت غرفة ${reqBody?.roomNumber || ""}`;
-    summary = `تم إصدار كرت/مفتاح جديد للغرفة ${reqBody?.roomNumber || ""}`;
+    action = `إصدار كرت/مفتاح لـ ${roomDisplay}`;
+    summary = `تم إصدار كرت/مفتاح جديد لـ ${roomDisplay}`;
   } else if (p.includes("/revoke")) {
     actionType = "REVOKE_KEY";
     entityType = "room_key";
-    action = `إلغاء كرت غرفة #${entityId || ""}`;
-    summary = `تم إلغاء صلاحية الكرت #${entityId || ""}`;
+    action = `إلغاء كرت/مفتاح لـ ${roomDisplay}`;
+    summary = `تم إلغاء صلاحية الكرت #${entityId || ""} الخاص بـ ${roomDisplay}`;
   } else if (p.includes("/approve")) {
     actionType = "APPROVE";
     action = `اعتماد طلب في ${module} #${entityId || ""}`;
     summary = `تم اعتماد الطلب #${entityId || ""}`;
   } else if (method === "DELETE") {
     actionType = "DELETE";
-    action = `حذف عنصر من ${module} #${entityId || ""}`;
-    summary = `تم حذف السجل #${entityId || ""} من موديول ${module}`;
+    if (module === "housing" && (p.includes("room") || p.includes("rooms"))) {
+      entityType = "room";
+      action = `حذف ${roomDisplay}`;
+      summary = `تم حذف ${roomDisplay} نهائياً`;
+    } else {
+      action = `حذف عنصر من ${module} #${entityId || ""}`;
+      summary = `تم حذف السجل #${entityId || ""} من موديول ${module}`;
+    }
   } else if (method === "POST") {
     actionType = "CREATE";
-    if (module === "housing" && p.includes("room")) {
+    if (module === "housing" && (p.includes("room") || p.includes("rooms"))) {
       entityType = "room";
-      action = `إضافة غرفة جديدة ${reqBody?.roomNumber ? `رقم ${reqBody.roomNumber}` : ""}`;
-      summary = `تم إنشاء غرفة جديدة ${reqBody?.roomNumber || ""} بسعة ${reqBody?.capacity || 1}`;
+      action = `إضافة غرفة جديدة: ${roomDisplay}`;
+      summary = `تم إنشاء ${roomDisplay} بسعة ${reqBody?.capacity || 1} ونوع ${reqBody?.roomType || "STANDARD"}`;
     } else if (module === "profiles") {
       entityType = "profile";
       const name = `${reqBody?.firstName || ""} ${reqBody?.lastName || ""}`.trim();
@@ -156,12 +174,12 @@ function analyzeMutation(
     } else if (module === "reservations") {
       entityType = "reservation";
       const name = `${reqBody?.firstName || ""} ${reqBody?.lastName || ""}`.trim();
-      action = `إنشاء حجز جديد: ${name}`;
-      summary = `تم إنشاء حجز جديد للضيف ${name} من ${reqBody?.checkInDate || ""} إلى ${reqBody?.checkOutDate || ""}`;
+      action = `إنشاء حجز جديد: ${name}${roomNum ? ` في الغرفة رقم ${roomNum}` : ""}`;
+      summary = `تم إنشاء حجز جديد للضيف ${name}${roomNum ? ` في الغرفة رقم ${roomNum}` : ""} من ${reqBody?.checkInDate || ""} إلى ${reqBody?.checkOutDate || ""}`;
     } else if (module === "maintenance") {
       entityType = "maintenance";
-      action = `إنشاء بلاغ صيانة جديد: ${reqBody?.title || reqBody?.description?.slice(0, 30) || ""}`;
-      summary = `تم فتح بلاغ صيانة في الغرفة ${reqBody?.roomNumber || reqBody?.roomId || ""} بأولوية ${reqBody?.priority || "عادية"}`;
+      action = `إنشاء بلاغ صيانة في ${roomDisplay}: ${reqBody?.title || reqBody?.description?.slice(0, 30) || ""}`;
+      summary = `تم فتح بلاغ صيانة في ${roomDisplay} بأولوية ${reqBody?.priority || "عادية"}`;
     } else if (module === "users") {
       entityType = "user";
       action = `إضافة مستخدم جديد: ${reqBody?.username || ""}`;
@@ -177,11 +195,20 @@ function analyzeMutation(
       entityType = "user";
       action = `تعديل صلاحيات المستخدم #${entityId || ""}`;
       summary = `تم تحديث مصفوفة الصلاحيات للمستخدم #${entityId || ""} وإعادة ضبط ${reqBody.permissions.length} صلاحية`;
-    } else if (module === "housing" && reqBody?.status) {
-      actionType = "STATUS_CHANGE";
+    } else if (module === "housing" && (p.includes("room") || p.includes("rooms") || reqBody?.status)) {
       entityType = "room";
-      action = `تغيير حالة الغرفة #${entityId || ""} إلى: ${reqBody.status}`;
-      summary = `تم تحديث حالة الغرفة #${entityId || ""} إلى ${reqBody.status}`;
+      if (reqBody?.status) {
+        actionType = "STATUS_CHANGE";
+        action = `تغيير حالة ${roomDisplay} إلى: ${reqBody.status}`;
+        summary = `تم تحديث حالة ${roomDisplay} إلى ${reqBody.status}`;
+      } else {
+        action = `تعديل بيانات ${roomDisplay}`;
+        summary = `تم تعديل بيانات ${roomDisplay}`;
+      }
+    } else if (module === "maintenance") {
+      entityType = "maintenance";
+      action = `تحديث بلاغ صيانة ${roomDisplay} إلى: ${reqBody?.status || "محدث"}`;
+      summary = `تم تحديث بلاغ صيانة ${roomDisplay} إلى ${reqBody?.status || "محدث"}`;
     } else {
       action = `تعديل في ${module} #${entityId || ""}`;
       const changedKeys = Object.keys(reqBody || {}).filter(
@@ -232,8 +259,17 @@ export function auditLogMiddleware(
         const sanitizedReqBody = sanitize(req.body);
         const sanitizedResBody = sanitize(body);
 
-        const detailsObj = {
+        const roomNum =
+          body?.roomNumber ||
+          body?.room?.roomNumber ||
+          body?.newRoom?.roomNumber ||
+          req.body?.roomNumber ||
+          req.body?.toRoomNumber ||
+          undefined;
+
+        const detailsObj: Record<string, any> = {
           summary: analysis.summary,
+          ...(roomNum ? { roomNumber: roomNum } : {}),
           method: req.method,
           endpoint: req.originalUrl || req.url,
           params: req.params,

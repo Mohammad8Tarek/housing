@@ -525,6 +525,7 @@ router.post(
     }
 
     const s = su(req);
+    const roomNum = result.room?.roomNumber ?? "";
     await logActivity({
       req,
       propertyId,
@@ -532,12 +533,21 @@ router.post(
       userId: s.userId,
       userRole: s.userRole,
       action: isTemporaryVacationOverride
-        ? `تسكين موظف #${result.assignment!.profileId} (مؤقت بديل إجازة) في غرفة ${result.room!.roomNumber} سرير ${result.assignment!.bedNumber}`
-        : `تسكين موظف #${result.assignment!.profileId} في غرفة ${result.room!.roomNumber}`,
+        ? `تسكين موظف في الغرفة رقم ${roomNum} سرير ${result.assignment!.bedNumber} (مؤقت بديل إجازة) - الموظف #${result.assignment!.profileId}`
+        : `تسكين موظف في الغرفة رقم ${roomNum} سرير ${result.assignment!.bedNumber} - الموظف #${result.assignment!.profileId}`,
       actionType: "CREATE",
       module: "accommodation",
       entityType: "assignment",
       entityId: result.assignment!.id,
+      details: {
+        roomNumber: roomNum,
+        roomId: result.room?.id,
+        bedNumber: result.assignment!.bedNumber,
+        profileId: result.assignment!.profileId,
+        isTemporaryVacationOverride,
+        assignedBy: s.username,
+        assignedByRole: s.userRole,
+      },
     });
 
     broadcastToProperty(propertyId, {
@@ -651,17 +661,26 @@ router.post(
     }
 
     const s = su(req);
+    const roomNum = result.room?.roomNumber ?? "";
     await logActivity({
       req,
       propertyId,
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `مغادرة موظف #${result.assignment!.profileId}`,
-      actionType: "UPDATE",
+      action: `تسجيل مغادرة من الغرفة رقم ${roomNum} - الموظف #${result.assignment!.profileId}`,
+      actionType: "CHECKOUT",
       module: "accommodation",
       entityType: "assignment",
       entityId: result.assignment!.id,
+      details: {
+        roomNumber: roomNum,
+        roomId: result.room?.id,
+        profileId: result.assignment!.profileId,
+        checkoutDate: new Date().toISOString(),
+        performedBy: s.username,
+        performedByRole: s.userRole,
+      },
     });
 
     broadcastToProperty(propertyId, {
@@ -890,17 +909,28 @@ router.post(
     }
 
     const s = su(req);
+    const oldRoomNum = result.oldRoom?.roomNumber ?? "?";
+    const newRoomNum = result.newRoom?.roomNumber ?? "?";
     await logActivity({
       req,
       propertyId,
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `نقل موظف #${result.updated!.profileId} من ${result.oldRoom?.roomNumber ?? "?"} إلى ${result.newRoom!.roomNumber}`,
-      actionType: "UPDATE",
+      action: `نقل موظف #${result.updated!.profileId} من الغرفة رقم ${oldRoomNum} إلى الغرفة رقم ${newRoomNum}`,
+      actionType: "TRANSFER",
       module: "accommodation",
       entityType: "assignment",
       entityId: result.updated!.id,
+      details: {
+        fromRoomNumber: oldRoomNum,
+        toRoomNumber: newRoomNum,
+        fromRoomId: result.oldRoom?.id,
+        toRoomId: result.newRoom?.id,
+        profileId: result.updated!.profileId,
+        transferredBy: s.username,
+        transferredByRole: s.userRole,
+      },
     });
 
     broadcastToProperty(propertyId, {
