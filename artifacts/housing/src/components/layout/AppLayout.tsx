@@ -310,7 +310,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       href: "/hosting-requests",
       label: ar ? "طلبات الاستضافة" : "Hosting Requests",
       icon: MessageSquare,
-      permissionModule: "accommodation",
+      permissionModule: "hosting_requests",
     },
     {
       href: "/accommodation/guest-hosting",

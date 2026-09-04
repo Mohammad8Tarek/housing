@@ -901,8 +901,7 @@ export default function UsersPage() {
                       {isUVisible("property") && isSuperAdmin && (
                         <TableCell>
                           {(() => {
-                            const pids: number[] = (u as any).propertyIds
-                              ?.length
+                            const pids: number[] = (u as any).propertyIds?.length
                               ? (u as any).propertyIds
                               : (u as any).propertyId
                                 ? [(u as any).propertyId]
@@ -916,9 +915,7 @@ export default function UsersPage() {
                             return (
                               <div className="flex flex-wrap gap-1">
                                 {pids.map((pid) => {
-                                  const p = properties?.find(
-                                    (x) => x.id === pid,
-                                  );
+                                  const p = properties?.find((x) => x.id === pid);
                                   return (
                                     <span
                                       key={pid}
@@ -935,39 +932,76 @@ export default function UsersPage() {
                       )}
                       {isUVisible("permissions") && (
                         <TableCell>
-                          <div className="flex flex-wrap gap-1 max-w-[220px]">
+                          <div className="flex flex-col gap-1 max-w-[240px]">
                             {(() => {
-                              const perms = u.permissions || [];
-                              const grouped = perms.reduce((acc, p) => {
-                                const mod = p.split(".")[0];
-                                if (mod) acc[mod] = (acc[mod] || 0) + 1;
-                                return acc;
-                              }, {});
-                              const modules = Object.keys(grouped);
-                              const displayModules = modules.slice(0, 3);
-                              const extra = modules.length - 3;
-                              return modules.length > 0 ? (
-                                <>
-                                  {displayModules.map((mod) => (
-                                    <span
-                                      key={mod}
-                                      className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800/30 dark:text-indigo-400 capitalize whitespace-nowrap"
+                              const isSuper = (u.roles || []).some(
+                                (r: string) => r.toLowerCase() === "super_admin",
+                              );
+                              if (isSuper) {
+                                return (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 w-fit">
+                                    <Crown className="w-3.5 h-3.5 text-amber-500" />
+                                    <span>
+                                      {ar ? "سوبر أدمن (كامل)" : "Super Admin (Full)"}
+                                    </span>
+                                  </span>
+                                );
+                              }
+                              const explicitPerms = u.permissions as string[] | undefined;
+                              const hasExplicit = Array.isArray(explicitPerms) && explicitPerms.length > 0;
+                              if (hasExplicit) {
+                                if (explicitPerms.length === 1 && explicitPerms[0] === "none") {
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 w-fit">
+                                      <LockKeyhole className="w-3.5 h-3.5" />
+                                      <span>{ar ? "مغلق تماماً" : "Fully Blocked"}</span>
+                                    </span>
+                                  );
+                                }
+                                const grouped = explicitPerms.reduce((acc: any, p: string) => {
+                                  const mod = p.split(".")[0];
+                                  if (mod) acc[mod] = (acc[mod] || 0) + 1;
+                                  return acc;
+                                }, {});
+                                const modules = Object.keys(grouped);
+                                return (
+                                  <div className="flex flex-col gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setMatrixUser(u)}
+                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors w-fit text-start cursor-pointer"
+                                      title={ar ? "انقر لتعديل الصلاحيات المخصصة" : "Click to edit permissions"}
                                     >
-                                      {mod.replace(/_/g, " ")}{" "}
-                                      <span className="opacity-70 ml-0.5">
-                                        ({grouped[mod]})
+                                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                                      <span>
+                                        {ar
+                                          ? `مخصص (${modules.length} موديول / ${explicitPerms.length} إجراء)`
+                                          : `Custom (${modules.length} mods / ${explicitPerms.length} actions)`}
                                       </span>
-                                    </span>
-                                  ))}
-                                  {extra > 0 && (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800/30 dark:border-slate-700/30 dark:text-slate-400 whitespace-nowrap">
-                                      +{extra} {ar ? "المزيد" : "more"}
-                                    </span>
-                                  )}
-                                </>
-                              ) : (
-                                <span className="text-xs text-muted-foreground italic">
-                                  �
+                                    </button>
+                                    <div className="flex flex-wrap gap-1">
+                                      {modules.slice(0, 2).map((mod) => (
+                                        <span
+                                          key={mod}
+                                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-muted-foreground border capitalize"
+                                        >
+                                          {mod.replace(/_/g, " ")} ({grouped[mod]})
+                                        </span>
+                                      ))}
+                                      {modules.length > 2 && (
+                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-muted-foreground border">
+                                          +{modules.length - 2}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              const role = u.roles?.[0] || "user";
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium text-muted-foreground bg-muted/50 border border-border/60 w-fit">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                  <span>{ar ? "افتراضي حسب الدور" : `Default (${role})`}</span>
                                 </span>
                               );
                             })()}
@@ -1007,16 +1041,28 @@ export default function UsersPage() {
                       )}
                       {isUVisible("actions") && (
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                          <div className="flex items-center gap-1">
+                            <PermissionGate module="users" action="manage_permissions">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-8 w-8 text-muted-foreground hover:text-[#C9A24D] hover:bg-[#C9A24D]/10 rounded-lg transition-colors"
+                                onClick={() => setMatrixUser(u)}
+                                title={ar ? "إدارة الصلاحيات" : "Manage Permissions"}
                               >
-                                <MoreVertical className="w-4 h-4" />
+                                <Shield className="w-4 h-4 text-[#C9A24D]" />
                               </Button>
-                            </DropdownMenuTrigger>
+                            </PermissionGate>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               <PermissionGate module="users" action="edit">
                                 <DropdownMenuItem
@@ -1105,7 +1151,8 @@ export default function UsersPage() {
                                 </DropdownMenuItem>
                               </PermissionGate>
                             </DropdownMenuContent>
-                          </DropdownMenu>
+                            </DropdownMenu>
+                          </div>
                         </TableCell>
                       )}
                     </motion.tr>

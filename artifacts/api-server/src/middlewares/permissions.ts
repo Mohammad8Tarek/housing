@@ -276,13 +276,10 @@ function permissionKeys(
 }
 
 function effectivePermissions(user: AuthUser): Set<string> {
-  if (user.isSystemAdmin) return new Set(["*"]);
-
-  const permissions = new Set<string>();
-
   // 1. If explicit permissions are configured for this user:
   // STRICT MODE: We ONLY use explicit permissions. Do NOT add role defaults back!
   if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+    const permissions = new Set<string>();
     for (const permission of user.permissions) {
       if (permission === "none") continue;
       const norm = normalize(permission);
@@ -295,7 +292,14 @@ function effectivePermissions(user: AuthUser): Set<string> {
     return permissions;
   }
 
-  // 2. Otherwise, fallback to role default permissions for uncustomized users:
+  // 2. If system admin (super_admin / system_admin) without explicit restrictions: grant all
+  if (user.isSystemAdmin || user.roles.includes("super_admin")) {
+    return new Set(["*"]);
+  }
+
+  const permissions = new Set<string>();
+
+  // 3. Otherwise, fallback to role default permissions for uncustomized users:
   const resolvedRoles = resolveInheritedRoles(user.roles);
   for (const role of resolvedRoles) {
     for (const permission of ROLE_DEFAULT_PERMISSIONS[role] ?? []) {

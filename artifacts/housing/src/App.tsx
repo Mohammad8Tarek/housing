@@ -10,7 +10,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { LanguageProvider } from "@/context/LanguageContext";
+import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 import { PropertyProvider } from "@/context/PropertyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoader } from "@/components/ui/loader";
@@ -107,19 +107,21 @@ function PermissionLayout({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, isLoading } = useAuth();
-  const { can, isAdmin } = usePermission();
+  const { can } = usePermission();
+  const { language } = useLanguage();
+  const ar = language === "ar";
 
   if (isLoading) return <PageLoader />;
   if (!isAuthenticated) return <Redirect to="/login" />;
 
-  // If user is admin they bypass permission checks
-  if (!isAdmin && !can(module, action)) {
+  // Strictly check permission
+  if (!can(module, action)) {
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center h-full gap-4 py-20">
-          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center h-full gap-5 py-24 px-4 text-center">
+          <div className="w-20 h-20 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shadow-lg shadow-red-500/5">
             <svg
-              className="w-8 h-8 text-red-500"
+              className="w-10 h-10 text-red-600 dark:text-red-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -132,17 +134,24 @@ function PermissionLayout({
               />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-foreground">Access Denied</h2>
-          <p className="text-muted-foreground text-sm text-center max-w-sm">
-            You don&apos;t have permission to view this page. Contact your
-            administrator to request access.
-          </p>
-          <a
-            href="/dashboard"
-            className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-          >
-            Go to Dashboard
-          </a>
+          <div className="space-y-2 max-w-md">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              {ar ? "غير مصرح بالدخول (403)" : "Access Denied (403)"}
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {ar
+                ? "ليس لديك صلاحية لعرض أو استخدام هذه الصفحة. تم إغلاق هذا الموديول لحسابك. يرجى التواصل مع مسؤول النظام لطلب الصلاحية."
+                : "You don't have permission to access this page. This module is restricted for your account. Contact your administrator to request access."}
+            </p>
+          </div>
+          <div className="flex gap-3 mt-2">
+            <a
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
+            >
+              {ar ? "العودة للوحة القيادة" : "Go to Dashboard"}
+            </a>
+          </div>
         </div>
       </AppLayout>
     );
@@ -191,7 +200,7 @@ function Router() {
           </PermissionLayout>
         </Route>
         <Route path="/accommodation/reservations">
-          <PermissionLayout module="accommodation">
+          <PermissionLayout module="reservations">
             <Reservations />
           </PermissionLayout>
         </Route>

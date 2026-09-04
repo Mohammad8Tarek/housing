@@ -39,15 +39,20 @@ function resolveInheritedRoles(roles: string[]): string[] {
 export function usePermission() {
   const { user, isSystemAdmin } = useAuth();
 
+  const isSuperAdmin =
+    !!user?.roles?.some((r) =>
+      ["super_admin"].includes(normalize(r)),
+    );
+
   const isAdmin =
+    isSuperAdmin ||
     isSystemAdmin ||
     !!user?.roles?.some((r) =>
-      ["super_admin", "system_admin"].includes(normalize(r)),
+      ["admin", "system_admin"].includes(normalize(r)),
     );
 
   const effectivePermissions = (): Set<string> => {
     if (!user) return new Set();
-    if (isAdmin) return new Set(["*"]);
 
     const explicit = (user as any).permissions as string[] | undefined;
 
@@ -67,7 +72,10 @@ export function usePermission() {
       return combined;
     }
 
-    // 2. Default fallback ONLY for fresh users whose permissions were never customized:
+    // 2. Super admin without explicit customized permissions gets full access
+    if (isSuperAdmin) return new Set(["*"]);
+
+    // 3. Default fallback ONLY for fresh users whose permissions were never customized:
     const combined = new Set<string>();
     const resolvedRoles = resolveInheritedRoles(user.roles ?? []);
     for (const role of resolvedRoles) {
@@ -87,7 +95,6 @@ export function usePermission() {
 
   const can = (module: Module, action: Action): boolean => {
     if (!user) return false;
-    if (isAdmin) return true;
     if (perms.has("*")) return true;
 
     // Check module.action with dot or colon format
@@ -117,6 +124,7 @@ export function usePermission() {
     canDelete,
     canExport,
     isAdmin,
+    isSuperAdmin,
     perms,
   };
 }
