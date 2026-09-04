@@ -43,7 +43,38 @@ router.get(
       const countResult = await countQuery;
       const totalCount = Number(countResult[0]?.count ?? 0);
 
-      let baseQuery = tenantDb.select().from(buildingsTable).limit(limit).offset(offset) as any;
+      let baseQuery = tenantDb
+        .select({
+          id: buildingsTable.id,
+          name: buildingsTable.name,
+          location: buildingsTable.location,
+          status: buildingsTable.status,
+          capacity: buildingsTable.capacity,
+          createdAt: buildingsTable.createdAt,
+          floorsCount: sql<number>`(
+            SELECT count(*)::int 
+            FROM floors f 
+            WHERE f.building_id = ${buildingsTable.id}
+          )`,
+          roomsCount: sql<number>`(
+            SELECT count(*)::int 
+            FROM rooms r 
+            WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
+          )`,
+          totalCapacity: sql<number>`COALESCE((
+            SELECT sum(r.capacity)::int 
+            FROM rooms r 
+            WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
+          ), 0)`,
+          currentOccupancy: sql<number>`COALESCE((
+            SELECT sum(r.current_occupancy)::int 
+            FROM rooms r 
+            WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
+          ), 0)`,
+        })
+        .from(buildingsTable)
+        .limit(limit)
+        .offset(offset) as any;
       if (conditions.length > 0) baseQuery = baseQuery.where(and(...conditions));
 
       const rows = await baseQuery;
@@ -51,7 +82,14 @@ router.get(
     });
 
     res.json({
-      data: data.map((b: any) => ({ ...b, propertyId })),
+      data: data.map((b: any) => ({
+        ...b,
+        propertyId,
+        floorsCount: Number(b.floorsCount || 0),
+        roomsCount: Number(b.roomsCount || 0),
+        totalCapacity: Number(b.totalCapacity || 0),
+        currentOccupancy: Number(b.currentOccupancy || 0),
+      })),
       pagination: {
         page,
         limit,
@@ -208,19 +246,45 @@ router.delete(
       return;
     }
 
-    const existing = await withTenant(propertyId, async (tenantDb) => {
+    const result = await withTenant(propertyId, async (tenantDb) => {
       const [b] = await tenantDb
         .select()
         .from(buildingsTable)
         .where(eq(buildingsTable.id, params.data.id));
-      if (b)
-        await tenantDb
-          .delete(buildingsTable)
-          .where(eq(buildingsTable.id, params.data.id));
-      return b;
+      if (!b) return { notFound: true };
+
+      // Check if any room in this building has active assignments
+      const activeOccupants = await tenantDb.execute(sql`
+        SELECT count(*)::int as count 
+        FROM assignments a
+        JOIN rooms r ON r.id = a.room_id
+        WHERE r.building_id = ${params.data.id} AND a.status = 'ACTIVE'
+      `);
+      const count = Number((activeOccupants.rows?.[0] as any)?.count ?? 0);
+      if (count > 0) {
+        return { hasActiveResidents: true, count, building: b };
+      }
+
+      await tenantDb
+        .delete(buildingsTable)
+        .where(eq(buildingsTable.id, params.data.id));
+      return { success: true, building: b };
     });
 
-    if (existing) {
+    if (result.notFound) {
+      res.status(404).json({ error: "Building not found" });
+      return;
+    }
+
+    if (result.hasActiveResidents) {
+      res.status(400).json({
+        error: `لا يمكن حذف المبنى لوجود ${result.count} موظف مسكن به حالياً. يرجى نقل أو إخلاء الموظفين أولاً.`,
+        code: "BUILDING_HAS_ACTIVE_RESIDENTS",
+      });
+      return;
+    }
+
+    if (result.building) {
       const s = su(req);
       await logActivity({
         req,
@@ -228,11 +292,11 @@ router.delete(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `حذف مبنى: ${existing.name}`,
+        action: `حذف مبنى: ${result.building.name}`,
         actionType: "DELETE",
         module: "housing",
         entityType: "building",
-        entityId: existing.id,
+        entityId: result.building.id,
         severity: "warning",
       });
     }

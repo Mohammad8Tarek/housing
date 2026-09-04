@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, withTenant, floorsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import {
   CreateFloorBody,
   UpdateFloorBody,
@@ -184,19 +184,45 @@ router.delete(
       return;
     }
 
-    const existing = await withTenant(propertyId, async (tenantDb) => {
+    const result = await withTenant(propertyId, async (tenantDb) => {
       const [f] = await tenantDb
         .select()
         .from(floorsTable)
         .where(eq(floorsTable.id, params.data.id));
-      if (f)
-        await tenantDb
-          .delete(floorsTable)
-          .where(eq(floorsTable.id, params.data.id));
-      return f;
+      if (!f) return { notFound: true };
+
+      // Check active residents
+      const activeOccupants = await tenantDb.execute(sql`
+        SELECT count(*)::int as count 
+        FROM assignments a
+        JOIN rooms r ON r.id = a.room_id
+        WHERE r.floor_id = ${params.data.id} AND a.status = 'ACTIVE'
+      `);
+      const count = Number((activeOccupants.rows?.[0] as any)?.count ?? 0);
+      if (count > 0) {
+        return { hasActiveResidents: true, count, floor: f };
+      }
+
+      await tenantDb
+        .delete(floorsTable)
+        .where(eq(floorsTable.id, params.data.id));
+      return { success: true, floor: f };
     });
 
-    if (existing) {
+    if (result.notFound) {
+      res.status(404).json({ error: "Floor not found" });
+      return;
+    }
+
+    if (result.hasActiveResidents) {
+      res.status(400).json({
+        error: `لا يمكن حذف الطابق لوجود ${result.count} موظف مسكن به حالياً. يرجى نقل أو إخلاء الموظفين أولاً.`,
+        code: "FLOOR_HAS_ACTIVE_RESIDENTS",
+      });
+      return;
+    }
+
+    if (result.floor) {
       const s = su(req);
       await logActivity({
         req,
@@ -204,11 +230,11 @@ router.delete(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `حذف دور: ${existing.floorNumber}`,
+        action: `حذف دور: ${result.floor.floorNumber}`,
         actionType: "DELETE",
         module: "housing",
         entityType: "floor",
-        entityId: existing.id,
+        entityId: result.floor.id,
         severity: "warning",
       });
     }

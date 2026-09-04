@@ -85,6 +85,16 @@ export function RoomsTab({
   const [pageSize, setPageSize] = useState(10);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
 
+  const invalidateAllHousingQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    queryClient.invalidateQueries({ queryKey: ["floors"] });
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/buildings"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/floors"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+    queryClient.invalidateQueries();
+  };
+
   const { data: _rDataWrapper, isLoading: rLoadingQuery, isFetching: rFetching } = useListRooms(
     {
       propertyId,
@@ -179,7 +189,7 @@ export function RoomsTab({
         await createRoomMut.mutateAsync({ data: dataToSave });
         toast.success(ar ? "تم إضافة الغرفة بنجاح" : "Room added");
       }
-      queryClient.invalidateQueries();
+      invalidateAllHousingQueries();
       setRoomModal(false);
     } catch (err: any) {
       toast.error(err.message || (ar ? "فشل الحفظ" : "Failed to save"));
@@ -196,7 +206,7 @@ export function RoomsTab({
       await deleteRoomMut.mutateAsync({ id: deleteRoom.id });
       toast.success(ar ? "تم حذف الغرفة بنجاح" : "Room deleted");
       setDeleteRoom(null);
-      queryClient.invalidateQueries();
+      invalidateAllHousingQueries();
     } catch (err: any) {
       toast.error(err.message || (ar ? "فشل الحذف" : "Failed to delete"));
     }
@@ -247,7 +257,7 @@ export function RoomsTab({
         ar ? `تم تحديث ${ids.length} غرفة بنجاح` : `Updated ${ids.length} rooms`
       );
       setSelectedRoomIds(new Set());
-      queryClient.invalidateQueries();
+      invalidateAllHousingQueries();
     } catch {
       toast.error(ar ? "فشل التحديث الجماعي" : "Bulk update failed");
     }

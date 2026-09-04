@@ -53,6 +53,16 @@ export function FloorsTab({
     description: "",
   });
 
+  const invalidateAllHousingQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    queryClient.invalidateQueries({ queryKey: ["floors"] });
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/buildings"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/floors"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+    queryClient.invalidateQueries();
+  };
+
   const [floorBuildingFilter, setFloorBuildingFilter] = useState("all");
 
   const filteredFloors = floors.filter(
@@ -101,7 +111,7 @@ export function FloorsTab({
         await createFloorMut.mutateAsync({ data: { ...fForm, propertyId } });
         toast.success(ar ? "تم إضافة الطابق بنجاح" : "Floor added");
       }
-      queryClient.invalidateQueries();
+      invalidateAllHousingQueries();
       setFloorModal(false);
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ" : "Failed to save"));
@@ -114,7 +124,7 @@ export function FloorsTab({
       await deleteFloorMut.mutateAsync({ id: deleteFloor.id });
       toast.success(ar ? "تم حذف الطابق بنجاح" : "Floor deleted");
       setDeleteFloor(null);
-      queryClient.invalidateQueries();
+      invalidateAllHousingQueries();
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ" : "Failed to delete"));
     }

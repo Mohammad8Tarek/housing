@@ -820,19 +820,44 @@ router.delete(
       return;
     }
 
-    const existing = await withTenant(propertyId, async (tenantDb) => {
+    const result = await withTenant(propertyId, async (tenantDb) => {
       const [room] = await tenantDb
         .select()
         .from(roomsTable)
         .where(eq(roomsTable.id, params.data.id));
-      if (room)
-        await tenantDb
-          .delete(roomsTable)
-          .where(eq(roomsTable.id, params.data.id));
-      return room;
+      if (!room) return { notFound: true };
+
+      // Check active residents
+      const activeOccupants = await tenantDb.execute(sql`
+        SELECT count(*)::int as count 
+        FROM assignments a
+        WHERE a.room_id = ${params.data.id} AND a.status = 'ACTIVE'
+      `);
+      const count = Number((activeOccupants.rows?.[0] as any)?.count ?? 0);
+      if (count > 0) {
+        return { hasActiveResidents: true, count, room };
+      }
+
+      await tenantDb
+        .delete(roomsTable)
+        .where(eq(roomsTable.id, params.data.id));
+      return { success: true, room };
     });
 
-    if (existing) {
+    if (result.notFound) {
+      res.status(404).json({ error: "Room not found" });
+      return;
+    }
+
+    if (result.hasActiveResidents) {
+      res.status(400).json({
+        error: `لا يمكن حذف الغرفة لوجود ${result.count} موظف مسكن بها حالياً. يرجى إخلاء أو نقل الموظف أولاً.`,
+        code: "ROOM_HAS_ACTIVE_RESIDENTS",
+      });
+      return;
+    }
+
+    if (result.room) {
       const s = su(req);
       await logActivity({
         req,
@@ -840,11 +865,11 @@ router.delete(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `حذف غرفة: ${existing.roomNumber}`,
+        action: `حذف غرفة: ${result.room.roomNumber}`,
         actionType: "DELETE",
         module: "housing",
         entityType: "room",
-        entityId: existing.id,
+        entityId: result.room.id,
         severity: "warning",
       });
     }

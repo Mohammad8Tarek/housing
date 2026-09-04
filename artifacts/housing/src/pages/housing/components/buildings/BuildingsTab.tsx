@@ -131,6 +131,16 @@ export function BuildingsTab({
   const createFloorMut = useCreateFloor();
   const createRoomMut = useCreateRoom();
 
+  const invalidateAllHousingQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    queryClient.invalidateQueries({ queryKey: ["floors"] });
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/buildings"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/floors"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+    queryClient.invalidateQueries();
+  };
+
   const [buildingModal, setBuildingModal] = useState(false);
   const [editBuilding, setEditBuilding] = useState<any>(null);
   const [deleteBuilding, setDeleteBuilding] = useState<any>(null);
@@ -245,7 +255,7 @@ export function BuildingsTab({
           },
         });
         toast.success(ar ? "تم تحديث المبنى بنجاح" : "Building updated");
-        queryClient.invalidateQueries();
+        invalidateAllHousingQueries();
         setBuildingModal(false);
       } else {
         if (smartMode) {
@@ -309,7 +319,7 @@ export function BuildingsTab({
               ? `تم إنشاء المبنى و ${smartTotalRooms} غرفة`
               : `Building and ${smartTotalRooms} rooms created`,
           );
-          queryClient.invalidateQueries();
+          invalidateAllHousingQueries();
           setIsBuildingGenerating(false);
           setBuildingModal(false);
         } else {
@@ -321,7 +331,7 @@ export function BuildingsTab({
             },
           });
           toast.success(ar ? "تمت إضافة المبنى بنجاح" : "Building created successfully");
-          queryClient.invalidateQueries();
+          invalidateAllHousingQueries();
           setBuildingModal(false);
         }
       }
@@ -344,7 +354,7 @@ export function BuildingsTab({
       await deleteBuildingMut.mutateAsync({ id: deleteBuilding.id });
       toast.success(ar ? "تم حذف المبنى بنجاح" : "Building deleted");
       setDeleteBuilding(null);
-      queryClient.invalidateQueries();
+      invalidateAllHousingQueries();
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ" : "Failed to delete"));
     }
@@ -407,9 +417,11 @@ export function BuildingsTab({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {paginatedBuildings.map((b) => {
-                const bFloors = floors.filter((f) => f.buildingId === b.id);
-                const bRooms = rooms.filter((r) => r.buildingId === b.id);
+              {paginatedBuildings.map((b: any) => {
+                const bFloorsCount = b.floorsCount !== undefined ? b.floorsCount : floors.filter((f) => f.buildingId === b.id).length;
+                const bRoomsCount = b.roomsCount !== undefined ? b.roomsCount : rooms.filter((r) => r.buildingId === b.id).length;
+                const realCapacity = b.totalCapacity !== undefined ? b.totalCapacity : rooms.filter((r) => r.buildingId === b.id).reduce((s: number, r: any) => s + (r.capacity || 0), 0);
+                const realOccupancy = b.currentOccupancy !== undefined ? b.currentOccupancy : rooms.filter((r) => r.buildingId === b.id).reduce((s: number, r: any) => s + (r.currentOccupancy || 0), 0);
                 return (
                   <tr
                     key={b.id}
@@ -426,20 +438,34 @@ export function BuildingsTab({
                     <td className="p-3">
                       <span className="flex items-center gap-1 text-muted-foreground">
                         <MapPin className="w-3 h-3" />
-                        {b.location}
+                        {b.location || "—"}
                       </span>
                     </td>
                     <td className="p-3">
-                      <Badge variant="secondary">{bFloors.length}</Badge>
+                      <Badge variant="secondary" className="font-medium">{bFloorsCount}</Badge>
                     </td>
                     <td className="p-3">
-                      <Badge variant="secondary">{bRooms.length}</Badge>
+                      <Badge variant="secondary" className="font-medium">{bRoomsCount}</Badge>
                     </td>
                     <td className="p-3">
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Users className="w-3 h-3" />
-                        {b.capacity}
-                      </span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="flex items-center gap-1 font-medium text-foreground">
+                          <Users className="w-3.5 h-3.5 text-primary" />
+                          <span>{realCapacity} {ar ? "سرير" : "beds"}</span>
+                        </span>
+                        {realCapacity > 0 && (
+                          <span className="text-[11px] text-muted-foreground">
+                            {ar
+                              ? `مشغول: ${realOccupancy} (${Math.round((realOccupancy / realCapacity) * 100)}%)`
+                              : `Occupied: ${realOccupancy} (${Math.round((realOccupancy / realCapacity) * 100)}%)`}
+                          </span>
+                        )}
+                        {b.capacity > 0 && b.capacity !== realCapacity && (
+                          <span className="text-[10px] text-muted-foreground/60" title={ar ? "السعة الاسمية المسجلة" : "Nominal capacity"}>
+                            {ar ? `الاسمية: ${b.capacity}` : `Nominal: ${b.capacity}`}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3">
                       <span
