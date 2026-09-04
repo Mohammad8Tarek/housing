@@ -143,7 +143,7 @@ export default function HistoryPage() {
   const floors = (_fData as any)?.data || _fData || [];
   const { data: settings } = useGetSettings({ propertyId: propId } as any);
   const { data: _pData } = useListProperties();
-  const properties = (_pData as any)?.data || _pData || [];
+  const properties = _pData || [];
 
   const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));

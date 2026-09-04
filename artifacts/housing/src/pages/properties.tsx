@@ -68,7 +68,6 @@ import {
 } from "@/components/ui/column-chooser";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
-import * as XLSX from "xlsx";
 
 type PropertyForm = {
   name: string;

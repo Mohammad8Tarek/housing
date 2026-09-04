@@ -246,7 +246,12 @@ export function EditProfileDialog({
           {/* Top Avatar Row */}
           <div className="flex items-center justify-between p-3.5 bg-muted/40 rounded-xl border">
             <div className="flex items-center gap-3.5">
-              <ProfileAvatar profile={profile} size="lg" />
+              <ProfileAvatar
+                firstName={profile.firstName}
+                lastName={profile.lastName}
+                photoUrl={profile.photoUrl}
+                size="md"
+              />
               <div>
                 <p className="font-bold text-base leading-tight">
                   {profile.firstName} {profile.lastName}

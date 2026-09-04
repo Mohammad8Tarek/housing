@@ -1,6 +1,5 @@
 import { recommendBestRooms } from "@/lib/room-recommender";
 import { Sparkles } from "lucide-react";
-// @ts-nocheck
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,6 +13,7 @@ import {
   getListAssignmentsQueryKey,
   getListRoomsQueryKey,
 } from "@workspace/api-client-react";
+import type { ListRoomsParams } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
@@ -108,10 +108,15 @@ export default function RoomAssignment() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchPropertyId, setSearchPropertyId] = useState<string>("all");
 
-  const { data: _pData } = useListProperties();
-  const allProperties = _pData?.data || _pData || [];
-  const { data: settings } = useGetSettings({
-    query: { enabled: !!activePropertyId },
+  const { data: _pData } = useListProperties({
+    query: { queryKey: ["/api/properties"] },
+  });
+  const allProperties = _pData || [];
+  const { data: settings } = useGetSettings(undefined, {
+    query: {
+      queryKey: ["/api/settings"],
+      enabled: !!activePropertyId,
+    },
   });
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -180,26 +185,53 @@ export default function RoomAssignment() {
     });
   };
 
-  const { data: _rData } = useListRooms(
-    { propertyId: activePropertyId, limit: 1000 },
-    { query: { enabled: !!activePropertyId, staleTime: 30000 } },
-  );
-  const rooms = _rData?.data || [];
+  // NOTE: backend reads `limit` from the query string even though the
+  // generated ListRoomsParams type omits it — keep it via cast (no runtime change).
+  const roomsQuery = {
+    propertyId: activePropertyId as number,
+    limit: 1000,
+  } as ListRoomsParams;
+  const { data: _rData } = useListRooms(roomsQuery, {
+    query: {
+      queryKey: ["/api/rooms", roomsQuery],
+      enabled: !!activePropertyId,
+      staleTime: 30000,
+    },
+  });
+  const rooms = _rData || [];
   const { data: _bData } = useListBuildings(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
+    { propertyId: activePropertyId as number },
+    {
+      query: {
+        queryKey: ["/api/buildings", activePropertyId],
+        enabled: !!activePropertyId,
+        staleTime: 300000,
+      },
+    },
   );
-  const buildings = _bData?.data || [];
+  const buildings = _bData || [];
   const { data: _fData } = useListFloors(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
+    { propertyId: activePropertyId as number },
+    {
+      query: {
+        queryKey: ["/api/floors", activePropertyId],
+        enabled: !!activePropertyId,
+        staleTime: 300000,
+      },
+    },
   );
-  const floors = _fData?.data || [];
+  const floors = _fData || [];
   const { data: _aData } = useListAssignments(
-    { propertyId: activePropertyId } as any,
-    { query: { enabled: !!activePropertyId, staleTime: 30000 } },
+    { propertyId: activePropertyId as number },
+    {
+      query: {
+        queryKey: ["/api/assignments", activePropertyId],
+        enabled: !!activePropertyId,
+        staleTime: 30000,
+      },
+    },
   );
-  const allAssignments = _aData?.data || [];
+  const allAssignments = _aData || [];
 
   // Build set of occupied bed numbers for the currently selected room
   const occupiedBeds = new Set<number>(
@@ -215,7 +247,7 @@ export default function RoomAssignment() {
 
   const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
   const floorMap = Object.fromEntries(
-    floors.map((f) => [f.id, { name: f.name, number: f.floorNumber }]),
+    floors.map((f) => [f.id, { name: f.floorNumber, number: f.floorNumber }]),
   );
 
   // استبعاد الغرف غير الصالحة للسكن (صيانة، خارج الخدمة، خارج النظام)
@@ -284,14 +316,11 @@ export default function RoomAssignment() {
       onSuccess: (data: any) => {
         queryClient.invalidateQueries({
           queryKey: getListAssignmentsQueryKey({
-            propertyId: activePropertyId,
+            propertyId: activePropertyId as number,
           }),
         });
         queryClient.invalidateQueries({
-          queryKey: getListRoomsQueryKey({
-            propertyId: activePropertyId,
-            limit: 1000,
-          }),
+          queryKey: getListRoomsQueryKey(roomsQuery),
         });
         // Show key issuance prompt
         setLastAssignment(data);
@@ -727,10 +756,7 @@ export default function RoomAssignment() {
                     )
                     .map((f) => (
                       <SelectItem key={f.id} value={String(f.id)}>
-                        {f.name}
-                        {f.floorNumber !== undefined
-                          ? ` (${ar ? "دور" : "Floor"} ${f.floorNumber})`
-                          : ""}
+                        {ar ? "دور" : "Floor"} {f.floorNumber}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -1098,7 +1124,7 @@ export default function RoomAssignment() {
             )}
             {lastAssignment && selectedRoom && activePropertyId && (
               <KeyManagementPanel
-                propertyId={activePropertyId}
+                propertyId={activePropertyId as number}
                 roomId={selectedRoom.id}
                 assignmentId={lastAssignment.id}
                 profileId={

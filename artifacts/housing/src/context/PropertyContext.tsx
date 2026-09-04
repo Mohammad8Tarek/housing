@@ -47,11 +47,12 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
 
   const { data: _pData } = useListProperties({
     query: {
+      queryKey: ["/api/properties"],
       enabled: Boolean(user),
       staleTime: 60 * 1000,
     },
   });
-  const allProperties = _pData?.data || _pData || [];
+  const allProperties = _pData || [];
 
   const userPropertyIds: number[] = (() => {
     if (!user) return [];

@@ -159,36 +159,32 @@ export function useReportExport({
 
   const handleExportPDF = () => {
     if (!canExportReports) return;
-    const data = currentData();
-    exportPDF({
+    const rows = toExcelRows();
+    exportPDF(
       activeTab,
-      data,
+      rows,
+      properties,
+      propId,
+      activePropertyId,
       dateFrom,
       dateTo,
       search,
       settings,
-      properties,
-      propId,
-      activePropertyId,
-      floorMap,
-      buildingMap,
-      empMap,
-      roomMap,
-    });
+    );
   };
 
   const handleExportAnalyticsPDF = () => {
     if (!canExportReports) return;
-    exportAnalyticsPDF({
+    exportAnalyticsPDF(
       analytics,
       rooms,
       profiles,
       evalStats,
-      settings,
       properties,
       propId,
       activePropertyId,
-    });
+      settings,
+    );
   };
 
   return {

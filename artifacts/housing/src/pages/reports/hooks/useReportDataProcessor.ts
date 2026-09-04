@@ -194,7 +194,10 @@ export function useReportDataProcessor({
               isFullyVacant: occ === 0,
             };
           })
-          .sort((a, b) => b.vacantBedsCount - a.vacantBedsCount);
+          .sort(
+            (a: { vacantBedsCount: number }, b: { vacantBedsCount: number }) =>
+              b.vacantBedsCount - a.vacantBedsCount,
+          );
 
         return applySearchAndDate(list, undefined, (r) => [
           r.roomNumber,
@@ -344,7 +347,10 @@ export function useReportDataProcessor({
               assignedRoom: room ? `غرفة ${room.roomNumber} (${buildingMap[room.buildingId] || ""})` : "غير مسكن",
             };
           })
-          .sort((a, b) => a.daysRemaining - b.daysRemaining);
+          .sort(
+            (a: { daysRemaining: number }, b: { daysRemaining: number }) =>
+              a.daysRemaining - b.daysRemaining,
+          );
 
         return applySearchAndDate(list, "contractEndDate", (i) => [
           i.fullName,

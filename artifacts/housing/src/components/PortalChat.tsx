@@ -16,13 +16,27 @@ export default function PortalChat() {
   const ar = language === "ar";
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const [selectedConv, setSelectedConv] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [senders, setSenders] = useState({});
+
+  type PortalChatConversation = {
+    id: number | string;
+    subject?: string | null;
+    isGroup?: boolean;
+    messageCount?: number;
+  };
+  type PortalChatMessage = {
+    id: number | string;
+    senderId?: number | string | null;
+    content?: string;
+    createdAt?: string;
+  };
+  type PortalChatSender = { firstName?: string; lastName?: string };
+
+  const [selectedConv, setSelectedConv] = useState<number | string | null>(null);
+  const [messages, setMessages] = useState<PortalChatMessage[]>([]);
+  const [senders, setSenders] = useState<Record<string, PortalChatSender>>({});
   const [replyText, setReplyText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const { data: convData, isLoading } = useQuery({
     queryKey: ["portal-chat-conversations", activePropertyId],
@@ -37,14 +51,14 @@ export default function PortalChat() {
     refetchInterval: 5000,
   });
 
-  const conversations = convData ?? [];
+  const conversations = (convData ?? []) as PortalChatConversation[];
   const filteredConversations = conversations.filter(c => 
     c.subject?.toLowerCase().includes(searchQuery.toLowerCase()) || 
     c.id.toString().includes(searchQuery)
   );
 
   const deleteMessage = useMutation({
-    mutationFn: async (msgId) => {
+    mutationFn: async (msgId: number | string) => {
       await fetch(
         `/api/portal-chat/admin/messages/${msgId}?propertyId=${activePropertyId}`,
         { method: "DELETE" },
@@ -57,7 +71,7 @@ export default function PortalChat() {
   });
 
   const sendMessage = useMutation({
-    mutationFn: async (content) => {
+    mutationFn: async (content: string) => {
       const r = await fetch(
         `/api/portal-chat/admin/conversations/${selectedConv}/messages?propertyId=${activePropertyId}`,
         { 
@@ -70,11 +84,11 @@ export default function PortalChat() {
     },
     onSuccess: () => {
       setReplyText("");
-      viewMessages(selectedConv);
+      if (selectedConv) viewMessages(selectedConv);
     },
   });
 
-  const viewMessages = async (convId) => {
+  const viewMessages = async (convId: number | string) => {
     setSelectedConv(convId);
     const r = await fetch(
       `/api/portal-chat/admin/conversations/${convId}/messages?propertyId=${activePropertyId}`,
@@ -190,7 +204,7 @@ export default function PortalChat() {
                 ) : (
                   messages.map((msg) => {
                     const isAdmin = msg.senderId === 0;
-                    const sender = senders[msg.senderId];
+                    const sender = senders[msg.senderId ?? ""];
                     const senderName = isAdmin 
                       ? (ar ? "الإدارة" : "Management")
                       : (sender ? `${sender.firstName} ${sender.lastName}` : `Profile #${msg.senderId}`);
@@ -205,7 +219,7 @@ export default function PortalChat() {
                             {senderName}
                           </span>
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(msg.createdAt ?? "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                         

@@ -18,12 +18,12 @@ export default function HousekeepingPage() {
   const { data: bData, isLoading: bLoading } = useListBuildings({
     propertyId: activePropertyId as number,
     limit: 1000,
-  } as any, { query: { enabled: !!activePropertyId } });
+  } as any, { query: { queryKey: ["/api/buildings", activePropertyId], enabled: !!activePropertyId } });
   
   const { data: fData, isLoading: fLoading } = useListFloors({
     propertyId: activePropertyId as number,
     limit: 1000,
-  } as any, { query: { enabled: !!activePropertyId } });
+  } as any, { query: { queryKey: ["/api/floors", activePropertyId], enabled: !!activePropertyId } });
   
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
@@ -77,7 +77,7 @@ export default function HousekeepingPage() {
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
         <HousekeepingTab
-          propertyId={activePropertyId}
+          propertyId={activePropertyId as number}
           buildings={buildings}
           floors={floors}
           rooms={rooms}
