@@ -290,7 +290,7 @@ export function LookupSection({
           />
           {extraLabel && (
             <Input
-              placeholder={ar ? `${currentExtraLabel} (مثال: Level 1)...` : `${currentExtraLabel} (e.g. Level 1)...`}
+              placeholder={ar ? `${currentExtraLabel} (مثال: المستوى 1)...` : `${currentExtraLabel} (e.g. Level 1)...`}
               value={newExtraValue}
               onChange={(e) => setNewExtraValue(e.target.value)}
               className="w-44 h-9 text-sm font-medium"
@@ -417,7 +417,7 @@ export function LookupSection({
                                 if (e.key === "Escape") cancelEdit();
                               }}
                               className="h-8 text-sm font-semibold text-primary w-36"
-                              placeholder={ar ? "مثال: Level 1" : "e.g. Level 1"}
+                              placeholder={ar ? "مثال: المستوى 1" : "e.g. Level 1"}
                             />
                           </TableCell>
                         )}

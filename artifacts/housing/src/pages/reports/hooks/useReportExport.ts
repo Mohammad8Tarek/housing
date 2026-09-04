@@ -1,6 +1,7 @@
 import { exportExcel, exportPDF, exportAnalyticsPDF } from "../utils/export";
 
 export function useReportExport({
+  ar = true,
   activeTab,
   canExportReports,
   currentData,
@@ -25,132 +26,142 @@ export function useReportExport({
     switch (activeTab) {
       case "assignments":
         return data.map((a: any) => ({
-          "كود الموظف / Code": a.profileCode,
-          "الاسم / Full Name": a.fullName,
-          "نوع التوظيف / Type": a.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "داخلي (فندق)",
-          "الشركة / Works At": a.companyName,
-          "رقم الغرفة / Room No": a.roomNumber,
-          "رقم السرير / Bed No": a.bedNumber,
-          "المبنى / Building": a.buildingName,
-          "الطابق / Floor": a.floorName,
-          "القسم / Department": a.department,
-          "الوظيفة / Job Title": a.jobTitle,
-          "الهاتف / Phone": a.phone,
-          "الرقم القومي / National ID": a.nationalId,
-          "تاريخ التسكين / Check-In": a.checkInDate,
-          "انتهاء العقد / Contract End": a.contractEndDate,
-          "المغادرة المتوقعة / Expected Out": a.expectedCheckOutDate,
-          "الحالة / Status":
+          [ar ? "كود الموظف" : "Employee Code"]: a.profileCode,
+          [ar ? "الاسم" : "Full Name"]: a.fullName,
+          [ar ? "نوع التوظيف" : "Employment Type"]:
+            a.employmentType === "THIRD_PARTY"
+              ? (ar ? "طرف ثالث" : "Third Party")
+              : (ar ? "داخلي (فندق)" : "Internal"),
+          [ar ? "الشركة" : "Company"]: a.companyName,
+          [ar ? "رقم الغرفة" : "Room No"]: a.roomNumber,
+          [ar ? "رقم السرير" : "Bed No"]: a.bedNumber,
+          [ar ? "المبنى" : "Building"]: a.buildingName,
+          [ar ? "الطابق" : "Floor"]: a.floorName,
+          [ar ? "القسم" : "Department"]: a.department,
+          [ar ? "الوظيفة" : "Job Title"]: a.jobTitle,
+          [ar ? "الهاتف" : "Phone"]: a.phone,
+          [ar ? "الرقم القومي" : "National ID"]: a.nationalId,
+          [ar ? "تاريخ التسكين" : "Check-In Date"]: a.checkInDate,
+          [ar ? "انتهاء العقد" : "Contract End"]: a.contractEndDate,
+          [ar ? "المغادرة المتوقعة" : "Expected Check-Out"]: a.expectedCheckOutDate,
+          [ar ? "الحالة" : "Status"]:
             a.status === "VACATION"
-              ? `في إجازة / Vacation${a.vacationEndDate ? ` (حتى ${a.vacationEndDate})` : ""}`
+              ? (ar
+                  ? `في إجازة${a.vacationEndDate ? ` (حتى ${a.vacationEndDate})` : ""}`
+                  : `Vacation${a.vacationEndDate ? ` (until ${a.vacationEndDate})` : ""}`)
               : a.status === "CHECKED_OUT" || a.status === "LEFT"
-              ? "مغادر / Checked Out"
+              ? (ar ? "مغادر" : "Checked Out")
               : a.status === "TRANSFERRED"
-              ? "منقول / Transferred"
-              : `مقيم بالسكن / In-House${a.isEntireRoom ? " (غرفة كاملة)" : ""}`,
+              ? (ar ? "منقول" : "Transferred")
+              : (ar
+                  ? `مقيم بالسكن${a.isEntireRoom ? " (غرفة كاملة)" : ""}`
+                  : `In-House${a.isEntireRoom ? " (Full Room)" : ""}`),
         }));
 
       case "vacant_rooms":
         return data.map((r: any) => ({
-          "رقم الغرفة / Room No": r.roomNumber,
-          "المبنى / Building": r.buildingName,
-          "الطابق / Floor": r.floorName,
-          "نوع الغرفة / Room Type": r.roomType,
-          "السعة الإجمالية / Capacity": r.capacity,
-          "المشغول / Occupied": r.currentOccupancy,
-          "عدد الأسرة الشاغرة / Vacant Beds": r.vacantBedsCount,
-          "الأسرة المتاحة / Available Beds": r.availableBedsText,
-          "سياسة الجنس / Gender Policy": r.genderPolicy,
-          "حالة الغرفة / Status": r.status,
+          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
+          [ar ? "المبنى" : "Building"]: r.buildingName,
+          [ar ? "الطابق" : "Floor"]: r.floorName,
+          [ar ? "نوع الغرفة" : "Room Type"]: r.roomType,
+          [ar ? "السعة الإجمالية" : "Capacity"]: r.capacity,
+          [ar ? "المشغول" : "Occupied"]: r.currentOccupancy,
+          [ar ? "عدد الأسرة الشاغرة" : "Vacant Beds"]: r.vacantBedsCount,
+          [ar ? "الأسرة المتاحة" : "Available Beds"]: r.availableBedsText,
+          [ar ? "سياسة الجنس" : "Gender Policy"]: r.genderPolicy,
+          [ar ? "حالة الغرفة" : "Room Status"]: r.status,
         }));
 
       case "housing":
         return data.map((r: any) => ({
-          "رقم الغرفة / Room No": r.roomNumber,
-          "المبنى / Building": r.buildingName,
-          "الطابق / Floor": r.floorName,
-          "نوع الغرفة / Type": r.roomType,
-          "السعة / Capacity": r.capacity,
-          "المشغول / Occupied": r.currentOccupancy,
-          "الشاغر / Vacant Beds": r.vacantBeds,
-          "نسبة الإشغال / Occupancy Rate": r.occupancyRate,
-          "سياسة الجنس / Gender Policy": r.genderPolicy,
-          "حالة الغرفة / Status": r.status,
+          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
+          [ar ? "المبنى" : "Building"]: r.buildingName,
+          [ar ? "الطابق" : "Floor"]: r.floorName,
+          [ar ? "نوع الغرفة" : "Room Type"]: r.roomType,
+          [ar ? "السعة" : "Capacity"]: r.capacity,
+          [ar ? "المشغول" : "Occupied"]: r.currentOccupancy,
+          [ar ? "الشاغر" : "Vacant Beds"]: r.vacantBeds,
+          [ar ? "نسبة الإشغال" : "Occupancy Rate"]: r.occupancyRate,
+          [ar ? "سياسة الجنس" : "Gender Policy"]: r.genderPolicy,
+          [ar ? "حالة الغرفة" : "Room Status"]: r.status,
         }));
 
       case "profiles":
         return data.map((e: any) => ({
-          "كود الموظف / Code": e.profileCode,
-          "الاسم الأول / First Name": e.firstName,
-          "الاسم الأخير / Last Name": e.lastName,
-          "نوع التوظيف / Type": e.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "داخلي (فندق)",
-          "الشركة / Works At": e.companyName,
-          "الرقم القومي / National ID": e.nationalId,
-          "الهاتف / Phone": e.phone,
-          "الجنسية / Nationality": e.nationality,
-          "الجنس / Gender": e.gender,
-          "القسم / Department": e.department,
-          "الوظيفة / Job Title": e.jobTitle,
-          "الدرجة / Level": e.level,
-          "السكن الحالي / Current Housing": e.assignedRoom,
-          "تاريخ التعيين / Hire Date": e.hireDate,
-          "انتهاء العقد / Contract End": e.contractEndDate,
-          "الحالة / Status": e.status,
+          [ar ? "كود الموظف" : "Employee Code"]: e.profileCode,
+          [ar ? "الاسم الأول" : "First Name"]: e.firstName,
+          [ar ? "الاسم الأخير" : "Last Name"]: e.lastName,
+          [ar ? "نوع التوظيف" : "Employment Type"]:
+            e.employmentType === "THIRD_PARTY"
+              ? (ar ? "طرف ثالث" : "Third Party")
+              : (ar ? "داخلي (فندق)" : "Internal"),
+          [ar ? "الشركة" : "Company"]: e.companyName,
+          [ar ? "الرقم القومي" : "National ID"]: e.nationalId,
+          [ar ? "الهاتف" : "Phone"]: e.phone,
+          [ar ? "الجنسية" : "Nationality"]: e.nationality,
+          [ar ? "الجنس" : "Gender"]: e.gender,
+          [ar ? "القسم" : "Department"]: e.department,
+          [ar ? "الوظيفة" : "Job Title"]: e.jobTitle,
+          [ar ? "الدرجة" : "Level"]: e.level,
+          [ar ? "السكن الحالي" : "Current Housing"]: e.assignedRoom,
+          [ar ? "تاريخ التعيين" : "Hire Date"]: e.hireDate,
+          [ar ? "انتهاء العقد" : "Contract End"]: e.contractEndDate,
+          [ar ? "الحالة" : "Status"]: e.status,
         }));
 
       case "expiring_contracts":
         return data.map((c: any) => ({
-          "كود الموظف / Code": c.profileCode,
-          "اسم الموظف / Name": c.fullName,
-          "القسم / Department": c.department,
-          "الوظيفة / Job Title": c.jobTitle,
-          "السكن الحالي / Housing": c.assignedRoom,
-          "الهاتف / Phone": c.phone,
-          "الرقم القومي / National ID": c.nationalId,
-          "تاريخ انتهاء العقد / Contract End Date": c.contractEndDate,
-          "الأيام المتبقية / Days Remaining": c.daysRemaining,
-          "حالة العقد / Status": c.expStatus,
+          [ar ? "كود الموظف" : "Employee Code"]: c.profileCode,
+          [ar ? "اسم الموظف" : "Employee Name"]: c.fullName,
+          [ar ? "القسم" : "Department"]: c.department,
+          [ar ? "الوظيفة" : "Job Title"]: c.jobTitle,
+          [ar ? "السكن الحالي" : "Current Housing"]: c.assignedRoom,
+          [ar ? "الهاتف" : "Phone"]: c.phone,
+          [ar ? "الرقم القومي" : "National ID"]: c.nationalId,
+          [ar ? "تاريخ انتهاء العقد" : "Contract End Date"]: c.contractEndDate,
+          [ar ? "الأيام المتبقية" : "Days Remaining"]: c.daysRemaining,
+          [ar ? "حالة العقد" : "Contract Status"]: c.expStatus,
         }));
 
       case "reservations":
         return data.map((r: any) => ({
-          "اسم الضيف / Guest Name": r.guestName,
-          "الرقم القومي / ID Card": r.nationalId,
-          "الهاتف / Phone": r.phone,
-          "القسم / Department": r.department,
-          "الوظيفة / Job Title": r.jobTitle,
-          "نوع الغرفة / Room Type": r.roomType,
-          "الغرفة المحجوزة / Reserved Room": r.roomNumber,
-          "تاريخ الوصول / Check-In": r.checkInDate,
-          "تاريخ المغادرة / Check-Out": r.checkOutDate,
-          "الحالة / Status": r.status,
+          [ar ? "اسم الضيف" : "Guest Name"]: r.guestName,
+          [ar ? "الرقم القومي" : "National ID"]: r.nationalId,
+          [ar ? "الهاتف" : "Phone"]: r.phone,
+          [ar ? "القسم" : "Department"]: r.department,
+          [ar ? "الوظيفة" : "Job Title"]: r.jobTitle,
+          [ar ? "نوع الغرفة" : "Room Type"]: r.roomType,
+          [ar ? "الغرفة المحجوزة" : "Reserved Room"]: r.roomNumber,
+          [ar ? "تاريخ الوصول" : "Check-In"]: r.checkInDate,
+          [ar ? "تاريخ المغادرة" : "Check-Out"]: r.checkOutDate,
+          [ar ? "الحالة" : "Status"]: r.status,
         }));
 
       case "hostings":
         return data.map((h: any) => ({
-          "الموظف المستضيف / Host": h.hostEmployee,
-          "القسم / Department": h.hostDept,
-          "اسم الضيف / Guest Name": h.guestName,
-          "صلة القرابة / Relation": h.relation,
-          "رقم الهوية / ID": h.guestId,
-          "رقم الغرفة / Room No": h.roomNumber,
-          "تاريخ الدخول / Check-In": h.checkInDate,
-          "تاريخ المغادرة / Check-Out": h.checkOutDate,
-          "سعر اليوم / Daily Rate": h.dailyRate,
-          "الإجمالي / Total Fee": h.totalAmount,
-          "الحالة / Status": h.status,
+          [ar ? "الموظف المستضيف" : "Host Employee"]: h.hostEmployee,
+          [ar ? "القسم" : "Department"]: h.hostDept,
+          [ar ? "اسم الضيف" : "Guest Name"]: h.guestName,
+          [ar ? "صلة القرابة" : "Relationship"]: h.relation,
+          [ar ? "رقم الهوية" : "ID Number"]: h.guestId,
+          [ar ? "رقم الغرفة" : "Room No"]: h.roomNumber,
+          [ar ? "تاريخ الدخول" : "Check-In"]: h.checkInDate,
+          [ar ? "تاريخ المغادرة" : "Check-Out"]: h.checkOutDate,
+          [ar ? "سعر اليوم" : "Daily Rate"]: h.dailyRate,
+          [ar ? "الإجمالي" : "Total Fee"]: h.totalAmount,
+          [ar ? "الحالة" : "Status"]: h.status,
         }));
 
       case "maintenance":
         return data.map((m: any) => ({
-          "رقم الغرفة / Room No": m.roomNumber,
-          "المبنى / Building": m.buildingName,
-          "الفئة / Category": m.category,
-          "وصف المشكلة / Problem Details": m.problemType,
-          "الأولوية / Priority": m.priority,
-          "الفني المعين / Assigned To": m.assignedTo,
-          "تاريخ البلاغ / Reported Date": m.reportedAt,
-          "الحالة / Status": m.status,
+          [ar ? "رقم الغرفة" : "Room No"]: m.roomNumber,
+          [ar ? "المبنى" : "Building"]: m.buildingName,
+          [ar ? "الفئة" : "Category"]: m.category,
+          [ar ? "وصف المشكلة" : "Problem Details"]: m.problemType,
+          [ar ? "الأولوية" : "Priority"]: m.priority,
+          [ar ? "الفني المعين" : "Assigned To"]: m.assignedTo,
+          [ar ? "تاريخ البلاغ" : "Reported Date"]: m.reportedAt,
+          [ar ? "الحالة" : "Status"]: m.status,
         }));
 
       default:

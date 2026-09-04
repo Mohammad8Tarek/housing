@@ -688,7 +688,7 @@ export default function RoomAssignment() {
                     className="rounded text-primary focus:ring-primary w-4 h-4 cursor-pointer"
                   />
                   <span className="text-foreground">
-                    {ar ? "تسكين عائلي (أجنحة Family Suite)" : "Family Housing (Family Suites)"}
+                    {ar ? "تسكين عائلي (أجنحة عائلية)" : "Family Housing (Family Suites)"}
                   </span>
                 </label>
                 <button

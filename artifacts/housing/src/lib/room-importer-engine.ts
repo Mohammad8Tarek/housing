@@ -634,7 +634,11 @@ export function validateAndNormalizeRows({
  * (.xlsx or .csv) pre-filled with the exact column headers, realistic examples,
  * and an educational guidance worksheet.
  */
-export function downloadRoomImportTemplate(format: "xlsx" | "csv" = "xlsx") {
+export function downloadRoomImportTemplate(
+  format: "xlsx" | "csv" = "xlsx",
+  lang: "ar" | "en" = "ar",
+) {
+  const isAr = lang === "ar";
   const sampleData = [
     {
       "NO.": 1,
@@ -716,66 +720,91 @@ export function downloadRoomImportTemplate(format: "xlsx" | "csv" = "xlsx") {
     },
   ];
 
+  const colKey = isAr ? "اسم العمود" : "Column Name";
+  const reqKey = isAr ? "إلزامي؟" : "Required";
+  const exKey = isAr ? "أمثلة" : "Examples";
+  const descKey = isAr ? "الوصف والملاحظات" : "Description";
+
   const guideData = [
     {
-      "العمود (Column)": "Room Numbers (أو رقم الغرفة)",
-      "إلزامي؟ (Required)": "نعم (Yes)",
-      "الأمثلة (Examples)": "201, 202, 101-A",
-      "الوصف والملاحظات (Description)": "رقم أو كود الغرفة الفريد داخل المبنى",
+      [colKey]: isAr ? "رقم الغرفة (Room Numbers)" : "Room Numbers",
+      [reqKey]: isAr ? "نعم" : "Yes",
+      [exKey]: "201, 202, 101-A",
+      [descKey]: isAr
+        ? "رقم أو كود الغرفة الفريد داخل المبنى"
+        : "Unique room code or number within the building",
     },
     {
-      "العمود (Column)": "Room Classification (نوع الغرفة)",
-      "إلزامي؟ (Required)": "نعم (Yes)",
-      "الأمثلة (Examples)": "Deluxe room, Superior room, Family suite, Standard",
-      "الوصف والملاحظات (Description)": "تصنيف ونوع الغرفة ومستواها",
+      [colKey]: isAr ? "تصنيف الغرفة (Room Classification)" : "Room Classification",
+      [reqKey]: isAr ? "نعم" : "Yes",
+      [exKey]: "Deluxe room, Superior room, Family suite, Standard",
+      [descKey]: isAr
+        ? "تصنيف ونوع الغرفة ومستواها"
+        : "Room classification and category level",
     },
     {
-      "العمود (Column)": "Max. Occ. (أقصى سعة إشغال)",
-      "إلزامي؟ (Required)": "نعم (Yes)",
-      "الأمثلة (Examples)": "1, 2, 3, 4",
-      "الوصف والملاحظات (Description)": "العدد الأقصى للأفراد / الأسرة في الغرفة (رقم صحيح)",
+      [colKey]: isAr ? "أقصى سعة إشغال (Max. Occ.)" : "Max. Occ.",
+      [reqKey]: isAr ? "نعم" : "Yes",
+      [exKey]: "1, 2, 3, 4",
+      [descKey]: isAr
+        ? "العدد الأقصى للأفراد أو الأسرة في الغرفة (رقم صحيح)"
+        : "Maximum capacity or bed count in the room (integer)",
     },
     {
-      "العمود (Column)": "Bed Type (نوع السرير)",
-      "إلزامي؟ (Required)": "اختياري (Optional)",
-      "الأمثلة (Examples)": "Twin Bed, Queen Bed, King Bed, Single Bed",
-      "الوصف والملاحظات (Description)": "نوع السرير لتسجيله في بطاقة الغرفة والأسرة الفيزيائية",
+      [colKey]: isAr ? "نوع السرير (Bed Type)" : "Bed Type",
+      [reqKey]: isAr ? "اختياري" : "Optional",
+      [exKey]: "Twin Bed, Queen Bed, King Bed, Single Bed",
+      [descKey]: isAr
+        ? "نوع السرير لتسجيله في بطاقة الغرفة والأسرة"
+        : "Bed type for physical room and bed records",
     },
     {
-      "العمود (Column)": "Floor (الدور / الطابق)",
-      "إلزامي؟ (Required)": "اختياري (Optional)",
-      "الأمثلة (Examples)": "Ground, 1st, 2nd, 3rd أو 0, 1, 2",
-      "الوصف والملاحظات (Description)": "رقم أو اسم الطابق (سيتم إنشاؤه تلقائياً إذا لم يكن موجوداً)",
+      [colKey]: isAr ? "الطابق (Floor)" : "Floor",
+      [reqKey]: isAr ? "اختياري" : "Optional",
+      [exKey]: isAr ? "0, 1, 2 أو Ground, 1st, 2nd" : "Ground, 1st, 2nd, 3rd or 0, 1, 2",
+      [descKey]: isAr
+        ? "رقم أو اسم الطابق (سيتم إنشاؤه تلقائياً إذا لم يكن موجوداً)"
+        : "Floor name or number (auto-created if missing)",
     },
     {
-      "العمود (Column)": "Rooms View (إطلالة الغرفة)",
-      "إلزامي؟ (Required)": "اختياري (Optional)",
-      "الأمثلة (Examples)": "Tal View, Back view, Sea view, Pool view, Garden view",
-      "الوصف والملاحظات (Description)": "إطلالة الغرفة للمساعدة في التسكين ومقارنة المستويات",
+      [colKey]: isAr ? "إطلالة الغرفة (Rooms View)" : "Rooms View",
+      [reqKey]: isAr ? "اختياري" : "Optional",
+      [exKey]: "Tal View, Back view, Sea view, Pool view, Garden view",
+      [descKey]: isAr
+        ? "إطلالة الغرفة للمساعدة في التسكين ومقارنة المستويات"
+        : "Room view for assignment assistance and level comparison",
     },
     {
-      "العمود (Column)": "Separator door (باب فاصل)",
-      "إلزامي؟ (Required)": "اختياري (Optional)",
-      "الأمثلة (Examples)": "Yes / NO أو نعم / لا",
-      "الوصف والملاحظات (Description)": "هل يوجد باب فاصل متصل بغرفة مجاورة (Connecting Room)",
+      [colKey]: isAr ? "باب فاصل (Separator door)" : "Separator door",
+      [reqKey]: isAr ? "اختياري" : "Optional",
+      [exKey]: isAr ? "نعم / لا أو Yes / NO" : "Yes / NO",
+      [descKey]: isAr
+        ? "هل يوجد باب فاصل متصل بغرفة مجاورة"
+        : "Whether there is a connecting door to an adjacent room",
     },
     {
-      "العمود (Column)": "Room Features (مميزات وتجهيزات الغرفة)",
-      "إلزامي؟ (Required)": "اختياري (Optional)",
-      "الأمثلة (Examples)": "bedroom, seating area, bathroom, balcony",
-      "الوصف والملاحظات (Description)": "مرافق ومميزات الغرفة مفصولة بفاصلة (,) لتظهر كشارات ملونة",
+      [colKey]: isAr ? "مميزات الغرفة (Room Features)" : "Room Features",
+      [reqKey]: isAr ? "اختياري" : "Optional",
+      [exKey]: "bedroom, seating area, bathroom, balcony",
+      [descKey]: isAr
+        ? "مرافق ومميزات الغرفة مفصولة بفاصلة لتظهر كشارات"
+        : "Comma-separated amenities and features displayed as tags",
     },
     {
-      "العمود (Column)": "Size (المساحة)",
-      "إلزامي؟ (Required)": "اختياري (Optional)",
-      "الأمثلة (Examples)": "40m2, 50, 45 sqm",
-      "الوصف والملاحظات (Description)": "مساحة الغرفة بالمتر المربع (يتم استخراج الرقم الصافي آلياً)",
+      [colKey]: isAr ? "المساحة (Size)" : "Size",
+      [reqKey]: isAr ? "اختياري" : "Optional",
+      [exKey]: "40m2, 50, 45 sqm",
+      [descKey]: isAr
+        ? "مساحة الغرفة بالمتر المربع"
+        : "Room size in square meters",
     },
     {
-      "العمود (Column)": "Building (المبنى)",
-      "إلزامي؟ (Required)": "اختياري (Optional)",
-      "الأمثلة (Examples)": "Main Building, Block A, Building 1",
-      "الوصف والملاحظات (Description)": "اسم المبنى (في حال عدم تحديده ينسب للمبنى الافتراضي)",
+      [colKey]: isAr ? "المبنى (Building)" : "Building",
+      [reqKey]: isAr ? "اختياري" : "Optional",
+      [exKey]: "Main Building, Block A, Building 1",
+      [descKey]: isAr
+        ? "اسم المبنى (في حال عدم تحديده ينسب للمبنى الافتراضي)"
+        : "Building name (assigned to default building if empty)",
     },
   ];
 
@@ -804,7 +833,11 @@ export function downloadRoomImportTemplate(format: "xlsx" | "csv" = "xlsx") {
     { wch: 35 },
     { wch: 55 },
   ];
-  XLSX.utils.book_append_sheet(wb, wsGuide, "تعليمات وأدلة التعبئة (Guide)");
+  XLSX.utils.book_append_sheet(
+    wb,
+    wsGuide,
+    isAr ? "دليل الحقول والتعليمات" : "Field Guidelines",
+  );
 
   if (format === "csv") {
     XLSX.writeFile(wb, "Room_Configuration_Template.csv", { bookType: "csv" });

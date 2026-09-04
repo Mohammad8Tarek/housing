@@ -108,7 +108,7 @@ export function PhotoUploadBtn({
     if (file.size > 2 * 1024 * 1024) {
       toast.error(
         language === "ar"
-          ? "المل�? كبير جداً (الحد 2MB)"
+          ? "حجم الملف كبير جداً (الحد الأقصى 2 ميجابايت)"
           : "File too large (max 2MB)",
       );
       return;

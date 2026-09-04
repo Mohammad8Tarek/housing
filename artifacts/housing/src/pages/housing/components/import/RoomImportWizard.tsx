@@ -374,11 +374,11 @@ export function RoomImportWizard({
     }
 
     const errorRows = validationResult.allErrors.map((e) => ({
-      "Row Number (رقم الصف)": e.rowNumber,
-      "Column (العمود)": e.column,
-      "Original Value (القيمة)": String(e.value ?? ""),
-      "Error (الخطأ)": ar ? e.errorAr : e.errorEn,
-      "Suggested Fix (مقترح التصحيح)": ar ? e.suggestedFixAr : e.suggestedFixEn,
+      [ar ? "رقم الصف" : "Row Number"]: e.rowNumber,
+      [ar ? "العمود" : "Column"]: e.column,
+      [ar ? "القيمة" : "Original Value"]: String(e.value ?? ""),
+      [ar ? "الخطأ" : "Error"]: ar ? e.errorAr : e.errorEn,
+      [ar ? "مقترح التصحيح" : "Suggested Fix"]: ar ? e.suggestedFixAr : e.suggestedFixEn,
     }));
 
     const ws = XLSX.utils.json_to_sheet(errorRows);
@@ -517,11 +517,11 @@ export function RoomImportWizard({
                   </div>
                   <div>
                     <h5 className="font-bold text-xs text-foreground">
-                      {ar ? "ليس لديك ملف مهيأ؟ حمّل النموذج الجاهز (Template)" : "Need a template? Download our ready file"}
+                      {ar ? "ليس لديك ملف مهيأ؟ حمّل النموذج الجاهز" : "Need a template? Download our ready file"}
                     </h5>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {ar
-                        ? "قالب Excel أو CSV معتمد يحتوي على كافة الأعمدة، أمثلة توضيحية، ودليل إرشادات التعبئة."
+                        ? "قالب معتمد يحتوي على كافة الأعمدة، أمثلة توضيحية، ودليل إرشادات التعبئة."
                         : "Standard template containing all columns, real examples, and a complete filling guide."}
                     </p>
                   </div>
@@ -532,17 +532,17 @@ export function RoomImportWizard({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => downloadRoomImportTemplate("xlsx")}
+                    onClick={() => downloadRoomImportTemplate("xlsx", ar ? "ar" : "en")}
                     className="gap-1.5 text-xs font-bold border-blue-300 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950/40 text-blue-700 dark:text-blue-300 flex-1 sm:flex-none shadow-xs"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    {ar ? "تحميل قالب Excel (.xlsx)" : "Download Excel"}
+                    {ar ? "تحميل نموذج إكسيل" : "Download Excel"}
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => downloadRoomImportTemplate("csv")}
+                    onClick={() => downloadRoomImportTemplate("csv", ar ? "ar" : "en")}
                     className="gap-1.5 text-xs text-muted-foreground hover:text-foreground flex-1 sm:flex-none"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -585,7 +585,7 @@ export function RoomImportWizard({
               {sheetNames.length > 1 && (
                 <div className="p-4 rounded-xl border bg-card space-y-2">
                   <Label className="text-xs font-bold">
-                    {ar ? "اختر ورقة العمل (Sheet) المطلوبة:" : "Select Worksheet:"}
+                    {ar ? "اختر ورقة العمل المطلوبة:" : "Select Worksheet:"}
                   </Label>
                   <Select
                     value={selectedSheet}
@@ -1059,7 +1059,7 @@ export function RoomImportWizard({
                     className="gap-2 text-xs font-bold"
                   >
                     <Download className="w-4 h-4" />
-                    {ar ? "تنزيل تقرير الأخطاء (Excel)" : "Download Error Report"}
+                    {ar ? "تنزيل تقرير الأخطاء" : "Download Error Report"}
                   </Button>
                 ) : null}
 

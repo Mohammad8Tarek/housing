@@ -439,7 +439,7 @@ export default function Tickets() {
 
   const COLS = [
     { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
-    { key: "room", label: "Room", labelAr: "الغر�?ة", defaultVisible: true },
+    { key: "room", label: "Room", labelAr: "الغرفة", defaultVisible: true },
     {
       key: "problemType",
       label: "Problem",

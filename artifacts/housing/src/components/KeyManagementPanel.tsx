@@ -252,7 +252,7 @@ export default function KeyManagementPanel({
   const phaseDescription = (() => {
     if (issuePhase === "error") {
       return ar
-        ? "يرجى التحقق من اتصال جهاز الإصدار (Encoder) وإعادة المحاولة."
+        ? "يرجى التحقق من اتصال جهاز كتابة البطاقات وإعادة المحاولة."
         : "Please check the Encoder connection and try again.";
     }
     if (issuePhase === "done") {

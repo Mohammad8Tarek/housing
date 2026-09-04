@@ -414,7 +414,7 @@ export default function ReservationsPage() {
         invalidate();
         toast.success(
           ar
-            ? "تم التسكين بنجاح وانتقل الحجز إلى قائمة المقيمين (In-House)"
+            ? "تم التسكين بنجاح وانتقل الحجز إلى قائمة المقيمين"
             : "Checked in successfully and moved to In-House",
         );
         setSelectedRows((prev) => {
@@ -978,8 +978,8 @@ export default function ReservationsPage() {
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-56"><SelectValue placeholder={ar ? "حالة الحجز" : "Reservation Status"} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="UPCOMING">{ar ? "الحجوزات (في انتظار التسكين)" : "Reservations (Awaiting Check-in)"}</SelectItem>
-            <SelectItem value="CHECKED_IN">{ar ? "تم التسكين (Checked In)" : "Checked In"}</SelectItem>
+            <SelectItem value="UPCOMING">{ar ? "الحجوزات القادمة" : "Upcoming Reservations"}</SelectItem>
+            <SelectItem value="CHECKED_IN">{ar ? "تم التسكين" : "Checked In"}</SelectItem>
             <SelectItem value="COMPLETED">{ar ? "منتهي" : "Completed"}</SelectItem>
             <SelectItem value="CANCELLED">{ar ? "ملغي" : "Cancelled"}</SelectItem>
             <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
@@ -1198,7 +1198,7 @@ export default function ReservationsPage() {
                           <DropdownMenuContent align="end" className="w-48 shadow-lg">
                             {res.status === "UPCOMING" && (
                               <DropdownMenuItem onClick={() => handleStartCheckin(res)} className="cursor-pointer font-medium text-emerald-600">
-                                <CheckCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />{ar ? "تسكين (Check-In)" : "Check-In"}
+                                <CheckCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />{ar ? "تسكين" : "Check-In"}
                               </DropdownMenuItem>
                             )}
                             <PermissionGate module="accommodation" action="edit">
@@ -1257,7 +1257,7 @@ export default function ReservationsPage() {
                       <UserCheck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-sm">{ar ? "انترنال بروفايل (موظف داخلي)" : "Internal Profile"}</p>
+                      <p className="font-semibold text-sm">{ar ? "ملف موظف داخلي" : "Internal Profile"}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{ar ? "البحث عن موظف مسجل مسبقاً في النظام" : "Search existing registered employee"}</p>
                     </div>
                   </button>

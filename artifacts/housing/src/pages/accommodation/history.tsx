@@ -422,7 +422,7 @@ export default function HistoryPage() {
             className="gap-2 text-green-700 border-green-200 hover:bg-green-50"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            {ar ? "Excel" : "Excel"}
+            {ar ? "تصدير إكسيل" : "Export Excel"}
           </Button>
           <Button
             variant="outline"

@@ -222,7 +222,7 @@ export default function Settings() {
                             label="Room Classification"
                             description={
                               ar
-                                ? "إدارة تصنيفات الغرف (مثل Deluxe room, Family suite, Superior room, Standard room) المستخدمة في الترشيح الذكي حسب المنصب وسكن العائلات"
+                                ? "إدارة تصنيفات الغرف (مثل غرفة ديلوكس، جناح عائلي، غرفة سوبيريور، غرفة قياسية) المستخدمة في الترشيح الذكي حسب المنصب وسكن العائلات"
                                 : "Manage room classifications (e.g. Deluxe room, Family suite, Superior room) used for smart recommendation"
                             }
                             parentCategory={LOOKUP_CATEGORIES.ROOM_TYPE}

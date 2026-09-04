@@ -258,7 +258,7 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">
-                {ar ? "منصب الاعتماد (Workflow)" : "Workflow Role"}
+                {ar ? "منصب الاعتماد" : "Workflow Role"}
               </Label>
               <Select value={form.jobTitle} onValueChange={(v) => setForm((f) => ({ ...f, jobTitle: v }))}>
                 <SelectTrigger className="bg-muted/30 focus:ring-primary/20">

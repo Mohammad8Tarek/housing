@@ -13,6 +13,7 @@ function comparableDate(v: unknown): string {
 }
 
 export function useReportDataProcessor({
+  ar = true,
   activeTab,
   filterBuilding,
   filterFloor,
@@ -139,7 +140,7 @@ export function useReportDataProcessor({
               jobTitle: emp.jobTitle || "—",
               level: emp.level || "—",
               employmentType: emp.employmentType || "INTERNAL",
-              companyName: emp.companyName || (emp.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "الفندق"),
+              companyName: emp.companyName || (emp.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "الفندق" : "Hotel")),
               roomId: a.roomId,
               roomNumber: room.roomNumber || `#${a.roomId}`,
               roomType: room.roomType || "—",
@@ -221,7 +222,7 @@ export function useReportDataProcessor({
               capacity: cap,
               currentOccupancy: occ,
               vacantBedsCount,
-              availableBedsText: availableBedNumbers.map((b) => `سرير ${b}`).join(", ") || "أي سرير",
+              availableBedsText: availableBedNumbers.map((b) => (ar ? `سرير ${b}` : `Bed ${b}`)).join(", ") || (ar ? "أي سرير" : "Any Bed"),
               genderPolicy: r.genderPolicy || "Any",
               status: r.status || "available",
               isFullyVacant: occ === 0,
@@ -320,12 +321,14 @@ export function useReportDataProcessor({
               jobTitle: e.jobTitle || "—",
               level: e.level || "—",
               employmentType: e.employmentType || "INTERNAL",
-              companyName: e.companyName || (e.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "الفندق"),
+              companyName: e.companyName || (e.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "الفندق" : "Hotel")),
               hireDate: formatDate(e.hireDate, "—"),
               contractEndDate: formatDate(e.contractEndDate, "—"),
               address: e.address || "—",
               status: e.status || "ACTIVE",
-              assignedRoom: room ? `${room.roomNumber} (${asgn.bedNumber ? `سرير ${asgn.bedNumber}` : ""})` : "غير مسكن",
+              assignedRoom: room
+                ? `${room.roomNumber} (${asgn?.bedNumber ? (ar ? `سرير ${asgn.bedNumber}` : `Bed ${asgn.bedNumber}`) : ""})`
+                : (ar ? "غير مسكن" : "Unassigned"),
             };
           });
 
@@ -375,9 +378,15 @@ export function useReportDataProcessor({
               department: p.department || "—",
               jobTitle: p.jobTitle || "—",
               contractEndDate: formatDate(p.contractEndDate, "—"),
-              daysRemaining: diffDays,
-              expStatus: diffDays < 0 ? "منتهي (Expired)" : diffDays <= 30 ? "ينتهي قريباً (Expiring Soon)" : "ساري (Active)",
-              assignedRoom: room ? `غرفة ${room.roomNumber} (${buildingMap[room.buildingId] || ""})` : "غير مسكن",
+              expStatus:
+                diffDays < 0
+                  ? (ar ? "منتهي" : "Expired")
+                  : diffDays <= 30
+                  ? (ar ? "ينتهي قريباً" : "Expiring Soon")
+                  : (ar ? "ساري" : "Active"),
+              assignedRoom: room
+                ? (ar ? `غرفة ${room.roomNumber} (${buildingMap[room.buildingId] || ""})` : `Room ${room.roomNumber} (${buildingMap[room.buildingId] || ""})`)
+                : (ar ? "غير مسكن" : "Unassigned"),
             };
           })
           .sort(
@@ -554,12 +563,12 @@ export function useReportDataProcessor({
               "normal";
 
             const hkAction =
-              s === "dirty" ? (r.language === "ar" ? "تنظيف فوري" : "Immediate Cleaning") :
-              s === "occupied_dirty" ? (r.language === "ar" ? "تنظيف عند الخروج" : "Clean on Checkout") :
-              s === "available" ? (r.language === "ar" ? "جاهزة" : "Ready") :
-              s === "occupied" ? (r.language === "ar" ? "مشغولة — لا تزعج" : "Occupied — DND") :
-              s === "maintenance" ? (r.language === "ar" ? "صيانة" : "Under Maintenance") :
-              (r.language === "ar" ? "مراجعة" : "Review");
+              s === "dirty" ? (ar ? "تنظيف فوري" : "Immediate Cleaning") :
+              s === "occupied_dirty" ? (ar ? "تنظيف عند الخروج" : "Clean on Checkout") :
+              s === "available" ? (ar ? "جاهزة" : "Ready") :
+              s === "occupied" ? (ar ? "مشغولة — لا تزعج" : "Occupied — DND") :
+              s === "maintenance" ? (ar ? "صيانة" : "Under Maintenance") :
+              (ar ? "مراجعة" : "Review");
 
             // Count open housekeeping tickets for this room
             const hkTickets = maintenance.filter(

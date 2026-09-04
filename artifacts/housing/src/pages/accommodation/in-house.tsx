@@ -710,7 +710,7 @@ export default function InHouse() {
           id,
           data: {
             checkOutDate: new Date().toISOString(),
-            notes: bulkCheckoutNotes || "خروج جماعي (Bulk Checkout)",
+            notes: bulkCheckoutNotes || (ar ? "خروج جماعي" : "Bulk Checkout"),
           } as any,
         });
         successCount++;

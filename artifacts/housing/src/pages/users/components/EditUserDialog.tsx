@@ -247,7 +247,7 @@ export function EditUserDialog({ user, onClose }: EditUserDialogProps) {
           {/* Workflow Role */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              {ar ? "منصب الاعتماد (Workflow Role)" : "Workflow Role (Manager)"}
+              {ar ? "منصب الاعتماد" : "Workflow Role"}
             </Label>
             <Select
               value={formData.jobTitle}

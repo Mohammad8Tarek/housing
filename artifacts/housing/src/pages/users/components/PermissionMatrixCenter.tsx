@@ -512,7 +512,7 @@ export function PermissionMatrixCenter({
                 title={ar ? "منح صلاحيات العرض فقط لكافة الأقسام" : "Grant view-only across all modules"}
               >
                 <Eye className="w-3.5 h-3.5 text-blue-600" />
-                <span>{ar ? "عرض فقط (Read-Only)" : "Read-Only All"}</span>
+                <span>{ar ? "عرض فقط للكل" : "Read-Only All"}</span>
               </button>
             </div>
           </div>

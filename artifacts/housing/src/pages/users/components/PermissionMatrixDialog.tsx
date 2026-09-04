@@ -313,7 +313,7 @@ export function PermissionMatrixDialog({
                   title={ar ? "منح صلاحيات العرض فقط لكافة الأقسام" : "Grant view-only across all modules"}
                 >
                   <Eye className="w-3 h-3 text-blue-600" />
-                  <span>{ar ? "عرض فقط (Read-Only)" : "Read Only"}</span>
+                  <span>{ar ? "عرض فقط للكل" : "Read Only"}</span>
                 </button>
               </div>
             </div>

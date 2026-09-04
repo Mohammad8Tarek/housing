@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 export function useReportAnalytics({
+  ar = true,
   rooms = [],
   assignments = [],
   profiles = [],
@@ -112,10 +113,10 @@ export function useReportAnalytics({
       .filter((a: any) => a.status?.toLowerCase() === "active")
       .forEach((a: any) => {
         const p = safeProfiles.find((prof: any) => prof.id === a.profileId);
-        const dept = p?.department || "عام / General";
+        const dept = p?.department || (ar ? "عام" : "General");
         deptMap[dept] = (deptMap[dept] || 0) + 1;
 
-        const nat = p?.nationality || "غير محدد";
+        const nat = p?.nationality || (ar ? "غير محدد" : "Unspecified");
         natMap[nat] = (natMap[nat] || 0) + 1;
 
         const g = p?.gender === "F" ? "female" : "male";

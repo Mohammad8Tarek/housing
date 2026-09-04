@@ -35,7 +35,7 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
       minCap: 1,
       maxCap: 1,
       idealCap: 1,
-      levelNameAr: "إدارة عليا (Level 1)",
+      levelNameAr: "إدارة عليا (المستوى 1)",
       levelNameEn: "Top Management (Level 1)",
     };
   }
@@ -53,7 +53,7 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
       minCap: 1,
       maxCap: 2,
       idealCap: 2,
-      levelNameAr: "مستوى إشرافي (Level 2)",
+      levelNameAr: "مستوى إشرافي (المستوى 2)",
       levelNameEn: "Supervisory (Level 2)",
     };
   }
@@ -70,7 +70,7 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
       minCap: 2,
       maxCap: 3,
       idealCap: 2,
-      levelNameAr: "مستوى مهني متخصص (Level 3)",
+      levelNameAr: "مستوى مهني متخصص (المستوى 3)",
       levelNameEn: "Senior Staff (Level 3)",
     };
   }
@@ -80,7 +80,7 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
     minCap: 2,
     maxCap: 4,
     idealCap: 3,
-    levelNameAr: lvl ? `مستوى ${lvl}` : "طاقم العمل (Staff)",
+    levelNameAr: lvl ? `مستوى ${lvl}` : "طاقم العمل",
     levelNameEn: lvl ? `Level ${lvl}` : "General Staff",
   };
 }

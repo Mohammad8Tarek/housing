@@ -46,6 +46,7 @@ export default function Reports() {
         );
 
   const { stats, analytics } = useReportAnalytics({
+    ar,
     rooms: data.rooms,
     assignments: data.assignments,
     profiles: data.profiles,
@@ -56,6 +57,7 @@ export default function Reports() {
   });
 
   const processor = useReportDataProcessor({
+    ar,
     ...filters,
     buildings: data.buildings,
     floors: data.floors,
@@ -80,6 +82,7 @@ export default function Reports() {
 
   const { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF } =
     useReportExport({
+      ar,
       activeTab: filters.activeTab,
       canExportReports,
       currentData: processor.currentData,

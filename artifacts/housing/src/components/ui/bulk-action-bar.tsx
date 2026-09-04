@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { Button } from "@/components/ui/button";
 import { X, FileSpreadsheet } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface BulkActionItem {
   label: string;
@@ -27,8 +27,10 @@ export function BulkActionBar({
   onExportExcel,
   extraActions,
   actions,
-  ar,
+  ar: propAr,
 }: BulkActionBarProps) {
+  const { language } = useLanguage();
+  const ar = propAr !== undefined ? propAr : language === "ar";
   const count = propCount ?? selectedCount ?? 0;
   if (count <= 0) return null;
 

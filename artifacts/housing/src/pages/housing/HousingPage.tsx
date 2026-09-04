@@ -131,12 +131,12 @@ export function HousingPage() {
           <PermissionGate module="housing" action="export">
             <Button
               variant="outline"
-              onClick={() => downloadRoomImportTemplate("xlsx")}
+              onClick={() => downloadRoomImportTemplate("xlsx", ar ? "ar" : "en")}
               className="gap-1.5 text-xs font-semibold h-9 shadow-xs"
               title={ar ? "تحميل نموذج ملف تكوين واستيراد الغرف" : "Download Room Import Template"}
             >
               <Download className="w-3.5 h-3.5 text-primary" />
-              {ar ? "تحميل نموذج Excel" : "Excel Template"}
+              {ar ? "تحميل نموذج الغرف" : "Excel Template"}
             </Button>
           </PermissionGate>
           <PermissionGate module="housing" action="create">
@@ -240,7 +240,7 @@ export function HousingPage() {
         {[
           {
             id: "room_space_view",
-            label: ar ? "مخطط الغرف والأسرة (روم فيو)" : "Room Space View",
+            label: ar ? "مخطط الغرف والأسرة" : "Room Space View",
             icon: <LayoutGrid className="w-4 h-4 text-primary" />,
           },
           { id: "availability", label: ar ? "توافر الغرف" : "Availability" },

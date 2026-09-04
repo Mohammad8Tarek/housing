@@ -363,7 +363,7 @@ export function ProfilesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">
-            {ar ? "بروفايل" : "Profiles"}
+            {ar ? "الملفات الشخصية" : "Profiles"}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
             {ar
@@ -405,7 +405,7 @@ export function ProfilesPage() {
           <PermissionGate module="profiles" action="create">
             <Button onClick={() => setIsOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              {ar ? "نيو بروفايل" : "New Profile"}
+              {ar ? "إضافة ملف شخصي" : "New Profile"}
             </Button>
           </PermissionGate>
         </div>
