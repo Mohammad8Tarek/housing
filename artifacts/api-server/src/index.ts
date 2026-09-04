@@ -3,6 +3,7 @@
  * Location: api-server/src/index.ts
  */
 
+import "./env.js";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

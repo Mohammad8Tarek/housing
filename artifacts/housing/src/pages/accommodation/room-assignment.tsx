@@ -199,7 +199,7 @@ export default function RoomAssignment() {
       staleTime: 30000,
     },
   });
-  const rooms = _rData || [];
+  const rooms = Array.isArray(_rData) ? _rData : (_rData as any)?.data || [];
   const { data: _bData } = useListBuildings(
     { propertyId: activePropertyId as number },
     {
@@ -210,7 +210,7 @@ export default function RoomAssignment() {
       },
     },
   );
-  const buildings = _bData || [];
+  const buildings = Array.isArray(_bData) ? _bData : (_bData as any)?.data || [];
   const { data: _fData } = useListFloors(
     { propertyId: activePropertyId as number },
     {
@@ -221,7 +221,7 @@ export default function RoomAssignment() {
       },
     },
   );
-  const floors = _fData || [];
+  const floors = Array.isArray(_fData) ? _fData : (_fData as any)?.data || [];
   const { data: _aData } = useListAssignments(
     { propertyId: activePropertyId as number },
     {

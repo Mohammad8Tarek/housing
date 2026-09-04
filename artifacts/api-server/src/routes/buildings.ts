@@ -20,86 +20,92 @@ router.get(
   "/buildings",
   requirePermission("housing", "view"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+
+      const conditions: SQL[] = [];
+      let page = Math.max(1, parseInt(req.query.page as string) || 1);
+      let limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 25));
+      const search = req.query.search as string;
+
+      if (search) {
+        conditions.push(ilike(buildingsTable.name, `%${search}%`));
+      }
+
+      const offset = (page - 1) * limit;
+
+      const { data, total } = await withTenant(propertyId, async (tenantDb) => {
+        let countQuery = tenantDb.select({ count: sql<number>`count(*)` }).from(buildingsTable) as any;
+        if (conditions.length > 0) countQuery = countQuery.where(and(...conditions));
+        const countResult = await countQuery;
+        const totalCount = Number(countResult[0]?.count ?? 0);
+
+        let baseQuery = tenantDb
+          .select({
+            id: buildingsTable.id,
+            name: buildingsTable.name,
+            location: buildingsTable.location,
+            status: buildingsTable.status,
+            capacity: buildingsTable.capacity,
+            createdAt: buildingsTable.createdAt,
+            floorsCount: sql<number>`(
+              SELECT count(*)::int 
+              FROM floors f 
+              WHERE f.building_id = ${buildingsTable.id}
+            )`,
+            roomsCount: sql<number>`(
+              SELECT count(*)::int 
+              FROM rooms r 
+              WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
+            )`,
+            totalCapacity: sql<number>`COALESCE((
+              SELECT sum(r.capacity)::int 
+              FROM rooms r 
+              WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
+            ), 0)`,
+            currentOccupancy: sql<number>`COALESCE((
+              SELECT count(a.id)::int 
+              FROM assignments a
+              JOIN rooms r ON r.id = a.room_id
+              WHERE r.building_id = ${buildingsTable.id} AND a.status = 'ACTIVE' AND r.is_active = true
+            ), 0)`,
+          })
+          .from(buildingsTable) as any;
+
+        if (conditions.length > 0) {
+          baseQuery = baseQuery.where(and(...conditions));
+        }
+
+        const rows = await baseQuery.limit(limit).offset(offset);
+        return { data: rows, total: totalCount };
+      });
+
+      res.json({
+        data: data.map((b: any) => ({
+          ...b,
+          propertyId,
+          floorsCount: Number(b.floorsCount || 0),
+          roomsCount: Number(b.roomsCount || 0),
+          totalCapacity: Number(b.totalCapacity || 0),
+          currentOccupancy: Number(b.currentOccupancy || 0),
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPrevPage: page > 1,
+        },
+      });
+    } catch (err: any) {
+      console.error("[buildings/list] Error:", err);
+      res.status(500).json({ error: err.message || "Failed to fetch buildings" });
     }
-
-    const conditions: SQL[] = [];
-    let page = Math.max(1, parseInt(req.query.page as string) || 1);
-    let limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 25));
-    const search = req.query.search as string;
-
-    if (search) {
-      conditions.push(ilike(buildingsTable.name, `%${search}%`));
-    }
-
-    const offset = (page - 1) * limit;
-
-    const { data, total } = await withTenant(propertyId, async (tenantDb) => {
-      let countQuery = tenantDb.select({ count: sql<number>`count(*)` }).from(buildingsTable) as any;
-      if (conditions.length > 0) countQuery = countQuery.where(and(...conditions));
-      const countResult = await countQuery;
-      const totalCount = Number(countResult[0]?.count ?? 0);
-
-      let baseQuery = tenantDb
-        .select({
-          id: buildingsTable.id,
-          name: buildingsTable.name,
-          location: buildingsTable.location,
-          status: buildingsTable.status,
-          capacity: buildingsTable.capacity,
-          createdAt: buildingsTable.createdAt,
-          floorsCount: sql<number>`(
-            SELECT count(*)::int 
-            FROM floors f 
-            WHERE f.building_id = ${buildingsTable.id}
-          )`,
-          roomsCount: sql<number>`(
-            SELECT count(*)::int 
-            FROM rooms r 
-            WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
-          )`,
-          totalCapacity: sql<number>`COALESCE((
-            SELECT sum(r.capacity)::int 
-            FROM rooms r 
-            WHERE r.building_id = ${buildingsTable.id} AND r.is_active = true
-          ), 0)`,
-          currentOccupancy: sql<number>`COALESCE((
-            SELECT count(a.id)::int 
-            FROM assignments a
-            JOIN rooms r ON r.id = a.room_id
-            WHERE r.building_id = ${buildingsTable.id} AND a.status = 'ACTIVE' AND r.is_active = true
-          ), 0)`,
-        })
-        .from(buildingsTable)
-        .limit(limit)
-        .offset(offset) as any;
-      if (conditions.length > 0) baseQuery = baseQuery.where(and(...conditions));
-
-      const rows = await baseQuery;
-      return { data: rows, total: totalCount };
-    });
-
-    res.json({
-      data: data.map((b: any) => ({
-        ...b,
-        propertyId,
-        floorsCount: Number(b.floorsCount || 0),
-        roomsCount: Number(b.roomsCount || 0),
-        totalCapacity: Number(b.totalCapacity || 0),
-        currentOccupancy: Number(b.currentOccupancy || 0),
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNextPage: page < Math.ceil(total / limit),
-        hasPrevPage: page > 1,
-      },
-    });
   },
 );
 

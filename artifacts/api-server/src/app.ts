@@ -7,6 +7,7 @@
  * 3. Error Handling: Global handler for all async errors.
  */
 
+import "./env.js";
 import express, {
   type Express,
   type Request,
