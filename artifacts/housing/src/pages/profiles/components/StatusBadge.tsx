@@ -113,6 +113,10 @@ export function StatusBadge({ status }: { status: string }) {
       label: ar ? "في إجازة" : "Vacation",
       className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800",
     },
+    UNASSIGNED: {
+      label: ar ? "غير مسكّن" : "Unassigned",
+      className: "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
+    },
     SUSPENDED: {
       label: ar ? "موقوف" : "Suspended",
       className: "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800",

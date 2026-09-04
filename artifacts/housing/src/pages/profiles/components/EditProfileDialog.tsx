@@ -10,6 +10,7 @@ import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { EditEmpForm } from "../types";
 import { FormRow } from "./FormRow";
 import { ProfileAvatar } from "./ProfileAvatar";
+import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -234,10 +235,11 @@ export function EditProfileDialog({
       toast.error(ar ? "رقم الهوية مطلوب" : "National ID is required");
       return;
     }
+    const { status: _omittedStatus, ...cleanData } = form;
     updateMutation.mutate({
       id: profile.id,
       data: {
-        ...form,
+        ...cleanData,
         department: form.employmentType === "THIRD_PARTY" ? "" : form.department,
         level: form.employmentType === "THIRD_PARTY" ? "" : form.level,
         contractEndDate:
@@ -503,26 +505,10 @@ export function EditProfileDialog({
                   />
                 </FormRow>
 
-                <FormRow label={ar ? "الحالة" : "Status"}>
-                  <Select
-                    value={form.status}
-                    onValueChange={(v) => set("status", v)}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">
-                        {ar ? "مقيم بالسكن" : "In-House"}
-                      </SelectItem>
-                      <SelectItem value="LEFT">
-                        {ar ? "تمت المغادرة" : "Checked Out"}
-                      </SelectItem>
-                      <SelectItem value="VACATION">
-                        {ar ? "في إجازة" : "On Vacation"}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                <FormRow label={ar ? "حالة التسكين" : "Housing Status"}>
+                  <div className="h-9 flex items-center">
+                    <StatusBadge status={form.status} />
+                  </div>
                 </FormRow>
               </div>
             ) : (
@@ -537,26 +523,10 @@ export function EditProfileDialog({
                     />
                   </FormRow>
 
-                  <FormRow label={ar ? "الحالة" : "Status"}>
-                    <Select
-                      value={form.status}
-                      onValueChange={(v) => set("status", v)}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ACTIVE">
-                          {ar ? "مقيم بالسكن" : "In-House"}
-                        </SelectItem>
-                        <SelectItem value="LEFT">
-                          {ar ? "تمت المغادرة" : "Checked Out"}
-                        </SelectItem>
-                        <SelectItem value="VACATION">
-                          {ar ? "في إجازة" : "On Vacation"}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <FormRow label={ar ? "حالة التسكين" : "Housing Status"}>
+                    <div className="h-9 flex items-center">
+                      <StatusBadge status={form.status} />
+                    </div>
                   </FormRow>
                 </div>
 

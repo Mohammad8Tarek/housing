@@ -16,7 +16,7 @@ export const profilesTable = pgTable("profiles", {
   level: text("level").notNull().default(""),
   phone: text("phone").notNull().default(""),
   department: text("department").notNull().default(""),
-  status: text("status").notNull().default("ACTIVE"),
+  status: text("status").notNull().default("UNASSIGNED"),
   hireDate: text("hire_date").notNull(),
   gender: text("gender").notNull().default("M"),
   employmentType: text("employment_type").notNull().default("INTERNAL"),

@@ -36,7 +36,7 @@ export const EMPTY_FORM: ProfileForm = {
   department: "",
   jobTitle: "",
   level: "",
-  status: "ACTIVE",
+  status: "UNASSIGNED",
   dateOfBirth: "",
   employmentType: "INTERNAL",
   companyName: "",

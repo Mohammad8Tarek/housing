@@ -65,6 +65,7 @@ import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
   Building, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
+  Phone, CreditCard,
 } from "lucide-react";
 
 type ProfileResult = {
@@ -645,7 +646,7 @@ export default function ReservationsPage() {
           level: newForm.level || "",
           employmentType: newForm.employmentType,
           companyName: newForm.companyName || "",
-          status: "ACTIVE",
+          status: "UNASSIGNED",
           idDocuments: newForm.idDocuments || [],
         };
 
@@ -917,16 +918,20 @@ export default function ReservationsPage() {
   };
 
   const RES_COLS = [
-    { key: "guest", label: "Guest", labelAr: "الاسم", defaultVisible: true, fixed: true },
-    { key: "emptype", label: "Type", labelAr: "النوع", defaultVisible: true },
-    { key: "phone", label: "Phone", labelAr: "الهاتف", defaultVisible: true },
-    { key: "id", label: "ID", labelAr: "الهوية", defaultVisible: true },
-    { key: "dept", label: "Dept", labelAr: "القسم", defaultVisible: true },
-    { key: "roomtype", label: "Room Type", labelAr: "نوع الغرفة", defaultVisible: true },
-    { key: "checkin", label: "Check-in", labelAr: "الدخول", defaultVisible: true },
-    { key: "checkout", label: "Check-out", labelAr: "المغادرة", defaultVisible: true },
+    { key: "guest", label: "Guest & Type", labelAr: "النزيل والتصنيف", defaultVisible: true, fixed: true },
+    { key: "contact", label: "Contact & ID", labelAr: "التواصل والهوية", defaultVisible: true },
+    { key: "stay", label: "Stay Period", labelAr: "فترة الإقامة", defaultVisible: true },
+    { key: "room", label: "Room & Dept", labelAr: "الغرفة والقسم", defaultVisible: true },
     { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
     { key: "actions", label: "Actions", labelAr: "إجراءات", defaultVisible: true, fixed: true },
+    // Granular columns for power users via ColumnChooser:
+    { key: "emptype", label: "Type only", labelAr: "النوع فقط", defaultVisible: false },
+    { key: "phone", label: "Phone only", labelAr: "الهاتف فقط", defaultVisible: false },
+    { key: "id", label: "ID only", labelAr: "الهوية فقط", defaultVisible: false },
+    { key: "dept", label: "Dept only", labelAr: "القسم فقط", defaultVisible: false },
+    { key: "roomtype", label: "Room Type only", labelAr: "نوع الغرفة فقط", defaultVisible: false },
+    { key: "checkin", label: "Check-in only", labelAr: "الدخول فقط", defaultVisible: false },
+    { key: "checkout", label: "Check-out only", labelAr: "المغادرة فقط", defaultVisible: false },
   ];
   const { visible: resVisible, toggle: resToggle, showAll: resShowAll, hideAll: resHideAll, isVisible: isResVisible } = useColumnVisibility(RES_COLS);
   const upcomingCount = (reservations || []).filter((r: any) => r.status === "UPCOMING").length;
@@ -997,43 +1002,158 @@ export default function ReservationsPage() {
         ar={ar}
       />
 
-      <div className="border rounded-md overflow-x-auto bg-card">
-        <Table className="min-w-max w-full">
+      <div className="border rounded-xl overflow-hidden bg-card shadow-xs">
+        <Table className="w-full">
           <TableHeader>
-            <TableRow className="bg-muted">
-              <TableHead className="w-10 px-3 sticky ltr:left-0 rtl:right-0 z-20 bg-muted"><Checkbox checked={allResPageSelected} onCheckedChange={toggleSelectAllRes} /></TableHead>
-              {isResVisible("guest") && <TableHead className="font-semibold sticky ltr:left-10 rtl:right-10 z-20 bg-muted">{ar ? "الاسم" : "Guest"}</TableHead>}
-              {isResVisible("emptype") && <TableHead className="font-semibold">{ar ? "النوع" : "Type"}</TableHead>}
-              {isResVisible("phone") && <TableHead className="font-semibold">{ar ? "الهاتف" : "Phone"}</TableHead>}
-              {isResVisible("id") && <TableHead className="font-semibold">{ar ? "الهوية" : "ID Card"}</TableHead>}
-              {isResVisible("dept") && <TableHead className="font-semibold">{ar ? "القسم" : "Dept"}</TableHead>}
-              {isResVisible("roomtype") && <TableHead className="font-semibold">{ar ? "نوع الغرفة" : "Room Type"}</TableHead>}
-              {isResVisible("checkin") && <TableHead className="font-semibold">{ar ? "الدخول" : "Check-in"}</TableHead>}
-              {isResVisible("checkout") && <TableHead className="font-semibold">{ar ? "المغادرة" : "Check-out"}</TableHead>}
-              {isResVisible("status") && <TableHead className="font-semibold">{ar ? "الحالة" : "Status"}</TableHead>}
-              {isResVisible("actions") && <TableHead className="font-semibold text-center w-28 sticky ltr:right-0 rtl:left-0 z-20 bg-muted border-s border-border shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)] rtl:shadow-[3px_0_6px_-2px_rgba(0,0,0,0.06)]">{ar ? "إجراءات" : "Actions"}</TableHead>}
+            <TableRow className="bg-muted/80 hover:bg-muted/80">
+              <TableHead className="w-10 px-3 sticky ltr:left-0 rtl:right-0 z-20 bg-muted/90"><Checkbox checked={allResPageSelected} onCheckedChange={toggleSelectAllRes} /></TableHead>
+              {isResVisible("guest") && (
+                <TableHead className="font-semibold text-xs text-foreground min-w-[190px]">
+                  {ar ? "النزيل والتصنيف" : "Guest & Type"}
+                </TableHead>
+              )}
+              {isResVisible("contact") && (
+                <TableHead className="font-semibold text-xs text-foreground min-w-[130px]">
+                  {ar ? "التواصل والهوية" : "Contact & ID"}
+                </TableHead>
+              )}
+              {isResVisible("stay") && (
+                <TableHead className="font-semibold text-xs text-foreground min-w-[150px]">
+                  {ar ? "فترة الإقامة" : "Stay Period"}
+                </TableHead>
+              )}
+              {isResVisible("room") && (
+                <TableHead className="font-semibold text-xs text-foreground min-w-[130px]">
+                  {ar ? "الغرفة والقسم" : "Room & Dept"}
+                </TableHead>
+              )}
+              {isResVisible("emptype") && <TableHead className="font-semibold text-xs">{ar ? "النوع" : "Type"}</TableHead>}
+              {isResVisible("phone") && <TableHead className="font-semibold text-xs">{ar ? "الهاتف" : "Phone"}</TableHead>}
+              {isResVisible("id") && <TableHead className="font-semibold text-xs">{ar ? "الهوية" : "ID Card"}</TableHead>}
+              {isResVisible("dept") && <TableHead className="font-semibold text-xs">{ar ? "القسم" : "Dept"}</TableHead>}
+              {isResVisible("roomtype") && <TableHead className="font-semibold text-xs">{ar ? "نوع الغرفة" : "Room Type"}</TableHead>}
+              {isResVisible("checkin") && <TableHead className="font-semibold text-xs">{ar ? "الدخول" : "Check-in"}</TableHead>}
+              {isResVisible("checkout") && <TableHead className="font-semibold text-xs">{ar ? "المغادرة" : "Check-out"}</TableHead>}
+              {isResVisible("status") && (
+                <TableHead className="font-semibold text-xs text-foreground min-w-[95px]">
+                  {ar ? "الحالة" : "Status"}
+                </TableHead>
+              )}
+              {isResVisible("actions") && (
+                <TableHead className="font-semibold text-xs text-center w-24 sticky ltr:right-0 rtl:left-0 z-20 bg-muted/90 border-s border-border">
+                  {ar ? "إجراءات" : "Actions"}
+                </TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (Array.from({ length: 5 }).map((_, i) => (<TableRow key={i}><TableCell colSpan={10}><Skeleton className="h-4 w-full" /></TableCell></TableRow>))) :
-            (reservations || []).length === 0 ? (
-              <TableRow><TableCell colSpan={10} className="text-center py-16 text-muted-foreground"><CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" /><p>{ar ? "لا توجد حجوزات" : "No reservations found"}</p></TableCell></TableRow>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-4 w-full" /></TableCell></TableRow>
+              ))
+            ) : (reservations || []).length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-16 text-muted-foreground">
+                  <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p>{ar ? "لا توجد حجوزات" : "No reservations found"}</p>
+                </TableCell>
+              </TableRow>
             ) : (
               (reservations || []).map((res: any) => {
                 const isSel = selectedRows.has(res.id);
+                const isThirdParty = res.employmentType === "THIRD_PARTY" || res.department === "طرف ثالث";
                 return (
                   <TableRow key={res.id} className={`group ${isSel ? "bg-primary/5" : "hover:bg-muted/20"}`}>
-                    <TableCell className="px-3 sticky ltr:left-0 rtl:right-0 z-10 bg-card group-hover:bg-accent"><Checkbox checked={isSel} onCheckedChange={() => toggleResRow(res.id)} /></TableCell>
-                    {isResVisible("guest") && <TableCell className="font-medium whitespace-nowrap sticky ltr:left-10 rtl:right-10 z-10 bg-card group-hover:bg-accent">{res.firstName} {res.lastName}</TableCell>}
+                    <TableCell className="px-3 sticky ltr:left-0 rtl:right-0 z-10 bg-card group-hover:bg-accent/40">
+                      <Checkbox checked={isSel} onCheckedChange={() => toggleResRow(res.id)} />
+                    </TableCell>
+
+                    {/* Guest & Profile Type */}
+                    {isResVisible("guest") && (
+                      <TableCell className="py-2.5">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold text-sm text-foreground leading-tight">
+                            {res.firstName} {res.lastName}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {isThirdParty ? (
+                              <Badge className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 text-[11px] font-bold px-2 py-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-purple-600 inline-block mr-1 rtl:ml-1 rtl:mr-0" />
+                                {ar ? "طرف ثالث" : "Third Party"}
+                                {res.companyName ? ` • ${res.companyName}` : ""}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 text-[11px] font-bold px-2 py-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block mr-1 rtl:ml-1 rtl:mr-0" />
+                                {ar ? "موظف داخلي" : "Internal"}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                    )}
+
+                    {/* Contact & ID */}
+                    {isResVisible("contact") && (
+                      <TableCell className="py-2.5">
+                        <div className="flex flex-col text-xs gap-0.5">
+                          {res.guestPhone ? (
+                            <span className="font-mono text-foreground font-medium flex items-center gap-1" dir="ltr">
+                              <Phone className="w-3 h-3 text-muted-foreground" />
+                              {res.guestPhone}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                          {res.guestIdCardNumber && (
+                            <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
+                              <CreditCard className="w-3 h-3 text-muted-foreground/70" />
+                              {res.guestIdCardNumber}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+
+                    {/* Stay Period */}
+                    {isResVisible("stay") && (
+                      <TableCell className="py-2.5 whitespace-nowrap">
+                        <div className="flex flex-col text-xs gap-0.5">
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{formatDate(res.checkInDate)}</span>
+                            <span className="text-muted-foreground">←</span>
+                            <span className="text-amber-700 dark:text-amber-400 font-semibold">{formatDate(res.checkOutDate)}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                    )}
+
+                    {/* Room & Dept */}
+                    {isResVisible("room") && (
+                      <TableCell className="py-2.5">
+                        <div className="flex flex-col text-xs gap-0.5">
+                          <span className="font-medium text-foreground">
+                            {res.roomType || (ar ? "غير محدد" : "Unspecified")}
+                          </span>
+                          {res.department && res.department !== "طرف ثالث" && (
+                            <span className="text-[11px] text-muted-foreground truncate max-w-[130px]">
+                              {res.department}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+
+                    {/* Granular Fallback Cells if user checked them specifically in ColumnChooser */}
                     {isResVisible("emptype") && (
                       <TableCell>
-                        {res.employmentType === "THIRD_PARTY" || res.department === "طرف ثالث" ? (
+                        {isThirdParty ? (
                           <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs font-semibold">
                             {ar ? "طرف ثالث" : "Third Party"}{res.companyName ? ` • ${res.companyName}` : ""}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs font-semibold">
-                            {ar ? "موظف داخلي" : "Internal Employee"}
+                            {ar ? "موظف داخلي" : "Internal"}
                           </Badge>
                         )}
                       </TableCell>
@@ -1044,13 +1164,23 @@ export default function ReservationsPage() {
                     {isResVisible("roomtype") && <TableCell className="text-sm">{res.roomType || "—"}</TableCell>}
                     {isResVisible("checkin") && <TableCell className="text-sm whitespace-nowrap">{formatDate(res.checkInDate)}</TableCell>}
                     {isResVisible("checkout") && <TableCell className="text-sm whitespace-nowrap">{formatDate(res.checkOutDate)}</TableCell>}
-                    {isResVisible("status") && <TableCell><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor(res.status)}`}>{statusLabel[res.status] || res.status}</span></TableCell>}
+
+                    {/* Status */}
+                    {isResVisible("status") && (
+                      <TableCell className="py-2.5 whitespace-nowrap">
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColor(res.status)}`}>
+                          {statusLabel[res.status] || res.status}
+                        </span>
+                      </TableCell>
+                    )}
+
+                    {/* Actions */}
                     {isResVisible("actions") && (
-                      <TableCell className="w-28 min-w-[110px] text-center sticky ltr:right-0 rtl:left-0 z-10 bg-card group-hover:bg-accent border-s border-border shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)] rtl:shadow-[3px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                      <TableCell className="w-24 text-center sticky ltr:right-0 rtl:left-0 z-10 bg-card group-hover:bg-accent/40 border-s border-border">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs gap-1.5 font-medium bg-background hover:bg-muted shadow-xs">
-                              {ar ? "إجراءات" : "Actions"} <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                            <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1 font-medium bg-background hover:bg-muted shadow-xs">
+                              {ar ? "إجراءات" : "Actions"} <ChevronDown className="w-3 h-3 opacity-60" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48 shadow-lg">

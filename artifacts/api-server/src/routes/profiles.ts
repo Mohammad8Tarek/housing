@@ -293,12 +293,15 @@ router.post(
       return;
     }
 
-    // ✅ الإضافة في الـ Schema الصحيح
-    const { idDocuments, ...profileData } = parsed.data as any;
+    // ✅ الإضافة في الـ Schema الصحيح (الحالة تبدأ بـ UNASSIGNED وتتحدد بناءً على عمليات التسكين)
+    const { idDocuments, status, ...profileData } = parsed.data as any;
     const [profile] = await withTenant(propertyId, async (tenantDb) => {
       return await tenantDb
         .insert(profilesTable)
-        .values(profileData)
+        .values({
+          ...profileData,
+          status: "UNASSIGNED",
+        })
         .returning();
     });
 
@@ -474,7 +477,7 @@ router.patch(
           .limit(1);
         if (!existing) return { previous: null, updated: null };
 
-        const { idDocuments, ...profileData } = parsed.data as any;
+        const { idDocuments, status, ...profileData } = parsed.data as any;
         
         let updatedProfile = existing;
         if (Object.keys(profileData).length > 0) {

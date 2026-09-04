@@ -452,7 +452,7 @@ export function ProfileDialog({
 
             {form.employmentType === "THIRD_PARTY" ? (
               /* Third-Party Simplified Work Information */
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormRow label={ar ? "اسم الشركة *" : "Company Name *"}>
                   <Input
                     value={form.companyName}
@@ -484,33 +484,11 @@ export function ProfileDialog({
                     <p className="text-xs text-destructive">{errors.jobTitle}</p>
                   )}
                 </FormRow>
-
-                <FormRow label={ar ? "الحالة" : "Status"}>
-                  <Select
-                    value={form.status}
-                    onValueChange={(v) => set("status", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">
-                        {ar ? "مقيم بالسكن" : "In-House"}
-                      </SelectItem>
-                      <SelectItem value="LEFT">
-                        {ar ? "تمت المغادرة" : "Checked Out"}
-                      </SelectItem>
-                      <SelectItem value="VACATION">
-                        {ar ? "في إجازة" : "On Vacation"}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormRow>
               </div>
             ) : (
               /* Internal Employee Full Work Information */
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormRow label={ar ? "يعمل لدى / الفندق" : "Works At"}>
                     <Input
                       value={form.companyName}
@@ -536,28 +514,6 @@ export function ProfileDialog({
                     {errors.hireDate && (
                       <p className="text-xs text-destructive">{errors.hireDate}</p>
                     )}
-                  </FormRow>
-
-                  <FormRow label={ar ? "الحالة" : "Status"}>
-                    <Select
-                      value={form.status}
-                      onValueChange={(v) => set("status", v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ACTIVE">
-                          {ar ? "مقيم بالسكن" : "In-House"}
-                        </SelectItem>
-                        <SelectItem value="LEFT">
-                          {ar ? "تمت المغادرة" : "Checked Out"}
-                        </SelectItem>
-                        <SelectItem value="VACATION">
-                          {ar ? "في إجازة" : "On Vacation"}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
                   </FormRow>
                 </div>
 
@@ -808,6 +764,7 @@ export function ProfileDialog({
                 const autoId = form.profileId.trim() || `${form.employmentType === "THIRD_PARTY" ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
                 const cleanedForm: ProfileForm = {
                   ...form,
+                  status: "UNASSIGNED",
                   profileId: autoId,
                   hireDate:
                     form.employmentType === "THIRD_PARTY"

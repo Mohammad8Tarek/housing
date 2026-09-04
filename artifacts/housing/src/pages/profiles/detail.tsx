@@ -333,38 +333,7 @@ export default function ProfileDetail() {
     }
   };
 
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (!profile || newStatus === (profile as any).status) return;
-    setUpdatingStatus(true);
-    try {
-      const res = await fetch(`/api/profiles/${profileId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          propertyId: activePropertyId,
-          status: newStatus,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed");
-      const labelMap: Record<string, string> = {
-        ACTIVE: ar ? "مقيم بالسكن" : "In-House",
-        LEFT: ar ? "مغادر" : "Check-out",
-        VACATION: ar ? "في إجازة" : "Vacation",
-      };
-      toast.success(
-        ar
-          ? `تم تغيير الحالة إلى "${labelMap[newStatus] || newStatus}"`
-          : `Status changed to "${labelMap[newStatus] || newStatus}"`
-      );
-      refetch();
-    } catch {
-      toast.error(ar ? "فشل تغيير الحالة" : "Failed to change status");
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
 
   const handleDownloadDoc = (doc: any) => {
     if (!doc.fileData) return;
@@ -867,54 +836,38 @@ export default function ProfileDetail() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 self-start">
-                  <Select
-                    value={emp.status || "ACTIVE"}
-                    onValueChange={handleStatusChange}
-                    disabled={updatingStatus}
+                  <div
+                    className={`h-8 font-semibold text-xs rounded-full px-3 flex items-center gap-2 border shadow-xs ${
+                      emp.status === "ACTIVE"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                        : emp.status === "VACATION"
+                        ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                        : emp.status === "LEFT"
+                        ? "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                        : "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+                    }`}
                   >
-                    <SelectTrigger
-                      className={`h-8 font-semibold text-xs rounded-full px-3 gap-2 border shadow-xs transition-all ${
+                    <span
+                      className={`w-2 h-2 rounded-full ${
                         emp.status === "ACTIVE"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                          ? "bg-emerald-500 animate-pulse"
                           : emp.status === "VACATION"
-                          ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
-                          : "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${
-                        emp.status === "ACTIVE" ? "bg-emerald-500 animate-pulse" : emp.status === "VACATION" ? "bg-amber-500" : "bg-slate-400"
-                      }`} />
-                      <SelectValue>
-                        {emp.status === "ACTIVE"
-                          ? (ar ? "مقيم بالسكن" : "In-House")
-                          : emp.status === "VACATION"
-                          ? (ar ? "في إجازة" : "Vacation")
+                          ? "bg-amber-500"
                           : emp.status === "LEFT"
-                          ? (ar ? "مغادر" : "Check-out")
-                          : emp.status}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent align="end">
-                      <SelectItem value="ACTIVE" className="text-emerald-700 font-medium">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          <span>{ar ? "مقيم بالسكن" : "In-House"}</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="VACATION" className="text-amber-700 font-medium">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-amber-500" />
-                          <span>{ar ? "في إجازة" : "On Vacation"}</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="LEFT" className="text-slate-700 font-medium">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-400" />
-                          <span>{ar ? "تمت المغادرة" : "Checked Out"}</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                          ? "bg-slate-400"
+                          : "bg-blue-500"
+                      }`}
+                    />
+                    <span>
+                      {emp.status === "ACTIVE"
+                        ? (ar ? "مقيم بالسكن" : "In-House")
+                        : emp.status === "VACATION"
+                        ? (ar ? "في إجازة" : "On Vacation")
+                        : emp.status === "LEFT"
+                        ? (ar ? "مغادر" : "Checked Out")
+                        : (ar ? "غير مسكّن" : "Unassigned")}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

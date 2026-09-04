@@ -39,6 +39,8 @@ BEGIN
       gender TEXT,
       profile_code TEXT,
       level TEXT,
+      employment_type TEXT NOT NULL DEFAULT 'INTERNAL',
+      company_name TEXT DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
@@ -56,6 +58,8 @@ BEGIN
       ADD COLUMN IF NOT EXISTS job_title TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS department TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'UPCOMING',
+      ADD COLUMN IF NOT EXISTS employment_type TEXT DEFAULT 'INTERNAL',
+      ADD COLUMN IF NOT EXISTS company_name TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS check_in_date TEXT,
       ADD COLUMN IF NOT EXISTS check_out_date TEXT;
 
@@ -82,7 +86,9 @@ BEGIN
       check_in_date TEXT NOT NULL,
       expected_check_out_date TEXT,
       actual_check_out_date TEXT,
+      check_out_date TEXT,
       bed_number INTEGER,
+      is_entire_room BOOLEAN NOT NULL DEFAULT false,
       contract_end_date TEXT,
       status TEXT NOT NULL DEFAULT 'ACTIVE',
       notes TEXT,
@@ -91,6 +97,8 @@ BEGIN
 
     ALTER TABLE assignments
       ADD COLUMN IF NOT EXISTS bed_number INTEGER,
+      ADD COLUMN IF NOT EXISTS is_entire_room BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS check_out_date TEXT,
       ADD COLUMN IF NOT EXISTS contract_end_date TEXT,
       ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE',
       ADD COLUMN IF NOT EXISTS notes TEXT;
@@ -181,7 +189,7 @@ BEGIN
       level TEXT NOT NULL DEFAULT '',
       gender TEXT NOT NULL DEFAULT 'M',
       nationality TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      status TEXT NOT NULL DEFAULT 'UNASSIGNED',
       employment_type TEXT NOT NULL DEFAULT 'INTERNAL',
       company_name TEXT DEFAULT '',
       contract_end_date TEXT,
@@ -204,7 +212,7 @@ BEGIN
       ADD COLUMN IF NOT EXISTS fourth_name TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS emergency_contact TEXT DEFAULT '',
-      ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE',
+      ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'UNASSIGNED',
       ADD COLUMN IF NOT EXISTS level TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT 'M';
 
@@ -216,15 +224,15 @@ BEGIN
     UPDATE profiles SET gender = 'M' 
       WHERE gender NOT IN ('M', 'F');
 
-    UPDATE profiles SET status = 'ACTIVE' 
-      WHERE status IS NULL OR status = '' OR status NOT IN ('ACTIVE', 'INACTIVE', 'TERMINATED', 'VACATION', 'PENDING');
+    UPDATE profiles SET status = 'UNASSIGNED' 
+      WHERE status IS NULL OR status = '' OR status NOT IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT');
 
     UPDATE profiles SET employment_type = 'INTERNAL' 
       WHERE employment_type IS NULL OR employment_type = '' OR employment_type NOT IN ('INTERNAL', 'THIRD_PARTY', 'CONTRACTOR', 'GUEST', 'TEMPORARY');
 
     ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
     ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status 
-      CHECK (status IN ('ACTIVE', 'INACTIVE', 'TERMINATED', 'VACATION', 'PENDING', 'LEFT'));
+      CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT'));
 
     ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_gender;
     ALTER TABLE profiles ADD CONSTRAINT chk_profiles_gender 
