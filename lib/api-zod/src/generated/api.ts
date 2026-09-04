@@ -634,7 +634,7 @@ export const ListAssignmentsResponseItem = zod.object({
   "notes": zod.string(),
   "status": zod.string(),
   "createdAt": zod.string()
-})
+}).passthrough()
 export const ListAssignmentsResponse = zod.array(ListAssignmentsResponseItem)
 
 

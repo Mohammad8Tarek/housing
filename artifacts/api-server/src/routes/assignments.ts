@@ -259,17 +259,45 @@ router.get(
     }
 
     const assignments = await withTenant(propertyId, async (tenantDb) => {
+      const base = tenantDb
+        .select({
+          id: assignmentsTable.id,
+          profileId: assignmentsTable.profileId,
+          roomId: assignmentsTable.roomId,
+          bedNumber: assignmentsTable.bedNumber,
+          isEntireRoom: assignmentsTable.isEntireRoom,
+          checkInDate: assignmentsTable.checkInDate,
+          expectedCheckOutDate: assignmentsTable.expectedCheckOutDate,
+          checkOutDate: assignmentsTable.checkOutDate,
+          notes: assignmentsTable.notes,
+          status: assignmentsTable.status,
+          createdAt: assignmentsTable.createdAt,
+          roomNumber: roomsTable.roomNumber,
+          buildingId: roomsTable.buildingId,
+          floorId: roomsTable.floorId,
+          buildingName: buildingsTable.name,
+          floorNumber: floorsTable.floorNumber,
+        })
+        .from(assignmentsTable)
+        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+        .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id));
+
       return conditions.length > 0
-        ? await tenantDb
-            .select()
-            .from(assignmentsTable)
-            .where(and(...conditions))
-        : await tenantDb.select().from(assignmentsTable);
+        ? await base.where(and(...conditions)).orderBy(desc(assignmentsTable.id))
+        : await base.orderBy(desc(assignmentsTable.id));
     });
 
     res.json(
       ListAssignmentsResponse.parse(
-        assignments.map((a) => fmtAssignment({ ...a, propertyId })),
+        assignments.map((a) => ({
+          ...fmtAssignment({ ...a, propertyId }),
+          roomNumber: a.roomNumber ?? null,
+          buildingId: a.buildingId ?? null,
+          floorId: a.floorId ?? null,
+          buildingName: a.buildingName ?? null,
+          floorNumber: a.floorNumber ?? null,
+        })),
       ),
     );
   },

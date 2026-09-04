@@ -124,6 +124,7 @@ const statusBadge = (status: string) => {
     ENDED: "bg-gray-100 text-gray-700",
     TRANSFERRED: "bg-blue-100 text-blue-700",
     ACTIVE: "bg-green-100 text-green-700",
+    CHECKED_OUT: "bg-orange-100 text-orange-700",
     CANCELLED: "bg-red-100 text-red-700",
   };
   return map[status] ?? "bg-gray-100 text-gray-600";
@@ -387,43 +388,54 @@ export default function ProfileDetail() {
     enabled: !!activePropertyId && !!portalProfileIdForQuery,
   });
 
-  const { data: allAssignments } = useListAssignments(
-    { propertyId: activePropertyId } as any,
-    { query: { enabled: !!profileId } },
+  const effectivePropId = profile?.propertyId || activePropertyId;
+
+  const { data: allAssignments, isLoading: assignmentsLoading } = useListAssignments(
+    { propertyId: effectivePropId } as any,
+    { query: { enabled: !!profileId && !!effectivePropId } },
   );
 
   const { data: _rData } = useListRooms(
-    { propertyId: activePropertyId, limit: 1000 },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: effectivePropId, limit: 1000 },
+    { query: { enabled: !!effectivePropId } },
   );
-  const rooms = _rData?.data || [];
+  const rooms = Array.isArray(_rData) ? _rData : (_rData?.data || []);
   const { data: _bData } = useListBuildings(
-    { propertyId: profile?.propertyId },
-    { query: { enabled: !!profile?.propertyId } },
+    { propertyId: effectivePropId },
+    { query: { enabled: !!effectivePropId } },
   );
-  const buildings = _bData?.data || [];
+  const buildings = Array.isArray(_bData) ? _bData : (_bData?.data || []);
   const { data: _fData } = useListFloors(
-    { propertyId: profile?.propertyId },
-    { query: { enabled: !!profile?.propertyId } },
+    { propertyId: effectivePropId },
+    { query: { enabled: !!effectivePropId } },
   );
-  const floors = _fData?.data || [];
+  const floors = Array.isArray(_fData) ? _fData : (_fData?.data || []);
 
-  const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
-  const floorMap = Object.fromEntries(floors.map((f) => [f.id, f.floorNumber]));
+  const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
+  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
+  const floorMap = Object.fromEntries(floors.map((f: any) => [f.id, f.floorNumber]));
 
-  const profileAssignments = (allAssignments ?? []).filter(
-    (a) => a.profileId === profileId,
-  );
-  const currentAssignment = profileAssignments.find(
-    (a) => a.status === "ACTIVE",
-  );
-  const pastAssignments = profileAssignments
-    .filter((a) => a.status !== "ACTIVE")
+  const rawAssignments: any[] = Array.isArray(allAssignments)
+    ? allAssignments
+    : ((allAssignments as any)?.data || []);
+
+  const profileAssignments = rawAssignments
+    .filter((a: any) => Number(a.profileId) === Number(profileId))
     .sort(
-      (a, b) =>
-        new Date(b.checkInDate).getTime() - new Date(a.checkInDate).getTime(),
+      (a: any, b: any) =>
+        new Date(b.checkInDate || b.createdAt || 0).getTime() -
+        new Date(a.checkInDate || a.createdAt || 0).getTime(),
     );
+
+  // Active current housing is an ACTIVE assignment without a checkout date, or the latest active one
+  const currentAssignment =
+    profileAssignments.find((a: any) => a.status === "ACTIVE" && !a.checkOutDate) ||
+    profileAssignments.find((a: any) => a.status === "ACTIVE");
+
+  // All other assignments for this profile constitute their housing history
+  const pastAssignments = profileAssignments.filter(
+    (a: any) => a.id !== currentAssignment?.id,
+  );
 
   const printHousingLetter = async () => {
     const chosenAr = await openDialog();
@@ -1056,8 +1068,9 @@ export default function ProfileDetail() {
           {currentAssignment ? (
             (() => {
               const room = roomMap[currentAssignment.roomId];
-              const building = room ? buildingMap[room.buildingId] : null;
-              const floorNum = room ? floorMap[room.floorId] : null;
+              const roomNum = room?.roomNumber ?? currentAssignment.roomNumber ?? currentAssignment.roomId;
+              const building = room ? buildingMap[room.buildingId] : (currentAssignment.buildingName ?? null);
+              const floorNum = room ? floorMap[room.floorId] : (currentAssignment.floorNumber ?? null);
               const daysStayed = differenceInDays(
                 new Date(),
                 new Date(currentAssignment.checkInDate),
@@ -1073,7 +1086,7 @@ export default function ProfileDetail() {
                   {[
                     {
                       label: ar ? "المبنى" : "Building",
-                      value: building ?? `#${room?.buildingId ?? "—"}`,
+                      value: building ?? (room?.buildingId ? `#${room.buildingId}` : "—"),
                       icon: <Building2 className="w-4 h-4" />,
                     },
                     {
@@ -1085,7 +1098,7 @@ export default function ProfileDetail() {
                     },
                     {
                       label: ar ? "الغرفة" : "Room",
-                      value: room?.roomNumber ?? currentAssignment.roomId,
+                      value: roomNum ?? "—",
                       icon: <Home className="w-4 h-4" />,
                     },
                     {
@@ -1130,13 +1143,19 @@ export default function ProfileDetail() {
               );
             })()
           ) : (
-            <div className="py-8 text-center text-muted-foreground">
-              <Home className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <div className="py-8 text-center text-muted-foreground space-y-3">
+              <Home className="w-8 h-8 mx-auto opacity-30" />
               <p>
                 {ar
-                  ? "لا يوجد تسكين نشط حالياً"
-                  : "No active housing assignment"}
+                  ? "لا يوجد تسكين نشط حالياً لهذا الموظف"
+                  : "No active housing assignment for this employee"}
               </p>
+              <Link href={`/accommodation/room-assignment?profileId=${profileId}`}>
+                <Button size="sm" className="gap-1.5 mt-1 bg-primary text-primary-foreground hover:bg-primary/90">
+                  <BedDouble className="w-4 h-4" />
+                  {ar ? "تسكين الموظف الآن" : "Assign Room Now"}
+                </Button>
+              </Link>
             </div>
           )}
         </CardContent>
@@ -1245,10 +1264,11 @@ export default function ProfileDetail() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pastAssignments.map((a) => {
+              {pastAssignments.map((a: any) => {
                 const room = roomMap[a.roomId];
-                const building = room ? buildingMap[room.buildingId] : null;
-                const floorNum = room ? floorMap[room.floorId] : null;
+                const roomNum = room?.roomNumber ?? a.roomNumber ?? a.roomId;
+                const building = room ? buildingMap[room.buildingId] : (a.buildingName ?? null);
+                const floorNum = room ? floorMap[room.floorId] : (a.floorNumber ?? null);
                 const checkOutDate =
                   a.checkOutDate || (a as any).actualCheckOutDate;
                 const days =
@@ -1274,10 +1294,12 @@ export default function ProfileDetail() {
                         "—"
                       )}
                     </TableCell>
-                    <TableCell className="text-sm">{floorNum ?? "—"}</TableCell>
+                    <TableCell className="text-sm">
+                      {floorNum ? `${ar ? "طابق" : "Floor"} ${floorNum}` : "—"}
+                    </TableCell>
                     <TableCell>
                       <span className="font-mono font-semibold text-primary">
-                        {room?.roomNumber ?? a.roomId}
+                        {roomNum}
                       </span>
                     </TableCell>
                     <TableCell className="text-sm">
@@ -1299,21 +1321,28 @@ export default function ProfileDetail() {
                     <TableCell className="text-sm">
                       {days !== null ? (
                         <Badge variant="outline" className="text-xs">
-                          {days}
-                          {ar ? "د" : "d"}
+                          {days} {ar ? "يوم" : "d"}
                         </Badge>
                       ) : (
                         "—"
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[120px] truncate">
+                    <TableCell className="text-sm text-muted-foreground max-w-[120px] truncate" title={a.notes || ""}>
                       {a.notes || "—"}
                     </TableCell>
                     <TableCell>
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge(a.status)}`}
                       >
-                        {a.status}
+                        {a.status === "CHECKED_OUT"
+                          ? (ar ? "تمت المغادرة" : "Checked Out")
+                          : a.status === "TRANSFERRED"
+                          ? (ar ? "تم النقل" : "Transferred")
+                          : a.status === "ENDED"
+                          ? (ar ? "منتهي" : "Ended")
+                          : a.status === "ACTIVE"
+                          ? (ar ? "نشط" : "Active")
+                          : a.status}
                       </span>
                     </TableCell>
                   </TableRow>

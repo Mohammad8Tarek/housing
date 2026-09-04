@@ -29,6 +29,7 @@ import {
   User,
   Users,
   Home,
+  History,
   Briefcase,
   ExternalLink,
   FileText,
@@ -70,49 +71,62 @@ export function ProfileProfilePopup({
   const { data: _aData } = useListAssignments({ propertyId } as any, {
     query: { enabled: !!propertyId },
   });
-  const assignments = _aData?.data || [];
+  const assignments: any[] = Array.isArray(_aData) ? _aData : (_aData?.data || []);
 
   const { data: _rData } = useListRooms(
-    { propertyId },
+    { propertyId, limit: 1000 },
     { query: { enabled: !!propertyId } },
   );
-  const rooms = _rData?.data || [];
+  const rooms = Array.isArray(_rData) ? _rData : (_rData?.data || []);
   const { data: _bData } = useListBuildings(
     { propertyId },
     { query: { enabled: !!propertyId } },
   );
-  const buildings = _bData?.data || [];
+  const buildings = Array.isArray(_bData) ? _bData : (_bData?.data || []);
   const { data: _fData } = useListFloors(
     { propertyId },
     { query: { enabled: !!propertyId } },
   );
-  const floors = _fData?.data || [];
+  const floors = Array.isArray(_fData) ? _fData : (_fData?.data || []);
   const { data: _eData, isLoading: profilesLoading } = useListProfiles(
     { propertyId },
     { query: { enabled: !!propertyId } },
   );
-  const profiles = _eData?.data || [];
+  const profiles = Array.isArray(_eData) ? _eData : (_eData?.data || []);
   const { data: _hData } = useListHostings(
     { propertyId } as any,
     { query: { enabled: !!propertyId } },
   );
-  const hostings = _hData?.data || _hData || [];
+  const hostings = Array.isArray(_hData) ? _hData : (_hData?.data || []);
 
-  const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
-  const floorMap = Object.fromEntries(floors.map((f) => [f.id, f.floorNumber]));
+  const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
+  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
+  const floorMap = Object.fromEntries(floors.map((f: any) => [f.id, f.floorNumber]));
   const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
 
-  const activeAssignments = (assignments as any[]).filter(
-    (a) => a.status === "ACTIVE",
+  const profileAssignments = assignments.filter(
+    (a) => Number(a.profileId) === Number(profileId),
   );
-  const currentAssignment = activeAssignments.find(
-    (a) => a.profileId === profileId,
+  const currentAssignment =
+    profileAssignments.find((a) => a.status === "ACTIVE" && !a.checkOutDate) ||
+    profileAssignments.find((a) => a.status === "ACTIVE");
+
+  const pastAssignments = profileAssignments
+    .filter((a) => a.id !== currentAssignment?.id)
+    .sort(
+      (a, b) =>
+        new Date(b.checkInDate || b.createdAt || 0).getTime() -
+        new Date(a.checkInDate || a.createdAt || 0).getTime(),
+    );
+
+  const activeAssignments = assignments.filter(
+    (a) => a.status === "ACTIVE" && !a.checkOutDate,
   );
   const roommates = currentAssignment
     ? activeAssignments.filter(
         (a) =>
-          a.roomId === currentAssignment.roomId && a.profileId !== profileId,
+          a.roomId === currentAssignment.roomId &&
+          Number(a.profileId) !== Number(profileId),
       )
     : [];
 
@@ -342,47 +356,54 @@ export function ProfileProfilePopup({
                   <Home className="w-3.5 h-3.5" />
                   {ar ? "السكن الحالي" : "Current Housing"}
                 </p>
-                {currentAssignment && room ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {building && (
-                      <div className="flex gap-1.5 items-center text-sm">
-                        <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        <span className="font-medium">{building}</span>
+                {currentAssignment ? (
+                  (() => {
+                    const roomNum = room?.roomNumber ?? currentAssignment.roomNumber ?? currentAssignment.roomId;
+                    const bldName = building ?? currentAssignment.buildingName;
+                    const flr = floorNum ?? currentAssignment.floorNumber;
+                    return (
+                      <div className="grid grid-cols-2 gap-2">
+                        {bldName && (
+                          <div className="flex gap-1.5 items-center text-sm">
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="font-medium">{bldName}</span>
+                          </div>
+                        )}
+                        {flr != null && (
+                          <div className="text-sm text-muted-foreground">
+                            {ar ? "الطابق" : "Floor"} {flr}
+                          </div>
+                        )}
+                        <div className="flex gap-2 items-center">
+                          <span className="font-mono font-bold text-primary text-base">
+                            {roomNum}
+                          </span>
+                          {currentAssignment.bedNumber && (
+                            <Badge variant="outline" className="text-xs">
+                              <BedDouble className="w-3 h-3 mr-1" />
+                              {ar ? "سرير" : "Bed"} {currentAssignment.bedNumber}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 shrink-0" />
+                          {formatDate(currentAssignment.checkInDate)}
+                          {daysStayed !== null && (
+                            <span className="ml-1 text-xs">
+                              ({daysStayed}
+                              {ar ? "د" : "d"})
+                            </span>
+                          )}
+                        </div>
+                        {currentAssignment.expectedCheckOutDate && (
+                          <div className="col-span-2 text-xs text-muted-foreground">
+                            {ar ? "مغادرة متوقعة:" : "Expected out:"}{" "}
+                            {formatDate(currentAssignment.expectedCheckOutDate)}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {floorNum != null && (
-                      <div className="text-sm text-muted-foreground">
-                        {ar ? "الطابق" : "Floor"} {floorNum}
-                      </div>
-                    )}
-                    <div className="flex gap-2 items-center">
-                      <span className="font-mono font-bold text-primary text-base">
-                        {room.roomNumber}
-                      </span>
-                      {currentAssignment.bedNumber && (
-                        <Badge variant="outline" className="text-xs">
-                          <BedDouble className="w-3 h-3 mr-1" />
-                          {ar ? "سرير" : "Bed"} {currentAssignment.bedNumber}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 shrink-0" />
-                      {formatDate(currentAssignment.checkInDate)}
-                      {daysStayed !== null && (
-                        <span className="ml-1 text-xs">
-                          ({daysStayed}
-                          {ar ? "د" : "d"})
-                        </span>
-                      )}
-                    </div>
-                    {currentAssignment.expectedCheckOutDate && (
-                      <div className="col-span-2 text-xs text-muted-foreground">
-                        {ar ? "مغادرة متوقعة:" : "Expected out:"}{" "}
-                        {formatDate(currentAssignment.expectedCheckOutDate)}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()
                 ) : (
                   <div className="py-3 text-center text-sm text-muted-foreground">
                     <Home className="w-6 h-6 mx-auto mb-1 opacity-30" />
@@ -392,6 +413,44 @@ export function ProfileProfilePopup({
                   </div>
                 )}
               </div>
+
+              {/* Housing History in popup */}
+              {pastAssignments.length > 0 && (
+                <div className="rounded-xl border p-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5" />
+                    {ar ? "سجل الإقامة السابق" : "Housing History"} ({pastAssignments.length})
+                  </p>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                    {pastAssignments.map((pa: any) => {
+                      const pRoom = roomMap[pa.roomId];
+                      const pRoomNum = pRoom?.roomNumber ?? pa.roomNumber ?? pa.roomId;
+                      const pBld = pRoom ? buildingMap[pRoom.buildingId] : (pa.buildingName ?? null);
+                      return (
+                        <div key={pa.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-semibold text-primary">🚪 {pRoomNum}</span>
+                            {pBld && <span className="text-muted-foreground">• {pBld}</span>}
+                            {pa.bedNumber && <span className="text-muted-foreground/80">({ar ? "سرير" : "Bed"} {pa.bedNumber})</span>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground font-mono text-[11px]">
+                              {formatDate(pa.checkInDate)} ➔ {formatDate(pa.checkOutDate || pa.actualCheckOutDate)}
+                            </span>
+                            <Badge variant="outline" className="text-[10px] px-1 py-0">
+                              {pa.status === "CHECKED_OUT"
+                                ? (ar ? "مغادرة" : "Out")
+                                : pa.status === "TRANSFERRED"
+                                ? (ar ? "نقل" : "Moved")
+                                : pa.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Guest Hosting */}
               <div className="rounded-xl border p-3 space-y-2">
