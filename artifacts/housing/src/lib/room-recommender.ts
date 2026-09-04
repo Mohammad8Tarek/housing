@@ -295,8 +295,8 @@ export function recommendBestRooms({
         levelMatch = true;
         matchReasonAr += ` • جناح عائلي متسع ملائم للأسرة (${r.classification || "Family suite"} - سعة ${roomCapacity} أفراد)`;
         matchReasonEn += ` • Family suite ideal for family housing (${r.classification || "Family suite"} - capacity ${roomCapacity})`;
-        customBadgeLabelAr = "⭐ الأنسب للعائلات (Family Suite)";
-        customBadgeLabelEn = "⭐ Best for Families";
+        customBadgeLabelAr = "الأنسب للعائلات";
+        customBadgeLabelEn = "Best for Families";
       } else if (roomCapacity >= 3) {
         score += 30;
         matchReasonAr += ` • سعة رحبة مناسبة (${roomCapacity} سرير)`;
@@ -317,8 +317,8 @@ export function recommendBestRooms({
         levelMatch = true;
         matchReasonAr += ` • تصنيف فاخر ملائم للمنصب القيادي (${r.classification})`;
         matchReasonEn += ` • Deluxe classification matching executive title (${r.classification})`;
-        customBadgeLabelAr = `⭐ الأنسب للمنصب (${r.classification})`;
-        customBadgeLabelEn = `⭐ Best for Executive (${r.classification})`;
+        customBadgeLabelAr = `الأنسب للمنصب (${r.classification})`;
+        customBadgeLabelEn = `Best for Executive (${r.classification})`;
       } else if (roomCls.includes("superior") || roomCls.includes("سوبيريور")) {
         score += 35;
         levelMatch = true;
@@ -331,8 +331,8 @@ export function recommendBestRooms({
         levelMatch = true;
         matchReasonAr += ` • تصنيف سوبيريور مناسب للمستوى الإشرافي (${r.classification})`;
         matchReasonEn += ` • Superior room matching supervisory title (${r.classification})`;
-        customBadgeLabelAr = `⭐ الأنسب للإشراف (${r.classification})`;
-        customBadgeLabelEn = `⭐ Best for Supervisory (${r.classification})`;
+        customBadgeLabelAr = `الأنسب للإشراف (${r.classification})`;
+        customBadgeLabelEn = `Best for Supervisory (${r.classification})`;
       } else if (roomCls.includes("deluxe")) {
         score += 25;
       }
@@ -383,11 +383,13 @@ export function recommendBestRooms({
       }
     }
 
+    const targetRoleAr = profile?.jobTitle ? profile.jobTitle : (profileLevel ? `مستوى ${profileLevel}` : "الموظف");
+    const targetRoleEn = profile?.jobTitle ? profile.jobTitle : (profileLevel ? `Level ${profileLevel}` : "Role");
     const badgeLabelAr = customBadgeLabelAr || (levelMatch
-      ? `⭐ الأنسب لـ ${profile?.jobTitle || (profileLevel ? `مستوى ${profileLevel}` : "الموظف")}`
+      ? (targetRoleAr === "الموظف" ? "الأنسب للموظف" : `الأنسب لـ ${targetRoleAr}`)
       : "متاحة");
     const badgeLabelEn = customBadgeLabelEn || (levelMatch
-      ? `⭐ Best for ${profile?.jobTitle || (profileLevel ? `Level ${profileLevel}` : "Role")}`
+      ? `Best Match for ${targetRoleEn}`
       : "Available");
 
     scored.push({

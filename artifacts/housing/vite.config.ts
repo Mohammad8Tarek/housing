@@ -20,6 +20,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
+      "@workspace/dates": path.resolve(
+        import.meta.dirname,
+        "..",
+        "..",
+        "lib",
+        "dates",
+        "src",
+      ),
       "@assets": path.resolve(
         import.meta.dirname,
         "..",

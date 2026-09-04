@@ -1,6 +1,7 @@
 import { useState, useCallback, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate } from "@/lib/date-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,16 +122,7 @@ export default function HostingRequestsList() {
   };
 
   const formatDateValue = (value: unknown) => {
-    if (!value) return "—";
-
-    const date = value instanceof Date ? value : new Date(String(value));
-    if (Number.isNaN(date.getTime())) return "—";
-
-    return date.toLocaleDateString(ar ? "ar-EG" : "en-GB", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatDate(value as string | Date);
   };
 
   const getTabLabel = (tab: string) => {

@@ -128,6 +128,60 @@ router.get(
   },
 );
 
+// 1b. الحصول على بلاغ صيانة محدد
+router.get(
+  "/maintenance/:id",
+  requirePermission("maintenance", "view"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid maintenance ID" });
+        return;
+      }
+
+      const record = await withTenant(propertyId, async (tenantDb) => {
+        const [found] = await tenantDb
+          .select({
+            id: maintenanceTable.id,
+            roomId: maintenanceTable.roomId,
+            roomNumber: roomsTable.roomNumber,
+            problemType: maintenanceTable.problemType,
+            description: maintenanceTable.description,
+            priority: maintenanceTable.priority,
+            status: maintenanceTable.status,
+            assignedTo: maintenanceTable.assignedTo,
+            reportedBy: maintenanceTable.reportedBy,
+            notes: maintenanceTable.notes,
+            category: maintenanceTable.category,
+            parentId: maintenanceTable.parentId,
+            createdAt: maintenanceTable.createdAt,
+            resolvedAt: maintenanceTable.resolvedAt,
+          })
+          .from(maintenanceTable)
+          .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+          .where(eq(maintenanceTable.id, id))
+          .limit(1);
+        return found;
+      });
+
+      if (!record) {
+        res.status(404).json({ error: "Maintenance request not found" });
+        return;
+      }
+
+      res.json(fmt({ ...record, propertyId }));
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // 2. إنشاء بلاغ صيانة جديد
 router.post(
   "/maintenance",
@@ -400,11 +454,22 @@ router.post(
       }
 
       const { problemType, description, priority, roomId } = req.body;
+      let targetRoomId = roomId ? parseInt(String(roomId)) : null;
+
       const [record] = await withTenant(propertyId, async (tenantDb) => {
+        if (!targetRoomId) {
+          const [parent] = await tenantDb
+            .select({ roomId: maintenanceTable.roomId })
+            .from(maintenanceTable)
+            .where(eq(maintenanceTable.id, parentId))
+            .limit(1);
+          targetRoomId = parent?.roomId ?? null;
+        }
+
         return await tenantDb
           .insert(maintenanceTable)
           .values({
-            roomId: roomId || 0,
+            roomId: targetRoomId,
             problemType: problemType || "General",
             description: description || "",
             priority: priority || "medium",

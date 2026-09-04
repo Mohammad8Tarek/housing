@@ -40,7 +40,14 @@ export function useReportExport({
           "تاريخ التسكين / Check-In": a.checkInDate,
           "انتهاء العقد / Contract End": a.contractEndDate,
           "المغادرة المتوقعة / Expected Out": a.expectedCheckOutDate,
-          "الحالة / Status": a.status,
+          "الحالة / Status":
+            a.status === "VACATION"
+              ? `في إجازة / Vacation${a.vacationEndDate ? ` (حتى ${a.vacationEndDate})` : ""}`
+              : a.status === "CHECKED_OUT" || a.status === "LEFT"
+              ? "مغادر / Checked Out"
+              : a.status === "TRANSFERRED"
+              ? "منقول / Transferred"
+              : `مقيم بالسكن / In-House${a.isEntireRoom ? " (غرفة كاملة)" : ""}`,
         }));
 
       case "vacant_rooms":

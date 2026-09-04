@@ -12,6 +12,7 @@ import { Eye, Key, Pencil, Trash2, ArrowRightLeft, MoreVertical } from "lucide-r
 import { Link } from "wouter";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { StatusBadge } from "./StatusBadge";
+import { formatDate } from "@/lib/date-utils";
 
 interface ProfileGridProps {
   profiles: any[];
@@ -208,9 +209,7 @@ export function ProfileGrid({
                       {ar ? "تاريخ التعيين" : "Hire Date"}
                     </span>
                     <span className="font-medium truncate block text-xs">
-                      {emp.hireDate
-                        ? new Date(emp.hireDate).toLocaleDateString()
-                        : "—"}
+                      {formatDate(emp.hireDate)}
                     </span>
                   </div>
                 </div>

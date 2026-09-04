@@ -1,5 +1,5 @@
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,13 +61,12 @@ export function EditHostingDialog({
             <Label className="text-xs mb-1 block">
               {ar ? "تاريخ البداية" : "Expected From"}
             </Label>
-            <Input
-              type="date"
+            <DateInput
               value={editForm.expectedFrom}
-              onChange={(e) =>
+              onChange={(iso) =>
                 setEditForm((prev) => ({
                   ...prev,
-                  expectedFrom: e.target.value,
+                  expectedFrom: iso,
                 }))
               }
             />
@@ -76,13 +75,12 @@ export function EditHostingDialog({
             <Label className="text-xs mb-1 block">
               {ar ? "تاريخ النهاية" : "Expected To"}
             </Label>
-            <Input
-              type="date"
+            <DateInput
               value={editForm.expectedTo}
-              onChange={(e) =>
+              onChange={(iso) =>
                 setEditForm((prev) => ({
                   ...prev,
-                  expectedTo: e.target.value,
+                  expectedTo: iso,
                 }))
               }
             />

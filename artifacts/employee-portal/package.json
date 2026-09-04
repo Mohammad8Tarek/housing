@@ -26,6 +26,7 @@
     "@tailwindcss/postcss": "^4.2.4",
     "@tanstack/react-query": "catalog:",
     "@workspace/api-client-react": "workspace:*",
+    "@workspace/dates": "workspace:*",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.42.2",

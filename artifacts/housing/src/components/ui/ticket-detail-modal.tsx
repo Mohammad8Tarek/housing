@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { format, differenceInMinutes, differenceInHours } from "date-fns";
+import { formatDate } from "@/lib/date-utils";
 import {
   Play,
   CheckCircle2,
@@ -155,20 +156,18 @@ export default function TicketDetailModal({
     profiles.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
   );
 
-  const reportedDate = ticket.reportedAt
-    ? format(new Date(ticket.reportedAt), "dd MMM yyyy")
-    : "—";
+  const reportedDate = formatDate(ticket.reportedAt);
   const reportedTime = ticket.reportedAt
     ? format(new Date(ticket.reportedAt), "HH:mm")
     : "—";
   const startedDate = ticket.startedAt
-    ? format(new Date(ticket.startedAt), "dd MMM yyyy")
+    ? formatDate(ticket.startedAt)
     : null;
   const startedTime = ticket.startedAt
     ? format(new Date(ticket.startedAt), "HH:mm")
     : null;
   const resolvedDate = ticket.resolvedAt
-    ? format(new Date(ticket.resolvedAt), "dd MMM yyyy")
+    ? formatDate(ticket.resolvedAt)
     : null;
   const resolvedTime = ticket.resolvedAt
     ? format(new Date(ticket.resolvedAt), "HH:mm")

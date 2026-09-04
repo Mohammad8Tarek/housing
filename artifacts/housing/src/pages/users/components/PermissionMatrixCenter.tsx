@@ -52,6 +52,7 @@ import {
   KeyRound,
   RotateCcw,
   Crown,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -261,6 +262,8 @@ export function PermissionMatrixCenter({
         return <BedDouble className="w-5 h-5 text-emerald-500" />;
       case "hosting_requests":
         return <MessageSquare className="w-5 h-5 text-rose-500" />;
+      case "guest_hosting":
+        return <UserPlus className="w-5 h-5 text-purple-600" />;
       case "housekeeping":
         return <HousekeepingIcon className="w-5 h-5 text-orange-500" />;
       case "maintenance":

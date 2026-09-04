@@ -121,12 +121,13 @@ export function ExcelImportDialog({
         "Fourth_Name",
         "Department",
         "Job_Title",
+        "Level",
         "Nationality",
         "Gender",
         "National_ID",
         "Phone",
         "Hire_Date",
-        "Level",
+        "Contract_End_Date",
         "Date_Of_Birth",
         "Address",
       ],
@@ -138,12 +139,13 @@ export function ExcelImportDialog({
         "Hassan",
         "IT",
         "Developer",
+        "1",
         "Saudi",
         "M",
         "1234567890",
         "+966501234567",
         "2024-01-01",
-        "Senior",
+        "2026-01-01",
         "1990-01-01",
         "Riyadh",
       ],
@@ -155,17 +157,18 @@ export function ExcelImportDialog({
         "Sayed",
         "HR",
         "HR Specialist",
+        "2",
         "Egyptian",
         "F",
         "0987654321",
         "+966507654321",
         "2024-03-15",
-        "Junior",
+        "2026-03-15",
         "1995-05-15",
         "Jeddah",
       ],
     ]);
-    ws["!cols"] = Array(13).fill({ wch: 18 });
+    ws["!cols"] = Array(16).fill({ wch: 18 });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Profiles");
     XLSX.writeFile(wb, "profile_import_template.xlsx");
@@ -214,10 +217,10 @@ export function ExcelImportDialog({
   };
 
   const handleImport = () => {
-    const rows: ProfileForm[] = preview.map((r) => ({
+    const rows: ProfileForm[] = preview.map((r: any) => ({
       profileId: String(r.Profile_Code || ""),
       firstName: String(r.First_Name || ""),
-      lastName: String(r.Second_Name || ""),
+      lastName: String(r.Second_Name || r.Last_Name || ""),
       thirdName: String(r.Third_Name || ""),
       fourthName: String(r.Fourth_Name || ""),
       department: String(r.Department || ""),
@@ -227,7 +230,15 @@ export function ExcelImportDialog({
       nationalId: String(r.National_ID || ""),
       phone: String(r.Phone || ""),
       hireDate: String(r.Hire_Date || new Date().toISOString().split("T")[0]),
-      level: String(r.Level || ""),
+      contractEndDate:
+        String(
+          r.Contract_End_Date ||
+            r.Contract_End ||
+            r.contract_end_date ||
+            r.contract_end ||
+            "",
+        ).trim() || undefined,
+      level: String(r.Level ?? "").trim(),
       dateOfBirth: String(r.Date_Of_Birth || ""),
       address: String(r.Address || ""),
       status: "ACTIVE",
@@ -344,9 +355,11 @@ export function ExcelImportDialog({
                           "Last Name",
                           "Dept",
                           "Job Title",
+                          "Level",
                           "Nationality",
                           "Gender",
                           "National ID",
+                          "Contract End",
                           "Date of Birth",
                         ].map((h) => (
                           <th
@@ -359,19 +372,29 @@ export function ExcelImportDialog({
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {preview.map((row, i) => (
+                      {preview.map((row: any, i) => (
                         <tr key={i} className="hover:bg-muted/20">
                           <td className="p-2 font-mono">
-                            {String(row.Profile_Code)}
+                            {String(row.Profile_Code || "")}
                           </td>
-                          <td className="p-2">{String(row.First_Name)}</td>
-                          <td className="p-2">{String(row.Last_Name)}</td>
-                          <td className="p-2">{String(row.Department)}</td>
-                          <td className="p-2">{String(row.Job_Title)}</td>
-                          <td className="p-2">{String(row.Nationality)}</td>
-                          <td className="p-2">{String(row.Gender)}</td>
+                          <td className="p-2">{String(row.First_Name || "")}</td>
+                          <td className="p-2">
+                            {String(row.Second_Name || row.Last_Name || "")}
+                          </td>
+                          <td className="p-2">{String(row.Department || "")}</td>
+                          <td className="p-2">{String(row.Job_Title || "")}</td>
+                          <td className="p-2 font-mono font-semibold">
+                            {String(row.Level ?? "")}
+                          </td>
+                          <td className="p-2">{String(row.Nationality || "")}</td>
+                          <td className="p-2">{String(row.Gender || "")}</td>
                           <td className="p-2 font-mono">
-                            {String(row.National_ID)}
+                            {String(row.National_ID || "")}
+                          </td>
+                          <td className="p-2 font-mono">
+                            {String(
+                              row.Contract_End_Date || row.Contract_End || "",
+                            )}
                           </td>
                           <td className="p-2 font-mono">
                             {String(row.Date_Of_Birth || "")}

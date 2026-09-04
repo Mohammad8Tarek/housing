@@ -307,7 +307,7 @@ export function PortalContactsSection() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, nameAr: e.target.value }))
                   }
-                  placeholder={ar ? "مثال: محمد أحمد" : "e.g. محمد أحمد"}
+                  placeholder={ar ? "مثال: محمد أحمد" : "e.g. Mohamed Ahmed"}
                 />
               </div>
               <div className="space-y-1.5">
@@ -327,7 +327,7 @@ export function PortalContactsSection() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, roleAr: e.target.value }))
                   }
-                  placeholder={ar ? "مثال: مشرف سكن" : "e.g. مشرف سكن"}
+                  placeholder={ar ? "مثال: مشرف سكن" : "e.g. Housing Supervisor"}
                 />
               </div>
               <div className="space-y-1.5">

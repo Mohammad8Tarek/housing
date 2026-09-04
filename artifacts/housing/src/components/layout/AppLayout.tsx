@@ -43,6 +43,7 @@ import {
   Key,
   Award,
   CheckCheck,
+  Laptop,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout, useGetSettings } from "@workspace/api-client-react";
@@ -302,8 +303,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     },
     {
       href: "/accommodation/in-house",
-      label: ar ? "ان هاوس" : "In-House",
+      label: ar ? "المقيمون حالياً" : "In-House",
       icon: BedDouble,
+      permissionModule: "accommodation",
+    },
+    {
+      href: "/accommodation/history",
+      label: ar ? "السجل" : "History",
+      icon: FileText,
       permissionModule: "accommodation",
     },
     {
@@ -316,13 +323,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       href: "/accommodation/guest-hosting",
       label: ar ? "تسكين الاستضافات" : "Guest Housing",
       icon: UserPlus,
-      permissionModule: "accommodation",
-    },
-    {
-      href: "/accommodation/history",
-      label: ar ? "السجل" : "History",
-      icon: FileText,
-      permissionModule: "accommodation",
+      permissionModule: "guest_hosting",
     },
     {
       href: "/housekeeping",
@@ -552,13 +553,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <span className="text-xs font-semibold text-sidebar-primary truncate max-w-[140px]">
                           {activePropertyId === "all"
                             ? ar
-                              ? "كل البروبرتيز"
+                              ? "جميع الفروع"
                               : "All Properties"
                             : activeProperty
                               ? activeProperty.displayName ||
                                 activeProperty.name
                               : ar
-                                ? "اختر بروبرتي"
+                                ? "اختر الفرع"
                                 : "Select Property"}
                         </span>
                         {isSuperAdmin &&
@@ -573,7 +574,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="start">
                       <DropdownMenuLabel className="text-xs text-sidebar-foreground/70 uppercase tracking-wide">
-                        {ar ? "اختر الفرع" : "Switch Property"}
+                        {ar ? "تبديل الفرع / المنشأة" : "Switch Property"}
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {isSuperAdmin && (
@@ -588,11 +589,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             <LayoutGrid className="w-4 h-4 text-violet-600" />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">
-                                {ar ? "كل البروبرتيز" : "All Properties"}
+                                {ar ? "جميع الفروع" : "All Properties"}
                               </p>
                               <p className="text-xs text-sidebar-foreground/70">
                                 {ar
-                                  ? "عرض إجمالي كل الفروع"
+                                  ? "عرض إجمالي لكافة الفروع"
                                   : "Aggregated overview"}
                               </p>
                             </div>
@@ -859,14 +860,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setTheme("light")}>
-                    ☀️ Light
+                  <DropdownMenuItem onClick={() => setTheme("light")} className="gap-2">
+                    <Sun className="h-4 w-4 text-amber-500" />
+                    <span>{ar ? "فاتح" : "Light"}</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("dark")}>
-                    🌙 Dark
+                  <DropdownMenuItem onClick={() => setTheme("dark")} className="gap-2">
+                    <Moon className="h-4 w-4 text-indigo-400" />
+                    <span>{ar ? "داكن" : "Dark"}</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("system")}>
-                    💻 System
+                  <DropdownMenuItem onClick={() => setTheme("system")} className="gap-2">
+                    <Laptop className="h-4 w-4 text-muted-foreground" />
+                    <span>{ar ? "تلقائي (النظام)" : "System"}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

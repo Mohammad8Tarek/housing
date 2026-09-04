@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -56,13 +57,13 @@ export function ReportFilters({
     switch (activeTab) {
       case "housekeeping":
         return [
-          { value: "dirty",         label: "Dirty — Needs Cleaning",  labelAr: "متسخة — تحتاج تنظيف فوري 🧹" },
+          { value: "dirty",         label: "Dirty — Needs Cleaning",  labelAr: "متسخة — تحتاج تنظيف" },
           { value: "occupied_dirty",label: "Occupied — Dirty",        labelAr: "مشغولة ومتسخة" },
-          { value: "available",     label: "Available — Ready",       labelAr: "شاغرة — جاهزة ✅" },
+          { value: "available",     label: "Available — Ready",       labelAr: "شاغرة — جاهزة" },
           { value: "occupied",      label: "Occupied — DND",          labelAr: "مشغولة — لا تزعج" },
-          { value: "maintenance",   label: "Under Maintenance",       labelAr: "تحت الصيانة 🔧" },
-          { value: "out_of_service",label: "Out of Service (OOS)",    labelAr: "خارج الخدمة (OOS)" },
-          { value: "out_of_order",  label: "Out of Order (OOO)",      labelAr: "خارج النظام (OOO)" },
+          { value: "maintenance",   label: "Under Maintenance",       labelAr: "تحت الصيانة" },
+          { value: "out_of_service",label: "Out of Service",          labelAr: "صيانة مؤقتة" },
+          { value: "out_of_order",  label: "Out of Order",            labelAr: "خارج الخدمة" },
         ];
       case "housing":
         return [
@@ -71,27 +72,27 @@ export function ReportFilters({
           { value: "dirty",         label: "Dirty",             labelAr: "متسخة (تحتاج تنظيف)" },
           { value: "occupied_dirty",label: "Occupied — Dirty",  labelAr: "مشغولة ومتسخة" },
           { value: "maintenance",   label: "Maintenance",       labelAr: "صيانة" },
-          { value: "out_of_service",label: "Out of Service",    labelAr: "خارج الخدمة (OOS)" },
-          { value: "out_of_order",  label: "Out of Order",      labelAr: "خارج النظام (OOO)" },
+          { value: "out_of_service",label: "Out of Service",    labelAr: "صيانة مؤقتة" },
+          { value: "out_of_order",  label: "Out of Order",      labelAr: "خارج الخدمة" },
         ];
       case "vacant_rooms":
         return [
-          { value: "available",     label: "Available (Vacant Beds)", labelAr: "شاغرة (بها أسرة فاضية)" },
+          { value: "available",     label: "Available (Vacant Beds)", labelAr: "شاغرة (تتوفر أسِرّة)" },
           { value: "dirty",         label: "Dirty (Needs Cleaning)",  labelAr: "متسخة (تحتاج تنظيف)" },
           { value: "partially",     label: "Partially Occupied",      labelAr: "مشغولة جزئياً" },
         ];
       case "assignments":
         return [
-          { value: "ACTIVE",       label: "Active — In-House",    labelAr: "مقيم بالسكن (ان هاوس)" },
-          { value: "VACATION",     label: "On Vacation",          labelAr: "في إجازة (فيكيشن)" },
-          { value: "CHECKED_OUT",  label: "Checked-Out",          labelAr: "مغادر (شيكاوت)" },
-          { value: "TRANSFERRED",  label: "Transferred / Room Move", labelAr: "منقول (روم موف)" },
+          { value: "ACTIVE",       label: "In-House",             labelAr: "مقيم بالسكن" },
+          { value: "VACATION",     label: "On Vacation",          labelAr: "في إجازة" },
+          { value: "CHECKED_OUT",  label: "Checked-Out",          labelAr: "تمت المغادرة" },
+          { value: "TRANSFERRED",  label: "Transferred",          labelAr: "تم النقل" },
         ];
       case "profiles":
         return [
           { value: "ACTIVE",       label: "Active — In-House",    labelAr: "نشط / مقيم بالسكن" },
           { value: "VACATION",     label: "On Vacation",          labelAr: "في إجازة" },
-          { value: "CHECKED_OUT",  label: "Checked-Out / Left",   labelAr: "مغادر / شيكاوت" },
+          { value: "CHECKED_OUT",  label: "Checked-Out / Left",   labelAr: "مغادر" },
           { value: "NO_ROOM",      label: "Not Assigned",         labelAr: "لم يُسكَّن بعد" },
           { value: "INACTIVE",     label: "Inactive",             labelAr: "غير نشط" },
         ];
@@ -112,7 +113,7 @@ export function ReportFilters({
         ];
       case "maintenance":
         return [
-          { value: "open",        label: "Open",                  labelAr: "مفتوح (جديد)" },
+          { value: "open",        label: "Open",                  labelAr: "مفتوح" },
           { value: "in_progress", label: "In Progress",           labelAr: "قيد التنفيذ" },
           { value: "on_hold",     label: "On Hold",               labelAr: "معلّق" },
           { value: "resolved",    label: "Resolved",              labelAr: "تم الحل" },
@@ -240,9 +241,9 @@ export function ReportFilters({
             <Select value={filterEmploymentType} onValueChange={setFilterEmploymentType}>
               <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={ar ? "الكل" : "All Types"} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "الكل (داخلي + طرف ثالث)" : "All Types"}</SelectItem>
-                <SelectItem value="INTERNAL">{ar ? "🏢 موظف داخلي (فندق)" : "Internal Staff"}</SelectItem>
-                <SelectItem value="THIRD_PARTY">{ar ? "👥 طرف خارجي (ثيرد بارتي)" : "Third-Party"}</SelectItem>
+                <SelectItem value="all">{ar ? "كافة الفئات" : "All Types"}</SelectItem>
+                <SelectItem value="INTERNAL">{ar ? "موظف داخلي" : "Internal Staff"}</SelectItem>
+                <SelectItem value="THIRD_PARTY">{ar ? "طرف ثالث" : "Third-Party"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -256,10 +257,10 @@ export function ReportFilters({
               <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={ar ? "كل الأنواع" : "All Types"} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{ar ? "كل الأنواع" : "All Types"}</SelectItem>
-                <SelectItem value="single">{ar ? "فردي (Single)" : "Single"}</SelectItem>
-                <SelectItem value="double">{ar ? "مزدوج (Double)" : "Double"}</SelectItem>
-                <SelectItem value="triple">{ar ? "ثلاثي (Triple)" : "Triple"}</SelectItem>
-                <SelectItem value="quad">{ar ? "رباعي (Quad)" : "Quad"}</SelectItem>
+                <SelectItem value="single">{ar ? "فردي" : "Single"}</SelectItem>
+                <SelectItem value="double">{ar ? "مزدوج" : "Double"}</SelectItem>
+                <SelectItem value="triple">{ar ? "ثلاثي" : "Triple"}</SelectItem>
+                <SelectItem value="quad">{ar ? "رباعي" : "Quad"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -349,13 +350,13 @@ export function ReportFilters({
         {/* Date From */}
         <div className="space-y-1">
           <Label className="text-[11px] font-bold text-muted-foreground">{ar ? "من تاريخ" : "From Date"}</Label>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 text-xs bg-background" />
+          <DateInput value={dateFrom} onChange={(iso) => setDateFrom(iso)} className="h-9 text-xs bg-background" />
         </div>
 
         {/* Date To */}
         <div className="space-y-1">
           <Label className="text-[11px] font-bold text-muted-foreground">{ar ? "إلى تاريخ" : "To Date"}</Label>
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 text-xs bg-background" />
+          <DateInput value={dateTo} onChange={(iso) => setDateTo(iso)} className="h-9 text-xs bg-background" />
         </div>
       </div>
     </div>

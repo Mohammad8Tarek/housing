@@ -7,6 +7,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -360,11 +361,10 @@ function FoodMenuSection({ propertyId, items, loading, queryClient }) {
               </div>
               <div>
                 <Label>{ar ? "التاريخ" : "Date"}</Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={form.date}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, date: e.target.value }))
+                  onChange={(iso) =>
+                    setForm((f) => ({ ...f, date: iso }))
                   }
                 />
               </div>

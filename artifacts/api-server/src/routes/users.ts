@@ -249,6 +249,65 @@ router.get(
   },
 );
 
+// 1b. الحصول على مستخدم محدد
+router.get(
+  "/users/:id",
+  requirePermission("users", "view"),
+  async (req, res): Promise<void> => {
+    const id = parseInt(String(req.params.id), 10);
+    if (isNaN(id)) {
+      res.status(400).json({ error: "Invalid user ID" });
+      return;
+    }
+
+    const [user] = await db
+      .select({
+        id: usersTable.id,
+        propertyId: usersTable.propertyId,
+        propertyIds: usersTable.propertyIds,
+        username: usersTable.username,
+        email: usersTable.email,
+        phone: usersTable.phone,
+        roles: usersTable.roles,
+        permissions: usersTable.permissions,
+        status: usersTable.status,
+        createdAt: usersTable.createdAt,
+        failedLoginAttempts: usersTable.failedLoginAttempts,
+        lockedUntil: usersTable.lockedUntil,
+        jobTitle: usersTable.jobTitle,
+        hasSignature: userSignaturesTable.id,
+      })
+      .from(usersTable)
+      .leftJoin(
+        userSignaturesTable,
+        eq(usersTable.id, userSignaturesTable.userId),
+      )
+      .where(eq(usersTable.id, id))
+      .limit(1);
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    res.json({
+      id: user.id,
+      propertyId: user.propertyId,
+      propertyIds: user.propertyIds ?? [],
+      username: user.username,
+      email: user.email ?? null,
+      phone: user.phone ?? null,
+      jobTitle: user.jobTitle ?? null,
+      roles: user.roles ?? [],
+      permissions: user.permissions ?? [],
+      hasSignature: !!user.hasSignature,
+      status: user.status || "active",
+      createdAt: user.createdAt,
+      lockedUntil: user.lockedUntil,
+    });
+  },
+);
+
 // 2. إنشاء مستخدم جديد
 router.post(
   "/users",

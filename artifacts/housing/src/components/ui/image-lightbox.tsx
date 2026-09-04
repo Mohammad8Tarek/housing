@@ -11,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
+import { dataUriToBlob } from "@/components/ui/document-preview-modal";
+
 interface ImageLightboxProps {
   src: string | null;
   alt?: string;
@@ -26,6 +28,47 @@ export function ImageLightbox({
 }: ImageLightboxProps) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+  const isImage = src
+    ? src.startsWith("data:image/") ||
+      /\.(png|jpg|jpeg|gif|webp|svg|bmp)(\?|$)/i.test(src)
+    : false;
+
+  const isPdf = src
+    ? src.startsWith("data:application/pdf") || /\.pdf(\?|$)/i.test(src)
+    : false;
+
+  useEffect(() => {
+    if (!src) {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        setBlobUrl(null);
+      }
+      return;
+    }
+
+    if (src.startsWith("blob:") || src.startsWith("http")) {
+      setBlobUrl(src);
+      return;
+    }
+
+    if (src.startsWith("data:")) {
+      const mime = isPdf
+        ? "application/pdf"
+        : isImage
+        ? "image/jpeg"
+        : "application/octet-stream";
+      const blob = dataUriToBlob(src, mime);
+      if (blob.size > 0) {
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      }
+    }
+  }, [src, isPdf, isImage]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -51,17 +94,32 @@ export function ImageLightbox({
     setRotation(0);
   }, [src]);
 
-  const isImage = src
-    ? src.startsWith("data:image/") ||
-      /\.(png|jpg|jpeg|gif|webp|svg|bmp)(\?|$)/i.test(src)
-    : false;
-
   const handleDownload = () => {
     if (!src) return;
     const a = document.createElement("a");
-    a.href = src;
-    a.download = fileName || "document";
+    a.href = blobUrl || src;
+    a.download = fileName || (isPdf ? "document.pdf" : "image.jpg");
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleOpenNewTab = () => {
+    if (blobUrl) {
+      window.open(blobUrl, "_blank");
+    } else if (src) {
+      if (src.startsWith("data:")) {
+        const blob = dataUriToBlob(
+          src,
+          isPdf ? "application/pdf" : "application/octet-stream",
+        );
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      } else {
+        window.open(src, "_blank");
+      }
+    }
   };
 
   return (
@@ -143,7 +201,7 @@ export function ImageLightbox({
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={() => window.open(src || "", "_blank")}
+              onClick={handleOpenNewTab}
               title="Open in new tab"
             >
               <ExternalLink className="w-4 h-4" />
@@ -161,14 +219,14 @@ export function ImageLightbox({
         </div>
 
         {/* Image/Content */}
-        <div className="relative z-10 flex items-center justify-center w-full h-full p-16 pointer-events-none">
+        <div className="relative z-10 flex items-center justify-center w-full h-full p-4 sm:p-12 pointer-events-none">
           {isImage ? (
             <div
               className="overflow-auto max-w-full max-h-full flex items-center justify-center pointer-events-auto"
               style={{ cursor: zoom > 1 ? "grab" : "default" }}
             >
               <img
-                src={src || ""}
+                src={blobUrl || src || ""}
                 alt={alt}
                 draggable={false}
                 className="rounded-lg shadow-2xl object-contain transition-transform duration-200"
@@ -177,6 +235,14 @@ export function ImageLightbox({
                   maxWidth: zoom <= 1 ? "min(90vw, 1000px)" : undefined,
                   maxHeight: zoom <= 1 ? "80vh" : undefined,
                 }}
+              />
+            </div>
+          ) : isPdf ? (
+            <div className="w-full max-w-4xl h-[82vh] rounded-xl overflow-hidden shadow-2xl bg-card pointer-events-auto border border-white/10 flex flex-col">
+              <iframe
+                src={`${blobUrl || src}#toolbar=1`}
+                title={fileName || "PDF Viewer"}
+                className="w-full h-full border-0 bg-background"
               />
             </div>
           ) : (
@@ -197,7 +263,7 @@ export function ImageLightbox({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => window.open(src || "", "_blank")}
+                  onClick={handleOpenNewTab}
                 >
                   <ExternalLink className="w-3.5 h-3.5 mr-1" /> Open
                 </Button>

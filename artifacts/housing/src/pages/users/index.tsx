@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import {
   useListUsers,
   useListProperties,
+  useDeleteUser,
   getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,6 +11,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useDebounce } from "@/hooks/use-debounce";
+import { getExportFileName } from "@/lib/date-utils";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -246,7 +249,7 @@ export default function UsersPage() {
     {
       key: "property",
       label: "Property",
-      labelAr: "البروبرتي",
+      labelAr: "الفرع",
       defaultVisible: true,
     },
     {
@@ -318,8 +321,20 @@ export default function UsersPage() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Users");
-    XLSX.writeFile(wb, `users_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, getExportFileName("Users", "xlsx"));
   };
+
+  const bulkDeleteUserMutation = useDeleteUser({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+        toast.success(ar ? "تم حذف المستخدمين المحددين" : "Selected users deleted");
+      },
+      onError: (err: any) => {
+        toast.error(err?.message || (ar ? "فشل حذف المستخدمين" : "Failed to delete users"));
+      },
+    },
+  });
 
   return (
     <div className="space-y-6" dir={ar ? "rtl" : "ltr"}>
@@ -585,7 +600,7 @@ export default function UsersPage() {
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {ar
-              ? "الصلاحيات اتقسمت حسب شغل الفندق بدل أسماء تقنية صعبة."
+              ? "تنظيم وتصنيف الصلاحيات وفقاً لدورات العمل الفندقية والتشغيلية المعتمدة."
               : "Permissions are grouped by hotel workflows, not technical screens."}
           </p>
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -685,6 +700,32 @@ export default function UsersPage() {
         onClear={() => setSelectedRows(new Set())}
         onExportExcel={exportUserExcel}
         ar={ar}
+        extraActions={
+          <PermissionGate module="settings" action="delete">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    ar
+                      ? `هل أنت متأكد من حذف ${selectedRows.size} مستخدم محدد؟`
+                      : `Are you sure you want to delete ${selectedRows.size} selected users?`
+                  )
+                ) {
+                  selectedRows.forEach((id) =>
+                    bulkDeleteUserMutation.mutate({ id })
+                  );
+                  setSelectedRows(new Set());
+                }
+              }}
+              className="gap-1.5 h-8 text-xs font-semibold"
+            >
+              <Trash className="w-3.5 h-3.5" />
+              {ar ? "حذف المحدد" : "Delete Selected"}
+            </Button>
+          </PermissionGate>
+        }
       />
 
       {/* ── Results count ── */}
@@ -769,7 +810,7 @@ export default function UsersPage() {
                 )}
                 {isUVisible("property") && isSuperAdmin && (
                   <TableHead className="font-semibold">
-                    {ar ? "البروبرتي" : "Property"}
+                    {ar ? "الفرع" : "Property"}
                   </TableHead>
                 )}
                 {isUVisible("permissions") && (
@@ -999,7 +1040,7 @@ export default function UsersPage() {
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 w-fit">
                                     <Crown className="w-3.5 h-3.5 text-amber-500" />
                                     <span>
-                                      {ar ? "سوبر أدمن (كامل)" : "Super Admin (Full)"}
+                                      {ar ? "مدير النظام (شامل)" : "Super Admin (Full)"}
                                     </span>
                                   </span>
                                 );

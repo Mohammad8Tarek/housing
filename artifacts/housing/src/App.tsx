@@ -35,7 +35,7 @@ const RoomAssignment = lazy(
 const GuestHosting = lazy(() => import("@/pages/accommodation/guest-hosting"));
 const History = lazy(() => import("@/pages/accommodation/history"));
 const Housekeeping = lazy(() => import("@/pages/housekeeping"));
-const Tickets = lazy(() => import("@/pages/maintenance"));
+const Maintenance = lazy(() => import("@/pages/maintenance"));
 const Reports = lazy(() => import("@/pages/reports"));
 const Users = lazy(() => import("@/pages/users"));
 const ActivityLog = lazy(() => import("@/pages/activity-log"));
@@ -215,7 +215,7 @@ function Router() {
           </PermissionLayout>
         </Route>
         <Route path="/accommodation/guest-hosting">
-          <PermissionLayout module="accommodation">
+          <PermissionLayout module="guest_hosting">
             <GuestHosting />
           </PermissionLayout>
         </Route>
@@ -234,7 +234,7 @@ function Router() {
         </Route>
         <Route path="/maintenance">
           <PermissionLayout module="maintenance">
-            <Tickets />
+            <Maintenance />
           </PermissionLayout>
         </Route>
         <Route path="/reports">

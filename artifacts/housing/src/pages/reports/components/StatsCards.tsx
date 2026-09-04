@@ -26,14 +26,14 @@ export function StatsCards({ stats, isLoading, ar }: StatsCardsProps) {
       bg: "bg-card",
     },
     {
-      label: ar ? "الأسرة الشاغرة (المتاحة)" : "Vacant Beds (Avail.)",
+      label: ar ? "الأسِرّة الشاغرة" : "Vacant Beds",
       value: stats.vacantBeds,
       sub: ar ? `${stats.vacantRooms} غرفة شاغرة` : `${stats.vacantRooms} vacant rooms`,
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40",
     },
     {
-      label: ar ? "المقيمين حالياً (In-House)" : "Current Occupants",
+      label: ar ? "المقيمون حالياً" : "Current Occupants",
       value: stats.activeAss,
       sub: ar ? `${stats.occupiedRooms} غرفة مشغولة` : `${stats.occupiedRooms} rooms occ.`,
       color: "text-blue-600 dark:text-blue-400",
@@ -54,7 +54,7 @@ export function StatsCards({ stats, isLoading, ar }: StatsCardsProps) {
       bg: "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/40",
     },
     {
-      label: ar ? "حجوزات وصول قادمة" : "Arrival Reservations",
+      label: ar ? "حجوزات مستقبلية" : "Future Reservations",
       value: stats.upcomingRes,
       sub: ar ? "تنتظر التسكين" : "Awaiting check-in",
       color: "text-purple-600 dark:text-purple-400",

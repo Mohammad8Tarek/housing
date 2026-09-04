@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -211,9 +212,7 @@ export function PortalAccountsSection() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {acc.lastLoginAt
-                      ? new Date(acc.lastLoginAt).toLocaleDateString(
-                          ar ? "ar-EG" : "en-GB",
-                        )
+                      ? formatDate(acc.lastLoginAt)
                       : ar
                         ? "لم يدخل بعد"
                         : "Never"}

@@ -2,6 +2,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useState } from "react";
 import {
@@ -14,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -297,8 +299,8 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
       propLogoUrl,
       title: pdfTextSafe(data.titleAr || data.title) || "Report",
       subtitle: data.period
-        ? `${pdfTextSafe(data.period.from?.split("T")[0] || "")} — ${pdfTextSafe(data.period.to?.split("T")[0] || "")}`
-        : new Date().toLocaleDateString(),
+        ? `${pdfTextSafe(formatDate(data.period.from))} — ${pdfTextSafe(formatDate(data.period.to))}`
+        : formatDate(new Date()),
       pageW,
     });
 
@@ -615,7 +617,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
     }
 
     drawPdfFooter(doc, pageW);
-    doc.save(`report-${data.type || "export"}-${Date.now()}.pdf`);
+    doc.save(getExportFileName(`Portal_Report_${data.type || "export"}`, "pdf"));
   };
 
   const toggleSection = (key: string) => {
@@ -899,22 +901,20 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
 
             <div className="space-y-2">
               <Label>{ar ? "من التاريخ" : "From Date"}</Label>
-              <Input
-                type="date"
+              <DateInput
                 value={reportConfig.dateFrom}
-                onChange={(e) =>
-                  setReportConfig({ ...reportConfig, dateFrom: e.target.value })
+                onChange={(iso) =>
+                  setReportConfig({ ...reportConfig, dateFrom: iso })
                 }
               />
             </div>
 
             <div className="space-y-2">
               <Label>{ar ? "إلى التاريخ" : "To Date"}</Label>
-              <Input
-                type="date"
+              <DateInput
                 value={reportConfig.dateTo}
-                onChange={(e) =>
-                  setReportConfig({ ...reportConfig, dateTo: e.target.value })
+                onChange={(iso) =>
+                  setReportConfig({ ...reportConfig, dateTo: iso })
                 }
               />
             </div>
@@ -1271,7 +1271,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {act.category || "—"} —{" "}
-                          {act.startDate?.split("T")[0] || "—"}
+                          {formatDate(act.startDate, "—")}
                         </p>
                       </div>
                       <Badge

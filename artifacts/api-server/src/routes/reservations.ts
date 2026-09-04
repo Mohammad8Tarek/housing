@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, withTenant, reservationsTable, roomsTable, assignmentsTable, profilesTable } from "@workspace/db";
-import { eq, and, sql, SQL, desc, ilike } from "drizzle-orm";
+import { eq, and, sql, SQL, desc, ilike, ne, or, inArray } from "drizzle-orm";
 import {
   CreateReservationBody,
   UpdateReservationBody,
@@ -72,10 +72,12 @@ router.get(
     );
     const offset = (page - 1) * limit;
     const search = (req.query.search as string) || "";
+    const excludeStatus = (req.query.excludeStatus as string) || "";
 
-    if (query.success) {
-      if (query.data.status)
-        conditions.push(eq(reservationsTable.status, query.data.status));
+    if (query.success && query.data.status && query.data.status !== "all") {
+      conditions.push(eq(reservationsTable.status, query.data.status));
+    } else if (excludeStatus) {
+      conditions.push(ne(reservationsTable.status, excludeStatus));
     }
     
     if (search.trim()) {
@@ -94,8 +96,37 @@ router.get(
       const totalCount = Number(countResult[0]?.count ?? 0);
 
       let baseQuery = tenantDb
-        .select()
+        .select({
+          id: reservationsTable.id,
+          roomId: reservationsTable.roomId,
+          roomType: reservationsTable.roomType,
+          firstName: reservationsTable.firstName,
+          lastName: reservationsTable.lastName,
+          checkInDate: reservationsTable.checkInDate,
+          checkOutDate: reservationsTable.checkOutDate,
+          notes: reservationsTable.notes,
+          guestIdCardNumber: reservationsTable.guestIdCardNumber,
+          guestPhone: reservationsTable.guestPhone,
+          jobTitle: reservationsTable.jobTitle,
+          department: reservationsTable.department,
+          nationality: reservationsTable.nationality,
+          gender: reservationsTable.gender,
+          profileCode: reservationsTable.profileCode,
+          level: reservationsTable.level,
+          bedNumber: reservationsTable.bedNumber,
+          status: reservationsTable.status,
+          employmentType: sql<string>`COALESCE(NULLIF(${reservationsTable.employmentType}, ''), ${profilesTable.employmentType}, 'INTERNAL')`,
+          companyName: sql<string>`COALESCE(NULLIF(${reservationsTable.companyName}, ''), ${profilesTable.companyName}, '')`,
+          createdAt: reservationsTable.createdAt,
+        })
         .from(reservationsTable)
+        .leftJoin(
+          profilesTable,
+          or(
+            and(ne(reservationsTable.profileCode, ""), eq(reservationsTable.profileCode, profilesTable.profileId)),
+            and(ne(reservationsTable.guestIdCardNumber, ""), eq(reservationsTable.guestIdCardNumber, profilesTable.nationalId))
+          )
+        )
         .orderBy(desc(reservationsTable.createdAt))
         .limit(limit)
         .offset(offset) as any;
@@ -152,9 +183,81 @@ router.post(
         const jt = cleanText(body.jobTitle, 120);
         const rt = cleanText(body.roomType, 80);
         const notes = cleanText(body.notes, 2000);
+        const empType = cleanText(body.employmentType, 50) || (cleanText(body.department, 120) === "طرف ثالث" ? "THIRD_PARTY" : "INTERNAL");
+        const compName = cleanText(body.companyName, 200) || "";
 
         const rId = body.roomId ? parseInt(body.roomId) : null;
         const bedNum = body.bedNumber ? String(body.bedNumber) : null;
+
+        // ── 0. منع تكرار الحجز (Duplicate Reservation Protection) ─────────────
+        const checkIn = body.checkInDate ? String(body.checkInDate).slice(0, 10) : null;
+        if (checkIn) {
+          const duplicateConditions: SQL[] = [];
+          if (code) {
+            duplicateConditions.push(eq(reservationsTable.profileCode, code));
+          }
+          if (idNum) {
+            duplicateConditions.push(eq(reservationsTable.guestIdCardNumber, idNum));
+          }
+          if (fn && ln) {
+            duplicateConditions.push(
+              and(
+                ilike(reservationsTable.firstName, fn),
+                ilike(reservationsTable.lastName, ln),
+              )!
+            );
+          }
+
+          if (duplicateConditions.length > 0) {
+            const existingRes = await tenantDb
+              .select({
+                id: reservationsTable.id,
+                status: reservationsTable.status,
+                checkInDate: reservationsTable.checkInDate,
+              })
+              .from(reservationsTable)
+              .where(
+                and(
+                  or(...duplicateConditions),
+                  eq(reservationsTable.checkInDate, checkIn),
+                  inArray(reservationsTable.status, ["UPCOMING", "CONFIRMED", "PENDING"]),
+                ),
+              )
+              .limit(1);
+
+            if (existingRes.length > 0) {
+              return {
+                error: `يوجد حجز نشط مسبقاً لهذا النزيل بنفس تاريخ الوصول (${checkIn}). لا يمكن إنشاء حجز مكرر.`,
+                code: "RESERVATION_DUPLICATE",
+                status: 409,
+              };
+            }
+          }
+        }
+
+        if (rId && bedNum && bedNum !== "ALL" && checkIn) {
+          const [existingBedRes] = await tenantDb
+            .select({ id: reservationsTable.id, firstName: reservationsTable.firstName, lastName: reservationsTable.lastName })
+            .from(reservationsTable)
+            .where(
+              and(
+                eq(reservationsTable.roomId, rId),
+                eq(reservationsTable.bedNumber, bedNum),
+                eq(reservationsTable.checkInDate, checkIn),
+                inArray(reservationsTable.status, ["UPCOMING", "CONFIRMED", "PENDING"]),
+              ),
+            )
+            .limit(1);
+
+          if (existingBedRes) {
+            return {
+              error: `السرير رقم ${bedNum} في هذه الغرفة محجوز بالفعل لنفس تاريخ الوصول للنزيل (${existingBedRes.firstName} ${existingBedRes.lastName}).`,
+              code: "BED_ALREADY_RESERVED",
+              status: 409,
+            };
+          }
+        }
+
         let finalNotes = notes;
         if (bedNum === "ALL") {
           finalNotes = `[حجز الغرفة بالكامل] ${finalNotes}`.trim();
@@ -166,11 +269,11 @@ router.post(
         INSERT INTO reservations
           (room_id, first_name, last_name, room_type, check_in_date, check_out_date,
            notes, guest_id_card_number, guest_phone, job_title, department,
-           status, nationality, gender, profile_code, level)
+           status, nationality, gender, profile_code, level, employment_type, company_name)
         VALUES
           (${rId}, ${fn}, ${ln}, ${rt}, ${body.checkInDate ?? null}, ${body.checkOutDate ?? null},
            ${finalNotes}, ${idNum}, ${phone}, ${jt}, ${dept},
-           'UPCOMING', ${nat}, ${gen}, ${code}, ${lvl})
+           'UPCOMING', ${nat}, ${gen}, ${code}, ${lvl}, ${empType}, ${compName})
         RETURNING *
       `)) as any;
         const rows = Array.isArray(insertRes)
@@ -181,6 +284,11 @@ router.post(
 
       if (!result) {
         res.status(500).json({ error: "Insert failed" });
+        return;
+      }
+
+      if ("error" in result && result.error) {
+        res.status(result.status || 400).json({ error: result.error, code: result.code });
         return;
       }
 
@@ -271,12 +379,39 @@ router.patch(
         return;
       }
 
+      const body = req.body as any;
+      const updateData: Record<string, any> = { ...parsed.data };
+      if (body.firstName !== undefined) updateData.firstName = cleanText(body.firstName, 120);
+      if (body.lastName !== undefined) updateData.lastName = cleanText(body.lastName, 120);
+      if (body.guestIdCardNumber !== undefined) updateData.guestIdCardNumber = cleanText(body.guestIdCardNumber, 120);
+      if (body.guestPhone !== undefined) updateData.guestPhone = cleanText(body.guestPhone, 80);
+      if (body.department !== undefined) updateData.department = cleanText(body.department, 120);
+      if (body.jobTitle !== undefined) updateData.jobTitle = cleanText(body.jobTitle, 120);
+      if (body.nationality !== undefined) updateData.nationality = cleanText(body.nationality, 120);
+      if (body.gender !== undefined) updateData.gender = cleanText(body.gender, 20);
+      if (body.level !== undefined) updateData.level = cleanText(body.level, 80);
+      if (body.employmentType !== undefined) updateData.employmentType = cleanText(body.employmentType, 50);
+      if (body.companyName !== undefined) updateData.companyName = cleanText(body.companyName, 200);
+
       const [updated] = await withTenant(propertyId, async (tenantDb) => {
-        return await tenantDb
+        const [res] = await tenantDb
           .update(reservationsTable)
-          .set(parsed.data as any)
+          .set(updateData)
           .where(eq(reservationsTable.id, params.data.id))
           .returning();
+
+        if (res && (body.employmentType !== undefined || body.companyName !== undefined)) {
+          const pUpdate: Record<string, any> = {};
+          if (body.employmentType !== undefined) pUpdate.employmentType = cleanText(body.employmentType, 50);
+          if (body.companyName !== undefined) pUpdate.companyName = cleanText(body.companyName, 200);
+
+          if (res.profileCode) {
+            await tenantDb.update(profilesTable).set(pUpdate).where(eq(profilesTable.profileId, res.profileCode));
+          } else if (res.guestIdCardNumber) {
+            await tenantDb.update(profilesTable).set(pUpdate).where(eq(profilesTable.nationalId, res.guestIdCardNumber));
+          }
+        }
+        return [res];
       });
 
       if (!updated) {
@@ -471,7 +606,8 @@ router.post(
 
         // 3. Create profile if it didn't exist
         if (!profile) {
-          const newProfileId = pCode || `GUEST-${Date.now().toString().slice(-5)}`;
+          const isTP = (current as any).employmentType === "THIRD_PARTY" || current.department === "طرف ثالث";
+          const newProfileId = pCode || `${isTP ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
           const [created] = await tenantDb
             .insert(profilesTable)
             .values({
@@ -480,18 +616,25 @@ router.post(
               lastName: current.lastName.trim(),
               nationalId: current.guestIdCardNumber || "",
               phone: current.guestPhone || "",
-              department: current.department || "",
+              department: current.department || (isTP ? "طرف ثالث" : ""),
               jobTitle: current.jobTitle || "",
               nationality: (current as any).nationality || "",
               gender: (current as any).gender || "M",
+              hireDate: current.checkInDate || new Date().toISOString().split("T")[0],
               status: "ACTIVE",
+              employmentType: isTP ? "THIRD_PARTY" : ((current as any).employmentType || "INTERNAL"),
+              companyName: (current as any).companyName || "",
             } as any)
             .returning();
           profile = created;
         } else {
           await tenantDb
             .update(profilesTable)
-            .set({ status: "ACTIVE" })
+            .set({
+              status: "ACTIVE",
+              ...((current as any).employmentType ? { employmentType: (current as any).employmentType } : {}),
+              ...((current as any).companyName ? { companyName: (current as any).companyName } : {}),
+            })
             .where(eq(profilesTable.id, profile.id));
         }
 

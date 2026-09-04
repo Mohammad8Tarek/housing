@@ -130,7 +130,7 @@ router.post(
       return await tenantDb
         .select({ id: buildingsTable.id })
         .from(buildingsTable)
-        .where(eq(buildingsTable.name, parsed.data.name));
+        .where(ilike(buildingsTable.name, parsed.data.name.trim()));
     });
     if (existingBuilding.length > 0) {
       res.status(409).json({
@@ -194,7 +194,7 @@ router.patch(
           return await tenantDb
             .select({ id: buildingsTable.id })
             .from(buildingsTable)
-            .where(eq(buildingsTable.name, parsed.data.name!));
+            .where(ilike(buildingsTable.name, parsed.data.name!.trim()));
         },
       );
       const conflict = existingBuilding.find((b) => b.id !== params.data.id);

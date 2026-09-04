@@ -1,5 +1,6 @@
 import { RoomImportWizard } from "./housing/components/import/RoomImportWizard";
 import * as XLSX from "xlsx";
+import { getExportFileName } from "@/lib/date-utils";
 import {
   detectColumnField,
   validateAndNormalizeRows,
@@ -426,10 +427,7 @@ const closeDialog = () => {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Properties");
-    XLSX.writeFile(
-      wb,
-      `properties_${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+    XLSX.writeFile(wb, getExportFileName("Properties", "xlsx"));
   };
 
   return (

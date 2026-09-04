@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { getExportFileName } from "@/lib/date-utils";
 
 export const exportExcel = (activeTab: string, rows: Record<string, any>[]) => {
   if (!rows.length) return;
@@ -11,7 +12,7 @@ export const exportExcel = (activeTab: string, rows: Record<string, any>[]) => {
   );
   XLSX.writeFile(
     wb,
-    `${activeTab}_report_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    getExportFileName(`${activeTab}_Report`, "xlsx"),
   );
 };
 
@@ -176,7 +177,7 @@ export const exportPDF = async (
       fontStyle: "bold",
     },
   });
-  doc.save(`${activeTab}_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(getExportFileName(`${activeTab}_Report`, "pdf"));
 };
 
 export const exportAnalyticsPDF = async (
@@ -538,5 +539,5 @@ export const exportAnalyticsPDF = async (
     drawFooter();
   }
 
-  doc.save(`analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(getExportFileName("Analytics_Report", "pdf"));
 };

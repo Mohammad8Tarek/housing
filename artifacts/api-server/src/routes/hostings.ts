@@ -9,7 +9,7 @@ import {
   buildingsTable,
   floorsTable,
 } from "@workspace/db";
-import { eq, and, inArray, SQL, sql } from "drizzle-orm";
+import { eq, and, inArray, SQL, sql, or, ne, ilike, desc, count } from "drizzle-orm";
 import {
   CreateHostingBody,
   UpdateHostingBody,
@@ -142,7 +142,7 @@ async function fetchCompanions(tenantDb: any, hostingId: number) {
 
 router.get(
   "/hostings",
-  requirePermission("accommodation", "view"),
+  requirePermission("guest_hosting", "view"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -151,134 +151,111 @@ router.get(
     }
 
     try {
-      const query = ListHostingsQueryParams.safeParse(req.query);
-      const conditions: SQL[] = [];
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 25));
+      const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 50));
       const offset = (page - 1) * limit;
-      const search = (req.query.search as string) || "";
-      const excludeStatus = (req.query.excludeStatus as string) || "";
 
-      if (query.success) {
-        if (query.data.status)
-          conditions.push(eq(hostingsTable.status, query.data.status));
-      }
-      if (excludeStatus) {
-        conditions.push(sql`${hostingsTable.status} != ${excludeStatus}`);
+      const whereClauses: any[] = [];
+      const countClauses: any[] = [];
+
+      if (req.query.status) {
+        whereClauses.push(eq(hostingsTable.status, req.query.status as any));
+        countClauses.push(eq(hostingsTable.status, req.query.status as any));
+      } else if (req.query.excludeStatus) {
+        whereClauses.push(ne(hostingsTable.status, req.query.excludeStatus as any));
+        countClauses.push(ne(hostingsTable.status, req.query.excludeStatus as any));
       }
 
-      if (search.trim()) {
-        conditions.push(
-          sql`EXISTS (
-            SELECT 1 FROM profiles e 
-            WHERE e.id = ${hostingsTable.profileId} 
-            AND (e.first_name ILIKE ${`%${search}%`} OR e.last_name ILIKE ${`%${search}%`} OR e.profile_id ILIKE ${`%${search}%`})
-          )`
+      const search = (req.query.search as string)?.trim();
+      if (search) {
+        const searchCondition = or(
+          ilike(profilesTable.firstName, `%${search}%`),
+          ilike(profilesTable.lastName, `%${search}%`),
+          ilike(profilesTable.profileId, `%${search}%`),
+          ilike(roomsTable.roomNumber, `%${search}%`)
         );
+        whereClauses.push(searchCondition);
+        countClauses.push(searchCondition);
       }
 
-      const { hostings, companions, total } = await withTenant(
-        propertyId,
-        async (tenantDb) => {
-          let countQuery = tenantDb
-            .select({ count: sql<number>`count(*)` })
-            .from(hostingsTable) as any;
-          if (conditions.length > 0)
-            countQuery = countQuery.where(and(...conditions));
-          const countResult = await countQuery;
-          const totalCount = Number(countResult[0]?.count ?? 0);
+      const result = await withTenant(propertyId, async (tenantDb) => {
+        // Query paginated records with relations
+        const rows = await tenantDb
+          .select({
+            hosting: hostingsTable,
+            profile: profilesTable,
+            room: roomsTable,
+            building: buildingsTable,
+            floor: floorsTable,
+          })
+          .from(hostingsTable)
+          .leftJoin(profilesTable, eq(hostingsTable.profileId, profilesTable.id))
+          .leftJoin(roomsTable, eq(hostingsTable.roomId, roomsTable.id))
+          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
+          .where(whereClauses.length > 0 ? and(...whereClauses) : undefined)
+          .orderBy(desc(hostingsTable.id))
+          .limit(limit)
+          .offset(offset);
 
-          let hostingsQuery = tenantDb
-            .select({
-              hosting: hostingsTable,
-              profile: profilesTable,
-              room: roomsTable,
-              building: buildingsTable,
-              floor: floorsTable,
-            })
-            .from(hostingsTable)
-            .leftJoin(
-              profilesTable,
-              eq(hostingsTable.profileId, profilesTable.id),
-            )
-            .leftJoin(roomsTable, eq(hostingsTable.roomId, roomsTable.id))
-            .leftJoin(
-              buildingsTable,
-              eq(roomsTable.buildingId, buildingsTable.id),
-            )
-            .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
-            .orderBy(sql`${hostingsTable.createdAt} DESC`)
-            .limit(limit)
-            .offset(offset);
+        // Count query
+        const countQuery = tenantDb
+          .select({ total: count() })
+          .from(hostingsTable)
+          .leftJoin(profilesTable, eq(hostingsTable.profileId, profilesTable.id))
+          .leftJoin(roomsTable, eq(hostingsTable.roomId, roomsTable.id));
 
-          const rows =
-            conditions.length > 0
-              ? await hostingsQuery.where(and(...conditions))
-              : await hostingsQuery;
+        const [{ total }] = await (countClauses.length > 0 
+          ? countQuery.where(and(...countClauses)) 
+          : countQuery);
 
-          const hostingIds = rows.map((r) => r.hosting.id);
-          const companionsList =
-            hostingIds.length > 0
-              ? await tenantDb
-                  .select()
-                  .from(hostingCompanionsTable)
-                  .where(inArray(hostingCompanionsTable.hostingId, hostingIds))
-              : [];
+        const hostingIds = rows.map((r) => r.hosting.id);
+        const companions =
+          hostingIds.length > 0
+            ? await tenantDb
+                .select()
+                .from(hostingCompanionsTable)
+                .where(inArray(hostingCompanionsTable.hostingId, hostingIds))
+            : [];
 
-          return { hostings: rows, companions: companionsList, total: totalCount };
-        },
-      );
+        const companionMap = new Map<number, any[]>();
+        for (const c of companions) {
+          const arr = companionMap.get(c.hostingId) ?? [];
+          arr.push(fmtCompanion(c));
+          companionMap.set(c.hostingId, arr);
+        }
 
-      const companionsByHosting = new Map<number, any[]>();
-      companions.forEach((c) => {
-        const list = companionsByHosting.get(c.hostingId) ?? [];
-        list.push(fmtCompanion(c));
-        companionsByHosting.set(c.hostingId, list);
-      });
-
-      const enriched = hostings.map(
-        ({ hosting, profile, room, building, floor }) => {
-          const comps = companionsByHosting.get(hosting.id) ?? [];
-          const base = fmtHosting({
-            ...hosting,
-            propertyId,
-            companions: comps,
-          });
-          const parsedBase = ListHostingsResponse.parse([base])[0];
-
+        const data = rows.map((r) => {
+          const h = fmtHosting(r.hosting);
           return {
-            ...parsedBase,
-            companions: comps,
-            profile: profile ? fmtRelated(profile) : null,
-            room: room
+            ...h,
+            profile: r.profile ? fmtRelated(r.profile) : null,
+            room: r.room
               ? {
-                  ...fmtRelated(room),
-                  buildingName: building?.name ?? null,
-                  buildingLocation: building?.location ?? null,
-                  floorNumber: floor?.floorNumber ?? null,
-                  floorDescription: floor?.description ?? null,
+                  ...fmtRelated(r.room),
+                  buildingName: r.building?.name ?? null,
+                  floorNumber: r.floor?.floorNumber ?? null,
                 }
               : null,
+            companions: companionMap.get(r.hosting.id) ?? [],
+            propertyId,
           };
-        },
-      );
+        });
+
+        return { data, total };
+      });
 
       res.json({
-        data: enriched,
+        data: result.data,
         pagination: {
-          total,
+          total: Number(result.total),
           page,
           limit,
-          totalPages: Math.ceil(total / limit),
-          hasNextPage: page < Math.ceil(total / limit),
-          hasPrevPage: page > 1,
+          totalPages: Math.ceil(Number(result.total) / limit),
         }
       });
     } catch (error: any) {
-      console.error(
-        "[Hostings API] Error fetching hostings:",
-        error.message || error,
-      );
+      console.error("[List Hostings API] Error:", error.message || error);
       res.status(500).json({ error: "Failed to fetch hostings" });
     }
   },
@@ -286,7 +263,7 @@ router.get(
 
 router.post(
   "/hostings",
-  requirePermission("accommodation", "create"),
+  requirePermission("guest_hosting", "create"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -315,18 +292,61 @@ router.post(
       return;
     }
 
+    const fromDate = new Date(data.expectedFrom);
+    const toDate = new Date(data.expectedTo);
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      res.status(400).json({ error: "Invalid date format for expectedFrom or expectedTo" });
+      return;
+    }
+    if (toDate.getTime() < fromDate.getTime()) {
+      res.status(400).json({
+        error: "تاريخ نهاية الاستضافة يجب أن يكون بعد تاريخ البداية / Expected end date must be on or after start date",
+      });
+      return;
+    }
+
     const result = await withTenant(propertyId, async (tenantDb) => {
+      // Check for overlapping active hostings for this profile
+      const overlapping = await tenantDb
+        .select({ id: hostingsTable.id })
+        .from(hostingsTable)
+        .where(
+          and(
+            eq(hostingsTable.profileId, data.profileId),
+            or(eq(hostingsTable.status, "PENDING"), eq(hostingsTable.status, "APPROVED"), eq(hostingsTable.status, "CHECKED_IN")),
+            sql`${hostingsTable.expectedFrom} <= ${data.expectedTo} AND ${hostingsTable.expectedTo} >= ${data.expectedFrom}`
+          )
+        )
+        .limit(1);
+
+      if (overlapping.length > 0) {
+        return {
+          conflict: true,
+          customError: `يوجد طلب استضافة نشط لهذا الموظف في نفس الفترة (طلب #${overlapping[0].id})`,
+        } as const;
+      }
+
       if (data.roomId) {
         const [room] = await tenantDb
           .select({
             currentOccupancy: roomsTable.currentOccupancy,
             capacity: roomsTable.capacity,
+            roomNumber: roomsTable.roomNumber,
           })
           .from(roomsTable)
           .where(eq(roomsTable.id, data.roomId))
           .limit(1);
-        if (room && room.currentOccupancy >= room.capacity) {
-          return { conflict: true, customError: "Cannot create hosting: Room is fully occupied." } as const;
+        if (room) {
+          const guestsCount = Math.max(1, data.guestsCount || (companions ? companions.length : 1));
+          if (guestsCount > room.capacity) {
+            return {
+              conflict: true,
+              customError: `عدد الضيوف والمرافقين (${guestsCount}) يتجاوز سعة الغرفة #${room.roomNumber} (${room.capacity} أفراد)`,
+            } as const;
+          }
+          if (room.currentOccupancy >= room.capacity) {
+            return { conflict: true, customError: `الغرفة #${room.roomNumber} ممتلئة بالكامل.` } as const;
+          }
         }
       }
 
@@ -386,7 +406,7 @@ router.post(
 // GET /hostings/:id — Fetch single hosting with profile, room, building, floor
 router.get(
   "/hostings/:id",
-  requirePermission("accommodation", "view"),
+  requirePermission("guest_hosting", "view"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -478,7 +498,7 @@ router.get(
 
 router.patch(
   "/hostings/:id",
-  requirePermission("accommodation", "edit"),
+  requirePermission("guest_hosting", "edit"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -566,7 +586,7 @@ router.patch(
 
 router.delete(
   "/hostings/:id",
-  requirePermission("accommodation", "delete"),
+  requirePermission("guest_hosting", "delete"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -614,7 +634,7 @@ router.delete(
 
 router.post(
   "/hostings/:id/approve",
-  requirePermission("accommodation", "edit"),
+  requirePermission("guest_hosting", "approve"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -671,7 +691,7 @@ router.post(
         userRole: s.userRole,
         action: `الموافقة على طلب الاستضافة #${updated.id}`,
         actionType: "UPDATE",
-        module: "accommodation",
+        module: "guest_hosting",
         entityType: "hosting",
         entityId: updated.id,
       });
@@ -694,7 +714,7 @@ router.post(
 
 router.post(
   "/hostings/:id/checkin",
-  requirePermission("accommodation", "edit"),
+  requirePermission("guest_hosting", "checkin"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -830,7 +850,7 @@ router.post(
 
 router.post(
   "/hostings/:id/checkout",
-  requirePermission("accommodation", "edit"),
+  requirePermission("guest_hosting", "checkout"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -934,7 +954,7 @@ router.post(
 /* Companions CRUD */
 router.get(
   "/hostings/:id/companions",
-  requirePermission("accommodation", "view"),
+  requirePermission("guest_hosting", "view"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -961,7 +981,7 @@ router.get(
 
 router.post(
   "/hostings/:id/companions",
-  requirePermission("accommodation", "create"),
+  requirePermission("guest_hosting", "create"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -1000,7 +1020,7 @@ router.post(
 
 router.delete(
   "/hostings/:id/companions/:companionId",
-  requirePermission("accommodation", "delete"),
+  requirePermission("guest_hosting", "delete"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

@@ -4,6 +4,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -443,20 +444,18 @@ export default function EditHostingRequest() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label>{ar ? "من *" : "From *"}</Label>
-                <Input
-                  type="date"
-                  required
+                <DateInput
                   value={form.fromDate}
-                  onChange={(e) => updateField("fromDate", e.target.value)}
+                  onChange={(iso) => updateField("fromDate", iso)}
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label>{ar ? "إلى *" : "To *"}</Label>
-                <Input
-                  type="date"
-                  required
+                <DateInput
                   value={form.toDate}
-                  onChange={(e) => updateField("toDate", e.target.value)}
+                  onChange={(iso) => updateField("toDate", iso)}
+                  required
                 />
               </div>
               <div className="space-y-2">

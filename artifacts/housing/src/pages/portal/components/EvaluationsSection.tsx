@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -338,9 +340,7 @@ export function EvaluationsSection() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right text-[10px] text-muted-foreground">
-                    {new Date(ev.submittedAt).toLocaleDateString(
-                      ar ? "ar-EG" : "en-GB",
-                    )}
+                    {formatDate(ev.submittedAt)}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
@@ -481,11 +481,10 @@ export function EvaluationsSection() {
                   ? "تاريخ الاختفاء من البوابة (اختياري)"
                   : "Expires from Portal At (Optional)"}
               </Label>
-              <Input
-                type="date"
+              <DateInput
                 value={form.expiresAt}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, expiresAt: e.target.value }))
+                onChange={(iso) =>
+                  setForm((f) => ({ ...f, expiresAt: iso }))
                 }
               />
               <p className="text-[10px] text-muted-foreground">
@@ -657,9 +656,7 @@ export function EvaluationsSection() {
                           </div>
                         </div>
                         <span className="text-[10px] text-muted-foreground">
-                          {resp.submittedAt
-                            ? new Date(resp.submittedAt).toLocaleDateString()
-                            : ""}
+                          {resp.submittedAt ? formatDate(resp.submittedAt) : ""}
                         </span>
                       </div>
                       <div className="space-y-1 ml-9">

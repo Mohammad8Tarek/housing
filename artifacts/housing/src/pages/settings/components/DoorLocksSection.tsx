@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { formatDateTime } from "@/lib/date-utils";
 import {
   Card,
   CardContent,
@@ -77,14 +78,8 @@ async function readApiResponse(resp: Response) {
   return data;
 }
 
-function formatDate(value: string | null | undefined, language: string) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat(language === "ar" ? "ar-EG" : "en-US", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+function formatDate(value: string | null | undefined, _language?: string) {
+  return formatDateTime(value, "-");
 }
 
 export function DoorLocksSection({

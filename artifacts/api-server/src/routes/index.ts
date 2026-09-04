@@ -70,6 +70,10 @@ router.use("/portal-food", portalRateLimit, portalFoodTransportRouter);
 router.use("/portal-chat", portalRateLimit, portalChatRouter);
 
 router.use((req, res, next) => {
+  // Allow HR sync webhook endpoints that authenticate via x-api-key
+  if (req.path.startsWith("/hr-sync/") && req.headers["x-api-key"]) {
+    return next();
+  }
   // @ts-ignore
   if (req.session?.userId) next();
   else res.status(401).json({ success: false, message: "Unauthorized" });

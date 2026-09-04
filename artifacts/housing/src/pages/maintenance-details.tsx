@@ -26,15 +26,16 @@ import {
   Play,
   Trash,
 } from "lucide-react";
-import { format, differenceInMinutes, differenceInHours } from "date-fns";
+import { differenceInMinutes, differenceInHours } from "date-fns";
+import { formatDateTime } from "@/lib/date-utils";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
 const PROBLEM_TYPES_AR = {
   Plumbing: "سباكة",
   Electrical: "كهرباء",
-  HVAC: "تكيي�?",
+  HVAC: "تكييف",
   Furniture: "أثاث",
-  Cleaning: "نظا�?ة",
+  Cleaning: "نظافة",
   Internet: "إنترنت",
   Other: "أخرى",
 };
@@ -44,14 +45,14 @@ const CATEGORIES_AR = {
   general: "عام",
 };
 const PRIORITY_AR = {
-  LOW: "منخ�?ضة",
+  LOW: "منخفضة",
   MEDIUM: "متوسطة",
   HIGH: "عالية",
   URGENT: "عاجلة",
 };
 const STATUS_AR = {
-  open: "م�?توحة",
-  in_progress: "قيد التن�?يذ",
+  open: "مفتوحة",
+  in_progress: "قيد التنفيذ",
   resolved: "محلولة",
   closed: "مغلقة",
 };
@@ -260,12 +261,7 @@ export default function MaintenanceDetails() {
                     {ar ? "الإبلاغ عن" : "Reported"}
                   </p>
                   <p className="text-sm font-medium">
-                    {ticket.reportedAt
-                      ? format(
-                          new Date(ticket.reportedAt),
-                          "dd MMM yyyy - HH:mm",
-                        )
-                      : "—"}
+                    {formatDateTime(ticket.reportedAt)}
                   </p>
                 </div>
                 {ticket.startedAt && (
@@ -274,10 +270,7 @@ export default function MaintenanceDetails() {
                       {ar ? "بدأ" : "Started"}
                     </p>
                     <p className="text-sm font-medium">
-                      {format(
-                        new Date(ticket.startedAt),
-                        "dd MMM yyyy - HH:mm",
-                      )}
+                      {formatDateTime(ticket.startedAt)}
                     </p>
                   </div>
                 )}
@@ -287,10 +280,7 @@ export default function MaintenanceDetails() {
                       {ar ? "تم الحل" : "Resolved"}
                     </p>
                     <p className="text-sm font-medium">
-                      {format(
-                        new Date(ticket.resolvedAt),
-                        "dd MMM yyyy - HH:mm",
-                      )}
+                      {formatDateTime(ticket.resolvedAt)}
                     </p>
                   </div>
                 )}

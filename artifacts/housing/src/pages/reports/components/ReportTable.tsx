@@ -250,7 +250,7 @@ export function ReportTable({
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                          {ar ? "داخلي (فندق)" : "Internal"}
+                          {ar ? "موظف داخلي" : "Internal"}
                         </Badge>
                       )}
                     </TableCell>
@@ -284,16 +284,37 @@ export function ReportTable({
                     </TableCell>
                     <TableCell className="text-xs">{row.expectedCheckOutDate}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          row.status === "ACTIVE"
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : "bg-muted text-muted-foreground"
-                        }
-                      >
-                        {row.status}
-                      </Badge>
+                      {row.status === "VACATION" ? (
+                        <div className="flex flex-col gap-0.5 items-start">
+                          <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-semibold">
+                            {ar ? "في إجازة" : "On Vacation"}
+                          </Badge>
+                          {row.vacationEndDate && (
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              {ar ? `حتى ${row.vacationEndDate}` : `Till ${row.vacationEndDate}`}
+                            </span>
+                          )}
+                        </div>
+                      ) : row.status === "CHECKED_OUT" || row.status === "LEFT" ? (
+                        <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 text-xs font-medium">
+                          {ar ? "تمت المغادرة" : "Checked Out"}
+                        </Badge>
+                      ) : row.status === "TRANSFERRED" ? (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                          {ar ? "تم النقل" : "Transferred"}
+                        </Badge>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs font-semibold">
+                            {ar ? "مقيم بالسكن" : "In-House"}
+                          </Badge>
+                          {row.isEntireRoom && (
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 text-[10px] px-1 py-0 font-medium">
+                              {ar ? "غرفة كاملة" : "Entire Room"}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </TableCell>
                   </>
                 )}
@@ -368,7 +389,7 @@ export function ReportTable({
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                          {ar ? "داخلي (فندق)" : "Internal"}
+                          {ar ? "موظف داخلي" : "Internal"}
                         </Badge>
                       )}
                     </TableCell>

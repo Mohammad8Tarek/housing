@@ -467,6 +467,7 @@ router.get("/roommates", async (req, res): Promise<void> => {
 
 router.get("/my-maintenance", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
+  const targetId = req.query.id ? parseInt(String(req.query.id)) : null;
 
   const requests = await withTenant(sess.propertyId, async (tenantDb) => {
     const [assignment] = await tenantDb
@@ -482,10 +483,15 @@ router.get("/my-maintenance", async (req, res): Promise<void> => {
 
     if (!assignment) return [];
 
+    const conditions = [eq(maintenanceTable.roomId, assignment.roomId)];
+    if (targetId && !isNaN(targetId)) {
+      conditions.push(eq(maintenanceTable.id, targetId));
+    }
+
     return await tenantDb
       .select()
       .from(maintenanceTable)
-      .where(eq(maintenanceTable.roomId, assignment.roomId))
+      .where(and(...conditions))
       .orderBy(desc(maintenanceTable.id));
   });
 
@@ -1161,11 +1167,6 @@ router.post("/activity-attendance", async (req, res): Promise<void> => {
       .status(500)
       .json({ success: false, message: "Failed to update attendance" });
   }
-});
-
-// ─── Portal Notifications (stub — returns empty list until a notifications table is created) ──
-router.get("/notifications", (_req, res): void => {
-  res.json([]);
 });
 
 export default router;

@@ -15,19 +15,20 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_EMAIL =
   process.env.VAPID_EMAIL || "mailto:sunrise-housing@example.com";
 
-if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-  throw new Error(
-    "VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables are required",
+const isVapidConfigured = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+if (!isVapidConfigured) {
+  console.warn(
+    "[push-notifications] VAPID_PUBLIC_KEY and/or VAPID_PRIVATE_KEY not set — web push notifications disabled",
   );
+} else {
+  // Configure web-push
+  webPush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY!, VAPID_PRIVATE_KEY!);
 }
-
-// Configure web-push
-webPush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 // GET /push/vapid-key — Return VAPID public key for frontend
 // @ts-ignore
 router.get("/vapid-key", (_req, res) => {
-  res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
+  res.json({ success: isVapidConfigured, publicKey: VAPID_PUBLIC_KEY || null });
 });
 
 // POST /push/subscribe — Register push subscription
@@ -112,6 +113,7 @@ export async function sendPushToProperty(
   },
   departmentFilter?: string,
 ) {
+  if (!isVapidConfigured) return;
   try {
     await withTenant(propertyId, async (tenantDb) => {
       const subs = await tenantDb

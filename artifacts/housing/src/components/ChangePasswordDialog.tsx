@@ -52,7 +52,7 @@ export function ChangePasswordDialog({
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/users/change-password", {
+      const response = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

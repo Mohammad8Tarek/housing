@@ -18,7 +18,14 @@ export const reservationsTable = pgTable("reservations", {
   guestPhone: text("guest_phone").notNull().default(""),
   jobTitle: text("job_title").notNull().default(""),
   department: text("department").notNull().default(""),
+  nationality: text("nationality").notNull().default(""),
+  gender: text("gender").notNull().default(""),
+  profileCode: text("profile_code").notNull().default(""),
+  level: text("level").notNull().default(""),
+  bedNumber: text("bed_number").notNull().default(""),
   status: text("status").notNull().default("UPCOMING"),
+  employmentType: text("employment_type").notNull().default("INTERNAL"),
+  companyName: text("company_name").default(""),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

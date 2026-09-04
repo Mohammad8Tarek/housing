@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate, formatDateTime } from "@/lib/date-utils";
 import { toast } from "sonner";
 import {
   Card,
@@ -130,7 +131,7 @@ export default function PortalNotifications() {
       return res.json();
     },
     onSuccess: () => {
-      toast.success(ar ? "✅ تم إنشاء الإشعار" : "✅ Notification created");
+      toast.success(ar ? "تم إنشاء الإشعار بنجاح" : "Notification created successfully");
       queryClient.invalidateQueries({
         queryKey: ["portal-notifications-admin", activePropertyId],
       });
@@ -314,13 +315,9 @@ export default function PortalNotifications() {
                     </p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-muted-foreground">
-                        {n.createdAt
-                          ? new Date(n.createdAt).toLocaleString(
-                              ar ? "ar-SA" : "en-US",
-                            )
-                          : ""}
+                        {n.createdAt ? formatDateTime(n.createdAt) : ""}
                         {n.expiresAt
-                          ? ` · ${ar ? "ينتهي" : "expires"}: ${new Date(n.expiresAt).toLocaleDateString(ar ? "ar-SA" : "en-US")}`
+                          ? ` · ${ar ? "ينتهي" : "expires"}: ${formatDate(n.expiresAt)}`
                           : ""}
                       </span>
                       <Button
@@ -355,7 +352,7 @@ export default function PortalNotifications() {
             {/* Title */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>{ar ? "العنوان (EN)" : "Title (EN)"} *</Label>
+                <Label>{ar ? "العنوان بالإنجليزية *" : "Title (English) *"}</Label>
                 <Input
                   placeholder="Enter title..."
                   value={form.title}
@@ -365,7 +362,7 @@ export default function PortalNotifications() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>{ar ? "العنوان (AR)" : "العنوان بالعربي"}</Label>
+                <Label>{ar ? "العنوان بالعربية" : "Title (Arabic)"}</Label>
                 <Input
                   placeholder="أدخل العنوان..."
                   value={form.titleAr}
@@ -380,7 +377,7 @@ export default function PortalNotifications() {
             {/* Message */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>{ar ? "الرسالة (EN)" : "Message (EN)"} *</Label>
+                <Label>{ar ? "الرسالة بالإنجليزية *" : "Message (English) *"}</Label>
                 <Textarea
                   placeholder="Enter message..."
                   rows={3}
@@ -391,7 +388,7 @@ export default function PortalNotifications() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>{ar ? "الرسالة (AR)" : "الرسالة بالعربي"}</Label>
+                <Label>{ar ? "الرسالة بالعربية" : "Message (Arabic)"}</Label>
                 <Textarea
                   placeholder="أدخل الرسالة..."
                   rows={3}
@@ -456,7 +453,7 @@ export default function PortalNotifications() {
             {/* Expiry */}
             <div className="space-y-1.5">
               <Label>
-                {ar ? "تاريخ انتهاء (اختياري)" : "Expiry Date (optional)"}
+                {ar ? "تاريخ الانتهاء (اختياري)" : "Expiry Date (Optional)"}
               </Label>
               <Input
                 type="datetime-local"

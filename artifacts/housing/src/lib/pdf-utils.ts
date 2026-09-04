@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { formatDate } from "./date-utils";
 /** Shared PDF utility functions for jsPDF exports */
 
 /** Detect Arabic/RTL characters */
@@ -126,7 +127,7 @@ export const generateHousingLetterPdf = async (opts: {
   const floorNum = opts.floorNum;
   const propName = opts.propName;
   const propAddress = opts.propAddress;
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = formatDate(new Date());
 
   const { default: jsPDF } = await import("jspdf");
   const doc = new jsPDF("portrait", "mm", "a4");
@@ -198,8 +199,7 @@ export const generateHousingLetterPdf = async (opts: {
   doc.line(ml, y, pw - ml, y);
   y += 4;
 
-  const fmtDate = (d: string | Date) =>
-    d ? new Date(d).toLocaleDateString("en-CA") : "—";
+  const fmtDate = (d: string | Date) => formatDate(d);
 
   const infoLabels = [
     "Profile Name",
@@ -386,8 +386,7 @@ async function generateArabicHousingLetterPdf(
       ? await loadImgDataUrl(opts.propLogoUrl)
       : null;
 
-  const fmtDate = (d: string | Date) =>
-    d ? new Date(d).toLocaleDateString("ar-EG") : "—";
+  const fmtDate = (d: string | Date) => formatDate(d);
   const floorNum = opts.floorNum;
   const bldg = opts.building;
   const propName = opts.propName;

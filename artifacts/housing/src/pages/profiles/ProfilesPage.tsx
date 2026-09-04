@@ -12,6 +12,7 @@ import { useProperty } from "@/context/PropertyContext";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import {
   Table,
@@ -221,7 +222,7 @@ export function ProfilesPage() {
     const toastFn = failed > 0 ? toast.error : toast.success;
     toastFn(
       ar
-        ? `?? ????????? ????? ${success} ????${failed > 0 ? ` (${failed} ???)` : ""}`
+        ? `تم استيراد ${success} ملف شخصي بنجاح${failed > 0 ? ` (فشل ${failed})` : ""}`
         : `Imported ${success} profiles${failed > 0 ? ` (${failed} failed)` : ""}`,
     );
   };
@@ -337,18 +338,16 @@ export function ProfilesPage() {
       Department: e.department ?? "",
       "Job Title": e.jobTitle ?? "",
       Level: e.level ?? "",
-      "Date of Birth": e.dateOfBirth ? new Date(e.dateOfBirth).toLocaleDateString() : "",
+      "Date of Birth": formatDate(e.dateOfBirth, ""),
       Address: e.address ?? "",
-      "Hire Date": e.hireDate ? new Date(e.hireDate).toLocaleDateString() : "",
+      "Hire Date": formatDate(e.hireDate, ""),
+      "Contract End Date": formatDate(e.contractEndDate, ""),
       Status: e.status,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Profiles");
-    XLSX.writeFile(
-      wb,
-      `profiles_${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+    XLSX.writeFile(wb, getExportFileName("Profiles", "xlsx"));
   };
 
   return (
@@ -399,7 +398,7 @@ export function ProfilesPage() {
           <PermissionGate module="profiles" action="create">
             <Button onClick={() => setIsOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              {ar ? "إضافة ملف شخصي" : "Add Profile"}
+              {ar ? "نيو بروفايل" : "New Profile"}
             </Button>
           </PermissionGate>
         </div>
@@ -467,9 +466,9 @@ export function ProfilesPage() {
                 <SelectItem value="ALL">
                   {ar ? "كل الحالات" : "All Status"}
                 </SelectItem>
-                <SelectItem value="ACTIVE">{ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}</SelectItem>
-                <SelectItem value="LEFT">{ar ? "مغادر (شيكاوت)" : "Check-out"}</SelectItem>
-                <SelectItem value="VACATION">{ar ? "في إجازة (فيكيشن)" : "Vacation"}</SelectItem>
+                <SelectItem value="ACTIVE">{ar ? "مقيم بالسكن" : "In-House"}</SelectItem>
+                <SelectItem value="LEFT">{ar ? "تمت المغادرة" : "Checked Out"}</SelectItem>
+                <SelectItem value="VACATION">{ar ? "في إجازة" : "On Vacation"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -482,6 +481,24 @@ export function ProfilesPage() {
         onClear={() => setSelectedRows(new Set())}
         onExportExcel={exportSelectedExcel}
         ar={ar}
+        extraActions={
+          <PermissionGate module="profiles" action="delete">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (window.confirm(ar ? `هل أنت متأكد من حذف ${selectedRows.size} ملف شخصي محدد؟` : `Are you sure you want to delete ${selectedRows.size} selected profiles?`)) {
+                  selectedRows.forEach((id) => deleteMutation.mutate({ id }));
+                  setSelectedRows(new Set());
+                }
+              }}
+              className="gap-1.5 h-8 text-xs font-semibold"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {ar ? "حذف المحدد" : "Delete Selected"}
+            </Button>
+          </PermissionGate>
+        }
       />
 
       {/* Table */}
@@ -729,7 +746,7 @@ export function ProfilesPage() {
                       )}
                       {isColVisible("dateOfBirth") && (
                         <TableCell className="text-sm whitespace-nowrap">
-                          {emp.dateOfBirth ? new Date(emp.dateOfBirth).toLocaleDateString() : "—"}
+                          {formatDate(emp.dateOfBirth)}
                         </TableCell>
                       )}
                       {isColVisible("address") && (
@@ -739,16 +756,16 @@ export function ProfilesPage() {
                         <TableCell className="text-sm whitespace-nowrap">
                           {emp.employmentType === "THIRD_PARTY" ? (
                             <span className="text-muted-foreground/60 italic text-xs">—</span>
-                          ) : emp.hireDate ? (
-                            new Date(emp.hireDate).toLocaleDateString()
-                          ) : "—"}
+                          ) : (
+                            formatDate(emp.hireDate)
+                          )}
                         </TableCell>
                       )}
                       {isColVisible("contractEndDate") && (
                         <TableCell className="text-sm whitespace-nowrap">
                           {emp.employmentType !== "THIRD_PARTY" && emp.contractEndDate ? (
                             <span className="font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 text-xs">
-                              {new Date(emp.contractEndDate).toLocaleDateString()}
+                              {formatDate(emp.contractEndDate)}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>

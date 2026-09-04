@@ -27,7 +27,7 @@ export default function HousekeepingPage() {
   
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId, queryKey: ["rooms", activePropertyId, 1000], staleTime: 0 } }
+    { query: { queryKey: ["/api/rooms", activePropertyId, 1000], enabled: !!activePropertyId, staleTime: 0 } }
   );
 
   if (!activePropertyId) {
@@ -54,18 +54,18 @@ export default function HousekeepingPage() {
   const rooms = Array.isArray(rData) ? rData : [];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex-none p-6 pb-4 border-b bg-card">
+      <div className="flex items-center justify-between gap-4 pb-1">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+          <div className="p-2.5 rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 shadow-xs">
             <Brush className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {ar ? "إدارة النظافة" : "Housekeeping"}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {ar
                 ? "متابعة وتحديث حالة تنظيف الغرف والصيانة"
                 : "Monitor and update room housekeeping and maintenance status"}
@@ -75,14 +75,12 @@ export default function HousekeepingPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <HousekeepingTab
-          propertyId={activePropertyId as number}
-          buildings={buildings}
-          floors={floors}
-          rooms={rooms}
-        />
-      </div>
+      <HousekeepingTab
+        propertyId={activePropertyId as number}
+        buildings={buildings}
+        floors={floors}
+        rooms={rooms}
+      />
     </div>
   );
 }

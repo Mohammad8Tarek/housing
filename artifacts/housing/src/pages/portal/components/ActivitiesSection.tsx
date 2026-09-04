@@ -1,6 +1,7 @@
 //@ts-nocheck
 // @ts-nocheck
 import { useState } from "react";
+import { formatDate } from "@/lib/date-utils";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -364,7 +366,7 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                   </p>
                   <div className="flex flex-col gap-1.5 pt-2 border-t text-[11px]">
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="w-3 h-3" /> {act.startDate}
+                      <Calendar className="w-3 h-3" /> {formatDate(act.startDate)}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="w-3 h-3" />{" "}
@@ -438,11 +440,10 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
             </div>
             <div className="space-y-2">
               <Label>{ar ? "تاريخ البدء" : "Start Date"}</Label>
-              <Input
-                type="date"
+              <DateInput
                 value={form.startDate}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, startDate: e.target.value }))
+                onChange={(iso) =>
+                  setForm((f) => ({ ...f, startDate: iso }))
                 }
               />
             </div>
@@ -452,11 +453,10 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                   ? "تاريخ الاختفاء من البوابة (اختياري)"
                   : "Expires At (Optional)"}
               </Label>
-              <Input
-                type="date"
+              <DateInput
                 value={form.expiresAt}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, expiresAt: e.target.value }))
+                onChange={(iso) =>
+                  setForm((f) => ({ ...f, expiresAt: iso }))
                 }
               />
             </div>
@@ -619,26 +619,24 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
               </div>
               <div className="space-y-2">
                 <Label>{ar ? "تاريخ البدء" : "Start Date"}</Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={editForm.startDate}
-                  onChange={(e) =>
+                  onChange={(iso) =>
                     setEditForm((f: any) => ({
                       ...f,
-                      startDate: e.target.value,
+                      startDate: iso,
                     }))
                   }
                 />
               </div>
               <div className="space-y-2">
                 <Label>{ar ? "تاريخ الانتهاء" : "Expires At"}</Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={editForm.expiresAt}
-                  onChange={(e) =>
+                  onChange={(iso) =>
                     setEditForm((f: any) => ({
                       ...f,
-                      expiresAt: e.target.value,
+                      expiresAt: iso,
                     }))
                   }
                 />

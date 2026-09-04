@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { formatDate } from "@/lib/date-utils";
 import { History } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -93,12 +93,10 @@ export function RoomLogDialog({
                     </TableCell>
                     <TableCell>{a.bedNumber ?? "—"}</TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      {format(new Date(a.checkInDate), "MMM d, yyyy")}
+                      {formatDate(a.checkInDate)}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      {checkOut
-                        ? format(new Date(checkOut), "MMM d, yyyy")
-                        : "—"}
+                      {formatDate(checkOut)}
                     </TableCell>
                     <TableCell>
                       <span

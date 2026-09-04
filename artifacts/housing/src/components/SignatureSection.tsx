@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate } from "@/lib/date-utils";
 import { Upload, Trash2, Loader2, Pen } from "lucide-react";
 
 export function SignatureSection() {
@@ -212,9 +213,7 @@ export function SignatureSection() {
                 />
                 <span className="text-xs text-muted-foreground">
                   {ar ? "تم الرفع" : "Uploaded"}{" "}
-                  {signature.uploadedAt
-                    ? new Date(signature.uploadedAt).toLocaleDateString()
-                    : ""}
+                  {signature.uploadedAt ? formatDate(signature.uploadedAt) : ""}
                 </span>
               </div>
             ) : (

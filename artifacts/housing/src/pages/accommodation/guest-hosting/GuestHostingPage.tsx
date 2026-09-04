@@ -37,7 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { formatDate, formatDateTime, getExportFileName } from "@/lib/date-utils";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   LogIn,
@@ -57,6 +58,7 @@ import {
   FileText,
   Key,
   ArrowRightLeft,
+  FileDown,
 } from "lucide-react";
 import {
   ColumnChooser,
@@ -80,6 +82,8 @@ import {
   EmptyState,
   TableSkeleton,
 } from "@/components/ui/page-states";
+import { PermissionGate } from "@/components/ui/permission-gate";
+import { usePermission } from "@/hooks/use-permission";
 
 type ProfileResult = {
   id: number;
@@ -146,6 +150,7 @@ export default function GuestHosting() {
 
   const queryClient = useQueryClient();
   const { user, isSystemAdmin } = useAuth();
+  const { can } = usePermission();
   const ar = language === "ar";
 
   const [isOpen, setIsOpen] = useState(false);
@@ -303,16 +308,19 @@ export default function GuestHosting() {
       r.roomNumber?.toLowerCase().includes(roomSearch.toLowerCase()),
   );
 
-  const invalidate = () =>
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["listHostings"] });
     queryClient.invalidateQueries({
       queryKey: getListHostingsQueryKey({ propertyId: activePropertyId }),
     });
+  };
 
   const createMutation = useCreateHosting({
     mutation: {
       onSuccess: (_data, variables: any) => {
         const createdPropertyId =
           Number(variables?.data?.propertyId) || activePropertyId;
+        queryClient.invalidateQueries({ queryKey: ["listHostings"] });
         queryClient.invalidateQueries({
           queryKey: getListHostingsQueryKey({ propertyId: createdPropertyId }),
         });
@@ -572,6 +580,15 @@ export default function GuestHosting() {
         age: c.isChild && c.age ? parseInt(c.age) : null,
       }));
 
+    if (new Date(form.expectedTo).getTime() < new Date(form.expectedFrom).getTime()) {
+      toast.error(
+        ar
+          ? "تاريخ نهاية الاستضافة يجب أن يكون بعد تاريخ البداية"
+          : "Expected end date must be on or after expected start date",
+      );
+      return;
+    }
+
     if (form.hostingType === "SEPARATE_ROOM" && !formRoomId) {
       toast.error(
         ar
@@ -580,6 +597,40 @@ export default function GuestHosting() {
       );
       return;
     }
+
+    if (formRoomId) {
+      const selectedRoom = (rooms as any[]).find((r) => r.id === parseInt(formRoomId));
+      if (selectedRoom) {
+        const totalGuests = Math.max(1, validCompanions.length || 1);
+        if (totalGuests > (selectedRoom.capacity || 1)) {
+          toast.error(
+            ar
+              ? `عدد الضيوف والمرافقين (${totalGuests}) يتجاوز سعة الغرفة (${selectedRoom.capacity} أفراد)`
+              : `Total guests (${totalGuests}) exceeds room capacity (${selectedRoom.capacity})`,
+          );
+          return;
+        }
+      }
+    }
+
+    const fromTime = new Date(form.expectedFrom).getTime();
+    const toTime = new Date(form.expectedTo).getTime();
+    const existingActive = (hostings as any[]).find(
+      (h) =>
+        h.profileId === selectedProfile.id &&
+        ["PENDING", "APPROVED", "CHECKED_IN"].includes(h.status) &&
+        new Date(h.expectedFrom).getTime() <= toTime &&
+        new Date(h.expectedTo).getTime() >= fromTime,
+    );
+    if (existingActive) {
+      toast.error(
+        ar
+          ? `يوجد طلب استضافة نشط لهذا الموظف في نفس الفترة (طلب #${existingActive.id})`
+          : `Active hosting already exists for this profile in the same period (Hosting #${existingActive.id})`,
+      );
+      return;
+    }
+
     createMutation.mutate({
       data: {
         propertyId: requestPropertyId!,
@@ -633,8 +684,7 @@ export default function GuestHosting() {
 
   const dateText = (
     value: string | null | undefined,
-    pattern = "MMM d, yyyy",
-  ) => (value ? format(new Date(value), pattern) : "—");
+  ) => formatDate(value);
 
   const getHostProfile = (h: any) =>
     h.profile ?? profileMap[h.profileId] ?? null;
@@ -725,20 +775,15 @@ export default function GuestHosting() {
         Room: getRoomNumber(h),
         Building: room?.buildingName ?? "",
         Floor: room?.floorNumber ?? "",
-        From: h.expectedFrom
-          ? format(new Date(h.expectedFrom), "yyyy-MM-dd")
-          : "",
-        To: h.expectedTo ? format(new Date(h.expectedTo), "yyyy-MM-dd") : "",
+        From: formatDate(h.expectedFrom, ""),
+        To: formatDate(h.expectedTo, ""),
         Status: h.status,
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "GuestHosting");
-    XLSX.writeFile(
-      wb,
-      `guest_hosting_${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+    XLSX.writeFile(wb, getExportFileName("Guest_Hosting", "xlsx"));
   };
 
   const HOSTING_COLS = [
@@ -942,12 +987,12 @@ export default function GuestHosting() {
     );
     currentY += 5;
     doc.text(
-      `From: ${hosting.expectedFrom ? format(new Date(hosting.expectedFrom), "MMM d, yyyy") : "—"}`,
+      `From: ${formatDate(hosting.expectedFrom)}`,
       14,
       currentY,
     );
     doc.text(
-      `To: ${hosting.expectedTo ? format(new Date(hosting.expectedTo), "MMM d, yyyy") : "—"}`,
+      `To: ${formatDate(hosting.expectedTo)}`,
       100,
       currentY,
     );
@@ -1069,9 +1114,7 @@ export default function GuestHosting() {
       }
     }
 
-    doc.save(
-      `guest_profile_${hosting.id}_${new Date().toISOString().slice(0, 10)}.pdf`,
-    );
+    doc.save(getExportFileName(`Guest_Profile_${hosting.id}`, "pdf"));
   };
 
   return (
@@ -1088,6 +1131,17 @@ export default function GuestHosting() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <PermissionGate module="guest_hosting" action="export">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportHostExcel}
+              className="gap-1.5 text-xs font-semibold h-9"
+            >
+              <FileDown className="w-4 h-4" />
+              {ar ? "تصدير Excel" : "Export Excel"}
+            </Button>
+          </PermissionGate>
           <ColumnChooser
             cols={HOSTING_COLS}
             visible={hVisible}
@@ -1102,8 +1156,54 @@ export default function GuestHosting() {
       <BulkActionBar
         count={selectedRows.size}
         onClear={() => setSelectedRows(new Set())}
-        onExportExcel={exportHostExcel}
+        onExportExcel={can("guest_hosting", "export") ? exportHostExcel : undefined}
         ar={ar}
+        actions={[
+          ...(can("guest_hosting", "checkout")
+            ? [
+                {
+                  label: ar ? "تسجيل خروج المحدد" : "Check-out Selected",
+                  variant: "default" as const,
+                  onClick: () => {
+                    if (
+                      window.confirm(
+                        ar
+                          ? `هل تريد تسجيل خروج ${selectedRows.size} استضافة محددة؟`
+                          : `Check out ${selectedRows.size} selected hostings?`,
+                      )
+                    ) {
+                      selectedRows.forEach((id) =>
+                        checkoutMutation.mutate({ id }),
+                      );
+                      setSelectedRows(new Set());
+                    }
+                  },
+                },
+              ]
+            : []),
+          ...(can("guest_hosting", "delete")
+            ? [
+                {
+                  label: ar ? "حذف المحدد" : "Delete Selected",
+                  variant: "destructive" as const,
+                  onClick: () => {
+                    if (
+                      window.confirm(
+                        ar
+                          ? `هل تريد بالتأكيد حذف ${selectedRows.size} سجل استضافة محدد؟`
+                          : `Are you sure you want to delete ${selectedRows.size} selected hosting records?`,
+                      )
+                    ) {
+                      selectedRows.forEach((id) =>
+                        deleteMutation.mutate({ id }),
+                      );
+                      setSelectedRows(new Set());
+                    }
+                  },
+                },
+              ]
+            : []),
+        ]}
       />
 
       {/* Table */}
@@ -1242,7 +1342,7 @@ export default function GuestHosting() {
                             >
                               {guestProfiles.length > 0
                                 ? ar
-                                  ? "فيو بروفايل"
+                                  ? "عرض الملف"
                                   : "View Profile"
                                 : ar
                                   ? "استكمال البيانات"
@@ -1371,7 +1471,7 @@ export default function GuestHosting() {
                       )}
                       {isHVisible("createdAt") && (
                         <TableCell className="text-sm whitespace-nowrap">
-                          {dateText(h.createdAt, "MMM d, yyyy HH:mm")}
+                          {formatDateTime(h.createdAt)}
                         </TableCell>
                       )}
                       {isHVisible("actions") && (
@@ -1391,67 +1491,76 @@ export default function GuestHosting() {
                               <DropdownMenuContent align="end" className="w-44">
                                 {h.status === "APPROVED" && (
                                   <>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        checkinMutation.mutate({
-                                          id: h.id,
-                                          data: {
-                                            actualCheckIn: new Date()
-                                              .toISOString()
-                                              .split("T")[0],
-                                          } as any,
-                                        })
-                                      }
-                                    >
-                                      <LogIn className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                      {ar ? "تسجيل الوصول" : "Check-in"}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedHostingKey(h);
-                                        setKeyPromptRoomId(
-                                          h.roomId ? String(h.roomId) : "",
-                                        );
-                                        setKeyPromptOpen(true);
-                                      }}
-                                    >
-                                      <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                      {ar ? "إصدار مفتاح" : "Issue Key"}
-                                    </DropdownMenuItem>
+                                    {can("guest_hosting", "checkin") && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          checkinMutation.mutate({
+                                            id: h.id,
+                                            data: {
+                                              actualCheckIn: new Date()
+                                                .toISOString()
+                                                .split("T")[0],
+                                            } as any,
+                                          })
+                                        }
+                                      >
+                                        <LogIn className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                        {ar ? "تسجيل الوصول" : "Check-in"}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {can("guest_hosting", "edit") && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedHostingKey(h);
+                                          setKeyPromptRoomId(
+                                            h.roomId ? String(h.roomId) : "",
+                                          );
+                                          setKeyPromptOpen(true);
+                                        }}
+                                      >
+                                        <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                        {ar ? "إصدار مفتاح" : "Issue Key"}
+                                      </DropdownMenuItem>
+                                    )}
                                   </>
                                 )}
                                 {h.status === "ACTIVE" && (
                                   <>
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedHostingKey(h);
-                                        setKeyPromptRoomId(
-                                          h.roomId ? String(h.roomId) : "",
-                                        );
-                                        setKeyPromptOpen(true);
-                                      }}
-                                    >
-                                      <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                      {ar ? "إصدار مفتاح" : "Issue Key"}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        checkoutMutation.mutate({ id: h.id })
-                                      }
-                                    >
-                                      <LogIn className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 rotate-180" />
-                                      {ar ? "تسجيل المغادرة" : "Check-out"}
-                                    </DropdownMenuItem>
+                                    {can("guest_hosting", "edit") && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedHostingKey(h);
+                                          setKeyPromptRoomId(
+                                            h.roomId ? String(h.roomId) : "",
+                                          );
+                                          setKeyPromptOpen(true);
+                                        }}
+                                      >
+                                        <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                        {ar ? "إصدار مفتاح" : "Issue Key"}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {can("guest_hosting", "checkout") && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          checkoutMutation.mutate({ id: h.id })
+                                        }
+                                      >
+                                        <LogIn className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 rotate-180" />
+                                        {ar ? "تسجيل المغادرة" : "Check-out"}
+                                      </DropdownMenuItem>
+                                    )}
                                   </>
                                 )}
                                 {(h.status === "PENDING" ||
                                   h.status === "APPROVED" ||
-                                  isSystemAdmin) && (
-                                  <DropdownMenuItem onClick={() => openEdit(h)}>
-                                    <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                    {ar ? "تعديل" : "Edit"}
-                                  </DropdownMenuItem>
-                                )}
+                                  isSystemAdmin) &&
+                                  can("guest_hosting", "edit") && (
+                                    <DropdownMenuItem onClick={() => openEdit(h)}>
+                                      <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                      {ar ? "تعديل" : "Edit"}
+                                    </DropdownMenuItem>
+                                  )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           ) : (
@@ -1501,13 +1610,12 @@ export default function GuestHosting() {
               <Label className="text-xs mb-1 block">
                 {ar ? "تاريخ البداية" : "Expected From"}
               </Label>
-              <Input
-                type="date"
+              <DateInput
                 value={editForm.expectedFrom}
-                onChange={(e) =>
+                onChange={(iso) =>
                   setEditForm((prev) => ({
                     ...prev,
-                    expectedFrom: e.target.value,
+                    expectedFrom: iso,
                   }))
                 }
               />
@@ -1516,13 +1624,12 @@ export default function GuestHosting() {
               <Label className="text-xs mb-1 block">
                 {ar ? "تاريخ النهاية" : "Expected To"}
               </Label>
-              <Input
-                type="date"
+              <DateInput
                 value={editForm.expectedTo}
-                onChange={(e) =>
+                onChange={(iso) =>
                   setEditForm((prev) => ({
                     ...prev,
-                    expectedTo: e.target.value,
+                    expectedTo: iso,
                   }))
                 }
               />

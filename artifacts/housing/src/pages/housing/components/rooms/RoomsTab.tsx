@@ -2,6 +2,7 @@ import { RoomImportWizard } from "../import/RoomImportWizard";
 import { downloadRoomImportTemplate } from "@/lib/room-importer-engine";
 import { Search, Plus, FileDown } from "lucide-react";
 import * as XLSX from "xlsx";
+import { getExportFileName } from "@/lib/date-utils";
 import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
@@ -238,7 +239,7 @@ export function RoomsTab({
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "Rooms");
-    XLSX.writeFile(wb, "Rooms-Export.xlsx");
+    XLSX.writeFile(wb, getExportFileName("Rooms", "xlsx"));
   };
 
   const bulkUpdateStatus = async (status: string) => {
@@ -323,13 +324,48 @@ export function RoomsTab({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
-              <SelectItem value="available">🟢 {ar ? "شاغرة" : "Vacant"}</SelectItem>
-              <SelectItem value="dirty">🟠 {ar ? "تحتاج تنظيف" : "Dirty"}</SelectItem>
-              <SelectItem value="occupied">🔵 {ar ? "مشغولة" : "Occupied"}</SelectItem>
-              <SelectItem value="occupied_dirty">🟡 {ar ? "مشغولة تحتاج تنظيف" : "Occupied Dirty"}</SelectItem>
-              <SelectItem value="occupied_vacation">🟣 {ar ? "إجازة" : "Vacation"}</SelectItem>
-              <SelectItem value="out_of_service">⚪ {ar ? "صيانة مؤقتة" : "Out of Service"}</SelectItem>
-              <SelectItem value="out_of_order">🔴 {ar ? "خارج الخدمة" : "Out of Order"}</SelectItem>
+              <SelectItem value="available">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span>{ar ? "شاغرة (جاهزة)" : "Vacant Clean"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="dirty">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>{ar ? "تحتاج تنظيف" : "Vacant Dirty"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="occupied">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                  <span>{ar ? "مشغولة" : "Occupied Clean"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="occupied_dirty">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-600 shrink-0" />
+                  <span>{ar ? "مشغولة (تحتاج تنظيف)" : "Occupied Dirty"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="occupied_vacation">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                  <span>{ar ? "في إجازة" : "On Vacation"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="out_of_service">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                  <span>{ar ? "صيانة مؤقتة" : "Out of Service"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="out_of_order">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                  <span>{ar ? "خارج الخدمة" : "Out of Order"}</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
 
@@ -380,12 +416,42 @@ export function RoomsTab({
                 <SelectValue placeholder={ar ? "تغيير الحالة..." : "Change status..."} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="available">🟢 {ar ? "شاغرة (فيكنت)" : "Vacant"}</SelectItem>
-                <SelectItem value="dirty">🟠 {ar ? "تحتاج تنظيف (ديرتي)" : "Dirty"}</SelectItem>
-                <SelectItem value="occupied">🔵 {ar ? "مشغولة" : "Occupied"}</SelectItem>
-                <SelectItem value="occupied_dirty">🟡 {ar ? "مشغولة تحتاج تنظيف" : "Occupied Dirty"}</SelectItem>
-                <SelectItem value="out_of_service">⚪ {ar ? "خارج الخدمة مؤقتاً" : "Out of Service"}</SelectItem>
-                <SelectItem value="out_of_order">🔴 {ar ? "غير صالحة للسكن" : "Out of Order"}</SelectItem>
+                <SelectItem value="available">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span>{ar ? "شاغرة (جاهزة)" : "Vacant Clean"}</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="dirty">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <span>{ar ? "تحتاج تنظيف" : "Vacant Dirty"}</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="occupied">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                    <span>{ar ? "مشغولة" : "Occupied Clean"}</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="occupied_dirty">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-600 shrink-0" />
+                    <span>{ar ? "مشغولة (تحتاج تنظيف)" : "Occupied Dirty"}</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="out_of_service">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                    <span>{ar ? "صيانة مؤقتة" : "Out of Service"}</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="out_of_order">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                    <span>{ar ? "خارج الخدمة" : "Out of Order"}</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
             <Button

@@ -15,7 +15,7 @@ import { propertiesTable } from "./properties";
 import { usersTable } from "./users";
 
 export const familyVisitRequestsTable = pgTable(
-  "family_visit_requests",
+  "hosting_requests",
   {
     id: serial("id").primaryKey(),
     requestNumber: varchar("request_number", { length: 20 }).notNull().unique(),
@@ -78,7 +78,7 @@ export type InsertFamilyVisitRequest =
 export type FamilyVisitRequest = typeof familyVisitRequestsTable.$inferSelect;
 
 export const familyVisitApprovalStepsTable = pgTable(
-  "family_visit_approval_steps",
+  "hosting_request_approval_steps",
   {
     id: serial("id").primaryKey(),
     requestId: integer("request_id")
@@ -116,3 +116,9 @@ export type InsertFamilyVisitApprovalStep =
   typeof familyVisitApprovalStepsTable.$inferInsert;
 export type FamilyVisitApprovalStep =
   typeof familyVisitApprovalStepsTable.$inferSelect;
+
+// Aliases for modern naming
+export const hostingRequestsTable = familyVisitRequestsTable;
+export const hostingRequestApprovalStepsTable = familyVisitApprovalStepsTable;
+export type HostingRequest = FamilyVisitRequest;
+export type HostingRequestApprovalStep = FamilyVisitApprovalStep;

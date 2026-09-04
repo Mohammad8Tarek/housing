@@ -78,25 +78,46 @@ export function AvailabilityTab({
               {ar ? "كل الحالات" : "All Statuses"}
             </SelectItem>
             <SelectItem value="available">
-              🟢 {ar ? "شاغرة" : "Vacant (Clean)"}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span>{ar ? "شاغرة (جاهزة)" : "Vacant Clean"}</span>
+              </div>
             </SelectItem>
             <SelectItem value="dirty">
-              🟠 {ar ? "تحتاج تنظيف" : "Dirty (Vacant)"}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                <span>{ar ? "تحتاج تنظيف" : "Vacant Dirty"}</span>
+              </div>
             </SelectItem>
             <SelectItem value="occupied">
-              🔵 {ar ? "مشغولة" : "Occupied (Clean)"}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                <span>{ar ? "مشغولة" : "Occupied Clean"}</span>
+              </div>
             </SelectItem>
             <SelectItem value="occupied_dirty">
-              🟣 {ar ? "مشغولة تحتاج تنظيف" : "Occupied (Dirty)"}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-600 shrink-0" />
+                <span>{ar ? "مشغولة (تحتاج تنظيف)" : "Occupied Dirty"}</span>
+              </div>
             </SelectItem>
             <SelectItem value="occupied_vacation">
-              🟡 {ar ? "مشغولة (في إجازة)" : "Occupied (Vacation)"}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                <span>{ar ? "في إجازة" : "On Vacation"}</span>
+              </div>
             </SelectItem>
             <SelectItem value="out_of_service">
-              ⚪ {ar ? "صيانة مؤقتة" : "Out of Service"}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                <span>{ar ? "صيانة مؤقتة" : "Out of Service"}</span>
+              </div>
             </SelectItem>
             <SelectItem value="out_of_order">
-              🔴 {ar ? "خارج الخدمة" : "Out of Order"}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                <span>{ar ? "خارج الخدمة" : "Out of Order"}</span>
+              </div>
             </SelectItem>
           </SelectContent>
         </Select>

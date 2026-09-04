@@ -1,5 +1,4 @@
-import { format } from "date-fns";
-import { History, Check, Sparkles, AlertTriangle, Palmtree, Plus, X, Pencil } from "lucide-react";
+import { History, Check, Sparkles, AlertTriangle, Palmtree, Plus, X, Pencil, FileText, Tag } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
@@ -22,6 +21,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { getListRoomsQueryKey } from "@workspace/api-client-react";
 import { toast } from "sonner";
+import { formatDate } from "@/lib/date-utils";
 import { roomStatusBadge, getRoomStatusLabel, statusNorm } from "../utils";
 
 type Props = {
@@ -147,7 +147,7 @@ export function RoomDetailsDialog({
             <Palmtree className="w-5 h-5 text-amber-600 flex-shrink-0" />
             <div className="flex-1">
               <p className="font-bold text-sm text-amber-950 dark:text-amber-100">
-                {ar ? "نزيل هذه الغرفة في إجازة حالياً (اكوبايد فيكيشن)" : "Occupant is currently on vacation (Occupied Vacation)"}
+                {ar ? "نزيل هذه الغرفة في إجازة حالياً" : "Occupant is currently on vacation"}
               </p>
               <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
                 {ar ? "السرير محجوز له لحين عودته من الإجازة." : "Bed is reserved until their return."}
@@ -215,11 +215,11 @@ export function RoomDetailsDialog({
                 : "—",
             },
             {
-              label: ar ? "باب فاصل (Connecting)" : "Separator Door",
+              label: ar ? "باب فاصل" : "Separator Door",
               value: room.separatorDoor != null
                 ? room.separatorDoor
-                  ? ar ? "✅ نعم يوجد" : "✅ Yes"
-                  : ar ? "❌ لا يوجد" : "❌ No"
+                  ? ar ? "نعم يوجد" : "Yes"
+                  : ar ? "لا يوجد" : "No"
                 : "—",
             },
             ...(room.gender ? [{
@@ -236,8 +236,8 @@ export function RoomDetailsDialog({
         {/* Notes */}
         {room.notes && (
           <div className="p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mt-2">
-            <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold mb-1">
-              📝 {ar ? "ملاحظات:" : "Notes:"}
+            <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold mb-1 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-amber-600" /> {ar ? "ملاحظات:" : "Notes:"}
             </p>
             <p className="text-sm text-amber-900 dark:text-amber-200">{room.notes}</p>
           </div>
@@ -245,8 +245,8 @@ export function RoomDetailsDialog({
         {/* ── Room Features (always show, editable) ── */}
         <div className="p-3 rounded-lg bg-muted/30 mt-2 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground font-bold">
-              🏷️ {ar ? "تجهيزات ومميزات الغرفة:" : "Room Features & Amenities:"}
+            <p className="text-xs text-muted-foreground font-bold flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5 text-muted-foreground" /> {ar ? "تجهيزات ومميزات الغرفة:" : "Room Features & Amenities:"}
             </p>
             {!featuresEditMode ? (
               <Button
@@ -305,9 +305,10 @@ export function RoomDetailsDialog({
               ) : (
                 <span
                   key={fIdx}
-                  className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20"
+                  className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 flex items-center gap-1"
                 >
-                  ✨ {String(feat).trim()}
+                  <Sparkles className="w-3 h-3 text-primary/70" />
+                  {String(feat).trim()}
                 </span>
               )
             ))}
@@ -390,7 +391,7 @@ export function RoomDetailsDialog({
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground whitespace-nowrap">
-                        {format(new Date(a.checkInDate), "MMM d")}
+                        {formatDate(a.checkInDate)}
                       </p>
                     </div>
                   );

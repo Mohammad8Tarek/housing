@@ -17,6 +17,7 @@ import {
   Clock,
   Sparkle,
   Eye,
+  CalendarDays,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -180,7 +181,12 @@ export function RoomSpaceViewTab({
 
   const handleQuickAssign = (roomId: number, bedNum: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setLocation(`/accommodation/reservations?roomId=${roomId}&bed=${bedNum}`);
+    setLocation(`/accommodation/reservations?roomId=${roomId}&bed=${bedNum}&bookingType=direct`);
+  };
+
+  const handleQuickReserve = (roomId: number, bedNum: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLocation(`/accommodation/reservations?roomId=${roomId}&bed=${bedNum}&bookingType=upcoming&personMode=new`);
   };
 
   return (
@@ -217,7 +223,7 @@ export function RoomSpaceViewTab({
         <div className="p-3.5 rounded-xl border bg-emerald-500/10 border-emerald-500/20 backdrop-blur shadow-sm">
           <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
             <CheckCircle className="w-4 h-4 text-emerald-600" />
-            <span>{ar ? "الأسرة المتاحة (فيكنت)" : "Free Bed Spaces"}</span>
+            <span>{ar ? "الأسِرّة المتاحة" : "Free Bed Spaces"}</span>
           </div>
           <p className="text-2xl font-black mt-1 text-emerald-600 dark:text-emerald-400">{stats.freeBeds}</p>
           <span className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80 font-medium">
@@ -228,7 +234,7 @@ export function RoomSpaceViewTab({
         <div className="p-3.5 rounded-xl border bg-amber-500/10 border-amber-500/20 backdrop-blur shadow-sm col-span-2 sm:col-span-1">
           <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 text-xs font-bold">
             <Palmtree className="w-4 h-4 text-amber-600" />
-            <span>{ar ? "في إجازة (محجوز)" : "On Vacation"}</span>
+            <span>{ar ? "في إجازة" : "On Vacation"}</span>
           </div>
           <p className="text-2xl font-black mt-1 text-amber-600 dark:text-amber-400">{stats.vacationBeds}</p>
           <span className="text-[11px] text-amber-700/80 dark:text-amber-300/80 font-medium">
@@ -265,10 +271,10 @@ export function RoomSpaceViewTab({
               }}
               className="h-9 px-3 py-1 text-xs font-semibold rounded-lg border bg-background text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="all">{ar ? "🏢 جميع المباني" : "🏢 All Buildings"}</option>
+              <option value="all">{ar ? "جميع المباني" : "All Buildings"}</option>
               {buildings.map((b) => (
                 <option key={b.id} value={String(b.id)}>
-                  🏢 {b.name}
+                  {b.name}
                 </option>
               ))}
             </select>
@@ -281,7 +287,7 @@ export function RoomSpaceViewTab({
               }}
               className="h-9 px-3 py-1 text-xs font-semibold rounded-lg border bg-background text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="all">{ar ? "📑 جميع الأدوار" : "📑 All Floors"}</option>
+              <option value="all">{ar ? "جميع الأدوار" : "All Floors"}</option>
               {floors
                 .filter((f) => selectedBuildingId === "all" || String(f.buildingId) === selectedBuildingId)
                 .map((f) => (
@@ -416,7 +422,7 @@ export function RoomSpaceViewTab({
                             <>
                               <span>•</span>
                               <span className="capitalize">
-                                {room.gender === "male" ? (ar ? "رجال 👨" : "Male") : (ar ? "سيدات 👩" : "Female")}
+                                {room.gender === "male" ? (ar ? "رجال" : "Male") : (ar ? "سيدات" : "Female")}
                               </span>
                             </>
                           )}
@@ -473,7 +479,7 @@ export function RoomSpaceViewTab({
                                 </p>
                                 {isVacation && profile.vacationStartDate && (
                                   <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 mt-0.5">
-                                    🌴 {ar ? `إجازة حتى ${profile.vacationEndDate}` : `Leave till ${profile.vacationEndDate}`}
+                                    {ar ? `إجازة حتى ${profile.vacationEndDate}` : `Leave till ${profile.vacationEndDate}`}
                                   </p>
                                 )}
                               </div>
@@ -496,14 +502,26 @@ export function RoomSpaceViewTab({
                               </span>
                             </div>
 
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => handleQuickAssign(room.id, bedNum, e)}
-                              className="h-7 px-2 text-[11px] font-bold border-emerald-400 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white transition-colors"
-                            >
-                              + {ar ? "تسكين" : "Assign"}
-                            </Button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => handleQuickReserve(room.id, bedNum, e)}
+                                className="h-7 px-2 text-[11px] font-bold border-blue-400 text-blue-700 dark:text-blue-300 hover:bg-blue-600 hover:text-white transition-colors"
+                                title={ar ? "إنشاء حجز لملف جديد" : "Create reservation for new profile"}
+                              >
+                                <CalendarDays className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                                {ar ? "حجز" : "Reserve"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => handleQuickAssign(room.id, bedNum, e)}
+                                className="h-7 px-2 text-[11px] font-bold border-emerald-400 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white transition-colors"
+                              >
+                                + {ar ? "تسكين" : "Assign"}
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
@@ -516,10 +534,27 @@ export function RoomSpaceViewTab({
                           ? (ar ? `متبقي ${freeCount} أماكن` : `${freeCount} spots left`)
                           : (ar ? "مكتملة السعة" : "Fully Occupied")}
                       </span>
-                      <span className="text-primary font-bold flex items-center gap-1 group-hover:translate-x-[-2px] rtl:group-hover:translate-x-[2px] transition-transform">
-                        <Eye className="w-3.5 h-3.5" />
-                        {ar ? "تفاصيل الغرفة" : "Details"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {freeCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const firstVacant = bedSlots.find((b) => !b.profile)?.bedNum || 1;
+                              handleQuickReserve(room.id, firstVacant, e);
+                            }}
+                            className="text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1"
+                            title={ar ? "إنشاء حجز لملف جديد" : "Create reservation for new profile"}
+                          >
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            {ar ? "حجز" : "Reserve"}
+                          </button>
+                        )}
+                        <span className="text-primary font-bold flex items-center gap-1 group-hover:translate-x-[-2px] rtl:group-hover:translate-x-[2px] transition-transform">
+                          <Eye className="w-3.5 h-3.5" />
+                          {ar ? "تفاصيل الغرفة" : "Details"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );

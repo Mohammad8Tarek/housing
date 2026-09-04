@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useRef, useState } from "react";
 import { useParams, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useListAssignments,
   useListRooms,
@@ -11,10 +11,13 @@ import {
   useListProperties,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DocumentPreviewModal } from "@/components/ui/document-preview-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -72,9 +75,12 @@ import {
   Eye,
   ExternalLink,
   FileText,
+  Clock,
+  CalendarPlus,
   X,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
+import { formatDate } from "@/lib/date-utils";
 import { generateHousingLetterPdf } from "@/lib/pdf-utils";
 import {
   usePrintLanguage,
@@ -472,6 +478,80 @@ export default function ProfileDetail() {
     });
   };
 
+  const queryClient = useQueryClient();
+  const [extendModalOpen, setExtendModalOpen] = useState(false);
+  const [extendNewDate, setExtendNewDate] = useState("");
+  const [extendNotes, setExtendNotes] = useState("");
+  const [extendLoading, setExtendLoading] = useState(false);
+
+  const openExtendFromDetail = () => {
+    if (!currentAssignment) return;
+    let baseDate = new Date();
+    if (currentAssignment.expectedCheckOutDate) {
+      const exp = new Date(currentAssignment.expectedCheckOutDate);
+      if (!isNaN(exp.getTime()) && exp > baseDate) {
+        baseDate = exp;
+      }
+    }
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(nextDate.getDate() + 7);
+    setExtendNewDate(nextDate.toISOString().split("T")[0]);
+    setExtendNotes(currentAssignment.notes || "");
+    setExtendModalOpen(true);
+  };
+
+  const applyExtendPresetDetail = (days: number) => {
+    let baseDate = new Date();
+    if (currentAssignment?.expectedCheckOutDate) {
+      const exp = new Date(currentAssignment.expectedCheckOutDate);
+      if (!isNaN(exp.getTime()) && exp > baseDate) {
+        baseDate = exp;
+      }
+    }
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(nextDate.getDate() + days);
+    setExtendNewDate(nextDate.toISOString().split("T")[0]);
+  };
+
+  const handleConfirmExtendFromDetail = async () => {
+    if (!currentAssignment) return;
+    if (!extendNewDate) {
+      toast.error(
+        ar
+          ? "يرجى تحديد تاريخ المغادرة الجديد"
+          : "Please select new departure date",
+      );
+      return;
+    }
+    setExtendLoading(true);
+    try {
+      const res = await fetch(`/api/assignments/${currentAssignment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expectedCheckOutDate: extendNewDate,
+          notes: extendNotes,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed");
+      }
+      toast.success(
+        ar ? "تم تمديد فترة الإقامة بنجاح" : "Stay extended successfully",
+      );
+      setExtendModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/assignments"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/assignments/in-house"],
+      });
+    } catch (err: any) {
+      toast.error(err.message || (ar ? "فشل التمديد" : "Failed to extend"));
+    } finally {
+      setExtendLoading(false);
+    }
+  };
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -698,14 +778,14 @@ export default function ProfileDetail() {
       icon: <Calendar className="w-4 h-4" />,
       label: ar ? "تاريخ التعيين" : "Hire Date",
       value: emp.employmentType === "THIRD_PARTY" ? null : (emp.hireDate
-        ? format(new Date(emp.hireDate), "MMM d, yyyy")
+        ? formatDate(emp.hireDate)
         : null),
     },
     {
       icon: <Clock className="w-4 h-4 text-amber-500" />,
       label: ar ? "تاريخ انتهاء العقد" : "Contract End Date",
       value: emp.employmentType !== "THIRD_PARTY" && emp.contractEndDate
-        ? format(new Date(emp.contractEndDate), "MMM d, yyyy")
+        ? formatDate(emp.contractEndDate)
         : null,
     },
     {
@@ -818,19 +898,19 @@ export default function ProfileDetail() {
                       <SelectItem value="ACTIVE" className="text-emerald-700 font-medium">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          <span>{ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}</span>
+                          <span>{ar ? "مقيم بالسكن" : "In-House"}</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="VACATION" className="text-amber-700 font-medium">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-amber-500" />
-                          <span>{ar ? "في إجازة (فيكيشن)" : "Vacation"}</span>
+                          <span>{ar ? "في إجازة" : "On Vacation"}</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="LEFT" className="text-slate-700 font-medium">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-slate-400" />
-                          <span>{ar ? "مغادر (شيكاوت)" : "Check-out"}</span>
+                          <span>{ar ? "تمت المغادرة" : "Checked Out"}</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -904,16 +984,7 @@ export default function ProfileDetail() {
                     {/* Thumbnail & Preview Trigger */}
                     <div
                       className="relative h-32 w-full bg-muted/30 cursor-pointer overflow-hidden flex items-center justify-center border-b border-border/40"
-                      onClick={() => {
-                        if (isImage) {
-                          setPreviewDoc(doc);
-                        } else if (doc.fileData) {
-                          const win = window.open();
-                          if (win) {
-                            win.document.write(`<iframe src="${doc.fileData}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                          }
-                        }
-                      }}
+                      onClick={() => setPreviewDoc(doc)}
                       title={ar ? "انقر للمعاينة" : "Click to preview"}
                     >
                       {isImage ? (
@@ -943,7 +1014,7 @@ export default function ProfileDetail() {
                         </span>
                         {doc.uploadedAt && (
                           <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                            {format(new Date(doc.uploadedAt), "yyyy/MM/dd")}
+                            {formatDate(doc.uploadedAt)}
                           </span>
                         )}
                       </div>
@@ -1005,15 +1076,26 @@ export default function ProfileDetail() {
               {ar ? "السكن الحالي" : "Current Housing"}
             </CardTitle>
             {currentAssignment && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={printHousingLetter}
-                className="gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                {ar ? "طباعة خطاب السكن" : "Print Housing Letter"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={openExtendFromDetail}
+                  className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  {ar ? "تمديد الإقامة" : "Extend Stay"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={printHousingLetter}
+                  className="gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  {ar ? "طباعة خطاب السكن" : "Print Housing Letter"}
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>
@@ -1060,20 +1142,12 @@ export default function ProfileDetail() {
                     },
                     {
                       label: ar ? "تاريخ الدخول" : "Check-in",
-                      value: format(
-                        new Date(currentAssignment.checkInDate),
-                        "MMM d, yyyy",
-                      ),
+                      value: formatDate(currentAssignment.checkInDate),
                       icon: <Calendar className="w-4 h-4" />,
                     },
                     {
                       label: ar ? "المغادرة المتوقعة" : "Expected Out",
-                      value: currentAssignment.expectedCheckOutDate
-                        ? format(
-                            new Date(currentAssignment.expectedCheckOutDate),
-                            "MMM d, yyyy",
-                          )
-                        : "—",
+                      value: formatDate(currentAssignment.expectedCheckOutDate),
                       icon: <Calendar className="w-4 h-4" />,
                     },
                     {
@@ -1264,14 +1338,10 @@ export default function ProfileDetail() {
                       )}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      {a.checkInDate
-                        ? format(new Date(a.checkInDate), "MMM d, yyyy")
-                        : "—"}
+                      {formatDate(a.checkInDate)}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      {checkOutDate
-                        ? format(new Date(checkOutDate), "MMM d, yyyy")
-                        : "—"}
+                      {formatDate(checkOutDate)}
                     </TableCell>
                     <TableCell className="text-sm">
                       {days !== null ? (
@@ -1414,37 +1484,151 @@ export default function ProfileDetail() {
       </Dialog>
 
       {/* Document Preview Lightbox Modal */}
-      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-3xl p-4">
-          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b">
-            <DialogTitle className="text-base truncate max-w-[80%]">
-              {previewDoc?.fileName}
+      <DocumentPreviewModal
+        doc={previewDoc}
+        isOpen={!!previewDoc}
+        onClose={() => setPreviewDoc(null)}
+      />
+
+      {/* Extend Stay Dialog */}
+      <Dialog
+        open={extendModalOpen}
+        onOpenChange={setExtendModalOpen}
+      >
+        <DialogContent
+          className="max-w-md"
+          srTitle={ar ? "تمديد فترة الإقامة" : "Extend Stay Period"}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <CalendarPlus className="w-5 h-5 text-primary" />
+              {ar ? "تمديد فترة الإقامة" : "Extend Stay Period"}
             </DialogTitle>
-            {previewDoc && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 text-xs text-primary"
-                onClick={() => handleDownloadDoc(previewDoc)}
-              >
-                <Download className="w-3.5 h-3.5" />
-                {ar ? "تحميل الملف" : "Download File"}
-              </Button>
-            )}
           </DialogHeader>
-          <div className="mt-4 flex items-center justify-center max-h-[75vh] overflow-auto rounded-lg bg-black/5 p-2">
-            {previewDoc?.fileData && previewDoc.fileData.startsWith("data:image") ? (
-              <img
-                src={previewDoc.fileData}
-                alt={previewDoc.fileName}
-                className="max-h-[70vh] w-auto object-contain rounded shadow"
-              />
-            ) : (
-              <div className="p-8 text-center text-muted-foreground">
-                <FileText className="w-16 h-16 mx-auto mb-2 opacity-40 text-primary" />
-                <p className="text-sm font-medium">{previewDoc?.fileName}</p>
+
+          {currentAssignment && (
+            <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <div>
+                <span className="text-muted-foreground block mb-0.5">
+                  {ar ? "تاريخ التسكين:" : "Check-in Date:"}
+                </span>
+                <span className="font-semibold">
+                  {formatDate(currentAssignment.checkInDate)}
+                </span>
               </div>
-            )}
+              <div>
+                <span className="text-muted-foreground block mb-0.5">
+                  {ar ? "تاريخ المغادرة الحالي:" : "Current Departure:"}
+                </span>
+                <span className="font-semibold">
+                  {formatDate(currentAssignment.expectedCheckOutDate, ar ? "غير محدد" : "Not set")}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <Label className="font-semibold text-sm">
+                {ar ? "تاريخ المغادرة الجديد المتوقع" : "New Expected Departure Date"} *
+              </Label>
+              <DateInput
+                value={extendNewDate}
+                onChange={(iso) => setExtendNewDate(iso)}
+                min={new Date().toISOString().split("T")[0]}
+                className="font-mono text-sm"
+              />
+              <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                <span className="text-xs text-muted-foreground mr-1 rtl:ml-1 rtl:mr-0">
+                  {ar ? "إضافة سريعة:" : "Quick add:"}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] font-normal"
+                  onClick={() => applyExtendPresetDetail(3)}
+                >
+                  +3 {ar ? "أيام" : "days"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] font-normal"
+                  onClick={() => applyExtendPresetDetail(7)}
+                >
+                  + {ar ? "أسبوع" : "1 week"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] font-normal"
+                  onClick={() => applyExtendPresetDetail(14)}
+                >
+                  + {ar ? "أسبوعين" : "2 weeks"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] font-normal"
+                  onClick={() => applyExtendPresetDetail(30)}
+                >
+                  + {ar ? "شهر" : "1 month"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] font-normal"
+                  onClick={() => applyExtendPresetDetail(90)}
+                >
+                  + 3 {ar ? "أشهر" : "months"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm">
+                {ar ? "سبب التمديد / ملاحظات" : "Extension Reason / Notes"}
+              </Label>
+              <Textarea
+                placeholder={
+                  ar
+                    ? "أدخل سبب تمديد الإقامة أو أي تفاصيل إضافية..."
+                    : "Enter reason for extending stay or additional notes..."
+                }
+                value={extendNotes}
+                onChange={(e) => setExtendNotes(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setExtendModalOpen(false)}
+              >
+                {ar ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button
+                onClick={handleConfirmExtendFromDetail}
+                disabled={extendLoading || !extendNewDate}
+                className="gap-1.5 bg-primary font-semibold"
+              >
+                <CalendarPlus className="w-4 h-4" />
+                {extendLoading
+                  ? ar
+                    ? "جاري التمديد..."
+                    : "Extending..."
+                  : ar
+                    ? "تأكيد تمديد الإقامة"
+                    : "Confirm Extension"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

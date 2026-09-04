@@ -33,6 +33,7 @@ import {
   Award,
   Activity,
   MessageSquare,
+  Calendar,
 } from "lucide-react";
 
 export default function PortalAnalyticsDashboard({ onViewReports }: { onViewReports?: () => void } = {}) {
@@ -161,8 +162,9 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
                 : `${analytics?.activities?.upcoming} upcoming`}
             </p>
             <div className="pt-2 flex gap-1">
-              <Badge variant="outline" className="text-xs">
-                {analytics?.activities?.upcoming} 📅
+              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-muted-foreground" />
+                <span>{analytics?.activities?.upcoming}</span>
               </Badge>
             </div>
           </CardContent>

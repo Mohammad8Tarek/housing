@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { profilesTable } from "./profiles";
@@ -13,6 +13,7 @@ export const assignmentsTable = pgTable("assignments", {
     .notNull()
     .references(() => roomsTable.id, { onDelete: "cascade" }),
   bedNumber: integer("bed_number"),
+  isEntireRoom: boolean("is_entire_room").notNull().default(false),
   checkInDate: text("check_in_date").notNull(),
   expectedCheckOutDate: text("expected_check_out_date"),
   checkOutDate: text("check_out_date"),

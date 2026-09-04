@@ -35,6 +35,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
+import { formatDate } from "@/lib/date-utils";
 import { Link } from "wouter";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
@@ -367,10 +368,7 @@ export function ProfileProfilePopup({
                     </div>
                     <div className="text-sm text-muted-foreground flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 shrink-0" />
-                      {format(
-                        new Date(currentAssignment.checkInDate),
-                        "MMM d, yyyy",
-                      )}
+                      {formatDate(currentAssignment.checkInDate)}
                       {daysStayed !== null && (
                         <span className="ml-1 text-xs">
                           ({daysStayed}
@@ -381,10 +379,7 @@ export function ProfileProfilePopup({
                     {currentAssignment.expectedCheckOutDate && (
                       <div className="col-span-2 text-xs text-muted-foreground">
                         {ar ? "مغادرة متوقعة:" : "Expected out:"}{" "}
-                        {format(
-                          new Date(currentAssignment.expectedCheckOutDate),
-                          "MMM d, yyyy",
-                        )}
+                        {formatDate(currentAssignment.expectedCheckOutDate)}
                       </div>
                     )}
                   </div>
@@ -426,19 +421,9 @@ export function ProfileProfilePopup({
                                 </span>
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {hosting.expectedFrom
-                                  ? format(
-                                      new Date(hosting.expectedFrom),
-                                      "MMM d, yyyy",
-                                    )
-                                  : "—"}
+                                {formatDate(hosting.expectedFrom)}
                                 {" - "}
-                                {hosting.expectedTo
-                                  ? format(
-                                      new Date(hosting.expectedTo),
-                                      "MMM d, yyyy",
-                                    )
-                                  : "—"}
+                                {formatDate(hosting.expectedTo)}
                               </p>
                             </div>
                             <Badge variant="outline" className="text-xs">

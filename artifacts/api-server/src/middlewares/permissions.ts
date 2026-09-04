@@ -24,6 +24,7 @@ export const PERMISSION_MODULES = [
   "activities",
   "smart_locks",
   "hosting_requests",
+  "guest_hosting",
 ] as const;
 
 export const PERMISSION_ACTIONS = [
@@ -133,6 +134,16 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "accommodation.bulk_delete",
     "accommodation.bulk_export",
     "accommodation.archive",
+    "guest_hosting.view",
+    "guest_hosting.create",
+    "guest_hosting.edit",
+    "guest_hosting.delete",
+    "guest_hosting.checkin",
+    "guest_hosting.checkout",
+    "guest_hosting.approve",
+    "guest_hosting.transfer",
+    "guest_hosting.bulk_delete",
+    "guest_hosting.bulk_export",
     "reservations.delete",
     "reservations.bulk_export",
     "reservations.archive",
@@ -172,6 +183,13 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "accommodation.checkin",
     "accommodation.checkout",
     "accommodation.approve",
+    "guest_hosting.view",
+    "guest_hosting.create",
+    "guest_hosting.edit",
+    "guest_hosting.checkin",
+    "guest_hosting.checkout",
+    "guest_hosting.approve",
+    "guest_hosting.export",
     "reservations.view",
     "reservations.create",
     "reservations.edit",
@@ -322,7 +340,28 @@ export function hasPermission(
 ): boolean {
   const permissions = effectivePermissions(user);
   if (permissions.has("*")) return true;
-  return permissionKeys(module, action).some((key) => permissions.has(key));
+  if (permissionKeys(module, action).some((key) => permissions.has(key))) {
+    return true;
+  }
+  // Backward compatibility fallback: if checking guest_hosting, check accommodation
+  if (module === "guest_hosting") {
+    return permissionKeys("accommodation", action).some((key) =>
+      permissions.has(key),
+    );
+  }
+  // Cross-module fallback for room & housing entities: accommodation, housing, and housekeeping
+  if (
+    (action === "view" || action === "edit") &&
+    (module === "accommodation" || module === "housing" || module === "housekeeping")
+  ) {
+    const crossModules: PermissionModule[] = ["accommodation", "housing", "housekeeping"];
+    for (const cross of crossModules) {
+      if (permissionKeys(cross, action).some((key) => permissions.has(key))) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function requestedPropertyId(req: Request): number | null {

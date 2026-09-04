@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -30,7 +31,12 @@ import {
   ShieldCheck,
   Calendar,
   Lock,
+  Eye,
 } from "lucide-react";
+import {
+  DocumentPreviewModal,
+  type PreviewableDocument,
+} from "@/components/ui/document-preview-modal";
 
 export function ProfileDialog({
   propertyId,
@@ -53,6 +59,7 @@ export function ProfileDialog({
   >({});
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoData, setPhotoData] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<PreviewableDocument | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const docsRef = useRef<HTMLInputElement>(null);
 
@@ -123,7 +130,7 @@ export function ProfileDialog({
     if (isOpen) {
       setForm({
         ...EMPTY_FORM,
-        profileId: `EMP-${Date.now().toString().slice(-4)}`,
+        profileId: "",
         hireDate: new Date().toISOString().split("T")[0],
       });
       setErrors({});
@@ -160,8 +167,6 @@ export function ProfileDialog({
 
   const validate = () => {
     const errs: Partial<Record<keyof ProfileForm, string>> = {};
-    if (!form.profileId.trim())
-      errs.profileId = ar ? "كود الموظف مطلوب" : "Profile Code required";
     if (!form.firstName.trim())
       errs.firstName = ar ? "الاسم الأول مطلوب" : "First name required";
     if (!form.lastName.trim())
@@ -169,6 +174,10 @@ export function ProfileDialog({
     if (!form.nationalId.trim())
       errs.nationalId = ar ? "رقم الهوية مطلوب" : "National ID required";
     if (form.employmentType !== "THIRD_PARTY") {
+      if (!form.department?.trim())
+        errs.department = ar ? "القسم مطلوب" : "Department required";
+      if (!form.jobTitle?.trim())
+        errs.jobTitle = ar ? "المسمى الوظيفي مطلوب" : "Job title required";
       if (!form.hireDate)
         errs.hireDate = ar ? "تاريخ التعيين مطلوب" : "Hire date required";
     } else {
@@ -183,12 +192,13 @@ export function ProfileDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             <UserPlus className="w-5 h-5 text-primary" />
-            {ar ? "إضافة بروفايل جديد" : "Add New Profile"}
+            {ar ? "نيو بروفايل" : "New Profile"}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
             {ar
@@ -282,7 +292,7 @@ export function ProfileDialog({
               >
                 <Users className="w-4 h-4 text-purple-600" />
                 <span className="font-semibold">
-                  {ar ? "طرف خارجي (ثيرد بارتي)" : "Third-Party"}
+                  {ar ? "طرف ثالث" : "Third-Party"}
                 </span>
               </button>
             </div>
@@ -306,7 +316,7 @@ export function ProfileDialog({
                 <Input
                   value={form.profileId}
                   onChange={(e) => set("profileId", e.target.value)}
-                  placeholder="EMP-001"
+                  placeholder={ar ? "مثال: EMP-001" : "e.g. EMP-001"}
                   className={errors.profileId ? "border-destructive" : ""}
                 />
                 {errors.profileId && (
@@ -415,10 +425,9 @@ export function ProfileDialog({
               </FormRow>
 
               <FormRow label={ar ? "تاريخ الميلاد" : "Date of Birth"}>
-                <Input
-                  type="date"
+                <DateInput
                   value={form.dateOfBirth}
-                  onChange={(e) => set("dateOfBirth", e.target.value)}
+                  onChange={(iso) => set("dateOfBirth", iso)}
                   className="h-9"
                 />
               </FormRow>
@@ -486,13 +495,13 @@ export function ProfileDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ACTIVE">
-                        {ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}
+                        {ar ? "مقيم بالسكن" : "In-House"}
                       </SelectItem>
                       <SelectItem value="LEFT">
-                        {ar ? "مغادر (شيكاوت)" : "Check-out"}
+                        {ar ? "تمت المغادرة" : "Checked Out"}
                       </SelectItem>
                       <SelectItem value="VACATION">
-                        {ar ? "في إجازة (فيكيشن)" : "Vacation"}
+                        {ar ? "في إجازة" : "On Vacation"}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -519,10 +528,9 @@ export function ProfileDialog({
                   </FormRow>
 
                   <FormRow label={ar ? "تاريخ التعيين *" : "Hire Date *"}>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={form.hireDate}
-                      onChange={(e) => set("hireDate", e.target.value)}
+                      onChange={(iso) => set("hireDate", iso)}
                       className={errors.hireDate ? "border-destructive" : ""}
                     />
                     {errors.hireDate && (
@@ -540,13 +548,13 @@ export function ProfileDialog({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ACTIVE">
-                          {ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}
+                          {ar ? "مقيم بالسكن" : "In-House"}
                         </SelectItem>
                         <SelectItem value="LEFT">
-                          {ar ? "مغادر (شيكاوت)" : "Check-out"}
+                          {ar ? "تمت المغادرة" : "Checked Out"}
                         </SelectItem>
                         <SelectItem value="VACATION">
-                          {ar ? "في إجازة (فيكيشن)" : "Vacation"}
+                          {ar ? "في إجازة" : "On Vacation"}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -562,10 +570,9 @@ export function ProfileDialog({
                         ? "تاريخ انتهاء العقد (خاص بالموظفين الداخليين)"
                         : "Contract End Date (Internal Employee)"}
                     </Label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={form.contractEndDate || ""}
-                      onChange={(e) => set("contractEndDate", e.target.value)}
+                      onChange={(iso) => set("contractEndDate", iso)}
                       className="bg-background border-amber-300 dark:border-amber-700 h-9"
                     />
                   </div>
@@ -728,18 +735,32 @@ export function ProfileDialog({
                     key={i}
                     className="relative group border rounded-lg overflow-hidden h-28 flex flex-col justify-between bg-card shadow-xs"
                   >
-                    <div className="relative h-20 w-full bg-muted/30 overflow-hidden flex items-center justify-center">
+                    <div
+                      className="relative h-20 w-full bg-muted/30 overflow-hidden flex items-center justify-center cursor-pointer group/thumb"
+                      onClick={() =>
+                        setPreviewDoc({
+                          fileName: doc.fileName,
+                          fileType: doc.fileType,
+                          fileData: doc.fileData,
+                          title: doc.fileName,
+                        })
+                      }
+                      title={ar ? "انقر للمعاينة" : "Click to preview"}
+                    >
                       {doc.fileData.startsWith("data:image") ? (
                         <img
                           src={doc.fileData}
                           alt={doc.fileName}
-                          className="absolute inset-0 w-full h-full object-cover"
+                          className="absolute inset-0 w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
                         />
                       ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center text-muted-foreground group-hover/thumb:text-primary transition-colors">
                           <span className="text-xs font-mono font-bold">PDF</span>
                         </div>
                       )}
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                        <Eye className="w-5 h-5 text-white drop-shadow" />
+                      </div>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -752,7 +773,17 @@ export function ProfileDialog({
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="p-1.5 bg-background border-t">
+                    <div
+                      className="p-1.5 bg-background border-t cursor-pointer hover:bg-muted/50"
+                      onClick={() =>
+                        setPreviewDoc({
+                          fileName: doc.fileName,
+                          fileType: doc.fileType,
+                          fileData: doc.fileData,
+                          title: doc.fileName,
+                        })
+                      }
+                    >
                       <span
                         className="text-[11px] font-medium truncate block"
                         title={doc.fileName}
@@ -774,14 +805,16 @@ export function ProfileDialog({
           <Button
             onClick={() => {
               if (validate()) {
+                const autoId = form.profileId.trim() || `${form.employmentType === "THIRD_PARTY" ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
                 const cleanedForm: ProfileForm = {
                   ...form,
+                  profileId: autoId,
                   hireDate:
                     form.employmentType === "THIRD_PARTY"
                       ? form.hireDate || new Date().toISOString().split("T")[0]
                       : form.hireDate,
                   department:
-                    form.employmentType === "THIRD_PARTY" ? "" : form.department,
+                    form.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : form.department,
                   level:
                     form.employmentType === "THIRD_PARTY" ? "" : form.level,
                   contractEndDate:
@@ -804,5 +837,12 @@ export function ProfileDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    <DocumentPreviewModal
+      doc={previewDoc}
+      isOpen={!!previewDoc}
+      onClose={() => setPreviewDoc(null)}
+    />
+    </>
   );
 }

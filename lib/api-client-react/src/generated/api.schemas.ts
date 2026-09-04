@@ -145,6 +145,8 @@ export interface Room {
   status: string;
   /** @nullable */
   gender?: string | null;
+  /** @nullable */
+  classification?: string | null;
 }
 
 export interface CreateRoomBody {

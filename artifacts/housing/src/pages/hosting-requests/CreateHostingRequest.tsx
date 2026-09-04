@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate } from "@/lib/date-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -295,6 +297,14 @@ export default function CreateHostingRequest() {
       );
       return;
     }
+    if (new Date(form.toDate).getTime() < new Date(form.fromDate).getTime()) {
+      toast.error(
+        ar
+          ? "تاريخ نهاية الاستضافة يجب أن يكون بعد تاريخ البداية"
+          : "End date must be on or after start date",
+      );
+      return;
+    }
     if (hasDateConflict) {
       toast.error(
         ar
@@ -405,7 +415,7 @@ export default function CreateHostingRequest() {
                 <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-background border rounded-lg px-3 py-2">
                   <CalendarCheck className="w-3.5 h-3.5 text-blue-500" />
                   <span>{ar ? "آخر استضافة:" : "Last hosting:"}</span>
-                  <span className="font-medium">{new Date(lastHosting.fromDate).toLocaleDateString()}</span>
+                  <span className="font-medium">{formatDate(lastHosting.fromDate)}</span>
                   <StatusBadge status={lastHosting.status} ar={ar} />
                 </div>
               )}
@@ -535,10 +545,10 @@ export default function CreateHostingRequest() {
                               {h.requestNumber}
                             </TableCell>
                             <TableCell className="text-sm">
-                              {new Date(h.fromDate).toLocaleDateString()}
+                              {formatDate(h.fromDate)}
                             </TableCell>
                             <TableCell className="text-sm">
-                              {new Date(h.toDate).toLocaleDateString()}
+                              {formatDate(h.toDate)}
                             </TableCell>
                             <TableCell className="text-sm font-medium">{h.consumedDays}</TableCell>
                             <TableCell>
@@ -634,22 +644,20 @@ export default function CreateHostingRequest() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label>{ar ? "من *" : "From *"}</Label>
-                  <Input
-                    type="date"
-                    required
-                    value={form.fromDate}
-                    onChange={(e) => updateField("fromDate", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{ar ? "إلى *" : "To *"}</Label>
-                  <Input
-                    type="date"
-                    required
-                    value={form.toDate}
-                    onChange={(e) => updateField("toDate", e.target.value)}
-                  />
+                <Label>{ar ? "من *" : "From *"}</Label>
+                <DateInput
+                  value={form.fromDate}
+                  onChange={(iso) => updateField("fromDate", iso)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{ar ? "إلى *" : "To *"}</Label>
+                <DateInput
+                  value={form.toDate}
+                  onChange={(iso) => updateField("toDate", iso)}
+                  required
+                />
                 </div>
                 <div className="space-y-2">
                   <Label>{ar ? "الأيام المستهلكة *" : "Consumed Days *"}</Label>

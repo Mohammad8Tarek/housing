@@ -23,6 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,7 @@ import MaintenanceFilterBar from "@/components/ui/maintenance-filter-bar";
 import TicketDetailModal from "@/components/ui/ticket-detail-modal";
 import * as XLSX from "xlsx";
 import { format, differenceInMinutes } from "date-fns";
+import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -103,23 +106,23 @@ const PROBLEM_TYPES = [
 const PROBLEM_TYPES_AR = {
   Plumbing: "سباكة",
   Electrical: "كهرباء",
-  HVAC: "تكيي�?",
+  HVAC: "تكييف",
   Furniture: "أثاث",
-  Cleaning: "نظا�?ة",
+  Cleaning: "نظافة",
   Internet: "إنترنت",
   Other: "أخرى",
 };
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 const PRIORITY_AR = {
-  LOW: "منخ�?ضة",
+  LOW: "منخفضة",
   MEDIUM: "متوسطة",
   HIGH: "عالية",
   URGENT: "عاجلة",
 };
 const STATUS_AR = {
-  open: "م�?توحة",
-  in_progress: "قيد التن�?يذ",
-  resolved: "محلولة",
+  open: "مفتوحة",
+  in_progress: "قيد التنفيذ",
+  resolved: "تم الحل",
   closed: "مغلقة",
 };
 
@@ -181,6 +184,8 @@ export default function Tickets() {
     {},
   );
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [selectedTicketIds, setSelectedTicketIds] = useState<Set<number>>(new Set());
+  const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [subTickets, setSubTickets] = useState<any[]>([]);
   const [loadingSubTickets, setLoadingSubTickets] = useState(false);
   const [fromDate, setFromDate] = useState("");
@@ -465,7 +470,7 @@ export default function Tickets() {
     {
       key: "resolved",
       label: "Resolved",
-      labelAr: "ح�?لت",
+      labelAr: "حُلّت",
       defaultVisible: true,
     },
     {
@@ -526,9 +531,7 @@ export default function Tickets() {
       [ar ? "الحالة" : "Status"]: ar
         ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
         : req.status,
-      [ar ? "تاريخ الإبلاغ" : "Reported (Date)"]: req.reportedAt
-        ? format(new Date(req.reportedAt), "yyyy-MM-dd")
-        : "",
+      [ar ? "تاريخ الإبلاغ" : "Reported (Date)"]: formatDate(req.reportedAt, ""),
       [ar ? "وقت الإبلاغ" : "Reported (Time)"]: req.reportedAt
         ? format(new Date(req.reportedAt), "HH:mm")
         : "",
@@ -541,7 +544,88 @@ export default function Tickets() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, ar ? "التذاكر" : "Tickets");
-    XLSX.writeFile(wb, `tickets_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, getExportFileName("Maintenance_Tickets", "xlsx"));
+  };
+
+  const exportSelectedTicketsExcel = () => {
+    const target =
+      selectedTicketIds.size > 0
+        ? allTickets.filter((t) => selectedTicketIds.has(t.id))
+        : allTickets;
+    if (target.length === 0) return;
+    const rows = target.map((req) => ({
+      [ar ? "رقم الطلب" : "Ticket #"]: req.id,
+      [ar ? "الغرفة" : "Room"]: roomMap[req.roomId] ?? req.roomId,
+      [ar ? "النوع" : "Category"]: ar
+        ? (CATEGORIES_AR[req.category] ?? req.category)
+        : req.category,
+      [ar ? "المشكلة" : "Problem Type"]: ar
+        ? (PROBLEM_TYPES_AR[req.problemType] ?? req.problemType)
+        : req.problemType,
+      [ar ? "الوصف" : "Description"]: req.description,
+      [ar ? "الأولوية" : "Priority"]: ar
+        ? (PRIORITY_AR[req.priority] ?? req.priority)
+        : req.priority,
+      [ar ? "الحالة" : "Status"]: ar
+        ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
+        : req.status,
+      [ar ? "تاريخ الإبلاغ" : "Reported (Date)"]: formatDate(req.reportedAt, ""),
+      [ar ? "المدة" : "Duration"]: formatDuration(
+        req.startedAt,
+        req.resolvedAt,
+        req.reportedAt,
+      ),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, ar ? "التذاكر المحددة" : "Selected Tickets");
+    XLSX.writeFile(wb, getExportFileName("Maintenance_Selected_Tickets", "xlsx"));
+  };
+
+  const handleBulkStatusChange = async (newStatus: string) => {
+    if (selectedTicketIds.size === 0) return;
+    setBulkStatusLoading(true);
+    try {
+      const ids = Array.from(selectedTicketIds);
+      await Promise.all(
+        ids.map((id) =>
+          updateMutation.mutateAsync({
+            id,
+            data: { status: newStatus } as any,
+          })
+        )
+      );
+      toast.success(
+        ar
+          ? `تم تحديث حالة ${ids.length} تذكرة بنجاح`
+          : `Updated status for ${ids.length} ticket(s)`
+      );
+      setSelectedTicketIds(new Set());
+    } catch {
+      toast.error(ar ? "فشل التحديث الجماعي" : "Bulk update failed");
+    } finally {
+      setBulkStatusLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTicketIds.size === 0) return;
+    try {
+      const ids = Array.from(selectedTicketIds);
+      await Promise.all(
+        ids.map((id) =>
+          deleteMutation.mutateAsync({ id })
+        )
+      );
+      toast.success(
+        ar
+          ? `تم حذف ${ids.length} تذكرة بنجاح`
+          : `Deleted ${ids.length} ticket(s)`
+      );
+      setSelectedTicketIds(new Set());
+    } catch {
+      toast.error(ar ? "فشل الحذف الجماعي" : "Bulk delete failed");
+    }
   };
 
   const totalCount = paginationData.total || 0;
@@ -824,11 +908,94 @@ export default function Tickets() {
       {isLoading ? (
         <Skeleton className="h-64 w-full mx-4 sm:mx-6" />
       ) : (
-        <div className="px-4 sm:px-6 pb-6">
+        <div className="px-4 sm:px-6 pb-6 space-y-4">
+          {/* Bulk action bar */}
+          <BulkActionBar
+            count={selectedTicketIds.size}
+            onClear={() => setSelectedTicketIds(new Set())}
+            onExportExcel={exportSelectedTicketsExcel}
+            extraActions={
+              <div className="flex items-center gap-2">
+                <Select
+                  disabled={bulkStatusLoading}
+                  onValueChange={(val) => handleBulkStatusChange(val)}
+                >
+                  <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
+                    <SelectValue
+                      placeholder={
+                        ar ? "تغيير الحالة جماعياً..." : "Change Status..."
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                        <span>{ar ? "مفتوحة" : "Open"}</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="in_progress">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                        <span>{ar ? "قيد التنفيذ" : "In Progress"}</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="resolved">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                        <span>{ar ? "تم الحل" : "Resolved"}</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="closed">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                        <span>{ar ? "مغلقة" : "Closed"}</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <PermissionGate module="maintenance" action="delete">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    className="gap-1.5 h-8 text-xs font-semibold"
+                  >
+                    <Trash className="w-3.5 h-3.5" />
+                    {ar ? "حذف المحدد" : "Delete"}
+                  </Button>
+                </PermissionGate>
+              </div>
+            }
+            ar={ar}
+          />
+
           <div className="border rounded-lg bg-card overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
+                  <TableHead className="w-10 px-3">
+                    <Checkbox
+                      checked={
+                        paged.length > 0 &&
+                        paged.every((t) => selectedTicketIds.has(t.id))
+                      }
+                      onCheckedChange={(checked) => {
+                        setSelectedTicketIds(
+                          checked
+                            ? new Set([
+                                ...selectedTicketIds,
+                                ...paged.map((t) => t.id),
+                              ])
+                            : new Set(
+                                Array.from(selectedTicketIds).filter(
+                                  (id) => !paged.some((t) => t.id === id),
+                                ),
+                              ),
+                        );
+                      }}
+                    />
+                  </TableHead>
                   {isVisible("id") && (
                     <TableHead className="font-semibold w-16">
                       {ar ? "رقم" : "ID"}
@@ -894,6 +1061,19 @@ export default function Tickets() {
               <TableBody>
                 {paged.map((req) => (
                   <TableRow key={req.id} className="hover:bg-muted/20">
+                    <TableCell className="w-10 px-3">
+                      <Checkbox
+                        checked={selectedTicketIds.has(req.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedTicketIds((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(req.id);
+                            else next.delete(req.id);
+                            return next;
+                          });
+                        }}
+                      />
+                    </TableCell>
                     {isVisible("id") && (
                       <TableCell className="font-mono text-sm font-semibold text-muted-foreground">
                         #{req.id}
@@ -970,7 +1150,7 @@ export default function Tickets() {
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="font-medium text-foreground">
-                            {format(new Date(req.reportedAt), "MMM d, yyyy")}
+                            {formatDate(req.reportedAt)}
                           </span>
                           <span className="text-muted-foreground">
                             {format(new Date(req.reportedAt), "HH:mm")}
@@ -984,7 +1164,7 @@ export default function Tickets() {
                           <div className="flex flex-col">
                             <span className="flex items-center gap-1 font-medium text-foreground">
                               <Play className="w-3 h-3 text-purple-500" />
-                              {format(new Date(req.startedAt), "MMM d, yyyy")}
+                              {formatDate(req.startedAt)}
                             </span>
                             <span className="pl-4 text-muted-foreground">
                               {format(new Date(req.startedAt), "HH:mm")}
@@ -1001,7 +1181,7 @@ export default function Tickets() {
                           <div className="flex flex-col">
                             <span className="flex items-center gap-1 font-medium text-foreground">
                               <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {format(new Date(req.resolvedAt), "MMM d, yyyy")}
+                              {formatDate(req.resolvedAt)}
                             </span>
                             <span className="pl-4 text-muted-foreground">
                               {format(new Date(req.resolvedAt), "HH:mm")}

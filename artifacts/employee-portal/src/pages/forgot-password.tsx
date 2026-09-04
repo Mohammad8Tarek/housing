@@ -10,6 +10,7 @@ import {
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import MaterialIcon from "../components/MaterialIcon";
+import PortalDateInput from "../components/PortalDateInput";
 import { MotionButton } from "../components/motion-primitives";
 import { toast } from "sonner";
 import { hapticFeedback } from "../lib/haptics";
@@ -196,11 +197,11 @@ export default function ForgotPassword() {
                   <label className="text-[12px] font-medium text-white/80 ms-1">
                     {isRtl ? "تاريخ الميلاد" : "Date of Birth"}
                   </label>
-                  <input
-                    type="date"
+                  <PortalDateInput
                     value={dateOfBirth}
-                    onChange={(e) => setDateOfBirth(e.target.value)}
-                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30 [color-scheme:dark]"
+                    onChange={(iso) => setDateOfBirth(iso)}
+                    placeholder={isRtl ? "يوم/شهر/سنة" : "DD/MM/YYYY"}
+                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                     required
                     disabled={isLoading}
                   />

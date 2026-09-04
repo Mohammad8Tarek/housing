@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, withTenant, assignmentsTable, roomsTable, profilesTable } from "@workspace/db";
+import { db, withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, floorsTable } from "@workspace/db";
 import { eq, and, or, ilike, sql, SQL, desc, not } from "drizzle-orm";
 import {
   CreateAssignmentBody,
@@ -34,7 +34,7 @@ function fmtAssignment(r: Record<string, any>) {
     "createdAt",
     "updatedAt",
   ];
-  const out: Record<string, any> = { ...r };
+  const out: Record<string, any> = { ...r, notes: r.notes ?? "" };
   for (const f of dateFields) {
     if (out[f] instanceof Date && typeof out[f].toISOString === "function")
       out[f] = out[f].toISOString();
@@ -77,7 +77,10 @@ router.get(
           ilike(profilesTable.firstName, q),
           ilike(profilesTable.lastName, q),
           ilike(profilesTable.profileId, q),
-          ilike(roomsTable.roomNumber, q)
+          ilike(profilesTable.department, q),
+          ilike(profilesTable.nationality, q),
+          ilike(roomsTable.roomNumber, q),
+          ilike(buildingsTable.name, q)
         )!
       );
     }
@@ -86,11 +89,28 @@ router.get(
       const baseQuery = tenantDb
         .select({
           id: assignmentsTable.id,
-          assignment: assignmentsTable
+          assignment: assignmentsTable,
+          profileStatus: profilesTable.status,
+          vacationStartDate: profilesTable.vacationStartDate,
+          vacationEndDate: profilesTable.vacationEndDate,
+          profileFirstName: profilesTable.firstName,
+          profileLastName: profilesTable.lastName,
+          profileCode: profilesTable.profileId,
+          profileNationality: profilesTable.nationality,
+          profileDepartment: profilesTable.department,
+          profilePhotoUrl: profilesTable.photoUrl,
+          roomNumber: roomsTable.roomNumber,
+          roomType: roomsTable.roomType,
+          buildingId: roomsTable.buildingId,
+          floorId: roomsTable.floorId,
+          buildingName: buildingsTable.name,
+          floorNumber: floorsTable.floorNumber,
         })
         .from(assignmentsTable)
         .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+        .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
         .where(and(...conditions));
 
       const countResult = await tenantDb
@@ -98,6 +118,7 @@ router.get(
         .from(assignmentsTable)
         .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .where(and(...conditions));
 
       const total = Number(countResult[0]?.count || 0);
@@ -107,7 +128,27 @@ router.get(
         .limit(limit)
         .offset(offset);
 
-      return { total, data: items.map(i => i.assignment) };
+      return {
+        total,
+        data: items.map(i => ({
+          ...i.assignment,
+          profileStatus: i.profileStatus,
+          vacationStartDate: i.vacationStartDate,
+          vacationEndDate: i.vacationEndDate,
+          profileFirstName: i.profileFirstName,
+          profileLastName: i.profileLastName,
+          profileCode: i.profileCode,
+          profileNationality: i.profileNationality,
+          profileDepartment: i.profileDepartment,
+          profilePhotoUrl: i.profilePhotoUrl,
+          roomNumber: i.roomNumber,
+          roomType: i.roomType,
+          buildingId: i.buildingId,
+          floorId: i.floorId,
+          buildingName: i.buildingName,
+          floorNumber: i.floorNumber,
+        })),
+      };
     });
 
     res.json({
@@ -271,6 +312,43 @@ router.post(
         };
       }
 
+      // ── 1.1 فحص ما إذا كانت الغرفة مخصصة بالكامل لموظف آخر (استخدام فردي) ──
+      const [existingEntireRoom] = await tenantDb
+        .select({
+          id: assignmentsTable.id,
+          profileId: assignmentsTable.profileId,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
+        })
+        .from(assignmentsTable)
+        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .where(
+          and(
+            eq(assignmentsTable.roomId, parsed.data.roomId),
+            eq(assignmentsTable.status, "ACTIVE"),
+            eq(assignmentsTable.isEntireRoom, true),
+          ),
+        );
+      if (existingEntireRoom) {
+        return {
+          error: `هذه الغرفة مخصصة بالكامل للموظف (${existingEntireRoom.firstName} ${existingEntireRoom.lastName}) كغرفة خاصة/فردية بالكامل. لا يمكن تسكين أي شخص إضافي عليها مطلقاً.`,
+          code: "ROOM_ENTIRE_OCCUPIED",
+          status: 409,
+        };
+      }
+
+      const isEntireRoomRequested = Boolean(
+        (parsed.data as any).isEntireRoom || (req.body as any)?.isEntireRoom,
+      );
+
+      if (isEntireRoomRequested && room.currentOccupancy > 0) {
+        return {
+          error: `لا يمكن تخصيص الغرفة بالكامل لوجود مقيمين حاليين بها (${room.currentOccupancy} مقيم). يجب أن تكون الغرفة شاغرة تماماً لتخصيصها كغرفة فردية بالكامل.`,
+          code: "ROOM_NOT_EMPTY_FOR_ENTIRE",
+          status: 409,
+        };
+      }
+
       // ── 2. منع التسكين المزدوج لنفس الموظف ─────────────────────────────────
       const existingActive = await tenantDb
         .select({ id: assignmentsTable.id, roomId: assignmentsTable.roomId })
@@ -292,7 +370,7 @@ router.post(
       }
 
       // ── 3. فحص تعارض السرير واستثناء إجازة الموظف ──────────────────────────
-      if (parsed.data.bedNumber) {
+      if (parsed.data.bedNumber && !isEntireRoomRequested) {
         const existingBedAssignments = await tenantDb
           .select({
             id: assignmentsTable.id,
@@ -371,7 +449,9 @@ router.post(
         };
       }
 
-      const newOccupancy = isTemporaryVacationOverride
+      const newOccupancy = isEntireRoomRequested
+        ? room.capacity
+        : isTemporaryVacationOverride
         ? room.currentOccupancy
         : room.currentOccupancy + 1;
 
@@ -410,6 +490,9 @@ router.post(
       }
 
       let finalNotes = parsed.data.notes || "";
+      if (isEntireRoomRequested) {
+        finalNotes = `[تسكين الغرفة بالكامل - استخدام فردي] ${finalNotes}`.trim();
+      }
       if (isTemporaryVacationOverride) {
         finalNotes = `[تسكين مؤقت بديل إجازة بتصريح الإدارة] ${finalNotes}`.trim();
       }
@@ -418,6 +501,7 @@ router.post(
         .insert(assignmentsTable)
         .values({
           ...(parsed.data as any),
+          isEntireRoom: isEntireRoomRequested,
           notes: finalNotes,
           expectedCheckOutDate: expectedCheckOut || undefined,
           status: "ACTIVE",
@@ -514,8 +598,10 @@ router.post(
         .select()
         .from(roomsTable)
         .where(eq(roomsTable.id, assignment.roomId));
-            if (room) {
-        const newOcc = Math.max(0, room.currentOccupancy - 1);
+      if (room) {
+        const newOcc = assignment.isEntireRoom
+          ? 0
+          : Math.max(0, room.currentOccupancy - 1);
         let nextRoomStatus = newOcc === 0 ? "dirty" : "occupied_dirty";
 
         if (newOcc > 0) {
@@ -648,8 +734,45 @@ router.post(
         };
       }
 
+      // ── فحص ما إذا كانت الغرفة الجديدة محجوزة بالكامل لموظف آخر (استخدام فردي) ──
+      const [existingEntireRoomInNew] = await tenantDb
+        .select({
+          id: assignmentsTable.id,
+          profileId: assignmentsTable.profileId,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
+        })
+        .from(assignmentsTable)
+        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .where(
+          and(
+            eq(assignmentsTable.roomId, parsed.data.newRoomId),
+            eq(assignmentsTable.status, "ACTIVE"),
+            eq(assignmentsTable.isEntireRoom, true),
+          ),
+        );
+      if (existingEntireRoomInNew) {
+        return {
+          error: `الغرفة الجديدة مخصصة بالكامل لموظف آخر (${existingEntireRoomInNew.firstName} ${existingEntireRoomInNew.lastName}) كغرفة خاصة/فردية بالكامل. لا يمكن النقل إليها.`,
+          code: "ROOM_ENTIRE_OCCUPIED",
+          status: 409,
+        };
+      }
+
+      const isEntireRoomRequested = Boolean(
+        (req.body as any)?.isEntireRoom || (assignment.isEntireRoom && newRoom.currentOccupancy === 0)
+      );
+
+      if (isEntireRoomRequested && newRoom.currentOccupancy > 0) {
+        return {
+          error: `لا يمكن تخصيص الغرفة الجديدة بالكامل لوجود مقيمين حاليين بها (${newRoom.currentOccupancy} مقيم). يجب أن تكون الغرفة شاغرة تماماً لتخصيصها كغرفة فردية بالكامل.`,
+          code: "ROOM_NOT_EMPTY_FOR_ENTIRE",
+          status: 409,
+        };
+      }
+
       // ── فحص السرير في الغرفة الجديدة ───────────────────────────────────────
-      if (parsed.data.newBedNumber) {
+      if (parsed.data.newBedNumber && !isEntireRoomRequested) {
         const takenBeds = await tenantDb
           .select({
             id: assignmentsTable.id,
@@ -722,7 +845,9 @@ router.post(
         .from(roomsTable)
         .where(eq(roomsTable.id, assignment.roomId));
       if (oldRoom) {
-        const oldOcc = Math.max(0, oldRoom.currentOccupancy - 1);
+        const oldOcc = assignment.isEntireRoom
+          ? 0
+          : Math.max(0, oldRoom.currentOccupancy - 1);
         await tenantDb
           .update(roomsTable)
           .set({
@@ -732,7 +857,10 @@ router.post(
           .where(eq(roomsTable.id, oldRoom.id));
       }
 
-      const newOcc = newRoom.currentOccupancy + 1;
+      const newOcc = isEntireRoomRequested
+        ? newRoom.capacity
+        : (isTemporaryVacationOverride ? newRoom.currentOccupancy : newRoom.currentOccupancy + 1);
+
       await tenantDb
         .update(roomsTable)
         .set({
@@ -746,6 +874,7 @@ router.post(
         .set({
           roomId: parsed.data.newRoomId,
           bedNumber: parsed.data.newBedNumber ?? null,
+          isEntireRoom: isEntireRoomRequested,
         })
         .where(eq(assignmentsTable.id, params.data.id))
         .returning();
@@ -821,6 +950,22 @@ router.patch(
       res.status(404).json({ error: "Assignment not found" });
       return;
     }
+
+    const s = su(req);
+    await logActivity({
+      req,
+      propertyId,
+      username: s.username,
+      userId: s.userId,
+      userRole: s.userRole,
+      action: parsed.data.expectedCheckOutDate
+        ? `تمديد إقامة الموظف #${updated.profileId} حتى ${parsed.data.expectedCheckOutDate}`
+        : `تحديث بيانات الإقامة #${updated.id}`,
+      actionType: "UPDATE",
+      module: "accommodation",
+      entityType: "assignment",
+      entityId: updated.id,
+    });
 
     broadcastToProperty(propertyId, {
       module: "accommodation",

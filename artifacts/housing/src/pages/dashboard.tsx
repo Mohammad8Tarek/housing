@@ -26,6 +26,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate } from "@/lib/date-utils";
 import { motion, useSpring, useTransform } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -152,7 +153,7 @@ export default function Dashboard() {
           alert: (totals?.openMaintenance ?? 0) > 0,
         },
         {
-          title: ar ? "حجوزات الوصول" : "Arrival Reservations",
+          title: ar ? "حجوزات مستقبلية" : "Future Reservations",
           value: totals?.upcomingReservations ?? 0,
           sub: ar ? "عبر كل الفروع" : "Across all properties",
           icon: CalendarCheck,
@@ -189,9 +190,9 @@ export default function Dashboard() {
           bg: "bg-primary/8 dark:bg-primary/15",
         },
         {
-          title: ar ? "حجوزات الوصول" : "Arrival Reservations",
+          title: ar ? "حجوزات مستقبلية" : "Future Reservations",
           value: stats?.upcomingReservations ?? 0,
-          sub: ar ? "حجوزات وصول قيد الانتظار" : "Pending arrival check-ins",
+          sub: ar ? "حجوزات مستقبلية قيد الانتظار" : "Pending future reservations",
           icon: CalendarCheck,
           href: "/accommodation/reservations",
           color: "text-purple-600",
@@ -505,9 +506,7 @@ export default function Dashboard() {
                               : `${alert.daysRemaining}d`}
                           </p>
                           <p className="text-[10px] text-muted-foreground">
-                            {new Date(
-                              alert.expectedCheckOutDate,
-                            ).toLocaleDateString()}
+                            {formatDate(alert.expectedCheckOutDate)}
                           </p>
                         </div>
                       </div>
@@ -636,9 +635,7 @@ export default function Dashboard() {
                         )}
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                        {act.timestamp
-                          ? new Date(act.timestamp).toLocaleDateString()
-                          : ""}
+                        {act.timestamp ? formatDate(act.timestamp) : ""}
                       </span>
                     </div>
                   ))}

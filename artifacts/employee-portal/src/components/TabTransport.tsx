@@ -3,6 +3,7 @@ import { Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import MaterialIcon from "./MaterialIcon";
+import PortalDateInput from "./PortalDateInput";
 
 interface Schedule {
   id: number;
@@ -201,10 +202,9 @@ export default function TabTransport() {
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-muted2 block mb-1">
                   {isRtl ? "تاريخ الحجز" : "Booking Date"}
                 </label>
-                <input
-                  type="date"
+                <PortalDateInput
                   value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
+                  onChange={(iso) => setBookingDate(iso)}
                   className="w-full bg-surface border border-border2 text-foreground rounded-xl py-2.5 px-3 text-[12px] focus:outline-none focus:border-accent2/50"
                 />
               </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DateInput } from "./date-input";
 import { Plus, RotateCcw } from "lucide-react";
 
 interface MaintenanceFilterBarProps {
@@ -155,22 +156,18 @@ export default function MaintenanceFilterBar({
           <label className={labelClass}>
             {ar ? "من التاريخ" : "From Date"}
           </label>
-          <input
-            type="date"
+          <DateInput
             value={filters.fromDate}
-            onChange={(e) => handleDateChange("fromDate", e.target.value)}
-            className={selectClass}
+            onChange={(iso) => handleDateChange("fromDate", iso)}
           />
         </div>
 
         {/* To Date */}
         <div className="space-y-1">
           <label className={labelClass}>{ar ? "إلى التاريخ" : "To Date"}</label>
-          <input
-            type="date"
+          <DateInput
             value={filters.toDate}
-            onChange={(e) => handleDateChange("toDate", e.target.value)}
-            className={selectClass}
+            onChange={(iso) => handleDateChange("toDate", iso)}
           />
         </div>
 

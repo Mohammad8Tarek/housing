@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,7 @@ import { generateHousingLetterPdf } from "@/lib/pdf-utils";
 import { usePrintLanguage, PrintLanguageDialog } from "@/lib/PrintLanguageDialog";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { format } from "date-fns";
+import { formatDate, getExportFileName } from "@/lib/date-utils";
 import * as XLSX from "xlsx";
 import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
@@ -108,7 +110,7 @@ export default function ReservationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("UPCOMING");
   useEffect(() => { const h = setTimeout(() => setDebouncedSearch(search), 500); return () => clearTimeout(h); }, [search]);
   useEffect(() => { setCurrentPage(1); }, [debouncedSearch, statusFilter]);
 
@@ -170,7 +172,7 @@ export default function ReservationsPage() {
     department: "",
     jobTitle: "",
     level: "",
-    employmentType: "INTERNAL" as "INTERNAL" | "THIRD_PARTY",
+    employmentType: "THIRD_PARTY" as "INTERNAL" | "THIRD_PARTY",
     companyName: "",
     idDocuments: [] as { fileName: string; fileType: string; fileData: string }[],
   });
@@ -244,11 +246,26 @@ export default function ReservationsPage() {
       const sp = new URLSearchParams(window.location.search);
       const qRoom = sp.get("roomId");
       const qBed = sp.get("bed");
-      if (qRoom) {
-        setSelectedRoomId(qRoom);
+      const qBooking = sp.get("bookingType");
+      const qPerson = sp.get("personMode");
+      if (qRoom || qBooking || qPerson) {
+        if (qRoom) setSelectedRoomId(qRoom);
         if (qBed) setSelectedBed(qBed);
-        setBookingType("direct");
-        setStep(1);
+        if (qBooking === "upcoming") {
+          setBookingType("upcoming");
+        } else {
+          setBookingType("direct");
+        }
+        if (qPerson === "new") {
+          setPersonMode("new");
+          setNewForm((f) => ({ ...f, employmentType: "THIRD_PARTY" }));
+          setStep(2);
+        } else if (qPerson === "existing") {
+          setPersonMode("existing");
+          setStep(2);
+        } else {
+          setStep(1);
+        }
         setNewDialogOpen(true);
       }
     } catch {}
@@ -330,6 +347,7 @@ export default function ReservationsPage() {
   const filteredCheckinRooms = checkinRooms.filter((r: any) => !checkinRoomSearch.trim() || r.roomNumber?.toLowerCase().includes(checkinRoomSearch.toLowerCase()));
 
   const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["listReservations"] });
     queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey({ propertyId: activePropertyId }) });
     queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListRoomsQueryKey({ propertyId: activePropertyId }) });
@@ -348,7 +366,7 @@ export default function ReservationsPage() {
         toast.success(ar ? "تم إنشاء الحجز بنجاح" : "Reservation created successfully");
         closeNewDialog();
       },
-      onError: (e: any) => toast.error(e.message || (ar ? "خطأ" : "Error")),
+      onError: (e: any) => toast.error(e?.data?.error || e?.message || (ar ? "خطأ" : "Error")),
     },
   });
 
@@ -364,7 +382,7 @@ export default function ReservationsPage() {
       onError: async (err: any) => {
         let msg = err.message;
         try {
-          const b = await err?.response?.json?.();
+          const b = err?.data || (await err?.response?.clone?.()?.json?.().catch(() => null)) || {};
           if (b?.code === "BED_TAKEN") msg = ar ? "هذا السرير مشغول بالفعل." : "Bed is taken.";
           else if (b?.code === "PROFILE_ALREADY_ASSIGNED") msg = ar ? "الموظف مسكّن بالفعل في غرفة أخرى." : "Already assigned.";
           else if (b?.code === "ROOM_FULL") msg = ar ? "الغرفة ممتلئة بالكامل." : "Room is full.";
@@ -382,6 +400,9 @@ export default function ReservationsPage() {
         toast.success(ar ? "تم الحذف بنجاح" : "Deleted successfully");
         setDeleteId(null);
       },
+      onError: (e: any) => {
+        toast.error(e?.data?.error || e?.message || (ar ? "فشل الحذف" : "Failed to delete"));
+      },
     },
   });
 
@@ -389,7 +410,16 @@ export default function ReservationsPage() {
     mutation: {
       onSuccess: (data: any) => {
         invalidate();
-        toast.success(ar ? "تم التسكين بنجاح" : "Checked in successfully");
+        toast.success(
+          ar
+            ? "تم التسكين بنجاح وانتقل الحجز إلى قائمة المقيمين (In-House)"
+            : "Checked in successfully and moved to In-House",
+        );
+        setSelectedRows((prev) => {
+          const next = new Set(prev);
+          if (checkinDialog.id) next.delete(checkinDialog.id);
+          return next;
+        });
         setCheckinDialog({ open: false, id: null });
         setCheckinRoomId("");
 
@@ -475,7 +505,7 @@ export default function ReservationsPage() {
     setSelectedProfile(null);
     setEmpSearch("");
     setNewForm({
-      profileId: `EMP-${Date.now().toString().slice(-4)}`,
+      profileId: "",
       firstName: "",
       lastName: "",
       thirdName: "",
@@ -491,7 +521,7 @@ export default function ReservationsPage() {
       department: "",
       jobTitle: "",
       level: "",
-      employmentType: "INTERNAL",
+      employmentType: "THIRD_PARTY",
       companyName: "",
       idDocuments: [],
     });
@@ -507,7 +537,14 @@ export default function ReservationsPage() {
     setSearchRoomNumber("");
     setNewDialogOpen(true);
   };
-  const closeNewDialog = () => setNewDialogOpen(false);
+  const closeNewDialog = () => {
+    setNewDialogOpen(false);
+    try {
+      if (window.location.search) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch {}
+  };
 
   const handleSubmit = async () => {
     if (!selectedRoomId) {
@@ -521,7 +558,7 @@ export default function ReservationsPage() {
     if (bookingType === "direct" && personMode === "existing" && selectedProfile?.accommodationRoom) {
       toast.error(
         ar
-          ? `الموظف (${selectedProfile.firstName} ${selectedProfile.lastName}) مقيم بالفعل بالسكن في غرفة #${selectedProfile.accommodationRoom}. لا يمكن تسكينه مرتين؛ استخدم (روم موف) لنقله.`
+          ? `الموظف (${selectedProfile.firstName} ${selectedProfile.lastName}) مقيم بالفعل بالسكن في غرفة #${selectedProfile.accommodationRoom}. لا يمكن تسكينه مرتين؛ استخدم خيار (نقل الغرفة) لنقله.`
           : `Employee is already residing in Room #${selectedProfile.accommodationRoom}. Use Room Move instead.`
       );
       return;
@@ -574,6 +611,8 @@ export default function ReservationsPage() {
             gender: selectedProfile.gender || "",
             profileCode: selectedProfile.profileId || "",
             level: selectedProfile.level || "",
+            employmentType: selectedProfile.employmentType || "INTERNAL",
+            companyName: (selectedProfile as any).companyName || "",
             checkInDate: new Date(checkInDate).toISOString(),
             checkOutDate: effectiveCheckOut ? new Date(effectiveCheckOut).toISOString() : undefined,
             roomId: parseInt(selectedRoomId),
@@ -585,9 +624,10 @@ export default function ReservationsPage() {
       }
     } else if (personMode === "new") {
       try {
+        const generatedId = (newForm.profileId?.trim()) || `${newForm.employmentType === "THIRD_PARTY" ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
         const fullPayload = {
           propertyId: activePropertyId,
-          profileId: newForm.profileId || `EMP-${Date.now().toString().slice(-5)}`,
+          profileId: generatedId,
           firstName: newForm.firstName.trim(),
           lastName: newForm.lastName.trim(),
           thirdName: newForm.thirdName.trim() || "",
@@ -600,7 +640,7 @@ export default function ReservationsPage() {
           address: newForm.address || "",
           hireDate: newForm.hireDate || new Date().toISOString().split("T")[0],
           contractEndDate: newForm.employmentType !== "THIRD_PARTY" ? (newForm.contractEndDate || null) : null,
-          department: newForm.department || "",
+          department: newForm.department || (newForm.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : ""),
           jobTitle: newForm.jobTitle || "",
           level: newForm.level || "",
           employmentType: newForm.employmentType,
@@ -621,6 +661,12 @@ export default function ReservationsPage() {
           throw new Error(e.error || "Failed to create profile");
         }
         const np = await r.json();
+
+        // Switch personMode to existing so if assignment mutation fails, retrying won't duplicate the profile
+        setPersonMode("existing");
+        setSelectedProfile(np);
+        setSelectedProfileId(np.id);
+        setEmpSearch(`${np.firstName} ${np.lastName}`);
 
         // Upload photo if selected
         if (photoData && np.id) {
@@ -663,6 +709,8 @@ export default function ReservationsPage() {
               gender: np.gender,
               profileCode: np.profileId,
               level: np.level,
+              employmentType: np.employmentType || newForm.employmentType || "THIRD_PARTY",
+              companyName: np.companyName || newForm.companyName || "",
               checkInDate: new Date(checkInDate).toISOString(),
               checkOutDate: effectiveCheckOut ? new Date(effectiveCheckOut).toISOString() : undefined,
               roomId: parseInt(selectedRoomId),
@@ -788,6 +836,8 @@ export default function ReservationsPage() {
         guestIdCardNumber: editForm.guestIdCardNumber,
         guestPhone: editForm.guestPhone,
         roomType: editForm.roomType,
+        employmentType: editForm.employmentType,
+        companyName: editForm.companyName,
       } as any,
     });
   };
@@ -835,7 +885,8 @@ export default function ReservationsPage() {
     const target = selectedRows.size > 0 ? all.filter((r: any) => selectedRows.has(r.id)) : all;
     const rows = target.map((r: any) => ({
       Guest: `${r.firstName} ${r.lastName}`,
-      "Check-in": r.checkInDate ? format(new Date(r.checkInDate), "yyyy-MM-dd") : "",
+      "Check-in": formatDate(r.checkInDate, ""),
+      "Check-out": formatDate(r.checkOutDate, ""),
       Status: r.status,
       Department: r.department ?? "",
       "ID Card": r.guestIdCardNumber ?? "",
@@ -843,7 +894,7 @@ export default function ReservationsPage() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reservations");
-    XLSX.writeFile(wb, `reservations_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, getExportFileName("Reservations", "xlsx"));
   };
 
   const printHousingLetter = async (profile: any, assignment: any) => {
@@ -895,10 +946,10 @@ export default function ReservationsPage() {
         </PermissionGate>
       </div>
 
-      {upcomingCount > 0 && (
+      {(statusFilter === "UPCOMING" ? paginationTotal > 0 : upcomingCount > 0) && (
         <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-800 dark:text-blue-300">
           <CalendarDays className="w-4 h-4 flex-shrink-0" />
-          <span>{ar ? `${upcomingCount} حجز وصول ينتظر التسكين` : `${upcomingCount} arrival reservation(s) awaiting check-in`}</span>
+          <span>{ar ? `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} حجز ينتظر التسكين` : `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} reservation(s) awaiting check-in`}</span>
         </div>
       )}
 
@@ -908,22 +959,43 @@ export default function ReservationsPage() {
           <Input className="pl-9 rtl:pr-9 rtl:pl-3" placeholder={ar ? "بحث..." : "Search..."} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue placeholder={ar ? "كل الحالات" : "All Status"} /></SelectTrigger>
+          <SelectTrigger className="w-56"><SelectValue placeholder={ar ? "حالة الحجز" : "Reservation Status"} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{ar ? "كل الحالات" : "All Status"}</SelectItem>
-            <SelectItem value="UPCOMING">{ar ? "وصول" : "Arrival"}</SelectItem>
-            <SelectItem value="CHECKED_IN">{ar ? "مقيم" : "Checked In"}</SelectItem>
+            <SelectItem value="UPCOMING">{ar ? "الحجوزات (في انتظار التسكين)" : "Reservations (Awaiting Check-in)"}</SelectItem>
+            <SelectItem value="CHECKED_IN">{ar ? "تم التسكين (Checked In)" : "Checked In"}</SelectItem>
             <SelectItem value="COMPLETED">{ar ? "منتهي" : "Completed"}</SelectItem>
             <SelectItem value="CANCELLED">{ar ? "ملغي" : "Cancelled"}</SelectItem>
+            <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
           </SelectContent>
         </Select>
         <ColumnChooser cols={RES_COLS} visible={resVisible} onToggle={resToggle} onShowAll={resShowAll} onHideAll={resHideAll} ar={ar} />
         <Button variant="outline" size="sm" onClick={exportResExcel} className="h-10">{ar ? "تصدير" : "Export"}</Button>
       </div>
 
-      {selectedRows.size > 0 && (
-        <BulkActionBar selectedCount={selectedRows.size} onClear={() => setSelectedRows(new Set())} actions={[{ label: ar ? "حذف المحدد" : "Delete Selected", variant: "destructive", onClick: () => { selectedRows.forEach((id) => deleteMutation.mutate({ id })); setSelectedRows(new Set()); } }]} ar={ar} />
-      )}
+      <BulkActionBar
+        count={selectedRows.size}
+        onClear={() => setSelectedRows(new Set())}
+        onExportExcel={exportResExcel}
+        actions={[
+          {
+            label: ar ? "حذف المحدد" : "Delete Selected",
+            variant: "destructive",
+            onClick: () => {
+              if (
+                window.confirm(
+                  ar
+                    ? `هل أنت متأكد من حذف ${selectedRows.size} حجز محدد؟`
+                    : `Are you sure you want to delete ${selectedRows.size} selected reservations?`
+                )
+              ) {
+                selectedRows.forEach((id) => deleteMutation.mutate({ id }));
+                setSelectedRows(new Set());
+              }
+            },
+          },
+        ]}
+        ar={ar}
+      />
 
       <div className="border rounded-md overflow-x-auto bg-card">
         <Table className="min-w-max w-full">
@@ -955,7 +1027,7 @@ export default function ReservationsPage() {
                     {isResVisible("guest") && <TableCell className="font-medium whitespace-nowrap sticky ltr:left-10 rtl:right-10 z-10 bg-card group-hover:bg-accent">{res.firstName} {res.lastName}</TableCell>}
                     {isResVisible("emptype") && (
                       <TableCell>
-                        {res.employmentType === "THIRD_PARTY" ? (
+                        {res.employmentType === "THIRD_PARTY" || res.department === "طرف ثالث" ? (
                           <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs font-semibold">
                             {ar ? "طرف ثالث" : "Third Party"}{res.companyName ? ` • ${res.companyName}` : ""}
                           </Badge>
@@ -970,8 +1042,8 @@ export default function ReservationsPage() {
                     {isResVisible("id") && <TableCell className="text-sm font-mono">{res.guestIdCardNumber || "—"}</TableCell>}
                     {isResVisible("dept") && <TableCell className="text-sm">{res.department || "—"}</TableCell>}
                     {isResVisible("roomtype") && <TableCell className="text-sm">{res.roomType || "—"}</TableCell>}
-                    {isResVisible("checkin") && <TableCell className="text-sm whitespace-nowrap">{res.checkInDate ? format(new Date(res.checkInDate), "MMM d, yyyy") : "—"}</TableCell>}
-                    {isResVisible("checkout") && <TableCell className="text-sm whitespace-nowrap">{res.checkOutDate ? format(new Date(res.checkOutDate), "MMM d, yyyy") : "—"}</TableCell>}
+                    {isResVisible("checkin") && <TableCell className="text-sm whitespace-nowrap">{formatDate(res.checkInDate)}</TableCell>}
+                    {isResVisible("checkout") && <TableCell className="text-sm whitespace-nowrap">{formatDate(res.checkOutDate)}</TableCell>}
                     {isResVisible("status") && <TableCell><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor(res.status)}`}>{statusLabel[res.status] || res.status}</span></TableCell>}
                     {isResVisible("actions") && (
                       <TableCell className="w-28 min-w-[110px] text-center sticky ltr:right-0 rtl:left-0 z-10 bg-card group-hover:bg-accent border-s border-border shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)] rtl:shadow-[3px_0_6px_-2px_rgba(0,0,0,0.06)]">
@@ -1027,7 +1099,7 @@ export default function ReservationsPage() {
             <p className="text-xs text-muted-foreground mt-1">
               {step === 1 && (ar ? "الخطوة 1: تحديد نوع الشخص ونظام الحجز" : "Step 1: Choose person type & booking mode")}
               {step === 2 && personMode === "existing" && (ar ? "الخطوة 2: البحث عن الموظف المسجل مسبقاً" : "Step 2: Search existing registered profile")}
-              {step === 2 && personMode === "new" && (ar ? "الخطوة 2: إدخال بيانات الملف الشخصي الكاملة والمستندات" : "Step 2: Enter complete profile data & upload documents")}
+              {step === 2 && personMode === "new" && (ar ? "الخطوة 2: إدخال بيانات الملف الجديد والمستندات" : "Step 2: Enter new profile data & upload documents")}
               {step === 3 && (ar ? "الخطوة 3: اختيار الغرفة وتواريخ الإقامة" : "Step 3: Select room and check-in dates")}
             </p>
           </DialogHeader>
@@ -1036,24 +1108,24 @@ export default function ReservationsPage() {
           {step === 1 && (
             <div className="space-y-5 py-2">
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">{ar ? "هل الشخص موجود في النظام أم شخص جديد؟" : "Is this person in the system or new?"}</Label>
+                <Label className="text-sm font-semibold">{ar ? "هل الشخص موجود مسبقاً في النظام أم نيو بروفايل؟" : "Is this person registered or a new profile?"}</Label>
                 <div className="grid grid-cols-2 gap-4">
                   <button onClick={() => { setPersonMode("existing"); }} className={`flex flex-col items-center gap-3 p-5 border-2 rounded-xl transition-all ${personMode === "existing" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border hover:border-primary/50 hover:bg-muted/30"}`}>
                     <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
                       <UserCheck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-sm">{ar ? "موظف مسجل" : "Existing Profile"}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{ar ? "ابحث بالاسم أو الكود أو الهوية" : "Search by name, ID or code"}</p>
+                      <p className="font-semibold text-sm">{ar ? "انترنال بروفايل (موظف داخلي)" : "Internal Profile"}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{ar ? "البحث عن موظف مسجل مسبقاً في النظام" : "Search existing registered employee"}</p>
                     </div>
                   </button>
-                  <button onClick={() => { setPersonMode("new"); }} className={`flex flex-col items-center gap-3 p-5 border-2 rounded-xl transition-all ${personMode === "new" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border hover:border-primary/50 hover:bg-muted/30"}`}>
-                    <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-                      <UserPlus className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                  <button onClick={() => { setPersonMode("new"); setNewForm((f) => ({ ...f, employmentType: "THIRD_PARTY" })); }} className={`flex flex-col items-center gap-3 p-5 border-2 rounded-xl transition-all ${personMode === "new" ? "border-purple-600 bg-purple-500/5 ring-2 ring-purple-500/20" : "border-border hover:border-purple-500/50 hover:bg-muted/30"}`}>
+                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-950 flex items-center justify-center">
+                      <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-sm">{ar ? "شخص جديد (إنشاء بروفايل كامل)" : "New Person (Full Profile)"}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{ar ? "إدخال كافة البيانات والمستندات وفتح بروفايل" : "Enter all data, documents & create profile"}</p>
+                      <p className="font-semibold text-sm">{ar ? "Third Party نيو بروفايل" : "Third Party (New Profile)"}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{ar ? "إدخال بيانات طرف ثالث وإنشاء بروفايل جديد" : "Enter third-party details & create new profile"}</p>
                     </div>
                   </button>
                 </div>
@@ -1069,7 +1141,7 @@ export default function ReservationsPage() {
                     >
                       <CheckCircle className={`w-4 h-4 mt-0.5 ${bookingType === "direct" ? "text-primary" : "text-muted-foreground"}`} />
                       <div>
-                        <p className="text-sm font-semibold">{ar ? "تسكين فوري (Direct In-House)" : "Direct Assignment"}</p>
+                        <p className="text-sm font-semibold">{ar ? "تسكين فوري" : "Direct Assignment"}</p>
                         <p className="text-xs text-muted-foreground">{ar ? "تسكين الشخص في الغرفة والسرير الآن" : "Assign to room & bed immediately"}</p>
                       </div>
                     </button>
@@ -1079,8 +1151,8 @@ export default function ReservationsPage() {
                     >
                       <CalendarDays className={`w-4 h-4 mt-0.5 ${bookingType === "upcoming" ? "text-primary" : "text-muted-foreground"}`} />
                       <div>
-                        <p className="text-sm font-semibold">{ar ? "حجز وصول (Arrival Reservation)" : "Arrival Reservation"}</p>
-                        <p className="text-xs text-muted-foreground">{ar ? "حجز وصول لتاريخ مستقبلي ثم تسكينه لاحقاً" : "Book for future arrival with check-in later"}</p>
+                        <p className="text-sm font-semibold">{ar ? "حجز مستقبلي" : "Future Reservation"}</p>
+                        <p className="text-xs text-muted-foreground">{ar ? "حجز لتاريخ مستقبلي ثم تسكينه لاحقاً" : "Book for future date with check-in later"}</p>
                       </div>
                     </button>
                   </div>
@@ -1135,8 +1207,9 @@ export default function ReservationsPage() {
                               </span>
                             )}
                             {emp.accommodationRoom && (
-                              <span className="text-xs bg-red-100 text-red-700 border border-red-300 px-2 py-0.5 rounded-full font-bold">
-                                {ar ? `🔴 مقيم حالياً: غرفة #${emp.accommodationRoom}` : `🔴 In-House: Room #${emp.accommodationRoom}`}
+                              <span className="text-xs bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded-full font-semibold inline-flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                                {ar ? `مقيم حالياً: غرفة #${emp.accommodationRoom}` : `In-House: Room #${emp.accommodationRoom}`}
                               </span>
                             )}
                           </div>
@@ -1176,7 +1249,7 @@ export default function ReservationsPage() {
                         </p>
                         <p className="mt-1 text-red-700 dark:text-red-400">
                           {ar
-                            ? "لا يمكن تسكينه في غرفة جديدة. لنقل الموظف لغرفة أخرى، يرجى استخدام خاصية (روم موف - Room Move) من صفحة المقيمين بالسكن (In-House)."
+                            ? "لا يمكن تسكينه مرتين. لنقل الموظف لغرفة أخرى، يرجى استخدام خيار (نقل لغرفة أخرى) من صفحة المقيمين بالسكن."
                             : "Cannot be double-assigned. To transfer this employee, use 'Room Move' from the In-House page."}
                         </p>
                       </div>
@@ -1225,26 +1298,13 @@ export default function ReservationsPage() {
                 </div>
               </div>
 
-              {/* Section 1: Employment Type */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">{ar ? "نوع التوظيف" : "Employment Type"} <span className="text-destructive">*</span></Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setNewForm((f) => ({ ...f, employmentType: "INTERNAL", companyName: "" }))}
-                    className={`flex items-center gap-2 p-3 border-2 rounded-lg text-sm transition-all ${newForm.employmentType === "INTERNAL" ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/30" : "border-border hover:border-muted-foreground"}`}
-                  >
-                    <Building className="w-4 h-4" /><span className="font-semibold">{ar ? "تعيين داخلي (موظف فندق)" : "Internal (Hotel Employee)"}</span>
-                  </button>
-                  <button
-                    onClick={() => setNewForm((f) => ({ ...f, employmentType: "THIRD_PARTY", contractEndDate: "" }))}
-                    className={`flex items-center gap-2 p-3 border-2 rounded-lg text-sm transition-all ${newForm.employmentType === "THIRD_PARTY" ? "border-purple-500 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/30" : "border-border hover:border-muted-foreground"}`}
-                  >
-                    <Users className="w-4 h-4" /><span className="font-semibold">{ar ? "طرف خارجي (ثيرد بارتي)" : "Third-Party"}</span>
-                  </button>
-                </div>
+              {/* Third-Party Profile Banner */}
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-300 text-xs font-semibold shadow-2xs">
+                <Users className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
+                <span>{ar ? "ملف موظف طرف ثالث جديد (مقاول / مورد / شركة خارجية)" : "New Third-Party Profile (Contractor / Vendor)"}</span>
               </div>
 
-              {/* Section 2: Personal Information (الاسم رباعي والهوية والاتصال) */}
+              {/* Section 1: Personal Information (الاسم رباعي والهوية والاتصال) */}
               <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
                 <div className="flex items-center justify-between border-b pb-2">
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{ar ? "1. البيانات الشخصية الأساسية" : "1. Personal Information"}</p>
@@ -1253,7 +1313,7 @@ export default function ReservationsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "كود الموظف *" : "Profile Code *"}</Label>
-                    <Input value={newForm.profileId} onChange={(e) => setNewForm((f) => ({ ...f, profileId: e.target.value }))} placeholder="EMP-001" />
+                    <Input value={newForm.profileId} onChange={(e) => setNewForm((f) => ({ ...f, profileId: e.target.value }))} placeholder={ar ? "مثال: EMP-001" : "e.g. EMP-001"} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "الاسم الأول *" : "First Name *"}</Label>
@@ -1307,7 +1367,7 @@ export default function ReservationsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "تاريخ الميلاد" : "Date of Birth"}</Label>
-                    <Input type="date" value={newForm.dateOfBirth} onChange={(e) => setNewForm((f) => ({ ...f, dateOfBirth: e.target.value }))} className="h-9" />
+                    <DateInput value={newForm.dateOfBirth} onChange={(iso) => setNewForm((f) => ({ ...f, dateOfBirth: iso }))} className="h-9" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "العنوان" : "Address"}</Label>
@@ -1316,85 +1376,37 @@ export default function ReservationsPage() {
                 </div>
               </div>
 
-              {/* Section 3: Work Information (القسم، المسمى، الشركة، التعيين، انتهاء العقد) */}
+              {/* Section 2: Work & Company Information (بيانات العمل والشركة للطرف الثالث) */}
               <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider border-b pb-2">{ar ? "2. بيانات العمل والوظيفة" : "2. Work & Job Information"}</p>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider border-b pb-2 flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5 text-primary" />
+                  {ar ? "2. بيانات العمل والشركة (طرف ثالث)" : "2. Work & Company Information (Third-Party)"}
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">
-                      {newForm.employmentType === "THIRD_PARTY" ? (ar ? "اسم الشركة (إلزامي للطرف الثالث) *" : "Company Name *") : (ar ? "يعمل لدى / الفندق" : "Works At")}
+                    <Label className="text-xs font-semibold">
+                      {ar ? "اسم الشركة (المقاول / المورد) *" : "Company Name (Contractor / Vendor) *"} <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       value={newForm.companyName}
                       onChange={(e) => setNewForm((f) => ({ ...f, companyName: e.target.value }))}
-                      placeholder={newForm.employmentType === "THIRD_PARTY" ? (ar ? "أدخل اسم شركة المقاول أو المورد..." : "Enter contractor/vendor company...") : (ar ? "أدخل اسم الفندق أو الفرع..." : "Enter hotel or branch name...")}
+                      placeholder={ar ? "أدخل اسم شركة المقاول أو المورد..." : "Enter contractor/vendor company..."}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "تاريخ التعيين *" : "Hire Date *"}</Label>
-                    <Input type="date" value={newForm.hireDate} onChange={(e) => setNewForm((f) => ({ ...f, hireDate: e.target.value }))} />
-                  </div>
-                </div>
-
-                {/* تاريخ انتهاء العقد خاص بالموظفين الداخليين فقط */}
-                {newForm.employmentType === "INTERNAL" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 rounded-lg">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-                        {ar ? "تاريخ انتهاء العقد (خاص بالموظف الداخلي)" : "Contract End Date (Internal Employee)"}
-                      </Label>
-                      <Input
-                        type="date"
-                        value={newForm.contractEndDate}
-                        onChange={(e) => setNewForm((f) => ({ ...f, contractEndDate: e.target.value }))}
-                        className="bg-background border-amber-300 dark:border-amber-700"
-                      />
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground pt-4 sm:pt-0">
-                      <p>{ar ? "⚡ سيعتمد تلقائياً كتاريخ مغادرة الغرفة وانتهاء صلاحية كارت المفتاح إذا لم يُحدد غيره." : "⚡ Will be automatically used as expected check-out and key card expiry date if not specified."}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "القسم" : "Department"}</Label>
-                    <Select value={newForm.department || "none"} onValueChange={(v) => setNewForm((f) => ({ ...f, department: v === "none" ? "" : v, jobTitle: "" }))}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">—</SelectItem>
-                        {departmentValues.length > 0 ? departmentValues.map((d: any) => (<SelectItem key={d.id} value={d.value}>{d.value}</SelectItem>)) : ["F&B", "Front Office", "Housekeeping", "Engineering", "Security", "IT"].map((d) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "المسمى الوظيفي" : "Job Title"}</Label>
-                    {newForm.employmentType === "THIRD_PARTY" ? (
-                      <Input value={newForm.jobTitle} onChange={(e) => setNewForm((f) => ({ ...f, jobTitle: e.target.value }))} placeholder={ar ? "المسمى الوظيفي..." : "Job title..."} className="h-9" />
-                    ) : (
-                      <Select
-                        value={newForm.jobTitle || "none"}
-                        onValueChange={(v) => {
-                          const found = filteredJobTitles.find((t: any) => t.value === v);
-                          setNewForm((f) => ({ ...f, jobTitle: v === "none" ? "" : v, level: found?.extraValue || f.level }));
-                        }}
-                      >
-                        <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">—</SelectItem>
-                          {filteredJobTitles.map((t: any) => (<SelectItem key={t.id} value={t.value}>{t.value}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "الدرجة / المستوى" : "Level"}</Label>
-                    <Input value={newForm.level} onChange={(e) => setNewForm((f) => ({ ...f, level: e.target.value }))} placeholder="—" className="h-9" />
+                    <Label className="text-xs font-semibold">
+                      {ar ? "الوظيفة / المهنة *" : "Job / Occupation *"} <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      value={newForm.jobTitle}
+                      onChange={(e) => setNewForm((f) => ({ ...f, jobTitle: e.target.value }))}
+                      placeholder={ar ? "مثال: أمن وحراسة، فني، نظافة، سائق..." : "e.g. Security, Tech, Cleaner..."}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Section 4: ID Documents & Passports (مستندات وصور الهوية) */}
+              {/* Section 3: ID Documents & Passports (مستندات وصور الهوية) */}
               <div className="rounded-xl border bg-muted/20 p-4 space-y-3 shadow-2xs">
                 <div className="flex items-center justify-between border-b pb-2">
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{ar ? "3. صور الهوية وجواز السفر والمستندات" : "3. ID Documents & Passport Attachments"}</p>
@@ -1436,14 +1448,15 @@ export default function ReservationsPage() {
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setStep(1)}><ChevronLeft className="w-4 h-4 mr-1 rtl:rotate-180" />{ar ? "رجوع" : "Back"}</Button>
                 <Button
-                  onClick={() => {
-                    // Auto-pull contractEndDate into expectedCheckOut if expectedCheckOut is empty
-                    if (newForm.employmentType === "INTERNAL" && newForm.contractEndDate && !expectedCheckOut) {
-                      setExpectedCheckOut(newForm.contractEndDate.split("T")[0]);
-                    }
-                    setStep(3);
-                  }}
-                  disabled={!newForm.firstName || !newForm.lastName || !newForm.nationalId || !newForm.phone || (newForm.employmentType === "THIRD_PARTY" && !newForm.companyName)}
+                  onClick={() => setStep(3)}
+                  disabled={
+                    !newForm.firstName?.trim() ||
+                    !newForm.lastName?.trim() ||
+                    !newForm.nationalId?.trim() ||
+                    !newForm.phone?.trim() ||
+                    !newForm.companyName?.trim() ||
+                    !newForm.jobTitle?.trim()
+                  }
                   className="font-semibold"
                 >
                   {ar ? "التالي (تحديد الغرفة)" : "Next (Select Room)"}<ChevronRight className="w-4 h-4 ml-1 rtl:rotate-180" />
@@ -1456,67 +1469,218 @@ export default function ReservationsPage() {
           {step === 3 && (
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>{ar ? "تاريخ الدخول" : "Check-in"} <span className="text-destructive">*</span></Label><Input type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>{ar ? "تاريخ الدخول" : "Check-in"} <span className="text-destructive">*</span></Label><DateInput value={checkInDate} onChange={(iso) => setCheckInDate(iso)} /></div>
                 <div className="space-y-1.5">
                   <Label>{ar ? "المغادرة المتوقعة" : "Expected Check-out"}</Label>
-                  <Input type="date" value={expectedCheckOut} onChange={(e) => setExpectedCheckOut(e.target.value)} min={checkInDate} />
+                  <DateInput value={expectedCheckOut} onChange={(iso) => setExpectedCheckOut(iso)} min={checkInDate} />
                   {((selectedProfile?.employmentType !== "THIRD_PARTY" && selectedProfile?.contractEndDate) || (newForm.employmentType === "INTERNAL" && newForm.contractEndDate)) && (
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1 mt-0.5">
-                      📄 {ar ? "مرتبط تلقائياً بتاريخ انتهاء عقد الموظف الداخلي" : "Auto-filled from employee's Contract End Date"}
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1.5 mt-0.5">
+                      <FileText className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                      <span>{ar ? "مرتبط تلقائياً بتاريخ انتهاء عقد الموظف الداخلي" : "Auto-filled from employee's Contract End Date"}</span>
                     </p>
                   )}
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Select value={searchBuilding} onValueChange={setSearchBuilding}><SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder={ar ? "المبنى" : "Building"} /></SelectTrigger><SelectContent><SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>{buildings.map((b) => (<SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>))}</SelectContent></Select>
-                <Select value={searchFloor} onValueChange={setSearchFloor}><SelectTrigger className="flex-1 h-9 text-sm"><SelectValue placeholder={ar ? "الطابق" : "Floor"} /></SelectTrigger><SelectContent><SelectItem value="all">{ar ? "كل الطوابق" : "All Floors"}</SelectItem>{floors.filter((f) => searchBuilding === "all" || f.buildingId === parseInt(searchBuilding)).map((f) => (<SelectItem key={f.id} value={String(f.id)}>{f.name || `F${f.floorNumber}`}</SelectItem>))}</SelectContent></Select>
-                <Input className="flex-1 h-9 text-sm" placeholder={ar ? "رقم الغرفة" : "Room #"} value={searchRoomNumber} onChange={(e) => setSearchRoomNumber(e.target.value)} />
+              <div className="flex items-center gap-2">
+                <Select value={searchBuilding} onValueChange={setSearchBuilding}>
+                  <SelectTrigger className="flex-1 h-9 text-sm">
+                    <SelectValue placeholder={ar ? "المبنى" : "Building"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>
+                    {buildings.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={searchFloor} onValueChange={setSearchFloor}>
+                  <SelectTrigger className="flex-1 h-9 text-sm">
+                    <SelectValue placeholder={ar ? "الطابق" : "Floor"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{ar ? "كل الطوابق" : "All Floors"}</SelectItem>
+                    {floors
+                      .filter((f) => searchBuilding === "all" || f.buildingId === parseInt(searchBuilding))
+                      .map((f) => (
+                        <SelectItem key={f.id} value={String(f.id)}>{f.name || `F${f.floorNumber}`}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  className="flex-1 h-9 text-sm"
+                  placeholder={ar ? "رقم الغرفة" : "Room #"}
+                  value={searchRoomNumber}
+                  onChange={(e) => setSearchRoomNumber(e.target.value)}
+                />
+                {(searchBuilding !== "all" || searchFloor !== "all" || searchRoomNumber.trim()) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground shrink-0 border border-dashed"
+                    onClick={() => {
+                      setSearchBuilding("all");
+                      setSearchFloor("all");
+                      setSearchRoomNumber("");
+                    }}
+                    title={ar ? "إلغاء الفلاتر وعرض الكل" : "Reset filters"}
+                  >
+                    <X className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {ar ? "عرض الكل" : "Show All"}
+                  </Button>
+                )}
               </div>
-              {recommendation && (<div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2"><Sparkles className="w-3.5 h-3.5 flex-shrink-0" /><span>{ar ? "الغرف المميزة بـ ✦ هي الأنسب بناءً على بيانات الشخص" : "Rooms marked ✦ are recommended based on person's profile"}</span></div>)}
-              <div className="max-h-52 overflow-y-auto space-y-2 pr-1">
-                {sortedFilteredRooms.length === 0 ? (<p className="text-sm text-muted-foreground text-center py-6">{ar ? "لا توجد غرف متاحة" : "No rooms available"}</p>) :
-                sortedFilteredRooms.map((room) => {
-                  const isFull = (room.currentOccupancy ?? 0) >= (room.capacity ?? 1);
-                  const isSel = selectedRoomId === String(room.id);
-                  const rec = recommendation?.recommendedMap[room.id];
-                  return (
-                    <button
-                      key={room.id}
-                      disabled={isFull}
-                      onClick={() => {
-                        setSelectedRoomId(String(room.id));
-                        setSelectedBed((room.capacity ?? 1) === 1 ? "1" : "");
-                      }}
-                      className={`w-full flex items-center gap-3 p-3 border-2 rounded-lg text-sm transition-all text-left rtl:text-right ${isSel ? "border-primary bg-primary/5" : isFull ? "border-border opacity-50 cursor-not-allowed" : "border-border hover:border-primary/50 hover:bg-muted/30"}`}
-                    >
-                      <BedDouble className={`w-4 h-4 flex-shrink-0 ${isSel ? "text-primary" : "text-muted-foreground"}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold">{ar ? "غرفة" : "Room"} {room.roomNumber}</span>
-                          {room.classification && (
+              {recommendation && (
+                <div className="flex items-center justify-between gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
+                    <span className="font-semibold">{ar ? "الغرف الموصى بها هي الأنسب بناءً على الملف الشخصي" : "Recommended rooms are best suited based on person's profile"}</span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                    {sortedFilteredRooms.length} {ar ? "غرفة متاحة" : "available"}
+                  </span>
+                </div>
+              )}
+              <div className="max-h-64 overflow-y-auto pr-1">
+                {sortedFilteredRooms.length === 0 ? (
+                  <div className="p-8 text-center border-2 border-dashed rounded-xl bg-muted/10">
+                    <BedDouble className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+                    <p className="text-sm font-semibold text-muted-foreground">
+                      {ar ? "لا توجد غرف متاحة تطابق الفلاتر المحددة" : "No available rooms match the selected filters"}
+                    </p>
+                    {(searchBuilding !== "all" || searchFloor !== "all" || searchRoomNumber.trim()) && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        onClick={() => {
+                          setSearchBuilding("all");
+                          setSearchFloor("all");
+                          setSearchRoomNumber("");
+                        }}
+                        className="mt-2 text-xs text-primary"
+                      >
+                        {ar ? "إعادة ضبط الفلاتر وعرض كل الغرف" : "Reset filters and show all rooms"}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    {sortedFilteredRooms.map((room) => {
+                      const occ = room.currentOccupancy ?? 0;
+                      const cap = room.capacity ?? 1;
+                      const isFull = occ >= cap;
+                      const isSel = selectedRoomId === String(room.id);
+                      const rec = recommendation?.recommendedMap[room.id];
+                      const freeSpots = Math.max(0, cap - occ);
+
+                      return (
+                        <button
+                          type="button"
+                          key={room.id}
+                          disabled={isFull}
+                          onClick={() => {
+                            setSelectedRoomId(String(room.id));
+                            setSelectedBed(cap === 1 ? "1" : "");
+                            // Base the top filters on this room
+                            if (room.buildingId) setSearchBuilding(String(room.buildingId));
+                            if (room.floorId) setSearchFloor(String(room.floorId));
+                            setSearchRoomNumber("");
+                          }}
+                          className={`group relative flex flex-col justify-between p-3 rounded-xl border-2 text-start transition-all duration-200 cursor-pointer ${
+                            isSel
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm"
+                              : isFull
+                              ? "border-border/60 bg-muted/40 opacity-60 cursor-not-allowed"
+                              : rec?.levelMatch
+                              ? "border-amber-300 dark:border-amber-800/80 bg-amber-50/30 dark:bg-amber-950/20 hover:border-primary/60 hover:bg-muted/30"
+                              : "border-border bg-card hover:border-primary/60 hover:bg-muted/30"
+                          }`}
+                        >
+                          {/* Header: Room Number + Selection or Recommendation Status */}
+                          <div className="flex items-start justify-between gap-1.5 w-full">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
+                                  isSel
+                                    ? "bg-primary text-primary-foreground"
+                                    : rec?.levelMatch
+                                    ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                                    : "bg-muted text-foreground"
+                                }`}
+                              >
+                                <BedDouble className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-extrabold text-sm font-mono tracking-tight block truncate">
+                                  {ar ? `غرفة ${room.roomNumber}` : `Room ${room.roomNumber}`}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground block truncate">
+                                  {room.roomType || (ar ? "قياسية" : "Standard")}
+                                </span>
+                              </div>
+                            </div>
+
+                            {isSel ? (
+                              <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-2xs">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              </div>
+                            ) : rec?.levelMatch ? (
+                              <div
+                                className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0"
+                                title={ar ? (rec.badgeLabelAr || "موصى بها") : (rec.badgeLabelEn || "Recommended")}
+                              >
+                                <Sparkles className="w-3 h-3" />
+                              </div>
+                            ) : null}
+                          </div>
+
+                          {/* Badges: Recommendation / Classification */}
+                          <div className="my-2 flex flex-wrap gap-1 min-h-[22px] items-center">
+                            {rec?.levelMatch ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100/90 text-amber-900 border border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 truncate max-w-full">
+                                <Sparkles className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                                <span className="truncate">{ar ? (rec.badgeLabelAr || "موصى بها") : (rec.badgeLabelEn || "Recommended")}</span>
+                              </span>
+                            ) : room.classification ? (
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded font-medium border truncate max-w-full ${
+                                  room.classification.toLowerCase().includes("deluxe")
+                                    ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                    : room.classification.toLowerCase().includes("superior")
+                                    ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                    : room.classification.toLowerCase().includes("family")
+                                    ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                    : "bg-muted text-foreground border-border"
+                                }`}
+                              >
+                                {room.classification}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {/* Footer: Building/Floor location & Occupancy */}
+                          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10.5px] text-muted-foreground w-full">
+                            <span className="truncate max-w-[60%]" title={`${buildingMap[room.buildingId] || "—"} • F${floorMap[room.floorId]?.number ?? "—"}`}>
+                              {buildingMap[room.buildingId] || "—"} {floorMap[room.floorId]?.number ? `• F${floorMap[room.floorId]?.number}` : ""}
+                            </span>
                             <span
-                              className={`text-[10px] px-1.5 py-0.2 rounded font-semibold border ${
-                                room.classification.toLowerCase().includes("deluxe")
-                                  ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                                  : room.classification.toLowerCase().includes("superior")
-                                  ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                                  : room.classification.toLowerCase().includes("family")
-                                  ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
-                                  : "bg-muted text-foreground border-border"
+                              className={`font-semibold shrink-0 px-1.5 py-0.5 rounded text-[10px] ${
+                                isFull
+                                  ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+                                  : freeSpots === cap
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                  : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                               }`}
                             >
-                              {room.classification}
+                              {occ}/{cap} {ar ? "سرير" : "beds"}
                             </span>
-                          )}
-                          {rec?.levelMatch && <span className="text-amber-500 font-bold text-xs">✦ {rec.badgeLabelAr || (ar ? "موصى بها" : "Rec.")}</span>}
-                          {isFull && <span className="text-xs text-destructive font-medium">{ar ? "ممتلئة" : "Full"}</span>}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{buildingMap[room.buildingId] || "—"} • {floorMap[room.floorId]?.number ? `F${floorMap[room.floorId]?.number}` : "—"} • {room.roomType || "—"} • {room.currentOccupancy ?? 0}/{room.capacity ?? 1} {ar ? "مقيم" : "occupied"}</p>
-                      </div>
-                      {isSel && <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />}
-                    </button>
-                  );
-                })}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* SELECTION: BED OR ENTIRE ROOM */}
@@ -1526,12 +1690,20 @@ export default function ReservationsPage() {
                     <Label className="text-sm font-semibold">
                       {ar ? "تحديد السرير أو الغرفة كاملة" : "Bed or Full Room Selection"} <span className="text-destructive">*</span>
                     </Label>
-                    <span className="text-xs text-primary font-medium">
-                      {selectedBed === "ALL"
-                        ? (ar ? "✓ تم اختيار الغرفة كاملة" : "✓ Full room selected")
-                        : selectedBed
-                        ? (ar ? `✓ تم اختيار سرير رقم ${selectedBed}` : `✓ Bed ${selectedBed} selected`)
-                        : (ar ? "⚠️ مطلوب التحديد" : "⚠️ Required")}
+                    <span className="text-xs text-primary font-medium inline-flex items-center gap-1">
+                      {selectedBed === "ALL" ? (
+                        <>
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{ar ? "تم اختيار الغرفة كاملة" : "Full room selected"}</span>
+                        </>
+                      ) : selectedBed ? (
+                        <>
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{ar ? `تم اختيار سرير رقم ${selectedBed}` : `Bed ${selectedBed} selected`}</span>
+                        </>
+                      ) : (
+                        <span className="text-destructive font-semibold">{ar ? "مطلوب التحديد" : "Selection required"}</span>
+                      )}
                     </span>
                   </div>
 
@@ -1605,7 +1777,7 @@ export default function ReservationsPage() {
                     ? (ar ? "جاري الحفظ والتسكين..." : "Processing...")
                     : bookingType === "direct"
                     ? (ar ? "تأكيد وتسكين فوري" : "Confirm & Assign Now")
-                    : (ar ? "إنشاء حجز وصول" : "Create Arrival Reservation")}
+                    : (ar ? "إنشاء حجز مستقبلي" : "Create Future Reservation")}
                 </Button>
               </div>
             </div>
@@ -1647,8 +1819,8 @@ export default function ReservationsPage() {
               <div className="space-y-1.5"><Label>{ar ? "اسم العائلة" : "Last Name"}</Label><Input value={editForm.lastName} onChange={(e) => setEditForm((f) => ({ ...f, lastName: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label>{ar ? "رقم الهوية" : "ID Card"}</Label><Input value={editForm.guestIdCardNumber} onChange={(e) => setEditForm((f) => ({ ...f, guestIdCardNumber: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label>{ar ? "الهاتف" : "Phone"}</Label><Input value={editForm.guestPhone} onChange={(e) => setEditForm((f) => ({ ...f, guestPhone: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label>{ar ? "تاريخ الدخول" : "Check-in"}</Label><Input type="date" value={editForm.checkInDate} onChange={(e) => setEditForm((f) => ({ ...f, checkInDate: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label>{ar ? "تاريخ المغادرة" : "Check-out"}</Label><Input type="date" value={editForm.checkOutDate} onChange={(e) => setEditForm((f) => ({ ...f, checkOutDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>{ar ? "تاريخ الدخول" : "Check-in"}</Label><DateInput value={editForm.checkInDate} onChange={(iso) => setEditForm((f) => ({ ...f, checkInDate: iso }))} /></div>
+              <div className="space-y-1.5"><Label>{ar ? "تاريخ المغادرة" : "Check-out"}</Label><DateInput value={editForm.checkOutDate} onChange={(iso) => setEditForm((f) => ({ ...f, checkOutDate: iso }))} /></div>
               <div className="space-y-1.5"><Label>{ar ? "القسم" : "Department"}</Label>
                 <Select value={editForm.department || "none"} onValueChange={(v) => setEditForm((f) => ({ ...f, department: v === "none" ? "" : v, jobTitle: "" }))}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
@@ -1661,6 +1833,35 @@ export default function ReservationsPage() {
                   <SelectContent><SelectItem value="none">—</SelectItem>{filteredEditJobTitles.map((t: any) => (<SelectItem key={t.id} value={t.value}>{t.value}</SelectItem>))}</SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label>{ar ? "نوع النزيل (الجهة)" : "Resident Type"}</Label>
+                <Select
+                  value={editForm.employmentType || "INTERNAL"}
+                  onValueChange={(v) =>
+                    setEditForm((f) => ({
+                      ...f,
+                      employmentType: v,
+                      department: v === "THIRD_PARTY" && !f.department ? (ar ? "طرف ثالث" : "Third Party") : f.department,
+                    }))
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERNAL">{ar ? "موظف داخلي" : "Internal Employee"}</SelectItem>
+                    <SelectItem value="THIRD_PARTY">{ar ? "طرف ثالث" : "Third Party"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editForm.employmentType === "THIRD_PARTY" && (
+                <div className="space-y-1.5 col-span-2">
+                  <Label>{ar ? "اسم الشركة / الجهة الخارجية" : "Company Name"}</Label>
+                  <Input
+                    placeholder={ar ? "اسم الشركة التابع لها النزيل" : "Company / Contractor Name"}
+                    value={editForm.companyName || ""}
+                    onChange={(e) => setEditForm((f) => ({ ...f, companyName: e.target.value }))}
+                  />
+                </div>
+              )}
             </div>
             <div className="space-y-1.5"><Label>{ar ? "ملاحظات" : "Notes"}</Label><Textarea value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} rows={2} /></div>
             <div className="flex justify-end gap-2">

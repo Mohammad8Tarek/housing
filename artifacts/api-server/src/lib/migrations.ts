@@ -570,6 +570,75 @@ const MIGRATIONS = [
     name: "public.idx_fvas_status",
     q: "CREATE INDEX IF NOT EXISTS idx_fvas_status ON public.hosting_request_approval_steps(status)",
   },
+  {
+    name: "public.room_import_history",
+    q: `CREATE TABLE IF NOT EXISTS public.room_import_history (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER NOT NULL,
+      building_id INTEGER,
+      file_name TEXT NOT NULL,
+      uploaded_by INTEGER,
+      uploaded_by_name TEXT,
+      upload_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      import_mode TEXT NOT NULL DEFAULT 'create_update',
+      total_rows INTEGER NOT NULL DEFAULT 0,
+      created_rows INTEGER NOT NULL DEFAULT 0,
+      updated_rows INTEGER NOT NULL DEFAULT 0,
+      failed_rows INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'COMPLETED',
+      errors JSONB DEFAULT '[]',
+      warnings JSONB DEFAULT '[]',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+  },
+  {
+    name: "public.room_import_templates",
+    q: `CREATE TABLE IF NOT EXISTS public.room_import_templates (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER,
+      name TEXT NOT NULL,
+      description TEXT,
+      column_mapping JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+  },
+  {
+    name: "public.room_beds",
+    q: `CREATE TABLE IF NOT EXISTS public.room_beds (
+      id SERIAL PRIMARY KEY,
+      room_id INTEGER NOT NULL,
+      bed_number INTEGER NOT NULL,
+      bed_type TEXT,
+      status TEXT NOT NULL DEFAULT 'AVAILABLE',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+  },
+  {
+    name: "public.assignments.is_entire_room",
+    q: "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS is_entire_room BOOLEAN NOT NULL DEFAULT FALSE",
+  },
+  {
+    name: "public.reservations.bed_number",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS bed_number TEXT NOT NULL DEFAULT ''",
+  },
+  {
+    name: "public.profiles.vacation_start_date",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vacation_start_date TEXT",
+  },
+  {
+    name: "public.profiles.vacation_end_date",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vacation_end_date TEXT",
+  },
+  {
+    name: "public.profiles.vacation_notes",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vacation_notes TEXT DEFAULT ''",
+  },
+  {
+    name: "public.lookup_values.extra_value",
+    q: "ALTER TABLE lookup_values ADD COLUMN IF NOT EXISTS extra_value TEXT",
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1113,6 +1182,46 @@ const TENANT_MIGRATIONS = [
       ALTER TABLE rooms ADD CONSTRAINT chk_rooms_status
         CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order'));
     END $$`,
+  },
+  {
+    name: "assignments.is_entire_room",
+    q: "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS is_entire_room BOOLEAN NOT NULL DEFAULT FALSE",
+  },
+  {
+    name: "fix_chk_maintenance_status",
+    q: `DO $$ BEGIN
+      ALTER TABLE maintenance DROP CONSTRAINT IF EXISTS chk_maintenance_status;
+      ALTER TABLE maintenance ADD CONSTRAINT chk_maintenance_status
+        CHECK (status IN ('open', 'pending', 'in_progress', 'resolved', 'completed', 'cancelled', 'escalated', 'closed'));
+    END $$`,
+  },
+  {
+    name: "fix_chk_maintenance_priority",
+    q: `DO $$ BEGIN
+      ALTER TABLE maintenance DROP CONSTRAINT IF EXISTS chk_maintenance_priority;
+      ALTER TABLE maintenance ADD CONSTRAINT chk_maintenance_priority
+        CHECK (priority IN ('low', 'normal', 'medium', 'high', 'urgent', 'emergency', 'LOW', 'MEDIUM', 'HIGH', 'URGENT'));
+    END $$`,
+  },
+  {
+    name: "profiles.vacation_start_date",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vacation_start_date TEXT",
+  },
+  {
+    name: "profiles.vacation_end_date",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vacation_end_date TEXT",
+  },
+  {
+    name: "profiles.vacation_notes",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vacation_notes TEXT DEFAULT ''",
+  },
+  {
+    name: "reservations.bed_number",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS bed_number TEXT NOT NULL DEFAULT ''",
+  },
+  {
+    name: "lookup_values.extra_value",
+    q: "ALTER TABLE lookup_values ADD COLUMN IF NOT EXISTS extra_value TEXT",
   },
 ];
 

@@ -1,5 +1,16 @@
 import { useMemo } from "react";
 import { Tab } from "../types";
+import { formatDate, parseDMY } from "@/lib/date-utils";
+
+// Normalizes either "YYYY-MM-DD" or display "DD/MM/YYYY" (or "—"/"-")
+// to a comparable "YYYY-MM-DD" string for range filtering.
+function comparableDate(v: unknown): string {
+  const s = String(v ?? "").trim();
+  if (!s || s === "—" || s === "-") return "";
+  const fromDisplay = parseDMY(s);
+  if (fromDisplay) return fromDisplay;
+  return s.slice(0, 10);
+}
 
 export function useReportDataProcessor({
   activeTab,
@@ -68,7 +79,8 @@ export function useReportDataProcessor({
       if (dateField && (dateFrom || dateTo)) {
         const rawDate = item[dateField];
         if (!rawDate) return true;
-        const d = String(rawDate).slice(0, 10);
+        const d = comparableDate(rawDate);
+        if (!d) return true;
         if (dateFrom && d < dateFrom) return false;
         if (dateTo && d > dateTo) return false;
       }
@@ -83,10 +95,20 @@ export function useReportDataProcessor({
         const list = assignments
           .filter((a: any) => {
             const room = roomMap[a.roomId];
-            const emp = empMap[a.profileId];
+            const emp = empMap[a.profileId] || {};
+            const isVacation = (emp.status || a.profileStatus || "").toUpperCase() === "VACATION";
+            const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || emp.status === "LEFT" || emp.status === "CHECKED_OUT";
+            const effectiveStatus = isCheckedOut ? "CHECKED_OUT" : (isVacation ? "VACATION" : (a.status || "ACTIVE"));
+
             if (filterBuilding !== "all" && room && !filteredBuildingIds.has(room.buildingId)) return false;
             if (filterFloor !== "all" && room && !filteredFloorIds.has(room.floorId)) return false;
-            if (filterStatus !== "all" && a.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
+            if (filterStatus !== "all") {
+              const fs = filterStatus.toUpperCase();
+              if (fs === "VACATION" && effectiveStatus !== "VACATION") return false;
+              if (fs === "ACTIVE" && effectiveStatus !== "ACTIVE") return false;
+              if (fs === "CHECKED_OUT" && effectiveStatus !== "CHECKED_OUT") return false;
+              if (fs === "TRANSFERRED" && a.status?.toUpperCase() !== "TRANSFERRED") return false;
+            }
             if (filterDepartment !== "all" && emp?.department !== filterDepartment) return false;
             if (filterGender !== "all" && emp?.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
             if (filterNationality !== "all" && emp?.nationality !== filterNationality) return false;
@@ -100,6 +122,10 @@ export function useReportDataProcessor({
           .map((a: any) => {
             const emp = empMap[a.profileId] || {};
             const room = roomMap[a.roomId] || {};
+            const isVacation = (emp.status || a.profileStatus || "").toUpperCase() === "VACATION";
+            const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || emp.status === "LEFT" || emp.status === "CHECKED_OUT";
+            const effectiveStatus = isCheckedOut ? "CHECKED_OUT" : (isVacation ? "VACATION" : (a.status || "ACTIVE"));
+
             return {
               id: a.id,
               profileId: emp.id,
@@ -118,13 +144,20 @@ export function useReportDataProcessor({
               roomNumber: room.roomNumber || `#${a.roomId}`,
               roomType: room.roomType || "—",
               bedNumber: a.bedNumber ? String(a.bedNumber) : "—",
+              isEntireRoom: Boolean(a.isEntireRoom || a.is_entire_room),
               buildingName: buildingMap[room.buildingId] || "—",
               floorName: floorMap[room.floorId] || "—",
-              checkInDate: a.checkInDate ? a.checkInDate.slice(0, 10) : "—",
-              contractEndDate: emp.contractEndDate ? emp.contractEndDate.slice(0, 10) : "—",
-              expectedCheckOutDate: a.expectedCheckOutDate ? a.expectedCheckOutDate.slice(0, 10) : (emp.contractEndDate ? emp.contractEndDate.slice(0, 10) : "—"),
-              checkOutDate: a.checkOutDate ? a.checkOutDate.slice(0, 10) : "—",
-              status: a.status || "ACTIVE",
+              checkInDate: formatDate(a.checkInDate, "—"),
+              contractEndDate: formatDate(emp.contractEndDate, "—"),
+              expectedCheckOutDate: a.expectedCheckOutDate
+                ? formatDate(a.expectedCheckOutDate, "—")
+                : emp.contractEndDate
+                  ? formatDate(emp.contractEndDate, "—")
+                  : "—",
+              checkOutDate: formatDate(a.checkOutDate, "—"),
+              status: effectiveStatus,
+              vacationStartDate: emp.vacationStartDate || a.vacationStartDate || null,
+              vacationEndDate: emp.vacationEndDate || a.vacationEndDate || null,
             };
           });
 
@@ -282,14 +315,14 @@ export function useReportDataProcessor({
               nationality: e.nationality || "—",
               phone: e.phone || "—",
               gender: e.gender || "M",
-              dateOfBirth: e.dateOfBirth ? e.dateOfBirth.slice(0, 10) : "—",
+              dateOfBirth: formatDate(e.dateOfBirth, "—"),
               department: e.department || "—",
               jobTitle: e.jobTitle || "—",
               level: e.level || "—",
               employmentType: e.employmentType || "INTERNAL",
               companyName: e.companyName || (e.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "الفندق"),
-              hireDate: e.hireDate ? e.hireDate.slice(0, 10) : "—",
-              contractEndDate: e.contractEndDate ? e.contractEndDate.slice(0, 10) : "—",
+              hireDate: formatDate(e.hireDate, "—"),
+              contractEndDate: formatDate(e.contractEndDate, "—"),
               address: e.address || "—",
               status: e.status || "ACTIVE",
               assignedRoom: room ? `${room.roomNumber} (${asgn.bedNumber ? `سرير ${asgn.bedNumber}` : ""})` : "غير مسكن",
@@ -341,7 +374,7 @@ export function useReportDataProcessor({
               phone: p.phone || "—",
               department: p.department || "—",
               jobTitle: p.jobTitle || "—",
-              contractEndDate: p.contractEndDate.slice(0, 10),
+              contractEndDate: formatDate(p.contractEndDate, "—"),
               daysRemaining: diffDays,
               expStatus: diffDays < 0 ? "منتهي (Expired)" : diffDays <= 30 ? "ينتهي قريباً (Expiring Soon)" : "ساري (Active)",
               assignedRoom: room ? `غرفة ${room.roomNumber} (${buildingMap[room.buildingId] || ""})` : "غير مسكن",
@@ -385,8 +418,8 @@ export function useReportDataProcessor({
               jobTitle: r.jobTitle || "—",
               roomType: r.roomType || "—",
               roomNumber: room ? room.roomNumber : "—",
-              checkInDate: r.checkInDate ? r.checkInDate.slice(0, 10) : "—",
-              checkOutDate: r.checkOutDate ? r.checkOutDate.slice(0, 10) : "—",
+              checkInDate: formatDate(r.checkInDate, "—"),
+              checkOutDate: formatDate(r.checkOutDate, "—"),
               status: r.status || "UPCOMING",
               notes: r.notes || "—",
             };
@@ -428,8 +461,8 @@ export function useReportDataProcessor({
               relation: h.relationship || "—",
               guestId: h.guestNationalId || "—",
               roomNumber: room ? room.roomNumber : "—",
-              checkInDate: h.expectedFrom ? h.expectedFrom.slice(0, 10) : "—",
-              checkOutDate: h.expectedTo ? h.expectedTo.slice(0, 10) : "—",
+              checkInDate: formatDate(h.expectedFrom, "—"),
+              checkOutDate: formatDate(h.expectedTo, "—"),
               dailyRate: h.dailyRate ? `${h.dailyRate} EGP` : "—",
               totalAmount: h.totalAmount ? `${h.totalAmount} EGP` : "—",
               status: h.status || "pending",
@@ -469,7 +502,7 @@ export function useReportDataProcessor({
               priority: m.priority || "Normal",
               reportedBy: m.reportedBy || "—",
               assignedTo: m.assignedToName || "—",
-              reportedAt: m.reportedAt ? m.reportedAt.slice(0, 10) : "—",
+              reportedAt: formatDate(m.reportedAt, "—"),
               status: m.status || "open",
               cost: m.cost ? `${m.cost} EGP` : "—",
             };
@@ -550,7 +583,7 @@ export function useReportDataProcessor({
               hkPriority,
               hkAction,
               openHkTickets: hkTickets,
-              lastCleaned: r.lastCleanedAt ? r.lastCleanedAt.slice(0, 10) : "—",
+              lastCleaned: formatDate(r.lastCleanedAt, "—"),
             };
           })
           // Sort: dirty first, then occupied_dirty, then maintenance, then rest

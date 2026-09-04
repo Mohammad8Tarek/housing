@@ -444,14 +444,18 @@ router.post(
       }
 
       const existingRoom = await withTenant(propertyId, async (tenantDb) => {
+        const conditions = [ilike(roomsTable.roomNumber, parsed.data.roomNumber.trim())];
+        if (parsed.data.buildingId) {
+          conditions.push(eq(roomsTable.buildingId, parsed.data.buildingId));
+        }
         return await tenantDb
           .select({ id: roomsTable.id })
           .from(roomsTable)
-          .where(eq(roomsTable.roomNumber, parsed.data.roomNumber));
+          .where(and(...conditions));
       });
       if (existingRoom.length > 0) {
         res.status(409).json({
-          error: `Room ${parsed.data.roomNumber} already exists in this property`,
+          error: `Room ${parsed.data.roomNumber} already exists in this building`,
           code: "ROOM_DUPLICATE",
         });
         return;
@@ -589,7 +593,7 @@ router.patch(
         return await tenantDb
           .select({ id: roomsTable.id })
           .from(roomsTable)
-          .where(eq(roomsTable.roomNumber, parsed.data.roomNumber!));
+          .where(ilike(roomsTable.roomNumber, parsed.data.roomNumber!.trim()));
       });
       const conflict = existingRoom.find((r) => r.id !== params.data.id);
       if (conflict) {
@@ -739,8 +743,12 @@ router.patch(
       const { loadAuthUser, hasPermission } = await import("../middlewares/permissions.js");
       const user = await loadAuthUser(req, res);
       if (!user) return;
-      if (!hasPermission(user, "accommodation", "edit") && !hasPermission(user, "housekeeping", "edit")) {
-        res.status(403).json({ error: "Permission denied. Requires accommodation:edit or housekeeping:edit" });
+      if (
+        !hasPermission(user, "accommodation", "edit") &&
+        !hasPermission(user, "housing", "edit") &&
+        !hasPermission(user, "housekeeping", "edit")
+      ) {
+        res.status(403).json({ error: "Permission denied. Requires accommodation:edit, housing:edit, or housekeeping:edit" });
         return;
       }
       next();

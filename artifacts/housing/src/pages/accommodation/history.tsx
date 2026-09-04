@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
 import {
   Search,
@@ -120,11 +121,14 @@ export default function HistoryPage() {
       if (debouncedSearch) qs.set("search", debouncedSearch);
       if (filterStatus && filterStatus !== "ALL") qs.set("status", filterStatus);
 
-      const token = localStorage.getItem("auth-storage") ? JSON.parse(localStorage.getItem("auth-storage") || "{}")?.state?.token : null;
+      const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
       
-      const res = await fetch(`/api/assignments/history?${qs.toString()}`, { headers });
+      const res = await fetch(`/api/assignments/history?${qs.toString()}`, { 
+        headers,
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch history");
       return res.json() as Promise<{ data: any[]; pagination: { total: number } }>;
     },
@@ -217,12 +221,8 @@ export default function HistoryPage() {
         Floor: floor?.number ?? "",
         Room: room?.roomNumber ?? String(a.roomId),
         Bed: a.bedNumber ?? "",
-        "Check-in": a.checkInDate
-          ? format(new Date(a.checkInDate), "yyyy-MM-dd")
-          : "",
-        "Check-out": checkOutDate
-          ? format(new Date(checkOutDate), "yyyy-MM-dd")
-          : "",
+        "Check-in": formatDate(a.checkInDate, ""),
+        "Check-out": formatDate(checkOutDate, ""),
         Days: daysStayed ?? "",
         Notes: a.notes ?? "",
         Status: a.status,
@@ -231,10 +231,7 @@ export default function HistoryPage() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "History");
-    XLSX.writeFile(
-      wb,
-      `housing_history_${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+    XLSX.writeFile(wb, getExportFileName("Housing_History", "xlsx"));
   };
 
   const exportPDF = async () => {
@@ -280,8 +277,8 @@ export default function HistoryPage() {
         floor?.number ? String(floor.number) : "—",
         room?.roomNumber ?? String(a.roomId),
         a.bedNumber ? String(a.bedNumber) : "—",
-        a.checkInDate ? format(new Date(a.checkInDate), "MMM d, yyyy") : "—",
-        checkOutDate ? format(new Date(checkOutDate), "MMM d, yyyy") : "—",
+        formatDate(a.checkInDate),
+        formatDate(checkOutDate),
         daysStayed !== null ? String(daysStayed) : "—",
         a.status,
       ];
@@ -334,7 +331,7 @@ export default function HistoryPage() {
       { align: "center" },
     );
 
-    doc.save(`housing_history_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(getExportFileName("Housing_History", "pdf"));
   };
 
   const HIST_COLS = [
@@ -686,16 +683,12 @@ export default function HistoryPage() {
                     )}
                     {isHistVisible("checkin") && (
                       <TableCell className="text-sm whitespace-nowrap">
-                        {a.checkInDate
-                          ? format(new Date(a.checkInDate), "MMM d, yyyy")
-                          : "—"}
+                        {formatDate(a.checkInDate)}
                       </TableCell>
                     )}
                     {isHistVisible("checkout") && (
                       <TableCell className="text-sm whitespace-nowrap">
-                        {checkOutDate
-                          ? format(new Date(checkOutDate), "MMM d, yyyy")
-                          : "—"}
+                        {formatDate(checkOutDate)}
                       </TableCell>
                     )}
                     {isHistVisible("days") && (

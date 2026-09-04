@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -37,7 +38,12 @@ import {
   Lock,
   Pencil,
   Camera,
+  Eye,
 } from "lucide-react";
+import {
+  DocumentPreviewModal,
+  type PreviewableDocument,
+} from "@/components/ui/document-preview-modal";
 
 export function EditProfileDialog({
   profile,
@@ -54,6 +60,7 @@ export function EditProfileDialog({
   const fileRef = useRef<HTMLInputElement>(null);
   const docsRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<PreviewableDocument | null>(null);
 
   const [form, setForm] = useState<EditEmpForm>({
     firstName: profile.firstName ?? "",
@@ -215,6 +222,18 @@ export function EditProfileDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.firstName?.trim()) {
+      toast.error(ar ? "الاسم الأول مطلوب" : "First name is required");
+      return;
+    }
+    if (!form.lastName?.trim()) {
+      toast.error(ar ? "الاسم الثاني مطلوب" : "Last name is required");
+      return;
+    }
+    if (!form.nationalId?.trim()) {
+      toast.error(ar ? "رقم الهوية مطلوب" : "National ID is required");
+      return;
+    }
     updateMutation.mutate({
       id: profile.id,
       data: {
@@ -230,7 +249,8 @@ export function EditProfileDialog({
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <>
+      <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
@@ -334,7 +354,7 @@ export function EditProfileDialog({
               >
                 <Users className="w-4 h-4 text-purple-600" />
                 <span className="font-semibold">
-                  {ar ? "طرف خارجي (ثيرد بارتي)" : "Third-Party"}
+                  {ar ? "طرف ثالث" : "Third-Party"}
                 </span>
               </button>
             </div>
@@ -437,10 +457,9 @@ export function EditProfileDialog({
                 </Select>
               </FormRow>
               <FormRow label={ar ? "تاريخ الميلاد" : "Date of Birth"}>
-                <Input
-                  type="date"
+                <DateInput
                   value={form.dateOfBirth}
-                  onChange={(e) => set("dateOfBirth", e.target.value)}
+                  onChange={(iso) => set("dateOfBirth", iso)}
                   className="h-9"
                 />
               </FormRow>
@@ -494,13 +513,13 @@ export function EditProfileDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ACTIVE">
-                        {ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}
+                        {ar ? "مقيم بالسكن" : "In-House"}
                       </SelectItem>
                       <SelectItem value="LEFT">
-                        {ar ? "مغادر (شيكاوت)" : "Check-out"}
+                        {ar ? "تمت المغادرة" : "Checked Out"}
                       </SelectItem>
                       <SelectItem value="VACATION">
-                        {ar ? "في إجازة (فيكيشن)" : "Vacation"}
+                        {ar ? "في إجازة" : "On Vacation"}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -528,13 +547,13 @@ export function EditProfileDialog({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ACTIVE">
-                          {ar ? "مقيم بالسكن (ان هاوس)" : "In-House"}
+                          {ar ? "مقيم بالسكن" : "In-House"}
                         </SelectItem>
                         <SelectItem value="LEFT">
-                          {ar ? "مغادر (شيكاوت)" : "Check-out"}
+                          {ar ? "تمت المغادرة" : "Checked Out"}
                         </SelectItem>
                         <SelectItem value="VACATION">
-                          {ar ? "في إجازة (فيكيشن)" : "Vacation"}
+                          {ar ? "في إجازة" : "On Vacation"}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -550,10 +569,9 @@ export function EditProfileDialog({
                         ? "تاريخ انتهاء العقد (خاص بالموظفين الداخليين)"
                         : "Contract End Date (Internal Employee)"}
                     </Label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={form.contractEndDate || ""}
-                      onChange={(e) => set("contractEndDate", e.target.value)}
+                      onChange={(iso) => set("contractEndDate", iso)}
                       className="bg-background border-amber-300 dark:border-amber-700 h-9"
                     />
                   </div>
@@ -698,19 +716,49 @@ export function EditProfileDialog({
                     key={i}
                     className="relative group border rounded-lg overflow-hidden h-28 flex flex-col justify-between bg-card shadow-xs"
                   >
-                    <div className="relative h-20 w-full bg-muted/30 overflow-hidden flex items-center justify-center">
+                    <div
+                      className="relative h-20 w-full bg-muted/30 overflow-hidden flex items-center justify-center cursor-pointer group/thumb"
+                      onClick={() =>
+                        setPreviewDoc({
+                          fileName: doc.fileName,
+                          fileType: doc.fileType,
+                          fileData: doc.fileData,
+                          title: doc.fileName,
+                        })
+                      }
+                      title={ar ? "انقر للمعاينة" : "Click to preview"}
+                    >
                       {doc.fileData?.startsWith("data:image") ? (
                         <img
                           src={doc.fileData}
                           alt={doc.fileName}
-                          className="absolute inset-0 w-full h-full object-cover"
+                          className="absolute inset-0 w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
                         />
                       ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center text-muted-foreground group-hover/thumb:text-primary transition-colors">
                           <span className="text-xs font-mono font-bold">PDF</span>
                         </div>
                       )}
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                        <Eye className="w-5 h-5 text-white drop-shadow" />
+                      </div>
                       <div className="absolute top-1 right-1 flex items-center gap-1 z-20">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewDoc({
+                              fileName: doc.fileName,
+                              fileType: doc.fileType,
+                              fileData: doc.fileData,
+                              title: doc.fileName,
+                            });
+                          }}
+                          className="w-6 h-6 bg-background/80 hover:bg-background text-foreground rounded-full flex items-center justify-center shadow text-xs"
+                          title={ar ? "معاينة" : "Preview"}
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
                         {doc.fileData && (
                           <button
                             type="button"
@@ -737,7 +785,17 @@ export function EditProfileDialog({
                         </button>
                       </div>
                     </div>
-                    <div className="p-1.5 bg-background border-t">
+                    <div
+                      className="p-1.5 bg-background border-t cursor-pointer hover:bg-muted/50"
+                      onClick={() =>
+                        setPreviewDoc({
+                          fileName: doc.fileName,
+                          fileType: doc.fileType,
+                          fileData: doc.fileData,
+                          title: doc.fileName,
+                        })
+                      }
+                    >
                       <span
                         className="text-[11px] font-medium truncate block"
                         title={doc.fileName}
@@ -772,5 +830,12 @@ export function EditProfileDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <DocumentPreviewModal
+      doc={previewDoc}
+      isOpen={!!previewDoc}
+      onClose={() => setPreviewDoc(null)}
+    />
+    </>
   );
 }

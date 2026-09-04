@@ -22,6 +22,7 @@ export const MODULES = [
   "activities",
   "smart_locks",
   "hosting_requests",
+  "guest_hosting",
 ] as const;
 
 export type Module = (typeof MODULES)[number];
@@ -137,6 +138,19 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
   activities: ["view", "create", "edit", "delete", "publish"],
   smart_locks: ["view", "create", "edit", "delete"],
   hosting_requests: ["view", "create", "edit", "delete", "approve"],
+  guest_hosting: [
+    "view",
+    "create",
+    "edit",
+    "delete",
+    "checkin",
+    "checkout",
+    "approve",
+    "transfer",
+    "export",
+    "bulk_export",
+    "bulk_delete",
+  ],
 };
 
 export const moduleActions = (module: Module): Action[] =>
@@ -219,6 +233,14 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "reservations.archive",
     // Hosting Requests
     ...crudPerms("hosting_requests"),
+    // Guest Housing
+    ...crudPerms("guest_hosting"),
+    "guest_hosting.checkin",
+    "guest_hosting.checkout",
+    "guest_hosting.approve",
+    "guest_hosting.transfer",
+    "guest_hosting.bulk_delete",
+    "guest_hosting.bulk_export",
     // Maintenance
     ...crudPerms("maintenance"),
     "maintenance.assign",
@@ -272,6 +294,13 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "reservations.approve",
     "hosting_requests.view",
     "hosting_requests.create",
+    "guest_hosting.view",
+    "guest_hosting.create",
+    "guest_hosting.edit",
+    "guest_hosting.checkin",
+    "guest_hosting.checkout",
+    "guest_hosting.approve",
+    "guest_hosting.export",
     "maintenance.view",
     "maintenance.create",
     "maintenance.edit",
@@ -312,6 +341,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "reports.view",
     "reports.export",
     ...crudPerms("hosting_requests"),
+    ...crudPerms("guest_hosting"),
   ],
   portal_admin: [
     "dashboard.view",
@@ -334,11 +364,12 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
 export const MODULE_LABELS: Record<Module, { en: string; ar: string }> = {
   dashboard: { en: "Dashboard", ar: "لوحة القيادة" },
   housing: { en: "Housing & Rooms", ar: "الإسكان والغرف" },
-  profiles: { en: "Profiles & Employees", ar: "ملفات الموظفين (البروفايل)" },
+  profiles: { en: "Profiles & Employees", ar: "الملفات الشخصية والموظفون" },
   reservations: { en: "Reservations", ar: "الحجوزات" },
-  accommodation: { en: "Accommodation (In-House)", ar: "التسكين والإقامة (ان هاوس)" },
+  accommodation: { en: "In-House Accommodation", ar: "التسكين والمقيمون حالياً" },
   hosting_requests: { en: "Hosting Requests", ar: "طلبات الاستضافة" },
-  housekeeping: { en: "Housekeeping", ar: "النظافة (الهاوس كيبنج)" },
+  guest_hosting: { en: "Guest Housing", ar: "تسكين الاستضافات" },
+  housekeeping: { en: "Housekeeping", ar: "خدمات النظافة والترتيب" },
   maintenance: { en: "Tickets & Maintenance", ar: "التذاكر وبلاغات الصيانة" },
   reports: { en: "Reports & Stats", ar: "التقارير والإحصائيات" },
   users: { en: "Users & Permissions", ar: "المستخدمين والصلاحيات" },
@@ -362,7 +393,7 @@ export const MODULE_DESCRIPTIONS: Record<Module, { en: string; ar: string }> = {
   },
   housing: {
     en: "Buildings, floors, rooms, room space layout, and capacity setup.",
-    ar: "المباني، الطوابق، الغرف، الروم سبيس فيو، وتكوين وتوزيع الأسِرّة.",
+    ar: "المباني، الطوابق، الغرف، ومخطط وتوزيع الأسِرّة.",
   },
   profiles: {
     en: "Employee and resident profiles, documents, attachments, and notes.",
@@ -377,8 +408,12 @@ export const MODULE_DESCRIPTIONS: Record<Module, { en: string; ar: string }> = {
     ar: "النزلاء المقيمين حالياً بالسكن، المغادرة، النقل، والسجل التاريخي.",
   },
   hosting_requests: {
-    en: "Guest and visitor hosting applications, approvals, and guest housing.",
-    ar: "طلبات استضافة الزوار والنزلاء، الموافقات، وتسكين الضيوف.",
+    en: "Guest and visitor hosting applications and approvals workflow.",
+    ar: "طلبات استضافة الزوار والنزلاء، وإجراءات اعتماد الطلبات.",
+  },
+  guest_hosting: {
+    en: "Guest and visitor housing assignments, check-ins, check-outs, and companion records.",
+    ar: "تسكين الزوار والضيوف، تسجيل الوصول والمغادرة، وإدارة بيانات المرافقين.",
   },
   housekeeping: {
     en: "Room cleanliness status, dirty room queues, and cleaning tasks.",
@@ -486,7 +521,13 @@ export const PERMISSION_GROUPS: Array<{
       en: "Profiles, assignments, reservations, hosting, and approvals.",
       ar: "الموظفين والتسكين والحجوزات وطلبات الاعتماد.",
     },
-    modules: ["profiles", "accommodation", "reservations", "hosting_requests"],
+    modules: [
+      "profiles",
+      "accommodation",
+      "reservations",
+      "guest_hosting",
+      "hosting_requests",
+    ],
   },
   {
     id: "employee_portal",

@@ -46,6 +46,22 @@ router.post(
       const username = (req.session as any)?.username || "Admin";
 
       const result = await withTenant(propertyId, async (tenantDb) => {
+        // Normalization helper for strings (trims, lowercases, normalizes Arabic chars)
+        const normalizeStr = (s: string) =>
+          String(s || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[إأآا]/g, "ا")
+            .replace(/ة/g, "ه")
+            .replace(/ى/g, "ي")
+            .replace(/[\s\-_]+/g, " ");
+
+        const stripBuildingKeywords = (s: string) =>
+          normalizeStr(s)
+            .replace(/\b(مبنى|المبنى|building|resident|residents)\b/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
         // 1. Resolve Target Building
         let defaultBuildingId = reqBuildingId ? parseInt(String(reqBuildingId), 10) : null;
         const allBuildings = await tenantDb.select().from(buildingsTable);
@@ -59,7 +75,7 @@ router.post(
             .values({
               name: "المبنى الرئيسي (Main Building)",
               location: "Main",
-              capacity: rooms.length,
+              capacity: Math.max(50, rooms.length * 2),
               status: "active",
             })
             .returning();
@@ -67,30 +83,44 @@ router.post(
           allBuildings.push(newB);
         }
 
-        // Map building names to IDs
-        const buildingNameMap = new Map<string, number>();
-        allBuildings.forEach((b) => {
-          buildingNameMap.set(b.name.trim().toLowerCase(), b.id);
-        });
+        const findExistingBuilding = (nameStr: string): number | null => {
+          if (!nameStr) return null;
+          const clean = normalizeStr(nameStr);
+          const stripped = stripBuildingKeywords(nameStr);
+
+          for (const b of allBuildings) {
+            const bClean = normalizeStr(b.name);
+            const bStripped = stripBuildingKeywords(b.name);
+            if (bClean === clean || (stripped && bStripped && stripped === bStripped)) {
+              return b.id;
+            }
+          }
+          return null;
+        };
 
         // 2. Resolve Existing Floors
         const allFloors = await tenantDb.select().from(floorsTable);
         // Map: `${buildingId}_${floorNumber}` -> floorId
         const floorKeyMap = new Map<string, number>();
         allFloors.forEach((f) => {
-          floorKeyMap.set(`${f.buildingId}_${f.floorNumber.trim().toLowerCase()}`, f.id);
+          floorKeyMap.set(`${f.buildingId}_${normalizeStr(f.floorNumber)}`, f.id);
         });
 
-        // 3. Resolve Existing Rooms
+        // 3. Resolve Existing Rooms (both by building+roomNumber and by roomNumber alone)
         const existingRoomsList = await tenantDb.select().from(roomsTable);
-        // Map: `${buildingId}_${roomNumber}` -> room
-        const existingRoomMap = new Map<string, any>();
+        const existingRoomByBuildingMap = new Map<string, any>();
+        const existingRoomByNumberMap = new Map<string, any>();
+
         existingRoomsList.forEach((r) => {
-          existingRoomMap.set(
-            `${r.buildingId}_${String(r.roomNumber).trim().toLowerCase()}`,
-            r
-          );
+          const rNum = normalizeStr(r.roomNumber);
+          existingRoomByBuildingMap.set(`${r.buildingId}_${rNum}`, r);
+          if (!existingRoomByNumberMap.has(rNum)) {
+            existingRoomByNumberMap.set(rNum, r);
+          }
         });
+
+        // Map to track rooms created/updated in the CURRENT import batch
+        const batchProcessedRooms = new Map<string, any>();
 
         let createdRows = 0;
         let updatedRows = 0;
@@ -116,14 +146,17 @@ router.post(
               continue;
             }
 
+            const normRoomNumber = normalizeStr(rawRoomNumber);
+
             // Resolve building for this room
             let roomBuildingId = defaultBuildingId!;
-            if (r.building) {
-              const bKey = String(r.building).trim().toLowerCase();
-              if (buildingNameMap.has(bKey)) {
-                roomBuildingId = buildingNameMap.get(bKey)!;
+            // If user explicitly chose a building in the wizard, enforce it!
+            if (!reqBuildingId && r.building) {
+              const matchedBId = findExistingBuilding(r.building);
+              if (matchedBId) {
+                roomBuildingId = matchedBId;
               } else {
-                // Auto-create building if named in file
+                // Only create new building if genuinely new and not matched
                 const [createdB] = await tenantDb
                   .insert(buildingsTable)
                   .values({
@@ -134,17 +167,16 @@ router.post(
                   })
                   .returning();
                 roomBuildingId = createdB.id;
-                buildingNameMap.set(bKey, createdB.id);
+                allBuildings.push(createdB);
               }
             }
 
             // Resolve floor for this room
             const cleanFloorNumber = String(r.floor || "1").trim();
-            const floorKey = `${roomBuildingId}_${cleanFloorNumber.toLowerCase()}`;
+            const floorKey = `${roomBuildingId}_${normalizeStr(cleanFloorNumber)}`;
             let roomFloorId = floorKeyMap.get(floorKey);
 
             if (!roomFloorId) {
-              // Auto-create floor if not exists
               const [createdF] = await tenantDb
                 .insert(floorsTable)
                 .values({
@@ -157,26 +189,42 @@ router.post(
               floorKeyMap.set(floorKey, createdF.id);
             }
 
-            const roomKey = `${roomBuildingId}_${rawRoomNumber.toLowerCase()}`;
-            const existingRoom = existingRoomMap.get(roomKey);
+            const roomKey = `${roomBuildingId}_${normRoomNumber}`;
+
+            // Find existing room
+            let existingRoom = existingRoomByBuildingMap.get(roomKey);
+
+            // If not found in building, check if it exists in another building in this property (or single building)
+            if (!existingRoom && (allBuildings.length <= 1 || reqBuildingId)) {
+              existingRoom = existingRoomByNumberMap.get(normRoomNumber);
+              if (existingRoom) {
+                // Room exists in property, update its buildingId if needed
+                roomBuildingId = existingRoom.buildingId || defaultBuildingId!;
+              }
+            }
+
+            // Also check if already processed in this batch to prevent intra-file duplicates
+            if (!existingRoom && batchProcessedRooms.has(roomKey)) {
+              existingRoom = batchProcessedRooms.get(roomKey);
+            }
 
             const capacity = Math.max(1, parseInt(String(r.capacity || 1), 10) || 1);
             const roomType = String(r.roomType || "Standard").trim();
 
             if (existingRoom) {
-              // Existing Room
+              // Existing Room Handling
               if (importMode === "create_only") {
-                // Skip
+                // Skip existing rooms in Create Only mode
                 warnings.push({
                   rowNumber: rowNum,
                   column: "Room Number",
                   value: rawRoomNumber,
-                  warning: `Room "${rawRoomNumber}" already exists, skipped (Create Only mode)`,
+                  warning: `الغرفة "${rawRoomNumber}" موجودة مسبقاً - تم تخطيها (وضع الإنشاء فقط)`,
                 });
                 continue;
               }
 
-              // Update existing room
+              // Update existing room specifications
               await tenantDb
                 .update(roomsTable)
                 .set({
@@ -198,7 +246,7 @@ router.post(
                 })
                 .where(eq(roomsTable.id, existingRoom.id));
 
-              // Update physical beds if needed
+              // Update physical beds if capacity increased
               const existingBeds = await tenantDb
                 .select()
                 .from(roomBedsTable)
@@ -217,15 +265,16 @@ router.post(
 
               updatedRows++;
               processedRoomIds.push(existingRoom.id);
+              batchProcessedRooms.set(roomKey, existingRoom);
             } else {
-              // New Room
+              // New Room Handling
               if (importMode === "update_only") {
-                // Skip
+                // Skip new rooms in Update Only mode
                 warnings.push({
                   rowNumber: rowNum,
                   column: "Room Number",
                   value: rawRoomNumber,
-                  warning: `Room "${rawRoomNumber}" does not exist, skipped (Update Only mode)`,
+                  warning: `الغرفة "${rawRoomNumber}" غير مسجلة مسبقاً - تم تجاهلها (وضع التحديث فقط)`,
                 });
                 continue;
               }
@@ -265,6 +314,9 @@ router.post(
 
               createdRows++;
               processedRoomIds.push(newRoom.id);
+              existingRoomByBuildingMap.set(roomKey, newRoom);
+              existingRoomByNumberMap.set(normRoomNumber, newRoom);
+              batchProcessedRooms.set(roomKey, newRoom);
             }
           } catch (rowErr: any) {
             failedRows++;

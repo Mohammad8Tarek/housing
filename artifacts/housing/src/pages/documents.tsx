@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate as formatSystemDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatedConfirmModal } from "@/components/shared/AnimatedConfirmModal";
@@ -31,8 +32,13 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Trash2, FileText } from "lucide-react";
+import { Upload, Trash2, FileText, Eye, Download } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
+import {
+  DocumentPreviewModal,
+  downloadDocument,
+  type PreviewableDocument,
+} from "@/components/ui/document-preview-modal";
 
 const CATEGORIES = [
   { value: "policy", label: "Policy", labelAr: "سياسة" },
@@ -63,6 +69,7 @@ export default function Documents() {
   const [file, setFile] = useState<File | null>(null);
   const [fileData, setFileData] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<PreviewableDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
@@ -157,12 +164,7 @@ export default function Documents() {
   };
 
   const formatDate = (dateStr: string) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString(ar ? "ar-AE" : "en-GB", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatSystemDate(dateStr);
   };
 
   const getFileExt = (name: string) =>
@@ -267,16 +269,51 @@ export default function Documents() {
                       {formatDate(doc.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <PermissionGate module="documents" action="delete">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(doc.id, doc.titleAr)}
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          title={ar ? "معاينة المستند" : "Preview document"}
+                          onClick={() =>
+                            setPreviewDoc({
+                              fileName: doc.fileName,
+                              fileType: doc.fileType,
+                              fileData: doc.fileData,
+                              title: ar ? doc.titleAr : (doc.titleEn || doc.titleAr),
+                            })
+                          }
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </Button>
-                      </PermissionGate>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          title={ar ? "تحميل المستند" : "Download document"}
+                          onClick={() =>
+                            downloadDocument({
+                              fileName: doc.fileName,
+                              fileType: doc.fileType,
+                              fileData: doc.fileData,
+                              title: ar ? doc.titleAr : (doc.titleEn || doc.titleAr),
+                            })
+                          }
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <PermissionGate module="documents" action="delete">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            title={ar ? "حذف المستند" : "Delete document"}
+                            onClick={() => handleDelete(doc.id, doc.titleAr)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </PermissionGate>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -415,7 +452,7 @@ export default function Documents() {
         onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
         title={
           ar
-            ? `حذ�? "${deleteDialog.title}"؟`
+            ? `حذف "${deleteDialog.title}"؟`
             : `Delete "${deleteDialog.title}"?`
         }
         description={
@@ -425,6 +462,12 @@ export default function Documents() {
         }
         variant="destructive"
         onConfirm={performDelete}
+      />
+
+      <DocumentPreviewModal
+        doc={previewDoc}
+        isOpen={!!previewDoc}
+        onClose={() => setPreviewDoc(null)}
       />
     </div>
   );

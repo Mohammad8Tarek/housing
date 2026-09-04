@@ -59,16 +59,20 @@ router.post(
       return;
     }
 
-    // ── Prevent duplicate floor number in same property ─────────────────
+    // ── Prevent duplicate floor number in same building ─────────────────
     const existingFloor = await withTenant(propertyId, async (tenantDb) => {
+      const conditions = [eq(floorsTable.floorNumber, parsed.data.floorNumber)];
+      if (parsed.data.buildingId) {
+        conditions.push(eq(floorsTable.buildingId, parsed.data.buildingId));
+      }
       return await tenantDb
         .select({ id: floorsTable.id })
         .from(floorsTable)
-        .where(eq(floorsTable.floorNumber, parsed.data.floorNumber));
+        .where(and(...conditions));
     });
     if (existingFloor.length > 0) {
       res.status(409).json({
-        error: `Floor ${parsed.data.floorNumber} already exists in this property`,
+        error: `Floor ${parsed.data.floorNumber} already exists in this building`,
         code: "FLOOR_DUPLICATE",
       });
       return;
@@ -122,16 +126,29 @@ router.patch(
 
     // ── Prevent duplicate floor number on update ──────────────────────────
     if (parsed.data.floorNumber) {
+      const currentFloor = await withTenant(propertyId, async (tenantDb) => {
+        const [f] = await tenantDb
+          .select()
+          .from(floorsTable)
+          .where(eq(floorsTable.id, params.data.id))
+          .limit(1);
+        return f;
+      });
+      const targetBuildingId = (parsed.data as any).buildingId || currentFloor?.buildingId;
       const existingFloor = await withTenant(propertyId, async (tenantDb) => {
+        const conditions = [eq(floorsTable.floorNumber, parsed.data.floorNumber!)];
+        if (targetBuildingId) {
+          conditions.push(eq(floorsTable.buildingId, targetBuildingId));
+        }
         return await tenantDb
           .select({ id: floorsTable.id })
           .from(floorsTable)
-          .where(eq(floorsTable.floorNumber, parsed.data.floorNumber!));
+          .where(and(...conditions));
       });
       const conflict = existingFloor.find((f) => f.id !== params.data.id);
       if (conflict) {
         res.status(409).json({
-          error: `Floor ${parsed.data.floorNumber} already exists in this property`,
+          error: `Floor ${parsed.data.floorNumber} already exists in this building`,
           code: "FLOOR_DUPLICATE",
         });
         return;

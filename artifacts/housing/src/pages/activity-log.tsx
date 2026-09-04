@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatDate, formatDateTime } from "@/lib/date-utils";
 import {
   Activity,
   Download,
@@ -401,7 +403,7 @@ export default function ActivityLog() {
       .map(
         (l) => `
       <tr>
-        <td>${escapeHtml(l.createdAt ? format(new Date(l.createdAt), "yyyy-MM-dd HH:mm") : "-")}</td>
+        <td>${escapeHtml(formatDateTime(l.createdAt, "-"))}</td>
         <td>${escapeHtml(prettyKeyAction(l.action, ar))}</td>
         <td>${escapeHtml(l.roomNumber || "-")}</td>
         <td>${escapeHtml(l.cardNumber || "-")}</td>
@@ -435,7 +437,7 @@ export default function ActivityLog() {
         <body>
           <h1>${ar ? "تقرير سجل المفاتيح" : "Key Audit Report"}</h1>
           <div class="meta">
-            ${ar ? "تاريخ الطباعة" : "Printed at"}: ${escapeHtml(format(new Date(), "yyyy-MM-dd HH:mm"))}
+            ${ar ? "تاريخ الطباعة" : "Printed at"}: ${escapeHtml(formatDateTime(new Date()))}
             &nbsp; | &nbsp;
             ${ar ? "عدد السجلات" : "Records"}: ${filteredKeyLogs.length}
           </div>
@@ -698,9 +700,7 @@ export default function ActivityLog() {
                       {isVisible("datetime") && (
                         <TableCell className="text-xs font-mono whitespace-nowrap">
                           <div className="font-medium text-foreground">
-                            {log.timestamp
-                              ? format(new Date(log.timestamp), "MMM d, yyyy")
-                              : "-"}
+                            {formatDate(log.timestamp, "-")}
                           </div>
                           <div className="text-muted-foreground">
                             {log.timestamp
@@ -855,7 +855,7 @@ export default function ActivityLog() {
                                 )}
                               </div>
                               <span className="text-xs text-muted-foreground font-mono">
-                                {selectedLog.timestamp ? format(new Date(selectedLog.timestamp), "yyyy-MM-dd HH:mm:ss") : "-"}
+                                {formatDateTime(selectedLog.timestamp, "-")}
                               </span>
                             </div>
                             <DialogTitle className="text-lg font-bold mt-2">
@@ -1007,23 +1007,21 @@ export default function ActivityLog() {
                 ))}
               </SelectContent>
             </Select>
-            <Input
-              type="date"
+            <DateInput
               value={keyDateFrom}
-              onChange={(e) => {
-                setKeyDateFrom(e.target.value);
+              onChange={(iso) => {
+                setKeyDateFrom(iso);
                 setKeyCurrentPage(1);
               }}
-              className="w-40"
+              className="w-44"
             />
-            <Input
-              type="date"
+            <DateInput
               value={keyDateTo}
-              onChange={(e) => {
-                setKeyDateTo(e.target.value);
+              onChange={(iso) => {
+                setKeyDateTo(iso);
                 setKeyCurrentPage(1);
               }}
-              className="w-40"
+              className="w-44"
             />
           </div>
 
@@ -1078,9 +1076,7 @@ export default function ActivityLog() {
                     <TableRow key={log.id} className="hover:bg-muted/20">
                       <TableCell className="text-xs font-mono whitespace-nowrap">
                         <div className="font-medium text-foreground">
-                          {log.createdAt
-                            ? format(new Date(log.createdAt), "MMM d, yyyy")
-                            : "-"}
+                          {formatDate(log.createdAt, "-")}
                         </div>
                         <div className="text-muted-foreground">
                           {log.createdAt

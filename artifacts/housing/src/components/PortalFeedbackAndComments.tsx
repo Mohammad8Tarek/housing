@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate } from "@/lib/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import {
@@ -278,7 +279,7 @@ export default function PortalFeedbackAndComments() {
                           {comment.username}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(comment.createdAt).toLocaleDateString()}
+                          {formatDate(comment.createdAt)}
                         </p>
                       </div>
                     </div>

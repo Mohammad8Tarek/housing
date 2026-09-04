@@ -177,7 +177,7 @@ router.post(
     try {
       await pool.query(
         `
-      INSERT INTO "${schemaName}".settings (company_name, primary_color, default_language)
+      INSERT INTO "${schemaName}".settings (system_name, primary_color, default_language)
       VALUES ($1, $2, $3)
     `,
         [property.name, property.primaryColor, property.defaultLanguage],

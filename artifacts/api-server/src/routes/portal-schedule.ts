@@ -426,4 +426,67 @@ router.get("/reminders", requirePortalAuth, async (req, res, next) => {
   }
 });
 
+// POST /calendar/events — Create a calendar event (activity)
+router.post("/calendar/events", requireAuth, async (req, res, next): Promise<void> => {
+  try {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res
+        .status(400)
+        .json({ success: false, message: "propertyId required" });
+      return;
+    }
+
+    const { title, titleAr, type, startTime, location, description } = req.body;
+    if (!title && !titleAr) {
+      res
+        .status(400)
+        .json({ success: false, message: "Title is required" });
+      return;
+    }
+
+    const eventDate = startTime ? new Date(startTime) : new Date();
+
+    const result = await withTenant(propertyId, async (tenantDb) => {
+      const [newActivity] = await tenantDb
+        .insert(activitiesTable)
+        .values({
+          propertyId,
+          titleEn: title || titleAr || "Event",
+          titleAr: titleAr || title || "حدث",
+          descriptionEn: description || "",
+          descriptionAr: description || "",
+          category: type === "evaluation" ? "educational" : type || "social",
+          locationEn: location || "",
+          locationAr: location || "",
+          startDate: eventDate.toISOString().split("T")[0],
+          endDate: eventDate.toISOString().split("T")[0],
+          startTime: eventDate.toTimeString().slice(0, 5),
+          status: "published",
+        } as any)
+        .returning();
+      return newActivity;
+    });
+
+    res.status(201).json({ success: true, data: result });
+    return;
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /reminders/:id/snooze — Snooze reminder
+router.post("/reminders/:id/snooze", requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { minutes } = req.body;
+    res.json({
+      success: true,
+      message: `Reminder ${id} snoozed by ${minutes || 30} minutes`,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

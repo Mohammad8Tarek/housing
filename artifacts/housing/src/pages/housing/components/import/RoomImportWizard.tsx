@@ -1,6 +1,7 @@
 // @ts-nocheck
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
+import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLocation } from "wouter";
@@ -41,6 +42,8 @@ import {
   Save,
   Search,
   Filter,
+  RotateCcw,
+  Pencil,
 } from "lucide-react";
 import {
   SYSTEM_FIELDS,
@@ -115,11 +118,39 @@ export function RoomImportWizard({
   const [executionPhase, setExecutionPhase] = useState("");
   const [importResult, setImportResult] = useState<any>(null);
 
-  // Filter buildings for selected property
+  // Complete Existing Rooms & Buildings Fetching
+  const [fetchedExistingRooms, setFetchedExistingRooms] = useState<any[]>([]);
+  const [fetchedBuildings, setFetchedBuildings] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!open || !selectedPropertyId) return;
+    const fetchFullPropertyData = async () => {
+      try {
+        const [rRes, bRes] = await Promise.all([
+          fetch(`/api/rooms?propertyId=${selectedPropertyId}&limit=1000`).then((r) => r.ok ? r.json() : null),
+          fetch(`/api/buildings?propertyId=${selectedPropertyId}&limit=100`).then((r) => r.ok ? r.json() : null),
+        ]);
+        if (rRes?.data) setFetchedExistingRooms(rRes.data);
+        if (bRes?.data) setFetchedBuildings(bRes.data);
+      } catch (err) {
+        console.error("Failed to prefetch existing property rooms/buildings:", err);
+      }
+    };
+    fetchFullPropertyData();
+  }, [open, selectedPropertyId]);
+
+  const allAvailableBuildings = useMemo(() => {
+    return fetchedBuildings.length > 0 ? fetchedBuildings : buildings;
+  }, [fetchedBuildings, buildings]);
+
   const propertyBuildings = useMemo(() => {
     if (!selectedPropertyId) return [];
-    return buildings.filter((b) => !b.propertyId || String(b.propertyId) === selectedPropertyId);
-  }, [buildings, selectedPropertyId]);
+    return allAvailableBuildings.filter((b) => !b.propertyId || String(b.propertyId) === selectedPropertyId);
+  }, [allAvailableBuildings, selectedPropertyId]);
+
+  const allExistingRooms = useMemo(() => {
+    return fetchedExistingRooms.length > 0 ? fetchedExistingRooms : existingRooms;
+  }, [fetchedExistingRooms, existingRooms]);
 
   // Handle File Selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -240,9 +271,9 @@ export function RoomImportWizard({
     return validateAndNormalizeRows({
       rows: rawRows,
       columnMapping,
-      existingRooms,
+      existingRooms: allExistingRooms,
     });
-  }, [rawRows, columnMapping, existingRooms]);
+  }, [rawRows, columnMapping, allExistingRooms]);
 
   // Filtered Preview Rows
   const previewRows = useMemo(() => {
@@ -353,7 +384,7 @@ export function RoomImportWizard({
     const ws = XLSX.utils.json_to_sheet(errorRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Import_Errors");
-    XLSX.writeFile(wb, `Room_Import_Errors_${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.writeFile(wb, getExportFileName("Room_Import_Errors", "xlsx"));
   };
 
   // Reset Wizard
@@ -444,7 +475,7 @@ export function RoomImportWizard({
                     <SelectContent>
                       {properties.map((p) => (
                         <SelectItem key={p.id} value={String(p.id)} className="font-semibold">
-                          🏢 {p.name}
+                          {p.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -461,11 +492,11 @@ export function RoomImportWizard({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">
-                        ✨ {ar ? "تحديد تلقائي (أو إنشاء مبنى رئيسي)" : "Auto detect / Create Main"}
+                        {ar ? "تحديد تلقائي (أو إنشاء مبنى رئيسي)" : "Auto detect / Create Main"}
                       </SelectItem>
                       {propertyBuildings.map((b) => (
                         <SelectItem key={b.id} value={String(b.id)}>
-                          🏢 {b.name}
+                          {b.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -569,7 +600,7 @@ export function RoomImportWizard({
                     <SelectContent>
                       {sheetNames.map((s) => (
                         <SelectItem key={s} value={s}>
-                          📑 {s}
+                          {s}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -691,7 +722,7 @@ export function RoomImportWizard({
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="ignore" className="text-muted-foreground font-normal">
-                                  ❌ {ar ? "(تجاهل هذا العمود)" : "(Ignore Column)"}
+                                  {ar ? "تجاهل هذا العمود" : "Ignore Column"}
                                 </SelectItem>
                                 {SYSTEM_FIELDS.map((field) => (
                                   <SelectItem key={field.key} value={field.key} className="font-semibold">
@@ -716,7 +747,7 @@ export function RoomImportWizard({
             <div className="space-y-6 animate-in fade-in">
               <div className="p-4 rounded-xl border bg-muted/30">
                 <h4 className="font-bold text-sm text-foreground">
-                  {ar ? "حدد كيفية التعامل مع الغرف المسجلة مسبقاً (Import Mode)" : "Choose Duplicate Room Handling Mode"}
+                  {ar ? "حدد كيفية التعامل مع الغرف المسجلة مسبقاً" : "Choose Duplicate Room Handling Mode"}
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {ar
@@ -737,7 +768,8 @@ export function RoomImportWizard({
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-foreground flex items-center gap-1.5">
-                      🔄 {ar ? "إنشاء وتحديث (موصى به)" : "Create + Update (Recommended)"}
+                      <RotateCcw className="w-4 h-4 text-primary" />
+                      {ar ? "إنشاء وتحديث (موصى به)" : "Create + Update (Recommended)"}
                     </span>
                     {importMode === "create_update" && <CheckCircle2 className="w-5 h-5 text-primary" />}
                   </div>
@@ -781,7 +813,8 @@ export function RoomImportWizard({
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-foreground flex items-center gap-1.5">
-                      ✏️ {ar ? "تحديث الموجود فقط" : "Update Only"}
+                      <Pencil className="w-4 h-4 text-primary" />
+                      {ar ? "تحديث الموجود فقط" : "Update Only"}
                     </span>
                     {importMode === "update_only" && <CheckCircle2 className="w-5 h-5 text-primary" />}
                   </div>
@@ -803,7 +836,8 @@ export function RoomImportWizard({
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-foreground flex items-center gap-1.5">
-                      ⚠️ {ar ? "مزامنة كاملة واستبدال" : "Replace Configuration"}
+                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                      {ar ? "مزامنة كاملة واستبدال" : "Replace Configuration"}
                     </span>
                     {importMode === "replace" && <CheckCircle2 className="w-5 h-5 text-primary" />}
                   </div>
@@ -827,19 +861,19 @@ export function RoomImportWizard({
                   <p className="text-xl font-black text-foreground">{validationResult.totalRows}</p>
                 </div>
                 <div className="p-3 rounded-xl border bg-emerald-500/10 border-emerald-500/20 text-center">
-                  <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold">{ar ? "صفوف سليمة ✅" : "Valid"}</span>
+                  <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold">{ar ? "صفوف سليمة" : "Valid"}</span>
                   <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{validationResult.validRows}</p>
                 </div>
                 <div className="p-3 rounded-xl border bg-red-500/10 border-red-500/20 text-center">
-                  <span className="text-[11px] text-red-800 dark:text-red-300 font-bold">{ar ? "بها أخطاء ❌" : "Invalid"}</span>
+                  <span className="text-[11px] text-red-800 dark:text-red-300 font-bold">{ar ? "بها أخطاء" : "Invalid"}</span>
                   <p className="text-xl font-black text-red-600 dark:text-red-400">{validationResult.invalidRows}</p>
                 </div>
                 <div className="p-3 rounded-xl border bg-blue-500/10 border-blue-500/20 text-center">
-                  <span className="text-[11px] text-blue-800 dark:text-blue-300 font-bold">{ar ? "غرف جديدة 🆕" : "New"}</span>
+                  <span className="text-[11px] text-blue-800 dark:text-blue-300 font-bold">{ar ? "غرف جديدة" : "New"}</span>
                   <p className="text-xl font-black text-blue-600 dark:text-blue-400">{validationResult.newRoomsCount}</p>
                 </div>
                 <div className="p-3 rounded-xl border bg-amber-500/10 border-amber-500/20 text-center col-span-2 sm:col-span-1">
-                  <span className="text-[11px] text-amber-800 dark:text-amber-300 font-bold">{ar ? "مسجلة مسبقاً 🔄" : "Existing"}</span>
+                  <span className="text-[11px] text-amber-800 dark:text-amber-300 font-bold">{ar ? "مسجلة مسبقاً" : "Existing"}</span>
                   <p className="text-xl font-black text-amber-600 dark:text-amber-400">{validationResult.existingRoomsCount}</p>
                 </div>
               </div>
@@ -940,17 +974,17 @@ export function RoomImportWizard({
                                       key={idx}
                                       className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
                                     >
-                                      ❌ {ar ? e.errorAr : e.errorEn}
+                                      {ar ? e.errorAr : e.errorEn}
                                     </span>
                                   ))}
                                 </div>
                               ) : row.isExisting ? (
                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                                  🔄 {ar ? "موجودة (سيتم تحديثها)" : "Existing (Update)"}
+                                  {ar ? "موجودة (سيتم التحديث)" : "Existing (Update)"}
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
-                                  ✅ {ar ? "جاهزة للإنشاء" : "Ready"}
+                                  {ar ? "جاهزة للإنشاء" : "Ready"}
                                 </span>
                               )}
                             </td>

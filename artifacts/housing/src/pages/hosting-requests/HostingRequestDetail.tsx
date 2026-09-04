@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate } from "@/lib/date-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -442,10 +443,7 @@ export default function HostingRequestDetail() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
             <span>{ar ? "تاريخ الإنشاء" : "Created Date"}:</span>
             <span className="text-foreground">
-              {new Date(request.createdAt).toLocaleDateString(
-                ar ? "ar-EG" : "en-US",
-                { year: "numeric", month: "long", day: "numeric" },
-              )}
+              {formatDate(request.createdAt)}
             </span>
             <span className="text-foreground/50 mx-1">•</span>
             <span>{ar ? "المُنشئ" : "Creator"}:</span>
@@ -612,9 +610,7 @@ export default function HostingRequestDetail() {
                       {ar ? "تاريخ الوصول" : "Check-in Date"}
                     </span>
                     <p className="font-bold text-xl">
-                      {request.fromDate
-                        ? new Date(request.fromDate).toLocaleDateString(ar ? "ar-EG" : "en-US", { day: "numeric", month: "short", year: "numeric" })
-                        : "N/A"}
+                      {formatDate(request.fromDate, "N/A")}
                     </p>
                   </div>
                   <div className="relative">
@@ -622,9 +618,7 @@ export default function HostingRequestDetail() {
                       {ar ? "تاريخ المغادرة" : "Check-out Date"}
                     </span>
                     <p className="font-bold text-xl">
-                      {request.toDate
-                        ? new Date(request.toDate).toLocaleDateString(ar ? "ar-EG" : "en-US", { day: "numeric", month: "short", year: "numeric" })
-                        : "N/A"}
+                      {formatDate(request.toDate, "N/A")}
                     </p>
                   </div>
                   <div className="relative">
@@ -737,10 +731,10 @@ export default function HostingRequestDetail() {
                             {h.requestNumber}
                           </TableCell>
                           <TableCell>
-                            {new Date(h.fromDate).toLocaleDateString()}
+                            {formatDate(h.fromDate)}
                           </TableCell>
                           <TableCell>
-                            {new Date(h.toDate).toLocaleDateString()}
+                            {formatDate(h.toDate)}
                           </TableCell>
                           <TableCell>{h.consumedDays}</TableCell>
                           <TableCell>
@@ -828,7 +822,7 @@ export default function HostingRequestDetail() {
                         {ar ? "من" : "From"}
                       </span>
                       <p className="font-bold">
-                        {new Date(guestHosting.expectedFrom).toLocaleDateString()}
+                        {formatDate(guestHosting.expectedFrom)}
                       </p>
                     </div>
                     <div>
@@ -836,7 +830,7 @@ export default function HostingRequestDetail() {
                         {ar ? "إلى" : "To"}
                       </span>
                       <p className="font-bold">
-                        {new Date(guestHosting.expectedTo).toLocaleDateString()}
+                        {formatDate(guestHosting.expectedTo)}
                       </p>
                     </div>
                   </div>

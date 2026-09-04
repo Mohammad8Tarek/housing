@@ -10,13 +10,13 @@ export type FloorConfig = {
 export const statusNorm = (s: string) => s?.toLowerCase().trim() || "";
 
 export const ROOM_STATUS_OPTIONS = [
-  { value: "available", labelAr: "شاغرة (فيكنت)", labelEn: "Vacant (Clean)", shortAr: "شاغرة", color: "emerald", dot: "bg-emerald-500" },
-  { value: "dirty", labelAr: "تحتاج تنظيف (ديرتي)", labelEn: "Dirty (Vacant)", shortAr: "تحتاج تنظيف", color: "orange", dot: "bg-orange-500" },
-  { value: "occupied", labelAr: "مشغولة (اكوبايد)", labelEn: "Occupied (Clean)", shortAr: "مشغولة", color: "blue", dot: "bg-blue-500" },
-  { value: "occupied_dirty", labelAr: "مشغولة تحتاج تنظيف (ديرتي اكوبايد)", labelEn: "Occupied Dirty", shortAr: "مشغولة تحتاج تنظيف", color: "purple", dot: "bg-purple-500" },
-  { value: "occupied_vacation", labelAr: "مشغولة - إجازة (اكوبايد فيكيشن)", labelEn: "Occupied (Vacation)", shortAr: "مشغولة - إجازة", color: "amber", dot: "bg-amber-500" },
-  { value: "out_of_service", labelAr: "صيانة مؤقتة (اوت اوف سيرفيس)", labelEn: "Out of Service", shortAr: "صيانة مؤقتة", color: "slate", dot: "bg-slate-500" },
-  { value: "out_of_order", labelAr: "خارج الخدمة (اوت اوف اوردر)", labelEn: "Out of Order", shortAr: "خارج الخدمة", color: "red", dot: "bg-red-500" },
+  { value: "available", labelAr: "شاغرة (جاهزة)", labelEn: "Vacant Clean", shortAr: "شاغرة", color: "emerald", dot: "bg-emerald-500" },
+  { value: "dirty", labelAr: "تحتاج تنظيف", labelEn: "Vacant Dirty", shortAr: "تحتاج تنظيف", color: "orange", dot: "bg-orange-500" },
+  { value: "occupied", labelAr: "مشغولة", labelEn: "Occupied Clean", shortAr: "مشغولة", color: "blue", dot: "bg-blue-500" },
+  { value: "occupied_dirty", labelAr: "مشغولة تحتاج تنظيف", labelEn: "Occupied Dirty", shortAr: "مشغولة متسخة", color: "purple", dot: "bg-purple-500" },
+  { value: "occupied_vacation", labelAr: "مشغولة - إجازة", labelEn: "Occupied (Vacation)", shortAr: "مشغولة - إجازة", color: "amber", dot: "bg-amber-500" },
+  { value: "out_of_service", labelAr: "صيانة مؤقتة", labelEn: "Out of Service", shortAr: "صيانة مؤقتة", color: "slate", dot: "bg-slate-500" },
+  { value: "out_of_order", labelAr: "خارج الخدمة", labelEn: "Out of Order", shortAr: "خارج الخدمة", color: "red", dot: "bg-red-500" },
 ] as const;
 
 export const getRoomStatusLabel = (status: string, ar = true): string => {
@@ -38,10 +38,10 @@ export const getRoomStatusLabel = (status: string, ar = true): string => {
     case "out_of_service":
     case "maintenance":
     case "oos":
-      return ar ? "صيانة (OOS)" : "OOS";
+      return ar ? "صيانة مؤقتة" : "Out of Service";
     case "out_of_order":
     case "ooo":
-      return ar ? "خارج الخدمة (OOO)" : "OOO";
+      return ar ? "خارج الخدمة" : "Out of Order";
     case "reserved":
       return ar ? "محجوزة" : "Reserved";
     default:

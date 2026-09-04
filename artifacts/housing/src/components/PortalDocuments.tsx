@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatDate as formatSystemDate } from "@/lib/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -176,12 +177,7 @@ export default function PortalDocuments() {
   };
 
   const formatDate = (dateStr: string) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString(ar ? "ar-AE" : "en-GB", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatSystemDate(dateStr);
   };
 
   const getFileExt = (name: string) =>

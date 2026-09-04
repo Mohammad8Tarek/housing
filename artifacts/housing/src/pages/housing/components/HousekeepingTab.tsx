@@ -2,6 +2,10 @@ import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import { getExportFileName } from "@/lib/date-utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import {
   Brush,
   CheckCircle2,
@@ -13,10 +17,12 @@ import {
   Search,
   Wrench,
   Loader2,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import {
   Select,
   SelectContent,
@@ -96,6 +102,22 @@ export function HousekeepingTab({
   }, [floors, buildingFilter]);
 
   // Stats calculations
+  const totalRoomsCount = rooms.length;
+
+  const cleanAvailableCount = useMemo(() => {
+    return rooms.filter((r) => {
+      const s = (r.status || "").toLowerCase().trim();
+      return s === "available" || s === "clean" || s === "vacant";
+    }).length;
+  }, [rooms]);
+
+  const occupiedCleanCount = useMemo(() => {
+    return rooms.filter((r) => {
+      const s = (r.status || "").toLowerCase().trim();
+      return s === "occupied" || s === "occupied_clean";
+    }).length;
+  }, [rooms]);
+
   const dirtyCount = useMemo(() => {
     return rooms.filter((r) => {
       const s = (r.status || "").toLowerCase().trim();
@@ -110,12 +132,12 @@ export function HousekeepingTab({
     }).length;
   }, [rooms]);
 
-  const cleanedTodayCount = 0; // Static 0 as specified
+  const needsCleaningTotalCount = dirtyCount + occupiedDirtyCount;
 
   const oosCount = useMemo(() => {
     return rooms.filter((r) => {
       const s = (r.status || "").toLowerCase().trim();
-      return s === "out_of_service" || s === "oos" || s === "maintenance";
+      return s === "out_of_service" || s === "oos" || s === "maintenance" || s === "out_of_order";
     }).length;
   }, [rooms]);
 
@@ -125,17 +147,19 @@ export function HousekeepingTab({
       const s = (r.status || "").toLowerCase().trim();
 
       // Status filter
-      if (statusFilter === "dirty") {
+      if (statusFilter === "clean") {
+        if (s !== "available" && s !== "clean" && s !== "vacant") return false;
+      } else if (statusFilter === "occupied") {
+        if (s !== "occupied" && s !== "occupied_clean") return false;
+      } else if (statusFilter === "needs_cleaning") {
+        if (s !== "dirty" && s !== "vacant_dirty" && s !== "occupied_dirty") return false;
+      } else if (statusFilter === "dirty") {
         if (s !== "dirty" && s !== "vacant_dirty") return false;
       } else if (statusFilter === "occupied_dirty") {
         if (s !== "occupied_dirty") return false;
       } else if (statusFilter === "out_of_service") {
         if (s !== "out_of_service" && s !== "oos" && s !== "maintenance" && s !== "out_of_order")
           return false;
-      } else if (statusFilter === "clean") {
-        if (s !== "available" && s !== "clean") return false;
-      } else if (statusFilter === "occupied") {
-        if (s !== "occupied") return false;
       }
 
       // Building filter
@@ -170,15 +194,137 @@ export function HousekeepingTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
-  // Reset page when filters change
+  // Bulk actions state
+  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
+
+  // Reset page & selection when filters change
   useMemo(() => {
     setCurrentPage(1);
+    setSelectedRoomIds(new Set());
   }, [filteredRooms]);
 
   const paginatedRooms = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredRooms.slice(start, start + pageSize);
   }, [filteredRooms, currentPage, pageSize]);
+
+  const toggleSelectRoom = (id: number) => {
+    setSelectedRoomIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allPageSelected =
+    paginatedRooms.length > 0 &&
+    paginatedRooms.every((r) => selectedRoomIds.has(r.id));
+
+  const toggleSelectPage = () => {
+    if (allPageSelected) {
+      setSelectedRoomIds((prev) => {
+        const next = new Set(prev);
+        paginatedRooms.forEach((r) => next.delete(r.id));
+        return next;
+      });
+    } else {
+      setSelectedRoomIds((prev) => {
+        const next = new Set(prev);
+        paginatedRooms.forEach((r) => next.add(r.id));
+        return next;
+      });
+    }
+  };
+
+  const refreshHousekeepingData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["rooms"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance"] }),
+      queryClient.invalidateQueries(),
+    ]);
+  };
+
+  const handleBulkClean = async () => {
+    if (selectedRoomIds.size === 0) return;
+    setIsBulkLoading(true);
+    const targetRooms = rooms.filter((r) => selectedRoomIds.has(r.id));
+    try {
+      await Promise.all(
+        targetRooms.map((r) => {
+          const norm = (r.status || "").toLowerCase().trim();
+          const nextStatus = norm === "occupied_dirty" ? "occupied" : "available";
+          return fetch(`/api/rooms/${r.id}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ propertyId, status: nextStatus }),
+          });
+        })
+      );
+      toast.success(
+        ar
+          ? `تم تنظيف وتحديث ${targetRooms.length} غرف بنجاح`
+          : `Successfully marked ${targetRooms.length} rooms as clean`
+      );
+      setSelectedRoomIds(new Set());
+      await refreshHousekeepingData();
+    } catch (err: any) {
+      toast.error(ar ? "حدث خطأ أثناء التنظيف الجماعي" : "Bulk clean failed");
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
+  const handleBulkDirty = async () => {
+    if (selectedRoomIds.size === 0) return;
+    setIsBulkLoading(true);
+    const targetRooms = rooms.filter((r) => selectedRoomIds.has(r.id));
+    try {
+      await Promise.all(
+        targetRooms.map((r) =>
+          fetch(`/api/rooms/${r.id}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ propertyId, status: "dirty" }),
+          })
+        )
+      );
+      toast.success(
+        ar
+          ? `تم تحديد ${targetRooms.length} غرف كغير نظيفة`
+          : `Marked ${targetRooms.length} rooms as dirty`
+      );
+      setSelectedRoomIds(new Set());
+      await refreshHousekeepingData();
+    } catch (err: any) {
+      toast.error(ar ? "حدث خطأ أثناء التحديث الجماعي" : "Bulk update failed");
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
+  const handleBulkExportExcel = () => {
+    const target =
+      selectedRoomIds.size > 0
+        ? rooms.filter((r) => selectedRoomIds.has(r.id))
+        : filteredRooms;
+    const rows = target.map((r) => ({
+      [ar ? "رقم الغرفة" : "Room Number"]: r.roomNumber,
+      [ar ? "المبنى" : "Building"]:
+        buildingMap.get(Number(r.buildingId)) || r.buildingId || "",
+      [ar ? "الطابق" : "Floor"]:
+        floorMap.get(Number(r.floorId)) || r.floorId || "",
+      [ar ? "نوع الغرفة" : "Room Type"]: r.roomType || "",
+      [ar ? "السعة" : "Capacity"]: r.capacity || 1,
+      [ar ? "الحالة" : "Status"]: getStatusBadge((r.status || "").toLowerCase().trim()).label,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Housekeeping");
+    XLSX.writeFile(wb, getExportFileName("Housekeeping_Rooms", "xlsx"));
+  };
 
   // Quick Action Handler
   const handleUpdateStatus = async (room: any, newStatus: string) => {
@@ -197,7 +343,7 @@ export function HousekeepingTab({
         );
       }
 
-      await queryClient.invalidateQueries();
+      await refreshHousekeepingData();
 
       if (newStatus === "available") {
         toast.success(
@@ -269,8 +415,7 @@ export function HousekeepingTab({
       setOosStartDate("");
       setOosEndDate("");
       
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms", propertyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/maintenance", propertyId] });
+      await refreshHousekeepingData();
       toast.success(ar ? "تم إغلاق الغرفة وإنشاء التذكرة" : "Room closed and ticket created");
     } catch (err: any) {
       toast.error(err.message || "Error");
@@ -318,67 +463,120 @@ export function HousekeepingTab({
 
   return (
     <div className="space-y-6">
-      {/* ── 1. STATS ROW (4 CARDS) ── */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        {/* 🟠 Dirty rooms */}
-        <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm border-orange-200/80 dark:border-orange-900/40 bg-gradient-to-br from-orange-50/40 to-background dark:from-orange-950/10">
+      {/* ── 1. STATS ROW (5 INTERACTIVE CARDS) ── */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        {/* 🏢 Total Rooms */}
+        <div
+          onClick={() => setStatusFilter("all")}
+          className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md ${
+            statusFilter === "all"
+              ? "ring-2 ring-primary border-primary bg-primary/5"
+              : "border-border hover:border-primary/40"
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">
-              {ar ? "غرف غير نظيفة (شاغرة)" : "Dirty (Vacant)"}
+            <span className="text-xs font-semibold text-foreground/80">
+              {ar ? "إجمالي الغرف" : "Total Rooms"}
             </span>
-            <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400">
-              <Brush className="w-4 h-4" />
+            <div className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+              <Building2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-orange-600 dark:text-orange-400">
-            {dirtyCount}
+          <div className="text-2xl font-black text-foreground">
+            {totalRoomsCount}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            {ar ? "شاغرة تحتاج تنظيف وتجهيز" : "Vacant rooms needing cleaning"}
+            {ar ? "جميع غرف السكن المسجلة" : "All registered rooms"}
           </p>
         </div>
 
-        {/* 🟣 Occupied Dirty rooms */}
-        <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm border-purple-200/80 dark:border-purple-900/40 bg-gradient-to-br from-purple-50/40 to-background dark:from-purple-950/10">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">
-              {ar ? "مشغولة تحتاج تنظيف" : "Occupied Dirty"}
-            </span>
-            <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-            {occupiedDirtyCount}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {ar ? "نزلاء بحاجة لخدمة الغرف" : "Occupied needing housekeeping"}
-          </p>
-        </div>
-
-        {/* 🟢 Cleaned today */}
-        <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm border-emerald-200/80 dark:border-emerald-900/40 bg-gradient-to-br from-emerald-50/40 to-background dark:from-emerald-950/10">
+        {/* 🟢 Clean & Ready */}
+        <div
+          onClick={() => setStatusFilter("clean")}
+          className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-emerald-200/80 dark:border-emerald-900/40 bg-gradient-to-br from-emerald-50/40 to-background dark:from-emerald-950/10 ${
+            statusFilter === "clean"
+              ? "ring-2 ring-emerald-500 border-emerald-500"
+              : "hover:border-emerald-400/60"
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-              {ar ? "تم تنظيفها اليوم" : "Cleaned Today"}
+              {ar ? "جاهزة ونظيفة" : "Clean & Ready"}
             </span>
             <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            {cleanedTodayCount}
+            {cleanAvailableCount}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            {ar ? "إجمالي الغرف المنجزة اليوم" : "Rooms cleaned today"}
+            {ar ? "شاغرة وجاهزة للتسكين فوراً" : "Vacant & ready for check-in"}
           </p>
         </div>
 
-        {/* ⚪ Out of Service */}
-        <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50/50 to-background dark:from-slate-900/20">
+        {/* 🔵 Occupied Clean */}
+        <div
+          onClick={() => setStatusFilter("occupied")}
+          className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-blue-200/80 dark:border-blue-900/40 bg-gradient-to-br from-blue-50/40 to-background dark:from-blue-950/10 ${
+            statusFilter === "occupied"
+              ? "ring-2 ring-blue-500 border-blue-500"
+              : "hover:border-blue-400/60"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+              {ar ? "مشغولة نظيفة" : "Occupied Clean"}
+            </span>
+            <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
+            {occupiedCleanCount}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {ar ? "غرف مسكونة بحالة نظيفة" : "Occupied in clean condition"}
+          </p>
+        </div>
+
+        {/* 🟠 Needs Cleaning (Dirty Vacant + Occupied Dirty) */}
+        <div
+          onClick={() => setStatusFilter("needs_cleaning")}
+          className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-orange-200/80 dark:border-orange-900/40 bg-gradient-to-br from-orange-50/40 to-background dark:from-orange-950/10 ${
+            statusFilter === "needs_cleaning" || statusFilter === "dirty" || statusFilter === "occupied_dirty"
+              ? "ring-2 ring-orange-500 border-orange-500"
+              : "hover:border-orange-400/60"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">
+              {ar ? "تحتاج تنظيف" : "Needs Cleaning"}
+            </span>
+            <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400">
+              <Brush className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-orange-600 dark:text-orange-400">
+            {needsCleaningTotalCount}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {dirtyCount} {ar ? "شاغرة" : "vacant"} • {occupiedDirtyCount} {ar ? "مشغولة" : "occupied"}
+          </p>
+        </div>
+
+        {/* ⚪ Out of Service / Order */}
+        <div
+          onClick={() => setStatusFilter("out_of_service")}
+          className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50/50 to-background dark:from-slate-900/20 ${
+            statusFilter === "out_of_service"
+              ? "ring-2 ring-slate-500 border-slate-500"
+              : "hover:border-slate-400/60"
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {ar ? "صيانة مؤقتة" : "Out of Service"}
+              {ar ? "خارج الخدمة / صيانة" : "Out of Service"}
             </span>
             <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <Wrench className="w-4 h-4" />
@@ -388,7 +586,7 @@ export function HousekeepingTab({
             {oosCount}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            {ar ? "غرف خارج الخدمة مؤقتاً" : "Rooms out of service"}
+            {ar ? "غرف بصيانة مؤقتة أو مغلقة" : "Rooms out of service or order"}
           </p>
         </div>
       </div>
@@ -459,19 +657,40 @@ export function HousekeepingTab({
                 {ar ? "الكل (جميع الغرف)" : "All Rooms"}
               </SelectItem>
               <SelectItem value="clean">
-                🟢 {ar ? "نظيفة/جاهزة" : "Clean/Available"}
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span>{ar ? "شاغرة نظيفة / جاهزة" : "Clean & Ready (Vacant)"}</span>
+                </div>
               </SelectItem>
               <SelectItem value="occupied">
-                🔵 {ar ? "مشغولة نظيفة" : "Occupied Clean"}
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                  <span>{ar ? "مشغولة نظيفة" : "Occupied Clean"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="needs_cleaning">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                  <span>{ar ? "تحتاج تنظيف (شامل)" : "Needs Cleaning (All)"}</span>
+                </div>
               </SelectItem>
               <SelectItem value="dirty">
-                🟠 {ar ? "تحتاج تنظيف" : "Dirty (Vacant)"}
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>{ar ? "شاغرة غير نظيفة" : "Dirty (Vacant)"}</span>
+                </div>
               </SelectItem>
               <SelectItem value="occupied_dirty">
-                🟣 {ar ? "مشغولة تحتاج تنظيف" : "Occupied Dirty"}
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                  <span>{ar ? "مشغولة تحتاج تنظيف" : "Occupied Dirty"}</span>
+                </div>
               </SelectItem>
               <SelectItem value="out_of_service">
-                ⚪ {ar ? "صيانة مؤقتة" : "Out of Service"}
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                  <span>{ar ? "خارج الخدمة / صيانة" : "Out of Service / Order"}</span>
+                </div>
               </SelectItem>
             </SelectContent>
           </Select>
@@ -535,10 +754,59 @@ export function HousekeepingTab({
       ) : (
         /* Room cards grid */
         <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4 py-1">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="select-all-hk-rooms"
+                checked={allPageSelected}
+                onCheckedChange={toggleSelectPage}
+              />
+              <label
+                htmlFor="select-all-hk-rooms"
+                className="text-xs font-semibold cursor-pointer text-muted-foreground select-none"
+              >
+                {ar ? "تحديد كل غرف الصفحة" : "Select all on page"}
+              </label>
+            </div>
+            {selectedRoomIds.size > 0 && (
+              <span className="text-xs text-primary font-bold">
+                {selectedRoomIds.size} {ar ? "غرفة محددة" : "rooms selected"}
+              </span>
+            )}
+          </div>
+
+          <BulkActionBar
+            count={selectedRoomIds.size}
+            onClear={() => setSelectedRoomIds(new Set())}
+            onExportExcel={handleBulkExportExcel}
+            ar={ar}
+            actions={[
+              {
+                label: ar ? "تنظيف المحدد" : "Mark Cleaned",
+                variant: "default",
+                onClick: handleBulkClean,
+                disabled: isBulkLoading,
+                icon: isBulkLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                ),
+              },
+              {
+                label: ar ? "تحديد كغير نظيفة" : "Mark Dirty",
+                variant: "outline",
+                onClick: handleBulkDirty,
+                disabled: isBulkLoading,
+                icon: <Brush className="w-3.5 h-3.5 text-orange-500" />,
+              },
+            ]}
+          />
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {paginatedRooms.map((room) => {
               const normStatus = (room.status || "").toLowerCase().trim();
               const badge = getStatusBadge(normStatus);
+              const isSelected = selectedRoomIds.has(room.id);
 
               const buildingName = room.buildingId
                 ? buildingMap.get(Number(room.buildingId)) || `Building ${room.buildingId}`
@@ -557,21 +825,32 @@ export function HousekeepingTab({
             return (
               <div
                 key={room.id}
-                className="p-4 rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+                className={`p-4 rounded-xl border bg-card shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
+                  isSelected
+                    ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                    : ""
+                }`}
               >
                 <div>
-                  {/* Header: Room number + Badge */}
+                  {/* Header: Checkbox + Room number + Badge */}
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="min-w-0">
-                      <span className="text-2xl font-black tracking-tight text-primary">
-                        {room.roomNumber}
-                      </span>
-                      <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
-                        <Building2 className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
-                        <span className="truncate max-w-[80px] sm:max-w-[100px]">{buildingName}</span>
-                        <span>•</span>
-                        <Layers className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
-                        <span className="truncate max-w-[60px] sm:max-w-[100px]">{floorName}</span>
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelectRoom(room.id)}
+                        className="mt-1"
+                      />
+                      <div className="min-w-0">
+                        <span className="text-2xl font-black tracking-tight text-primary">
+                          {room.roomNumber}
+                        </span>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
+                          <Building2 className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                          <span className="truncate max-w-[80px] sm:max-w-[100px]">{buildingName}</span>
+                          <span>•</span>
+                          <Layers className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                          <span className="truncate max-w-[60px] sm:max-w-[100px]">{floorName}</span>
+                        </div>
                       </div>
                     </div>
                     <Badge
@@ -613,8 +892,9 @@ export function HousekeepingTab({
                       {isUpdating ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <span>
-                          {ar ? "✅ تنظيف" : "✅ Clean"}
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {ar ? "تنظيف" : "Mark Clean"}
                         </span>
                       )}
                     </Button>
@@ -631,8 +911,9 @@ export function HousekeepingTab({
                       {isUpdating ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <span>
-                          {ar ? "✅ تنظيف" : "✅ Clean"}
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {ar ? "تنظيف" : "Mark Clean"}
                         </span>
                       )}
                     </Button>
@@ -652,14 +933,10 @@ export function HousekeepingTab({
                       {isUpdating ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <>
+                        <span className="flex items-center gap-1.5">
                           <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                          <span>
-                            {ar
-                              ? "↩️ متاح"
-                              : "↩️ Avail."}
-                          </span>
-                        </>
+                          <span>{ar ? "إعادة للخدمة" : "Restore"}</span>
+                        </span>
                       )}
                     </Button>
                   )}
@@ -676,8 +953,9 @@ export function HousekeepingTab({
                       {isUpdating ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <span>
-                          {ar ? "🧹 غير نظيف" : "🧹 Dirty"}
+                        <span className="flex items-center gap-1.5">
+                          <Brush className="w-3.5 h-3.5" />
+                          {ar ? "تحديد كمتسخة" : "Mark Dirty"}
                         </span>
                       )}
                     </Button>
@@ -695,8 +973,9 @@ export function HousekeepingTab({
                       {isUpdating ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <span>
-                          {ar ? "🧹 غير نظيف" : "🧹 Dirty"}
+                        <span className="flex items-center gap-1.5">
+                          <Brush className="w-3.5 h-3.5" />
+                          {ar ? "تحديد كمتسخة" : "Mark Dirty"}
                         </span>
                       )}
                     </Button>
@@ -721,8 +1000,9 @@ export function HousekeepingTab({
                       {isUpdating ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
                       ) : (
-                        <span>
-                          {ar ? "🚫 إغلاق" : "🚫 Close"}
+                        <span className="flex items-center gap-1">
+                          <Ban className="w-3 h-3 text-red-500" />
+                          {ar ? "إغلاق" : "Close"}
                         </span>
                       )}
                     </Button>
@@ -783,19 +1063,17 @@ export function HousekeepingTab({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{ar ? "من تاريخ *" : "From Date *"}</Label>
-                <Input 
-                  type="date"
+                <DateInput
                   value={oosStartDate}
-                  onChange={(e) => setOosStartDate(e.target.value)}
+                  onChange={(iso) => setOosStartDate(iso)}
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label>{ar ? "إلى تاريخ *" : "To Date *"}</Label>
-                <Input 
-                  type="date"
+                <DateInput
                   value={oosEndDate}
-                  onChange={(e) => setOosEndDate(e.target.value)}
+                  onChange={(iso) => setOosEndDate(iso)}
                   min={oosStartDate || undefined}
                   required
                 />

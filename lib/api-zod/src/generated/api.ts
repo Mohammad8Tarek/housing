@@ -301,7 +301,8 @@ export const ListRoomsResponseItem = zod.object({
   "capacity": zod.number(),
   "currentOccupancy": zod.number(),
   "status": zod.string(),
-  "gender": zod.string().nullish()
+  "gender": zod.string().nullish(),
+  "classification": zod.string().nullish()
 })
 export const ListRoomsResponse = zod.array(ListRoomsResponseItem)
 
@@ -437,6 +438,11 @@ export const CreateProfileBody = zod.object({
   "status": zod.string().optional(),
   "hireDate": zod.string(),
   "gender": zod.string(),
+  "thirdName": zod.string().optional(),
+  "fourthName": zod.string().optional(),
+  "email": zod.string().optional(),
+  "emergencyContact": zod.string().optional(),
+  "dateOfBirth": zod.string().optional(),
   "employmentType": zod.string().optional(),
   "companyName": zod.string().optional(),
   "contractEndDate": zod.string().nullish(),
@@ -621,6 +627,7 @@ export const ListAssignmentsResponseItem = zod.object({
   "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
+  "isEntireRoom": zod.boolean().nullish(),
   "checkInDate": zod.string(),
   "expectedCheckOutDate": zod.string().nullish(),
   "checkOutDate": zod.string().nullish(),
@@ -639,6 +646,7 @@ export const CreateAssignmentBody = zod.object({
   "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
+  "isEntireRoom": zod.boolean().optional(),
   "checkInDate": zod.string(),
   "expectedCheckOutDate": zod.string().nullish(),
   "notes": zod.string().optional()
@@ -658,6 +666,7 @@ export const GetAssignmentResponse = zod.object({
   "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
+  "isEntireRoom": zod.boolean().nullish(),
   "checkInDate": zod.string(),
   "expectedCheckOutDate": zod.string().nullish(),
   "checkOutDate": zod.string().nullish(),
@@ -685,6 +694,7 @@ export const UpdateAssignmentResponse = zod.object({
   "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
+  "isEntireRoom": zod.boolean().nullish(),
   "checkInDate": zod.string(),
   "expectedCheckOutDate": zod.string().nullish(),
   "checkOutDate": zod.string().nullish(),
@@ -712,6 +722,7 @@ export const CheckoutAssignmentResponse = zod.object({
   "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
+  "isEntireRoom": zod.boolean().nullish(),
   "checkInDate": zod.string(),
   "expectedCheckOutDate": zod.string().nullish(),
   "checkOutDate": zod.string().nullish(),
@@ -741,6 +752,7 @@ export const TransferAssignmentResponse = zod.object({
   "profileId": zod.number(),
   "roomId": zod.number(),
   "bedNumber": zod.number().nullish(),
+  "isEntireRoom": zod.boolean().nullish(),
   "checkInDate": zod.string(),
   "expectedCheckOutDate": zod.string().nullish(),
   "checkOutDate": zod.string().nullish(),
@@ -773,6 +785,8 @@ export const ListReservationsResponseItem = zod.object({
   "jobTitle": zod.string(),
   "department": zod.string(),
   "status": zod.string(),
+  "employmentType": zod.string().optional(),
+  "companyName": zod.string().optional(),
   "createdAt": zod.string()
 })
 export const ListReservationsResponse = zod.array(ListReservationsResponseItem)
@@ -793,7 +807,9 @@ export const CreateReservationBody = zod.object({
   "guestIdCardNumber": zod.string(),
   "guestPhone": zod.string(),
   "jobTitle": zod.string(),
-  "department": zod.string()
+  "department": zod.string(),
+  "employmentType": zod.string().optional(),
+  "companyName": zod.string().optional()
 })
 
 
@@ -819,6 +835,8 @@ export const GetReservationResponse = zod.object({
   "jobTitle": zod.string(),
   "department": zod.string(),
   "status": zod.string(),
+  "employmentType": zod.string().optional(),
+  "companyName": zod.string().optional(),
   "createdAt": zod.string()
 })
 
@@ -835,7 +853,9 @@ export const UpdateReservationBody = zod.object({
   "checkInDate": zod.string().optional(),
   "checkOutDate": zod.string().nullish(),
   "notes": zod.string().optional(),
-  "status": zod.string().optional()
+  "status": zod.string().optional(),
+  "employmentType": zod.string().optional(),
+  "companyName": zod.string().optional()
 })
 
 export const UpdateReservationResponse = zod.object({

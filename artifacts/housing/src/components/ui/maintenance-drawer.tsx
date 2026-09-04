@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { formatDateTime } from "@/lib/date-utils";
 
 interface MaintenanceDrawerProps {
   isOpen: boolean;
@@ -216,12 +217,7 @@ export default function MaintenanceDrawer({
                     {ar ? "تاريخ الإبلاغ" : "Reported"}
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {ticket.reportedAt
-                      ? format(
-                          new Date(ticket.reportedAt),
-                          "dd MMM yyyy - HH:mm",
-                        )
-                      : "—"}
+                    {formatDateTime(ticket.reportedAt)}
                   </p>
                 </div>
                 {ticket.startedAt && (
@@ -230,10 +226,7 @@ export default function MaintenanceDrawer({
                       {ar ? "بدأ" : "Started"}
                     </p>
                     <p className="text-sm font-medium text-gray-900">
-                      {format(
-                        new Date(ticket.startedAt),
-                        "dd MMM yyyy - HH:mm",
-                      )}
+                      {formatDateTime(ticket.startedAt)}
                     </p>
                   </div>
                 )}
@@ -243,10 +236,7 @@ export default function MaintenanceDrawer({
                       {ar ? "تم الحل" : "Resolved"}
                     </p>
                     <p className="text-sm font-medium text-gray-900">
-                      {format(
-                        new Date(ticket.resolvedAt),
-                        "dd MMM yyyy - HH:mm",
-                      )}
+                      {formatDateTime(ticket.resolvedAt)}
                     </p>
                   </div>
                 )}

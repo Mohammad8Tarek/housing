@@ -14,6 +14,12 @@ import {
   getListRoomsQueryKey,
 } from "@workspace/api-client-react";
 import type { ListRoomsParams } from "@workspace/api-client-react";
+import type {
+  Room,
+  Building,
+  Floor,
+  Assignment,
+} from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
@@ -33,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import {
@@ -142,6 +149,7 @@ export default function RoomAssignment() {
   );
   const [expectedCheckOut, setExpectedCheckOut] = useState("");
   const [notes, setNotes] = useState("");
+  const [isEntireRoom, setIsEntireRoom] = useState(false);
 
   // فلاتر الغرف
   const [searchBuilding, setSearchBuilding] = useState("all");
@@ -199,7 +207,11 @@ export default function RoomAssignment() {
       staleTime: 30000,
     },
   });
-  const rooms = Array.isArray(_rData) ? _rData : (_rData as any)?.data || [];
+  // NOTE: /api/rooms returns a { data, pagination } envelope (not a bare
+  // array), so unwrap .data first. Runtime shape verified in routes/rooms.ts.
+  const rooms: Room[] = Array.isArray(_rData)
+    ? _rData
+    : (((_rData as unknown as { data?: Room[] })?.data as Room[] | undefined) || []);
   const { data: _bData } = useListBuildings(
     { propertyId: activePropertyId as number },
     {
@@ -210,7 +222,9 @@ export default function RoomAssignment() {
       },
     },
   );
-  const buildings = Array.isArray(_bData) ? _bData : (_bData as any)?.data || [];
+  const buildings: Building[] = Array.isArray(_bData)
+    ? _bData
+    : (((_bData as any)?.data as Building[] | undefined) || []);
   const { data: _fData } = useListFloors(
     { propertyId: activePropertyId as number },
     {
@@ -221,7 +235,9 @@ export default function RoomAssignment() {
       },
     },
   );
-  const floors = Array.isArray(_fData) ? _fData : (_fData as any)?.data || [];
+  const floors: Floor[] = Array.isArray(_fData)
+    ? _fData
+    : (((_fData as any)?.data as Floor[] | undefined) || []);
   const { data: _aData } = useListAssignments(
     { propertyId: activePropertyId as number },
     {
@@ -232,7 +248,23 @@ export default function RoomAssignment() {
       },
     },
   );
-  const allAssignments = _aData || [];
+  // NOTE: /api/assignments returns a { data, pagination } envelope.
+  const allAssignments: Assignment[] = Array.isArray(_aData)
+    ? _aData
+    : (((_aData as unknown as { data?: Assignment[] })?.data as Assignment[] | undefined) || []);
+
+  // Build set of rooms occupied entirely by a single resident
+  const entireRoomOccupiedSet = useMemo(() => {
+    const set = new Set<number>();
+    allAssignments
+      .filter(
+        (a: any) =>
+          a.status === "ACTIVE" &&
+          (a.isEntireRoom || a.is_entire_room),
+      )
+      .forEach((a: any) => set.add(a.roomId));
+    return set;
+  }, [allAssignments]);
 
   // Build set of occupied bed numbers for the currently selected room
   const occupiedBeds = new Set<number>(
@@ -336,7 +368,7 @@ export default function RoomAssignment() {
       onError: async (err: any) => {
         let description = err.message;
         try {
-          const body = await err?.response?.json?.();
+          const body = err?.data || (await err?.response?.clone?.()?.json?.().catch(() => null)) || {};
           if (body?.code === "BED_OCCUPANT_ON_VACATION" && body?.canOverride) {
             setVacationPromptData({
               occupantName: body.occupantName || (ar ? "الموظف الأصلي" : "Original Occupant"),
@@ -354,6 +386,14 @@ export default function RoomAssignment() {
             description = ar
               ? `الموظف مسكّن بالفعل في غرفة رقم ${body.existingRoomId}. يجب تسجيل الخروج أولاً.`
               : `Profile already assigned to room ${body.existingRoomId}. Please check out first.`;
+          } else if (body?.code === "ROOM_ENTIRE_OCCUPIED") {
+            description = body.error || (ar
+              ? "هذه الغرفة مخصصة بالكامل لموظف آخر (استخدام فردي) ولا يمكن تسكين أي شخص إضافي عليها."
+              : "This room is reserved as an entire room for another resident.");
+          } else if (body?.code === "ROOM_NOT_EMPTY_FOR_ENTIRE") {
+            description = body.error || (ar
+              ? "لا يمكن تخصيص الغرفة بالكامل لوجود مقيمين حاليين بها."
+              : "Room already has active occupants.");
           } else if (body?.code === "ROOM_FULL") {
             description = ar ? `الغرفة وصلت للحد الأقصى لطاقتها الاستيعابية.` : `Room is full.`;
           } else if (body?.error) {
@@ -430,7 +470,7 @@ export default function RoomAssignment() {
       );
       return;
     }
-    if (isMultiBed && !selectedBed) {
+    if (isMultiBed && !isEntireRoom && !selectedBed) {
       toast.error(ar ? "الرجاء تحديد رقم السرير" : "Please select bed number");
       return;
     }
@@ -444,7 +484,8 @@ export default function RoomAssignment() {
         expectedCheckOutDate: expectedCheckOut
           ? new Date(expectedCheckOut).toISOString()
           : undefined,
-        bedNumber: selectedBed ? parseInt(selectedBed) : undefined,
+        bedNumber: isEntireRoom ? (selectedBed ? parseInt(selectedBed) : 1) : (selectedBed ? parseInt(selectedBed) : undefined),
+        isEntireRoom: isEntireRoom,
         notes: notes || undefined,
       } as any,
     });
@@ -676,14 +717,22 @@ export default function RoomAssignment() {
                   {ar ? "أفضل غرفة مقترحة تلقائياً للموظف:" : "Best Recommended Room for Employee:"}
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-xs font-black bg-amber-500 text-white shadow-sm">
-                  {recommendation.recommendedMap[recommendation.bestRoom.id]?.badgeLabelAr || "⭐ موصى بها"}
+                  {ar
+                    ? (recommendation.recommendedMap[recommendation.bestRoom.id]?.badgeLabelAr || "موصى بها")
+                    : (recommendation.recommendedMap[recommendation.bestRoom.id]?.badgeLabelEn || "Recommended")}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {ar ? `غرفة رقم ${recommendation.bestRoom.roomNumber} (${recommendation.bestRoom.roomType || "قياسية"} - سعة ${recommendation.bestRoom.capacity} سرير)` : `Room ${recommendation.bestRoom.roomNumber}`}
-                {recommendation.recommendedMap[recommendation.bestRoom.id]?.matchReasonAr
-                  ? ` • ${recommendation.recommendedMap[recommendation.bestRoom.id].matchReasonAr}`
-                  : ""}
+                {ar
+                  ? `غرفة رقم ${recommendation.bestRoom.roomNumber} (${recommendation.bestRoom.roomType || "قياسية"} - سعة ${recommendation.bestRoom.capacity} سرير)`
+                  : `Room ${recommendation.bestRoom.roomNumber} (${recommendation.bestRoom.roomType || "Standard"} - Capacity ${recommendation.bestRoom.capacity} beds)`}
+                {ar
+                  ? (recommendation.recommendedMap[recommendation.bestRoom.id]?.matchReasonAr
+                    ? ` • ${recommendation.recommendedMap[recommendation.bestRoom.id].matchReasonAr}`
+                    : "")
+                  : (recommendation.recommendedMap[recommendation.bestRoom.id]?.matchReasonEn
+                    ? ` • ${recommendation.recommendedMap[recommendation.bestRoom.id].matchReasonEn}`
+                    : "")}
               </p>
             </div>
           </div>
@@ -824,6 +873,7 @@ export default function RoomAssignment() {
               onValueChange={(v) => {
                 setSelectedRoomId(v);
                 setSelectedBed("");
+                setIsEntireRoom(false);
               }}
             >
               <SelectTrigger>
@@ -856,7 +906,8 @@ export default function RoomAssignment() {
                   </div>
                 ) : (
                   sortedFilteredRooms.map((r) => {
-                    const isFull = r.currentOccupancy >= r.capacity;
+                    const isEntireReserved = entireRoomOccupiedSet.has(r.id);
+                    const isFull = r.currentOccupancy >= r.capacity || isEntireReserved;
                     const building = buildingMap[r.buildingId] ?? "—";
                     const floor = floorMap[r.floorId];
                     return (
@@ -874,7 +925,9 @@ export default function RoomAssignment() {
                           {recommendation?.recommendedMap[r.id]?.levelMatch && (
                             <span className="text-[10px] px-1.5 py-0.2 rounded font-extrabold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400 flex items-center gap-1">
                               <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-                              {recommendation.recommendedMap[r.id].badgeLabelAr}
+                              {ar
+                                ? recommendation.recommendedMap[r.id].badgeLabelAr
+                                : recommendation.recommendedMap[r.id].badgeLabelEn}
                             </span>
                           )}
                           <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
@@ -887,9 +940,17 @@ export default function RoomAssignment() {
                           )}
                           <Badge
                             variant={isFull ? "destructive" : "outline"}
-                            className="text-[9px] h-4 py-0"
+                            className={`text-[9px] h-4 py-0 ${isEntireReserved ? "bg-purple-700 text-white border-purple-800" : ""}`}
                           >
-                            {isFull ? (ar ? "ممتلئة" : "FULL") : r.roomType}
+                            {isEntireReserved
+                              ? ar
+                                ? "محجوزة بالكامل (فردي)"
+                                : "ENTIRE ROOM"
+                              : isFull
+                                ? ar
+                                  ? "ممتلئة"
+                                  : "FULL"
+                                : r.roomType}
                           </Badge>
                           {r.classification && (
                             <span
@@ -996,7 +1057,16 @@ export default function RoomAssignment() {
                       </div>
                     )}
                   </div>
-                  {roomFull && (
+                  {entireRoomOccupiedSet.has(selectedRoom.id) ? (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-purple-50 border border-purple-200 dark:bg-purple-950/20 dark:border-purple-800 text-purple-700 dark:text-purple-400">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <p className="text-sm font-medium">
+                        {ar
+                          ? "هذه الغرفة محجوزة بالكامل لموظف آخر (استخدام فردي/غرفة خاصة). لا يمكن تسكين أي شخص آخر عليها."
+                          : "This room is reserved exclusively for another resident. No additional assignments are permitted."}
+                      </p>
+                    </div>
+                  ) : roomFull ? (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/20 dark:border-red-800 text-red-700 dark:text-red-400">
                       <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                       <p className="text-sm font-medium">
@@ -1005,13 +1075,75 @@ export default function RoomAssignment() {
                           : `This room is at full capacity (${selectedRoom.capacity} bed${selectedRoom.capacity !== 1 ? "s" : ""}).`}
                       </p>
                     </div>
-                  )}
+                  ) : null}
                 </>
               );
             })()}
 
+          {/* خيار تخصيص الغرفة بالكامل لشخص واحد */}
+          {selectedRoom && !entireRoomOccupiedSet.has(selectedRoom.id) && (
+            <div
+              className={`p-3 rounded-lg border transition-colors ${
+                isEntireRoom
+                  ? "bg-purple-50/80 border-purple-300 dark:bg-purple-950/30 dark:border-purple-700"
+                  : "bg-muted/20 border-border"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="entire-room-toggle"
+                      checked={isEntireRoom}
+                      disabled={selectedRoom.currentOccupancy > 0}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setIsEntireRoom(checked);
+                        if (checked) {
+                          setSelectedBed("1");
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <label
+                      htmlFor="entire-room-toggle"
+                      className={`text-sm font-semibold cursor-pointer ${
+                        selectedRoom.currentOccupancy > 0
+                          ? "text-muted-foreground opacity-60"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {ar
+                        ? "تسكين الغرفة بالكامل لهذا الموظف (استخدام فردي / غرفة كاملة)"
+                        : "Assign Entire Room to this Resident (Single/Exclusive Room)"}
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedRoom.currentOccupancy > 0
+                      ? ar
+                        ? "لا يمكن تخصيص الغرفة بالكامل لوجود مقيمين حاليين بها. متاحة فقط للغرف الشاغرة بالكامل (0 مقيم)."
+                        : "Cannot reserve entire room: already has active occupants."
+                      : isEntireRoom
+                        ? ar
+                          ? `تم حجز كافة أسِرّة الغرفة (${selectedRoom.capacity} سرير) بالكامل لهذا المقيم. لن تظهر الغرفة كشاغرة ولن يُسمح بتسكين أي شخص آخر عليها.`
+                          : `All ${selectedRoom.capacity} beds are reserved for this resident. No one else can be assigned.`
+                        : ar
+                          ? "قم بتفعيل هذا الخيار للغرف المخصصة للمدراء أو الإداريين (غرفة خاصة) لقفل الغرفة بالكامل ومنع إضافة مقيم آخر معهم."
+                          : "Check this to lock the whole room for single/private occupancy."}
+                  </p>
+                </div>
+                {isEntireRoom && (
+                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/60 dark:text-purple-200 text-xs font-bold whitespace-nowrap">
+                    {ar ? "غرفة خاصة كاملة" : "Exclusive Room"}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* اختيار السرير */}
-          {isMultiBed && (
+          {isMultiBed && !isEntireRoom && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <BedDouble className="w-4 h-4 text-primary" />
@@ -1070,20 +1202,18 @@ export default function RoomAssignment() {
                 {ar ? "تاريخ الدخول" : "Check-in Date"}{" "}
                 <span className="text-red-500">*</span>
               </label>
-              <Input
-                type="date"
+              <DateInput
                 value={checkInDate}
-                onChange={(e) => setCheckInDate(e.target.value)}
+                onChange={(iso) => setCheckInDate(iso)}
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
                 {ar ? "تاريخ الخروج المتوقع" : "Expected Check-out"}
               </label>
-              <Input
-                type="date"
+              <DateInput
                 value={expectedCheckOut}
-                onChange={(e) => setExpectedCheckOut(e.target.value)}
+                onChange={(iso) => setExpectedCheckOut(iso)}
               />
             </div>
           </div>
@@ -1239,7 +1369,7 @@ export default function RoomAssignment() {
             </p>
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs space-y-1 text-amber-900 dark:text-amber-200">
               <p className="font-bold">
-                {ar ? "⚠️ ضوابط التسكين المؤقت وفقاً لسياسة السكن:" : "Policy Rules:"}
+                {ar ? "ضوابط التسكين المؤقت وفقاً لسياسة السكن:" : "Policy Rules:"}
               </p>
               <p>• {ar ? "يُسمح بالتسكين المؤقت فقط بقرار وتصريح من مدير السكن أو الآدمن." : "Allowed only by Housing Manager or Admin permission."}</p>
               <p>• {ar ? "ممنوع منعاً باتاً تسكين شخصين معاً؛ هذا التسكين مؤقت فقط طالما أن الموظف الأصلي في إجازة." : "No double rooming allowed; only valid while resident is away."}</p>
@@ -1250,11 +1380,10 @@ export default function RoomAssignment() {
               <label className="text-xs font-bold">
                 {ar ? "تاريخ مغادرة الموظف المؤقت (إلزامي):" : "Expected Check-out Date (Required):"}
               </label>
-              <Input
-                type="date"
+              <DateInput
                 value={expectedCheckOut || vacationPromptData?.vacationEndDate || ""}
                 max={vacationPromptData?.vacationEndDate || undefined}
-                onChange={(e) => setExpectedCheckOut(e.target.value)}
+                onChange={(iso) => setExpectedCheckOut(iso)}
               />
               {vacationPromptData?.vacationEndDate && (
                 <p className="text-[11px] text-muted-foreground">

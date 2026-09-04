@@ -204,11 +204,11 @@ export default function Settings() {
                   <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-muted/60 p-1">
                     <TabsTrigger value="classifications" className="text-xs font-semibold gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      {ar ? "تصنيفات الغرف (Classifications)" : "Room Classifications"}
+                      {ar ? "تصنيفات الغرف" : "Room Classifications"}
                     </TabsTrigger>
                     <TabsTrigger value="types" className="text-xs font-semibold gap-1.5">
                       <BedDouble className="w-3.5 h-3.5 text-primary" />
-                      {ar ? "أنواع الغرف والسعة (Types)" : "Room Types & Capacity"}
+                      {ar ? "أنواع الغرف والسعة" : "Room Types & Capacity"}
                     </TabsTrigger>
                   </TabsList>
 

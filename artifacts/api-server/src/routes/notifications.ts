@@ -277,7 +277,7 @@ router.get(
         if (canViewHousing || canViewAccommodation) {
           queries.push(
             tenantDb.execute(
-              sql`SELECT id, room_id, key_card_number, expires_at 
+              sql`SELECT id, room_id, card_number, expires_at 
                   FROM room_keys 
                   WHERE status = 'active' AND expires_at < NOW()
                   LIMIT 20`,
@@ -290,7 +290,7 @@ router.get(
         if (canViewEvaluations || isSystemAdmin) {
           queries.push(
             tenantDb.execute(
-              sql`SELECT id, title, status FROM evaluations WHERE status = 'pending' LIMIT 10`,
+              sql`SELECT id, COALESCE(title_ar, title_en, 'Evaluation') AS title, status FROM evaluations WHERE status = 'pending' LIMIT 10`,
             ).catch(() => ({ rows: [] })),
           );
           queryLabels.push("pendingEvaluations");
@@ -300,9 +300,9 @@ router.get(
         if (canViewPortalContent || isSystemAdmin) {
           queries.push(
             tenantDb.execute(
-              sql`SELECT id, profile_id, message, created_at 
-                  FROM portal_chat 
-                  WHERE is_read = false AND sender_type = 'profile'
+              sql`SELECT id, sender_id AS profile_id, content AS message, created_at 
+                  FROM portal_messages 
+                  WHERE is_deleted = false
                   ORDER BY created_at DESC 
                   LIMIT 15`,
             ).catch(() => ({ rows: [] })),
