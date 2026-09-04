@@ -311,7 +311,7 @@ export default function ReservationsPage() {
     return true;
   });
 
-  const profileForRecommend = selectedProfile || (personMode === "new" && newForm.firstName ? { level: newForm.level, gender: newForm.gender, department: newForm.department, employmentType: newForm.employmentType } : null);
+  const profileForRecommend = selectedProfile || (personMode === "new" && newForm.firstName ? { level: newForm.level, gender: newForm.gender, department: newForm.department, employmentType: newForm.employmentType, jobTitle: newForm.jobTitle } : null);
   const recommendation = useMemo(() => {
     if (!profileForRecommend || !rooms.length) return null;
     return recommendBestRooms({ profile: profileForRecommend, rooms, assignments: allAssignments, profiles: [] });
@@ -1491,7 +1491,26 @@ export default function ReservationsPage() {
                     >
                       <BedDouble className={`w-4 h-4 flex-shrink-0 ${isSel ? "text-primary" : "text-muted-foreground"}`} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2"><span className="font-semibold">{ar ? "غرفة" : "Room"} {room.roomNumber}</span>{rec?.levelMatch && <span className="text-amber-500 font-bold text-xs">✦ {ar ? "موصى بها" : "Rec."}</span>}{isFull && <span className="text-xs text-destructive font-medium">{ar ? "ممتلئة" : "Full"}</span>}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold">{ar ? "غرفة" : "Room"} {room.roomNumber}</span>
+                          {room.classification && (
+                            <span
+                              className={`text-[10px] px-1.5 py-0.2 rounded font-semibold border ${
+                                room.classification.toLowerCase().includes("deluxe")
+                                  ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                  : room.classification.toLowerCase().includes("superior")
+                                  ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                  : room.classification.toLowerCase().includes("family")
+                                  ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                  : "bg-muted text-foreground border-border"
+                              }`}
+                            >
+                              {room.classification}
+                            </span>
+                          )}
+                          {rec?.levelMatch && <span className="text-amber-500 font-bold text-xs">✦ {rec.badgeLabelAr || (ar ? "موصى بها" : "Rec.")}</span>}
+                          {isFull && <span className="text-xs text-destructive font-medium">{ar ? "ممتلئة" : "Full"}</span>}
+                        </div>
                         <p className="text-xs text-muted-foreground">{buildingMap[room.buildingId] || "—"} • {floorMap[room.floorId]?.number ? `F${floorMap[room.floorId]?.number}` : "—"} • {room.roomType || "—"} • {room.currentOccupancy ?? 0}/{room.capacity ?? 1} {ar ? "مقيم" : "occupied"}</p>
                       </div>
                       {isSel && <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />}

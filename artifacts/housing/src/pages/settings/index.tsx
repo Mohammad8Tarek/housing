@@ -22,6 +22,7 @@ import {
   KeyRound,
   Image,
   Pen,
+  Sparkles,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
@@ -130,7 +131,7 @@ export default function Settings() {
               </TabsTrigger>
               <TabsTrigger value="room-types">
                 <BedDouble className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "الغرف" : "Rooms"}
+                {ar ? "الغرف والتصنيفات" : "Rooms & Class"}
               </TabsTrigger>
               <TabsTrigger value="security">
                 <Shield className="w-3.5 h-3.5 mr-1.5" />
@@ -198,19 +199,58 @@ export default function Settings() {
             </TabsContent>
 
             <TabsContent value="room-types">
-              <Card>
-                <CardContent className="pt-6">
-                  {selectedPropertyId && (
-                    <LookupSection
-                      propertyId={selectedPropertyId}
-                      category={LOOKUP_CATEGORIES.ROOM_TYPE}
-                      label="Room Type"
-                      description={ar ? "إدارة أنواع الغرف وسعة كل نوع" : "Manage room types"}
-                      showCapacity
-                    />
-                  )}
-                </CardContent>
-              </Card>
+              <div className="space-y-4">
+                <Tabs defaultValue="classifications" className="w-full">
+                  <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-muted/60 p-1">
+                    <TabsTrigger value="classifications" className="text-xs font-semibold gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      {ar ? "تصنيفات الغرف (Classifications)" : "Room Classifications"}
+                    </TabsTrigger>
+                    <TabsTrigger value="types" className="text-xs font-semibold gap-1.5">
+                      <BedDouble className="w-3.5 h-3.5 text-primary" />
+                      {ar ? "أنواع الغرف والسعة (Types)" : "Room Types & Capacity"}
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="classifications">
+                    <Card>
+                      <CardContent className="pt-6">
+                        {selectedPropertyId && (
+                          <LookupSection
+                            propertyId={selectedPropertyId}
+                            category={LOOKUP_CATEGORIES.ROOM_CLASSIFICATION}
+                            label="Room Classification"
+                            description={
+                              ar
+                                ? "إدارة تصنيفات الغرف (مثل Deluxe room, Family suite, Superior room, Standard room) المستخدمة في الترشيح الذكي حسب المنصب وسكن العائلات"
+                                : "Manage room classifications (e.g. Deluxe room, Family suite, Superior room) used for smart recommendation"
+                            }
+                            parentCategory={LOOKUP_CATEGORIES.ROOM_TYPE}
+                            parentLabel={ar ? "النوع المقترح" : "Suggested Type"}
+                            extraLabel={ar ? "المستوى / الفئة المستهدفة" : "Target Level / Audience"}
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="types">
+                    <Card>
+                      <CardContent className="pt-6">
+                        {selectedPropertyId && (
+                          <LookupSection
+                            propertyId={selectedPropertyId}
+                            category={LOOKUP_CATEGORIES.ROOM_TYPE}
+                            label="Room Type"
+                            description={ar ? "إدارة أنواع الغرف وسعة استيعاب كل نوع" : "Manage room types"}
+                            showCapacity
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </div>
             </TabsContent>
 
             <TabsContent value="security" className="space-y-4">

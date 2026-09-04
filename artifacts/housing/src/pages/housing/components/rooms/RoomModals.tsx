@@ -124,11 +124,31 @@ export function RoomModals({
     LOOKUP_CATEGORIES.ROOM_TYPE
   );
 
+  const { data: lookupClassifications = [] } = useLookupValues(
+    propertyId || 0,
+    LOOKUP_CATEGORIES.ROOM_CLASSIFICATION
+  );
+
   const activeLookupTypes = lookupRoomTypes.filter((t: any) => !t.disabled);
   const availableRoomTypes =
     activeLookupTypes.length > 0
       ? activeLookupTypes.map((t: any) => t.value)
       : roomTypes;
+
+  const defaultClassifications = [
+    "Deluxe room",
+    "Family suite",
+    "Superior room",
+    "Standard room",
+  ];
+  const activeClassifications = lookupClassifications.filter((t: any) => !t.disabled);
+  const availableClassifications = Array.from(
+    new Set([
+      ...defaultClassifications,
+      ...activeClassifications.map((t: any) => t.value),
+      ...(rForm.classification ? [rForm.classification] : []),
+    ])
+  );
 
   const featuresList: string[] = Array.isArray(rForm.featuresList)
     ? rForm.featuresList
@@ -242,14 +262,34 @@ export function RoomModals({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "???????" : "Classification"}</Label>
-                  <Input
-                    value={rForm.classification}
-                    onChange={(e) =>
-                      setRForm((p: any) => ({ ...p, classification: e.target.value }))
-                    }
-                    placeholder="e.g. Deluxe room, Superior..."
-                  />
+                  <Label>{ar ? "التصنيف" : "Classification"}</Label>
+                  <Select
+                    value={rForm.classification || "__none__"}
+                    onValueChange={(v) => {
+                      const val = v === "__none__" ? "" : v;
+                      setRForm((p: any) => {
+                        const updated: any = { ...p, classification: val };
+                        if (val.toLowerCase().includes("family") && (!p.capacity || p.capacity < 3)) {
+                          updated.capacity = 4;
+                        }
+                        return updated;
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={ar ? "اختر التصنيف..." : "Select classification..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">
+                        {ar ? "بدون تصنيف (قياسي)" : "None (Standard)"}
+                      </SelectItem>
+                      {availableClassifications.map((cls) => (
+                        <SelectItem key={cls} value={cls}>
+                          {cls}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

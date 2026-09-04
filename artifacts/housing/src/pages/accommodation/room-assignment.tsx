@@ -104,6 +104,7 @@ export default function RoomAssignment() {
   const [empResults, setEmpResults] = useState<ProfileResult[]>([]);
   const [selectedProfile, setSelectedProfile] =
     useState<ProfileResult | null>(null);
+  const [isFamilyHousing, setIsFamilyHousing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchPropertyId, setSearchPropertyId] = useState<string>("all");
@@ -284,12 +285,18 @@ export default function RoomAssignment() {
   const recommendation = useMemo(() => {
     if (!selectedProfile || !rooms.length) return null;
     return recommendBestRooms({
-      profile: selectedProfile,
+      profile: {
+        ...selectedProfile,
+        isFamily: isFamilyHousing,
+      },
       rooms,
       assignments: allAssignments,
       profiles: [],
+      preferences: {
+        isFamily: isFamilyHousing,
+      },
     });
-  }, [selectedProfile, rooms, allAssignments]);
+  }, [selectedProfile, rooms, allAssignments, isFamilyHousing]);
 
   // Pre-sort filtered rooms so recommended ones appear first
   const sortedFilteredRooms = useMemo(() => {
@@ -610,30 +617,47 @@ export default function RoomAssignment() {
           </div>
 
           {selectedProfile && (
-            <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">
-                  {selectedProfile.firstName} {selectedProfile.lastName}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {selectedProfile.profileId} •{" "}
-                  {selectedProfile.jobTitle || "—"} •{" "}
-                  {selectedProfile.department || "—"}
-                </p>
-                {selectedProfile.propertyId !== activePropertyId && (
-                  <Badge className="mt-1 text-[10px] bg-amber-500">
-                    <Building2 className="w-2.5 h-2.5 mr-1" />
-                    {selectedProfile.propertyName}
-                  </Badge>
-                )}
+            <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm">
+                    {selectedProfile.firstName} {selectedProfile.lastName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedProfile.profileId} •{" "}
+                    {selectedProfile.jobTitle || "—"} •{" "}
+                    {selectedProfile.department || "—"}
+                  </p>
+                  {selectedProfile.propertyId !== activePropertyId && (
+                    <Badge className="mt-1 text-[10px] bg-amber-500">
+                      <Building2 className="w-2.5 h-2.5 mr-1" />
+                      {selectedProfile.propertyName}
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={clearProfile}
-                className="text-muted-foreground hover:text-foreground flex-shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="flex items-center gap-2 self-end sm:self-center">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold px-2.5 py-1.5 rounded-lg border bg-background hover:bg-muted/50 transition-colors shadow-2xs">
+                  <input
+                    type="checkbox"
+                    checked={isFamilyHousing}
+                    onChange={(e) => setIsFamilyHousing(e.target.checked)}
+                    className="rounded text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-foreground">
+                    {ar ? "تسكين عائلي (أجنحة Family Suite)" : "Family Housing (Family Suites)"}
+                  </span>
+                </label>
+                <button
+                  onClick={clearProfile}
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-md"
+                  title={ar ? "إلغاء التحديد" : "Clear"}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -867,6 +891,21 @@ export default function RoomAssignment() {
                           >
                             {isFull ? (ar ? "ممتلئة" : "FULL") : r.roomType}
                           </Badge>
+                          {r.classification && (
+                            <span
+                              className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border ${
+                                r.classification.toLowerCase().includes("deluxe")
+                                  ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                  : r.classification.toLowerCase().includes("superior")
+                                  ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                  : r.classification.toLowerCase().includes("family")
+                                  ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                  : "bg-muted text-foreground border-border"
+                              }`}
+                            >
+                              {r.classification}
+                            </span>
+                          )}
                           <span
                             className={`text-[10px] font-medium ${isFull ? "text-red-500" : "text-muted-foreground"}`}
                           >

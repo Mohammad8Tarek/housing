@@ -97,6 +97,10 @@ export function recommendBestRooms({
     gender?: string | null;
     department?: string | null;
     nationality?: string | null;
+    jobTitle?: string | null;
+    title?: string | null;
+    isFamily?: boolean;
+    guestType?: string | null;
   } | null;
   rooms: any[];
   assignments?: any[];
@@ -108,6 +112,7 @@ export function recommendBestRooms({
     preferredClassification?: string; // e.g. "Deluxe room"
     requiredFeatures?: string[];  // e.g. ["Balcony", "WiFi"]
     sameNationality?: boolean;    // prefer roommates of same nationality
+    isFamily?: boolean;           // prioritize family suites
   };
 }): {
   bestRoom: any | null;
@@ -249,17 +254,106 @@ export function recommendBestRooms({
       }
     }
 
-    // ── NEW: 8. Room Classification Preference ────────────────────────────────
+    // ── 8. Smart Room Classification & Job Title / Family Match ──────────────
+    const roomCls = (r.classification || "").toLowerCase();
+    const profileJobTitle = (profile?.jobTitle || profile?.title || "").toLowerCase();
+    const isFamilyTarget =
+      profile?.isFamily === true ||
+      preferences.isFamily === true ||
+      (profile?.guestType || "").toLowerCase() === "family" ||
+      profileJobTitle.includes("عائل") ||
+      preferredClassification.toLowerCase().includes("family");
+
+    const isExecutive =
+      profileLevel === "1" ||
+      profileJobTitle.includes("مدير عام") ||
+      profileJobTitle.includes("مدير إدارة") ||
+      profileJobTitle.includes("مدير فندق") ||
+      profileJobTitle.includes("رئيس") ||
+      profileJobTitle.includes("director") ||
+      profileJobTitle.includes("general manager") ||
+      profileJobTitle.includes("gm") ||
+      profileJobTitle.includes("head") ||
+      profileJobTitle.includes("executive");
+
+    const isSupervisory =
+      profileLevel === "2" ||
+      profileJobTitle.includes("مشرف") ||
+      profileJobTitle.includes("نائب") ||
+      profileJobTitle.includes("مسؤول") ||
+      profileJobTitle.includes("supervisor") ||
+      profileJobTitle.includes("assistant manager") ||
+      profileJobTitle.includes("specialist");
+
+    let customBadgeLabelAr = "";
+    let customBadgeLabelEn = "";
+
+    // 8.1 Family match
+    if (isFamilyTarget) {
+      if (roomCls.includes("family") || roomCls.includes("suite") || roomCls.includes("عائل")) {
+        score += 60;
+        levelMatch = true;
+        matchReasonAr += ` • جناح عائلي متسع ملائم للأسرة (${r.classification || "Family suite"} - سعة ${roomCapacity} أفراد)`;
+        matchReasonEn += ` • Family suite ideal for family housing (${r.classification || "Family suite"} - capacity ${roomCapacity})`;
+        customBadgeLabelAr = "⭐ الأنسب للعائلات (Family Suite)";
+        customBadgeLabelEn = "⭐ Best for Families";
+      } else if (roomCapacity >= 3) {
+        score += 30;
+        matchReasonAr += ` • سعة رحبة مناسبة (${roomCapacity} سرير)`;
+      } else {
+        score -= 25; // Small rooms are bad for families
+      }
+    } else {
+      // If NOT a family, avoid putting single workers in family suites if other rooms exist
+      if (roomCls.includes("family")) {
+        score -= 20;
+      }
+    }
+
+    // 8.2 Executive & Deluxe match
+    if (isExecutive) {
+      if (roomCls.includes("deluxe") || roomCls.includes("ديلوكس")) {
+        score += 45;
+        levelMatch = true;
+        matchReasonAr += ` • تصنيف فاخر ملائم للمنصب القيادي (${r.classification})`;
+        matchReasonEn += ` • Deluxe classification matching executive title (${r.classification})`;
+        customBadgeLabelAr = `⭐ الأنسب للمنصب (${r.classification})`;
+        customBadgeLabelEn = `⭐ Best for Executive (${r.classification})`;
+      } else if (roomCls.includes("superior") || roomCls.includes("سوبيريور")) {
+        score += 35;
+        levelMatch = true;
+        matchReasonAr += ` • تصنيف ممتاز (${r.classification})`;
+        matchReasonEn += ` • Superior classification (${r.classification})`;
+      }
+    } else if (isSupervisory) {
+      if (roomCls.includes("superior") || roomCls.includes("سوبيريور")) {
+        score += 40;
+        levelMatch = true;
+        matchReasonAr += ` • تصنيف سوبيريور مناسب للمستوى الإشرافي (${r.classification})`;
+        matchReasonEn += ` • Superior room matching supervisory title (${r.classification})`;
+        customBadgeLabelAr = `⭐ الأنسب للإشراف (${r.classification})`;
+        customBadgeLabelEn = `⭐ Best for Supervisory (${r.classification})`;
+      } else if (roomCls.includes("deluxe")) {
+        score += 25;
+      }
+    } else if (!isFamilyTarget) {
+      // Regular staff
+      if (roomCls.includes("standard") || !r.classification) {
+        score += 15;
+      }
+    }
+
+    // Direct classification preference match
     if (preferredClassification) {
       const rc = (r.classification || r.roomType || "").toLowerCase();
       if (rc.includes(preferredClassification.toLowerCase())) {
-        score += 12;
+        score += 20;
         matchReasonAr += ` • تصنيف مطابق (${r.classification || r.roomType})`;
         matchReasonEn += ` • Classification match (${r.classification || r.roomType})`;
       }
     }
 
-    // ── NEW: 9. Required Features Check ──────────────────────────────────────
+    // ── 9. Required Features Check ──────────────────────────────────────
     if (requiredFeatures.length > 0) {
       const roomFeaturesList: string[] = Array.isArray(r.featuresList)
         ? r.featuresList.map((f: string) => f.toLowerCase())
@@ -272,13 +366,12 @@ export function recommendBestRooms({
         matchReasonAr += ` • مميزات مطلوبة متوفرة: ${matchedFeatures.join(", ")}`;
         matchReasonEn += ` • Required features available: ${matchedFeatures.join(", ")}`;
       }
-      // Penalize rooms missing ALL required features
       if (matchedFeatures.length === 0) {
         score -= 5;
       }
     }
 
-    // ── NEW: 10. Nationality Harmony Bonus ────────────────────────────────────
+    // ── 10. Nationality Harmony Bonus ────────────────────────────────────
     if (sameNationality && profileNat && existingOccupants.length > 0) {
       const sameNatCount = existingOccupants.filter(
         (o) => (o.nationality || "").toLowerCase() === profileNat
@@ -290,12 +383,12 @@ export function recommendBestRooms({
       }
     }
 
-    const badgeLabelAr = levelMatch
-      ? `⭐ الأنسب لمستوى ${profileLevel || "الوظيفة"}`
-      : "متاحة";
-    const badgeLabelEn = levelMatch
-      ? `⭐ Best for Level ${profileLevel || ""}`
-      : "Available";
+    const badgeLabelAr = customBadgeLabelAr || (levelMatch
+      ? `⭐ الأنسب لـ ${profile?.jobTitle || (profileLevel ? `مستوى ${profileLevel}` : "الموظف")}`
+      : "متاحة");
+    const badgeLabelEn = customBadgeLabelEn || (levelMatch
+      ? `⭐ Best for ${profile?.jobTitle || (profileLevel ? `Level ${profileLevel}` : "Role")}`
+      : "Available");
 
     scored.push({
       room: r,

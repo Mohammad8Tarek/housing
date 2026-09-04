@@ -20,11 +20,33 @@ router.get("/lookup-values", requireAuth, async (req, res): Promise<void> => {
     const conditions: any[] = [];
     if (category) conditions.push(eq(lookupValuesTable.category, category));
 
-    return await tenantDb
+    let results = await tenantDb
       .select()
       .from(lookupValuesTable)
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(lookupValuesTable.sortOrder, lookupValuesTable.value);
+
+    // Auto-seed room classifications if requested category is room_classification and empty
+    if (category === "room_classification" && results.length === 0) {
+      const defaults = [
+        { category: "room_classification", value: "Deluxe room", parentValue: "Single", extraValue: "Level 1 / VIP / Executive", sortOrder: 1 },
+        { category: "room_classification", value: "Superior room", parentValue: "Single", extraValue: "Level 2 / Supervisory / Senior", sortOrder: 2 },
+        { category: "room_classification", value: "Family suite", parentValue: "Suite", extraValue: "Family / Multi-Bed / Largest Capacity", sortOrder: 3 },
+        { category: "room_classification", value: "Standard room", parentValue: "Double", extraValue: "Staff / Operations", sortOrder: 4 },
+      ];
+      try {
+        await tenantDb.insert(lookupValuesTable).values(defaults as any);
+        results = await tenantDb
+          .select()
+          .from(lookupValuesTable)
+          .where(and(...conditions))
+          .orderBy(lookupValuesTable.sortOrder, lookupValuesTable.value);
+      } catch (e) {
+        console.warn("Failed to auto-seed room classifications:", e);
+      }
+    }
+
+    return results;
   });
 
   res.json(values.map((v) => ({ ...v, propertyId })));

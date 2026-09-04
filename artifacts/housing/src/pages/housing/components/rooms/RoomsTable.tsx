@@ -65,6 +65,9 @@ export function RoomsTable({
               {ar ? "النوع" : "Type"}
             </th>
             <th className="text-left p-3 font-semibold text-muted-foreground">
+              {ar ? "التصنيف" : "Classification"}
+            </th>
+            <th className="text-left p-3 font-semibold text-muted-foreground">
               {ar ? "المبنى" : "Building"}
             </th>
             <th className="text-left p-3 font-semibold text-muted-foreground">
@@ -102,6 +105,25 @@ export function RoomsTable({
                   <span className="px-2 py-0.5 bg-muted rounded text-xs font-medium">
                     {r.roomType}
                   </span>
+                </td>
+                <td className="p-3">
+                  {r.classification ? (
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
+                        r.classification.toLowerCase().includes("deluxe")
+                          ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                          : r.classification.toLowerCase().includes("superior")
+                          ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                          : r.classification.toLowerCase().includes("family")
+                          ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                          : "bg-muted/70 text-foreground border-border"
+                      }`}
+                    >
+                      {r.classification}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/60 text-xs italic">—</span>
+                  )}
                 </td>
                 <td className="p-3 text-muted-foreground">
                   {building?.name || "—"}

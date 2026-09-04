@@ -88,6 +88,7 @@ export function LookupSection({
     if (category === "job_title") return "المسمى الوظيفي";
     if (category === "department") return "القسم";
     if (category === "room_type") return "نوع الغرفة";
+    if (category === "room_classification") return "تصنيف الغرفة";
     if (category === "nationality") return "الجنسية";
     return label;
   };
