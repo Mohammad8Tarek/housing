@@ -34,6 +34,19 @@ function generateTemporaryPassword(): string {
   return "1234";
 }
 
+const BLOCKED_PROFILE_STATUSES = new Set([
+  "LEFT",
+  "DEPARTED",
+  "TERMINATED",
+  "SUSPENDED",
+  "INACTIVE",
+]);
+
+export function isProfileActiveForPortal(status: string | null | undefined): boolean {
+  if (!status) return true;
+  return !BLOCKED_PROFILE_STATUSES.has(status.trim().toUpperCase());
+}
+
 export function portalSession(req: any) {
   return req.session?.portal as
     | {
@@ -107,7 +120,7 @@ async function checkProfileIsActive(req: any, res: any, next: any) {
         .limit(1);
     });
 
-    if (!emp || emp.status?.toUpperCase() !== "ACTIVE") {
+    if (emp && !isProfileActiveForPortal(emp.status)) {
       req.session.destroy(() => {});
       res.status(403).json({
         success: false,
@@ -214,7 +227,7 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
     }
 
     // Block non-active profiles (e.g. SUSPENDED, DEPARTED, INACTIVE)
-    if (profile.status?.toUpperCase() !== "ACTIVE") {
+    if (!isProfileActiveForPortal(profile.status)) {
       res.status(403).json({
         success: false,
         message: "ليس لديك صلاحية الدخول إلى البوابة",
@@ -336,6 +349,13 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       department: profile.department,
     };
 
+    await new Promise<void>((resolve) => {
+      req.session.save((err: any) => {
+        if (err) console.error("[portal-login] session save error:", err);
+        resolve();
+      });
+    });
+
     res.json({
       success: true,
       sessionId: req.sessionID,
@@ -385,11 +405,11 @@ router.get("/profiles", requirePortalAuth, async (req, res, next) => {
       return res.json({
         success: true,
         profiles: profiles.filter(
-          (e) =>
-            e.firstName?.toLowerCase().includes(search) ||
-            e.lastName?.toLowerCase().includes(search) ||
-            e.profileId?.toLowerCase().includes(search) ||
-            e.department?.toLowerCase().includes(search),
+          (p: any) =>
+            p.firstName?.toLowerCase().includes(search) ||
+            p.lastName?.toLowerCase().includes(search) ||
+            p.profileId?.toLowerCase().includes(search) ||
+            p.department?.toLowerCase().includes(search),
         ),
       });
     }
@@ -425,7 +445,7 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
     }
 
     // Block if profile was suspended/departed after login
-    if (result.profile.status?.toUpperCase() !== "ACTIVE") {
+    if (!isProfileActiveForPortal(result.profile.status)) {
       req.session.destroy(() => {});
       res.status(403).json({
         success: false,

@@ -74,14 +74,21 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
       const res = await apiFetch("/api/portal-auth/me");
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          clearSessionCache();
+          setLocation("/login");
+          return;
+        }
+      }
+    } catch {
+      const hasStored =
+        sessionStorage.getItem("portal_employee") ||
+        localStorage.getItem("portal_employee");
+      if (!hasStored) {
         clearSessionCache();
         setLocation("/login");
         return;
       }
-    } catch {
-      clearSessionCache();
-      setLocation("/login");
-      return;
     }
     setChecking(false);
 

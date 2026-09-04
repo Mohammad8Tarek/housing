@@ -122,7 +122,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (isProfileError) {
       const status = (profileError as any)?.status;
-      if (status === 401) {
+      if (status === 401 || status === 403) {
         clearSessionCache();
         window.location.href = "/login";
         return;
