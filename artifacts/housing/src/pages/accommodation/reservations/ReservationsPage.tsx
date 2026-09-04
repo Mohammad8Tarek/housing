@@ -1254,8 +1254,8 @@ export default function ReservationsPage() {
                       <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-sm">{ar ? "Third Party نيو بروفايل" : "Third Party (New Profile)"}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{ar ? "إدخال بيانات طرف ثالث وإنشاء بروفايل جديد" : "Enter third-party details & create new profile"}</p>
+                      <p className="font-semibold text-sm">{ar ? "نيو بروفايل" : "New Profile"}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{ar ? "إدخال بيانات شخص وإنشاء بروفايل جديد" : "Enter details & create new profile"}</p>
                     </div>
                   </button>
                 </div>
