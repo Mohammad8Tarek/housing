@@ -333,26 +333,113 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
 
 export const MODULE_LABELS: Record<Module, { en: string; ar: string }> = {
   dashboard: { en: "Dashboard", ar: "لوحة القيادة" },
-  housing: { en: "Housing", ar: "الإسكان" },
-  housekeeping: { en: "Housekeeping", ar: "النظافة" },
-  profiles: { en: "Profiles", ar: "الموظفين" },
-  accommodation: { en: "Accommodation", ar: "الإقامة" },
+  housing: { en: "Housing & Rooms", ar: "الإسكان والغرف" },
+  profiles: { en: "Profiles & Employees", ar: "ملفات الموظفين (البروفايل)" },
   reservations: { en: "Reservations", ar: "الحجوزات" },
-  maintenance: { en: "Tickets", ar: "التذاكر" },
-  reports: { en: "Reports", ar: "التقارير" },
-  users: { en: "Users", ar: "المستخدمين" },
-  settings: { en: "Settings", ar: "الإعدادات" },
-  activity_log: { en: "Activity Log", ar: "سجل النشاط" },
-  properties: { en: "Properties", ar: "الفروع" },
+  accommodation: { en: "Accommodation (In-House)", ar: "التسكين والإقامة (ان هاوس)" },
+  hosting_requests: { en: "Hosting Requests", ar: "طلبات الاستضافة" },
+  housekeeping: { en: "Housekeeping", ar: "النظافة (الهاوس كيبنج)" },
+  maintenance: { en: "Tickets & Maintenance", ar: "التذاكر وبلاغات الصيانة" },
+  reports: { en: "Reports & Stats", ar: "التقارير والإحصائيات" },
+  users: { en: "Users & Permissions", ar: "المستخدمين والصلاحيات" },
+  properties: { en: "Properties & Hotels", ar: "العقارات والفروع" },
+  portal_content: { en: "Employee Portal", ar: "بوابة الموظف" },
+  settings: { en: "System Settings", ar: "إعدادات النظام" },
+  activity_log: { en: "Activity Log & Audit", ar: "سجل النشاط والعمليات" },
   documents: { en: "Documents", ar: "المستندات" },
   billing: { en: "Billing", ar: "الفواتير" },
   communications: { en: "Communications", ar: "الاتصالات" },
   evaluations: { en: "Evaluations", ar: "التقييمات" },
   surveys: { en: "Surveys", ar: "الاستبيانات" },
-  portal_content: { en: "Portal Content", ar: "محتوى البوابة" },
-  activities: { en: "Activities", ar: "الأنشطة" },
+  activities: { en: "Portal Activities", ar: "أنشطة البوابة" },
   smart_locks: { en: "Smart Locks", ar: "الأقفال الذكية" },
-  hosting_requests: { en: "Hosting Requests", ar: "طلبات الاستضافة" },
+};
+
+export const MODULE_DESCRIPTIONS: Record<Module, { en: string; ar: string }> = {
+  dashboard: {
+    en: "Overall occupancy overview, real-time alerts, and KPI charts.",
+    ar: "إحصائيات الإشغال العامة، بطاقات التنبيهات، والرسوم البيانية.",
+  },
+  housing: {
+    en: "Buildings, floors, rooms, room space layout, and capacity setup.",
+    ar: "المباني، الطوابق، الغرف، الروم سبيس فيو، وتكوين وتوزيع الأسِرّة.",
+  },
+  profiles: {
+    en: "Employee and resident profiles, documents, attachments, and notes.",
+    ar: "بيانات الموظفين والنزلاء، أرقامهم، مستنداتهم، وملاحظاتهم.",
+  },
+  reservations: {
+    en: "Advance room bookings, check-ins, cancellations, and dates.",
+    ar: "الحجوزات المسبقة، تسكينها، إلغائها، وتعديل مواعيد الوصول.",
+  },
+  accommodation: {
+    en: "Active in-house residents, check-outs, room transfers, and stay history.",
+    ar: "النزلاء المقيمين حالياً بالسكن، المغادرة، النقل، والسجل التاريخي.",
+  },
+  hosting_requests: {
+    en: "Guest and visitor hosting applications, approvals, and guest housing.",
+    ar: "طلبات استضافة الزوار والنزلاء، الموافقات، وتسكين الضيوف.",
+  },
+  housekeeping: {
+    en: "Room cleanliness status, dirty room queues, and cleaning tasks.",
+    ar: "الغرف المتسخة، الشاغرة، أوامر التنظيف، وجاهزية الغرف.",
+  },
+  maintenance: {
+    en: "Work orders, maintenance tickets, technician assignments, and repairs.",
+    ar: "بلاغات الأعطال، تكليف الفنيين، وتتبع أوامر الإصلاح.",
+  },
+  reports: {
+    en: "Detailed occupancy reports, movement tracking, and Excel/PDF exports.",
+    ar: "تقارير الإشغال المفصلة، حركات التسكين، وتصدير ملفات Excel/PDF.",
+  },
+  users: {
+    en: "System accounts, login credentials, role assignments, and permission matrix.",
+    ar: "حسابات المشرفين والموظفين، ضبط كلمات المرور، ومصفوفة الصلاحيات.",
+  },
+  properties: {
+    en: "Branch and property configurations (Restricted to Super Admin).",
+    ar: "إدارة الفنادق والفروع وبيانات المنشأة (خاص بالسوبر أدمن فقط).",
+  },
+  portal_content: {
+    en: "Employee portal announcements, feeds, self-service, and updates.",
+    ar: "أخبار البوابة، الإعلانات، استطلاعات الرأي، والخدمات الذاتية.",
+  },
+  settings: {
+    en: "System branding, logos, color scheme, password policies, and lookups.",
+    ar: "هوية النظام، الألوان، السياسات العامة، وقيم القوائم.",
+  },
+  activity_log: {
+    en: "Comprehensive security audit trail of all system actions and changes.",
+    ar: "الرقابة الأمنية والتدقيق الشامل لكافة حركات وتعديلات النظام.",
+  },
+  documents: {
+    en: "General document archive and attachments.",
+    ar: "أرشيف المستندات والوثائق العامة.",
+  },
+  billing: {
+    en: "Housing billing, utility charges, and financial exports.",
+    ar: "فواتير السكن، الرسوم والخدمات، وتصدير السجلات المالية.",
+  },
+  communications: {
+    en: "Internal announcements, broadcast alerts, and notifications.",
+    ar: "التعاميم الداخلية والتنبيهات العامة للموظفين.",
+  },
+  evaluations: {
+    en: "Employee housing satisfaction evaluations and ratings.",
+    ar: "تقييمات سكن الموظفين وجودة الخدمات ومؤشرات الرضا.",
+  },
+  surveys: {
+    en: "Staff polls, question sets, and survey feedback.",
+    ar: "استبيانات الرأي والتصويت واستطلاعات الموظفين.",
+  },
+  activities: {
+    en: "Recreational activities and staff events management.",
+    ar: "الأنشطة الترفيهية والفعاليات المنظمة للموظفين.",
+  },
+  smart_locks: {
+    en: "Smart electronic door locks, RFID cards, and digital key cards.",
+    ar: "الأقفال الإلكترونية الذكية، بطاقات الدخول، والمفاتيح الرقمية.",
+  },
 };
 
 export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {

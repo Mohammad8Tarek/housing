@@ -77,6 +77,7 @@ import {
 
 // Import extracted components
 import { PermissionMatrixDialog } from "./components/PermissionMatrixDialog";
+import { PermissionMatrixCenter } from "./components/PermissionMatrixCenter";
 import { EditUserDialog } from "./components/EditUserDialog";
 import { EditPropertiesDialog } from "./components/EditPropertiesDialog";
 import { CreateUserDialog } from "./components/CreateUserDialog";
@@ -109,6 +110,8 @@ export default function UsersPage() {
   const [unlockUser, setUnlockUser] = useState<any | null>(null);
   const [editPropsUser, setEditPropsUser] = useState<any | null>(null);
   const [signatureUser, setSignatureUser] = useState<any | null>(null);
+  const [activeMainTab, setActiveMainTab] = useState<"users" | "matrix">("users");
+  const [matrixTargetUserId, setMatrixTargetUserId] = useState<number | null>(null);
 
   const debouncedSearch = useDebounce(searchQuery, 500);
 
@@ -125,8 +128,10 @@ export default function UsersPage() {
     status: statusFilter
   });
   const { data: properties } = useListProperties();
+  const { data: allUsersRes } = useListUsers({ limit: 500 } as any);
 
   const users = _apiResponseWrapper?.data ?? [];
+  const allUsers = allUsersRes?.data ?? users;
   const pagination = _apiResponseWrapper?.pagination;
 
   const invalidate = () =>
@@ -380,20 +385,72 @@ export default function UsersPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ColumnChooser
-            cols={USER_COLS}
-            visible={uVisible}
-            onToggle={uToggle}
-            onShowAll={uShowAll}
-            onHideAll={uHideAll}
-            ar={ar}
-          />
-          <PermissionGate module="users" action="create">
-            <CreateUserDialog properties={properties ?? []} />
-          </PermissionGate>
-        </div>
+        {activeMainTab === "users" && (
+          <div className="flex items-center gap-2">
+            <ColumnChooser
+              cols={USER_COLS}
+              visible={uVisible}
+              onToggle={uToggle}
+              onShowAll={uShowAll}
+              onHideAll={uHideAll}
+              ar={ar}
+            />
+            <PermissionGate module="users" action="create">
+              <CreateUserDialog properties={properties ?? []} />
+            </PermissionGate>
+          </div>
+        )}
       </div>
+
+      {/* ── Main Section Tabs: Users List vs Permissions Center ── */}
+      <div className="flex border-b overflow-x-auto no-scrollbar gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("users")}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+            activeMainTab === "users"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>{ar ? "قائمة المستخدمين والحسابات" : "Users & Accounts"}</span>
+          <Badge variant="secondary" className="text-xs px-2 py-0 font-semibold ms-1">
+            {stats.total}
+          </Badge>
+        </button>
+
+        <PermissionGate module="users" action="manage_permissions">
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("matrix")}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+              activeMainTab === "matrix"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-[#C9A24D]" />
+            <span>{ar ? "مركز ومصفوفة الصلاحيات الشاملة" : "Permissions Center"}</span>
+            <Badge
+              variant="outline"
+              className="text-xs px-2 py-0 font-semibold border-amber-500/30 text-amber-600 dark:text-amber-400 ms-1"
+            >
+              {stats.customPermissionUsers} {ar ? "مخصص" : "custom"}
+            </Badge>
+          </button>
+        </PermissionGate>
+      </div>
+
+      {activeMainTab === "matrix" ? (
+        <PermissionMatrixCenter
+          users={allUsers}
+          selectedUserId={matrixTargetUserId}
+          onSelectUser={(uid) => setMatrixTargetUserId(uid)}
+          properties={properties ?? []}
+        />
+      ) : (
+        <>
 
       {/* ── Stats Cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1082,7 +1139,19 @@ export default function UsersPage() {
                                 >
                                   <Shield className="w-4 h-4 me-2 text-[#C9A24D]" />
                                   <span>
-                                    {ar ? "تعديل الصلاحيات" : "Edit Permissions"}
+                                    {ar ? "تعديل سريع للصلاحيات" : "Quick Permissions Edit"}
+                                  </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setMatrixTargetUserId(u.id);
+                                    setActiveMainTab("matrix");
+                                  }}
+                                  className="cursor-pointer text-[#C9A24D] font-medium"
+                                >
+                                  <ShieldCheck className="w-4 h-4 me-2 text-[#C9A24D]" />
+                                  <span>
+                                    {ar ? "مركز الصلاحيات الشامل" : "Full Permissions Center"}
                                   </span>
                                 </DropdownMenuItem>
                               </PermissionGate>
@@ -1213,6 +1282,9 @@ export default function UsersPage() {
           )}
         </div>
       )}
+        </>
+      )}
     </div>
   );
 }
+
