@@ -15,6 +15,24 @@ export async function runAutoSeeder() {
     return;
   }
 
+  // SAFETY GUARD: NEVER seed or truncate if database already has data or in production!
+  try {
+    const client = await pool.connect();
+    try {
+      const { rows } = await client.query("SELECT count(*) as count FROM properties;");
+      if (Number(rows[0]?.count || 0) > 0) {
+        logger.info("[seeder] Database already contains properties/data. Skipping auto-seeder to protect existing data.");
+        // Mark as done so it never runs again
+        try { fs.writeFileSync(doneFilePath, "skipped_existing_data", "utf-8"); } catch {}
+        return;
+      }
+    } finally {
+      client.release();
+    }
+  } catch {
+    // If query fails, continue safely
+  }
+
   logger.info("Starting automatic data migration from seed-data.json...");
 
   try {
