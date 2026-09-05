@@ -377,6 +377,43 @@ router.post(
         };
       }
 
+      // ── فحص التسكين في غرفة بها شخص بمفرده أو حجز غرفة كاملة ───────────
+      const activeAssignmentsInRoom = await tenantDb
+        .select({ id: assignmentsTable.id })
+        .from(assignmentsTable)
+        .where(
+          and(
+            eq(assignmentsTable.roomId, parsed.data.roomId),
+            eq(assignmentsTable.status, "ACTIVE"),
+          ),
+        );
+
+      const effectiveOccupancy = Math.max(room.currentOccupancy ?? 0, activeAssignmentsInRoom.length);
+      const authUser = (req as any).user;
+      const sInfo = su(req);
+      const userRole = (authUser?.roles?.[0] || sInfo.userRole || "").toLowerCase();
+      const userPerms: string[] = Array.isArray(authUser?.permissions) ? authUser.permissions : [];
+      const hasOverridePerm =
+        ["super_admin", "system_admin", "admin", "housing_manager", "manager"].includes(userRole) ||
+        userPerms.includes("accommodation.override_single_occupancy") ||
+        userPerms.includes("reservations.override_single_occupancy");
+
+      if (room.capacity > 1 && effectiveOccupancy === 1 && !hasOverridePerm) {
+        return {
+          error: "هذه الغرفة يشغلها شخص بمفرده وبها أسِرّة شاغرة. تسكين نزيل إضافي يتطلب صلاحية إدارية استثنائية (override_single_occupancy).",
+          code: "PERMISSION_DENIED_SINGLE_OCCUPANCY",
+          status: 403,
+        };
+      }
+
+      if (isEntireRoomRequested && room.capacity > 1 && !hasOverridePerm) {
+        return {
+          error: "حجز غرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية (override_single_occupancy).",
+          code: "PERMISSION_DENIED_ENTIRE_ROOM",
+          status: 403,
+        };
+      }
+
       // ── 2. منع التسكين المزدوج لنفس الموظف ─────────────────────────────────
       const existingActive = await tenantDb
         .select({ id: assignmentsTable.id, roomId: assignmentsTable.roomId })

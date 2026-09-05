@@ -46,7 +46,8 @@ export type Action =
   | "audit"
   | "publish"
   | "archive"
-  | "unlock";
+  | "unlock"
+  | "override_single_occupancy";
 
 export const ACTIONS: Action[] = [
   "view",
@@ -68,6 +69,7 @@ export const ACTIONS: Action[] = [
   "publish",
   "archive",
   "unlock",
+  "override_single_occupancy",
 ];
 
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
@@ -97,6 +99,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "bulk_delete",
     "bulk_export",
     "archive",
+    "override_single_occupancy",
   ],
   reservations: [
     "view",
@@ -107,6 +110,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "approve",
     "bulk_export",
     "archive",
+    "override_single_occupancy",
   ],
   maintenance: [
     "view",
@@ -226,12 +230,14 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "accommodation.bulk_delete",
     "accommodation.bulk_export",
     "accommodation.archive",
+    "accommodation.override_single_occupancy",
     // Reservations
     ...crudPerms("reservations"),
     "reservations.checkin",
     "reservations.checkout",
     "reservations.bulk_export",
     "reservations.archive",
+    "reservations.override_single_occupancy",
     // Hosting Requests
     ...crudPerms("hosting_requests"),
     // Guest Housing
@@ -498,6 +504,10 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   publish: { en: "Publish", ar: "نشر" },
   archive: { en: "Archive", ar: "أرشفة" },
   unlock: { en: "Unlock", ar: "فتح القفل" },
+  override_single_occupancy: {
+    en: "Assign Room with Single Occupant / Full Room",
+    ar: "تسكين غرفة بها نزيل بمفرده / حجز غرفة كاملة",
+  },
 };
 
 export const PERMISSION_GROUPS: Array<{

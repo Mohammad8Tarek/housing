@@ -47,6 +47,7 @@ export const PERMISSION_ACTIONS = [
   "publish",
   "archive",
   "unlock",
+  "override_single_occupancy",
 ] as const;
 
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
@@ -134,6 +135,8 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "accommodation.bulk_delete",
     "accommodation.bulk_export",
     "accommodation.archive",
+    "accommodation.override_single_occupancy",
+    "reservations.override_single_occupancy",
     "guest_hosting.view",
     "guest_hosting.create",
     "guest_hosting.edit",

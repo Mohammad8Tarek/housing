@@ -256,6 +256,81 @@ router.post(
               status: 409,
             };
           }
+
+          // فحص التسكين النشط على نفس السرير
+          const [existingActiveBed] = await tenantDb
+            .select({
+              id: assignmentsTable.id,
+              firstName: profilesTable.firstName,
+              lastName: profilesTable.lastName,
+            })
+            .from(assignmentsTable)
+            .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+            .where(
+              and(
+                eq(assignmentsTable.roomId, rId),
+                eq(assignmentsTable.bedNumber, parseInt(bedNum)),
+                eq(assignmentsTable.status, "ACTIVE"),
+              ),
+            )
+            .limit(1);
+
+          if (existingActiveBed) {
+            return {
+              error: `السرير رقم ${bedNum} مشغول حالياً بالموظف (${existingActiveBed.firstName || ""} ${existingActiveBed.lastName || ""}) ومقيم بالسكن. لا يمكن اختياره.`,
+              code: "BED_ALREADY_OCCUPIED",
+              status: 409,
+            };
+          }
+        }
+
+        // ── فحص التسكين في غرفة بها شخص بمفرده أو حجز غرفة كاملة ───────────
+        if (rId) {
+          const [roomData] = await tenantDb
+            .select({
+              capacity: roomsTable.capacity,
+              currentOccupancy: roomsTable.currentOccupancy,
+            })
+            .from(roomsTable)
+            .where(eq(roomsTable.id, rId))
+            .limit(1);
+
+          if (roomData && roomData.capacity > 1) {
+            const activeInRoom = await tenantDb
+              .select({ id: assignmentsTable.id })
+              .from(assignmentsTable)
+              .where(
+                and(
+                  eq(assignmentsTable.roomId, rId),
+                  eq(assignmentsTable.status, "ACTIVE"),
+                ),
+              );
+            const effOcc = Math.max(roomData.currentOccupancy ?? 0, activeInRoom.length);
+            const authUser = (req as any).user;
+            const sInfo = su(req);
+            const userRole = (authUser?.roles?.[0] || sInfo.userRole || "").toLowerCase();
+            const userPerms: string[] = Array.isArray(authUser?.permissions) ? authUser.permissions : [];
+            const hasOverridePerm =
+              ["super_admin", "system_admin", "admin", "housing_manager", "manager"].includes(userRole) ||
+              userPerms.includes("reservations.override_single_occupancy") ||
+              userPerms.includes("accommodation.override_single_occupancy");
+
+            if (effOcc === 1 && !hasOverridePerm) {
+              return {
+                error: "هذه الغرفة يشغلها شخص بمفرده وبها أسِرّة شاغرة. حجز سرير إضافي بها يتطلب صلاحية إدارية استثنائية (override_single_occupancy).",
+                code: "PERMISSION_DENIED_SINGLE_OCCUPANCY",
+                status: 403,
+              };
+            }
+
+            if (bedNum === "ALL" && !hasOverridePerm) {
+              return {
+                error: "حجز غرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية (override_single_occupancy).",
+                code: "PERMISSION_DENIED_ENTIRE_ROOM",
+                status: 403,
+              };
+            }
+          }
         }
 
         let finalNotes = notes;

@@ -66,8 +66,9 @@ import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
   Building, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
-  Phone, CreditCard, AlertCircle, Lock,
+  Phone, CreditCard, AlertCircle, Lock, AlertTriangle,
 } from "lucide-react";
+import { usePermission } from "@/hooks/use-permission";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 
 type ProfileResult = {
@@ -309,8 +310,25 @@ export default function ReservationsPage() {
   const floors = Array.isArray(_fData)
     ? _fData
     : (((_fData as any)?.data as any[]) || []);
-  const { data: _aData } = useListAssignments({ propertyId: activePropertyId } as any, { query: { enabled: !!activePropertyId, staleTime: 30000 } });
-  const allAssignments = _aData?.data || [];
+  const { isSuperAdmin, isAdmin, hasRole, can } = usePermission();
+  const canOverrideSingleOccupancy =
+    isSuperAdmin ||
+    isAdmin ||
+    hasRole("super_admin") ||
+    hasRole("admin") ||
+    hasRole("housing_manager") ||
+    hasRole("manager") ||
+    can("reservations", "override_single_occupancy") ||
+    can("accommodation", "override_single_occupancy");
+
+  const { data: _aData } = useListAssignments(
+    { propertyId: activePropertyId, limit: 5000 } as any,
+    { query: { enabled: !!activePropertyId, staleTime: 30000 } }
+  );
+  const allAssignments = Array.isArray(_aData)
+    ? _aData
+    : (((_aData as any)?.data as any[]) || []);
+
   const { data: _pData } = useListProperties();
   const allProperties = _pData?.data || _pData || [];
   const { data: settings } = useGetSettings({ query: { enabled: !!activePropertyId } });
@@ -332,17 +350,94 @@ export default function ReservationsPage() {
     return jobTitleValues.filter((t: any) => !t.parentValue || t.parentValue === editForm.department);
   }, [jobTitleValues, editForm.department]);
 
-  const occupiedBeds = new Set(
-    allAssignments.filter((a: any) => a.status === "ACTIVE" && a.roomId === parseInt(selectedRoomId) && a.bedNumber != null).map((a: any) => a.bedNumber),
-  );
+  // Active assignments indexed by roomId
+  const roomActiveAssignmentsMap = useMemo(() => {
+    const map = new Map<number, any[]>();
+    for (const a of allAssignments) {
+      if (a.status === "ACTIVE") {
+        const rId = Number(a.roomId);
+        if (!map.has(rId)) map.set(rId, []);
+        map.get(rId)!.push(a);
+      }
+    }
+    return map;
+  }, [allAssignments]);
 
   const entireRoomOccupiedSet = useMemo(() => {
     const set = new Set<number>();
     allAssignments
       .filter((a: any) => a.status === "ACTIVE" && (a.isEntireRoom || a.is_entire_room))
-      .forEach((a: any) => set.add(a.roomId));
+      .forEach((a: any) => set.add(Number(a.roomId)));
     return set;
   }, [allAssignments]);
+
+  // Single occupant rooms: capacity > 1 and currently occupied by exactly 1 person
+  const singleOccupantRoomsMap = useMemo(() => {
+    const map = new Map<number, { residentName: string }>();
+    for (const room of rooms) {
+      const cap = room.capacity ?? 1;
+      if (cap <= 1) continue;
+      const rId = Number(room.id);
+      const activeList = roomActiveAssignmentsMap.get(rId) || [];
+      const occ = room.currentOccupancy ?? 0;
+      const effectiveOcc = Math.max(occ, activeList.length);
+      const isEntire = entireRoomOccupiedSet.has(rId);
+
+      if (effectiveOcc === 1 || (isEntire && cap > 1)) {
+        const first = activeList[0];
+        const name = first
+          ? [first.profileFirstName || first.firstName, first.profileLastName || first.lastName].filter(Boolean).join(" ") || first.employeeName || first.profileName || (ar ? "نزيل مسكن" : "Resident")
+          : (ar ? "نزيل بمفرده" : "Single Resident");
+        map.set(rId, { residentName: name });
+      }
+    }
+    return map;
+  }, [rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar]);
+
+  // Bed occupants map for currently selected room
+  const selectedRoomBedMap = useMemo(() => {
+    const map = new Map<number, { residentName: string }>();
+    if (!selectedRoomId) return map;
+    const rId = parseInt(selectedRoomId);
+    const room = rooms.find((r: any) => r.id === rId);
+    const cap = room?.capacity ?? 1;
+    const activeList = roomActiveAssignmentsMap.get(rId) || [];
+    const isEntire = entireRoomOccupiedSet.has(rId);
+
+    if (isEntire) {
+      for (let b = 1; b <= cap; b++) {
+        map.set(b, { residentName: ar ? "محجوز (غرفة كاملة)" : "Occupied (Full Room)" });
+      }
+      return map;
+    }
+
+    const unassigned: string[] = [];
+    for (const a of activeList) {
+      const name = [a.profileFirstName || a.firstName, a.profileLastName || a.lastName].filter(Boolean).join(" ") || a.employeeName || a.profileName || (ar ? "نزيل مسكن" : "Resident");
+      if (a.bedNumber != null && Number(a.bedNumber) > 0) {
+        map.set(Number(a.bedNumber), { residentName: name });
+      } else {
+        unassigned.push(name);
+      }
+    }
+
+    let nextBed = 1;
+    for (const name of unassigned) {
+      while (nextBed <= cap && map.has(nextBed)) {
+        nextBed++;
+      }
+      if (nextBed <= cap) {
+        map.set(nextBed, { residentName: name });
+        nextBed++;
+      }
+    }
+
+    return map;
+  }, [selectedRoomId, rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar]);
+
+  const occupiedBeds = useMemo(() => {
+    return new Set<number>(Array.from(selectedRoomBedMap.keys()));
+  }, [selectedRoomBedMap]);
 
   const availableRooms = rooms.filter(
     (r: any) => !["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase())
@@ -613,6 +708,30 @@ export default function ReservationsPage() {
     }
     if (isMultiBed && !selectedBed) {
       toast.error(ar ? "الرجاء تحديد رقم السرير أو اختيار (الغرفة كاملة)" : "Please select bed number or choose Entire Room");
+      return;
+    }
+    if (isMultiBed && selectedBed !== "ALL" && occupiedBeds.has(parseInt(selectedBed))) {
+      toast.error(
+        ar
+          ? "السرير المحدد مشغول حالياً بنزيل آخر. لا يمكن اختياره."
+          : "The selected bed is currently occupied. Cannot select.",
+      );
+      return;
+    }
+    if (selectedRoomId && singleOccupantRoomsMap.has(parseInt(selectedRoomId)) && !canOverrideSingleOccupancy) {
+      toast.error(
+        ar
+          ? "هذه الغرفة يشغلها شخص بمفرده وبها أسِرّة شاغرة. تسكين نزيل إضافي مع النزيل يتطلب صلاحية إدارية."
+          : "This room is occupied by a single resident. Assigning an additional occupant requires administrative permission.",
+      );
+      return;
+    }
+    if (selectedBed === "ALL" && isMultiBed && !canOverrideSingleOccupancy) {
+      toast.error(
+        ar
+          ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية."
+          : "Reserving an entire multi-bed room requires administrative permission.",
+      );
       return;
     }
     if (bookingType === "direct" && personMode === "existing" && selectedProfile?.accommodationRoom) {
@@ -1806,15 +1925,27 @@ export default function ReservationsPage() {
                       const cap = room.capacity ?? 1;
                       const isEntireReserved = entireRoomOccupiedSet.has(room.id);
                       const isFull = occ >= cap || isEntireReserved;
+                      const isSingleOccRoom = singleOccupantRoomsMap.has(room.id);
+                      const isBlockedBySingleOcc = isSingleOccRoom && !canOverrideSingleOccupancy;
+                      const isSelectable = !isFull && !isBlockedBySingleOcc;
                       const isSel = selectedRoomId === String(room.id);
                       const freeSpots = Math.max(0, cap - occ);
+                      const singleResidentInfo = singleOccupantRoomsMap.get(room.id);
 
                       return (
                         <button
                           type="button"
                           key={room.id}
-                          disabled={isFull}
+                          disabled={!isSelectable}
                           onClick={() => {
+                            if (isBlockedBySingleOcc) {
+                              toast.error(
+                                ar
+                                  ? "هذه الغرفة يشغلها شخص بمفرده وبها أسِرّة شاغرة. تسكين نزيل إضافي مع النزيل يتطلب صلاحية إدارية."
+                                  : "This room is occupied by a single resident. Assigning an additional occupant requires administrative permission."
+                              );
+                              return;
+                            }
                             if (isFull) return;
                             setSelectedRoomId(String(room.id));
                             setSelectedBed(cap === 1 ? "1" : "");
@@ -1829,7 +1960,7 @@ export default function ReservationsPage() {
                           className={`group relative flex flex-col justify-between p-3 rounded-xl border-2 text-start transition-all duration-200 ${
                             isSel
                               ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm cursor-pointer"
-                              : isFull
+                              : !isSelectable
                               ? "border-border/60 bg-muted/50 opacity-60 cursor-not-allowed select-none"
                               : "border-border bg-card hover:border-primary/60 hover:bg-muted/30 cursor-pointer"
                           }`}
@@ -1841,7 +1972,7 @@ export default function ReservationsPage() {
                                 className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
                                   isSel
                                     ? "bg-primary text-primary-foreground"
-                                    : isFull
+                                    : !isSelectable
                                     ? "bg-muted text-muted-foreground"
                                     : "bg-muted text-foreground"
                                 }`}
@@ -1869,6 +2000,13 @@ export default function ReservationsPage() {
                               >
                                 <Lock className="w-3 h-3" />
                               </div>
+                            ) : isBlockedBySingleOcc ? (
+                              <div
+                                className="w-5 h-5 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0"
+                                title={ar ? "يتطلب صلاحية إدارية" : "Permission required"}
+                              >
+                                <Lock className="w-3 h-3" />
+                              </div>
                             ) : null}
                           </div>
 
@@ -1881,6 +2019,20 @@ export default function ReservationsPage() {
                                   {isEntireReserved
                                     ? (ar ? "محجوزة بالكامل" : "Entire Room")
                                     : (ar ? "ممتلئة (ساكنة)" : "Full / Occupied")}
+                                </span>
+                              </span>
+                            ) : isBlockedBySingleOcc ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 truncate max-w-full" title={ar ? `يشغلها بمفرده: ${singleResidentInfo?.residentName || ""}` : `Occupied alone: ${singleResidentInfo?.residentName || ""}`}>
+                                <Lock className="w-2.5 h-2.5 shrink-0" />
+                                <span className="truncate">
+                                  {ar ? "شخص بمفرده (يتطلب صلاحية)" : "Single Occupant (Req. Perm.)"}
+                                </span>
+                              </span>
+                            ) : isSingleOccRoom ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 truncate max-w-full">
+                                <span>⚠️</span>
+                                <span className="truncate">
+                                  {ar ? "شخص بمفرده (مسموح بالصلاحية)" : "Single Occupant (Authorized)"}
                                 </span>
                               </span>
                             ) : room.classification ? (
@@ -1927,6 +2079,23 @@ export default function ReservationsPage() {
               {/* SELECTION: BED OR ENTIRE ROOM */}
               {selectedRoomId && isMultiBed && (
                 <div className="space-y-3 p-3.5 rounded-xl border bg-muted/20">
+                  {/* Single Occupant Authorized Notice */}
+                  {singleOccupantRoomsMap.has(parseInt(selectedRoomId)) && (
+                    <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block">
+                          {ar ? "تنبيه: غرفة يشغلها نزيل بمفرده" : "Notice: Room Occupied by Single Resident"}
+                        </span>
+                        <span>
+                          {ar
+                            ? `هذه الغرفة يشغلها حالياً النزيل (${singleOccupantRoomsMap.get(parseInt(selectedRoomId))?.residentName || ""}) بمفرده وبها أسِرّة شاغرة. أنت تقوم بالتسكين المشترك بموجب الصلاحية الإدارية الاستثنائية الممنوحة لك.`
+                            : `This room is currently occupied by (${singleOccupantRoomsMap.get(parseInt(selectedRoomId))?.residentName || ""}) alone. You are assigning shared occupancy under your administrative override permission.`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-semibold">
                       {ar ? "تحديد السرير أو الغرفة كاملة" : "Bed or Full Room Selection"} <span className="text-destructive">*</span>
@@ -1951,16 +2120,32 @@ export default function ReservationsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <button
                       type="button"
-                      onClick={() => setSelectedBed("ALL")}
+                      disabled={!canOverrideSingleOccupancy}
+                      onClick={() => {
+                        if (!canOverrideSingleOccupancy) {
+                          toast.error(
+                            ar
+                              ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية."
+                              : "Reserving an entire multi-bed room for a single person requires administrative permission."
+                          );
+                          return;
+                        }
+                        setSelectedBed("ALL");
+                      }}
                       className={`p-3 rounded-lg border-2 text-sm font-semibold flex items-center justify-between transition-all ${
                         selectedBed === "ALL"
                           ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/30"
-                          : "border-border hover:border-primary/50 hover:bg-background"
+                          : !canOverrideSingleOccupancy
+                          ? "border-border bg-muted/40 opacity-60 cursor-not-allowed"
+                          : "border-border hover:border-primary/50 hover:bg-background cursor-pointer"
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <Building className="w-4 h-4 text-primary" />
                         <span className="text-xs font-bold">{ar ? "حجز الغرفة بالكامل (خاص)" : "Entire Room (Full Lock)"}</span>
+                        {!canOverrideSingleOccupancy && (
+                          <Lock className="w-3 h-3 text-muted-foreground ml-1" />
+                        )}
                       </div>
                       {selectedBed === "ALL" && <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />}
                     </button>
@@ -1978,21 +2163,36 @@ export default function ReservationsPage() {
                       {bedOptions.map((bed) => {
                         const isOcc = occupiedBeds.has(bed);
                         const isSel = selectedBed === String(bed);
+                        const occInfo = selectedRoomBedMap.get(bed);
                         return (
                           <button
                             key={bed}
                             type="button"
                             disabled={isOcc}
-                            onClick={() => setSelectedBed(String(bed))}
-                            className={`min-w-[50px] h-10 px-3 rounded-lg border-2 text-xs font-bold transition-all ${
+                            onClick={() => {
+                              if (isOcc) return;
+                              setSelectedBed(String(bed));
+                            }}
+                            title={
+                              isOcc
+                                ? `${ar ? "سرير مشغول" : "Bed Occupied"}: ${occInfo?.residentName || ""}`
+                                : undefined
+                            }
+                            className={`min-w-[80px] h-10 px-3 rounded-lg border-2 text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 ${
                               isSel
                                 ? "border-primary bg-primary text-primary-foreground shadow-xs"
                                 : isOcc
-                                ? "border-border bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
-                                : "border-border hover:border-primary hover:bg-primary/10"
+                                ? "border-destructive/30 bg-destructive/10 text-destructive cursor-not-allowed opacity-75 select-none"
+                                : "border-border hover:border-primary hover:bg-primary/10 cursor-pointer"
                             }`}
                           >
-                            {ar ? `سرير ${bed}` : `Bed ${bed}`}
+                            {isOcc && <Lock className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                            <span>{ar ? `سرير ${bed}` : `Bed ${bed}`}</span>
+                            {isOcc && (
+                              <span className="text-[10px] font-normal opacity-90 truncate max-w-[130px]">
+                                ({occInfo?.residentName || (ar ? "مشغول" : "Occupied")})
+                              </span>
+                            )}
                           </button>
                         );
                       })}

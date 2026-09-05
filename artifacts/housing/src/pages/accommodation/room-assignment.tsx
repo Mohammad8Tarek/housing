@@ -53,7 +53,9 @@ import {
   AlertTriangle,
   Key,
   Printer,
+  Lock,
 } from "lucide-react";
+import { usePermission } from "@/hooks/use-permission";
 import {
   Dialog,
   DialogContent,
@@ -255,11 +257,22 @@ export default function RoomAssignment() {
   const floors: Floor[] = Array.isArray(_fData)
     ? _fData
     : (((_fData as any)?.data as Floor[] | undefined) || []);
+  const { isSuperAdmin, isAdmin, hasRole, can } = usePermission();
+  const canOverrideSingleOccupancy =
+    isSuperAdmin ||
+    isAdmin ||
+    hasRole("super_admin") ||
+    hasRole("admin") ||
+    hasRole("housing_manager") ||
+    hasRole("manager") ||
+    can("accommodation", "override_single_occupancy") ||
+    can("reservations", "override_single_occupancy");
+
   const { data: _aData } = useListAssignments(
-    { propertyId: activePropertyId as number },
+    { propertyId: activePropertyId as number, limit: 5000 } as any,
     {
       query: {
-        queryKey: ["/api/assignments", activePropertyId],
+        queryKey: ["/api/assignments", activePropertyId, 5000],
         enabled: !!activePropertyId,
         staleTime: 30000,
       },
@@ -270,6 +283,19 @@ export default function RoomAssignment() {
     ? _aData
     : (((_aData as unknown as { data?: Assignment[] })?.data as Assignment[] | undefined) || []);
 
+  // Active assignments indexed by roomId
+  const roomActiveAssignmentsMap = useMemo(() => {
+    const map = new Map<number, any[]>();
+    for (const a of allAssignments) {
+      if (a.status === "ACTIVE") {
+        const rId = Number(a.roomId);
+        if (!map.has(rId)) map.set(rId, []);
+        map.get(rId)!.push(a);
+      }
+    }
+    return map;
+  }, [allAssignments]);
+
   // Build set of rooms occupied entirely by a single resident
   const entireRoomOccupiedSet = useMemo(() => {
     const set = new Set<number>();
@@ -279,21 +305,78 @@ export default function RoomAssignment() {
           a.status === "ACTIVE" &&
           (a.isEntireRoom || a.is_entire_room),
       )
-      .forEach((a: any) => set.add(a.roomId));
+      .forEach((a: any) => set.add(Number(a.roomId)));
     return set;
   }, [allAssignments]);
 
+  // Single occupant rooms: capacity > 1 and currently occupied by exactly 1 person
+  const singleOccupantRoomsMap = useMemo(() => {
+    const map = new Map<number, { residentName: string }>();
+    for (const room of rooms) {
+      const cap = room.capacity ?? 1;
+      if (cap <= 1) continue;
+      const rId = Number(room.id);
+      const activeList = roomActiveAssignmentsMap.get(rId) || [];
+      const occ = room.currentOccupancy ?? 0;
+      const effectiveOcc = Math.max(occ, activeList.length);
+      const isEntire = entireRoomOccupiedSet.has(rId);
+
+      if (effectiveOcc === 1 || (isEntire && cap > 1)) {
+        const first = activeList[0];
+        const name = first
+          ? [first.profileFirstName || first.firstName, first.profileLastName || first.lastName].filter(Boolean).join(" ") || first.employeeName || first.profileName || (ar ? "نزيل مسكن" : "Resident")
+          : (ar ? "نزيل بمفرده" : "Single Resident");
+        map.set(rId, { residentName: name });
+      }
+    }
+    return map;
+  }, [rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar]);
+
+  // Bed occupants map for currently selected room
+  const selectedRoomBedMap = useMemo(() => {
+    const map = new Map<number, { residentName: string }>();
+    if (!selectedRoomId) return map;
+    const rId = parseInt(selectedRoomId);
+    const room = rooms.find((r: any) => r.id === rId);
+    const cap = room?.capacity ?? 1;
+    const activeList = roomActiveAssignmentsMap.get(rId) || [];
+    const isEntire = entireRoomOccupiedSet.has(rId);
+
+    if (isEntire) {
+      for (let b = 1; b <= cap; b++) {
+        map.set(b, { residentName: ar ? "محجوز (غرفة كاملة)" : "Occupied (Full Room)" });
+      }
+      return map;
+    }
+
+    const unassigned: string[] = [];
+    for (const a of activeList) {
+      const name = [a.profileFirstName || a.firstName, a.profileLastName || a.lastName].filter(Boolean).join(" ") || a.employeeName || a.profileName || (ar ? "نزيل مسكن" : "Resident");
+      if (a.bedNumber != null && Number(a.bedNumber) > 0) {
+        map.set(Number(a.bedNumber), { residentName: name });
+      } else {
+        unassigned.push(name);
+      }
+    }
+
+    let nextBed = 1;
+    for (const name of unassigned) {
+      while (nextBed <= cap && map.has(nextBed)) {
+        nextBed++;
+      }
+      if (nextBed <= cap) {
+        map.set(nextBed, { residentName: name });
+        nextBed++;
+      }
+    }
+
+    return map;
+  }, [selectedRoomId, rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar]);
+
   // Build set of occupied bed numbers for the currently selected room
-  const occupiedBeds = new Set<number>(
-    allAssignments
-      .filter(
-        (a: any) =>
-          a.status === "ACTIVE" &&
-          a.roomId === parseInt(selectedRoomId) &&
-          a.bedNumber != null,
-      )
-      .map((a: any) => a.bedNumber as number),
-  );
+  const occupiedBeds = useMemo(() => {
+    return new Set<number>(Array.from(selectedRoomBedMap.keys()));
+  }, [selectedRoomBedMap]);
 
   const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
   const floorMap = Object.fromEntries(
@@ -491,6 +574,30 @@ export default function RoomAssignment() {
     }
     if (isMultiBed && !isEntireRoom && !selectedBed) {
       toast.error(ar ? "الرجاء تحديد رقم السرير" : "Please select bed number");
+      return;
+    }
+    if (isMultiBed && !isEntireRoom && occupiedBeds.has(parseInt(selectedBed))) {
+      toast.error(
+        ar
+          ? "السرير المحدد مشغول حالياً بنزيل آخر. لا يمكن التسكين عليه."
+          : "The selected bed is currently occupied. Cannot assign.",
+      );
+      return;
+    }
+    if (selectedRoom && singleOccupantRoomsMap.has(selectedRoom.id) && !canOverrideSingleOccupancy) {
+      toast.error(
+        ar
+          ? "تسكين نزيل إضافي في غرفة يشغلها شخص بمفرده يتطلب صلاحية إدارية استثنائية (override_single_occupancy)."
+          : "Assigning an additional occupant to a single-occupant room requires administrative permission.",
+      );
+      return;
+    }
+    if (isEntireRoom && selectedRoom && selectedRoom.capacity > 1 && !canOverrideSingleOccupancy) {
+      toast.error(
+        ar
+          ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية."
+          : "Reserving an entire multi-bed room requires administrative permission.",
+      );
       return;
     }
 
@@ -942,7 +1049,6 @@ export default function RoomAssignment() {
                   }
                 />
               </SelectTrigger>
-              {/* ✅ الحل الرئيسي: position="popper" + max-h ثابت */}
               <SelectContent
                 position="popper"
                 sideOffset={4}
@@ -961,16 +1067,19 @@ export default function RoomAssignment() {
                   sortedFilteredRooms.map((r) => {
                     const isEntireReserved = entireRoomOccupiedSet.has(r.id);
                     const isFull = r.currentOccupancy >= r.capacity || isEntireReserved;
+                    const isSingleOccRoom = singleOccupantRoomsMap.has(r.id);
+                    const isBlockedBySingleOcc = isSingleOccRoom && !canOverrideSingleOccupancy;
+                    const isDisabled = isFull || isBlockedBySingleOcc;
                     const building = buildingMap[r.buildingId] ?? "—";
                     const floor = floorMap[r.floorId];
                     return (
                       <SelectItem
                         key={r.id}
                         value={String(r.id)}
-                        disabled={isFull}
+                        disabled={isDisabled}
                       >
                         <div
-                          className={`flex items-center gap-2 ${isFull ? "opacity-50" : ""}`}
+                          className={`flex items-center gap-2 ${isDisabled ? "opacity-50" : ""}`}
                         >
                           <span className="font-mono font-bold text-primary">
                             {r.roomNumber}
@@ -992,18 +1101,34 @@ export default function RoomAssignment() {
                             </span>
                           )}
                           <Badge
-                            variant={isFull ? "destructive" : "outline"}
-                            className={`text-[9px] h-4 py-0 ${isEntireReserved ? "bg-purple-700 text-white border-purple-800" : ""}`}
+                            variant={isFull ? "destructive" : isBlockedBySingleOcc ? "outline" : "outline"}
+                            className={`text-[9px] h-4 py-0 ${
+                              isEntireReserved
+                                ? "bg-purple-700 text-white border-purple-800"
+                                : isBlockedBySingleOcc
+                                ? "bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30"
+                                : isSingleOccRoom
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300"
+                                : ""
+                            }`}
                           >
                             {isEntireReserved
                               ? ar
                                 ? "محجوزة بالكامل (فردي)"
                                 : "ENTIRE ROOM"
                               : isFull
-                                ? ar
-                                  ? "ممتلئة"
-                                  : "FULL"
-                                : r.roomType}
+                              ? ar
+                                ? "ممتلئة"
+                                : "FULL"
+                              : isBlockedBySingleOcc
+                              ? ar
+                                ? "شخص بمفرده (يتطلب صلاحية)"
+                                : "SINGLE OCCUPANT (REQ. PERM)"
+                              : isSingleOccRoom
+                              ? ar
+                                ? "شخص بمفرده (مسموح بالصلاحية)"
+                                : "SINGLE OCCUPANT (AUTH)"
+                              : r.roomType}
                           </Badge>
                           {r.classification && (
                             <span
@@ -1021,7 +1146,7 @@ export default function RoomAssignment() {
                             </span>
                           )}
                           <span
-                            className={`text-[10px] font-medium ${isFull ? "text-red-500" : "text-muted-foreground"}`}
+                            className={`text-[10px] font-medium ${isFull ? "text-red-500" : isBlockedBySingleOcc ? "text-amber-600 font-bold" : "text-muted-foreground"}`}
                           >
                             {r.currentOccupancy}/{r.capacity}
                           </span>
@@ -1129,6 +1254,22 @@ export default function RoomAssignment() {
                       </p>
                     </div>
                   ) : null}
+                  {/* Single Occupant Authorized Notice */}
+                  {selectedRoom && singleOccupantRoomsMap.has(selectedRoom.id) && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block">
+                          {ar ? "تنبيه: غرفة يشغلها نزيل بمفرده" : "Notice: Room Occupied by Single Resident"}
+                        </span>
+                        <span>
+                          {ar
+                            ? `هذه الغرفة يشغلها حالياً النزيل (${singleOccupantRoomsMap.get(selectedRoom.id)?.residentName || ""}) بمفرده وبها أسِرّة شاغرة. أنت تقوم بالتسكين المشترك بموجب الصلاحية الإدارية الاستثنائية الممنوحة لك.`
+                            : `This room is currently occupied by (${singleOccupantRoomsMap.get(selectedRoom.id)?.residentName || ""}) alone. You are assigning shared occupancy under your administrative override permission.`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </>
               );
             })()}
@@ -1149,8 +1290,16 @@ export default function RoomAssignment() {
                       type="checkbox"
                       id="entire-room-toggle"
                       checked={isEntireRoom}
-                      disabled={selectedRoom.currentOccupancy > 0}
+                      disabled={selectedRoom.currentOccupancy > 0 || (!canOverrideSingleOccupancy && selectedRoom.capacity > 1)}
                       onChange={(e) => {
+                        if (!canOverrideSingleOccupancy && selectedRoom.capacity > 1) {
+                          toast.error(
+                            ar
+                              ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية."
+                              : "Reserving an entire multi-bed room for a single person requires administrative permission."
+                          );
+                          return;
+                        }
                         const checked = e.target.checked;
                         setIsEntireRoom(checked);
                         if (checked) {
@@ -1207,30 +1356,36 @@ export default function RoomAssignment() {
                 {bedOptions.map((bed) => {
                   const isTaken = occupiedBeds.has(bed);
                   const isSelected = selectedBed === String(bed);
+                  const occInfo = selectedRoomBedMap.get(bed);
                   return (
                     <button
                       key={bed}
-                      onClick={() => !isTaken && setSelectedBed(String(bed))}
+                      type="button"
+                      onClick={() => {
+                        if (isTaken) return;
+                        setSelectedBed(String(bed));
+                      }}
                       disabled={isTaken}
                       title={
                         isTaken
                           ? ar
-                            ? "هذا السرير مشغول"
-                            : "Bed already occupied"
+                            ? `سرير ${bed} مشغول بالنزيل: ${occInfo?.residentName || ""}`
+                            : `Bed ${bed} occupied by: ${occInfo?.residentName || ""}`
                           : undefined
                       }
-                      className={`relative px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                      className={`relative px-4 py-2 rounded-lg border text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
                         isTaken
-                          ? "bg-red-50 border-red-200 text-red-400 dark:bg-red-950/30 dark:border-red-800 dark:text-red-500 cursor-not-allowed opacity-70"
+                          ? "bg-destructive/10 border-destructive/30 text-destructive cursor-not-allowed opacity-75 select-none"
                           : isSelected
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                            : "bg-card hover:bg-muted border-border"
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-card hover:bg-muted border-border cursor-pointer"
                       }`}
                     >
-                      {ar ? `سرير ${bed}` : `Bed ${bed}`}
+                      {isTaken && <Lock className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                      <span>{ar ? `سرير ${bed}` : `Bed ${bed}`}</span>
                       {isTaken && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-                          <X className="w-2.5 h-2.5 text-white" />
+                        <span className="text-[10px] font-normal opacity-90 truncate max-w-[130px]">
+                          ({occInfo?.residentName || (ar ? "مشغول" : "Occupied")})
                         </span>
                       )}
                     </button>
