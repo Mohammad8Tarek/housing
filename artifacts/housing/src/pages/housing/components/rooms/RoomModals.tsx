@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
+import { roomStatusBadge, getRoomStatusLabel } from "../../utils";
 import {
   Dialog,
   DialogContent,
@@ -467,25 +468,17 @@ export function RoomModals({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "??????" : "Status"}</Label>
-                  <Select
-                    value={rForm.status}
-                    onValueChange={(v) =>
-                      setRForm((p: any) => ({ ...p, status: v }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="available">?? {ar ? "????? (????? ??????)" : "Vacant (Clean)"}</SelectItem>
-                      <SelectItem value="dirty">?? {ar ? "????? (????? ?????? ?????)" : "Dirty (Vacant)"}</SelectItem>
-                      <SelectItem value="occupied">?? {ar ? "??????? ???? (?????? ??????)" : "Occupied Clean"}</SelectItem>
-                      <SelectItem value="occupied_dirty">?? {ar ? "????? ??????? (?????? ?????? ?????)" : "Occupied Dirty"}</SelectItem>
-                      <SelectItem value="out_of_service">?? {ar ? "??? ??? ?????? (????? ?????)" : "Out of Service"}</SelectItem>
-                      <SelectItem value="out_of_order">?? {ar ? "??? ??? ????? (???? ??????)" : "Out of Order"}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>{ar ? "حالة الغرفة" : "Room Status"}</Label>
+                  <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/40 text-xs">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${roomStatusBadge(rForm.status || "available")}`}
+                    >
+                      {getRoomStatusLabel(rForm.status || "available", ar)}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      ({ar ? "تدار عبر الهاوس كيبنج" : "Managed via Housekeeping"})
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

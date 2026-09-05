@@ -22,7 +22,6 @@ type Props = {
   selectedRoomIds: Set<number>;
   onToggleRoom: (id: number) => void;
   onToggleAll: () => void;
-  onUpdateRoomStatus?: (roomId: number, newStatus: string) => Promise<void>;
 };
 
 export function RoomsTable({
@@ -35,7 +34,6 @@ export function RoomsTable({
   selectedRoomIds,
   onToggleRoom,
   onToggleAll,
-  onUpdateRoomStatus,
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -149,74 +147,11 @@ export function RoomsTable({
                   </span>
                 </td>
                 <td className="p-3">
-                  {onUpdateRoomStatus ? (
-                    <PermissionGate
-                      module="housing"
-                      action="edit"
-                      fallback={
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${roomStatusBadge(r.status)}`}
-                        >
-                          {getRoomStatusLabel(r.status, ar)}
-                        </span>
-                      }
-                    >
-                      <Select
-                        value={r.status}
-                        onValueChange={(newStatus) => onUpdateRoomStatus(r.id, newStatus)}
-                      >
-                        <SelectTrigger
-                          className={`h-7 px-2.5 py-0.5 rounded-full text-xs font-semibold border shadow-none cursor-pointer w-auto min-w-[125px] max-w-[170px] ${roomStatusBadge(r.status)}`}
-                        >
-                          <SelectValue>{getRoomStatusLabel(r.status, ar)}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="available">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                              <span>{ar ? "شاغرة (فيكنت)" : "Vacant Clean"}</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="dirty">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                              <span>{ar ? "تحتاج تنظيف" : "Vacant Dirty"}</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="occupied">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                              <span>{ar ? "مشغولة" : "Occupied Clean"}</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="occupied_dirty">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
-                              <span>{ar ? "مشغولة (تحتاج تنظيف)" : "Occupied Dirty"}</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="out_of_service">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                              <span>{ar ? "صيانة مؤقتة" : "Out of Service"}</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="out_of_order">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                              <span>{ar ? "خارج الخدمة" : "Out of Order"}</span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </PermissionGate>
-                  ) : (
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${roomStatusBadge(r.status)}`}
-                    >
-                      {getRoomStatusLabel(r.status, ar)}
-                    </span>
-                  )}
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${roomStatusBadge(r.status)}`}
+                  >
+                    {getRoomStatusLabel(r.status, ar)}
+                  </span>
                 </td>
                 <td className="p-3">
                   <div className="flex items-center gap-1 justify-end">

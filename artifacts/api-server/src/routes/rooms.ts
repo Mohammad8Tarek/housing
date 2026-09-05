@@ -946,7 +946,7 @@ router.post(
           try { await tenantDb.execute(sql`DELETE FROM reservations WHERE room_id IN (${deletableSql})`); } catch {}
           try { await tenantDb.execute(sql`DELETE FROM assignments WHERE room_id IN (${deletableSql}) AND status != 'ACTIVE'`); } catch {}
           try { await tenantDb.execute(sql`DELETE FROM hostings WHERE room_id IN (${deletableSql})`); } catch {}
-          try { await tenantDb.execute(sql`DELETE FROM maintenance_requests WHERE room_id IN (${deletableSql})`); } catch {}
+          try { await tenantDb.execute(sql`DELETE FROM maintenance WHERE room_id IN (${deletableSql})`); } catch {}
 
           await tenantDb
             .delete(roomsTable)
@@ -1040,7 +1040,7 @@ router.delete(
       try { await tenantDb.execute(sql`DELETE FROM reservations WHERE room_id = ${roomId}`); } catch {}
       try { await tenantDb.execute(sql`DELETE FROM assignments WHERE room_id = ${roomId} AND status != 'ACTIVE'`); } catch {}
       try { await tenantDb.execute(sql`DELETE FROM hostings WHERE room_id = ${roomId}`); } catch {}
-      try { await tenantDb.execute(sql`DELETE FROM maintenance_requests WHERE room_id = ${roomId}`); } catch {}
+      try { await tenantDb.execute(sql`DELETE FROM maintenance WHERE room_id = ${roomId}`); } catch {}
 
       await tenantDb
         .delete(roomsTable)

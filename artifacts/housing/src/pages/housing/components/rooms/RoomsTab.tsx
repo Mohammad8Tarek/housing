@@ -356,74 +356,6 @@ export function RoomsTab({
     XLSX.writeFile(wb, getExportFileName("Rooms", "xlsx"));
   };
 
-  const bulkUpdateStatus = async (status: string) => {
-    const ids = Array.from(selectedRoomIds);
-    if (ids.length === 0) return;
-    try {
-      const token =
-        localStorage.getItem("auth_token") ||
-        sessionStorage.getItem("auth_token");
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const results = await Promise.all(
-        ids.map((id) =>
-          fetch(`/api/rooms/${id}?propertyId=${propertyId}`, {
-            method: "PATCH",
-            headers,
-            credentials: "include",
-            body: JSON.stringify({ status, propertyId }),
-          }),
-        ),
-      );
-      const allOk = results.every((r) => r.ok);
-      if (!allOk) {
-        toast.warning(
-          ar
-            ? "تم تحديث بعض الغرف ولكن حدث خطأ في أخرى"
-            : "Some rooms updated, but others failed",
-        );
-      } else {
-        toast.success(
-          ar ? `تم تحديث ${ids.length} غرفة بنجاح` : `Updated ${ids.length} rooms`,
-        );
-      }
-      setSelectedRoomIds(new Set());
-      invalidateAllHousingQueries();
-    } catch {
-      toast.error(ar ? "فشل التحديث الجماعي" : "Bulk update failed");
-    }
-  };
-
-  const handleUpdateRoomStatus = async (roomId: number, status: string) => {
-    try {
-      const token =
-        localStorage.getItem("auth_token") ||
-        sessionStorage.getItem("auth_token");
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const res = await fetch(`/api/rooms/${roomId}?propertyId=${propertyId}`, {
-        method: "PATCH",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({ status, propertyId }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "Failed to update status" }));
-        throw new Error(errData.error || errData.message || "Failed to update status");
-      }
-      toast.success(ar ? "تم تحديث حالة الغرفة بنجاح" : "Room status updated successfully");
-      invalidateAllHousingQueries();
-    } catch (e: any) {
-      toast.error(e.message || (ar ? "فشل تحديث الحالة" : "Failed to update status"));
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
@@ -570,52 +502,6 @@ export function RoomsTab({
           <span className="text-sm font-semibold text-primary">
             {selectedRoomIds.size} {ar ? "غرفة محددة" : "rooms selected"}
           </span>
-          <PermissionGate module="housing" action="edit">
-            <Select onValueChange={(status) => bulkUpdateStatus(status)}>
-              <SelectTrigger className="w-[200px] h-8 text-xs bg-background">
-                <SelectValue placeholder={ar ? "تغيير الحالة..." : "Change status..."} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                    <span>{ar ? "شاغرة (جاهزة)" : "Vacant Clean"}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="dirty">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                    <span>{ar ? "تحتاج تنظيف" : "Vacant Dirty"}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="occupied">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                    <span>{ar ? "مشغولة" : "Occupied Clean"}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="occupied_dirty">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-600 shrink-0" />
-                    <span>{ar ? "مشغولة (تحتاج تنظيف)" : "Occupied Dirty"}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="out_of_service">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                    <span>{ar ? "صيانة مؤقتة" : "Out of Service"}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="out_of_order">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                    <span>{ar ? "خارج الخدمة" : "Out of Order"}</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </PermissionGate>
-
           <PermissionGate module="housing" action="delete">
             <Button
               variant="destructive"
@@ -695,7 +581,6 @@ export function RoomsTab({
             setSelectedRoomIds(new Set(rData.map((r: any) => r.id)));
           }
         }}
-        onUpdateRoomStatus={handleUpdateRoomStatus}
       />
 
       {paginationMeta.total > 0 && (
