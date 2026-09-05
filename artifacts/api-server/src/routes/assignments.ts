@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, floorsTable } from "@workspace/db";
-import { eq, and, or, ilike, sql, SQL, desc, not } from "drizzle-orm";
+import { eq, and, or, ilike, sql, SQL, desc, not, count } from "drizzle-orm";
 import {
   CreateAssignmentBody,
   UpdateAssignmentBody,
@@ -637,9 +637,19 @@ router.post(
         .from(roomsTable)
         .where(eq(roomsTable.id, assignment.roomId));
       if (room) {
+        const [remainingCount] = await tenantDb
+          .select({ count: count() })
+          .from(assignmentsTable)
+          .where(
+            and(
+              eq(assignmentsTable.roomId, room.id),
+              sql`lower(${assignmentsTable.status}) = 'active'`,
+              not(eq(assignmentsTable.id, params.data.id)),
+            ),
+          );
         const newOcc = assignment.isEntireRoom
           ? 0
-          : Math.max(0, room.currentOccupancy - 1);
+          : Number(remainingCount?.count ?? 0);
         let nextRoomStatus = newOcc === 0 ? "dirty" : "occupied_dirty";
 
         if (newOcc > 0) {
@@ -892,9 +902,19 @@ router.post(
         .from(roomsTable)
         .where(eq(roomsTable.id, assignment.roomId));
       if (oldRoom) {
+        const [oldRemaining] = await tenantDb
+          .select({ count: count() })
+          .from(assignmentsTable)
+          .where(
+            and(
+              eq(assignmentsTable.roomId, oldRoom.id),
+              sql`lower(${assignmentsTable.status}) = 'active'`,
+              not(eq(assignmentsTable.id, assignment.id)),
+            ),
+          );
         const oldOcc = assignment.isEntireRoom
           ? 0
-          : Math.max(0, oldRoom.currentOccupancy - 1);
+          : Number(oldRemaining?.count ?? 0);
         await tenantDb
           .update(roomsTable)
           .set({
@@ -904,9 +924,18 @@ router.post(
           .where(eq(roomsTable.id, oldRoom.id));
       }
 
+      const [newRemaining] = await tenantDb
+        .select({ count: count() })
+        .from(assignmentsTable)
+        .where(
+          and(
+            eq(assignmentsTable.roomId, newRoom.id),
+            sql`lower(${assignmentsTable.status}) = 'active'`,
+          ),
+        );
       const newOcc = isEntireRoomRequested
         ? newRoom.capacity
-        : (isTemporaryVacationOverride ? newRoom.currentOccupancy : newRoom.currentOccupancy + 1);
+        : (isTemporaryVacationOverride ? Number(newRemaining?.count ?? 0) : Number(newRemaining?.count ?? 0) + 1);
 
       await tenantDb
         .update(roomsTable)

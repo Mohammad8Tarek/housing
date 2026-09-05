@@ -83,9 +83,9 @@ router.get(
                 ),
                 safeCount(() =>
                   tenantDb
-                    .select({ count: count() })
-                    .from(roomsTable)
-                    .where(gt(roomsTable.currentOccupancy, 0)),
+                    .select({ count: sql<number>`count(distinct ${assignmentsTable.roomId})` })
+                    .from(assignmentsTable)
+                    .where(statusEq(assignmentsTable.status, "active")),
                 ),
                 safeCount(() =>
                   tenantDb
@@ -189,7 +189,6 @@ router.get(
       const [
         totalRooms,
         occupiedRooms,
-        availableRooms,
         totalProfiles,
         activeProfilesCount,
         activeAssignments,
@@ -202,17 +201,9 @@ router.get(
         safeCount(() => tenantDb.select({ count: count() }).from(roomsTable)),
         safeCount(() =>
           tenantDb
-            .select({ count: count() })
-            .from(roomsTable)
-            .where(gt(roomsTable.currentOccupancy, 0)),
-        ),
-        safeCount(() =>
-          tenantDb
-            .select({ count: count() })
-            .from(roomsTable)
-            .where(
-              sql`${roomsTable.currentOccupancy} < ${roomsTable.capacity}`,
-            ),
+            .select({ count: sql<number>`count(distinct ${assignmentsTable.roomId})` })
+            .from(assignmentsTable)
+            .where(statusEq(assignmentsTable.status, "active")),
         ),
         safeCount(() =>
           tenantDb
@@ -256,6 +247,7 @@ router.get(
           tenantDb.select({ count: count() }).from(buildingsTable),
         ),
       ]);
+      const availableRooms = Math.max(0, totalRooms - occupiedRooms);
       return {
         totalRooms,
         occupiedRooms,
@@ -439,7 +431,7 @@ router.get(
       return;
     }
 
-    const { buildings, rooms } = await withTenant(
+    const { buildings, rooms, activeAssignments } = await withTenant(
       propertyId,
       async (tenantDb) => {
         return {
@@ -447,21 +439,27 @@ router.get(
             tenantDb.select().from(buildingsTable),
           ),
           rooms: await safeSelect(() => tenantDb.select().from(roomsTable)),
+          activeAssignments: await safeSelect(() =>
+            tenantDb
+              .select()
+              .from(assignmentsTable)
+              .where(statusEq(assignmentsTable.status, "active")),
+          ),
         };
       },
     );
 
     const result = buildings.map((b) => {
       const bRooms = rooms.filter((r) => r.buildingId === b.id);
-      const total = bRooms.length;
-      const occupied = bRooms.filter(
-        (r) => (r.currentOccupancy ?? 0) > 0,
-      ).length;
-      const capacity = bRooms.reduce((s, r) => s + (r.capacity ?? 0), 0);
-      const occupancy = bRooms.reduce(
-        (s, r) => s + (r.currentOccupancy ?? 0),
-        0,
+      const bRoomIds = new Set(bRooms.map((r) => r.id));
+      const bActiveAssignments = activeAssignments.filter(
+        (a) => a.roomId && bRoomIds.has(a.roomId),
       );
+      const occupiedRoomIds = new Set(bActiveAssignments.map((a) => a.roomId));
+      const total = bRooms.length;
+      const occupied = occupiedRoomIds.size;
+      const capacity = bRooms.reduce((s, r) => s + (r.capacity ?? 0), 0);
+      const occupancy = bActiveAssignments.length;
 
       return {
         buildingId: b.id,
