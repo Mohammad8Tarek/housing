@@ -99,6 +99,7 @@ export function GeneralSettings({
                   alt="Logo"
                 />
                 <button
+                  type="button"
                   onClick={handleRemoveLogo}
                   className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >

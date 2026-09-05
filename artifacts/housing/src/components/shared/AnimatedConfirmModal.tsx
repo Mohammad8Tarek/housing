@@ -83,12 +83,14 @@ export function AnimatedConfirmModal({
                 </AlertDialogHeader>
                 <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4 border-t border-border mt-4">
                   <AlertDialogCancel
+                    type="button"
                     onClick={() => onOpenChange(false)}
                     disabled={isLoading}
                   >
                     {cancelLabel}
                   </AlertDialogCancel>
                   <AlertDialogAction
+                    type="button"
                     className={cn(actionColor, "ml-0 sm:ml-2 mt-2 sm:mt-0")}
                     onClick={(e) => {
                       e.preventDefault();

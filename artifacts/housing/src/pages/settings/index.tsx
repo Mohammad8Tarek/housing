@@ -114,40 +114,40 @@ export default function Settings() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-7 mb-6">
-              <TabsTrigger value="general">
-                <Image className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "عام" : "General"}
-              </TabsTrigger>
-              <TabsTrigger value="departments">
-                <Building2 className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "الأقسام" : "Depts"}
-              </TabsTrigger>
-              <TabsTrigger value="job-titles">
-                <Briefcase className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "المسميات" : "Jobs"}
-              </TabsTrigger>
-              <TabsTrigger value="room-types">
-                <BedDouble className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "الغرف والتصنيفات" : "Rooms & Class"}
-              </TabsTrigger>
-              <TabsTrigger value="security">
-                <Shield className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "الأمان" : "Security"}
-              </TabsTrigger>
-              <TabsTrigger value="hr-sync">
-                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "HR" : "HR Sync"}
-              </TabsTrigger>
-              <TabsTrigger value="door-locks">
-                <KeyRound className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "الأقفال" : "Locks"}
-              </TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="grid w-full grid-cols-7 mb-6">
+            <TabsTrigger value="general">
+              <Image className="w-3.5 h-3.5 mr-1.5" />
+              {ar ? "عام" : "General"}
+            </TabsTrigger>
+            <TabsTrigger value="departments">
+              <Building2 className="w-3.5 h-3.5 mr-1.5" />
+              {ar ? "الأقسام" : "Depts"}
+            </TabsTrigger>
+            <TabsTrigger value="job-titles">
+              <Briefcase className="w-3.5 h-3.5 mr-1.5" />
+              {ar ? "المسميات" : "Jobs"}
+            </TabsTrigger>
+            <TabsTrigger value="room-types">
+              <BedDouble className="w-3.5 h-3.5 mr-1.5" />
+              {ar ? "الغرف والتصنيفات" : "Rooms & Class"}
+            </TabsTrigger>
+            <TabsTrigger value="security">
+              <Shield className="w-3.5 h-3.5 mr-1.5" />
+              {ar ? "الأمان" : "Security"}
+            </TabsTrigger>
+            <TabsTrigger value="hr-sync">
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              {ar ? "HR" : "HR Sync"}
+            </TabsTrigger>
+            <TabsTrigger value="door-locks">
+              <KeyRound className="w-3.5 h-3.5 mr-1.5" />
+              {ar ? "الأقفال" : "Locks"}
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="general" className="space-y-4">
+          <TabsContent value="general">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <GeneralSettings
                 activePropertyId={selectedPropertyId}
                 language={language}
@@ -163,97 +163,99 @@ export default function Settings() {
                   </Button>
                 </PermissionGate>
               </div>
-            </TabsContent>
+            </form>
+          </TabsContent>
 
-            <TabsContent value="departments">
-              <Card>
-                <CardContent className="pt-6">
-                  {selectedPropertyId && (
-                    <LookupSection
-                      propertyId={selectedPropertyId}
-                      category={LOOKUP_CATEGORIES.DEPARTMENT}
-                      label="Department"
-                      description={ar ? "إدارة قائمة الأقسام" : "Manage departments list"}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+          <TabsContent value="departments">
+            <Card>
+              <CardContent className="pt-6">
+                {selectedPropertyId && (
+                  <LookupSection
+                    propertyId={selectedPropertyId}
+                    category={LOOKUP_CATEGORIES.DEPARTMENT}
+                    label="Department"
+                    description={ar ? "إدارة قائمة الأقسام" : "Manage departments list"}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            <TabsContent value="job-titles">
-              <Card>
-                <CardContent className="pt-6">
-                  {selectedPropertyId && (
-                    <LookupSection
-                      propertyId={selectedPropertyId}
-                      category={LOOKUP_CATEGORIES.JOB_TITLE}
-                      label="Job Title"
-                      description={ar ? "إدارة المسميات الوظيفية وربطها بالدرجة" : "Manage job titles"}
-                      parentCategory={LOOKUP_CATEGORIES.DEPARTMENT}
-                      parentLabel="Department"
-                      extraLabel="Level"
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+          <TabsContent value="job-titles">
+            <Card>
+              <CardContent className="pt-6">
+                {selectedPropertyId && (
+                  <LookupSection
+                    propertyId={selectedPropertyId}
+                    category={LOOKUP_CATEGORIES.JOB_TITLE}
+                    label="Job Title"
+                    description={ar ? "إدارة المسميات الوظيفية وربطها بالدرجة" : "Manage job titles"}
+                    parentCategory={LOOKUP_CATEGORIES.DEPARTMENT}
+                    parentLabel="Department"
+                    extraLabel="Level"
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            <TabsContent value="room-types">
-              <div className="space-y-4">
-                <Tabs defaultValue="classifications" className="w-full">
-                  <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-muted/60 p-1">
-                    <TabsTrigger value="classifications" className="text-xs font-semibold gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      {ar ? "تصنيفات الغرف" : "Room Classifications"}
-                    </TabsTrigger>
-                    <TabsTrigger value="types" className="text-xs font-semibold gap-1.5">
-                      <BedDouble className="w-3.5 h-3.5 text-primary" />
-                      {ar ? "أنواع الغرف والسعة" : "Room Types & Capacity"}
-                    </TabsTrigger>
-                  </TabsList>
+          <TabsContent value="room-types">
+            <div className="space-y-4">
+              <Tabs defaultValue="classifications" className="w-full">
+                <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-muted/60 p-1">
+                  <TabsTrigger value="classifications" className="text-xs font-semibold gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    {ar ? "تصنيفات الغرف" : "Room Classifications"}
+                  </TabsTrigger>
+                  <TabsTrigger value="types" className="text-xs font-semibold gap-1.5">
+                    <BedDouble className="w-3.5 h-3.5 text-primary" />
+                    {ar ? "أنواع الغرف والسعة" : "Room Types & Capacity"}
+                  </TabsTrigger>
+                </TabsList>
 
-                  <TabsContent value="classifications">
-                    <Card>
-                      <CardContent className="pt-6">
-                        {selectedPropertyId && (
-                          <LookupSection
-                            propertyId={selectedPropertyId}
-                            category={LOOKUP_CATEGORIES.ROOM_CLASSIFICATION}
-                            label="Room Classification"
-                            description={
-                              ar
-                                ? "إدارة تصنيفات الغرف (مثل غرفة ديلوكس، جناح عائلي، غرفة سوبيريور، غرفة قياسية) المستخدمة في الترشيح الذكي حسب المنصب وسكن العائلات"
-                                : "Manage room classifications (e.g. Deluxe room, Family suite, Superior room) used for smart recommendation"
-                            }
-                            parentCategory={LOOKUP_CATEGORIES.ROOM_TYPE}
-                            parentLabel={ar ? "النوع المقترح" : "Suggested Type"}
-                            extraLabel={ar ? "المستوى / الفئة المستهدفة" : "Target Level / Audience"}
-                          />
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                <TabsContent value="classifications">
+                  <Card>
+                    <CardContent className="pt-6">
+                      {selectedPropertyId && (
+                        <LookupSection
+                          propertyId={selectedPropertyId}
+                          category={LOOKUP_CATEGORIES.ROOM_CLASSIFICATION}
+                          label="Room Classification"
+                          description={
+                            ar
+                              ? "إدارة تصنيفات الغرف (مثل غرفة ديلوكس، جناح عائلي، غرفة سوبيريور، غرفة قياسية) المستخدمة في الترشيح الذكي حسب المنصب وسكن العائلات"
+                              : "Manage room classifications (e.g. Deluxe room, Family suite, Superior room) used for smart recommendation"
+                          }
+                          parentCategory={LOOKUP_CATEGORIES.ROOM_TYPE}
+                          parentLabel={ar ? "النوع المقترح" : "Suggested Type"}
+                          extraLabel={ar ? "المستوى / الفئة المستهدفة" : "Target Level / Audience"}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                  <TabsContent value="types">
-                    <Card>
-                      <CardContent className="pt-6">
-                        {selectedPropertyId && (
-                          <LookupSection
-                            propertyId={selectedPropertyId}
-                            category={LOOKUP_CATEGORIES.ROOM_TYPE}
-                            label="Room Type"
-                            description={ar ? "إدارة أنواع الغرف وسعة استيعاب كل نوع" : "Manage room types"}
-                            showCapacity
-                          />
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </TabsContent>
+                <TabsContent value="types">
+                  <Card>
+                    <CardContent className="pt-6">
+                      {selectedPropertyId && (
+                        <LookupSection
+                          propertyId={selectedPropertyId}
+                          category={LOOKUP_CATEGORIES.ROOM_TYPE}
+                          label="Room Type"
+                          description={ar ? "إدارة أنواع الغرف وسعة استيعاب كل نوع" : "Manage room types"}
+                          showCapacity
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TabsContent>
 
-            <TabsContent value="security" className="space-y-4">
+          <TabsContent value="security">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <SecuritySettings language={language} isLoading={isLoading} />
               <div className="flex justify-end">
                 <PermissionGate module="settings" action="edit">
@@ -264,23 +266,23 @@ export default function Settings() {
                   </Button>
                 </PermissionGate>
               </div>
-            </TabsContent>
+            </form>
+          </TabsContent>
 
-            <TabsContent value="hr-sync" className="space-y-4">
-              <HrSyncSection
-                propertyId={selectedPropertyId}
-                language={language}
-              />
-            </TabsContent>
+          <TabsContent value="hr-sync" className="space-y-4">
+            <HrSyncSection
+              propertyId={selectedPropertyId}
+              language={language}
+            />
+          </TabsContent>
 
-            <TabsContent value="door-locks" className="space-y-4">
-              <DoorLocksSection
-                propertyId={selectedPropertyId}
-                language={language}
-              />
-            </TabsContent>
-          </Tabs>
-        </form>
+          <TabsContent value="door-locks" className="space-y-4">
+            <DoorLocksSection
+              propertyId={selectedPropertyId}
+              language={language}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </FormProvider>
   );

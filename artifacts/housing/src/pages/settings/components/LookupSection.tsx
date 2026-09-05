@@ -313,6 +313,7 @@ export function LookupSection({
             </div>
           )}
           <Button
+            type="button"
             onClick={handleAdd}
             disabled={createMutation.isPending || !newValue.trim()}
             className="h-9 gap-1.5 px-4 font-semibold text-xs"
@@ -443,6 +444,7 @@ export function LookupSection({
                         <TableCell className="text-end">
                           <div className="flex items-center justify-end gap-1">
                             <Button
+                              type="button"
                               size="sm"
                               variant="default"
                               className="h-8 px-2.5 bg-green-600 hover:bg-green-700 text-white gap-1 text-xs"
@@ -451,6 +453,7 @@ export function LookupSection({
                               <Check className="w-3.5 h-3.5" /> {ar ? "حفظ" : "Save"}
                             </Button>
                             <Button
+                              type="button"
                               size="icon"
                               variant="ghost"
                               className="h-8 w-8 text-muted-foreground"
@@ -533,6 +536,7 @@ export function LookupSection({
                           <div className="flex items-center justify-end gap-1">
                             <PermissionGate module="settings" action="edit">
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
@@ -542,6 +546,7 @@ export function LookupSection({
                                 <Pencil className="w-3.5 h-3.5" />
                               </Button>
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="icon"
                                 className={`h-8 w-8 ${
@@ -561,6 +566,7 @@ export function LookupSection({
                             </PermissionGate>
                             <PermissionGate module="settings" action="delete">
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
