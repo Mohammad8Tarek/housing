@@ -4,6 +4,7 @@ import {
   useGetDashboardStats,
   useGetOccupancyByBuilding,
   useGetRecentActivity,
+  useListProfiles,
 } from "@workspace/api-client-react";
 import {
   Card,
@@ -89,6 +90,16 @@ export default function Dashboard() {
     { query: { enabled: !isAll && !!activePropertyId } },
   );
 
+  const { data: profilesData } = useListProfiles(
+    { propertyId: isAll ? undefined : (activePropertyId as number), limit: 1 } as any,
+    {
+      query: {
+        enabled: !isAll && !!activePropertyId,
+      },
+    },
+  );
+  const totalProfilesCount = profilesData?.pagination?.total ?? stats?.totalProfiles ?? 0;
+
   const { data: allStats, isLoading: allLoading } = useQuery({
     queryKey: ["/api/dashboard/all-stats"],
     queryFn: async () => {
@@ -173,8 +184,8 @@ export default function Dashboard() {
         },
         {
           title: ar ? "إجمالي الموظفين" : "Total Profiles",
-          value: stats?.totalProfiles ?? 0,
-          sub: `${stats?.activeProfiles ?? 0} ${ar ? "نشط" : "active"}, ${stats?.unhousedProfiles ?? 0} ${ar ? "غير مسكن" : "unhoused"}`,
+          value: totalProfilesCount,
+          sub: `${stats?.activeProfiles ?? 0} ${ar ? "نشط" : "active"}, ${Math.max(0, totalProfilesCount - (stats?.activeAssignments ?? 0))} ${ar ? "غير مسكن" : "unhoused"}`,
           icon: Users,
           href: "/profiles",
           color: "text-blue-600",

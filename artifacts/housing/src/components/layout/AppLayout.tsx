@@ -343,12 +343,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       icon: FileBarChart,
       permissionModule: "reports",
     },
-    {
-      href: "/documents",
-      label: ar ? "المستندات" : "Documents",
-      icon: FileText,
-      permissionModule: "documents",
-    },
+
     {
       href: "/users",
       label: ar ? "المستخدمين" : "Users",

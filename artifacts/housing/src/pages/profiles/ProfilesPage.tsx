@@ -169,6 +169,7 @@ export function ProfilesPage() {
       queryKey: getListProfilesQueryKey({ propertyId: activePropertyId }),
     });
     queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
   };
 
   const createMutation = useCreateProfile({ mutation: {} });

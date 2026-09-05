@@ -90,8 +90,7 @@ router.get(
                 safeCount(() =>
                   tenantDb
                     .select({ count: count() })
-                    .from(profilesTable)
-                    .where(statusEq(profilesTable.status, "active")),
+                    .from(profilesTable),
                 ),
                 safeCount(() =>
                   tenantDb
@@ -192,6 +191,7 @@ router.get(
         occupiedRooms,
         availableRooms,
         totalProfiles,
+        activeProfilesCount,
         activeAssignments,
         openMaintenance,
         inProgressMaint,
@@ -213,6 +213,11 @@ router.get(
             .where(
               sql`${roomsTable.currentOccupancy} < ${roomsTable.capacity}`,
             ),
+        ),
+        safeCount(() =>
+          tenantDb
+            .select({ count: count() })
+            .from(profilesTable),
         ),
         safeCount(() =>
           tenantDb
@@ -256,6 +261,7 @@ router.get(
         occupiedRooms,
         availableRooms,
         totalProfiles,
+        activeProfilesCount,
         activeAssignments,
         openMaintenance,
         inProgressMaint,
@@ -270,6 +276,7 @@ router.get(
       occupiedRooms,
       availableRooms,
       totalProfiles,
+      activeProfilesCount,
       activeAssignments,
       openMaintenance,
       inProgressMaint,
@@ -287,7 +294,7 @@ router.get(
       totalProfiles,
       occupancyRate,
       pendingMaintenance,
-      activeProfiles: totalProfiles,
+      activeProfiles: activeProfilesCount,
       unhousedProfiles,
       totalRooms,
       occupiedRooms,

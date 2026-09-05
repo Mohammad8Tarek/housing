@@ -37,7 +37,6 @@ const History = lazy(() => import("@/pages/accommodation/history"));
 const Housekeeping = lazy(() => import("@/pages/housekeeping"));
 const Maintenance = lazy(() => import("@/pages/maintenance"));
 const MaintenanceDetails = lazy(() => import("@/pages/maintenance-details"));
-const Documents = lazy(() => import("@/pages/documents"));
 const Reports = lazy(() => import("@/pages/reports"));
 const Users = lazy(() => import("@/pages/users"));
 const ActivityLog = lazy(() => import("@/pages/activity-log"));
@@ -180,7 +179,6 @@ function RootRedirect() {
     { module: "housekeeping", href: "/housekeeping" },
     { module: "maintenance", href: "/maintenance" },
     { module: "reports", href: "/reports" },
-    { module: "documents", href: "/documents" },
     { module: "users", href: "/users" },
     { module: "portal_content", href: "/portal" },
     { module: "settings", href: "/settings" },
@@ -276,11 +274,6 @@ function Router() {
         <Route path="/maintenance">
           <PermissionLayout module="maintenance">
             <Maintenance />
-          </PermissionLayout>
-        </Route>
-        <Route path="/documents">
-          <PermissionLayout module="documents">
-            <Documents />
           </PermissionLayout>
         </Route>
         <Route path="/reports">
