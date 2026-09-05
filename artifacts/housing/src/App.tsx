@@ -36,6 +36,8 @@ const GuestHosting = lazy(() => import("@/pages/accommodation/guest-hosting"));
 const History = lazy(() => import("@/pages/accommodation/history"));
 const Housekeeping = lazy(() => import("@/pages/housekeeping"));
 const Maintenance = lazy(() => import("@/pages/maintenance"));
+const MaintenanceDetails = lazy(() => import("@/pages/maintenance-details"));
+const Documents = lazy(() => import("@/pages/documents"));
 const Reports = lazy(() => import("@/pages/reports"));
 const Users = lazy(() => import("@/pages/users"));
 const ActivityLog = lazy(() => import("@/pages/activity-log"));
@@ -146,10 +148,10 @@ function PermissionLayout({
           </div>
           <div className="flex gap-3 mt-2">
             <a
-              href="/dashboard"
+              href="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
             >
-              {ar ? "العودة للوحة القيادة" : "Go to Dashboard"}
+              {ar ? "العودة للرئيسية" : "Go to Home"}
             </a>
           </div>
         </div>
@@ -158,6 +160,40 @@ function PermissionLayout({
   }
 
   return <AppLayout>{children}</AppLayout>;
+}
+
+/** Dynamically redirects user to their first available module based on permissions */
+function RootRedirect() {
+  const { can } = usePermission();
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <PageLoader />;
+  if (!isAuthenticated) return <Redirect to="/login" />;
+
+  const candidates: Array<{ module: Module; href: string }> = [
+    { module: "dashboard", href: "/dashboard" },
+    { module: "housing", href: "/housing" },
+    { module: "profiles", href: "/profiles" },
+    { module: "reservations", href: "/accommodation/reservations" },
+    { module: "accommodation", href: "/accommodation/in-house" },
+    { module: "guest_hosting", href: "/accommodation/guest-hosting" },
+    { module: "hosting_requests", href: "/hosting-requests" },
+    { module: "housekeeping", href: "/housekeeping" },
+    { module: "maintenance", href: "/maintenance" },
+    { module: "reports", href: "/reports" },
+    { module: "documents", href: "/documents" },
+    { module: "users", href: "/users" },
+    { module: "portal_content", href: "/portal" },
+    { module: "settings", href: "/settings" },
+    { module: "activity_log", href: "/activity-log" },
+  ];
+
+  for (const c of candidates) {
+    if (can(c.module, "view")) {
+      return <Redirect to={c.href} />;
+    }
+  }
+
+  return <Redirect to="/dashboard" />;
 }
 
 function Router() {
@@ -169,14 +205,14 @@ function Router() {
         </Route>
 
         <Route path="/">
-          <Redirect to="/dashboard" />
+          <RootRedirect />
         </Route>
 
         {/* Protected Routes wrapped in AppLayout */}
         <Route path="/dashboard">
-          <ProtectedLayout>
+          <PermissionLayout module="dashboard">
             <Dashboard />
-          </ProtectedLayout>
+          </PermissionLayout>
         </Route>
 
         <Route path="/room-space-view">
@@ -232,9 +268,19 @@ function Router() {
         <Route path="/accommodation">
           <Redirect to="/accommodation/reservations" />
         </Route>
+        <Route path="/maintenance/:id">
+          <PermissionLayout module="maintenance">
+            <MaintenanceDetails />
+          </PermissionLayout>
+        </Route>
         <Route path="/maintenance">
           <PermissionLayout module="maintenance">
             <Maintenance />
+          </PermissionLayout>
+        </Route>
+        <Route path="/documents">
+          <PermissionLayout module="documents">
+            <Documents />
           </PermissionLayout>
         </Route>
         <Route path="/reports">
