@@ -195,12 +195,24 @@ export function RoomsTab({
       };
 
       if (editRoom) {
-        const res = await fetch(`/api/rooms/${editRoom.id}`, {
+        const token =
+          localStorage.getItem("auth_token") ||
+          sessionStorage.getItem("auth_token");
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch(`/api/rooms/${editRoom.id}?propertyId=${propertyId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers,
+          credentials: "include",
           body: JSON.stringify(dataToSave),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: "Failed to update room" }));
+          throw new Error(errData.error || errData.message || "Failed to update room");
+        }
         toast.success(ar ? "تم تحديث الغرفة بنجاح" : "Room updated");
       } else {
         await createRoomMut.mutateAsync({ data: dataToSave });
@@ -304,23 +316,69 @@ export function RoomsTab({
 
   const bulkUpdateStatus = async (status: string) => {
     const ids = Array.from(selectedRoomIds);
+    if (ids.length === 0) return;
     try {
-      await Promise.all(
+      const token =
+        localStorage.getItem("auth_token") ||
+        sessionStorage.getItem("auth_token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const results = await Promise.all(
         ids.map((id) =>
           fetch(`/api/rooms/${id}?propertyId=${propertyId}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers,
+            credentials: "include",
             body: JSON.stringify({ status, propertyId }),
           }),
         ),
       );
-      toast.success(
-        ar ? `تم تحديث ${ids.length} غرفة بنجاح` : `Updated ${ids.length} rooms`,
-      );
+      const allOk = results.every((r) => r.ok);
+      if (!allOk) {
+        toast.warning(
+          ar
+            ? "تم تحديث بعض الغرف ولكن حدث خطأ في أخرى"
+            : "Some rooms updated, but others failed",
+        );
+      } else {
+        toast.success(
+          ar ? `تم تحديث ${ids.length} غرفة بنجاح` : `Updated ${ids.length} rooms`,
+        );
+      }
       setSelectedRoomIds(new Set());
       invalidateAllHousingQueries();
     } catch {
       toast.error(ar ? "فشل التحديث الجماعي" : "Bulk update failed");
+    }
+  };
+
+  const handleUpdateRoomStatus = async (roomId: number, status: string) => {
+    try {
+      const token =
+        localStorage.getItem("auth_token") ||
+        sessionStorage.getItem("auth_token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/rooms/${roomId}?propertyId=${propertyId}`, {
+        method: "PATCH",
+        headers,
+        credentials: "include",
+        body: JSON.stringify({ status, propertyId }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Failed to update status" }));
+        throw new Error(errData.error || errData.message || "Failed to update status");
+      }
+      toast.success(ar ? "تم تحديث حالة الغرفة بنجاح" : "Room status updated successfully");
+      invalidateAllHousingQueries();
+    } catch (e: any) {
+      toast.error(e.message || (ar ? "فشل تحديث الحالة" : "Failed to update status"));
     }
   };
 
@@ -595,6 +653,7 @@ export function RoomsTab({
             setSelectedRoomIds(new Set(rData.map((r: any) => r.id)));
           }
         }}
+        onUpdateRoomStatus={handleUpdateRoomStatus}
       />
 
       {paginationMeta.total > 0 && (

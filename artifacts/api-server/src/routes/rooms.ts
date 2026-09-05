@@ -25,7 +25,7 @@ import {
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 
 const router: Router = Router();
@@ -579,17 +579,22 @@ router.get(
 
 router.patch(
   "/rooms/:id",
-  requirePermission("housing", "edit"),
+  requireAnyPermission(["housing", "edit"], ["housekeeping", "edit"]),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    let propertyId = getTenantId(req);
 
     const params = UpdateRoomParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    if (!propertyId) {
+      propertyId = (await findPropertyByRoomId(params.data.id)) || 0;
+    }
+
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
       return;
     }
 
@@ -727,6 +732,17 @@ router.patch(
       });
     }
     
+    broadcastToProperty(propertyId, {
+      module: "housing",
+      action: "updated",
+      entityId: updated.id,
+    });
+    broadcastToProperty(propertyId, {
+      module: "housekeeping",
+      action: "updated",
+      entityId: updated.id,
+    });
+
     res.json({ ...updated, genderPolicy: updated.gender, propertyId });
   },
 );

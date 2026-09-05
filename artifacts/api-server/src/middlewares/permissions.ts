@@ -486,4 +486,32 @@ export function requirePermission(
   };
 }
 
+export function requireAnyPermission(
+  ...checks: [PermissionModule, PermissionAction][]
+): RequestHandler {
+  return async (req, res, next) => {
+    try {
+      const user = await loadAuthUser(req, res);
+      if (!user) return;
+
+      const allowed = checks.some(([module, action]) =>
+        hasPermission(user, module, action),
+      );
+
+      if (!allowed) {
+        res.status(403).json({
+          error: `Permission denied. Requires one of: ${checks
+            .map(([m, a]) => `${m}.${a}`)
+            .join(", ")}`,
+        });
+        return;
+      }
+
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
 // inferAction + requireModulePermission removed — unused (all routes call requirePermission directly)
