@@ -1172,7 +1172,16 @@ const TENANT_MIGRATIONS = [
     q: `DO $$ BEGIN
       ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
       ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status
-        CHECK (status IN ('ACTIVE', 'INACTIVE', 'TERMINATED', 'VACATION', 'PENDING', 'LEFT'));
+        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT'));
+    END $$`,
+  },
+  {
+    name: "fix_chk_profiles_gender",
+    q: `DO $$ BEGIN
+      ALTER TABLE profiles ALTER COLUMN gender SET DEFAULT 'M';
+      ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_gender;
+      ALTER TABLE profiles ADD CONSTRAINT chk_profiles_gender
+        CHECK (gender IN ('M', 'F', 'OTHER', 'male', 'female', 'other') OR gender IS NULL);
     END $$`,
   },
   {
