@@ -769,16 +769,54 @@ router.patch(
           .limit(1);
         if (!existing) return { previous: null, updated: null };
 
-        const { idDocuments, status, ...profileData } = parsed.data as any;
+        const { idDocuments } = parsed.data as any;
         
+        const allowedProfileColumns = [
+          "profileId",
+          "firstName",
+          "lastName",
+          "thirdName",
+          "fourthName",
+          "nationalId",
+          "nationality",
+          "address",
+          "jobTitle",
+          "level",
+          "phone",
+          "department",
+          "status",
+          "hireDate",
+          "gender",
+          "employmentType",
+          "companyName",
+          "idImage",
+          "photoUrl",
+          "email",
+          "emergencyContact",
+          "dateOfBirth",
+          "vacationStartDate",
+          "vacationEndDate",
+          "vacationNotes",
+          "contractEndDate",
+        ];
+
+        const cleanProfileData: Record<string, any> = {};
+        for (const col of allowedProfileColumns) {
+          if (col in parsed.data && (parsed.data as any)[col] !== undefined) {
+            cleanProfileData[col] = (parsed.data as any)[col];
+          }
+        }
+
         let updatedProfile = existing;
-        if (Object.keys(profileData).length > 0) {
+        if (Object.keys(cleanProfileData).length > 0) {
           const [updated] = await tenantDb
             .update(profilesTable)
-            .set(profileData)
+            .set(cleanProfileData)
             .where(eq(profilesTable.id, params.data.id))
             .returning();
-          updatedProfile = updated;
+          if (updated) {
+            updatedProfile = updated;
+          }
         }
 
         if (idDocuments) {
