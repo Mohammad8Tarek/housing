@@ -1845,15 +1845,14 @@ export function findCountry(query?: string | null): Country | undefined {
  */
 export function formatNationality(
   val?: string | null,
-  isArabic: boolean = true
+  isArabic: boolean = true,
+  withFlag: boolean = true
 ): string {
   if (!val) return '';
   const country = findCountry(val);
   if (!country) return val; // Custom or manual value
-  if (isArabic) {
-    return `${country.flag} ${country.demonymAr} (${country.demonymEn})`;
-  }
-  return `${country.flag} ${country.demonymEn} (${country.demonymAr})`;
+  const name = isArabic ? country.demonymAr : country.demonymEn;
+  return withFlag ? `${country.flag} ${name}` : name;
 }
 
 /**

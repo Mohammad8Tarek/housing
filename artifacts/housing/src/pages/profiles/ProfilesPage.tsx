@@ -13,6 +13,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
+import { formatNationality } from "@/lib/countries";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import {
   Table,
@@ -715,7 +716,7 @@ export function ProfilesPage() {
                             )}
                             {emp.nationality && (
                               <span className="text-muted-foreground/70 text-[11px]">
-                                {emp.nationality} {emp.gender === "M" ? (ar ? "• ذكر" : "• Male") : emp.gender === "F" ? (ar ? "• أنثى" : "• Female") : ""}
+                                {formatNationality(emp.nationality, ar)} {emp.gender === "M" ? (ar ? "• ذكر" : "• Male") : emp.gender === "F" ? (ar ? "• أنثى" : "• Female") : ""}
                               </span>
                             )}
                           </div>
@@ -805,7 +806,7 @@ export function ProfilesPage() {
                         <TableCell className="text-sm whitespace-nowrap" dir="ltr">{emp.phone || "—"}</TableCell>
                       )}
                       {isColVisible("nationality") && (
-                        <TableCell className="text-sm whitespace-nowrap">{emp.nationality || "—"}</TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">{formatNationality(emp.nationality, ar) || "—"}</TableCell>
                       )}
                       {isColVisible("gender") && (
                         <TableCell className="text-sm whitespace-nowrap">

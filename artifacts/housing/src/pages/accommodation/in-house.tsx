@@ -83,6 +83,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format, differenceInDays } from "date-fns";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
+import { formatNationality } from "@/lib/countries";
 import { useQueryClient } from "@tanstack/react-query";
 import { DataPagination } from "@/components/DataPagination";
 import KeyManagementPanel from "@/components/KeyManagementPanel";
@@ -1039,7 +1040,7 @@ export default function InHouse() {
                                   <span className="text-muted-foreground/40">·</span>
                                   <span className="text-[11px] flex items-center gap-0.5">
                                     <Globe className="w-2.5 h-2.5 text-muted-foreground/60" />
-                                    {nationality}
+                                    {formatNationality(nationality, ar, false)}
                                   </span>
                                 </>
                               )}

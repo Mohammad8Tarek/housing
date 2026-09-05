@@ -13,6 +13,7 @@ import { Link } from "wouter";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { StatusBadge } from "./StatusBadge";
 import { formatDate } from "@/lib/date-utils";
+import { formatNationality } from "@/lib/countries";
 
 interface ProfileGridProps {
   profiles: any[];
@@ -107,7 +108,7 @@ export function ProfileGrid({
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الجنسية" : "Nationality"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={emp.nationality}>{emp.nationality || "—"}</span>
+                  <span className="font-medium truncate block text-xs" title={emp.nationality}>{formatNationality(emp.nationality, ar) || "—"}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">

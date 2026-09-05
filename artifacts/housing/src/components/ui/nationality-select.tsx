@@ -67,8 +67,8 @@ export function NationalitySelect({
     if (!value) return "";
     if (selectedCountry) {
       return isAr
-        ? `${selectedCountry.flag} ${selectedCountry.demonymAr} (${selectedCountry.demonymEn})`
-        : `${selectedCountry.flag} ${selectedCountry.demonymEn} (${selectedCountry.demonymAr})`;
+        ? `${selectedCountry.flag} ${selectedCountry.demonymAr}`
+        : `${selectedCountry.flag} ${selectedCountry.demonymEn}`;
     }
     return `🌐 ${value}`;
   }, [value, selectedCountry, isAr]);
@@ -99,8 +99,14 @@ export function NationalitySelect({
   }, [cleanSearch]);
 
   const filteredAll = React.useMemo(() => {
-    return ALL_COUNTRIES.filter(isMatching);
-  }, [isMatching]);
+    const list = ALL_COUNTRIES.filter(isMatching);
+    return [...list].sort((a, b) => {
+      if (isAr) {
+        return a.demonymAr.localeCompare(b.demonymAr, "ar");
+      }
+      return a.demonymEn.localeCompare(b.demonymEn, "en");
+    });
+  }, [isMatching, isAr]);
 
   // Also include custom DB lookup nationalities if any
   const customDbItems = React.useMemo(() => {
@@ -182,7 +188,7 @@ export function NationalitySelect({
               onChange={(e) => setSearch(e.target.value)}
               placeholder={
                 isAr
-                  ? "ابحث بالاسم العربي أو الإنجليزي..."
+                  ? "ابحث عن الدولة أو الجنسية..."
                   : "Search country or nationality..."
               }
               className="h-8 pl-8 rtl:pr-8 rtl:pl-2 text-xs bg-background"
@@ -244,9 +250,6 @@ export function NationalitySelect({
                       <span className="truncate">
                         {isAr ? c.demonymAr : c.demonymEn}
                       </span>
-                      <span className="text-muted-foreground text-[11px] truncate">
-                        ({isAr ? c.demonymEn : c.demonymAr})
-                      </span>
                     </span>
                     {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
                   </button>
@@ -279,9 +282,6 @@ export function NationalitySelect({
                       <span className="text-base leading-none">{c.flag}</span>
                       <span className="truncate">
                         {isAr ? c.demonymAr : c.demonymEn}
-                      </span>
-                      <span className="text-muted-foreground text-[11px] truncate">
-                        ({isAr ? c.demonymEn : c.demonymAr})
                       </span>
                     </span>
                     {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}

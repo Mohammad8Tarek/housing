@@ -16,6 +16,7 @@ import {
   useListHostings,
 } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatNationality } from "@/lib/countries";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -323,7 +324,7 @@ export function ProfileProfilePopup({
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase">
                         {ar ? "الجنسية" : "Nationality"}
                       </p>
-                      <p className="text-sm">{emp.nationality}</p>
+                      <p className="text-sm">{formatNationality(emp.nationality, ar)}</p>
                     </div>
                   </div>
                 )}
