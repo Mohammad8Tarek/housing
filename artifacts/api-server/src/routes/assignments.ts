@@ -366,7 +366,10 @@ router.post(
       }
 
       const isEntireRoomRequested = Boolean(
-        (parsed.data as any).isEntireRoom || (req.body as any)?.isEntireRoom,
+        (parsed.data as any).isEntireRoom ||
+        (req.body as any)?.isEntireRoom ||
+        (parsed.data.notes && parsed.data.notes.includes("[حجز الغرفة بالكامل]")) ||
+        (parsed.data.notes && parsed.data.notes.includes("[تسكين الغرفة بالكامل]"))
       );
 
       if (isEntireRoomRequested && room.currentOccupancy > 0) {
@@ -566,6 +569,7 @@ router.post(
         .insert(assignmentsTable)
         .values({
           ...(parsed.data as any),
+          bedNumber: isEntireRoomRequested ? (parsed.data.bedNumber || 1) : (parsed.data.bedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
           notes: finalNotes,
           expectedCheckOutDate: expectedCheckOut || undefined,
@@ -986,7 +990,7 @@ router.post(
         .update(assignmentsTable)
         .set({
           roomId: parsed.data.newRoomId,
-          bedNumber: parsed.data.newBedNumber ?? null,
+          bedNumber: isEntireRoomRequested ? (parsed.data.newBedNumber || 1) : (parsed.data.newBedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
         })
         .where(eq(assignmentsTable.id, params.data.id))

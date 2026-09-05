@@ -772,7 +772,8 @@ export default function ReservationsPage() {
             roomId: parseInt(selectedRoomId),
             checkInDate: new Date(checkInDate).toISOString(),
             expectedCheckOutDate: effectiveCheckOut ? new Date(effectiveCheckOut).toISOString() : undefined,
-            bedNumber: selectedBed && selectedBed !== "ALL" ? parseInt(selectedBed) : undefined,
+            bedNumber: selectedBed === "ALL" ? 1 : (selectedBed ? parseInt(selectedBed) : 1),
+            isEntireRoom: selectedBed === "ALL",
             notes: selectedBed === "ALL" ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim() : (notes || undefined),
           } as any,
         });
@@ -870,7 +871,8 @@ export default function ReservationsPage() {
               roomId: parseInt(selectedRoomId),
               checkInDate: new Date(checkInDate).toISOString(),
               expectedCheckOutDate: effectiveCheckOut ? new Date(effectiveCheckOut).toISOString() : undefined,
-              bedNumber: selectedBed && selectedBed !== "ALL" ? parseInt(selectedBed) : undefined,
+              bedNumber: selectedBed === "ALL" ? 1 : (selectedBed ? parseInt(selectedBed) : 1),
+              isEntireRoom: selectedBed === "ALL",
               notes: selectedBed === "ALL" ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim() : (notes || undefined),
             } as any,
           });

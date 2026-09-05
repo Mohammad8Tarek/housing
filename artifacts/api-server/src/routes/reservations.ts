@@ -713,9 +713,13 @@ router.post(
             .where(eq(profilesTable.id, profile.id));
         }
 
-        const isEntireRoom = current.notes?.includes("[حجز الغرفة بالكامل]");
+        const isEntireRoom = Boolean(
+          current.notes?.includes("[حجز الغرفة بالكامل]") ||
+          current.notes?.includes("[تسكين الغرفة بالكامل]") ||
+          (current as any).isEntireRoom
+        );
         const bedMatch = current.notes?.match(/\[سرير رقم:?\s*(\d+)\]/);
-        const parsedBed = bedMatch ? parseInt(bedMatch[1]) : null;
+        const parsedBed = bedMatch ? parseInt(bedMatch[1]) : (isEntireRoom ? 1 : null);
 
         const newOccupancy = isEntireRoom ? room.capacity : Math.min(room.capacity, room.currentOccupancy + 1);
 
@@ -734,7 +738,8 @@ router.post(
           .values({
             profileId: profile.id,
             roomId: roomId,
-            bedNumber: isEntireRoom ? null : parsedBed,
+            bedNumber: isEntireRoom ? 1 : (parsedBed || 1),
+            isEntireRoom: isEntireRoom,
             checkInDate: String(cin),
             expectedCheckOutDate: current.checkOutDate || null,
             status: "ACTIVE",

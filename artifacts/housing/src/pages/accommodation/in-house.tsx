@@ -684,7 +684,7 @@ export default function InHouse() {
         "Room Number": rNum,
         Building: bName,
         Floor: fNum != null ? fNum : "",
-        Bed: a.bedNumber ? `Bed ${a.bedNumber}` : a.isEntireRoom ? "Entire Room" : "",
+        Bed: (a.bedNumber || a.isEntireRoom) ? `Bed ${a.bedNumber || 1}${a.isEntireRoom ? ' (Entire Room)' : ''}` : "",
         "Check-In Date": formatDate(a.checkInDate, ""),
         "Expected Check-Out": formatDate(a.expectedCheckOutDate, ""),
         Nationality: nat,
@@ -988,8 +988,13 @@ export default function InHouse() {
                   daysRemaining <= 3 &&
                   daysRemaining >= 0;
                 const isOverdue = daysRemaining !== null && daysRemaining < 0;
-                const isSelected = selectedRows.has(a.id);
-                const isEntire = Boolean(a.isEntireRoom || (a as any).is_entire_room);
+                const isEntire = Boolean(
+                  a.isEntireRoom ||
+                  (a as any).is_entire_room ||
+                  a.notes?.includes("[حجز الغرفة بالكامل]") ||
+                  a.notes?.includes("[تسكين الغرفة بالكامل]")
+                );
+                const displayBed = a.bedNumber ?? (isEntire ? 1 : null);
 
                 return (
                   <TableRow
@@ -1076,16 +1081,17 @@ export default function InHouse() {
                             <span className="font-mono font-bold text-primary text-base">
                               {roomNum}
                             </span>
-                            {a.bedNumber ? (
+                            {displayBed ? (
                               <Badge variant="secondary" className="text-xs font-semibold px-1.5 py-0">
                                 <BedDouble className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                                {ar ? `سرير ${a.bedNumber}` : `Bed ${a.bedNumber}`}
+                                {ar ? `سرير ${displayBed}` : `Bed ${displayBed}`}
                               </Badge>
-                            ) : isEntire ? (
+                            ) : null}
+                            {isEntire && (
                               <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 text-[11px] px-1.5 py-0 font-medium">
                                 {ar ? "غرفة كاملة" : "Entire"}
                               </Badge>
-                            ) : null}
+                            )}
                           </div>
                           {roomType && (
                             <span className="text-[11px] text-muted-foreground capitalize">
