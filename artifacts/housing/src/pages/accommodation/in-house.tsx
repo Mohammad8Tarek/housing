@@ -995,6 +995,7 @@ export default function InHouse() {
                   a.notes?.includes("[تسكين الغرفة بالكامل]")
                 );
                 const displayBed = a.bedNumber ?? (isEntire ? 1 : null);
+                const isSelected = selectedRows.has(a.id);
 
                 return (
                   <TableRow
