@@ -12,6 +12,7 @@ import { FormRow } from "./FormRow";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
+import { NationalitySelect } from "@/components/ui/nationality-select";
 import {
   Dialog,
   DialogContent,
@@ -441,29 +442,12 @@ export function EditProfileDialog({
                 )}
               </FormRow>
               <FormRow label={ar ? "الجنسية" : "Nationality"}>
-                {nationalities.length > 0 ? (
-                  <Select
-                    value={form.nationality}
-                    onValueChange={(v) => set("nationality", v)}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {nationalities.map((n) => (
-                        <SelectItem key={n.id} value={n.value}>
-                          {n.value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={form.nationality}
-                    onChange={(e) => set("nationality", e.target.value)}
-                    className="h-9"
-                  />
-                )}
+                <NationalitySelect
+                  value={form.nationality}
+                  onChange={(v) => set("nationality", v)}
+                  propertyId={propertyId}
+                  placeholder={ar ? "اختر الجنسية..." : "Select nationality..."}
+                />
               </FormRow>
               <FormRow label={ar ? "الهاتف" : "Phone"}>
                 <Input

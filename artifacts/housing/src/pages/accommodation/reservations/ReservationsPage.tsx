@@ -58,6 +58,7 @@ import KeyManagementPanel from "@/components/KeyManagementPanel";
 import { generateHousingLetterPdf } from "@/lib/pdf-utils";
 import { usePrintLanguage, PrintLanguageDialog } from "@/lib/PrintLanguageDialog";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
+import { NationalitySelect } from "@/components/ui/nationality-select";
 import { format } from "date-fns";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
 import * as XLSX from "xlsx";
@@ -1557,13 +1558,13 @@ export default function ReservationsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "الجنسية" : "Nationality"}</Label>
-                    <Select value={newForm.nationality || "none"} onValueChange={(v) => setNewForm((f) => ({ ...f, nationality: v === "none" ? "" : v }))}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">—</SelectItem>
-                        {nationalityValues.length > 0 ? nationalityValues.map((n: any) => (<SelectItem key={n.id} value={n.value}>{n.value}</SelectItem>)) : ["Egyptian", "Saudi", "Emirati", "Jordanian", "Other"].map((n) => (<SelectItem key={n} value={n}>{n}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
+                    <NationalitySelect
+                      value={newForm.nationality}
+                      onChange={(v) => setNewForm((f) => ({ ...f, nationality: v }))}
+                      propertyId={typeof activePropertyId === "number" ? activePropertyId : undefined}
+                      className="h-9 text-xs"
+                      placeholder={ar ? "اختر الجنسية..." : "Select nationality..."}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">{ar ? "الهاتف *" : "Phone *"}</Label>
@@ -2124,6 +2125,16 @@ export default function ReservationsPage() {
                     <SelectItem value="THIRD_PARTY">{ar ? "طرف ثالث" : "Third Party"}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{ar ? "الجنسية" : "Nationality"}</Label>
+                <NationalitySelect
+                  value={editForm.nationality}
+                  onChange={(v) => setEditForm((f) => ({ ...f, nationality: v }))}
+                  propertyId={typeof activePropertyId === "number" ? activePropertyId : undefined}
+                  className="h-9 text-xs"
+                  placeholder={ar ? "اختر الجنسية..." : "Select nationality..."}
+                />
               </div>
               {editForm.employmentType === "THIRD_PARTY" && (
                 <div className="space-y-1.5 col-span-2">
