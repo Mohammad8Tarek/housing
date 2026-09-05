@@ -111,6 +111,45 @@ export function ExcelImportDialog({
   const [fileName, setFileName] = useState("");
   const [parseError, setParseError] = useState("");
 
+  const parseExcelDate = (val: any): string => {
+    if (!val) return "";
+    if (val instanceof Date) {
+      return isNaN(val.getTime()) ? "" : val.toISOString().split("T")[0];
+    }
+    if (typeof val === "number") {
+      const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+      return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
+    }
+    const s = String(val).trim();
+    if (!s) return "";
+    const dmyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmyMatch) {
+      const [, day, month, year] = dmyMatch;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+    const ymdMatch = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (ymdMatch) {
+      const [, year, month, day] = ymdMatch;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+    return s;
+  };
+
+  const parseEmploymentType = (val: any): string => {
+    if (!val) return "INTERNAL";
+    const s = String(val).trim().toUpperCase();
+    if (s.includes("EXT") || s.includes("خارج")) return "EXTERNAL";
+    if (s.includes("THIRD") || s.includes("طرف") || s.includes("ثالث") || s.includes("مقاول") || s.includes("شركة")) return "THIRD_PARTY";
+    return "INTERNAL";
+  };
+
+  const parseGender = (val: any): string => {
+    if (!val) return "M";
+    const s = String(val).trim().toUpperCase();
+    if (s === "F" || s === "FEMALE" || s.includes("أنث") || s.includes("انث")) return "F";
+    return "M";
+  };
+
   const downloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
       [
@@ -119,6 +158,8 @@ export function ExcelImportDialog({
         "Second_Name",
         "Third_Name",
         "Fourth_Name",
+        "Employment_Type",
+        "Company_Name",
         "Department",
         "Job_Title",
         "Level",
@@ -126,6 +167,8 @@ export function ExcelImportDialog({
         "Gender",
         "National_ID",
         "Phone",
+        "Email",
+        "Emergency_Contact",
         "Hire_Date",
         "Contract_End_Date",
         "Date_Of_Birth",
@@ -134,43 +177,100 @@ export function ExcelImportDialog({
       [
         "EMP-001",
         "Ahmed",
-        "Al-Said",
-        "Omar",
+        "Mohamed",
+        "Ali",
         "Hassan",
+        "INTERNAL",
+        "Sunrise Head Office",
         "IT",
-        "Developer",
+        "Software Engineer",
         "1",
-        "Saudi",
+        "Egyptian",
         "M",
-        "1234567890",
-        "+966501234567",
+        "29001011234567",
+        "+201001234567",
+        "ahmed.mohamed@example.com",
+        "+201099999999",
         "2024-01-01",
         "2026-01-01",
-        "1990-01-01",
-        "Riyadh",
+        "1990-05-15",
+        "Cairo, Egypt",
       ],
       [
         "EMP-002",
-        "Fatima",
-        "Hassan",
-        "Ali",
-        "Sayed",
-        "HR",
-        "HR Specialist",
+        "Sara",
+        "Ibrahim",
+        "Khaled",
+        "Mahmoud",
+        "EXTERNAL",
+        "Al-Binaa Contracting",
+        "Engineering",
+        "Civil Engineer",
         "2",
         "Egyptian",
         "F",
-        "0987654321",
-        "+966507654321",
-        "2024-03-15",
-        "2026-03-15",
-        "1995-05-15",
-        "Jeddah",
+        "29502021234568",
+        "+201111234567",
+        "sara.ibrahim@example.com",
+        "+201188888888",
+        "2024-03-01",
+        "2025-12-31",
+        "1995-08-20",
+        "Alexandria, Egypt",
+      ],
+      [
+        "EMP-003",
+        "Tarek",
+        "Mahmoud",
+        "Salem",
+        "Al-Sayed",
+        "THIRD_PARTY",
+        "Delta Security Services",
+        "Security",
+        "Security Guard",
+        "3",
+        "Egyptian",
+        "M",
+        "29203031234569",
+        "+201221234567",
+        "tarek.guard@example.com",
+        "+201277777777",
+        "2024-06-01",
+        "2025-06-01",
+        "1992-11-10",
+        "Giza, Egypt",
       ],
     ]);
-    ws["!cols"] = Array(16).fill({ wch: 18 });
+    ws["!cols"] = Array(20).fill({ wch: 22 });
+
+    const wsInstructions = XLSX.utils.aoa_to_sheet([
+      ["Column Name (اسم العمود)", "Required (إلزامي)", "Allowed Values / Format (القيم المسموحة / التنسيق)", "Description (الوصف)"],
+      ["Profile_Code", "Yes (نعم)", "Text (e.g. EMP-001, 105)", "Unique employee / profile ID (كود الموظف التعريفي الفريد)"],
+      ["First_Name", "Yes (نعم)", "Text", "First name (الاسم الأول)"],
+      ["Second_Name", "Yes (نعم)", "Text", "Father's name / Second name (الاسم الثاني / اسم الأب)"],
+      ["Third_Name", "No (اختياري)", "Text", "Grandfather's name (الاسم الثالث / اسم الجد)"],
+      ["Fourth_Name", "No (اختياري)", "Text", "Family name (الاسم الرابع / اسم العائلة)"],
+      ["Employment_Type", "No (افتراضي INTERNAL)", "INTERNAL | EXTERNAL | THIRD_PARTY", "نوع التوظيف: داخلي (INTERNAL) أو خارجي (EXTERNAL) أو طرف ثالث / شركة (THIRD_PARTY)"],
+      ["Company_Name", "Conditional (مشروط)", "Text", "اسم الشركة أو مكان العمل (Workplace / Company Name)"],
+      ["Department", "No (اختياري)", "Text (e.g. IT, HR, Maintenance)", "Department / Division (القسم أو الإدارة)"],
+      ["Job_Title", "No (اختياري)", "Text", "Job title / Designation (المسمى الوظيفي)"],
+      ["Level", "No (اختياري)", "Text (e.g. 1, 2, 3)", "Job grade / Level (الدرجة الوظيفية)"],
+      ["Nationality", "No (اختياري)", "Text (e.g. Egyptian, Saudi)", "Nationality (الجنسية)"],
+      ["Gender", "No (افتراضي M)", "M (ذكر) | F (أنثى)", "Gender: M for Male, F for Female"],
+      ["National_ID", "Yes (نعم)", "Text / Number", "National ID / Iqama / Passport (رقم الهوية أو الإقامة أو الجواز)"],
+      ["Phone", "No (اختياري)", "Text / Phone Number", "Mobile / Phone number (رقم الجوال)"],
+      ["Email", "No (اختياري)", "Valid Email", "Email address (البريد الإلكتروني)"],
+      ["Emergency_Contact", "No (اختياري)", "Phone Number", "Emergency contact phone (هاتف الطوارئ)"],
+      ["Hire_Date", "No (اختياري)", "YYYY-MM-DD", "Hire date (تاريخ التعيين)"],
+      ["Contract_End_Date", "No (اختياري)", "YYYY-MM-DD", "Contract end date (تاريخ انتهاء العقد)"],
+      ["Date_Of_Birth", "No (اختياري)", "YYYY-MM-DD", "Date of birth (تاريخ الميلاد)"],
+      ["Address", "No (اختياري)", "Text", "Residential address (العنوان)"],
+    ]);
+    wsInstructions["!cols"] = [{ wch: 22 }, { wch: 18 }, { wch: 35 }, { wch: 55 }];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Profiles");
+    XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions_إرشادات");
     XLSX.writeFile(wb, "profile_import_template.xlsx");
   };
 
@@ -217,32 +317,61 @@ export function ExcelImportDialog({
   };
 
   const handleImport = () => {
-    const rows: ProfileForm[] = preview.map((r: any) => ({
-      profileId: String(r.Profile_Code || ""),
-      firstName: String(r.First_Name || ""),
-      lastName: String(r.Second_Name || r.Last_Name || ""),
-      thirdName: String(r.Third_Name || ""),
-      fourthName: String(r.Fourth_Name || ""),
-      department: String(r.Department || ""),
-      jobTitle: String(r.Job_Title || ""),
-      nationality: String(r.Nationality || ""),
-      gender: String(r.Gender || "M").toUpperCase() === "F" ? "F" : "M",
-      nationalId: String(r.National_ID || ""),
-      phone: String(r.Phone || ""),
-      hireDate: String(r.Hire_Date || new Date().toISOString().split("T")[0]),
-      contractEndDate:
-        String(
-          r.Contract_End_Date ||
-            r.Contract_End ||
-            r.contract_end_date ||
-            r.contract_end ||
-            "",
-        ).trim() || undefined,
-      level: String(r.Level ?? "").trim(),
-      dateOfBirth: String(r.Date_Of_Birth || ""),
-      address: String(r.Address || ""),
-      status: "ACTIVE",
-    }));
+    const rows: ProfileForm[] = preview.map((r: any) => {
+      const pId = String(
+        r.Profile_Code || r.profileId || r.Code || r["الكود"] || r["كود الموظف"] || r["رقم الملف"] || "",
+      ).trim();
+      const fn = String(r.First_Name || r.firstName || r["الاسم الأول"] || r["الاسم"] || "").trim();
+      const ln = String(
+        r.Second_Name || r.lastName || r.Last_Name || r["الاسم الثاني"] || r["اسم العائلة"] || r["اللقب"] || "",
+      ).trim();
+      const tn = String(r.Third_Name || r.thirdName || r["الاسم الثالث"] || "").trim();
+      const fourN = String(r.Fourth_Name || r.fourthName || r["الاسم الرابع"] || "").trim();
+      const rawEmp = r.Employment_Type || r.employmentType || r["نوع التوظيف"] || r["نوع العمل"];
+      const empType = parseEmploymentType(rawEmp);
+      const comp = String(
+        r.Company_Name || r.companyName || r.Workplace || r.workplace || r["الشركة"] || r["مكان العمل"] || r["جهة العمل"] || "",
+      ).trim();
+      const dept = String(r.Department || r.department || r["القسم"] || r["الإدارة"] || "").trim();
+      const title = String(r.Job_Title || r.jobTitle || r["الوظيفة"] || r["المسمى الوظيفي"] || "").trim();
+      const lvl = String(r.Level ?? r.level ?? r["الدرجة"] ?? "").trim();
+      const nat = String(r.Nationality || r.nationality || r["الجنسية"] || "").trim();
+      const g = parseGender(r.Gender || r.gender || r["الجنس"]);
+      const nid = String(r.National_ID || r.nationalId || r["رقم الهوية"] || r["الهوية"] || r["الرقم القومي"] || "").trim();
+      const ph = String(r.Phone || r.phone || r["الهاتف"] || r["الجوال"] || r["الموبايل"] || "").trim();
+      const em = String(r.Email || r.email || r["البريد"] || r["الإيميل"] || "").trim();
+      const emer = String(r.Emergency_Contact || r.emergencyContact || r["طوارئ"] || r["هاتف الطوارئ"] || "").trim();
+      const hd = parseExcelDate(r.Hire_Date || r.hireDate || r["تاريخ التعيين"]) || new Date().toISOString().split("T")[0];
+      const ced = parseExcelDate(
+        r.Contract_End_Date || r.contractEndDate || r.Contract_End || r.contract_end_date || r.contract_end || r["انتهاء العقد"] || r["تاريخ انتهاء العقد"]
+      ) || undefined;
+      const dob = parseExcelDate(r.Date_Of_Birth || r.dateOfBirth || r["تاريخ الميلاد"]) || "";
+      const addr = String(r.Address || r.address || r["العنوان"] || "").trim();
+
+      return {
+        profileId: pId,
+        firstName: fn,
+        lastName: ln,
+        thirdName: tn,
+        fourthName: fourN,
+        employmentType: empType,
+        companyName: comp,
+        department: dept,
+        jobTitle: title,
+        level: lvl,
+        nationality: nat,
+        gender: g,
+        nationalId: nid,
+        phone: ph,
+        email: em,
+        emergencyContact: emer,
+        hireDate: hd,
+        contractEndDate: ced,
+        dateOfBirth: dob,
+        address: addr,
+        status: "UNASSIGNED",
+      };
+    });
     onImport(rows);
   };
 
@@ -351,14 +480,17 @@ export function ExcelImportDialog({
                       <tr>
                         {[
                           "Code",
-                          "First Name",
-                          "Last Name",
+                          "Full Name",
+                          "Employment Type",
+                          "Company / Workplace",
                           "Dept",
                           "Job Title",
                           "Level",
                           "Nationality",
                           "Gender",
                           "National ID",
+                          "Phone",
+                          "Email",
                           "Contract End",
                           "Date of Birth",
                         ].map((h) => (
@@ -372,35 +504,68 @@ export function ExcelImportDialog({
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {preview.map((row: any, i) => (
-                        <tr key={i} className="hover:bg-muted/20">
-                          <td className="p-2 font-mono">
-                            {String(row.Profile_Code || "")}
-                          </td>
-                          <td className="p-2">{String(row.First_Name || "")}</td>
-                          <td className="p-2">
-                            {String(row.Second_Name || row.Last_Name || "")}
-                          </td>
-                          <td className="p-2">{String(row.Department || "")}</td>
-                          <td className="p-2">{String(row.Job_Title || "")}</td>
-                          <td className="p-2 font-mono font-semibold">
-                            {String(row.Level ?? "")}
-                          </td>
-                          <td className="p-2">{String(row.Nationality || "")}</td>
-                          <td className="p-2">{String(row.Gender || "")}</td>
-                          <td className="p-2 font-mono">
-                            {String(row.National_ID || "")}
-                          </td>
-                          <td className="p-2 font-mono">
-                            {String(
-                              row.Contract_End_Date || row.Contract_End || "",
-                            )}
-                          </td>
-                          <td className="p-2 font-mono">
-                            {String(row.Date_Of_Birth || "")}
-                          </td>
-                        </tr>
-                      ))}
+                      {preview.map((row: any, i) => {
+                        const rawEmp = row.Employment_Type || row.employmentType || row["نوع التوظيف"] || row["نوع العمل"];
+                        const empType = parseEmploymentType(rawEmp);
+                        const comp = String(
+                          row.Company_Name || row.companyName || row.Workplace || row.workplace || row["الشركة"] || row["مكان العمل"] || "",
+                        ).trim();
+                        const fullName = [
+                          row.First_Name || row.firstName || "",
+                          row.Second_Name || row.lastName || "",
+                          row.Third_Name || row.thirdName || "",
+                          row.Fourth_Name || row.fourthName || "",
+                        ].filter(Boolean).join(" ");
+
+                        return (
+                          <tr key={i} className="hover:bg-muted/20">
+                            <td className="p-2 font-mono font-semibold">
+                              {String(row.Profile_Code || row.profileId || row.Code || "")}
+                            </td>
+                            <td className="p-2 whitespace-nowrap">{fullName}</td>
+                            <td className="p-2">
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                                  empType === "EXTERNAL"
+                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                    : empType === "THIRD_PARTY"
+                                    ? "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300"
+                                    : "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+                                }`}
+                              >
+                                {empType}
+                              </span>
+                            </td>
+                            <td className="p-2 text-muted-foreground whitespace-nowrap">
+                              {comp || "—"}
+                            </td>
+                            <td className="p-2">{String(row.Department || row.department || "")}</td>
+                            <td className="p-2">{String(row.Job_Title || row.jobTitle || "")}</td>
+                            <td className="p-2 font-mono font-semibold">
+                              {String(row.Level ?? row.level ?? "")}
+                            </td>
+                            <td className="p-2">{String(row.Nationality || row.nationality || "")}</td>
+                            <td className="p-2">{String(row.Gender || row.gender || "")}</td>
+                            <td className="p-2 font-mono">
+                              {String(row.National_ID || row.nationalId || "")}
+                            </td>
+                            <td className="p-2 font-mono">
+                              {String(row.Phone || row.phone || "")}
+                            </td>
+                            <td className="p-2 text-muted-foreground">
+                              {String(row.Email || row.email || "")}
+                            </td>
+                            <td className="p-2 font-mono">
+                              {String(
+                                row.Contract_End_Date || row.Contract_End || row.contractEndDate || "",
+                              )}
+                            </td>
+                            <td className="p-2 font-mono">
+                              {String(row.Date_Of_Birth || row.dateOfBirth || "")}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
