@@ -207,6 +207,7 @@ BEGIN
       ADD COLUMN IF NOT EXISTS company_name TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS contract_end_date TEXT,
       ADD COLUMN IF NOT EXISTS photo_url TEXT,
+      ADD COLUMN IF NOT EXISTS id_image TEXT,
       ADD COLUMN IF NOT EXISTS id_documents JSONB DEFAULT '[]'::jsonb,
       ADD COLUMN IF NOT EXISTS third_name TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS fourth_name TEXT DEFAULT '',
@@ -214,7 +215,10 @@ BEGIN
       ADD COLUMN IF NOT EXISTS emergency_contact TEXT DEFAULT '',
       ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'UNASSIGNED',
       ADD COLUMN IF NOT EXISTS level TEXT DEFAULT '',
-      ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT 'M';
+      ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT 'M',
+      ADD COLUMN IF NOT EXISTS vacation_start_date TEXT,
+      ADD COLUMN IF NOT EXISTS vacation_end_date TEXT,
+      ADD COLUMN IF NOT EXISTS vacation_notes TEXT DEFAULT '';
 
     -- Clean profiles data before constraints
     UPDATE profiles SET gender = 'M' 
