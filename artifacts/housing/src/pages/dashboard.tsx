@@ -22,8 +22,11 @@ import {
   AlertTriangle,
   Wrench,
   ArrowRight,
+  ArrowUpRight,
   CalendarCheck,
   UserCheck,
+  UserPlus,
+  Sparkles,
   LayoutGrid,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -382,74 +385,146 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Quick Links */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          {ar ? "وصول سريع" : "Quick Access"}
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[
-            {
-              label: ar ? "الحجوزات والتسكين" : "Reservations & Housing",
-              icon: UserCheck,
-              href: "/accommodation/reservations",
-              color: "text-primary bg-primary/10",
-              module: "reservations",
-            },
-            {
-              label: ar ? "داخلي" : "In-House",
-              icon: Users,
-              href: "/accommodation/in-house",
-              color: "text-green-600 bg-green-50 dark:bg-green-950/30",
-              module: "accommodation",
-            },
-            {
-              label: ar ? "الحجوزات" : "Reservations",
-              icon: CalendarCheck,
-              href: "/accommodation/reservations",
-              color: "text-purple-600 bg-purple-50 dark:bg-purple-950/30",
-              module: "reservations",
-            },
-            {
-              label: ar ? "الإسكان" : "Housing",
-              icon: Building2,
-              href: "/housing",
-              color: "text-blue-600 bg-blue-50 dark:bg-blue-950/30",
-              module: "housing",
-            },
-            {
-              label: ar ? "التذاكر" : "Tickets",
-              icon: Wrench,
-              href: "/maintenance",
-              color: "text-orange-600 bg-orange-50 dark:bg-orange-950/30",
-              module: "maintenance",
-            },
-            {
-              label: ar ? "استضافة ضيوف" : "Guest Hosting",
-              icon: Users,
-              href: "/accommodation/guest-hosting",
-              color: "text-rose-600 bg-rose-50 dark:bg-rose-950/30",
-              module: "guest_hosting",
-            },
-          ]
-            .filter((item) => !item.module || canView(item.module as any))
-            .map((item, i) => (
-            <Link key={i} href={item.href}>
-              <Card className="bg-card/60 backdrop-blur-lg border-border/50 shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 cursor-pointer text-center p-4 group h-full relative overflow-hidden">
-                <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-10 pointer-events-none transition-opacity duration-300 group-hover:opacity-30 ${item.color.split(' ')[1]}`} />
-                <div
-                  className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center mx-auto mb-2.5 group-hover:scale-110 transition-transform relative z-10`}
-                >
-                  <item.icon className="w-5 h-5" />
-                </div>
-                <p className="text-xs font-medium text-foreground leading-tight">
-                  {item.label}
-                </p>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </div>
+      {/* Quick Access / Shortcuts */}
+      {(() => {
+        const quickItems = [
+          {
+            label: ar ? "الملفات التعريفية" : "Profiles",
+            desc: ar ? "سجلات الموظفين والنزلاء" : "Staff & resident profiles",
+            icon: Users,
+            href: "/profiles",
+            module: "profiles",
+            bgClass: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
+            iconColor: "text-blue-600 dark:text-blue-400",
+            gradientClass: "from-blue-500 to-indigo-500",
+          },
+          {
+            label: ar ? "المقيمون حالياً" : "In-House",
+            desc: ar ? "تسكين النزلاء الفعلي" : "Active room residents",
+            icon: BedDouble,
+            href: "/accommodation/in-house",
+            module: "accommodation",
+            bgClass: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
+            iconColor: "text-emerald-600 dark:text-emerald-400",
+            gradientClass: "from-emerald-500 to-teal-500",
+          },
+          {
+            label: ar ? "الإسكان والغرف" : "Housing & Rooms",
+            desc: ar ? "المباني والأدوار والغرف" : "Buildings, floors & rooms",
+            icon: Building2,
+            href: "/housing",
+            module: "housing",
+            bgClass: "bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400",
+            iconColor: "text-sky-600 dark:text-sky-400",
+            gradientClass: "from-sky-500 to-blue-500",
+          },
+          {
+            label: ar ? "الحجوزات" : "Reservations",
+            desc: ar ? "حجوزات الوصول القادمة" : "Future arrival bookings",
+            icon: CalendarCheck,
+            href: "/accommodation/reservations",
+            module: "reservations",
+            bgClass: "bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400",
+            iconColor: "text-purple-600 dark:text-purple-400",
+            gradientClass: "from-purple-500 to-pink-500",
+          },
+          {
+            label: ar ? "تذاكر الصيانة" : "Tickets",
+            desc: ar ? "متابعة البلاغات والإصلاحات" : "Work orders & repairs",
+            icon: Wrench,
+            href: "/maintenance",
+            module: "maintenance",
+            bgClass: "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",
+            iconColor: "text-amber-600 dark:text-amber-400",
+            gradientClass: "from-amber-500 to-orange-500",
+          },
+          {
+            label: ar ? "هاوس كيبنج" : "Housekeeping",
+            desc: ar ? "نظافة وجاهزية الغرف" : "Cleaning & room turnover",
+            icon: Sparkles,
+            href: "/housekeeping",
+            module: "housekeeping",
+            bgClass: "bg-teal-500/10 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400",
+            iconColor: "text-teal-600 dark:text-teal-400",
+            gradientClass: "from-teal-500 to-cyan-500",
+          },
+          {
+            label: ar ? "استضافة ضيوف" : "Guest Housing",
+            desc: ar ? "تسكين وإدارة الزوار" : "Guest & visitor stays",
+            icon: UserPlus,
+            href: "/accommodation/guest-hosting",
+            module: "guest_hosting",
+            bgClass: "bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400",
+            iconColor: "text-rose-600 dark:text-rose-400",
+            gradientClass: "from-rose-500 to-red-500",
+          },
+        ].filter((item) => !item.module || canView(item.module as any));
+
+        if (quickItems.length === 0) return null;
+
+        const gridColsClass =
+          quickItems.length === 5
+            ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+            : quickItems.length === 6
+            ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+            : quickItems.length >= 7
+            ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7"
+            : "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4";
+
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-0.5">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-4 bg-primary rounded-full" />
+                <h2 className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wider">
+                  {ar ? "وصول سريع" : "Quick Access"}
+                </h2>
+              </div>
+              <span className="text-[11px] sm:text-xs text-muted-foreground">
+                {ar ? "روابط سريعة لأهم الأقسام" : "Shortcuts to key modules"}
+              </span>
+            </div>
+
+            <div className={`grid ${gridColsClass} gap-3`}>
+              {quickItems.map((item, i) => (
+                <Link key={i} href={item.href} className="group block h-full">
+                  <div className="relative h-full overflow-hidden rounded-xl sm:rounded-2xl border border-border/50 bg-card/75 backdrop-blur-xl p-3.5 shadow-sm hover:shadow-lg hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between cursor-pointer">
+                    {/* Background glow on hover */}
+                    <div
+                      className={`absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 ${item.bgClass}`}
+                    />
+
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${item.bgClass} flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-xs shrink-0`}
+                      >
+                        <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.iconColor}`} />
+                      </div>
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground/60 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-200">
+                        <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:group-hover:-translate-x-0.5" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+                        {item.label}
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                        {item.desc}
+                      </p>
+                    </div>
+
+                    {/* Bottom accent gradient line */}
+                    <div
+                      className={`absolute inset-x-0 bottom-0 h-0.5 sm:h-1 bg-gradient-to-r ${item.gradientClass} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                    />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Charts + Alerts — only when a specific property is selected */}
       {!isAll && (
