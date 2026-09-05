@@ -49,163 +49,194 @@ router.post(
   "/properties",
   requirePermission("properties", "create"),
   async (req, res): Promise<void> => {
-    const parsed = CreatePropertyBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
-      return;
-    }
-
-    const { adminUsername, adminPassword, ...propData } = parsed.data as any;
-
-    // توليد اسم السكيما من اسم السكن (مثال: TAAL Housing -> taal_housing)
-    let schemaName = propData.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-
-    if (!schemaName || !/^[a-z][a-z0-9_]*$/.test(schemaName))
-      schemaName = `prop_${Date.now()}`;
-
-    const [property] = await db
-      .insert(propertiesTable)
-      .values({ ...propData, schemaName })
-      .returning();
-
-    // ====== 🏗️ إنشاء السكيما والجداول بشكل أوتوماتيكي للسكن الجديد ======
-    const TENANT_TABLES = [
-      "buildings",
-      "floors",
-      "rooms",
-      "profiles",
-      "profile_portal_accounts",
-      "assignments",
-      "maintenance",
-      "reservations",
-      "activity_logs",
-      "settings",
-      "hostings",
-      "hosting_companions",
-      "lookup_values",
-      "portal_documents",
-      "portal_contacts",
-      "evaluations",
-      "activities",
-      "activity_registrations",
-      "survey_items",
-      "survey_item_responses",
-      "portal_notifications",
-      "portal_notification_reads",
-      "room_locks",
-      "room_keys",
-      "key_audit_log",
-      "push_subscriptions",
-      "room_import_history",
-      "room_import_templates",
-      "room_beds",
-    ];
-
-    // Tables that need property_id column (smart lock + push subscription tables)
-    const TABLES_WITH_PROPERTY_ID = new Set([
-      "room_locks",
-      "room_keys",
-      "key_audit_log",
-      "push_subscriptions",
-      "room_import_history",
-      "room_import_templates",
-    ]);
-
-    const client = await pool.connect();
     try {
-      await client.query("BEGIN");
-      await client.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+      const parsed = CreatePropertyBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.message });
+        return;
+      }
 
-      for (const table of TENANT_TABLES) {
-        await client.query(
-          `CREATE TABLE IF NOT EXISTS "${schemaName}".${table} (LIKE public.${table} INCLUDING ALL)`,
-        );
+      const { adminUsername, adminPassword, ...propData } = parsed.data as any;
 
-        // Only drop property_id for tables that don't need it
-        if (!TABLES_WITH_PROPERTY_ID.has(table)) {
+      // توليد اسم السكيما من اسم السكن (مثال: TAAL Housing -> taal_housing)
+      let schemaName = propData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+      if (!schemaName || !/^[a-z][a-z0-9_]*$/.test(schemaName))
+        schemaName = `prop_${Date.now()}`;
+
+      const [property] = await db
+        .insert(propertiesTable)
+        .values({ ...propData, schemaName })
+        .returning();
+
+      // ====== 🏗️ إنشاء السكيما والجداول بشكل أوتوماتيكي للسكن الجديد ======
+      const TENANT_TABLES = [
+        "buildings",
+        "floors",
+        "rooms",
+        "profiles",
+        "profile_portal_accounts",
+        "assignments",
+        "maintenance",
+        "reservations",
+        "activity_logs",
+        "settings",
+        "hostings",
+        "hosting_companions",
+        "lookup_values",
+        "portal_documents",
+        "portal_contacts",
+        "evaluations",
+        "activities",
+        "activity_registrations",
+        "survey_items",
+        "survey_item_responses",
+        "portal_notifications",
+        "portal_notification_reads",
+        "room_locks",
+        "room_keys",
+        "key_audit_log",
+        "push_subscriptions",
+        "room_import_history",
+        "room_import_templates",
+        "room_beds",
+      ];
+
+      // Tables that need property_id column (smart lock + push subscription tables)
+      const TABLES_WITH_PROPERTY_ID = new Set([
+        "room_locks",
+        "room_keys",
+        "key_audit_log",
+        "push_subscriptions",
+        "room_import_history",
+        "room_import_templates",
+      ]);
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        await client.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+
+        for (const table of TENANT_TABLES) {
           await client.query(
-            `ALTER TABLE "${schemaName}".${table} DROP COLUMN IF EXISTS property_id`,
+            `CREATE TABLE IF NOT EXISTS "${schemaName}".${table} (LIKE public.${table} INCLUDING ALL)`,
           );
-        }
 
-        // Fix sequences
-        const seqRes = await client.query(
-          `SELECT pg_get_serial_sequence('public.${table}', 'id') as seq`,
-        );
-        if (seqRes.rows[0]?.seq) {
-          await client
-            .query(
-              `SELECT setval(pg_get_serial_sequence('"${schemaName}".${table}', 'id'), 1, false)`,
-            )
-            .catch((err: any) =>
-              console.warn(
-                `[Properties] Sequence reset skipped for ${table}: ${err.message}`,
-              ),
+          // Only drop property_id for tables that don't need it
+          if (!TABLES_WITH_PROPERTY_ID.has(table)) {
+            await client.query(
+              `ALTER TABLE "${schemaName}".${table} DROP COLUMN IF EXISTS property_id`,
             );
+          }
+
+          // Fix sequences
+          const seqRes = await client.query(
+            `SELECT pg_get_serial_sequence('public.${table}', 'id') as seq`,
+          );
+          if (seqRes.rows[0]?.seq) {
+            await client
+              .query(
+                `SELECT setval(pg_get_serial_sequence('"${schemaName}".${table}', 'id'), 1, false)`,
+              )
+              .catch((err: any) =>
+                console.warn(
+                  `[Properties] Sequence reset skipped for ${table}: ${err.message}`,
+                ),
+              );
+          }
+        }
+        await client.query("COMMIT");
+      } catch (err) {
+        await client
+          .query("ROLLBACK")
+          .catch((rollbackErr: any) =>
+            console.warn("[Properties] ROLLBACK failed:", rollbackErr.message),
+          );
+        console.error("Error creating tenant schema:", err);
+      } finally {
+        client.release();
+      }
+      // =================================================================
+
+      // Create default admin user for property (or link existing user)
+      if (adminUsername && adminPassword) {
+        try {
+          const trimmedUsername = String(adminUsername).trim();
+          const [existingUser] = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.username, trimmedUsername))
+            .limit(1);
+
+          if (existingUser) {
+            // User already exists (e.g. 'admin' or existing property manager)
+            // Add this new property to their accessible properties
+            const curIds = (existingUser.propertyIds || []).map(Number);
+            const newIds = curIds.includes(property.id) ? curIds : [...curIds, property.id];
+            await db
+              .update(usersTable)
+              .set({
+                propertyIds: newIds,
+                propertyId: existingUser.propertyId ?? property.id,
+              })
+              .where(eq(usersTable.id, existingUser.id));
+          } else {
+            const passwordHash = await bcrypt.hash(adminPassword, 10);
+            await db.insert(usersTable).values({
+              propertyId: property.id,
+              propertyIds: [property.id],
+              username: trimmedUsername,
+              passwordHash,
+              roles: ["admin"],
+              permissions: [],
+              status: "active",
+            });
+          }
+        } catch (userErr: any) {
+          console.error("[Properties] Error setting up admin user:", userErr?.message || userErr);
         }
       }
-      await client.query("COMMIT");
-    } catch (err) {
-      await client
-        .query("ROLLBACK")
-        .catch((rollbackErr: any) =>
-          console.warn("[Properties] ROLLBACK failed:", rollbackErr.message),
+
+      // Create default settings (inside the new schema)
+      try {
+        await pool.query(
+          `
+        INSERT INTO "${schemaName}".settings (system_name, primary_color, default_language)
+        VALUES ($1, $2, $3)
+      `,
+          [property.name, property.primaryColor, property.defaultLanguage],
         );
-      console.error("Error creating tenant schema:", err);
-    } finally {
-      client.release();
-    }
-    // =================================================================
+      } catch (e) {}
 
-    // Create default admin user for property
-    if (adminUsername && adminPassword) {
-      const passwordHash = await bcrypt.hash(adminPassword, 10);
-      await db.insert(usersTable).values({
+      const sp = {
+        ...property,
+        createdAt:
+          property.createdAt instanceof Date &&
+          typeof property.createdAt.toISOString === "function"
+            ? property.createdAt.toISOString()
+            : property.createdAt,
+      };
+      const s = su(req);
+      await logActivity({
+        req,
         propertyId: property.id,
-        username: adminUsername,
-        passwordHash,
-        roles: ["admin"],
-        permissions: [],
-        status: "active",
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `إنشاء فرع جديد: ${property.name} (Schema: ${schemaName})`,
+        actionType: "CREATE",
+        module: "properties",
+        entityType: "property",
+        entityId: property.id,
       });
+      res.status(201).json(GetPropertyResponse.parse(sp));
+    } catch (err: any) {
+      console.error("[POST /properties] error:", err?.message ?? err);
+      res.status(500).json({ error: err?.message || "Failed to create property" });
     }
-
-    // Create default settings (inside the new schema)
-    try {
-      await pool.query(
-        `
-      INSERT INTO "${schemaName}".settings (system_name, primary_color, default_language)
-      VALUES ($1, $2, $3)
-    `,
-        [property.name, property.primaryColor, property.defaultLanguage],
-      );
-    } catch (e) {}
-
-    const sp = {
-      ...property,
-      createdAt:
-        property.createdAt instanceof Date &&
-        typeof property.createdAt.toISOString === "function"
-          ? property.createdAt.toISOString()
-          : property.createdAt,
-    };
-    const s = su(req);
-    await logActivity({
-      req,
-      propertyId: property.id,
-      username: s.username,
-      userId: s.userId,
-      userRole: s.userRole,
-      action: `إنشاء فرع جديد: ${property.name} (Schema: ${schemaName})`,
-      actionType: "CREATE",
-      module: "properties",
-      entityType: "property",
-      entityId: property.id,
-    });
-    res.status(201).json(GetPropertyResponse.parse(sp));
   },
 );
 

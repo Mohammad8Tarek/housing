@@ -1,4 +1,4 @@
-import { exportExcel, exportPDF, exportAnalyticsPDF } from "../utils/export";
+import { exportExcel, exportPDF, exportAnalyticsPDF, printArabicAnalyticsReport } from "../utils/export";
 import { getRoomStatusLabel } from "@/pages/housing/utils";
 
 export function useReportExport({
@@ -21,6 +21,7 @@ export function useReportExport({
   buildingMap,
   empMap,
   roomMap,
+  openPrintDialog,
 }: any) {
   const toExcelRows = (): Record<string, any>[] => {
     const data = currentData();
@@ -195,18 +196,35 @@ export function useReportExport({
     );
   };
 
-  const handleExportAnalyticsPDF = () => {
+  const handleExportAnalyticsPDF = async () => {
     if (!canExportReports) return;
-    exportAnalyticsPDF(
-      analytics,
-      rooms,
-      profiles,
-      evalStats,
-      properties,
-      propId,
-      activePropertyId,
-      settings,
-    );
+    let isArabic = ar;
+    if (typeof openPrintDialog === "function") {
+      isArabic = await openPrintDialog();
+    }
+    if (isArabic) {
+      printArabicAnalyticsReport({
+        analytics,
+        rooms,
+        profiles,
+        evalStats,
+        properties,
+        propId,
+        activePropertyId,
+        settings,
+      });
+    } else {
+      exportAnalyticsPDF(
+        analytics,
+        rooms,
+        profiles,
+        evalStats,
+        properties,
+        propId,
+        activePropertyId,
+        settings,
+      );
+    }
   };
 
   return {

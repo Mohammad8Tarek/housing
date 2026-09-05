@@ -1047,6 +1047,13 @@ const closeDialog = () => {
                       }
                       autoComplete="off"
                     />
+                    {form.adminUsername.trim().toLowerCase() === "admin" && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        {ar
+                          ? "ملاحظة: حساب 'admin' موجود مسبقاً، وسيتم منحه صلاحية إدارة هذا الفرع الجديد تلقائياً."
+                          : "Note: 'admin' account already exists and will be granted access to this new property."}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">

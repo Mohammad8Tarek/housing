@@ -4,6 +4,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
 import { DataPagination } from "@/components/DataPagination";
 import { AnalyticsTab } from "./components/AnalyticsTab";
+import { usePrintLanguage, PrintLanguageDialog } from "@/lib/PrintLanguageDialog";
 
 import { useReportData } from "./hooks/useReportData";
 import { useReportFilters } from "./hooks/useReportFilters";
@@ -24,6 +25,7 @@ export default function Reports() {
   const ar = language === "ar";
   const canExportReports = can("reports", "export");
 
+  const { langDialogOpen, openDialog, handleSelect, handleCancel } = usePrintLanguage();
   const filters = useReportFilters();
 
   const numericPropertyId: number | undefined =
@@ -119,6 +121,7 @@ export default function Reports() {
       buildingMap: data.buildingMap,
       empMap: data.empMap,
       roomMap: data.roomMap,
+      openPrintDialog: openDialog,
     });
 
   return (
@@ -242,6 +245,12 @@ export default function Reports() {
           </div>
         </>
       )}
+
+      <PrintLanguageDialog
+        open={langDialogOpen}
+        onSelect={handleSelect}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }
