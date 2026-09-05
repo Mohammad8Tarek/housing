@@ -438,6 +438,125 @@ router.post(
   },
 );
 
+router.post(
+  "/profiles/bulk",
+  requirePermission("profiles", "create"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+
+    const { profiles: rawProfiles } = req.body;
+    if (!Array.isArray(rawProfiles) || rawProfiles.length === 0) {
+      res.status(400).json({ error: "profiles array is required and must not be empty" });
+      return;
+    }
+
+    const maxBulkLimit = 5000;
+    const toProcess = rawProfiles.slice(0, maxBulkLimit);
+
+    const result = await withTenant(propertyId, async (tenantDb) => {
+      // 1. Fetch existing profile IDs, national IDs, and phones to check duplicates
+      const existing = await tenantDb
+        .select({
+          profileId: profilesTable.profileId,
+          nationalId: profilesTable.nationalId,
+          phone: profilesTable.phone,
+        })
+        .from(profilesTable);
+
+      const existingProfileIds = new Set(existing.map((e) => e.profileId?.trim().toLowerCase()).filter(Boolean));
+      const existingNationalIds = new Set(existing.map((e) => e.nationalId?.trim()).filter(Boolean));
+      const existingPhones = new Set(existing.map((e) => e.phone?.trim()).filter(Boolean));
+
+      const validRows: any[] = [];
+      let skippedCount = 0;
+
+      for (let i = 0; i < toProcess.length; i++) {
+        const p = toProcess[i];
+        const pId = String(p.profileId || "").trim();
+        const nid = String(p.nationalId || "").trim();
+        const ph = String(p.phone || "").trim();
+
+        // Check if duplicate in DB or duplicate within this batch
+        if (pId && existingProfileIds.has(pId.toLowerCase())) {
+          skippedCount++;
+          continue;
+        }
+        if (nid && existingNationalIds.has(nid)) {
+          skippedCount++;
+          continue;
+        }
+        if (ph && existingPhones.has(ph)) {
+          skippedCount++;
+          continue;
+        }
+
+        if (pId) existingProfileIds.add(pId.toLowerCase());
+        if (nid) existingNationalIds.add(nid);
+        if (ph) existingPhones.add(ph);
+
+        validRows.push({
+          profileId: pId || `EMP-${Date.now().toString().slice(-6)}${i + 1}`,
+          firstName: String(p.firstName || "—").trim(),
+          lastName: String(p.lastName || "—").trim(),
+          thirdName: String(p.thirdName || "").trim(),
+          fourthName: String(p.fourthName || "").trim(),
+          nationalId: nid,
+          nationality: String(p.nationality || "").trim(),
+          address: String(p.address || "").trim(),
+          jobTitle: String(p.jobTitle || "").trim(),
+          level: String(p.level || "—").trim(),
+          phone: ph,
+          department: String(p.department || "").trim(),
+          status: "UNASSIGNED",
+          hireDate: p.hireDate || new Date().toISOString().split("T")[0],
+          gender: p.gender === "F" ? "F" : "M",
+          employmentType: p.employmentType || "INTERNAL",
+          companyName: p.companyName || "",
+          contractEndDate: p.contractEndDate || null,
+          dateOfBirth: p.dateOfBirth || "",
+        });
+      }
+
+      // Insert in chunks of 100 for safety and performance
+      const CHUNK_SIZE = 100;
+      let insertedCount = 0;
+      for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
+        const chunk = validRows.slice(i, i + CHUNK_SIZE);
+        const inserted = await tenantDb.insert(profilesTable).values(chunk).returning({ id: profilesTable.id, profileId: profilesTable.profileId });
+        insertedCount += inserted.length;
+        // Ensure portal accounts asynchronously
+        for (const ins of inserted) {
+          ensureProfilePortalAccount(propertyId, ins.profileId).catch(() => {});
+        }
+      }
+
+      return { total: toProcess.length, success: insertedCount, skipped: skippedCount };
+    });
+
+    const s = su(req);
+    await logActivity({
+      req,
+      propertyId,
+      username: s.username,
+      userId: s.userId,
+      userRole: s.userRole,
+      action: `استيراد جماعي للملفات الشخصية: ${result.success} ملف`,
+      actionType: "CREATE",
+      module: "profiles",
+      entityType: "profile",
+      details: `Total: ${result.total}, Inserted: ${result.success}, Skipped: ${result.skipped}`,
+    });
+
+    broadcastToProperty(propertyId, { module: "profiles", action: "created", count: result.success });
+
+    res.status(200).json(result);
+  },
+);
+
 router.get(
   "/profiles/:id",
   requirePermission("profiles", "view"),

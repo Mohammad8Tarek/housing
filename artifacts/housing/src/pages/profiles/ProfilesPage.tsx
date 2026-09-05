@@ -206,19 +206,62 @@ export function ProfilesPage() {
 
   const handleBulkImport = async (rows: ProfileForm[]) => {
     setIsImporting(true);
-    setImportProgress(0);
+    setImportProgress(10);
+    try {
+      // 1. Fast server-side bulk import
+      const res = await fetch(
+        `/api/profiles/bulk?propertyId=${activePropertyId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            profiles: rows,
+            propertyId: activePropertyId,
+          }),
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setImportProgress(100);
+        invalidate();
+        setIsImporting(false);
+        setImportOpen(false);
+        const toastFn = data.success > 0 ? toast.success : toast.error;
+        toastFn(
+          ar
+            ? `تم استيراد ${data.success} ملف شخصي بنجاح${data.skipped > 0 ? ` (تم تخطي ${data.skipped} مكرر)` : ""}`
+            : `Imported ${data.success} profiles${data.skipped > 0 ? ` (${data.skipped} duplicates skipped)` : ""}`,
+        );
+        return;
+      }
+    } catch (err) {
+      console.warn("Fast bulk import failed, trying chunked fallback:", err);
+    }
+
+    // 2. Fallback: chunked concurrent requests
     let success = 0;
     let failed = 0;
-    for (let i = 0; i < rows.length; i++) {
-      try {
-        await createMutation.mutateAsync({
-          data: { ...rows[i], propertyId: activePropertyId! } as any,
-        });
-        success++;
-        setImportProgress(Math.round(((i + 1) / rows.length) * 100));
-      } catch {
-        failed++;
-      }
+    const CONCURRENCY = 8;
+    for (let i = 0; i < rows.length; i += CONCURRENCY) {
+      const chunk = rows.slice(i, i + CONCURRENCY);
+      await Promise.all(
+        chunk.map(async (row) => {
+          try {
+            await createMutation.mutateAsync({
+              data: { ...row, propertyId: activePropertyId! } as any,
+            });
+            success++;
+          } catch {
+            failed++;
+          }
+        }),
+      );
+      setImportProgress(
+        Math.round(
+          (Math.min(i + CONCURRENCY, rows.length) / rows.length) * 100,
+        ),
+      );
     }
     invalidate();
     setIsImporting(false);

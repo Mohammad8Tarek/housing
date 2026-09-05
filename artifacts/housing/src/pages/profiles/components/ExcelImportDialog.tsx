@@ -87,7 +87,7 @@ import * as XLSX from "xlsx";
 import { DataPagination } from "@/components/DataPagination";
 import { PaginationBar } from "@/components/ui/PaginationBar";
 
-const MAX_PROFILE_IMPORT_FILE_SIZE = 1024 * 1024;
+const MAX_PROFILE_IMPORT_FILE_SIZE = 25 * 1024 * 1024;
 const PROFILE_IMPORT_EXTENSIONS = [".xlsx", ".xls"];
 
 /* ── Profile Photo Avatar ──────────────────────────────────────────────── */
@@ -107,6 +107,7 @@ export function ExcelImportDialog({
   const { language } = useLanguage();
   const ar = language === "ar";
   const fileRef = useRef<HTMLInputElement>(null);
+  const [allParsedRows, setAllParsedRows] = useState<ImportRow[]>([]);
   const [preview, setPreview] = useState<ImportRow[]>([]);
   const [fileName, setFileName] = useState("");
   const [parseError, setParseError] = useState("");
@@ -286,8 +287,8 @@ export function ExcelImportDialog({
     if (file.size > MAX_PROFILE_IMPORT_FILE_SIZE) {
       setParseError(
         ar
-          ? "الملف كبير جداً. الحد الأقصى 1 ميغابايت"
-          : "File is too large. Maximum size is 1 MB",
+          ? "الملف كبير جداً. الحد الأقصى 25 ميغابايت"
+          : "File is too large. Maximum size is 25 MB",
       );
       e.target.value = "";
       return;
@@ -299,7 +300,6 @@ export function ExcelImportDialog({
       try {
         const wb = XLSX.read(ev.target?.result, {
           type: "binary",
-          sheetRows: 101,
         });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<ImportRow>(ws, { defval: "" });
@@ -307,7 +307,8 @@ export function ExcelImportDialog({
           setParseError(ar ? "الملف فارغ" : "File is empty");
           return;
         }
-        setPreview(rows.slice(0, 100));
+        setAllParsedRows(rows);
+        setPreview(rows.slice(0, 50));
       } catch {
         setParseError(ar ? "فشل في قراءة الملف" : "Failed to parse file");
       }
@@ -317,7 +318,8 @@ export function ExcelImportDialog({
   };
 
   const handleImport = () => {
-    const rows: ProfileForm[] = preview.map((r: any, index: number) => {
+    const targetRows = allParsedRows.length > 0 ? allParsedRows : preview;
+    const rows: ProfileForm[] = targetRows.map((r: any, index: number) => {
       let pId = String(
         r.Profile_Code || r.profileId || r.Code || r["الكود"] || r["كود الموظف"] || r["رقم الملف"] || "",
       ).trim();
@@ -410,6 +412,7 @@ export function ExcelImportDialog({
 
   const reset = () => {
     setPreview([]);
+    setAllParsedRows([]);
     setFileName("");
     setParseError("");
     onClose();
@@ -478,6 +481,7 @@ export function ExcelImportDialog({
                   <button
                     onClick={() => {
                       setPreview([]);
+                      setAllParsedRows([]);
                       setFileName("");
                     }}
                     className="hover:text-destructive"
@@ -496,14 +500,14 @@ export function ExcelImportDialog({
           </div>
 
           {/* Step 3: Preview */}
-          {preview.length > 0 && (
+          {(preview.length > 0 || allParsedRows.length > 0) && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-600" />
                   {ar
-                    ? `معاينة (${preview.length} ملف شخصي)`
-                    : `Preview (${preview.length} profiles)`}
+                    ? `جاهز للاستيراد: ${allParsedRows.length || preview.length} ملف شخصي (معاينة أول ${preview.length})`
+                    : `Ready to import: ${allParsedRows.length || preview.length} profiles (previewing first ${preview.length})`}
                 </p>
               </div>
               <div className="border rounded-xl overflow-hidden">
@@ -618,7 +622,7 @@ export function ExcelImportDialog({
           </Button>
           <Button
             onClick={handleImport}
-            disabled={preview.length === 0 || isImporting}
+            disabled={(allParsedRows.length === 0 && preview.length === 0) || isImporting}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             <FileSpreadsheet className="w-4 h-4 mr-2" />
@@ -627,8 +631,8 @@ export function ExcelImportDialog({
                 ? "جاري الاستيراد..."
                 : "Importing..."
               : ar
-                ? `استيراد ${preview.length} ملف شخصي`
-                : `Import ${preview.length} profiles`}
+                ? `استيراد ${allParsedRows.length || preview.length} ملف شخصي`
+                : `Import ${allParsedRows.length || preview.length} profiles`}
           </Button>
         </div>
       </DialogContent>
