@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, withTenant, reservationsTable, roomsTable, assignmentsTable, profilesTable } from "@workspace/db";
+import { db, withTenant, reservationsTable, roomsTable, assignmentsTable, profilesTable, buildingsTable } from "@workspace/db";
 import { eq, and, sql, SQL, desc, ilike, ne, or, inArray } from "drizzle-orm";
 import {
   CreateReservationBody,
