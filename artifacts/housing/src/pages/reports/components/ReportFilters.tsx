@@ -83,10 +83,12 @@ export function ReportFilters({
         ];
       case "assignments":
         return [
-          { value: "ACTIVE",       label: "In-House",             labelAr: "مقيم بالسكن" },
+          { value: "all",          label: "All Current Occupants",labelAr: "الكل (المقيمين حالياً)" },
+          { value: "ACTIVE",       label: "Active In-House",      labelAr: "مقيم بالسكن" },
           { value: "VACATION",     label: "On Vacation",          labelAr: "في إجازة" },
-          { value: "CHECKED_OUT",  label: "Checked-Out",          labelAr: "تمت المغادرة" },
+          { value: "CHECKED_OUT",  label: "Checked-Out / Past",   labelAr: "سجل المغادرين" },
           { value: "TRANSFERRED",  label: "Transferred",          labelAr: "تم النقل" },
+          { value: "ALL_HISTORY",  label: "All (Including History)", labelAr: "الكل (شامل المغادرين)" },
         ];
       case "profiles":
         return [
@@ -135,7 +137,7 @@ export function ReportFilters({
   };
 
   const statusOptions = getStatusOptions();
-  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings"].includes(activeTab);
+  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping"].includes(activeTab);
   const showEmploymentType = ["assignments", "profiles", "analytics"].includes(activeTab);
   const showRoomType = ["housing", "vacant_rooms", "assignments", "reservations"].includes(activeTab);
   const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts"].includes(activeTab);

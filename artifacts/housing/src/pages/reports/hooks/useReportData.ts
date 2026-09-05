@@ -35,67 +35,50 @@ export function useReportData(
     { query: { queryKey: ["settings", propId], enabled: !!propId } },
   );
 
-  const { data: _bData } = useListBuildings({ propertyId: propId } as any, {
-    query: { queryKey: ["buildings", propId], enabled: !!propId },
+  const { data: _bData } = useListBuildings({ propertyId: propId, limit: 5000 } as any, {
+    query: { queryKey: ["buildings", propId, 5000], enabled: !!propId },
   });
   const buildings: any[] = (_bData as any)?.data || _bData || [];
 
-  const floorsQueryParams = useMemo(() => {
-    if (
-      filterBuilding !== "all" &&
-      filterBuilding !== "undefined" &&
-      filterBuilding !== ""
-    ) {
-      return { buildingId: Number(filterBuilding) };
-    }
-    return { propertyId: propId };
-  }, [filterBuilding, propId]);
-
-  const { data: _fData, refetch: refetchFloors } = useListFloors(
-    floorsQueryParams as any,
-    { query: { queryKey: ["floors", floorsQueryParams], enabled: !!propId } },
+  const { data: _fData } = useListFloors(
+    { propertyId: propId, limit: 5000 } as any,
+    { query: { queryKey: ["floors", propId, 5000], enabled: !!propId } },
   );
   const floors: any[] = (_fData as any)?.data || _fData || [];
 
-  useEffect(() => {
-    if (filterBuilding !== "all") {
-      refetchFloors();
-    }
-  }, [filterBuilding, refetchFloors]);
-
   const { data: _rData, isLoading: roomLoad } = useListRooms(
-    { propertyId: propId } as any,
-    { query: { queryKey: ["rooms", propId], enabled: !!propId } },
+    { propertyId: propId, limit: 5000 } as any,
+    { query: { queryKey: ["rooms", propId, 5000], enabled: !!propId } },
   );
   const rooms: any[] = (_rData as any)?.data || _rData || [];
 
   const { data: _eData, isLoading: empLoad } = useListProfiles(
-    { propertyId: propId } as any,
-    { query: { queryKey: ["profiles", propId, 1000], enabled: !!propId } },
+    { propertyId: propId, limit: 5000 } as any,
+    { query: { queryKey: ["profiles", propId, 5000], enabled: !!propId } },
   );
   const profiles: any[] = (_eData as any)?.data || _eData || [];
 
   const { data: _aData, isLoading: assLoad } = useListAssignments(
-    { propertyId: propId } as any,
-    { query: { queryKey: ["assignments", propId], enabled: !!propId } },
+    { propertyId: propId, limit: 5000 } as any,
+    { query: { queryKey: ["assignments", propId, 5000], enabled: !!propId } },
   );
   const assignments: any[] = (_aData as any)?.data || _aData || [];
 
   const { data: _resData, isLoading: resLoad } = useListReservations(
-    { propertyId: propId } as any,
-    { query: { queryKey: ["reservations", propId], enabled: !!propId } },
+    { propertyId: propId, limit: 5000 } as any,
+    { query: { queryKey: ["reservations", propId, 5000], enabled: !!propId } },
   );
   const reservations: any[] = (_resData as any)?.data || _resData || [];
 
   const { data: _mntData, isLoading: mntLoad } = useListMaintenance(
-    { propertyId: propId } as any,
-    { query: { queryKey: ["maintenance", propId], enabled: !!propId } },
+    { propertyId: propId, limit: 5000 } as any,
+    { query: { queryKey: ["maintenance", propId, 5000], enabled: !!propId } },
   );
   const maintenance: any[] = (_mntData as any)?.data || _mntData || [];
 
   const { data: _hData, isLoading: hostLoad } = useListHostings(
-    { propertyId: propId } as any,
-    { query: { queryKey: ["hostings", propId], enabled: !!propId } },
+    { propertyId: propId, limit: 5000 } as any,
+    { query: { queryKey: ["hostings", propId, 5000], enabled: !!propId } },
   );
   const hostings: any[] = (_hData as any)?.data || _hData || [];
 

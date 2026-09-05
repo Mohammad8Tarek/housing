@@ -101,15 +101,29 @@ export function useReportDataProcessor({
             const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || emp.status === "LEFT" || emp.status === "CHECKED_OUT";
             const effectiveStatus = isCheckedOut ? "CHECKED_OUT" : (isVacation ? "VACATION" : (a.status || "ACTIVE"));
 
-            if (filterBuilding !== "all" && room && !filteredBuildingIds.has(room.buildingId)) return false;
-            if (filterFloor !== "all" && room && !filteredFloorIds.has(room.floorId)) return false;
-            if (filterStatus !== "all") {
-              const fs = filterStatus.toUpperCase();
-              if (fs === "VACATION" && effectiveStatus !== "VACATION") return false;
-              if (fs === "ACTIVE" && effectiveStatus !== "ACTIVE") return false;
-              if (fs === "CHECKED_OUT" && effectiveStatus !== "CHECKED_OUT") return false;
-              if (fs === "TRANSFERRED" && a.status?.toUpperCase() !== "TRANSFERRED") return false;
+            if (filterBuilding !== "all" && (!room || !filteredBuildingIds.has(room.buildingId))) return false;
+            if (filterFloor !== "all" && (!room || !filteredFloorIds.has(room.floorId))) return false;
+            
+            // Status filter:
+            // "all" / default: Only currently residing occupants (ACTIVE & VACATION)
+            // "ACTIVE": Only Active
+            // "VACATION": Only on Vacation
+            // "CHECKED_OUT": Only checked-out records
+            // "ALL_HISTORY": Show all including checked out
+            if (filterStatus === "all" || !filterStatus) {
+              if (isCheckedOut) return false;
+            } else if (filterStatus === "ACTIVE") {
+              if (effectiveStatus !== "ACTIVE") return false;
+            } else if (filterStatus === "VACATION") {
+              if (effectiveStatus !== "VACATION") return false;
+            } else if (filterStatus === "CHECKED_OUT") {
+              if (effectiveStatus !== "CHECKED_OUT") return false;
+            } else if (filterStatus === "TRANSFERRED") {
+              if (a.status?.toUpperCase() !== "TRANSFERRED") return false;
+            } else if (filterStatus === "ALL_HISTORY") {
+              // include all
             }
+
             if (filterDepartment !== "all" && emp?.department !== filterDepartment) return false;
             if (filterGender !== "all" && emp?.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
             if (filterNationality !== "all" && emp?.nationality !== filterNationality) return false;
@@ -126,6 +140,13 @@ export function useReportDataProcessor({
             const isVacation = (emp.status || a.profileStatus || "").toUpperCase() === "VACATION";
             const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || emp.status === "LEFT" || emp.status === "CHECKED_OUT";
             const effectiveStatus = isCheckedOut ? "CHECKED_OUT" : (isVacation ? "VACATION" : (a.status || "ACTIVE"));
+            const isEntire = Boolean(
+              a.isEntireRoom ||
+              a.is_entire_room ||
+              a.notes?.includes("[حجز الغرفة بالكامل]") ||
+              a.notes?.includes("[تسكين الغرفة بالكامل]")
+            );
+            const bedNum = a.bedNumber ?? (isEntire ? 1 : null);
 
             return {
               id: a.id,
@@ -135,6 +156,7 @@ export function useReportDataProcessor({
               lastName: emp.lastName || "",
               fullName: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || `#${a.profileId}`,
               nationalId: emp.nationalId || "—",
+              nationality: emp.nationality || "—",
               phone: emp.phone || "—",
               department: emp.department || "—",
               jobTitle: emp.jobTitle || "—",
@@ -144,10 +166,11 @@ export function useReportDataProcessor({
               roomId: a.roomId,
               roomNumber: room.roomNumber || `#${a.roomId}`,
               roomType: room.roomType || "—",
-              bedNumber: a.bedNumber ? String(a.bedNumber) : "—",
-              isEntireRoom: Boolean(a.isEntireRoom || a.is_entire_room),
+              bedNumber: bedNum ? String(bedNum) : "—",
+              isEntireRoom: isEntire,
               buildingName: buildingMap[room.buildingId] || "—",
               floorName: floorMap[room.floorId] || "—",
+              rawCheckInDate: a.checkInDate,
               checkInDate: formatDate(a.checkInDate, "—"),
               contractEndDate: formatDate(emp.contractEndDate, "—"),
               expectedCheckOutDate: a.expectedCheckOutDate
@@ -162,14 +185,17 @@ export function useReportDataProcessor({
             };
           });
 
-        return applySearchAndDate(list, "checkInDate", (i) => [
+        return applySearchAndDate(list, "rawCheckInDate", (i) => [
           i.fullName,
           i.profileCode,
           i.nationalId,
+          i.nationality,
           i.phone,
           i.roomNumber,
           i.bedNumber,
           i.buildingName,
+          i.floorName,
+          i.roomType,
           i.department,
           i.companyName,
           i.jobTitle,
@@ -180,10 +206,18 @@ export function useReportDataProcessor({
       // 2. VACANT ROOMS & AVAILABLE BEDS REPORT (الغرف والأسرة الشاغرة)
       case "vacant_rooms": {
         const activeAssByRoom = new Map<number, Set<number>>();
+        const roomHasFullLock = new Map<number, boolean>();
         assignments
           .filter((a: any) => a.status?.toLowerCase() === "active")
           .forEach((a: any) => {
             if (!activeAssByRoom.has(a.roomId)) activeAssByRoom.set(a.roomId, new Set());
+            const isFullLock = Boolean(
+              a.isEntireRoom ||
+              a.is_entire_room ||
+              a.notes?.includes("[حجز الغرفة بالكامل]") ||
+              a.notes?.includes("[تسكين الغرفة بالكامل]")
+            );
+            if (isFullLock) roomHasFullLock.set(a.roomId, true);
             if (a.bedNumber != null) activeAssByRoom.get(a.roomId)!.add(a.bedNumber);
           });
 
@@ -191,23 +225,30 @@ export function useReportDataProcessor({
           .filter((r: any) => {
             const isOutOfOrder = ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(r.status?.toLowerCase());
             if (isOutOfOrder) return false;
+            if (roomHasFullLock.get(r.id)) return false; // Full Lock: no vacant beds
             const cap = r.capacity || 1;
-            const occ = r.currentOccupancy || 0;
-            const vacantBeds = cap - occ;
+            const assignedCount = activeAssByRoom.get(r.id)?.size ?? 0;
+            const occ = Math.max(r.currentOccupancy || 0, assignedCount);
+            const vacantBeds = Math.max(0, cap - occ);
             if (vacantBeds <= 0) return false; // Only rooms with available space
 
             if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
             if (filterFloor !== "all" && !filteredFloorIds.has(r.floorId)) return false;
             if (filterRoomType !== "all" && r.roomType?.toLowerCase() !== filterRoomType.toLowerCase()) return false;
-            if (filterStatus !== "all" && r.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
+            if (filterStatus !== "all") {
+              const fs = filterStatus.toLowerCase();
+              if (fs === "available" && occ > 0) return false;
+              if (fs === "partially" && (occ === 0 || occ >= cap)) return false;
+              if (fs === "dirty" && r.status?.toLowerCase() !== "dirty") return false;
+            }
             if (filterGender !== "all" && r.genderPolicy?.toLowerCase() !== filterGender.toLowerCase()) return false;
             return true;
           })
           .map((r: any) => {
             const cap = r.capacity || 1;
-            const occ = r.currentOccupancy || 0;
-            const vacantBedsCount = Math.max(0, cap - occ);
             const occupiedBeds = activeAssByRoom.get(r.id) || new Set();
+            const occ = Math.min(cap, Math.max(r.currentOccupancy || 0, occupiedBeds.size));
+            const vacantBedsCount = Math.max(0, cap - occ);
             const availableBedNumbers: number[] = [];
             for (let b = 1; b <= cap; b++) {
               if (!occupiedBeds.has(b)) availableBedNumbers.push(b);
@@ -246,6 +287,22 @@ export function useReportDataProcessor({
 
       // 3. COMPLETE ROOM INVENTORY REPORT (جرد وحالة الغرف بالكامل)
       case "housing": {
+        const activeAssByRoom = new Map<number, number>();
+        const roomHasFullLock = new Map<number, boolean>();
+        assignments
+          .filter((a: any) => a.status?.toLowerCase() === "active")
+          .forEach((a: any) => {
+            activeAssByRoom.set(a.roomId, (activeAssByRoom.get(a.roomId) || 0) + 1);
+            if (
+              a.isEntireRoom ||
+              a.is_entire_room ||
+              a.notes?.includes("[حجز الغرفة بالكامل]") ||
+              a.notes?.includes("[تسكين الغرفة بالكامل]")
+            ) {
+              roomHasFullLock.set(a.roomId, true);
+            }
+          });
+
         const list = rooms
           .filter((r: any) => {
             if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
@@ -257,7 +314,9 @@ export function useReportDataProcessor({
           })
           .map((r: any) => {
             const cap = r.capacity || 1;
-            const occ = r.currentOccupancy || 0;
+            const isFullLock = roomHasFullLock.get(r.id);
+            const occ = isFullLock ? cap : Math.min(cap, Math.max(r.currentOccupancy || 0, activeAssByRoom.get(r.id) || 0));
+            const vacantBeds = Math.max(0, cap - occ);
             const rate = cap > 0 ? Math.round((occ / cap) * 100) : 0;
             return {
               id: r.id,
@@ -267,10 +326,10 @@ export function useReportDataProcessor({
               roomType: r.roomType || "Standard",
               capacity: cap,
               currentOccupancy: occ,
-              vacantBeds: Math.max(0, cap - occ),
+              vacantBeds,
               occupancyRate: `${rate}%`,
               genderPolicy: r.genderPolicy || "—",
-              status: r.status || "available",
+              status: isFullLock ? "occupied" : (r.status || "available"),
             };
           });
 
@@ -360,6 +419,13 @@ export function useReportDataProcessor({
             if (filterDepartment !== "all" && p.department !== filterDepartment) return false;
             if (filterGender !== "all" && p.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
             if (filterNationality !== "all" && p.nationality !== filterNationality) return false;
+            
+            const exp = new Date(p.contractEndDate);
+            const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            if (filterStatus === "expired" && diffDays >= 0) return false;
+            if (filterStatus === "expiring_30" && (diffDays < 0 || diffDays > 30)) return false;
+            if (filterStatus === "active" && diffDays < 0) return false;
+            
             return true;
           })
           .map((p: any) => {
@@ -378,6 +444,7 @@ export function useReportDataProcessor({
               department: p.department || "—",
               jobTitle: p.jobTitle || "—",
               contractEndDate: formatDate(p.contractEndDate, "—"),
+              daysRemaining: diffDays,
               expStatus:
                 diffDays < 0
                   ? (ar ? "منتهي" : "Expired")
@@ -389,10 +456,7 @@ export function useReportDataProcessor({
                 : (ar ? "غير مسكن" : "Unassigned"),
             };
           })
-          .sort(
-            (a: { daysRemaining: number }, b: { daysRemaining: number }) =>
-              a.daysRemaining - b.daysRemaining,
-          );
+          .sort((a: any, b: any) => a.daysRemaining - b.daysRemaining);
 
         return applySearchAndDate(list, "contractEndDate", (i) => [
           i.fullName,

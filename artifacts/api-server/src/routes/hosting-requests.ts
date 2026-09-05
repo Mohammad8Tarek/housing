@@ -36,7 +36,7 @@ const CreateFamilyVisitBody = z.object({
 
 const ListQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
+  limit: z.coerce.number().int().min(1).max(5000).default(25),
   status: z.string().optional(),
   hotelId: z.coerce.number().optional(),
   search: z.string().optional(),

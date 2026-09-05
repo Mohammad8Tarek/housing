@@ -17,16 +17,46 @@ export function useReportAnalytics({
   const safeMaintenance = Array.isArray(maintenance) ? maintenance : [];
   const safeReservations = Array.isArray(reservations) ? reservations : [];
 
+  const activeAssByRoom = useMemo(() => {
+    const map = new Map<number, any[]>();
+    safeAssignments
+      .filter((a: any) => a.status?.toLowerCase() === "active")
+      .forEach((a: any) => {
+        if (!map.has(a.roomId)) map.set(a.roomId, []);
+        map.get(a.roomId)!.push(a);
+      });
+    return map;
+  }, [safeAssignments]);
+
+  const getRoomOccupancy = (r: any): number => {
+    const assList = activeAssByRoom.get(r.id) || [];
+    const hasFullLock = assList.some(
+      (a: any) =>
+        a.isEntireRoom ||
+        a.is_entire_room ||
+        a.notes?.includes("[حجز الغرفة بالكامل]") ||
+        a.notes?.includes("[تسكين الغرفة بالكامل]")
+    );
+    const cap = r.capacity ?? 1;
+    if (hasFullLock) return cap;
+    if (assList.length > 0) return Math.min(cap, assList.length);
+    return Math.min(cap, r.currentOccupancy ?? 0);
+  };
+
   const stats = useMemo(() => {
     const totalRooms = safeRooms.length;
     const totalCapacity = safeRooms.reduce((s: number, r: any) => s + (r.capacity ?? 1), 0);
-    const totalOccupied = safeRooms.reduce((s: number, r: any) => s + (r.currentOccupancy ?? 0), 0);
+    const totalOccupied = safeRooms.reduce((s: number, r: any) => s + getRoomOccupancy(r), 0);
     const vacantBeds = Math.max(0, totalCapacity - totalOccupied);
     const vacantRooms = safeRooms.filter(
-      (r: any) => (r.capacity ?? 1) > (r.currentOccupancy ?? 0) && !["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(r.status?.toLowerCase()),
+      (r: any) =>
+        (r.capacity ?? 1) > getRoomOccupancy(r) &&
+        !["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(r.status?.toLowerCase()),
     ).length;
     const occupiedRooms = safeRooms.filter(
-      (r: any) => (r.currentOccupancy ?? 0) >= (r.capacity ?? 1) || r.status?.toLowerCase() === "occupied",
+      (r: any) =>
+        getRoomOccupancy(r) >= (r.capacity ?? 1) ||
+        (r.status?.toLowerCase() === "occupied" && getRoomOccupancy(r) > 0),
     ).length;
     const maint = safeRooms.filter(
       (r: any) => ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(r.status?.toLowerCase()),
@@ -58,7 +88,7 @@ export function useReportAnalytics({
       expiringContracts,
       upcomingRes,
     };
-  }, [safeRooms, safeAssignments, safeProfiles, safeReservations]);
+  }, [safeRooms, safeAssignments, safeProfiles, safeReservations, activeAssByRoom]);
 
   const analytics = useMemo(() => {
     const totalCapacity = stats.totalCapacity;
@@ -69,16 +99,18 @@ export function useReportAnalytics({
       .map((b: any) => {
         const bRooms = safeRooms.filter((r: any) => r.buildingId === b.id);
         const bCapacity = bRooms.reduce((s: number, r: any) => s + (r.capacity ?? 0), 0);
-        const bOccupied = bRooms.reduce((s: number, r: any) => s + (r.currentOccupancy ?? 0), 0);
+        const bOccupied = bRooms.reduce((s: number, r: any) => s + getRoomOccupancy(r), 0);
         const bAvail = bRooms.filter(
-          (r: any) => (r.capacity ?? 1) > (r.currentOccupancy ?? 0) && !["maintenance", "out_of_service"].includes(r.status?.toLowerCase()),
+          (r: any) =>
+            (r.capacity ?? 1) > getRoomOccupancy(r) &&
+            !["maintenance", "out_of_service"].includes(r.status?.toLowerCase()),
         ).length;
         const bRate = bCapacity > 0 ? Math.round((bOccupied / bCapacity) * 100) : 0;
         return {
           id: b.id,
           name: b.name,
           totalRooms: bRooms.length,
-          occupied: bRooms.filter((r: any) => (r.currentOccupancy ?? 0) > 0).length,
+          occupied: bRooms.filter((r: any) => getRoomOccupancy(r) > 0).length,
           availableRooms: bAvail,
           capacity: bCapacity,
           currentOccupancy: bOccupied,
@@ -92,7 +124,7 @@ export function useReportAnalytics({
       const t = r.roomType ?? "Standard";
       if (!typeMap[t]) typeMap[t] = { cap: 0, occ: 0, count: 0 };
       typeMap[t].cap += r.capacity ?? 0;
-      typeMap[t].occ += r.currentOccupancy ?? 0;
+      typeMap[t].occ += getRoomOccupancy(r);
       typeMap[t].count += 1;
     });
     const byType = Object.entries(typeMap)

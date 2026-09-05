@@ -246,7 +246,7 @@ router.get(
       const conditions: SQL[] = [];
       let page = Math.max(1, parseInt(req.query.page as string) || 1);
       let limit = Math.min(
-        1000,
+        5000,
         Math.max(1, parseInt(req.query.limit as string) || 25),
       );
       const search = req.query.search as string;

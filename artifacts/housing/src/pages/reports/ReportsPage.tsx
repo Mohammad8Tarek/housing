@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
@@ -45,10 +46,27 @@ export default function Reports() {
           (f: any) => f.buildingId === Number(filters.filterBuilding),
         );
 
+  const filteredRoomsForAnalytics = useMemo(() => {
+    return data.rooms.filter((r: any) => {
+      if (filters.filterBuilding !== "all" && filters.filterBuilding && r.buildingId !== Number(filters.filterBuilding)) return false;
+      if (filters.filterFloor !== "all" && filters.filterFloor && r.floorId !== Number(filters.filterFloor)) return false;
+      return true;
+    });
+  }, [data.rooms, filters.filterBuilding, filters.filterFloor]);
+
+  const filteredAssignmentsForAnalytics = useMemo(() => {
+    return data.assignments.filter((a: any) => {
+      const room = data.roomMap[a.roomId];
+      if (filters.filterBuilding !== "all" && filters.filterBuilding && (!room || room.buildingId !== Number(filters.filterBuilding))) return false;
+      if (filters.filterFloor !== "all" && filters.filterFloor && (!room || room.floorId !== Number(filters.filterFloor))) return false;
+      return true;
+    });
+  }, [data.assignments, data.roomMap, filters.filterBuilding, filters.filterFloor]);
+
   const { stats, analytics } = useReportAnalytics({
     ar,
-    rooms: data.rooms,
-    assignments: data.assignments,
+    rooms: filteredRoomsForAnalytics,
+    assignments: filteredAssignmentsForAnalytics,
     profiles: data.profiles,
     buildings: data.buildings,
     maintenance: data.maintenance,

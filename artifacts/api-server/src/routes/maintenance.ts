@@ -76,7 +76,7 @@ router.get(
       let limit = 1000;
       let search = "";
       if (req.query.page) page = parseInt(req.query.page as string) || 1;
-      if (req.query.limit) limit = parseInt(req.query.limit as string) || 10;
+      if (req.query.limit) limit = Math.min(5000, parseInt(req.query.limit as string) || 10);
       if (req.query.search) search = req.query.search as string;
 
       const q = ListMaintenanceQueryParams.safeParse(req.query);

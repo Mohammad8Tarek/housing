@@ -34,7 +34,10 @@ export function useReportExport({
               : (ar ? "داخلي (فندق)" : "Internal"),
           [ar ? "الشركة" : "Company"]: a.companyName,
           [ar ? "رقم الغرفة" : "Room No"]: a.roomNumber,
-          [ar ? "رقم السرير" : "Bed No"]: a.bedNumber,
+          [ar ? "رقم السرير" : "Bed No"]:
+            a.isEntireRoom
+              ? `${a.bedNumber && a.bedNumber !== "—" ? a.bedNumber : 1} (${ar ? "غرفة كاملة" : "Full Lock"})`
+              : a.bedNumber,
           [ar ? "المبنى" : "Building"]: a.buildingName,
           [ar ? "الطابق" : "Floor"]: a.floorName,
           [ar ? "القسم" : "Department"]: a.department,

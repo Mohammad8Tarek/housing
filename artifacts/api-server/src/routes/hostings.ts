@@ -152,7 +152,7 @@ router.get(
 
     try {
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 50));
+      const limit = Math.max(1, Math.min(5000, parseInt(req.query.limit as string) || 50));
       const offset = (page - 1) * limit;
 
       const whereClauses: any[] = [];

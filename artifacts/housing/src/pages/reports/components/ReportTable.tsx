@@ -255,11 +255,16 @@ export function ReportTable({
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-bold text-primary">{row.roomNumber}</span>
                         {row.bedNumber !== "—" && (
                           <Badge variant="secondary" className="text-[11px] h-5 px-1.5">
                             {ar ? `سرير ${row.bedNumber}` : `Bed ${row.bedNumber}`}
+                          </Badge>
+                        )}
+                        {row.isEntireRoom && (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 text-[10px] h-5 px-1.5 font-medium">
+                            {ar ? "غرفة كاملة" : "Full Lock"}
                           </Badge>
                         )}
                       </div>
