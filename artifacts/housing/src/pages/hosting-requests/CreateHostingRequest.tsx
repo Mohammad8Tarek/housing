@@ -691,7 +691,7 @@ export default function CreateHostingRequest() {
                   )}
                   {assignedRoomInfo?.isReserved && (
                     <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold border border-amber-200">
-                      {ar ? "يوجد حجز قادم على هذه الغرفة!" : "Room has an upcoming reservation!"}
+                      {ar ? "يوجد حجز مستقبلي على هذه الغرفة!" : "Room has a future reservation!"}
                     </span>
                   )}
                   {assignedRoomInfo?.hasPendingRequest && (

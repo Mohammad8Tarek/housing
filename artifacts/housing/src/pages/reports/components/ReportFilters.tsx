@@ -122,7 +122,7 @@ export function ReportFilters({
         ];
       case "reservations":
         return [
-          { value: "UPCOMING",    label: "Upcoming Arrival",      labelAr: "وصول قادم" },
+          { value: "UPCOMING",    label: "Future",                labelAr: "حجز مستقبلي" },
           { value: "CHECKED_IN",  label: "Checked-In",            labelAr: "تم التسكين" },
           { value: "NO_SHOW",     label: "No Show",               labelAr: "لم يحضر (نو شو)" },
           { value: "WAITLISTED",  label: "Waitlisted",            labelAr: "قائمة انتظار" },

@@ -903,7 +903,7 @@ export default function ReservationsPage() {
   };
 
   const statusLabel: Record<string, string> = {
-    UPCOMING: ar ? "وصول" : "Arrival",
+    UPCOMING: ar ? "حجز مستقبلي" : "Future",
     CHECKED_IN: ar ? "مقيم" : "Checked In",
     CANCELLED: ar ? "ملغي" : "Cancelled",
     COMPLETED: ar ? "منتهي" : "Completed",
@@ -1013,7 +1013,7 @@ export default function ReservationsPage() {
       {(statusFilter === "UPCOMING" ? paginationTotal > 0 : upcomingCount > 0) && (
         <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-800 dark:text-blue-300">
           <CalendarDays className="w-4 h-4 flex-shrink-0" />
-          <span>{ar ? `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} حجز ينتظر التسكين` : `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} reservation(s) awaiting check-in`}</span>
+          <span>{ar ? `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} حجز مستقبلي ينتظر التسكين` : `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} future reservation(s) awaiting check-in`}</span>
         </div>
       )}
 
@@ -1025,7 +1025,7 @@ export default function ReservationsPage() {
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-56"><SelectValue placeholder={ar ? "حالة الحجز" : "Reservation Status"} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="UPCOMING">{ar ? "الحجوزات القادمة" : "Upcoming Reservations"}</SelectItem>
+            <SelectItem value="UPCOMING">{ar ? "الحجوزات المستقبلية" : "Future Reservations"}</SelectItem>
             <SelectItem value="CHECKED_IN">{ar ? "تم التسكين" : "Checked In"}</SelectItem>
             <SelectItem value="COMPLETED">{ar ? "منتهي" : "Completed"}</SelectItem>
             <SelectItem value="CANCELLED">{ar ? "ملغي" : "Cancelled"}</SelectItem>

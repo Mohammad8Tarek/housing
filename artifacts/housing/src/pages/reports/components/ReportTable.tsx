@@ -478,7 +478,7 @@ export function ReportTable({
                             : "bg-muted text-muted-foreground"
                         }
                       >
-                        {row.status === "UPCOMING" ? (ar ? "وصول قادم" : "Arrival") : row.status}
+                        {row.status === "UPCOMING" ? (ar ? "حجز مستقبلي" : "Future") : row.status}
                       </Badge>
                     </TableCell>
                   </>
