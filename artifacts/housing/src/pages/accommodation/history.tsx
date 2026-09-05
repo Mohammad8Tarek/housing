@@ -261,7 +261,7 @@ export default function HistoryPage() {
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const res = await fetch("/api/assignments/bulk-delete", {
+      const res = await fetch(`/api/assignments/bulk-delete?propertyId=${activePropertyId}`, {
         method: "POST",
         headers,
         credentials: "include",
