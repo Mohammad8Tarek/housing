@@ -136,7 +136,7 @@ export function NationalitySelect({
   const defaultPlaceholder = isAr ? "اختر الجنسية..." : "Select nationality...";
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -179,6 +179,7 @@ export function NationalitySelect({
       <PopoverContent
         className="w-[320px] sm:w-[360px] p-0 shadow-lg border border-border bg-popover z-[150]"
         align="start"
+        onWheel={(e) => e.stopPropagation()}
       >
         <div className="p-2 border-b bg-muted/30">
           <div className="relative">
@@ -197,7 +198,12 @@ export function NationalitySelect({
           </div>
         </div>
 
-        <div className="max-h-[300px] overflow-y-auto p-1 text-xs divide-y divide-border/40">
+        <div
+          className="max-h-[300px] overflow-y-auto p-1 text-xs divide-y divide-border/40 overscroll-contain"
+          onWheel={(e) => {
+            e.stopPropagation();
+          }}
+        >
           {/* Custom DB items if present */}
           {customDbItems.length > 0 && (
             <div className="py-1">
