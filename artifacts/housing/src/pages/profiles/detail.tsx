@@ -142,6 +142,26 @@ export default function ProfileDetail() {
   const { data: settings } = useGetSettings({
     query: { enabled: !!activePropertyId },
   });
+
+  const {
+    data: profile,
+    isLoading: empLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["profile", profileId, activePropertyId],
+    queryFn: async () => {
+      const url =
+        activePropertyId && activePropertyId !== "all"
+          ? `/api/profiles/${profileId}?propertyId=${activePropertyId}`
+          : `/api/profiles/${profileId}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Not found");
+      return res.json();
+    },
+    enabled: !!profileId,
+  });
+
+  const effectivePropId = (profile?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined)) as number | undefined;
   const [vacationModalOpen, setVacationModalOpen] = useState(false);
   const [vacationStartDate, setVacationStartDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -169,18 +189,19 @@ export default function ProfileDetail() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          propertyId,
+          propertyId: effectivePropId,
           startDate: vacationStartDate,
           endDate: vacationEndDate,
           notes: vacationNotes,
         }),
       });
       if (res.status === 404) {
-        res = await fetch(`/api/profiles/${id}`, {
+        const patchUrl = effectivePropId ? `/api/profiles/${id}?propertyId=${effectivePropId}` : `/api/profiles/${id}`;
+        res = await fetch(patchUrl, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            propertyId,
+            propertyId: effectivePropId,
             status: "VACATION",
             vacationStartDate,
             vacationEndDate,
@@ -191,7 +212,8 @@ export default function ProfileDetail() {
       if (!res.ok) throw new Error();
       toast.success(ar ? "تم تسجيل خروج الموظف في إجازة بنجاح" : "Vacation recorded successfully");
       setVacationModalOpen(false);
-      qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id, { propertyId: propertyId as any }) });
+      qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id, { propertyId: effectivePropId as any }) });
+      qc.invalidateQueries({ queryKey: ["profile", profileId, activePropertyId] });
       qc.invalidateQueries({ queryKey: ["/api/rooms"] });
     } catch {
       toast.error(ar ? "فشل تسجيل الإجازة" : "Failed to record vacation");
@@ -205,14 +227,15 @@ export default function ProfileDetail() {
       let res = await fetch(`/api/profiles/${id}/return-vacation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ propertyId }),
+        body: JSON.stringify({ propertyId: effectivePropId }),
       });
       if (res.status === 404) {
-        res = await fetch(`/api/profiles/${id}`, {
+        const patchUrl = effectivePropId ? `/api/profiles/${id}?propertyId=${effectivePropId}` : `/api/profiles/${id}`;
+        res = await fetch(patchUrl, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            propertyId,
+            propertyId: effectivePropId,
             status: "ACTIVE",
             vacationStartDate: null,
             vacationEndDate: null,
@@ -222,7 +245,8 @@ export default function ProfileDetail() {
       }
       if (!res.ok) throw new Error();
       toast.success(ar ? "تم تسجيل عودة الموظف من الإجازة بنجاح (مقيم بالسكن)" : "Returned from vacation");
-      qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id, { propertyId: propertyId as any }) });
+      qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id, { propertyId: effectivePropId as any }) });
+      qc.invalidateQueries({ queryKey: ["profile", profileId, activePropertyId] });
       qc.invalidateQueries({ queryKey: ["/api/rooms"] });
     } catch {
       toast.error(ar ? "فشل تسجيل العودة" : "Failed to record return");
@@ -276,14 +300,15 @@ export default function ProfileDetail() {
       try {
         const currentDocs = (profile as any)?.idDocuments || [];
         const payload = {
-          propertyId: activePropertyId,
+          propertyId: effectivePropId,
           idDocuments: [...currentDocs, ...addedDocs].map(d => ({
             fileName: d.fileName,
             fileType: d.fileType,
             fileData: d.fileData
           }))
         };
-        const res = await fetch(`/api/profiles/${profileId}`, {
+        const url = effectivePropId ? `/api/profiles/${profileId}?propertyId=${effectivePropId}` : `/api/profiles/${profileId}`;
+        const res = await fetch(url, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -312,14 +337,15 @@ export default function ProfileDetail() {
     setDeletingDocIndex(docIndex);
     try {
       const payload = {
-        propertyId: activePropertyId,
+        propertyId: effectivePropId,
         idDocuments: updatedDocs.map((d: any) => ({
           fileName: d.fileName,
           fileType: d.fileType,
           fileData: d.fileData,
         })),
       };
-      const res = await fetch(`/api/profiles/${profileId}`, {
+      const url = effectivePropId ? `/api/profiles/${profileId}?propertyId=${effectivePropId}` : `/api/profiles/${profileId}`;
+      const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -353,26 +379,7 @@ export default function ProfileDetail() {
   const [accessSaving, setAccessSaving] = useState(false);
   const [pwForm, setPwForm] = useState({ password: "", confirm: "" });
 
-  const {
-    data: profile,
-    isLoading: empLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["profile", profileId, activePropertyId],
-    queryFn: async () => {
-      const url =
-        activePropertyId && activePropertyId !== "all"
-          ? `/api/profiles/${profileId}?propertyId=${activePropertyId}`
-          : `/api/profiles/${profileId}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Not found");
-      return res.json();
-    },
-    enabled: !!profileId,
-  });
-
   const portalProfileIdForQuery = String((profile as any)?.profileId ?? "");
-  const effectivePropId = (profile?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined)) as number | undefined;
 
   const { data: portalAccount, refetch: refetchPortalAccount } = useQuery({
     queryKey: ["portal-account", portalProfileIdForQuery, effectivePropId],
@@ -551,12 +558,15 @@ export default function ProfileDetail() {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        await fetch(`/api/profiles/${profileId}/photo`, {
+        const photoUrl = effectivePropId
+          ? `/api/profiles/${profileId}/photo?propertyId=${effectivePropId}`
+          : `/api/profiles/${profileId}/photo`;
+        await fetch(photoUrl, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             photoUrl: reader.result,
-            propertyId: activePropertyId,
+            propertyId: effectivePropId,
           }),
         });
         toast.success(ar ? "تم رفع الصورة" : "Photo uploaded");

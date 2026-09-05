@@ -674,19 +674,37 @@ router.patch(
     }
 
     let propertyId = getTenantId(req);
-    if (!propertyId) {
+    let profileExistsInTenant = false;
+
+    if (propertyId) {
+      try {
+        const [found] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: profilesTable.id })
+            .from(profilesTable)
+            .where(eq(profilesTable.id, params.data.id))
+            .limit(1);
+        });
+        if (found) profileExistsInTenant = true;
+      } catch {}
+    }
+
+    if (!profileExistsInTenant) {
       try {
         const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
         for (const p of props) {
+          if (p.id === propertyId) continue;
           try {
             const [found] = await withTenant(p.id, async (tenantDb) => {
               return await tenantDb
                 .select({ id: profilesTable.id })
                 .from(profilesTable)
-                .where(eq(profilesTable.id, params.data.id));
+                .where(eq(profilesTable.id, params.data.id))
+                .limit(1);
             });
             if (found) {
               propertyId = p.id;
+              profileExistsInTenant = true;
               break;
             }
           } catch {}
@@ -694,8 +712,8 @@ router.patch(
       } catch {}
     }
 
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
+    if (!profileExistsInTenant || !propertyId) {
+      res.status(404).json({ error: "Profile not found" });
       return;
     }
 
@@ -765,15 +783,16 @@ router.patch(
 
         if (idDocuments) {
           await tenantDb.delete(profileDocumentsTable).where(eq(profileDocumentsTable.profileId, params.data.id));
-          if (idDocuments.length > 0) {
-            await tenantDb.insert(profileDocumentsTable).values(
-              idDocuments.map((doc: any) => ({
-                profileId: params.data.id,
-                fileName: doc.fileName,
-                fileType: doc.fileType,
-                fileData: doc.fileData,
-              }))
-            );
+          const validDocs = idDocuments
+            .filter((doc: any) => doc && (doc.fileData || doc.fileName))
+            .map((doc: any) => ({
+              profileId: params.data.id,
+              fileName: doc.fileName || "document",
+              fileType: doc.fileType || "application/octet-stream",
+              fileData: doc.fileData || "",
+            }));
+          if (validDocs.length > 0) {
+            await tenantDb.insert(profileDocumentsTable).values(validDocs);
           }
         }
 
@@ -949,15 +968,53 @@ router.patch(
   "/profiles/:id/photo",
   requirePermission("profiles", "edit"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
     const id = Number(req.params.id);
     if (!id) {
       res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+
+    let propertyId = getTenantId(req);
+    let profileExistsInTenant = false;
+
+    if (propertyId) {
+      try {
+        const [found] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: profilesTable.id })
+            .from(profilesTable)
+            .where(eq(profilesTable.id, id))
+            .limit(1);
+        });
+        if (found) profileExistsInTenant = true;
+      } catch {}
+    }
+
+    if (!profileExistsInTenant) {
+      try {
+        const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
+        for (const p of props) {
+          if (p.id === propertyId) continue;
+          try {
+            const [found] = await withTenant(p.id, async (tenantDb) => {
+              return await tenantDb
+                .select({ id: profilesTable.id })
+                .from(profilesTable)
+                .where(eq(profilesTable.id, id))
+                .limit(1);
+            });
+            if (found) {
+              propertyId = p.id;
+              profileExistsInTenant = true;
+              break;
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+
+    if (!profileExistsInTenant || !propertyId) {
+      res.status(404).json({ error: "Profile not found" });
       return;
     }
 
