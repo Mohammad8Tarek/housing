@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  useGetProfile,
   useListAssignments,
   useListRooms,
   useListBuildings,
@@ -62,41 +62,52 @@ export function ProfileProfilePopup({
     undefined,
   );
 
-  const { data: profile, isLoading: empLoading } = useGetProfile(
-    profileId!,
-    {
-      query: { enabled: !!profileId },
+  const propId = propertyId && (propertyId as any) !== "all" ? Number(propertyId) : undefined;
+  const { data: profile, isLoading: empLoading } = useQuery({
+    queryKey: ["popup-profile", profileId, propId],
+    queryFn: async () => {
+      const url = propId ? `/api/profiles/${profileId}?propertyId=${propId}` : `/api/profiles/${profileId}`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return res.json();
     },
-  );
+    enabled: !!profileId,
+  });
 
-  const { data: _aData } = useListAssignments({ propertyId } as any, {
-    query: { enabled: !!propertyId },
+  const effectivePropId = (profile?.propertyId || propId) as number | undefined;
+
+  const { data: _aData } = useListAssignments({ propertyId: effectivePropId } as any, {
+    query: { enabled: !!effectivePropId },
   });
   const assignments: any[] = Array.isArray(_aData) ? _aData : (_aData?.data || []);
 
+  const { data: _empAssignments } = useListAssignments({ propertyId: effectivePropId, profileId: Number(profileId) } as any, {
+    query: { enabled: !!profileId && !!effectivePropId },
+  });
+
   const { data: _rData } = useListRooms(
-    { propertyId, limit: 1000 },
-    { query: { enabled: !!propertyId } },
+    { propertyId: effectivePropId, limit: 1000 },
+    { query: { enabled: !!effectivePropId } },
   );
   const rooms = Array.isArray(_rData) ? _rData : (_rData?.data || []);
   const { data: _bData } = useListBuildings(
-    { propertyId },
-    { query: { enabled: !!propertyId } },
+    { propertyId: effectivePropId },
+    { query: { enabled: !!effectivePropId } },
   );
   const buildings = Array.isArray(_bData) ? _bData : (_bData?.data || []);
   const { data: _fData } = useListFloors(
-    { propertyId },
-    { query: { enabled: !!propertyId } },
+    { propertyId: effectivePropId },
+    { query: { enabled: !!effectivePropId } },
   );
   const floors = Array.isArray(_fData) ? _fData : (_fData?.data || []);
   const { data: _eData, isLoading: profilesLoading } = useListProfiles(
-    { propertyId },
-    { query: { enabled: !!propertyId } },
+    { propertyId: effectivePropId },
+    { query: { enabled: !!effectivePropId } },
   );
   const profiles = Array.isArray(_eData) ? _eData : (_eData?.data || []);
   const { data: _hData } = useListHostings(
-    { propertyId } as any,
-    { query: { enabled: !!propertyId } },
+    { propertyId: effectivePropId } as any,
+    { query: { enabled: !!effectivePropId } },
   );
   const hostings = Array.isArray(_hData) ? _hData : (_hData?.data || []);
 
@@ -105,9 +116,13 @@ export function ProfileProfilePopup({
   const floorMap = Object.fromEntries(floors.map((f: any) => [f.id, f.floorNumber]));
   const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
 
-  const profileAssignments = assignments.filter(
-    (a) => Number(a.profileId) === Number(profileId),
-  );
+  const rawEmpAss = Array.isArray(_empAssignments)
+    ? _empAssignments
+    : ((_empAssignments as any)?.data || []);
+  const profileAssignments = rawEmpAss.length > 0
+    ? rawEmpAss
+    : assignments.filter((a) => Number(a.profileId) === Number(profileId));
+
   const currentAssignment =
     profileAssignments.find((a) => a.status === "ACTIVE" && !a.checkOutDate) ||
     profileAssignments.find((a) => a.status === "ACTIVE");

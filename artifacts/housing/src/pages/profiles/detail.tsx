@@ -360,21 +360,26 @@ export default function ProfileDetail() {
   } = useQuery({
     queryKey: ["profile", profileId, activePropertyId],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/profiles/${profileId}?propertyId=${activePropertyId}`,
-      );
+      const url =
+        activePropertyId && activePropertyId !== "all"
+          ? `/api/profiles/${profileId}?propertyId=${activePropertyId}`
+          : `/api/profiles/${profileId}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Not found");
       return res.json();
     },
-    enabled: !!profileId && !!activePropertyId,
+    enabled: !!profileId,
   });
 
   const portalProfileIdForQuery = String((profile as any)?.profileId ?? "");
+  const effectivePropId = (profile?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined)) as number | undefined;
+
   const { data: portalAccount, refetch: refetchPortalAccount } = useQuery({
-    queryKey: ["portal-account", portalProfileIdForQuery, activePropertyId],
+    queryKey: ["portal-account", portalProfileIdForQuery, effectivePropId],
     queryFn: async () => {
+      if (!effectivePropId) return null;
       const res = await fetch(
-        `/api/portal-auth/accounts?propertyId=${activePropertyId}`,
+        `/api/portal-auth/accounts?propertyId=${effectivePropId}`,
       );
       if (!res.ok) return null;
       const data = await res.json().catch(() => []);
@@ -385,13 +390,11 @@ export default function ProfileDetail() {
         ) ?? null
       );
     },
-    enabled: !!activePropertyId && !!portalProfileIdForQuery,
+    enabled: !!effectivePropId && !!portalProfileIdForQuery,
   });
 
-  const effectivePropId = profile?.propertyId || activePropertyId;
-
   const { data: allAssignments, isLoading: assignmentsLoading } = useListAssignments(
-    { propertyId: effectivePropId } as any,
+    { propertyId: effectivePropId, profileId: Number(profileId) } as any,
     { query: { enabled: !!profileId && !!effectivePropId } },
   );
 

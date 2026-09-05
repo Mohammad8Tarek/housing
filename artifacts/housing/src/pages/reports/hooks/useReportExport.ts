@@ -1,4 +1,5 @@
 import { exportExcel, exportPDF, exportAnalyticsPDF } from "../utils/export";
+import { getRoomStatusLabel } from "@/pages/housing/utils";
 
 export function useReportExport({
   ar = true,
@@ -72,7 +73,7 @@ export function useReportExport({
           [ar ? "عدد الأسرة الشاغرة" : "Vacant Beds"]: r.vacantBedsCount,
           [ar ? "الأسرة المتاحة" : "Available Beds"]: r.availableBedsText,
           [ar ? "سياسة الجنس" : "Gender Policy"]: r.genderPolicy,
-          [ar ? "حالة الغرفة" : "Room Status"]: r.status,
+          [ar ? "حالة الغرفة" : "Room Status"]: getRoomStatusLabel(r.status, ar),
         }));
 
       case "housing":
@@ -86,7 +87,7 @@ export function useReportExport({
           [ar ? "الشاغر" : "Vacant Beds"]: r.vacantBeds,
           [ar ? "نسبة الإشغال" : "Occupancy Rate"]: r.occupancyRate,
           [ar ? "سياسة الجنس" : "Gender Policy"]: r.genderPolicy,
-          [ar ? "حالة الغرفة" : "Room Status"]: r.status,
+          [ar ? "حالة الغرفة" : "Room Status"]: getRoomStatusLabel(r.status, ar),
         }));
 
       case "profiles":

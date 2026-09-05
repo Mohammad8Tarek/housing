@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Bed, Building, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { roomStatusBadge, getRoomStatusLabel } from "@/pages/housing/utils";
 
 export function ReportTable({
   isLoading,
@@ -348,9 +349,9 @@ export function ReportTable({
                     </TableCell>
                     <TableCell className="text-xs capitalize">{row.genderPolicy}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {row.status}
-                      </Badge>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${roomStatusBadge(row.status)}`}>
+                        {getRoomStatusLabel(row.status, ar)}
+                      </span>
                     </TableCell>
                   </>
                 )}
@@ -371,9 +372,9 @@ export function ReportTable({
                     <TableCell className="text-center font-mono font-bold text-xs">{row.occupancyRate}</TableCell>
                     <TableCell className="text-xs capitalize">{row.genderPolicy}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {row.status}
-                      </Badge>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${roomStatusBadge(row.status)}`}>
+                        {getRoomStatusLabel(row.status, ar)}
+                      </span>
                     </TableCell>
                   </>
                 )}

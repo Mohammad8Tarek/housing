@@ -317,25 +317,58 @@ export function ExcelImportDialog({
   };
 
   const handleImport = () => {
-    const rows: ProfileForm[] = preview.map((r: any) => {
-      const pId = String(
+    const rows: ProfileForm[] = preview.map((r: any, index: number) => {
+      let pId = String(
         r.Profile_Code || r.profileId || r.Code || r["الكود"] || r["كود الموظف"] || r["رقم الملف"] || "",
       ).trim();
-      const fn = String(r.First_Name || r.firstName || r["الاسم الأول"] || r["الاسم"] || "").trim();
-      const ln = String(
+      let fn = String(r.First_Name || r.firstName || r["الاسم الأول"] || r["الاسم"] || "").trim();
+      let ln = String(
         r.Second_Name || r.lastName || r.Last_Name || r["الاسم الثاني"] || r["اسم العائلة"] || r["اللقب"] || "",
       ).trim();
-      const tn = String(r.Third_Name || r.thirdName || r["الاسم الثالث"] || "").trim();
-      const fourN = String(r.Fourth_Name || r.fourthName || r["الاسم الرابع"] || "").trim();
+      let tn = String(r.Third_Name || r.thirdName || r["الاسم الثالث"] || "").trim();
+      let fourN = String(r.Fourth_Name || r.fourthName || r["الاسم الرابع"] || "").trim();
+
+      // If only First_Name was provided and contains multiple words, split it intelligently
+      if (fn && !ln && !tn && !fourN) {
+        const parts = fn.split(/\s+/);
+        if (parts.length >= 4) {
+          fn = parts[0];
+          ln = parts[1];
+          tn = parts[2];
+          fourN = parts.slice(3).join(" ");
+        } else if (parts.length === 3) {
+          fn = parts[0];
+          ln = parts[1];
+          tn = parts[2];
+        } else if (parts.length === 2) {
+          fn = parts[0];
+          ln = parts[1];
+        }
+      }
+
       const rawEmp = r.Employment_Type || r.employmentType || r["نوع التوظيف"] || r["نوع العمل"];
       const empType = parseEmploymentType(rawEmp);
+
+      if (!pId) {
+        pId = `${empType === "THIRD_PARTY" ? "TP" : "EMP"}-${Date.now().toString().slice(-5)}${index + 1}`;
+      }
+
       const comp = String(
         r.Company_Name || r.companyName || r.Workplace || r.workplace || r["الشركة"] || r["مكان العمل"] || r["جهة العمل"] || "",
       ).trim();
-      const dept = String(r.Department || r.department || r["القسم"] || r["الإدارة"] || "").trim();
-      const title = String(r.Job_Title || r.jobTitle || r["الوظيفة"] || r["المسمى الوظيفي"] || "").trim();
-      const lvl = String(r.Level ?? r.level ?? r["الدرجة"] ?? "").trim();
-      const nat = String(r.Nationality || r.nationality || r["الجنسية"] || "").trim();
+      let dept = String(r.Department || r.department || r["القسم"] || r["الإدارة"] || "").trim();
+      if (!dept) {
+        dept = empType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "عام" : "General");
+      }
+      let title = String(r.Job_Title || r.jobTitle || r["الوظيفة"] || r["المسمى الوظيفي"] || "").trim();
+      if (!title) {
+        title = ar ? "موظف" : "Staff";
+      }
+      const lvl = String(r.Level ?? r.level ?? r["الدرجة"] ?? "").trim() || "—";
+      let nat = String(r.Nationality || r.nationality || r["الجنسية"] || "").trim();
+      if (!nat) {
+        nat = ar ? "مصري" : "Egyptian";
+      }
       const g = parseGender(r.Gender || r.gender || r["الجنس"]);
       const nid = String(r.National_ID || r.nationalId || r["رقم الهوية"] || r["الهوية"] || r["الرقم القومي"] || "").trim();
       const ph = String(r.Phone || r.phone || r["الهاتف"] || r["الجوال"] || r["الموبايل"] || "").trim();
@@ -350,8 +383,8 @@ export function ExcelImportDialog({
 
       return {
         profileId: pId,
-        firstName: fn,
-        lastName: ln,
+        firstName: fn || "—",
+        lastName: ln || "—",
         thirdName: tn,
         fourthName: fourN,
         employmentType: empType,

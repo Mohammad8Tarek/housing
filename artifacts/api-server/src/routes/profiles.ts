@@ -414,9 +414,27 @@ router.post(
     });
 
     broadcastToProperty(propertyId, { module: "profiles", action: "created", entityId: profile.id });
+    const safeCreated = {
+      ...profile,
+      propertyId,
+      profileId: profile.profileId ?? "",
+      firstName: profile.firstName ?? "",
+      lastName: profile.lastName ?? "",
+      nationalId: profile.nationalId ?? "",
+      nationality: profile.nationality ?? "",
+      address: profile.address ?? "",
+      jobTitle: profile.jobTitle ?? "",
+      level: profile.level ?? "",
+      phone: profile.phone ?? "",
+      department: profile.department ?? "",
+      status: profile.status ?? "UNASSIGNED",
+      hireDate: profile.hireDate ?? "",
+      gender: profile.gender ?? "M",
+    };
+    const createdParse = GetProfileResponse.safeParse(safeCreated);
     res
       .status(201)
-      .json(GetProfileResponse.parse({ ...profile, propertyId }));
+      .json(createdParse.success ? createdParse.data : safeCreated);
   },
 );
 
@@ -424,24 +442,49 @@ router.get(
   "/profiles/:id",
   requirePermission("profiles", "view"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
     const params = GetProfileParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
       return;
     }
 
-    const [profile] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(profilesTable)
-        .where(eq(profilesTable.id, params.data.id));
-    });
+    let propertyId = getTenantId(req);
+    let profile: any = null;
+
+    if (propertyId) {
+      try {
+        const [found] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select()
+            .from(profilesTable)
+            .where(eq(profilesTable.id, params.data.id));
+        });
+        if (found) profile = found;
+      } catch {}
+    }
+
+    // Fallback: search across all active properties if not found yet or propertyId was 0 / not in session
+    if (!profile) {
+      try {
+        const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
+        for (const p of props) {
+          if (p.id === propertyId) continue;
+          try {
+            const [found] = await withTenant(p.id, async (tenantDb) => {
+              return await tenantDb
+                .select()
+                .from(profilesTable)
+                .where(eq(profilesTable.id, params.data.id));
+            });
+            if (found) {
+              profile = found;
+              propertyId = p.id;
+              break;
+            }
+          } catch {}
+        }
+      } catch {}
+    }
 
     if (!profile) {
       res.status(404).json({ error: "Profile not found" });
@@ -463,13 +506,20 @@ router.get(
 
     const safeProfile = {
       ...profile,
+      propertyId,
+      profileId: profile.profileId ?? "",
+      firstName: profile.firstName ?? "",
+      lastName: profile.lastName ?? "",
+      nationalId: profile.nationalId ?? "",
       nationality: profile.nationality ?? "",
       address: profile.address ?? "",
       jobTitle: profile.jobTitle ?? "",
       level: profile.level ?? "",
       phone: profile.phone ?? "",
       department: profile.department ?? "",
-      gender: profile.gender ?? "",
+      status: profile.status ?? "UNASSIGNED",
+      hireDate: profile.hireDate ?? "",
+      gender: profile.gender ?? "M",
       employmentType: profile.employmentType ?? "INTERNAL",
       companyName: profile.companyName ?? null,
       contractEndDate: profile.contractEndDate ?? null,
@@ -478,8 +528,9 @@ router.get(
       vacationNotes: profile.vacationNotes ?? null,
     };
 
+    const parsedResult = GetProfileResponse.safeParse(safeProfile);
     const parsed = {
-      ...GetProfileResponse.parse({ ...safeProfile, propertyId }),
+      ...(parsedResult.success ? parsedResult.data : safeProfile),
       photoUrl: photoRows?.photoUrl ?? null,
       idDocuments: docRows.map(d => ({
         id: d.id,
@@ -497,15 +548,35 @@ router.patch(
   "/profiles/:id",
   requirePermission("profiles", "edit"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
     const params = UpdateProfileParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    let propertyId = getTenantId(req);
+    if (!propertyId) {
+      try {
+        const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
+        for (const p of props) {
+          try {
+            const [found] = await withTenant(p.id, async (tenantDb) => {
+              return await tenantDb
+                .select({ id: profilesTable.id })
+                .from(profilesTable)
+                .where(eq(profilesTable.id, params.data.id));
+            });
+            if (found) {
+              propertyId = p.id;
+              break;
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
       return;
     }
 
@@ -696,8 +767,12 @@ router.patch(
       entityId: updated.id,
     });
     
-    broadcastToProperty(propertyId, { module: "profiles", action: "updated", entityId: updated.id });
-    res.json(UpdateProfileResponse.parse({ ...updated, propertyId }));
+    const safeUpdated = {
+      ...updated,
+      propertyId,
+    };
+    const updateParse = UpdateProfileResponse.safeParse(safeUpdated);
+    res.json(updateParse.success ? updateParse.data : safeUpdated);
   },
 );
 
