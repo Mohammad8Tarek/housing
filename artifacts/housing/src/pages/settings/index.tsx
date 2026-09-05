@@ -23,7 +23,6 @@ import {
   Image,
   Pen,
   Sparkles,
-  Globe,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
@@ -117,7 +116,7 @@ export default function Settings() {
 
         <form onSubmit={handleSubmit}>
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-8 mb-6">
+            <TabsList className="grid w-full grid-cols-7 mb-6">
               <TabsTrigger value="general">
                 <Image className="w-3.5 h-3.5 mr-1.5" />
                 {ar ? "عام" : "General"}
@@ -145,10 +144,6 @@ export default function Settings() {
               <TabsTrigger value="door-locks">
                 <KeyRound className="w-3.5 h-3.5 mr-1.5" />
                 {ar ? "الأقفال" : "Locks"}
-              </TabsTrigger>
-              <TabsTrigger value="nationalities">
-                <Globe className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "الجنسيات" : "Nationalities"}
               </TabsTrigger>
             </TabsList>
 
@@ -283,21 +278,6 @@ export default function Settings() {
                 propertyId={selectedPropertyId}
                 language={language}
               />
-            </TabsContent>
-
-            <TabsContent value="nationalities">
-              <Card>
-                <CardContent className="pt-6">
-                  {selectedPropertyId && (
-                    <LookupSection
-                      propertyId={selectedPropertyId}
-                      category={LOOKUP_CATEGORIES.NATIONALITY}
-                      label="Nationality"
-                      description={ar ? "إدارة وتخصيص قائمة الجنسيات للمنشأة" : "Manage nationalities list"}
-                    />
-                  )}
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </form>
