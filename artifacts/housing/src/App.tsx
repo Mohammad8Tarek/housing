@@ -5,7 +5,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { Toaster as SonnerToaster } from "sonner";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
@@ -356,15 +356,7 @@ function App() {
                       <Router />
                     </WouterRouter>
                     <Toaster />
-                    <SonnerToaster
-                      position="top-right"
-                      richColors
-                      toastOptions={{
-                        style: {
-                          "--normal-bg": "var(--brand-teal, #2AB5B5)",
-                        } as React.CSSProperties,
-                      }}
-                    />
+                    <SonnerToaster />
                   </TooltipProvider>
                 </WebSocketProvider>
               </PropertyProvider>
