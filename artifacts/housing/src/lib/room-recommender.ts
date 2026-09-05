@@ -295,8 +295,8 @@ export function recommendBestRooms({
         levelMatch = true;
         matchReasonAr += ` • جناح عائلي متسع ملائم للأسرة (${r.classification || "Family suite"} - سعة ${roomCapacity} أفراد)`;
         matchReasonEn += ` • Family suite ideal for family housing (${r.classification || "Family suite"} - capacity ${roomCapacity})`;
-        customBadgeLabelAr = "الأنسب للعائلات";
-        customBadgeLabelEn = "Best for Families";
+        customBadgeLabelAr = "سكن عائلي";
+        customBadgeLabelEn = "Family";
       } else if (roomCapacity >= 3) {
         score += 30;
         matchReasonAr += ` • سعة رحبة مناسبة (${roomCapacity} سرير)`;
@@ -317,8 +317,8 @@ export function recommendBestRooms({
         levelMatch = true;
         matchReasonAr += ` • تصنيف فاخر ملائم للمنصب القيادي (${r.classification})`;
         matchReasonEn += ` • Deluxe classification matching executive title (${r.classification})`;
-        customBadgeLabelAr = `الأنسب للمنصب (${r.classification})`;
-        customBadgeLabelEn = `Best for Executive (${r.classification})`;
+        customBadgeLabelAr = r.classification || "تنفيذي";
+        customBadgeLabelEn = r.classification || "Executive";
       } else if (roomCls.includes("superior") || roomCls.includes("سوبيريور")) {
         score += 35;
         levelMatch = true;
@@ -331,8 +331,8 @@ export function recommendBestRooms({
         levelMatch = true;
         matchReasonAr += ` • تصنيف سوبيريور مناسب للمستوى الإشرافي (${r.classification})`;
         matchReasonEn += ` • Superior room matching supervisory title (${r.classification})`;
-        customBadgeLabelAr = `الأنسب للإشراف (${r.classification})`;
-        customBadgeLabelEn = `Best for Supervisory (${r.classification})`;
+        customBadgeLabelAr = r.classification || "إشرافي";
+        customBadgeLabelEn = r.classification || "Supervisory";
       } else if (roomCls.includes("deluxe")) {
         score += 25;
       }
@@ -386,10 +386,10 @@ export function recommendBestRooms({
     const targetRoleAr = profile?.jobTitle ? profile.jobTitle : (profileLevel ? `مستوى ${profileLevel}` : "الموظف");
     const targetRoleEn = profile?.jobTitle ? profile.jobTitle : (profileLevel ? `Level ${profileLevel}` : "Role");
     const badgeLabelAr = customBadgeLabelAr || (levelMatch
-      ? (targetRoleAr === "الموظف" ? "الأنسب للموظف" : `الأنسب لـ ${targetRoleAr}`)
+      ? (r.classification || targetRoleAr || "موصى بها")
       : "متاحة");
     const badgeLabelEn = customBadgeLabelEn || (levelMatch
-      ? `Best Match for ${targetRoleEn}`
+      ? (r.classification || targetRoleEn || "Recommended")
       : "Available");
 
     scored.push({

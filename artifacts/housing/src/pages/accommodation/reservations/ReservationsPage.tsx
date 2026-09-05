@@ -65,7 +65,7 @@ import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
   Building, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
-  Phone, CreditCard, AlertCircle,
+  Phone, CreditCard, AlertCircle, Lock,
 } from "lucide-react";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 
@@ -335,13 +335,17 @@ export default function ReservationsPage() {
     allAssignments.filter((a: any) => a.status === "ACTIVE" && a.roomId === parseInt(selectedRoomId) && a.bedNumber != null).map((a: any) => a.bedNumber),
   );
 
-  const availableRooms = rooms
-    .filter((r: any) => !["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase()))
-    .sort((a: any, b: any) => {
-      const af = a.currentOccupancy >= a.capacity;
-      const bf = b.currentOccupancy >= b.capacity;
-      return af === bf ? 0 : af ? 1 : -1;
-    });
+  const entireRoomOccupiedSet = useMemo(() => {
+    const set = new Set<number>();
+    allAssignments
+      .filter((a: any) => a.status === "ACTIVE" && (a.isEntireRoom || a.is_entire_room))
+      .forEach((a: any) => set.add(a.roomId));
+    return set;
+  }, [allAssignments]);
+
+  const availableRooms = rooms.filter(
+    (r: any) => !["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase())
+  );
 
   const filteredRooms = availableRooms.filter((r: any) => {
     const bId = r.buildingId ?? r.building_id;
@@ -359,15 +363,35 @@ export default function ReservationsPage() {
   }, [profileForRecommend, rooms, allAssignments]);
 
   const sortedFilteredRooms = useMemo(() => {
-    if (!recommendation) return filteredRooms;
-    return [...filteredRooms].sort((a: any, b: any) => (recommendation.recommendedMap[b.id]?.score ?? 0) - (recommendation.recommendedMap[a.id]?.score ?? 0));
-  }, [filteredRooms, recommendation]);
+    return [...filteredRooms].sort((a: any, b: any) => {
+      const aOcc = a.currentOccupancy ?? 0;
+      const aCap = a.capacity ?? 1;
+      const aFull = aOcc >= aCap || entireRoomOccupiedSet.has(a.id);
+
+      const bOcc = b.currentOccupancy ?? 0;
+      const bCap = b.capacity ?? 1;
+      const bFull = bOcc >= bCap || entireRoomOccupiedSet.has(b.id);
+
+      // Available (non-full) rooms first, full rooms at the end
+      if (aFull !== bFull) return aFull ? 1 : -1;
+
+      // If recommendation exists and both rooms have open spots, sort by score
+      if (recommendation && !aFull && !bFull) {
+        const scoreA = recommendation.recommendedMap[a.id]?.score ?? 0;
+        const scoreB = recommendation.recommendedMap[b.id]?.score ?? 0;
+        if (scoreB !== scoreA) return scoreB - scoreA;
+      }
+
+      // Default room number numeric sort
+      return String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+    });
+  }, [filteredRooms, recommendation, entireRoomOccupiedSet]);
 
   const selectedRoom = rooms.find((r: any) => r.id === parseInt(selectedRoomId));
   const bedOptions = selectedRoom ? getBedOptions(selectedRoom.roomType, selectedRoom.capacity) : [];
   const isMultiBed = bedOptions.length > 1;
 
-  const checkinRooms = rooms.filter((r: any) => r.status?.toLowerCase() !== "maintenance" && (r.currentOccupancy ?? 0) < (r.capacity ?? 1));
+  const checkinRooms = rooms.filter((r: any) => !["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase()));
   const filteredCheckinRooms = checkinRooms.filter((r: any) => !checkinRoomSearch.trim() || r.roomNumber?.toLowerCase().includes(checkinRoomSearch.toLowerCase()));
 
   const invalidate = () => {
@@ -1745,23 +1769,18 @@ export default function ReservationsPage() {
                   </Button>
                 )}
               </div>
-              {recommendation && (
-                <div className="flex items-center justify-between gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
-                    <span className="font-semibold">{ar ? "الغرف الموصى بها هي الأنسب بناءً على الملف الشخصي" : "Recommended rooms are best suited based on person's profile"}</span>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                    {sortedFilteredRooms.length} {ar ? "غرفة متاحة" : "available"}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                <span className="font-medium">{ar ? "اختر الغرفة المناسبة:" : "Select Room:"}</span>
+                <span className="text-[11px]">
+                  {sortedFilteredRooms.length} {ar ? "غرفة" : "rooms"}
+                </span>
+              </div>
               <div className="max-h-64 overflow-y-auto pr-1">
                 {sortedFilteredRooms.length === 0 ? (
                   <div className="p-8 text-center border-2 border-dashed rounded-xl bg-muted/10">
                     <BedDouble className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
                     <p className="text-sm font-semibold text-muted-foreground">
-                      {ar ? "لا توجد غرف متاحة تطابق الفلاتر المحددة" : "No available rooms match the selected filters"}
+                      {ar ? "لا توجد غرف تطابق الفلاتر المحددة" : "No rooms match the selected filters"}
                     </p>
                     {(searchBuilding !== "all" || searchFloor !== "all" || searchRoomNumber.trim()) && (
                       <Button
@@ -1784,9 +1803,9 @@ export default function ReservationsPage() {
                     {sortedFilteredRooms.map((room) => {
                       const occ = room.currentOccupancy ?? 0;
                       const cap = room.capacity ?? 1;
-                      const isFull = occ >= cap;
+                      const isEntireReserved = entireRoomOccupiedSet.has(room.id);
+                      const isFull = occ >= cap || isEntireReserved;
                       const isSel = selectedRoomId === String(room.id);
-                      const rec = recommendation?.recommendedMap[room.id];
                       const freeSpots = Math.max(0, cap - occ);
 
                       return (
@@ -1795,6 +1814,7 @@ export default function ReservationsPage() {
                           key={room.id}
                           disabled={isFull}
                           onClick={() => {
+                            if (isFull) return;
                             setSelectedRoomId(String(room.id));
                             setSelectedBed(cap === 1 ? "1" : "");
                             // Base the top filters on this room
@@ -1805,25 +1825,23 @@ export default function ReservationsPage() {
                             if (fId != null) setSearchFloor(String(fId));
                             if (rNum != null) setSearchRoomNumber(String(rNum));
                           }}
-                          className={`group relative flex flex-col justify-between p-3 rounded-xl border-2 text-start transition-all duration-200 cursor-pointer ${
+                          className={`group relative flex flex-col justify-between p-3 rounded-xl border-2 text-start transition-all duration-200 ${
                             isSel
-                              ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm"
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm cursor-pointer"
                               : isFull
-                              ? "border-border/60 bg-muted/40 opacity-60 cursor-not-allowed"
-                              : rec?.levelMatch
-                              ? "border-amber-300 dark:border-amber-800/80 bg-amber-50/30 dark:bg-amber-950/20 hover:border-primary/60 hover:bg-muted/30"
-                              : "border-border bg-card hover:border-primary/60 hover:bg-muted/30"
+                              ? "border-border/60 bg-muted/50 opacity-60 cursor-not-allowed select-none"
+                              : "border-border bg-card hover:border-primary/60 hover:bg-muted/30 cursor-pointer"
                           }`}
                         >
-                          {/* Header: Room Number + Selection or Recommendation Status */}
+                          {/* Header: Room Number + Selection / Lock Status */}
                           <div className="flex items-start justify-between gap-1.5 w-full">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <div
                                 className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
                                   isSel
                                     ? "bg-primary text-primary-foreground"
-                                    : rec?.levelMatch
-                                    ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                                    : isFull
+                                    ? "bg-muted text-muted-foreground"
                                     : "bg-muted text-foreground"
                                 }`}
                               >
@@ -1843,22 +1861,26 @@ export default function ReservationsPage() {
                               <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-2xs">
                                 <CheckCircle className="w-3.5 h-3.5" />
                               </div>
-                            ) : rec?.levelMatch ? (
+                            ) : isFull ? (
                               <div
-                                className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0"
-                                title={ar ? (rec.badgeLabelAr || "موصى بها") : (rec.badgeLabelEn || "Recommended")}
+                                className="w-5 h-5 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0"
+                                title={isEntireReserved ? (ar ? "محجوزة بالكامل" : "Entire Room") : (ar ? "الغرفة ممتلئة" : "Room is full")}
                               >
-                                <Sparkles className="w-3 h-3" />
+                                <Lock className="w-3 h-3" />
                               </div>
                             ) : null}
                           </div>
 
-                          {/* Badges: Recommendation / Classification */}
+                          {/* Badges: Full status / Classification */}
                           <div className="my-2 flex flex-wrap gap-1 min-h-[22px] items-center">
-                            {rec?.levelMatch ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100/90 text-amber-900 border border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 truncate max-w-full">
-                                <Sparkles className="w-2.5 h-2.5 text-amber-600 shrink-0" />
-                                <span className="truncate">{ar ? (rec.badgeLabelAr || "موصى بها") : (rec.badgeLabelEn || "Recommended")}</span>
+                            {isFull ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-destructive/10 text-destructive border border-destructive/20 truncate max-w-full">
+                                <Lock className="w-2.5 h-2.5 shrink-0" />
+                                <span className="truncate">
+                                  {isEntireReserved
+                                    ? (ar ? "محجوزة بالكامل" : "Entire Room")
+                                    : (ar ? "ممتلئة (ساكنة)" : "Full / Occupied")}
+                                </span>
                               </span>
                             ) : room.classification ? (
                               <span
@@ -1891,7 +1913,7 @@ export default function ReservationsPage() {
                                   : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                               }`}
                             >
-                              {occ}/{cap} {ar ? "سرير" : "beds"}
+                              {occ}/{cap} {ar ? "سرير" : "beds"} {isFull ? (ar ? "• ممتلئة" : "• Full") : ""}
                             </span>
                           </div>
                         </button>
@@ -2011,13 +2033,46 @@ export default function ReservationsPage() {
             {checkinDialog.guestName && <p className="text-sm">{ar ? "الضيف:" : "Guest:"} <span className="font-semibold">{checkinDialog.guestName}</span></p>}
             <Input placeholder={ar ? "بحث عن غرفة..." : "Search room..."} value={checkinRoomSearch} onChange={(e) => setCheckinRoomSearch(e.target.value)} />
             <div className="max-h-52 overflow-y-auto space-y-2">
-              {filteredCheckinRooms.map((r: any) => (
-                <button key={r.id} onClick={() => setCheckinRoomId(String(r.id))} className={`w-full flex items-center gap-3 p-3 border-2 rounded-lg text-sm text-left rtl:text-right transition-all ${checkinRoomId === String(r.id) ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                  <BedDouble className="w-4 h-4 text-muted-foreground" />
-                  <div><p className="font-medium">{ar ? "غرفة" : "Room"} {r.roomNumber}</p><p className="text-xs text-muted-foreground">{buildingMap[r.buildingId] || "—"} • {r.roomType || "—"} • {r.currentOccupancy ?? 0}/{r.capacity ?? 1}</p></div>
-                  {checkinRoomId === String(r.id) && <CheckCircle className="w-4 h-4 text-primary ml-auto rtl:ml-0 rtl:mr-auto" />}
-                </button>
-              ))}
+              {filteredCheckinRooms.map((r: any) => {
+                const isEntireReserved = entireRoomOccupiedSet.has(r.id);
+                const isFull = (r.currentOccupancy ?? 0) >= (r.capacity ?? 1) || isEntireReserved;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    disabled={isFull}
+                    onClick={() => {
+                      if (!isFull) setCheckinRoomId(String(r.id));
+                    }}
+                    className={`w-full flex items-center justify-between p-3 border-2 rounded-lg text-sm text-left rtl:text-right transition-all ${
+                      isFull
+                        ? "opacity-50 cursor-not-allowed bg-muted/30 border-border"
+                        : checkinRoomId === String(r.id)
+                        ? "border-primary bg-primary/5 cursor-pointer"
+                        : "border-border hover:border-primary/50 cursor-pointer"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <BedDouble className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="font-medium">
+                          {ar ? "غرفة" : "Room"} {r.roomNumber}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {buildingMap[r.buildingId] || "—"} • {r.roomType || "—"} • {r.currentOccupancy ?? 0}/{r.capacity ?? 1}
+                        </p>
+                      </div>
+                    </div>
+                    {isFull ? (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/20">
+                        {ar ? "مكتملة (ساكنة)" : "Full"}
+                      </span>
+                    ) : checkinRoomId === String(r.id) ? (
+                      <CheckCircle className="w-4 h-4 text-primary ml-auto rtl:ml-0 rtl:mr-auto" />
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setCheckinDialog({ open: false, id: null })}>{ar ? "إلغاء" : "Cancel"}</Button>
