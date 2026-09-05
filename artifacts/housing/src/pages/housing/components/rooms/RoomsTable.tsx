@@ -176,7 +176,7 @@ export function RoomsTable({
           {filteredRoomsTab.length === 0 && (
             <tr>
               <td
-                colSpan={8}
+                colSpan={9}
                 className="py-12 text-center text-muted-foreground"
               >
                 <Home className="w-8 h-8 opacity-30 mx-auto mb-2" />

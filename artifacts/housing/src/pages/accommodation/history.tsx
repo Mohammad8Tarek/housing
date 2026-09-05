@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useListProfiles,
   useListRooms,
@@ -11,6 +11,9 @@ import {
 import { useDebounce } from "@/hooks/use-debounce";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePermission } from "@/hooks/use-permission";
+import { PermissionGate } from "@/components/ui/permission-gate";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -31,6 +34,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
@@ -41,6 +54,7 @@ import {
   History,
   FileText,
   FileSpreadsheet,
+  Trash2,
 } from "lucide-react";
 import {
   ColumnChooser,
@@ -103,6 +117,12 @@ export default function HistoryPage() {
   const debouncedSearch = useDebounce(search, 500);
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const queryClient = useQueryClient();
+  const { can } = usePermission();
+  const [deleteRecord, setDeleteRecord] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const { data: assignmentsData, isLoading } = useQuery({
     queryKey: [
@@ -191,6 +211,83 @@ export default function HistoryPage() {
     selectedRows.size > 0
       ? paged.filter((a) => selectedRows.has(a.id))
       : paged;
+
+  const handleDeleteSingle = async () => {
+    if (!deleteRecord) return;
+    setIsDeleting(true);
+    try {
+      const token =
+        localStorage.getItem("auth_token") ||
+        sessionStorage.getItem("auth_token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(
+        `/api/assignments/${deleteRecord.id}?propertyId=${activePropertyId}`,
+        {
+          method: "DELETE",
+          headers,
+          credentials: "include",
+        },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        throw new Error(err.error || "Failed to delete");
+      }
+      toast.success(ar ? "تم حذف السجل بنجاح" : "Record deleted successfully");
+      setDeleteRecord(null);
+      queryClient.invalidateQueries({ queryKey: ["accommodationHistory"] });
+    } catch (e: any) {
+      toast.error(
+        e.message || (ar ? "فشل حذف السجل" : "Failed to delete record"),
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedRows);
+    if (ids.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const token =
+        localStorage.getItem("auth_token") ||
+        sessionStorage.getItem("auth_token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch("/api/assignments/bulk-delete", {
+        method: "POST",
+        headers,
+        credentials: "include",
+        body: JSON.stringify({ ids, propertyId: activePropertyId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        throw new Error(err.error || "Failed to delete");
+      }
+      const data = await res.json();
+      toast.success(
+        ar
+          ? `تم حذف ${data.deletedCount} سجل بنجاح`
+          : `Deleted ${data.deletedCount} records successfully`,
+      );
+      setSelectedRows(new Set());
+      setConfirmBulkDelete(false);
+      queryClient.invalidateQueries({ queryKey: ["accommodationHistory"] });
+    } catch (e: any) {
+      toast.error(
+        e.message || (ar ? "فشل الحذف الجماعي" : "Failed to bulk delete"),
+      );
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const exportExcel = () => {
     const rows = exportTarget().map((a) => {
@@ -441,12 +538,24 @@ export default function HistoryPage() {
         count={selectedRows.size}
         onClear={() => setSelectedRows(new Set())}
         onExportExcel={exportExcel}
+        actions={
+          can("accommodation", "delete")
+            ? [
+                {
+                  label: ar ? "حذف السجلات المحددة" : "Delete Selected",
+                  variant: "destructive",
+                  icon: <Trash2 className="w-3.5 h-3.5" />,
+                  onClick: () => setConfirmBulkDelete(true),
+                },
+              ]
+            : undefined
+        }
         extraActions={
           <Button
             variant="outline"
             size="sm"
             onClick={exportPDF}
-            className="gap-1.5 text-red-700 border-red-200 hover:bg-red-50"
+            className="gap-1.5 text-red-700 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/40"
           >
             <FileText className="w-3.5 h-3.5" />
             {ar ? "PDF" : "PDF"}
@@ -581,6 +690,9 @@ export default function HistoryPage() {
                     {ar ? "الحالة" : "Status"}
                   </TableHead>
                 )}
+                <TableHead className="w-12 text-center">
+                  {ar ? "إجراءات" : "Actions"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -717,13 +829,26 @@ export default function HistoryPage() {
                         </span>
                       </TableCell>
                     )}
+                    <TableCell className="text-center">
+                      <PermissionGate module="accommodation" action="delete">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteRecord(a)}
+                          title={ar ? "حذف السجل" : "Delete Record"}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </PermissionGate>
+                    </TableCell>
                   </TableRow>
                 );
               })}
               {paged.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={histVisible.size + 1}
+                    colSpan={histVisible.size + 2}
                     className="py-12 text-center"
                   >
                     <History className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -748,6 +873,82 @@ export default function HistoryPage() {
           )}
         </div>
       )}
+
+      {/* Single Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteRecord}
+        onOpenChange={(open) => !open && setDeleteRecord(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {ar ? "تأكيد حذف السجل" : "Confirm Delete Record"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {ar
+                ? "هل أنت متأكد من حذف هذا السجل من تاريخ التسكين؟ لا يمكن التراجع عن هذا الإجراء."
+                : "Are you sure you want to delete this record from housing history? This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              {ar ? "إلغاء" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSingle}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
+              {isDeleting ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  {ar ? "جاري الحذف..." : "Deleting..."}
+                </span>
+              ) : (
+                ar ? "تأكيد الحذف" : "Confirm Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog
+        open={confirmBulkDelete}
+        onOpenChange={setConfirmBulkDelete}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {ar ? "تأكيد الحذف الجماعي للسجلات" : "Confirm Bulk Delete"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {ar
+                ? `هل أنت متأكد من حذف ${selectedRows.size} سجل محدد نهائياً من تاريخ التسكين؟`
+                : `Are you sure you want to permanently delete ${selectedRows.size} selected records from housing history?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>
+              {ar ? "إلغاء" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
+              {isBulkDeleting ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  {ar ? "جاري الحذف..." : "Deleting..."}
+                </span>
+              ) : (
+                ar ? "تأكيد الحذف" : "Confirm Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

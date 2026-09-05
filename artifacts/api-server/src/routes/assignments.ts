@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, floorsTable } from "@workspace/db";
+import { db, pool, withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, floorsTable } from "@workspace/db";
 import { eq, and, or, ilike, sql, SQL, desc, not, count } from "drizzle-orm";
 import {
   CreateAssignmentBody,
@@ -1063,6 +1063,188 @@ router.patch(
     res.json(
       UpdateAssignmentResponse.parse({ ...fmtAssignment(updated), propertyId }),
     );
+  },
+);
+
+async function findPropertyByAssignmentId(assignmentId: number): Promise<number | null> {
+  try {
+    const props = await pool.query("SELECT id, schema_name FROM properties");
+    for (const p of props.rows) {
+      try {
+        const check = await pool.query(
+          `SELECT id FROM "${p.schema_name}".assignments WHERE id = $1 LIMIT 1`,
+          [assignmentId],
+        );
+        if (check.rows.length > 0) return p.id;
+      } catch {}
+    }
+  } catch {}
+  return null;
+}
+
+// ─── DELETE /assignments/:id ──────────────────────────────────────────────────
+router.delete(
+  "/assignments/:id",
+  requirePermission("accommodation", "delete"),
+  async (req, res): Promise<void> => {
+    let propertyId = getTenantId(req);
+    const assignmentId = parseInt(req.params.id, 10);
+    if (isNaN(assignmentId)) {
+      res.status(400).json({ error: "Invalid assignment ID" });
+      return;
+    }
+
+    if (!propertyId) {
+      propertyId = (await findPropertyByAssignmentId(assignmentId)) || 0;
+    }
+
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+
+    try {
+      const result = await withTenant(propertyId, async (tenantDb) => {
+        const [assignment] = await tenantDb
+          .select()
+          .from(assignmentsTable)
+          .where(eq(assignmentsTable.id, assignmentId));
+
+        if (!assignment) return { notFound: true };
+
+        // Prevent deleting active assignments
+        if (assignment.status === "ACTIVE") {
+          return {
+            isActive: true,
+            error: "لا يمكن حذف إقامة نشطة حالياً. يجب تسجيل الخروج (Check-out) أولاً.",
+          };
+        }
+
+        await tenantDb
+          .delete(assignmentsTable)
+          .where(eq(assignmentsTable.id, assignmentId));
+
+        return { success: true, assignment };
+      });
+
+      if (result.notFound) {
+        res.status(404).json({ error: "Assignment not found" });
+        return;
+      }
+
+      if (result.isActive) {
+        res.status(400).json({ error: result.error });
+        return;
+      }
+
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `حذف سجل تسكين سابق #${assignmentId}`,
+        actionType: "DELETE",
+        module: "accommodation",
+        entityType: "assignment",
+        entityId: assignmentId,
+        severity: "warning",
+      });
+
+      broadcastToProperty(propertyId, {
+        module: "accommodation",
+        action: "deleted",
+        entityId: assignmentId,
+      });
+
+      res.json({ success: true, id: assignmentId });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to delete assignment" });
+    }
+  },
+);
+
+// ─── POST /assignments/bulk-delete ────────────────────────────────────────────
+router.post(
+  "/assignments/bulk-delete",
+  requirePermission("accommodation", "delete"),
+  async (req, res): Promise<void> => {
+    let propertyId = getTenantId(req);
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ error: "ids must be a non-empty array of assignment IDs" });
+      return;
+    }
+
+    const numIds = ids.map((id: any) => Number(id)).filter((id: number) => !isNaN(id) && id > 0);
+    if (numIds.length === 0) {
+      res.status(400).json({ error: "No valid assignment IDs provided" });
+      return;
+    }
+
+    if (!propertyId) {
+      propertyId = (await findPropertyByAssignmentId(numIds[0])) || 0;
+    }
+
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+
+    try {
+      const result = await withTenant(propertyId, async (tenantDb) => {
+        const idListSql = sql.join(numIds.map((id) => sql`${id}`), sql`, `);
+
+        // Find which assignments are ACTIVE
+        const activeRows = await tenantDb.execute(sql`
+          SELECT id FROM assignments 
+          WHERE id IN (${idListSql}) 
+            AND status = 'ACTIVE'
+        `);
+
+        const activeIds = new Set<number>((activeRows.rows || []).map((r: any) => Number(r.id)));
+        const deletableIds = numIds.filter((id) => !activeIds.has(id));
+
+        if (deletableIds.length > 0) {
+          const deletableSql = sql.join(deletableIds.map((id) => sql`${id}`), sql`, `);
+          await tenantDb
+            .delete(assignmentsTable)
+            .where(sql`${assignmentsTable.id} IN (${deletableSql})`);
+        }
+
+        return {
+          deletedCount: deletableIds.length,
+          skippedCount: activeIds.size,
+        };
+      });
+
+      const s = su(req);
+      if (result.deletedCount > 0) {
+        await logActivity({
+          req,
+          propertyId,
+          username: s.username,
+          userId: s.userId,
+          userRole: s.userRole,
+          action: `حذف جماعي لـ ${result.deletedCount} سجل من تاريخ التسكين`,
+          actionType: "DELETE",
+          module: "accommodation",
+          entityType: "assignment",
+          severity: "warning",
+        });
+
+        broadcastToProperty(propertyId, {
+          module: "accommodation",
+          action: "deleted",
+          details: { count: result.deletedCount },
+        });
+      }
+
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to bulk delete assignments" });
+    }
   },
 );
 

@@ -1,6 +1,6 @@
 import { RoomImportWizard } from "../import/RoomImportWizard";
 import { downloadRoomImportTemplate } from "@/lib/room-importer-engine";
-import { Search, Plus, FileDown } from "lucide-react";
+import { Search, Plus, FileDown, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { useState } from "react";
@@ -19,6 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   useCreateRoom,
   useUpdateRoom,
@@ -85,6 +95,8 @@ export function RoomsTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const invalidateAllHousingQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["buildings"] });
@@ -208,12 +220,56 @@ export function RoomsTab({
       return;
     }
     try {
-      await deleteRoomMut.mutateAsync({ id: deleteRoom.id });
+      const res = await fetch(`/api/rooms/${deleteRoom.id}?propertyId=${propertyId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to delete room" }));
+        throw new Error(data.error || "Failed to delete room");
+      }
       toast.success(ar ? "تم حذف الغرفة بنجاح" : "Room deleted");
       setDeleteRoom(null);
       invalidateAllHousingQueries();
     } catch (err: any) {
       toast.error(err.message || (ar ? "فشل الحذف" : "Failed to delete"));
+    }
+  };
+
+  const handleBulkDeleteRooms = async () => {
+    const ids = Array.from(selectedRoomIds);
+    if (ids.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const res = await fetch("/api/rooms/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, propertyId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        throw new Error(err.error || "Failed to delete");
+      }
+      const data = await res.json();
+      if (data.skippedCount > 0) {
+        toast.warning(
+          ar
+            ? `تم حذف ${data.deletedCount} غرفة، وتخطي ${data.skippedCount} غرفة لوجود موظفين مسكنين بها`
+            : `Deleted ${data.deletedCount} rooms, skipped ${data.skippedCount} with active residents`,
+        );
+      } else {
+        toast.success(
+          ar
+            ? `تم حذف ${data.deletedCount} غرفة بنجاح`
+            : `Successfully deleted ${data.deletedCount} rooms`,
+        );
+      }
+      setSelectedRoomIds(new Set());
+      invalidateAllHousingQueries();
+      setConfirmBulkDelete(false);
+    } catch (e: any) {
+      toast.error(e.message || (ar ? "فشل الحذف الجماعي" : "Bulk delete failed"));
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -251,15 +307,15 @@ export function RoomsTab({
     try {
       await Promise.all(
         ids.map((id) =>
-          fetch(`/api/rooms/${id}`, {
+          fetch(`/api/rooms/${id}?propertyId=${propertyId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status }),
-          })
-        )
+            body: JSON.stringify({ status, propertyId }),
+          }),
+        ),
       );
       toast.success(
-        ar ? `تم تحديث ${ids.length} غرفة بنجاح` : `Updated ${ids.length} rooms`
+        ar ? `تم تحديث ${ids.length} غرفة بنجاح` : `Updated ${ids.length} rooms`,
       );
       setSelectedRoomIds(new Set());
       invalidateAllHousingQueries();
@@ -410,11 +466,11 @@ export function RoomsTab({
       </div>
 
       {selectedRoomIds.size > 0 && (
-        <PermissionGate module="housing" action="edit">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
-            <span className="text-sm font-semibold text-primary">
-              {selectedRoomIds.size} {ar ? "غرفة محددة" : "rooms selected"}
-            </span>
+        <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
+          <span className="text-sm font-semibold text-primary">
+            {selectedRoomIds.size} {ar ? "غرفة محددة" : "rooms selected"}
+          </span>
+          <PermissionGate module="housing" action="edit">
             <Select onValueChange={(status) => bulkUpdateStatus(status)}>
               <SelectTrigger className="w-[200px] h-8 text-xs bg-background">
                 <SelectValue placeholder={ar ? "تغيير الحالة..." : "Change status..."} />
@@ -458,17 +514,64 @@ export function RoomsTab({
                 </SelectItem>
               </SelectContent>
             </Select>
+          </PermissionGate>
+
+          <PermissionGate module="housing" action="delete">
             <Button
-              variant="ghost"
+              variant="destructive"
               size="sm"
-              className="text-xs"
-              onClick={() => setSelectedRoomIds(new Set())}
+              className="gap-1.5 text-xs font-semibold h-8"
+              onClick={() => setConfirmBulkDelete(true)}
             >
-              {ar ? "إلغاء التحديد" : "Clear"}
+              <Trash2 className="w-3.5 h-3.5" />
+              {ar ? "حذف الغرف المحددة" : "Delete Selected"}
             </Button>
-          </div>
-        </PermissionGate>
+          </PermissionGate>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+            onClick={() => setSelectedRoomIds(new Set())}
+          >
+            {ar ? "إلغاء التحديد" : "Clear"}
+          </Button>
+        </div>
       )}
+
+      <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {ar ? "تأكيد حذف الغرف المحددة" : "Confirm Bulk Delete"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {ar
+                ? `هل أنت متأكد من حذف ${selectedRoomIds.size} غرفة محددة؟ سيتم حذف الغرف الشاغرة فقط ولن يتم حذف أي غرفة مسكن بها موظفون حالياً.`
+                : `Are you sure you want to delete ${selectedRoomIds.size} selected rooms? Only vacant rooms will be deleted; occupied rooms will be skipped.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>
+              {ar ? "إلغاء" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteRooms}
+              disabled={isBulkDeleting}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
+              {isBulkDeleting ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  {ar ? "جاري الحذف..." : "Deleting..."}
+                </span>
+              ) : (
+                ar ? "تأكيد الحذف" : "Confirm Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <RoomsTable
         buildings={buildings}
