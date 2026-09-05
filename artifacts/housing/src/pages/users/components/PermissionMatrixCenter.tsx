@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import {
   useUpdateUser,
   getListUsersQueryKey,
+  getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
@@ -109,7 +110,13 @@ export function PermissionMatrixCenter({
     const explicit = (userObj.permissions as string[] | undefined) ?? [];
     if (explicit.length > 0) {
       if (explicit.length === 1 && explicit[0] === "none") return new Set();
-      return new Set(explicit);
+      const normalized = explicit.map((p) => {
+        let s = String(p).trim().toLowerCase();
+        if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
+        if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+        return s;
+      });
+      return new Set(normalized);
     }
     const role = userObj.roles?.[0]?.toLowerCase() ?? "";
     return new Set(ROLE_DEFAULT_PERMISSIONS[role] ?? []);
@@ -132,6 +139,7 @@ export function PermissionMatrixCenter({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         toast.success(
           ar
             ? `تم تحديث صلاحيات ${activeUser?.username} بنجاح`

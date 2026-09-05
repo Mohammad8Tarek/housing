@@ -12,13 +12,20 @@ import {
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 
 const router: Router = Router();
 
 router.get(
   "/floors",
-  requirePermission("housing", "view"),
+  requireAnyPermission(
+    ["housing", "view"],
+    ["accommodation", "view"],
+    ["housekeeping", "view"],
+    ["reservations", "view"],
+    ["maintenance", "view"],
+    ["reports", "view"],
+  ),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

@@ -33,7 +33,14 @@ const router: Router = Router();
 // ─── GET /rooms/:id/bed-status ─────────────────────────────────────────────
 router.get(
   "/rooms/:id/bed-status",
-  requirePermission("housing", "view"),
+  requireAnyPermission(
+    ["housing", "view"],
+    ["accommodation", "view"],
+    ["housekeeping", "view"],
+    ["reservations", "view"],
+    ["maintenance", "view"],
+    ["reports", "view"],
+  ),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -138,7 +145,14 @@ router.get(
 
 router.get(
   "/rooms/by-number",
-  requirePermission("housing", "view"),
+  requireAnyPermission(
+    ["housing", "view"],
+    ["accommodation", "view"],
+    ["housekeeping", "view"],
+    ["reservations", "view"],
+    ["maintenance", "view"],
+    ["reports", "view"],
+  ),
   async (req, res) => {
   try {
     const propertyId = getTenantId(req);
@@ -233,7 +247,14 @@ router.get(
 
 router.get(
   "/rooms",
-  requirePermission("housing", "view"),
+  requireAnyPermission(
+    ["housing", "view"],
+    ["accommodation", "view"],
+    ["housekeeping", "view"],
+    ["reservations", "view"],
+    ["maintenance", "view"],
+    ["reports", "view"],
+  ),
   async (req, res) => {
     try {
       const propertyId = getTenantId(req);
@@ -543,7 +564,14 @@ router.post(
 
 router.get(
   "/rooms/:id",
-  requirePermission("housing", "view"),
+  requireAnyPermission(
+    ["housing", "view"],
+    ["accommodation", "view"],
+    ["housekeeping", "view"],
+    ["reservations", "view"],
+    ["maintenance", "view"],
+    ["reports", "view"],
+  ),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

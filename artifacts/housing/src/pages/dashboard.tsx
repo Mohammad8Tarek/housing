@@ -33,6 +33,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
 import { motion, useSpring, useTransform } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
+import { usePermission } from "@/hooks/use-permission";
 import { useQuery } from "@tanstack/react-query";
 import { PageLoader } from "@/components/ui/loader";
 import {
@@ -95,11 +96,13 @@ export default function Dashboard() {
     { query: { enabled: !isAll && !!activePropertyId } },
   );
 
+  const hasProfiles = canView("profiles");
+
   const { data: profilesData } = useListProfiles(
     { propertyId: isAll ? undefined : (activePropertyId as number), limit: 1 } as any,
     {
       query: {
-        enabled: !isAll && !!activePropertyId,
+        enabled: !isAll && !!activePropertyId && hasProfiles,
       },
     },
   );

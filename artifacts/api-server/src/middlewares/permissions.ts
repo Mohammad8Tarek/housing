@@ -258,9 +258,13 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
 };
 
 function normalize(value: unknown): string {
-  return String(value ?? "")
+  let val = String(value ?? "")
     .trim()
     .toLowerCase();
+  // Legacy aliases: employees -> profiles
+  if (val.startsWith("employees.")) val = val.replace("employees.", "profiles.");
+  if (val.startsWith("employees:")) val = val.replace("employees:", "profiles:");
+  return val;
 }
 
 function normalizeRoles(roles: unknown): string[] {
@@ -297,16 +301,7 @@ function permissionKeys(
 }
 
 function effectivePermissions(user: AuthUser): Set<string> {
-  // 1. System admin (super_admin / system_admin) always has full access
-  if (
-    user.isSystemAdmin ||
-    user.roles.includes("super_admin") ||
-    user.roles.includes("system_admin")
-  ) {
-    return new Set(["*"]);
-  }
-
-  // 2. If explicit permissions are configured for this user:
+  // 1. If explicit permissions are configured for this user:
   // STRICT MODE: We ONLY use explicit permissions. Do NOT add role defaults back!
   if (Array.isArray(user.permissions) && user.permissions.length > 0) {
     const permissions = new Set<string>();
@@ -319,7 +314,27 @@ function effectivePermissions(user: AuthUser): Set<string> {
         if (norm.includes(":")) permissions.add(norm.replace(":", "."));
       }
     }
+    // Super admins always retain access to user permissions so they can never lock themselves out
+    if (
+      user.isSystemAdmin ||
+      user.roles.includes("super_admin") ||
+      user.roles.includes("system_admin")
+    ) {
+      permissions.add("users.view");
+      permissions.add("users:view");
+      permissions.add("users.manage_permissions");
+      permissions.add("users:manage_permissions");
+    }
     return permissions;
+  }
+
+  // 2. System admin (super_admin / system_admin) without explicit customization gets full access
+  if (
+    user.isSystemAdmin ||
+    user.roles.includes("super_admin") ||
+    user.roles.includes("system_admin")
+  ) {
+    return new Set(["*"]);
   }
 
   const permissions = new Set<string>();
@@ -347,37 +362,7 @@ export function hasPermission(
 ): boolean {
   const permissions = effectivePermissions(user);
   if (permissions.has("*")) return true;
-  if (permissionKeys(module, action).some((key) => permissions.has(key))) {
-    return true;
-  }
-
-  // Cross-module fallback for guest hosting and hosting requests <-> accommodation
-  if (module === "guest_hosting" || module === "hosting_requests") {
-    const guestFallbacks: PermissionModule[] = [
-      "accommodation",
-      "guest_hosting",
-      "hosting_requests",
-    ];
-    for (const fb of guestFallbacks) {
-      if (permissionKeys(fb, action).some((key) => permissions.has(key))) {
-        return true;
-      }
-    }
-  }
-
-  // Cross-module fallback for room & housing entities: accommodation, housing, and housekeeping
-  if (
-    (action === "view" || action === "edit" || action === "delete" || action === "create") &&
-    (module === "accommodation" || module === "housing" || module === "housekeeping")
-  ) {
-    const crossModules: PermissionModule[] = ["accommodation", "housing", "housekeeping"];
-    for (const cross of crossModules) {
-      if (permissionKeys(cross, action).some((key) => permissions.has(key))) {
-        return true;
-      }
-    }
-  }
-  return false;
+  return permissionKeys(module, action).some((key) => permissions.has(key));
 }
 
 function requestedPropertyId(req: Request): number | null {

@@ -10,6 +10,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { usePermission } from "@/hooks/use-permission";
 import {
   useListBuildings,
   useListFloors,
@@ -48,28 +49,32 @@ export function HousingPage() {
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [roomLogRoom, setRoomLogRoom] = useState<any>(null);
 
-  const { data: bData, isLoading: bLoading } = useListBuildings({
-    propertyId: activePropertyId as number,
-    limit: 1000,
-  } as any);
-  const { data: fData, isLoading: fLoading } = useListFloors({
-    propertyId: activePropertyId as number,
-    limit: 1000,
-  } as any);
+  const { can } = usePermission();
+  const hasAccommodation = can("accommodation", "view");
+  const hasProfiles = can("profiles", "view");
+
+  const { data: bData, isLoading: bLoading } = useListBuildings(
+    { propertyId: activePropertyId as number, limit: 1000 } as any,
+    { query: { enabled: !!activePropertyId } },
+  );
+  const { data: fData, isLoading: fLoading } = useListFloors(
+    { propertyId: activePropertyId as number, limit: 1000 } as any,
+    { query: { enabled: !!activePropertyId } },
+  );
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { queryKey: ["rooms", activePropertyId, 1000] } },
+    { query: { queryKey: ["rooms", activePropertyId, 1000], enabled: !!activePropertyId } },
   );
   const rData = (_rDataWrapper as any)?.data || _rDataWrapper || [];
-  const { data: aData } = useListAssignments({
-    propertyId: activePropertyId as number,
-    limit: 1000,
-  } as any);
+  const { data: aData } = useListAssignments(
+    { propertyId: activePropertyId as number, limit: 1000 } as any,
+    { query: { enabled: !!activePropertyId && hasAccommodation } },
+  );
 
-  const { data: eDataWrapper } = useListProfiles({
-    propertyId: activePropertyId as number,
-    limit: 1000,
-  } as any);
+  const { data: eDataWrapper } = useListProfiles(
+    { propertyId: activePropertyId as number, limit: 1000 } as any,
+    { query: { enabled: !!activePropertyId && hasProfiles } },
+  );
   const eData = (eDataWrapper as any)?.data || eDataWrapper || [];
   if (!activePropertyId) {
     return (

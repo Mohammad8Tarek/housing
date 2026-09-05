@@ -7,7 +7,7 @@ import {
   withTenant,
 } from "@workspace/db";
 import { eq, and, lte, gte, isNull, sql } from "drizzle-orm";
-import { requirePermission, hasPermission } from "../middlewares/permissions.js";
+import { requireAuth, hasPermission } from "../middlewares/permissions.js";
 
 const router: Router = Router();
 
@@ -19,7 +19,7 @@ function can(authUser: any, module: string, action: string): boolean {
 
 router.get(
   "/notifications",
-  requirePermission("dashboard", "view"),
+  requireAuth,
   async (req, res): Promise<void> => {
     const { propertyId } = req.query as Record<string, string>;
     const pid = propertyId ? parseInt(propertyId) : null;
