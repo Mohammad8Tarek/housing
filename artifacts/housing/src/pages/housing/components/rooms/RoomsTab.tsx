@@ -213,15 +213,34 @@ export function RoomsTab({
           const errData = await res.json().catch(() => ({ error: "Failed to update room" }));
           throw new Error(errData.error || errData.message || "Failed to update room");
         }
-        toast.success(ar ? "تم تحديث الغرفة بنجاح" : "Room updated");
+        toast.success(
+          ar ? "تم تحديث الغرفة بنجاح" : "Room Updated",
+          {
+            description: ar
+              ? "تم حفظ تعديلات الغرفة بنجاح."
+              : "Room details updated successfully.",
+          },
+        );
       } else {
         await createRoomMut.mutateAsync({ data: dataToSave });
-        toast.success(ar ? "تم إضافة الغرفة بنجاح" : "Room added");
+        toast.success(
+          ar ? "تم إضافة الغرفة بنجاح" : "Room Added",
+          {
+            description: ar
+              ? "تم إضافة الغرفة الجديدة بنجاح."
+              : "New room added successfully.",
+          },
+        );
       }
       invalidateAllHousingQueries();
       setRoomModal(false);
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل الحفظ" : "Failed to save"));
+      toast.error(
+        ar ? "فشل الحفظ" : "Save Failed",
+        {
+          description: err.message || (ar ? "حدث خطأ أثناء حفظ بيانات الغرفة" : "An error occurred while saving room details."),
+        },
+      );
     }
   };
 
@@ -239,11 +258,23 @@ export function RoomsTab({
         const data = await res.json().catch(() => ({ error: "Failed to delete room" }));
         throw new Error(data.error || "Failed to delete room");
       }
-      toast.success(ar ? "تم حذف الغرفة بنجاح" : "Room deleted");
       setDeleteRoom(null);
+      toast.success(
+        ar ? "تم حذف الغرفة بنجاح" : "Room Deleted",
+        {
+          description: ar
+            ? "تم حذف الغرفة من النظام بنجاح."
+            : "Room has been deleted successfully.",
+        },
+      );
       invalidateAllHousingQueries();
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل الحذف" : "Failed to delete"));
+      toast.error(
+        ar ? "فشل الحذف" : "Delete Failed",
+        {
+          description: err.message || (ar ? "تعذر حذف الغرفة" : "Could not delete room."),
+        },
+      );
     }
   };
 
@@ -262,24 +293,35 @@ export function RoomsTab({
         throw new Error(err.error || "Failed to delete");
       }
       const data = await res.json();
+      setConfirmBulkDelete(false);
       if (data.skippedCount > 0) {
         toast.warning(
-          ar
-            ? `تم حذف ${data.deletedCount} غرفة، وتخطي ${data.skippedCount} غرفة لوجود موظفين مسكنين بها`
-            : `Deleted ${data.deletedCount} rooms, skipped ${data.skippedCount} with active residents`,
+          ar ? "تنبيه الحذف" : "Bulk Delete Notice",
+          {
+            description: ar
+              ? `تم حذف ${data.deletedCount} غرفة، وتخطي ${data.skippedCount} غرفة لوجود موظفين مسكنين بها.`
+              : `Deleted ${data.deletedCount} rooms, skipped ${data.skippedCount} with active residents.`,
+          },
         );
       } else {
         toast.success(
-          ar
-            ? `تم حذف ${data.deletedCount} غرفة بنجاح`
-            : `Successfully deleted ${data.deletedCount} rooms`,
+          ar ? "تم الحذف بنجاح" : "Deleted Successfully",
+          {
+            description: ar
+              ? `تم حذف ${data.deletedCount} غرفة بنجاح.`
+              : `Successfully deleted ${data.deletedCount} rooms.`,
+          },
         );
       }
       setSelectedRoomIds(new Set());
       invalidateAllHousingQueries();
-      setConfirmBulkDelete(false);
     } catch (e: any) {
-      toast.error(e.message || (ar ? "فشل الحذف الجماعي" : "Bulk delete failed"));
+      toast.error(
+        ar ? "فشل الحذف الجماعي" : "Bulk Delete Failed",
+        {
+          description: e.message || (ar ? "حدث خطأ أثناء محاولة الحذف" : "An error occurred during bulk deletion."),
+        },
+      );
     } finally {
       setIsBulkDeleting(false);
     }

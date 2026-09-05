@@ -382,6 +382,75 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {/* Quick Links */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          {ar ? "وصول سريع" : "Quick Access"}
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            {
+              label: ar ? "الحجوزات والتسكين" : "Reservations & Housing",
+              icon: UserCheck,
+              href: "/accommodation/reservations",
+              color: "text-primary bg-primary/10",
+              module: "reservations",
+            },
+            {
+              label: ar ? "داخلي" : "In-House",
+              icon: Users,
+              href: "/accommodation/in-house",
+              color: "text-green-600 bg-green-50 dark:bg-green-950/30",
+              module: "accommodation",
+            },
+            {
+              label: ar ? "الحجوزات" : "Reservations",
+              icon: CalendarCheck,
+              href: "/accommodation/reservations",
+              color: "text-purple-600 bg-purple-50 dark:bg-purple-950/30",
+              module: "reservations",
+            },
+            {
+              label: ar ? "الإسكان" : "Housing",
+              icon: Building2,
+              href: "/housing",
+              color: "text-blue-600 bg-blue-50 dark:bg-blue-950/30",
+              module: "housing",
+            },
+            {
+              label: ar ? "التذاكر" : "Tickets",
+              icon: Wrench,
+              href: "/maintenance",
+              color: "text-orange-600 bg-orange-50 dark:bg-orange-950/30",
+              module: "maintenance",
+            },
+            {
+              label: ar ? "استضافة ضيوف" : "Guest Hosting",
+              icon: Users,
+              href: "/accommodation/guest-hosting",
+              color: "text-rose-600 bg-rose-50 dark:bg-rose-950/30",
+              module: "guest_hosting",
+            },
+          ]
+            .filter((item) => !item.module || canView(item.module as any))
+            .map((item, i) => (
+            <Link key={i} href={item.href}>
+              <Card className="bg-card/60 backdrop-blur-lg border-border/50 shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 cursor-pointer text-center p-4 group h-full relative overflow-hidden">
+                <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-10 pointer-events-none transition-opacity duration-300 group-hover:opacity-30 ${item.color.split(' ')[1]}`} />
+                <div
+                  className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center mx-auto mb-2.5 group-hover:scale-110 transition-transform relative z-10`}
+                >
+                  <item.icon className="w-5 h-5" />
+                </div>
+                <p className="text-xs font-medium text-foreground leading-tight">
+                  {item.label}
+                </p>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
+
       {/* Charts + Alerts — only when a specific property is selected */}
       {!isAll && (
         <>
@@ -535,75 +604,6 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              {ar ? "وصول سريع" : "Quick Access"}
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[
-                {
-                  label: ar ? "الحجوزات والتسكين" : "Reservations & Housing",
-                  icon: UserCheck,
-                  href: "/accommodation/reservations",
-                  color: "text-primary bg-primary/10",
-                  module: "reservations",
-                },
-                {
-                  label: ar ? "داخلي" : "In-House",
-                  icon: Users,
-                  href: "/accommodation/in-house",
-                  color: "text-green-600 bg-green-50 dark:bg-green-950/30",
-                  module: "accommodation",
-                },
-                {
-                  label: ar ? "الحجوزات" : "Reservations",
-                  icon: CalendarCheck,
-                  href: "/accommodation/reservations",
-                  color: "text-purple-600 bg-purple-50 dark:bg-purple-950/30",
-                  module: "reservations",
-                },
-                {
-                  label: ar ? "الإسكان" : "Housing",
-                  icon: Building2,
-                  href: "/housing",
-                  color: "text-blue-600 bg-blue-50 dark:bg-blue-950/30",
-                  module: "housing",
-                },
-                {
-                  label: ar ? "التذاكر" : "Tickets",
-                  icon: Wrench,
-                  href: "/maintenance",
-                  color: "text-orange-600 bg-orange-50 dark:bg-orange-950/30",
-                  module: "maintenance",
-                },
-                {
-                  label: ar ? "استضافة ضيوف" : "Guest Hosting",
-                  icon: Users,
-                  href: "/accommodation/guest-hosting",
-                  color: "text-rose-600 bg-rose-50 dark:bg-rose-950/30",
-                  module: "guest_hosting",
-                },
-              ]
-                .filter((item) => !item.module || canView(item.module as any))
-                .map((item, i) => (
-                <Link key={i} href={item.href}>
-                  <Card className="bg-card/60 backdrop-blur-lg border-border/50 shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 cursor-pointer text-center p-4 group h-full relative overflow-hidden">
-                    <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-10 pointer-events-none transition-opacity duration-300 group-hover:opacity-30 ${item.color.split(' ')[1]}`} />
-                    <div
-                      className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center mx-auto mb-2.5 group-hover:scale-110 transition-transform relative z-10`}
-                    >
-                      <item.icon className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-medium text-foreground leading-tight">
-                      {item.label}
-                    </p>
-                  </Card>
-                </Link>
-              ))}
-            </div>
           </div>
 
           {/* Recent Activity */}

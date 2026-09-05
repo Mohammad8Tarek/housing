@@ -236,12 +236,22 @@ export default function HistoryPage() {
         const err = await res.json().catch(() => ({ error: "Failed to delete" }));
         throw new Error(err.error || "Failed to delete");
       }
-      toast.success(ar ? "تم حذف السجل بنجاح" : "Record deleted successfully");
       setDeleteRecord(null);
       queryClient.invalidateQueries({ queryKey: ["accommodationHistory"] });
+      toast.success(
+        ar ? "تم حذف السجل بنجاح" : "Record Deleted Successfully",
+        {
+          description: ar
+            ? "تمت إزالة سجل التسكين بنجاح من قاعدة البيانات"
+            : "The accommodation record was removed successfully from the system",
+        },
+      );
     } catch (e: any) {
       toast.error(
-        e.message || (ar ? "فشل حذف السجل" : "Failed to delete record"),
+        ar ? "فشل حذف السجل" : "Failed to Delete Record",
+        {
+          description: e.message || (ar ? "حدث خطأ أثناء محاولة حذف السجل" : "An error occurred while attempting to delete the record"),
+        },
       );
     } finally {
       setIsDeleting(false);
@@ -272,17 +282,23 @@ export default function HistoryPage() {
         throw new Error(err.error || "Failed to delete");
       }
       const data = await res.json();
-      toast.success(
-        ar
-          ? `تم حذف ${data.deletedCount} سجل بنجاح`
-          : `Deleted ${data.deletedCount} records successfully`,
-      );
       setSelectedRows(new Set());
       setConfirmBulkDelete(false);
       queryClient.invalidateQueries({ queryKey: ["accommodationHistory"] });
+      toast.success(
+        ar ? "تم الحذف الجماعي بنجاح" : "Bulk Deletion Completed",
+        {
+          description: ar
+            ? `تم حذف ${data.deletedCount ?? ids.length} سجل بنجاح من الأرشيف`
+            : `Successfully deleted ${data.deletedCount ?? ids.length} records from history`,
+        },
+      );
     } catch (e: any) {
       toast.error(
-        e.message || (ar ? "فشل الحذف الجماعي" : "Failed to bulk delete"),
+        ar ? "فشل الحذف الجماعي" : "Bulk Deletion Failed",
+        {
+          description: e.message || (ar ? "حدث خطأ أثناء محاولة الحذف الجماعي" : "An error occurred during bulk deletion"),
+        },
       );
     } finally {
       setIsBulkDeleting(false);
