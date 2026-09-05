@@ -467,6 +467,10 @@ router.patch(
       if (body.level !== undefined) updateData.level = cleanText(body.level, 80);
       if (body.employmentType !== undefined) updateData.employmentType = cleanText(body.employmentType, 50);
       if (body.companyName !== undefined) updateData.companyName = cleanText(body.companyName, 200);
+      if (body.roomId !== undefined) updateData.roomId = body.roomId ? Number(body.roomId) : null;
+      if (body.bedNumber !== undefined) updateData.bedNumber = String(body.bedNumber ?? "");
+      if (body.roomType !== undefined) updateData.roomType = body.roomType ? String(body.roomType) : null;
+      if (body.status !== undefined) updateData.status = String(body.status);
 
       const [updated] = await withTenant(propertyId, async (tenantDb) => {
         const [res] = await tenantDb
@@ -979,16 +983,14 @@ router.patch(
   },
 );
 
-router.patch(
-  "/reservations/:id/cancel",
-  requirePermission("reservations", "edit"),
-  async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+const handleCancelReservation = async (req: any, res: any): Promise<void> => {
+  const propertyId = getTenantId(req);
+  if (!propertyId) {
+    res.status(400).json({ error: "propertyId is required" });
+    return;
+  }
 
+  try {
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid id" });
@@ -1031,7 +1033,13 @@ router.patch(
     broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
 
     res.json({ ...fmtReservation(updated), propertyId });
-  },
-);
+  } catch (err: any) {
+    console.error("[CANCEL reservation] error:", err?.message ?? err);
+    res.status(500).json({ error: "Failed to cancel reservation" });
+  }
+};
+
+router.patch("/reservations/:id/cancel", requirePermission("reservations", "edit"), handleCancelReservation);
+router.post("/reservations/:id/cancel", requirePermission("reservations", "edit"), handleCancelReservation);
 
 export default router;

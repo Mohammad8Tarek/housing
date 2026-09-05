@@ -66,7 +66,7 @@ import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
   Building, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
-  Phone, CreditCard, AlertCircle, Lock, AlertTriangle,
+  Phone, CreditCard, AlertCircle, Lock, AlertTriangle, Ban, Check,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
@@ -138,7 +138,17 @@ export default function ReservationsPage() {
     roomType: "",
     employmentType: "INTERNAL",
     companyName: "",
+    roomId: "",
+    bedNumber: "",
   });
+  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; reservation: any | null; reason: string }>({
+    open: false,
+    reservation: null,
+    reason: "",
+  });
+  const [editBuildingId, setEditBuildingId] = useState<string>("all");
+  const [editRoomSearch, setEditRoomSearch] = useState<string>("");
+  const [showEditRoomPicker, setShowEditRoomPicker] = useState<boolean>(false);
   const [checkinDialog, setCheckinDialog] = useState<{ open: boolean; id: number | null; guestName?: string; reservation?: any }>({ open: false, id: null });
   const [checkinRoomId, setCheckinRoomId] = useState("");
   const [checkinRoomSearch, setCheckinRoomSearch] = useState("");
@@ -597,6 +607,33 @@ export default function ReservationsPage() {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: number; reason?: string }) => {
+      const url = activePropertyId && activePropertyId !== "all"
+        ? `/api/reservations/${id}/cancel?propertyId=${activePropertyId}`
+        : `/api/reservations/${id}/cancel`;
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || (ar ? "فشل إلغاء الحجز" : "Failed to cancel reservation"));
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success(ar ? "تم إلغاء الحجز بنجاح" : "Reservation cancelled successfully");
+      setCancelDialog({ open: false, reservation: null, reason: "" });
+      setEditDialog({ open: false, reservation: null });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || (ar ? "فشل إلغاء الحجز" : "Failed to cancel reservation"));
+    },
+  });
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!empSearch.trim() || empSearch.trim().length < 2) {
@@ -975,6 +1012,21 @@ export default function ReservationsPage() {
     });
   };
 
+  const filteredEditRooms = useMemo(() => {
+    return rooms.filter((r: any) => {
+      if (["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase())) return false;
+      if (editBuildingId !== "all" && String(r.buildingId) !== editBuildingId) return false;
+      if (editRoomSearch.trim()) {
+        const q = editRoomSearch.trim().toLowerCase();
+        const rNum = String(r.roomNumber || "").toLowerCase();
+        const bName = String(buildingMap[r.buildingId] || "").toLowerCase();
+        const rType = String(r.roomType || "").toLowerCase();
+        if (!rNum.includes(q) && !bName.includes(q) && !rType.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [rooms, editBuildingId, editRoomSearch, buildingMap]);
+
   const openEdit = (res: any) => {
     setEditForm({
       checkInDate: res.checkInDate ? res.checkInDate.split("T")[0] : "",
@@ -993,7 +1045,12 @@ export default function ReservationsPage() {
       roomType: res.roomType || "",
       employmentType: res.employmentType || "INTERNAL",
       companyName: res.companyName || "",
+      roomId: res.roomId ? String(res.roomId) : "",
+      bedNumber: res.bedNumber ? String(res.bedNumber) : "",
     });
+    setEditBuildingId("all");
+    setEditRoomSearch("");
+    setShowEditRoomPicker(false);
     setEditDialog({ open: true, reservation: res });
   };
 
@@ -1018,6 +1075,8 @@ export default function ReservationsPage() {
         roomType: editForm.roomType,
         employmentType: editForm.employmentType,
         companyName: editForm.companyName,
+        roomId: editForm.roomId ? Number(editForm.roomId) : null,
+        bedNumber: editForm.bedNumber || "",
       } as any,
     });
   };
@@ -1373,6 +1432,16 @@ export default function ReservationsPage() {
                                 <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-amber-500" />{ar ? "تعديل" : "Edit"}
                               </DropdownMenuItem>
                             </PermissionGate>
+                            {res.status === "UPCOMING" && (
+                              <PermissionGate module="accommodation" action="edit">
+                                <DropdownMenuItem
+                                  onClick={() => setCancelDialog({ open: true, reservation: res, reason: "" })}
+                                  className="text-destructive cursor-pointer focus:text-destructive focus:bg-destructive/10 font-medium"
+                                >
+                                  <Ban className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-destructive" />{ar ? "إلغاء الحجز" : "Cancel Reservation"}
+                                </DropdownMenuItem>
+                              </PermissionGate>
+                            )}
                             <PermissionGate module="accommodation" action="delete">
                               <DropdownMenuItem onClick={() => setDeleteId(res.id)} className="text-destructive cursor-pointer focus:text-destructive focus:bg-destructive/10">
                                 <Trash className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-destructive" />{ar ? "حذف" : "Delete"}
@@ -2348,14 +2417,319 @@ export default function ReservationsPage() {
                 </div>
               )}
             </div>
+
+            {/* ROOM & BED SELECTION */}
+            <div className="space-y-2.5 p-3.5 rounded-xl border bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BedDouble className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-sm">
+                    {ar ? "الغرفة والسرير المحجوز" : "Reserved Room & Bed"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {editForm.roomId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1"
+                      onClick={() => {
+                        setEditForm((f) => ({ ...f, roomId: "", bedNumber: "", roomType: "" }));
+                        setShowEditRoomPicker(false);
+                      }}
+                    >
+                      <X className="w-3 h-3" />
+                      {ar ? "إلغاء التخصيص" : "Clear"}
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant={showEditRoomPicker ? "secondary" : "outline"}
+                    size="sm"
+                    className="h-7 px-2.5 text-xs gap-1"
+                    onClick={() => setShowEditRoomPicker((prev) => !prev)}
+                  >
+                    <BedDouble className="w-3.5 h-3.5" />
+                    {showEditRoomPicker
+                      ? ar ? "إخفاء قائمة الغرف" : "Hide Rooms"
+                      : editForm.roomId
+                      ? ar ? "تغيير الغرفة" : "Change Room"
+                      : ar ? "تخصيص غرفة" : "Assign Room"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Current assigned room display */}
+              {editForm.roomId ? (
+                (() => {
+                  const currRoom = rooms.find((r: any) => String(r.id) === String(editForm.roomId));
+                  const bName = currRoom ? buildingMap[currRoom.buildingId] : null;
+                  return (
+                    <div className="flex items-center justify-between p-2.5 rounded-lg border bg-background text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold font-mono">
+                          {currRoom?.roomNumber || editForm.roomId}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-sm">
+                            {ar ? `غرفة ${currRoom?.roomNumber || editForm.roomId}` : `Room ${currRoom?.roomNumber || editForm.roomId}`}
+                            {bName ? ` - ${bName}` : ""}
+                          </div>
+                          <div className="text-muted-foreground flex items-center gap-2 mt-0.5">
+                            <span>{currRoom?.roomType || editForm.roomType || (ar ? "قياسية" : "Standard")}</span>
+                            <span>•</span>
+                            <span className="font-medium text-primary">
+                              {editForm.bedNumber === "ALL"
+                                ? (ar ? "الغرفة بالكامل" : "Entire Room")
+                                : editForm.bedNumber
+                                ? (ar ? `سرير رقم ${editForm.bedNumber}` : `Bed #${editForm.bedNumber}`)
+                                : (ar ? "بدون سرير محدد" : "Bed unassigned")}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-[11px]">
+                        {ar ? "غرفة محجوزة" : "Reserved"}
+                      </Badge>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-dashed text-xs text-muted-foreground bg-background/50">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <span>{ar ? "لم يتم تحديد غرفة لهذا الحجز بعد." : "No room assigned to this reservation yet."}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Collapsible Room Picker */}
+              {showEditRoomPicker && (
+                <div className="space-y-3 pt-2 border-t mt-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="w-full sm:w-48">
+                      <Select value={editBuildingId} onValueChange={setEditBuildingId}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>
+                          {buildings.map((b: any) => (
+                            <SelectItem key={b.id} value={String(b.id)}>
+                              {b.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 absolute right-2.5 rtl:right-2.5 rtl:left-auto left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder={ar ? "بحث برقم الغرفة أو النوع..." : "Search room number or type..."}
+                        value={editRoomSearch}
+                        onChange={(e) => setEditRoomSearch(e.target.value)}
+                        className="h-8 text-xs px-8"
+                      />
+                      {editRoomSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setEditRoomSearch("")}
+                          className="absolute left-2.5 rtl:left-2.5 rtl:right-auto right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Room Cards Scroll Area */}
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 border rounded-lg p-1.5 bg-background">
+                    {filteredEditRooms.length === 0 ? (
+                      <div className="py-6 text-center text-xs text-muted-foreground">
+                        {ar ? "لا توجد غرف مطابقة لمعايير البحث" : "No rooms match the criteria"}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {filteredEditRooms.slice(0, 36).map((rm: any) => {
+                          const isSel = String(editForm.roomId) === String(rm.id);
+                          const occ = rm.currentOccupancy ?? 0;
+                          const cap = rm.capacity ?? 1;
+                          const isFull = occ >= cap || entireRoomOccupiedSet.has(rm.id);
+                          const bName = buildingMap[rm.buildingId];
+
+                          return (
+                            <button
+                              key={rm.id}
+                              type="button"
+                              onClick={() => {
+                                setEditForm((f) => ({
+                                  ...f,
+                                  roomId: String(rm.id),
+                                  roomType: rm.roomType || f.roomType,
+                                  bedNumber: (rm.capacity ?? 1) === 1 ? "1" : (f.roomId === String(rm.id) ? f.bedNumber : "1"),
+                                }));
+                              }}
+                              className={`p-2 rounded-lg border text-start transition-all flex flex-col justify-between text-xs ${
+                                isSel
+                                  ? "border-primary bg-primary/10 ring-1 ring-primary"
+                                  : isFull
+                                  ? "border-border/60 bg-muted/40 opacity-70 hover:opacity-100"
+                                  : "border-border hover:border-primary/50 hover:bg-muted/20"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1 w-full">
+                                <span className="font-bold font-mono text-sm">
+                                  {ar ? `غرفة ${rm.roomNumber}` : `Room ${rm.roomNumber}`}
+                                </span>
+                                {isSel && <Check className="w-3.5 h-3.5 text-primary" />}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground truncate w-full mt-0.5">
+                                {bName ? `${bName} • ` : ""}{rm.roomType || (ar ? "قياسية" : "Standard")}
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1 pt-1 border-t border-border/40 w-full">
+                                <span>{ar ? `السعة: ${cap}` : `Cap: ${cap}`}</span>
+                                <span className={occ >= cap ? "text-amber-600 font-medium" : "text-emerald-600 font-medium"}>
+                                  {occ}/{cap}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bed Selector for currently picked room */}
+                  {editForm.roomId && (() => {
+                    const selRoom = rooms.find((r: any) => String(r.id) === String(editForm.roomId));
+                    const cap = selRoom?.capacity ?? (roomTypeCapacity[selRoom?.roomType?.toLowerCase()] || 1);
+                    if (cap <= 1) return null;
+                    const bedOpts = getBedOptions(selRoom?.roomType, cap);
+
+                    return (
+                      <div className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
+                        <Label className="text-xs font-semibold">
+                          {ar ? "تحديد السرير المطلوب في هذه الغرفة:" : "Select Bed in this room:"}
+                        </Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={editForm.bedNumber === "ALL" ? "default" : "outline"}
+                            className="h-7 text-xs"
+                            onClick={() => setEditForm((f) => ({ ...f, bedNumber: "ALL" }))}
+                          >
+                            {ar ? "الغرفة بالكامل" : "Entire Room"}
+                          </Button>
+                          {bedOpts.map((bedNum) => (
+                            <Button
+                              key={bedNum}
+                              type="button"
+                              size="sm"
+                              variant={editForm.bedNumber === String(bedNum) ? "default" : "outline"}
+                              className="h-7 text-xs"
+                              onClick={() => setEditForm((f) => ({ ...f, bedNumber: String(bedNum) }))}
+                            >
+                              {ar ? `سرير ${bedNum}` : `Bed ${bedNum}`}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1.5"><Label>{ar ? "ملاحظات" : "Notes"}</Label><Textarea value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} rows={2} /></div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditDialog({ open: false, reservation: null })}>{ar ? "إلغاء" : "Cancel"}</Button>
-              <Button onClick={handleUpdate} disabled={updateMutation.isPending}>{updateMutation.isPending ? (ar ? "جاري..." : "...") : (ar ? "حفظ" : "Save")}</Button>
+            <div className="flex items-center justify-between gap-2 pt-2 border-t">
+              <div>
+                {editDialog.reservation?.status === "UPCOMING" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
+                    onClick={() => {
+                      const res = editDialog.reservation;
+                      setEditDialog({ open: false, reservation: null });
+                      setCancelDialog({ open: true, reservation: res, reason: "" });
+                    }}
+                  >
+                    <Ban className="w-4 h-4" />
+                    {ar ? "إلغاء هذا الحجز" : "Cancel Reservation"}
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setEditDialog({ open: false, reservation: null })}>{ar ? "إلغاء" : "Cancel"}</Button>
+                <Button onClick={handleUpdate} disabled={updateMutation.isPending}>{updateMutation.isPending ? (ar ? "جاري..." : "...") : (ar ? "حفظ التعديلات" : "Save Changes")}</Button>
+              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* CANCEL RESERVATION CONFIRMATION */}
+      <AlertDialog
+        open={cancelDialog.open}
+        onOpenChange={(o) => !o && setCancelDialog({ open: false, reservation: null, reason: "" })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Ban className="w-5 h-5" />
+              {ar ? "تأكيد إلغاء الحجز" : "Confirm Reservation Cancellation"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-sm text-muted-foreground">
+              <span>
+                {ar
+                  ? `هل أنت متأكد من رغبتك في إلغاء حجز النزيل "${cancelDialog.reservation?.firstName || ""} ${cancelDialog.reservation?.lastName || ""}"؟`
+                  : `Are you sure you want to cancel the reservation for "${cancelDialog.reservation?.firstName || ""} ${cancelDialog.reservation?.lastName || ""}"?`}
+              </span>
+              {cancelDialog.reservation?.roomId && (
+                <span className="block mt-1 text-amber-600 dark:text-amber-400 font-medium">
+                  {ar
+                    ? `ملاحظة: سيتم تحرير الغرفة والسرير المحجوزين تلقائياً.`
+                    : `Note: The reserved room and bed will be released automatically.`}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2 space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{ar ? "سبب الإلغاء (اختياري)" : "Cancellation Reason (Optional)"}</Label>
+            <Input
+              placeholder={ar ? "أدخل سبب إلغاء الحجز..." : "Enter reason for cancellation..."}
+              value={cancelDialog.reason}
+              onChange={(e) => setCancelDialog((d) => ({ ...d, reason: e.target.value }))}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{ar ? "تراجع" : "Go Back"}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-1.5"
+              onClick={() => {
+                if (cancelDialog.reservation?.id) {
+                  cancelMutation.mutate({
+                    id: cancelDialog.reservation.id,
+                    reason: cancelDialog.reason || undefined,
+                  });
+                }
+              }}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? (
+                ar ? "جاري الإلغاء..." : "Cancelling..."
+              ) : (
+                <>
+                  <Ban className="w-4 h-4" />
+                  {ar ? "نعم، إلغاء الحجز" : "Yes, Cancel Reservation"}
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* DELETE CONFIRM */}
       <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
