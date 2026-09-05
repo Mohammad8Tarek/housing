@@ -31,10 +31,12 @@ import {
   ToggleRight,
   BedDouble,
   Layers,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
+import { DataPagination } from "@/components/DataPagination";
 import {
   useLookupValues,
   useCreateLookupValue,
@@ -51,6 +53,7 @@ interface LookupSectionProps {
   parentLabel?: string;
   showCapacity?: boolean;
   extraLabel?: string;
+  enablePagination?: boolean;
 }
 
 export function LookupSection({
@@ -62,6 +65,7 @@ export function LookupSection({
   parentLabel,
   showCapacity,
   extraLabel,
+  enablePagination,
 }: LookupSectionProps) {
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -70,6 +74,9 @@ export function LookupSection({
   const [newCapacity, setNewCapacity] = useState<number>(2);
   const [newExtraValue, setNewExtraValue] = useState("");
   const [selectedParent, setSelectedParent] = useState<string>("__all__");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [editParentValue, setEditParentValue] = useState<string>("");
@@ -122,10 +129,43 @@ export function LookupSection({
   const createMutation = useCreateLookupValue(propertyId);
   const deleteMutation = useDeleteLookupValue(propertyId, category);
 
-  const filteredValues =
-    selectedParent && selectedParent !== "__all__"
-      ? values.filter((v) => v.parentValue === selectedParent)
-      : values;
+  const shouldPaginate =
+    enablePagination ??
+    (category === "department" || category === "job_title");
+
+  const filteredValues = values.filter((v) => {
+    if (selectedParent && selectedParent !== "__all__" && v.parentValue !== selectedParent) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchVal = (v.value || "").toLowerCase().includes(q);
+      const matchParent = (v.parentValue || "").toLowerCase().includes(q);
+      const matchExtra = (v.extraValue || "").toLowerCase().includes(q);
+      return matchVal || matchParent || matchExtra;
+    }
+    return true;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredValues.length / pageSize));
+  const effectiveCurrentPage = Math.min(currentPage, totalPages);
+
+  const displayValues = shouldPaginate
+    ? filteredValues.slice(
+        (effectiveCurrentPage - 1) * pageSize,
+        effectiveCurrentPage * pageSize
+      )
+    : filteredValues;
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setCurrentPage(1);
+  };
+
+  const handleParentChange = (val: string) => {
+    setSelectedParent(val);
+    setCurrentPage(1);
+  };
 
   const handleAdd = async () => {
     const trimmed = newValue.trim();
@@ -248,7 +288,7 @@ export function LookupSection({
             <Layers className="w-3.5 h-3.5" />
             {ar ? `فلترة حسب ${currentParentLabel}:` : `Filter by ${currentParentLabel}:`}
           </span>
-          <Select value={selectedParent} onValueChange={setSelectedParent}>
+          <Select value={selectedParent} onValueChange={handleParentChange}>
             <SelectTrigger className="w-56 h-8 text-xs bg-background">
               <SelectValue placeholder={ar ? `كل ${currentParentLabel}s` : `All ${currentParentLabel}s`} />
             </SelectTrigger>
@@ -323,6 +363,39 @@ export function LookupSection({
         </div>
       </PermissionGate>
 
+      {/* Search and Records Count */}
+      {shouldPaginate && values.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground rtl:left-auto rtl:right-2.5 pointer-events-none" />
+            <Input
+              placeholder={ar ? `بحث في ${currentLabel}...` : `Search ${currentLabel}...`}
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="h-9 pl-9 rtl:pl-3 rtl:pr-9 text-xs"
+            />
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => handleSearchChange("")}
+                className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-foreground rtl:right-auto rtl:left-1"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+            <span>
+              {ar
+                ? `إجمالي السجلات: ${filteredValues.length}`
+                : `Total records: ${filteredValues.length}`}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Data Table */}
       {isLoading ? (
         <div className="space-y-2">
@@ -333,7 +406,9 @@ export function LookupSection({
       ) : filteredValues.length === 0 ? (
         <div className="text-center py-10 border rounded-xl bg-card text-muted-foreground">
           <p className="text-sm font-medium">
-            {ar ? `لم يتم إضافة أي ${currentLabel} بعد` : `No ${label.toLowerCase()}s added yet`}
+            {searchQuery || (selectedParent && selectedParent !== "__all__")
+              ? (ar ? "لا توجد نتائج مطابقة لبحثك" : "No matching results found")
+              : (ar ? `لم يتم إضافة أي ${currentLabel} بعد` : `No ${label.toLowerCase()}s added yet`)}
           </p>
         </div>
       ) : (
@@ -364,7 +439,7 @@ export function LookupSection({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredValues.map((v) => {
+              {displayValues.map((v) => {
                 const isDisabled = (v as any).disabled ?? false;
                 const isEditing = editingId === v.id;
                 return (
@@ -585,6 +660,18 @@ export function LookupSection({
               })}
             </TableBody>
           </Table>
+          {shouldPaginate && filteredValues.length > 0 && (
+            <DataPagination
+              total={filteredValues.length}
+              pageSize={pageSize}
+              currentPage={effectiveCurrentPage}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          )}
         </div>
       )}
 

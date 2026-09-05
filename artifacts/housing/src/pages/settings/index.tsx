@@ -175,6 +175,7 @@ export default function Settings() {
                     category={LOOKUP_CATEGORIES.DEPARTMENT}
                     label="Department"
                     description={ar ? "إدارة قائمة الأقسام" : "Manage departments list"}
+                    enablePagination={true}
                   />
                 )}
               </CardContent>
@@ -193,6 +194,7 @@ export default function Settings() {
                     parentCategory={LOOKUP_CATEGORIES.DEPARTMENT}
                     parentLabel="Department"
                     extraLabel="Level"
+                    enablePagination={true}
                   />
                 )}
               </CardContent>
