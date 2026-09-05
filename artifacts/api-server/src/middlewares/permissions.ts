@@ -297,7 +297,16 @@ function permissionKeys(
 }
 
 function effectivePermissions(user: AuthUser): Set<string> {
-  // 1. If explicit permissions are configured for this user:
+  // 1. System admin (super_admin / system_admin) always has full access
+  if (
+    user.isSystemAdmin ||
+    user.roles.includes("super_admin") ||
+    user.roles.includes("system_admin")
+  ) {
+    return new Set(["*"]);
+  }
+
+  // 2. If explicit permissions are configured for this user:
   // STRICT MODE: We ONLY use explicit permissions. Do NOT add role defaults back!
   if (Array.isArray(user.permissions) && user.permissions.length > 0) {
     const permissions = new Set<string>();
@@ -311,11 +320,6 @@ function effectivePermissions(user: AuthUser): Set<string> {
       }
     }
     return permissions;
-  }
-
-  // 2. If system admin (super_admin / system_admin) without explicit restrictions: grant all
-  if (user.isSystemAdmin || user.roles.includes("super_admin")) {
-    return new Set(["*"]);
   }
 
   const permissions = new Set<string>();
@@ -346,6 +350,21 @@ export function hasPermission(
   if (permissionKeys(module, action).some((key) => permissions.has(key))) {
     return true;
   }
+
+  // Cross-module fallback for guest hosting and hosting requests <-> accommodation
+  if (module === "guest_hosting" || module === "hosting_requests") {
+    const guestFallbacks: PermissionModule[] = [
+      "accommodation",
+      "guest_hosting",
+      "hosting_requests",
+    ];
+    for (const fb of guestFallbacks) {
+      if (permissionKeys(fb, action).some((key) => permissions.has(key))) {
+        return true;
+      }
+    }
+  }
+
   // Cross-module fallback for room & housing entities: accommodation, housing, and housekeeping
   if (
     (action === "view" || action === "edit" || action === "delete" || action === "create") &&
