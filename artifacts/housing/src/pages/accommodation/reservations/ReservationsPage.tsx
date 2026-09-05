@@ -845,7 +845,6 @@ export default function ReservationsPage() {
         // Switch personMode to existing so if assignment mutation fails, retrying won't duplicate the profile
         setPersonMode("existing");
         setSelectedProfile(np);
-        setSelectedProfileId(np.id);
         setEmpSearch(`${np.firstName} ${np.lastName}`);
 
         // Upload photo if selected
