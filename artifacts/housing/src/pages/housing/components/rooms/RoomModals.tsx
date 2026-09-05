@@ -199,15 +199,15 @@ export function RoomModals({
           className="max-w-2xl max-h-[90vh] overflow-y-auto"
           srTitle={
             editRoom
-              ? ar ? "????? ??????" : "Edit Room"
-              : ar ? "????? ????" : "Add Room"
+              ? ar ? "تعديل الغرفة" : "Edit Room"
+              : ar ? "إضافة غرفة" : "Add Room"
           }
         >
           <DialogHeader>
             <DialogTitle>
               {editRoom
-                ? ar ? "????? ??????" : "Edit Room"
-                : ar ? "????? ????" : "Add Room"}
+                ? ar ? "تعديل الغرفة" : "Edit Room"
+                : ar ? "إضافة غرفة" : "Add Room"}
             </DialogTitle>
           </DialogHeader>
 
@@ -215,11 +215,11 @@ export function RoomModals({
             {/* -- Section 1: Location -- */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                {ar ? "?????? ????????" : "Location & Identity"}
+                {ar ? "الموقع والبيانات" : "Location & Identity"}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>{ar ? "??????" : "Building"} *</Label>
+                  <Label>{ar ? "المبنى" : "Building"} *</Label>
                   <Select
                     value={String(rForm.buildingId)}
                     onValueChange={(v) =>
@@ -231,7 +231,7 @@ export function RoomModals({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={ar ? "???? ??????" : "Building"} />
+                      <SelectValue placeholder={ar ? "اختر المبنى" : "Building"} />
                     </SelectTrigger>
                     <SelectContent>
                       {buildings.map((b) => (
@@ -243,7 +243,7 @@ export function RoomModals({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "??????" : "Floor"} *</Label>
+                  <Label>{ar ? "الطابق" : "Floor"} *</Label>
                   <Select
                     value={String(rForm.floorId)}
                     onValueChange={(v) =>
@@ -252,14 +252,14 @@ export function RoomModals({
                     disabled={!rForm.buildingId}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={ar ? "???? ??????" : "Floor"} />
+                      <SelectValue placeholder={ar ? "اختر الطابق" : "Floor"} />
                     </SelectTrigger>
                     <SelectContent>
                       {floors
                         .filter((f) => f.buildingId === rForm.buildingId)
                         .map((f) => (
                           <SelectItem key={f.id} value={String(f.id)}>
-                            {ar ? "??????" : "Floor"} {f.floorNumber}
+                            {ar ? "الطابق" : "Floor"} {f.floorNumber}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -322,7 +322,7 @@ export function RoomModals({
             {/* -- Section 2: Room Specs -- */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                {ar ? "??????? ??????" : "Room Specifications"}
+                {ar ? "مواصفات الغرفة" : "Room Specifications"}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -353,7 +353,7 @@ export function RoomModals({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "??? ??????" : "Bed Type"}</Label>
+                  <Label>{ar ? "نوع السرير" : "Bed Type"}</Label>
                   <Select
                     value={rForm.bedType || "__none__"}
                     onValueChange={(v) =>
@@ -367,7 +367,7 @@ export function RoomModals({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— {ar ? "??? ????" : "Not specified"}</SelectItem>
+                      <SelectItem value="__none__">— {ar ? "غير محدد" : "Not specified"}</SelectItem>
                       {bedTypes.map((t) => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>
                       ))}
@@ -375,7 +375,7 @@ export function RoomModals({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "????? ??????" : "Max Capacity"}</Label>
+                  <Label>{ar ? "السعة القصوى" : "Max Capacity"}</Label>
                   <Input
                     type="number"
                     min={1}
@@ -389,7 +389,7 @@ export function RoomModals({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "???????" : "Size"}</Label>
+                  <Label>{ar ? "المساحة" : "Size"}</Label>
                   <Input
                     value={rForm.size}
                     onChange={(e) =>
@@ -399,7 +399,7 @@ export function RoomModals({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "????????" : "View"}</Label>
+                  <Label>{ar ? "الإطلالة" : "View"}</Label>
                   <Select
                     value={rForm.view || "__none__"}
                     onValueChange={(v) =>
@@ -413,7 +413,7 @@ export function RoomModals({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— {ar ? "??? ????" : "Not specified"}</SelectItem>
+                      <SelectItem value="__none__">— {ar ? "غير محدد" : "Not specified"}</SelectItem>
                       {viewOptions.map((v) => (
                         <SelectItem key={v} value={v}>{v}</SelectItem>
                       ))}
@@ -421,7 +421,7 @@ export function RoomModals({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "??? ???? (Connecting)" : "Separator Door"}</Label>
+                  <Label>{ar ? "باب متصل (Connecting)" : "Separator Door"}</Label>
                   <Select
                     value={rForm.separatorDoor ? "yes" : "no"}
                     onValueChange={(v) =>
@@ -432,8 +432,8 @@ export function RoomModals({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="no">{ar ? "?? ????" : "No"}</SelectItem>
-                      <SelectItem value="yes">{ar ? "??? ????" : "Yes"}</SelectItem>
+                      <SelectItem value="no">{ar ? "لا يوجد" : "No"}</SelectItem>
+                      <SelectItem value="yes">{ar ? "يوجد باب" : "Yes"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -443,11 +443,11 @@ export function RoomModals({
             {/* -- Section 3: Policy -- */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                {ar ? "??????? ???????" : "Policy & Status"}
+                {ar ? "السياسات والحالة" : "Policy & Status"}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>{ar ? "????? ?????" : "Gender Policy"}</Label>
+                  <Label>{ar ? "سياسة الجنس" : "Gender Policy"}</Label>
                   <Select
                     value={rForm.gender || "__none__"}
                     onValueChange={(v) =>
@@ -461,9 +461,9 @@ export function RoomModals({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">{ar ? "????? / ??? ?????" : "Mixed / None"}</SelectItem>
-                      <SelectItem value="M">{ar ? "????" : "Male"}</SelectItem>
-                      <SelectItem value="F">{ar ? "????" : "Female"}</SelectItem>
+                      <SelectItem value="__none__">{ar ? "مشترك / غير محدد" : "Mixed / None"}</SelectItem>
+                      <SelectItem value="M">{ar ? "ذكور" : "Male"}</SelectItem>
+                      <SelectItem value="F">{ar ? "إناث" : "Female"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -486,14 +486,14 @@ export function RoomModals({
             {/* -- Section 4: Room Features -- */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                ??? {ar ? "??????? ??????? ?????? (Room Features)" : "Room Features & Amenities"}
+                ✨ {ar ? "مزايا ومرافق الغرفة (Room Features)" : "Room Features & Amenities"}
               </p>
 
               {/* Tags display */}
               <div className="flex flex-wrap gap-1.5 mb-3 min-h-[32px]">
                 {featuresList.length === 0 && (
                   <span className="text-xs text-muted-foreground italic">
-                    {ar ? "?? ???? ?????? ????? ???..." : "No features added yet..."}
+                    {ar ? "لم تتم إضافة أي ميزات بعد..." : "No features added yet..."}
                   </span>
                 )}
                 {featuresList.map((feat) => (
@@ -533,7 +533,7 @@ export function RoomModals({
               {/* Custom feature input */}
               <div className="flex gap-2">
                 <Input
-                  placeholder={ar ? "??? ???? ?????..." : "Add custom feature..."}
+                  placeholder={ar ? "أضف ميزة مخصصة..." : "Add custom feature..."}
                   value={featureInput}
                   onChange={(e) => setFeatureInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -558,13 +558,13 @@ export function RoomModals({
 
             {/* -- Section 5: Notes -- */}
             <div className="space-y-1.5">
-              <Label>{ar ? "???????" : "Notes"}</Label>
+              <Label>{ar ? "ملاحظات" : "Notes"}</Label>
               <Textarea
                 value={rForm.notes}
                 onChange={(e) =>
                   setRForm((p: any) => ({ ...p, notes: e.target.value }))
                 }
-                placeholder={ar ? "?? ??????? ??????..." : "Any additional notes..."}
+                placeholder={ar ? "أي ملاحظات إضافية..." : "Any additional notes..."}
                 rows={2}
                 className="resize-none text-sm"
               />
@@ -573,14 +573,14 @@ export function RoomModals({
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setRoomModal(false)}>
-              {ar ? "?????" : "Cancel"}
+              {ar ? "إلغاء" : "Cancel"}
             </Button>
             <Button onClick={saveRoomHandler} disabled={isSaving || isDuplicateRoomNumber}>
               {isSaving
-                ? ar ? "???? ?????..." : "Saving..."
+                ? ar ? "جاري الحفظ..." : "Saving..."
                 : editRoom
-                ? ar ? "??? ?????????" : "Save Changes"
-                : ar ? "????? ??????" : "Add Room"}
+                ? ar ? "حفظ التعديلات" : "Save Changes"
+                : ar ? "إضافة الغرفة" : "Add Room"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -590,22 +590,22 @@ export function RoomModals({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {ar ? "??? ???????" : "Delete Room?"}
+              {ar ? "تأكيد حذف الغرفة" : "Delete Room?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {ar
-                ? `?? ??? ????? ?? ??? ?????? ${deleteRoom?.roomNumber}? ??? ??????? ?? ???? ??????? ???.`
+                ? `هل أنت متأكد من حذف الغرفة ${deleteRoom?.roomNumber}؟ لا يمكن التراجع عن هذا الإجراء وسيتم حذف بيانات الغرفة وإلغاء ارتباط الأسرة بها نهائياً.`
                 : `Are you sure you want to delete room ${deleteRoom?.roomNumber}? This cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{ar ? "?????" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteRoom}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? (ar ? "???? ?????..." : "Deleting...") : (ar ? "???" : "Delete")}
+              {isDeleting ? (ar ? "جاري الحذف..." : "Deleting...") : (ar ? "حذف" : "Delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
