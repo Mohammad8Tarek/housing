@@ -12,7 +12,7 @@ const MIGRATIONS = [
   },
   {
     name: "public.user_sessions_pkey",
-    q: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_sessions_pkey' AND conrelid = 'public.user_sessions'::regclass) THEN ALTER TABLE public.user_sessions ADD CONSTRAINT user_sessions_pkey PRIMARY KEY ("sid"); END IF; END $$`,
+    q: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE contype = 'p' AND conrelid = 'public.user_sessions'::regclass) THEN ALTER TABLE public.user_sessions ADD CONSTRAINT user_sessions_pkey PRIMARY KEY ("sid"); END IF; END $$`,
   },
   {
     name: "public.user_sessions_expire_index",
@@ -354,6 +354,10 @@ const MIGRATIONS = [
     q: "CREATE INDEX IF NOT EXISTS idx_activity_logs_module ON activity_logs(module)",
   },
   {
+    name: "evaluations.survey_template_id",
+    q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS survey_template_id INTEGER",
+  },
+  {
     name: "idx_evaluations_survey",
     q: "CREATE INDEX IF NOT EXISTS idx_evaluations_survey ON evaluations(survey_template_id)",
   },
@@ -638,6 +642,190 @@ const MIGRATIONS = [
   {
     name: "public.lookup_values.extra_value",
     q: "ALTER TABLE lookup_values ADD COLUMN IF NOT EXISTS extra_value TEXT",
+  },
+  {
+    name: "public.profiles.id_image",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id_image TEXT",
+  },
+  {
+    name: "public.profiles.employment_type",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS employment_type TEXT NOT NULL DEFAULT 'INTERNAL'",
+  },
+  {
+    name: "public.profiles.company_name",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS company_name TEXT DEFAULT ''",
+  },
+  {
+    name: "public.profiles.contract_end_date",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS contract_end_date TEXT",
+  },
+  {
+    name: "public.profiles.id_documents",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id_documents JSONB DEFAULT '[]'::jsonb",
+  },
+  {
+    name: "public.reservations.bed_number",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS bed_number TEXT NOT NULL DEFAULT ''",
+  },
+  {
+    name: "public.reservations.employment_type",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS employment_type TEXT NOT NULL DEFAULT 'INTERNAL'",
+  },
+  {
+    name: "public.reservations.company_name",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS company_name TEXT DEFAULT ''",
+  },
+  {
+    name: "public.assignments.is_entire_room",
+    q: "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS is_entire_room BOOLEAN NOT NULL DEFAULT FALSE",
+  },
+  {
+    name: "public.assignments.bed_number",
+    q: "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS bed_number INTEGER",
+  },
+  {
+    name: "public.rooms.classification",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS classification TEXT",
+  },
+  {
+    name: "public.rooms.separator_door",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS separator_door BOOLEAN NOT NULL DEFAULT FALSE",
+  },
+  {
+    name: "public.rooms.bed_type",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS bed_type TEXT",
+  },
+  {
+    name: "public.rooms.view",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS view TEXT",
+  },
+  {
+    name: "public.rooms.size",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS size TEXT",
+  },
+  {
+    name: "public.rooms.size_sqm",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS size_sqm NUMERIC",
+  },
+  {
+    name: "public.rooms.features",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS features TEXT",
+  },
+  {
+    name: "public.rooms.features_list",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS features_list TEXT[]",
+  },
+  {
+    name: "public.rooms.notes",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS notes TEXT",
+  },
+  {
+    name: "public.rooms.is_active",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE",
+  },
+  {
+    name: "public.maintenance.parent_id",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS parent_id INTEGER",
+  },
+  {
+    name: "public.settings.system_name",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS system_name TEXT DEFAULT 'Staff Housing'",
+  },
+  {
+    name: "public.settings.system_logo",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS system_logo TEXT",
+  },
+  {
+    name: "public.settings.default_language",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS default_language TEXT DEFAULT 'en'",
+  },
+  {
+    name: "public.settings.primary_color",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS primary_color TEXT DEFAULT '#0F2A44'",
+  },
+  {
+    name: "public.settings.sidebar_color",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sidebar_color TEXT",
+  },
+  {
+    name: "public.settings.button_color",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS button_color TEXT DEFAULT '#C9A24D'",
+  },
+  {
+    name: "public.settings.departure_alerts_enabled",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS departure_alerts_enabled BOOLEAN DEFAULT TRUE",
+  },
+  {
+    name: "public.settings.departure_alert_threshold",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS departure_alert_threshold INTEGER DEFAULT 3",
+  },
+  {
+    name: "public.settings.report_footer",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS report_footer TEXT DEFAULT ''",
+  },
+  {
+    name: "public.settings.password_min_length",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS password_min_length INTEGER DEFAULT 8",
+  },
+  {
+    name: "public.settings.password_require_uppercase",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS password_require_uppercase BOOLEAN DEFAULT TRUE",
+  },
+  {
+    name: "public.settings.password_require_lowercase",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS password_require_lowercase BOOLEAN DEFAULT TRUE",
+  },
+  {
+    name: "public.settings.password_require_number",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS password_require_number BOOLEAN DEFAULT TRUE",
+  },
+  {
+    name: "public.settings.password_require_symbol",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS password_require_symbol BOOLEAN DEFAULT FALSE",
+  },
+  {
+    name: "public.settings.password_expiry_days",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS password_expiry_days INTEGER DEFAULT 90",
+  },
+  {
+    name: "public.settings.password_history_count",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS password_history_count INTEGER DEFAULT 5",
+  },
+  {
+    name: "public.settings.lockout_threshold",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS lockout_threshold INTEGER DEFAULT 5",
+  },
+  {
+    name: "public.settings.lockout_duration_minutes",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS lockout_duration_minutes INTEGER DEFAULT 15",
+  },
+  {
+    name: "public.evaluations.survey_template_id",
+    q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS survey_template_id INTEGER",
+  },
+  {
+    name: "public.activity_registrations.badge_number",
+    q: "ALTER TABLE activity_registrations ADD COLUMN IF NOT EXISTS badge_number TEXT",
+  },
+  {
+    name: "public.activity_registrations.attended",
+    q: "ALTER TABLE activity_registrations ADD COLUMN IF NOT EXISTS attended BOOLEAN NOT NULL DEFAULT FALSE",
+  },
+  {
+    name: "public.activity_registrations.attended_at",
+    q: "ALTER TABLE activity_registrations ADD COLUMN IF NOT EXISTS attended_at TIMESTAMPTZ",
+  },
+  {
+    name: "public.password_reset_tokens",
+    q: `CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      profile_id INTEGER NOT NULL,
+      property_id INTEGER,
+      token_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
   },
 ];
 
@@ -1231,6 +1419,66 @@ const TENANT_MIGRATIONS = [
   {
     name: "lookup_values.extra_value",
     q: "ALTER TABLE lookup_values ADD COLUMN IF NOT EXISTS extra_value TEXT",
+  },
+  {
+    name: "profiles.id_image",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id_image TEXT",
+  },
+  {
+    name: "profiles.employment_type",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS employment_type TEXT NOT NULL DEFAULT 'INTERNAL'",
+  },
+  {
+    name: "profiles.company_name",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS company_name TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.contract_end_date",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS contract_end_date TEXT",
+  },
+  {
+    name: "profiles.id_documents",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id_documents JSONB DEFAULT '[]'::jsonb",
+  },
+  {
+    name: "reservations.employment_type",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS employment_type TEXT NOT NULL DEFAULT 'INTERNAL'",
+  },
+  {
+    name: "reservations.company_name",
+    q: "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS company_name TEXT DEFAULT ''",
+  },
+  {
+    name: "rooms.size_sqm",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS size_sqm NUMERIC",
+  },
+  {
+    name: "rooms.features_list",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS features_list TEXT[]",
+  },
+  {
+    name: "rooms.is_active",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE",
+  },
+  {
+    name: "maintenance.parent_id",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS parent_id INTEGER",
+  },
+  {
+    name: "evaluations.survey_template_id",
+    q: "ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS survey_template_id INTEGER",
+  },
+  {
+    name: "activity_registrations.badge_number",
+    q: "ALTER TABLE activity_registrations ADD COLUMN IF NOT EXISTS badge_number TEXT",
+  },
+  {
+    name: "activity_registrations.attended",
+    q: "ALTER TABLE activity_registrations ADD COLUMN IF NOT EXISTS attended BOOLEAN NOT NULL DEFAULT FALSE",
+  },
+  {
+    name: "activity_registrations.attended_at",
+    q: "ALTER TABLE activity_registrations ADD COLUMN IF NOT EXISTS attended_at TIMESTAMPTZ",
   },
 ];
 
