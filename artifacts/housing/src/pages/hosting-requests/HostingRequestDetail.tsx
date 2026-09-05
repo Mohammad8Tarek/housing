@@ -793,15 +793,17 @@ export default function HostingRequestDetail() {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-full shadow-sm hover:shadow border-emerald-200 text-emerald-700"
-                    onClick={() => setLocation(`/accommodation/guest-hosting`)}
-                  >
-                    {ar ? "عرض السجل" : "View Record"}
-                    <ExternalLink className="w-4 h-4 ml-2" />
-                  </Button>
+                  {canView("guest_hosting") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full shadow-sm hover:shadow border-emerald-200 text-emerald-700"
+                      onClick={() => setLocation(`/accommodation/guest-hosting`)}
+                    >
+                      {ar ? "عرض السجل" : "View Record"}
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                    </Button>
+                  )}
                 </div>
                 {guestHosting && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30">

@@ -103,13 +103,6 @@ export function usePermission() {
 
     if (perms.has(dotKey) || perms.has(colonKey)) return true;
 
-    // Backward compatibility fallback: if checking guest_hosting and user has accommodation permission
-    if (module === "guest_hosting") {
-      const fallbackDot = `accommodation.${action}`.toLowerCase();
-      const fallbackColon = `accommodation:${action}`.toLowerCase();
-      if (perms.has(fallbackDot) || perms.has(fallbackColon)) return true;
-    }
-
     return false;
   };
 

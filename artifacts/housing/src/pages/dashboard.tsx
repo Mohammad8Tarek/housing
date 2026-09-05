@@ -42,6 +42,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useProperty } from "@/context/PropertyContext";
+import { usePermission } from "@/hooks/use-permission";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 
@@ -82,6 +83,7 @@ export default function Dashboard() {
     setActivePropertyId,
   } = useProperty();
   const [, setLocation] = useLocation();
+  const { canView } = usePermission();
   const ar = language === "ar";
   const isAll = activePropertyId === "all";
 
@@ -547,38 +549,46 @@ export default function Dashboard() {
                   icon: UserCheck,
                   href: "/accommodation/reservations",
                   color: "text-primary bg-primary/10",
+                  module: "reservations",
                 },
                 {
                   label: ar ? "داخلي" : "In-House",
                   icon: Users,
                   href: "/accommodation/in-house",
                   color: "text-green-600 bg-green-50 dark:bg-green-950/30",
+                  module: "accommodation",
                 },
                 {
                   label: ar ? "الحجوزات" : "Reservations",
                   icon: CalendarCheck,
                   href: "/accommodation/reservations",
                   color: "text-purple-600 bg-purple-50 dark:bg-purple-950/30",
+                  module: "reservations",
                 },
                 {
                   label: ar ? "الإسكان" : "Housing",
                   icon: Building2,
                   href: "/housing",
                   color: "text-blue-600 bg-blue-50 dark:bg-blue-950/30",
+                  module: "housing",
                 },
                 {
                   label: ar ? "التذاكر" : "Tickets",
                   icon: Wrench,
                   href: "/maintenance",
                   color: "text-orange-600 bg-orange-50 dark:bg-orange-950/30",
+                  module: "maintenance",
                 },
                 {
                   label: ar ? "استضافة ضيوف" : "Guest Hosting",
                   icon: Users,
                   href: "/accommodation/guest-hosting",
                   color: "text-rose-600 bg-rose-50 dark:bg-rose-950/30",
+                  module: "guest_hosting",
                 },
-              ].map((item, i) => (
+              ]
+                .filter((item) => !item.module || canView(item.module as any))
+                .map((item, i) => (
                 <Link key={i} href={item.href}>
                   <Card className="bg-card/60 backdrop-blur-lg border-border/50 shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 cursor-pointer text-center p-4 group h-full relative overflow-hidden">
                     <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-10 pointer-events-none transition-opacity duration-300 group-hover:opacity-30 ${item.color.split(' ')[1]}`} />

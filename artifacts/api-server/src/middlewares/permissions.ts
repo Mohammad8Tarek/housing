@@ -343,12 +343,6 @@ export function hasPermission(
   if (permissionKeys(module, action).some((key) => permissions.has(key))) {
     return true;
   }
-  // Backward compatibility fallback: if checking guest_hosting, check accommodation
-  if (module === "guest_hosting") {
-    return permissionKeys("accommodation", action).some((key) =>
-      permissions.has(key),
-    );
-  }
   // Cross-module fallback for room & housing entities: accommodation, housing, and housekeeping
   if (
     (action === "view" || action === "edit" || action === "delete" || action === "create") &&
