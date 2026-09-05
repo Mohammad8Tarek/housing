@@ -32,7 +32,7 @@ const router: Router = Router();
 // ─── GET /rooms/:id/bed-status ─────────────────────────────────────────────
 router.get(
   "/rooms/:id/bed-status",
-  requirePermission("accommodation", "view"),
+  requirePermission("housing", "view"),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -137,7 +137,7 @@ router.get(
 
 router.get(
   "/rooms/by-number",
-  requirePermission("accommodation", "view"),
+  requirePermission("housing", "view"),
   async (req, res) => {
   try {
     const propertyId = getTenantId(req);
@@ -232,7 +232,7 @@ router.get(
 
 router.get(
   "/rooms",
-  requirePermission("accommodation", "view"),
+  requirePermission("housing", "view"),
   async (req, res) => {
     try {
       const propertyId = getTenantId(req);
@@ -314,7 +314,7 @@ router.get(
 /* Room History Timeline */
 router.get(
   "/rooms/:id/history",
-  requirePermission("accommodation", "view"),
+  requirePermission("housing", "view"),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -428,7 +428,7 @@ router.get(
 
 router.post(
   "/rooms",
-  requirePermission("accommodation", "create"),
+  requirePermission("housing", "create"),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -542,7 +542,7 @@ router.post(
 
 router.get(
   "/rooms/:id",
-  requirePermission("accommodation", "view"),
+  requirePermission("housing", "view"),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -578,7 +578,7 @@ router.get(
 
 router.patch(
   "/rooms/:id",
-  requirePermission("accommodation", "edit"),
+  requirePermission("housing", "edit"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -732,7 +732,7 @@ router.patch(
 
 router.patch(
   "/rooms/:id/features",
-  requirePermission("accommodation", "edit"),
+  requirePermission("housing", "edit"),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -860,7 +860,7 @@ router.patch(
 
 router.delete(
   "/rooms/:id",
-  requirePermission("accommodation", "delete"),
+  requirePermission("housing", "delete"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

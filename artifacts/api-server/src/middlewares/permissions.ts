@@ -351,7 +351,7 @@ export function hasPermission(
   }
   // Cross-module fallback for room & housing entities: accommodation, housing, and housekeeping
   if (
-    (action === "view" || action === "edit") &&
+    (action === "view" || action === "edit" || action === "delete" || action === "create") &&
     (module === "accommodation" || module === "housing" || module === "housekeeping")
   ) {
     const crossModules: PermissionModule[] = ["accommodation", "housing", "housekeeping"];

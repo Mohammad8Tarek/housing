@@ -88,6 +88,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "view",
     "create",
     "edit",
+    "delete",
     "assign",
     "checkin",
     "checkout",
