@@ -82,14 +82,15 @@ router.get(
     
     if (search.trim()) {
       conditions.push(
-        sql`(${reservationsTable.firstName} ILIKE ${`%${search}%`} OR ${reservationsTable.lastName} ILIKE ${`%${search}%`} OR ${reservationsTable.guestIdCardNumber} ILIKE ${`%${search}%`})`
+        sql`(${reservationsTable.firstName} ILIKE ${`%${search}%`} OR ${reservationsTable.lastName} ILIKE ${`%${search}%`} OR ${reservationsTable.guestIdCardNumber} ILIKE ${`%${search}%`} OR ${roomsTable.roomNumber} ILIKE ${`%${search}%`})`
       );
     }
 
     const { data, total } = await withTenant(propertyId, async (tenantDb) => {
       let countQuery = tenantDb
         .select({ count: sql<number>`count(*)` })
-        .from(reservationsTable) as any;
+        .from(reservationsTable)
+        .leftJoin(roomsTable, eq(reservationsTable.roomId, roomsTable.id)) as any;
       if (conditions.length > 0)
         countQuery = countQuery.where(and(...conditions));
       const countResult = await countQuery;
@@ -100,6 +101,9 @@ router.get(
           id: reservationsTable.id,
           roomId: reservationsTable.roomId,
           roomType: reservationsTable.roomType,
+          roomNumber: roomsTable.roomNumber,
+          buildingId: roomsTable.buildingId,
+          buildingName: buildingsTable.name,
           firstName: reservationsTable.firstName,
           lastName: reservationsTable.lastName,
           checkInDate: reservationsTable.checkInDate,
@@ -120,6 +124,8 @@ router.get(
           createdAt: reservationsTable.createdAt,
         })
         .from(reservationsTable)
+        .leftJoin(roomsTable, eq(reservationsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .leftJoin(
           profilesTable,
           or(

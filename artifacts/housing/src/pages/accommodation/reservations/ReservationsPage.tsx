@@ -319,6 +319,14 @@ export default function ReservationsPage() {
   const floors = Array.isArray(_fData)
     ? _fData
     : (((_fData as any)?.data as any[]) || []);
+
+  const roomMap = useMemo(() => {
+    const map = new Map<number, any>();
+    for (const r of rooms) map.set(Number(r.id), r);
+    return map;
+  }, [rooms]);
+
+
   const { isSuperAdmin, isAdmin, hasRole, can } = usePermission();
   const canOverrideSingleOccupancy =
     isSuperAdmin ||
@@ -1158,7 +1166,7 @@ export default function ReservationsPage() {
     { key: "guest", label: "Guest & Type", labelAr: "النزيل والتصنيف", defaultVisible: true, fixed: true },
     { key: "contact", label: "Contact & ID", labelAr: "التواصل والهوية", defaultVisible: true },
     { key: "stay", label: "Stay Period", labelAr: "فترة الإقامة", defaultVisible: true },
-    { key: "room", label: "Room & Dept", labelAr: "الغرفة والقسم", defaultVisible: true },
+    { key: "room", label: "Room & Housing", labelAr: "الغرفة والتسكين", defaultVisible: true },
     { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
     { key: "actions", label: "Actions", labelAr: "إجراءات", defaultVisible: true, fixed: true },
     // Granular columns for power users via ColumnChooser:
@@ -1240,28 +1248,28 @@ export default function ReservationsPage() {
       />
 
       <div className="border rounded-xl overflow-hidden bg-card shadow-xs">
-        <Table className="w-full">
+        <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow className="bg-muted/80 hover:bg-muted/80">
               <TableHead className="w-10 px-3 sticky ltr:left-0 rtl:right-0 z-20 bg-muted/90"><Checkbox checked={allResPageSelected} onCheckedChange={toggleSelectAllRes} /></TableHead>
               {isResVisible("guest") && (
-                <TableHead className="font-semibold text-xs text-foreground min-w-[190px]">
+                <TableHead className="font-semibold text-xs text-foreground w-[25%] min-w-0">
                   {ar ? "النزيل والتصنيف" : "Guest & Type"}
                 </TableHead>
               )}
               {isResVisible("contact") && (
-                <TableHead className="font-semibold text-xs text-foreground min-w-[130px]">
+                <TableHead className="font-semibold text-xs text-foreground w-[16%] min-w-0">
                   {ar ? "التواصل والهوية" : "Contact & ID"}
                 </TableHead>
               )}
               {isResVisible("stay") && (
-                <TableHead className="font-semibold text-xs text-foreground min-w-[150px]">
+                <TableHead className="font-semibold text-xs text-foreground w-[19%] min-w-0">
                   {ar ? "فترة الإقامة" : "Stay Period"}
                 </TableHead>
               )}
               {isResVisible("room") && (
-                <TableHead className="font-semibold text-xs text-foreground min-w-[130px]">
-                  {ar ? "الغرفة والقسم" : "Room & Dept"}
+                <TableHead className="font-semibold text-xs text-foreground w-[22%] min-w-0">
+                  {ar ? "الغرفة والتسكين" : "Room & Housing"}
                 </TableHead>
               )}
               {isResVisible("emptype") && <TableHead className="font-semibold text-xs">{ar ? "النوع" : "Type"}</TableHead>}
@@ -1272,12 +1280,12 @@ export default function ReservationsPage() {
               {isResVisible("checkin") && <TableHead className="font-semibold text-xs">{ar ? "الدخول" : "Check-in"}</TableHead>}
               {isResVisible("checkout") && <TableHead className="font-semibold text-xs">{ar ? "المغادرة" : "Check-out"}</TableHead>}
               {isResVisible("status") && (
-                <TableHead className="font-semibold text-xs text-foreground min-w-[95px]">
+                <TableHead className="font-semibold text-xs text-foreground w-[10%] min-w-0 text-center">
                   {ar ? "الحالة" : "Status"}
                 </TableHead>
               )}
               {isResVisible("actions") && (
-                <TableHead className="font-semibold text-xs text-center w-24 sticky ltr:right-0 rtl:left-0 z-20 bg-muted/90 border-s border-border">
+                <TableHead className="font-semibold text-xs text-center w-20 sticky ltr:right-0 rtl:left-0 z-20 bg-muted/90 border-s border-border">
                   {ar ? "إجراءات" : "Actions"}
                 </TableHead>
               )}
@@ -1299,6 +1307,16 @@ export default function ReservationsPage() {
               (reservations || []).map((res: any) => {
                 const isSel = selectedRows.has(res.id);
                 const isThirdParty = res.employmentType === "THIRD_PARTY" || res.department === "طرف ثالث";
+                const room = (res.roomId && roomMap.get(Number(res.roomId))) || null;
+                const roomNumber = res.roomNumber || room?.roomNumber || (res.roomId ? String(res.roomId) : null);
+                const buildingName = res.buildingName || (room?.buildingId ? buildingMap[room.buildingId] : null) || room?.buildingName || null;
+                const bedNumber = res.bedNumber || (room?.bedNumber ? String(room.bedNumber) : null);
+                const roomType = res.roomType || room?.type || room?.classification || null;
+
+                const inTime = res.checkInDate ? new Date(res.checkInDate).getTime() : NaN;
+                const outTime = res.checkOutDate ? new Date(res.checkOutDate).getTime() : NaN;
+                const nights = !isNaN(inTime) && !isNaN(outTime) ? Math.max(1, Math.round((outTime - inTime) / (1000 * 60 * 60 * 24))) : null;
+
                 return (
                   <TableRow key={res.id} className={`group ${isSel ? "bg-primary/5" : "hover:bg-muted/20"}`}>
                     <TableCell className="px-3 sticky ltr:left-0 rtl:right-0 z-10 bg-card group-hover:bg-accent/40">
@@ -1307,45 +1325,51 @@ export default function ReservationsPage() {
 
                     {/* Guest & Profile Type */}
                     {isResVisible("guest") && (
-                      <TableCell className="py-2.5">
-                        <div className="flex flex-col gap-1">
-                          <span className="font-semibold text-sm text-foreground leading-tight">
+                      <TableCell className="py-2.5 min-w-0">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <span className="font-semibold text-sm text-foreground leading-tight truncate block">
                             {res.firstName} {res.lastName}
                           </span>
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                             {isThirdParty ? (
-                              <Badge className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 text-[11px] font-bold px-2 py-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-purple-600 inline-block mr-1 rtl:ml-1 rtl:mr-0" />
-                                {ar ? "طرف ثالث" : "Third Party"}
-                                {res.companyName ? ` • ${res.companyName}` : ""}
+                              <Badge className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 text-[10px] font-bold px-1.5 py-0 truncate">
+                                <span className="w-1.5 h-1.5 rounded-full bg-purple-600 inline-block mr-1 rtl:ml-1 rtl:mr-0 flex-shrink-0" />
+                                <span className="truncate">{ar ? "طرف ثالث" : "Third Party"}{res.companyName ? ` • ${res.companyName}` : ""}</span>
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 text-[11px] font-bold px-2 py-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block mr-1 rtl:ml-1 rtl:mr-0" />
-                                {ar ? "موظف داخلي" : "Internal"}
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 text-[10px] font-bold px-1.5 py-0 truncate">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block mr-1 rtl:ml-1 rtl:mr-0 flex-shrink-0" />
+                                <span className="truncate">{ar ? "موظف داخلي" : "Internal"}</span>
                               </Badge>
                             )}
                           </div>
+                          {(res.department || res.jobTitle) && (
+                            <div className="text-[11px] text-muted-foreground/80 truncate">
+                              {res.department && res.department !== "طرف ثالث" ? res.department : ""}
+                              {res.department && res.department !== "طرف ثالث" && res.jobTitle ? " • " : ""}
+                              {res.jobTitle ? res.jobTitle : ""}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                     )}
 
                     {/* Contact & ID */}
                     {isResVisible("contact") && (
-                      <TableCell className="py-2.5">
-                        <div className="flex flex-col text-xs gap-0.5">
+                      <TableCell className="py-2.5 min-w-0">
+                        <div className="flex flex-col text-xs gap-0.5 min-w-0">
                           {res.guestPhone ? (
-                            <span className="font-mono text-foreground font-medium flex items-center gap-1" dir="ltr">
-                              <Phone className="w-3 h-3 text-muted-foreground" />
-                              {res.guestPhone}
+                            <span className="font-mono text-foreground font-medium flex items-center gap-1 truncate" dir="ltr">
+                              <Phone className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                              <span className="truncate">{res.guestPhone}</span>
                             </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                           {res.guestIdCardNumber && (
-                            <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
-                              <CreditCard className="w-3 h-3 text-muted-foreground/70" />
-                              {res.guestIdCardNumber}
+                            <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                              <CreditCard className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />
+                              <span className="truncate">{res.guestIdCardNumber}</span>
                             </span>
                           )}
                         </div>
@@ -1354,29 +1378,46 @@ export default function ReservationsPage() {
 
                     {/* Stay Period */}
                     {isResVisible("stay") && (
-                      <TableCell className="py-2.5 whitespace-nowrap">
-                        <div className="flex flex-col text-xs gap-0.5">
-                          <div className="flex items-center gap-1.5 font-medium">
+                      <TableCell className="py-2.5 min-w-0">
+                        <div className="flex flex-col text-xs gap-0.5 min-w-0">
+                          <div className="flex items-center gap-1 font-medium whitespace-nowrap">
                             <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{formatDate(res.checkInDate)}</span>
                             <span className="text-muted-foreground">←</span>
                             <span className="text-amber-700 dark:text-amber-400 font-semibold">{formatDate(res.checkOutDate)}</span>
                           </div>
+                          {nights !== null && (
+                            <span className="text-[11px] text-muted-foreground font-medium">
+                              {ar ? `${nights} ${nights === 1 ? "ليلة" : nights === 2 ? "ليلتان" : nights <= 10 ? "ليالٍ" : "ليلة"}` : `${nights} ${nights === 1 ? "night" : "nights"}`}
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                     )}
 
-                    {/* Room & Dept */}
+                    {/* Room & Housing */}
                     {isResVisible("room") && (
-                      <TableCell className="py-2.5">
-                        <div className="flex flex-col text-xs gap-0.5">
-                          <span className="font-medium text-foreground">
-                            {res.roomType || (ar ? "غير محدد" : "Unspecified")}
-                          </span>
-                          {res.department && res.department !== "طرف ثالث" && (
-                            <span className="text-[11px] text-muted-foreground truncate max-w-[130px]">
-                              {res.department}
-                            </span>
+                      <TableCell className="py-2.5 min-w-0">
+                        <div className="flex flex-col text-xs gap-0.5 min-w-0">
+                          {roomNumber ? (
+                            <div className="flex items-center gap-1.5 font-bold text-sm text-primary leading-tight min-w-0">
+                              <BedDouble className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                              <span className="truncate">{ar ? `غرفة ${roomNumber}` : `Room ${roomNumber}`}</span>
+                              {bedNumber && (
+                                <span className="inline-flex items-center px-1.5 py-0 text-[10px] font-semibold rounded bg-primary/10 text-primary border border-primary/20 flex-shrink-0">
+                                  {ar ? `سرير ${bedNumber}` : `Bed ${bedNumber}`}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                              <BedDouble className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
+                              <span>{ar ? "لم تُحدد بعد" : "Not Assigned"}</span>
+                            </div>
                           )}
+                          <div className="text-[11px] text-muted-foreground truncate">
+                            {buildingName && <span className="font-medium text-foreground/70">{buildingName} • </span>}
+                            <span>{roomType || (ar ? "غرفة سكنية" : "Standard")}</span>
+                          </div>
                         </div>
                       </TableCell>
                     )}
@@ -1404,7 +1445,7 @@ export default function ReservationsPage() {
 
                     {/* Status */}
                     {isResVisible("status") && (
-                      <TableCell className="py-2.5 whitespace-nowrap">
+                      <TableCell className="py-2.5 whitespace-nowrap text-center">
                         <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColor(res.status)}`}>
                           {statusLabel[res.status] || res.status}
                         </span>
