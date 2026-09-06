@@ -172,13 +172,30 @@ export function ProfilesPage() {
     queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
   };
 
+  const targetProfile = useMemo(() => {
+    if (!deleteTarget) return null;
+    return profiles.find((p: any) => p.id === deleteTarget);
+  }, [deleteTarget, profiles]);
+
+  const isTargetHoused = Boolean(
+    targetProfile?.status === "ASSIGNED" || targetProfile?.currentRoom
+  );
+
   const createMutation = useCreateProfile({ mutation: {} });
 
   const deleteMutation = useDeleteProfile({
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast.success(ar ? "تم الحذف" : "Deleted");
+        toast.success(ar ? "تم حذف الملف الشخصي بنجاح" : "Profile deleted successfully");
+        setDeleteTarget(null);
+      },
+      onError: (err: any) => {
+        const msg =
+          err?.response?.data?.error ||
+          err?.message ||
+          (ar ? "لا يمكن حذف هذا الملف الشخصي" : "Cannot delete profile");
+        toast.error(msg, { duration: 6000 });
         setDeleteTarget(null);
       },
     },
@@ -542,6 +559,17 @@ export function ProfilesPage() {
               variant="destructive"
               size="sm"
               onClick={() => {
+                const selectedList = profiles.filter((p: any) => selectedRows.has(p.id));
+                const housedList = selectedList.filter((p: any) => p.status === "ASSIGNED" || p.currentRoom);
+                if (housedList.length > 0) {
+                  toast.error(
+                    ar
+                      ? `لا يمكن حذف السجلات المحددة: يوجد ${housedList.length} موظف مقيم حالياً في غرف سكنية (${housedList.map((p: any) => p.firstName).slice(0, 3).join("، ")}${housedList.length > 3 ? "..." : ""}). يجب إجراء تسجيل مغادرة (Check-out) لهم أولاً.`
+                      : `Cannot delete selected profiles: ${housedList.length} are currently residing in rooms. Please check them out first.`,
+                    { duration: 7000 }
+                  );
+                  return;
+                }
                 if (window.confirm(ar ? `هل أنت متأكد من حذف ${selectedRows.size} ملف شخصي محدد؟` : `Are you sure you want to delete ${selectedRows.size} selected profiles?`)) {
                   selectedRows.forEach((id) => deleteMutation.mutate({ id }));
                   setSelectedRows(new Set());
@@ -1020,8 +1048,9 @@ export function ProfilesPage() {
         propertyId={activePropertyId!}
         isOpen={importOpen}
         onClose={() => setImportOpen(false)}
-        onImport={handleBulkImport}
-        isImporting={isImporting}
+        onImportSuccess={() => {
+          invalidate();
+        }}
       />
 
       {/* Edit Dialog */}
@@ -1040,25 +1069,49 @@ export function ProfilesPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {isTargetHoused && <AlertCircle className="w-5 h-5 text-destructive shrink-0" />}
               {ar ? "حذف الملف الشخصي" : "Delete Profile"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {ar
-                ? "هل أنت متأكد؟ لا يمكن التراجع عن هذا الإجراء."
-                : "Are you sure? This action cannot be undone."}
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-1 text-sm text-muted-foreground">
+                {isTargetHoused ? (
+                  <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs space-y-2">
+                    <p className="font-bold text-sm flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      {ar
+                        ? "لا يمكن حذف هذا الملف الشخصي لأنه مقيم حالياً في السكن!"
+                        : "Cannot delete this profile because they are currently residing in housing!"}
+                    </p>
+                    <p className="leading-relaxed">
+                      {ar
+                        ? `الموظف (${targetProfile?.firstName || ""} ${targetProfile?.lastName || ""}) مسكن حالياً في ${targetProfile?.currentRoom ? `الغرفة ${targetProfile.currentRoom}` : "غرفة سكنية"}. يجب إجراء تسجيل مغادرة (Check-out) أولاً قبل التمكن من حذف الملف الشخصي.`
+                        : `Employee (${targetProfile?.firstName || ""} ${targetProfile?.lastName || ""}) is currently housed in ${targetProfile?.currentRoom ? `room ${targetProfile.currentRoom}` : "a room"}. You must check them out first before deleting.`}
+                    </p>
+                  </div>
+                ) : (
+                  <p>
+                    {ar
+                      ? `هل أنت متأكد من حذف الملف الشخصي للموظف (${targetProfile?.firstName || ""} ${targetProfile?.lastName || ""})؟ لا يمكن التراجع عن هذا الإجراء.`
+                      : `Are you sure you want to delete profile (${targetProfile?.firstName || ""} ${targetProfile?.lastName || ""})? This action cannot be undone.`}
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                deleteTarget && deleteMutation.mutate({ id: deleteTarget })
-              }
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {ar ? "حذف" : "Delete"}
-            </AlertDialogAction>
+            <AlertDialogCancel>{ar ? "إغلاق" : "Close"}</AlertDialogCancel>
+            {!isTargetHoused && (
+              <AlertDialogAction
+                onClick={() =>
+                  deleteTarget && deleteMutation.mutate({ id: deleteTarget })
+                }
+                disabled={deleteMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteMutation.isPending ? (ar ? "جاري الحذف..." : "Deleting...") : (ar ? "حذف" : "Delete")}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

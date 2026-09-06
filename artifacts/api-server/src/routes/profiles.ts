@@ -323,6 +323,44 @@ router.get(
   }
 );
 
+/* Fast existing identifiers endpoint for Excel import duplicate detection */
+router.get(
+  "/profiles/existing-identifiers",
+  requirePermission("profiles", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+
+    try {
+      const rows = await withTenant(propertyId, async (tenantDb) => {
+        return tenantDb
+          .select({
+            profileId: profilesTable.profileId,
+            nationalId: profilesTable.nationalId,
+            phone: profilesTable.phone,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+          })
+          .from(profilesTable);
+      });
+
+      res.json({
+        profiles: rows.map((r) => ({
+          profileId: r.profileId?.trim().toLowerCase() || "",
+          nationalId: r.nationalId?.trim() || "",
+          phone: r.phone?.trim() || "",
+          name: [r.firstName, r.lastName].filter(Boolean).join(" ").trim(),
+        })),
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || "Failed to fetch existing identifiers" });
+    }
+  }
+);
+
 router.post(
   "/profiles",
   requirePermission("profiles", "create"),
@@ -464,39 +502,120 @@ router.post(
           profileId: profilesTable.profileId,
           nationalId: profilesTable.nationalId,
           phone: profilesTable.phone,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
         })
         .from(profilesTable);
 
-      const existingProfileIds = new Set(existing.map((e) => e.profileId?.trim().toLowerCase()).filter(Boolean));
-      const existingNationalIds = new Set(existing.map((e) => e.nationalId?.trim()).filter(Boolean));
-      const existingPhones = new Set(existing.map((e) => e.phone?.trim()).filter(Boolean));
+      const dbProfileIds = new Set(existing.map((e) => e.profileId?.trim().toLowerCase()).filter(Boolean));
+      const dbNationalIds = new Set(existing.map((e) => e.nationalId?.trim()).filter(Boolean));
+      const dbPhones = new Set(existing.map((e) => e.phone?.trim()).filter(Boolean));
+
+      // Tracking sets for duplicates within the current batch
+      const batchSeenProfileIds = new Set<string>();
+      const batchSeenNationalIds = new Set<string>();
+      const batchSeenPhones = new Set<string>();
 
       const validRows: any[] = [];
       let skippedCount = 0;
+      const skippedItems: Array<{
+        profileId: string;
+        name: string;
+        nationalId: string;
+        phone: string;
+        reason: string;
+      }> = [];
 
       for (let i = 0; i < toProcess.length; i++) {
         const p = toProcess[i];
         const pId = String(p.profileId || "").trim();
         const nid = String(p.nationalId || "").trim();
         const ph = String(p.phone || "").trim();
+        const pName = [p.firstName, p.lastName, p.thirdName, p.fourthName].filter(Boolean).join(" ").trim() || pId || `Row ${i + 1}`;
 
-        // Check if duplicate in DB or duplicate within this batch
-        if (pId && existingProfileIds.has(pId.toLowerCase())) {
-          skippedCount++;
-          continue;
-        }
-        if (nid && existingNationalIds.has(nid)) {
-          skippedCount++;
-          continue;
-        }
-        if (ph && existingPhones.has(ph)) {
-          skippedCount++;
-          continue;
+        // 1. Check Profile ID duplicate
+        if (pId) {
+          const lowerPid = pId.toLowerCase();
+          if (dbProfileIds.has(lowerPid)) {
+            skippedCount++;
+            skippedItems.push({
+              profileId: pId,
+              name: pName,
+              nationalId: nid,
+              phone: ph,
+              reason: `كود الموظف مسجل مسبقاً في النظام (${pId})`,
+            });
+            continue;
+          }
+          if (batchSeenProfileIds.has(lowerPid)) {
+            skippedCount++;
+            skippedItems.push({
+              profileId: pId,
+              name: pName,
+              nationalId: nid,
+              phone: ph,
+              reason: `كود الموظف مكرر داخل نفس ملف الإكسل (${pId})`,
+            });
+            continue;
+          }
         }
 
-        if (pId) existingProfileIds.add(pId.toLowerCase());
-        if (nid) existingNationalIds.add(nid);
-        if (ph) existingPhones.add(ph);
+        // 2. Check National ID duplicate
+        if (nid) {
+          if (dbNationalIds.has(nid)) {
+            skippedCount++;
+            skippedItems.push({
+              profileId: pId,
+              name: pName,
+              nationalId: nid,
+              phone: ph,
+              reason: `الرقم القومي مسجل مسبقاً في النظام (${nid})`,
+            });
+            continue;
+          }
+          if (batchSeenNationalIds.has(nid)) {
+            skippedCount++;
+            skippedItems.push({
+              profileId: pId,
+              name: pName,
+              nationalId: nid,
+              phone: ph,
+              reason: `الرقم القومي مكرر داخل نفس ملف الإكسل (${nid})`,
+            });
+            continue;
+          }
+        }
+
+        // 3. Check Phone duplicate
+        if (ph) {
+          if (dbPhones.has(ph)) {
+            skippedCount++;
+            skippedItems.push({
+              profileId: pId,
+              name: pName,
+              nationalId: nid,
+              phone: ph,
+              reason: `رقم الهاتف مسجل مسبقاً في النظام (${ph})`,
+            });
+            continue;
+          }
+          if (batchSeenPhones.has(ph)) {
+            skippedCount++;
+            skippedItems.push({
+              profileId: pId,
+              name: pName,
+              nationalId: nid,
+              phone: ph,
+              reason: `رقم الهاتف مكرر داخل نفس ملف الإكسل (${ph})`,
+            });
+            continue;
+          }
+        }
+
+        // Register in seen sets
+        if (pId) batchSeenProfileIds.add(pId.toLowerCase());
+        if (nid) batchSeenNationalIds.add(nid);
+        if (ph) batchSeenPhones.add(ph);
 
         validRows.push({
           profileId: pId || `EMP-${Date.now().toString().slice(-6)}${i + 1}`,
@@ -534,7 +653,12 @@ router.post(
         }
       }
 
-      return { total: toProcess.length, success: insertedCount, skipped: skippedCount };
+      return {
+        total: toProcess.length,
+        success: insertedCount,
+        skipped: skippedCount,
+        skippedItems,
+      };
     });
 
     const s = su(req);
@@ -968,19 +1092,70 @@ router.delete(
       return;
     }
 
-    const existing = await withTenant(propertyId, async (tenantDb) => {
+    const result = await withTenant(propertyId, async (tenantDb) => {
+      // 1. Fetch employee
       const [emp] = await tenantDb
         .select()
         .from(profilesTable)
         .where(eq(profilesTable.id, params.data.id));
-      if (emp)
-        await tenantDb
-          .delete(profilesTable)
-          .where(eq(profilesTable.id, params.data.id));
-      return emp;
+
+      if (!emp) return { notFound: true };
+
+      // 2. Prevent deleting profile if currently residing in a room
+      const [activeAssignment] = await tenantDb
+        .select({
+          assignmentId: assignmentsTable.id,
+          roomId: assignmentsTable.roomId,
+          roomNumber: roomsTable.roomNumber,
+          buildingName: buildingsTable.name,
+        })
+        .from(assignmentsTable)
+        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+        .where(
+          and(
+            eq(assignmentsTable.profileId, params.data.id),
+            eq(assignmentsTable.status, "ACTIVE")
+          )
+        )
+        .limit(1);
+
+      if (activeAssignment || emp.status === "ASSIGNED") {
+        const roomDesc = activeAssignment?.roomNumber
+          ? `الغرفة ${activeAssignment.roomNumber}${activeAssignment.buildingName ? ` (مبنى ${activeAssignment.buildingName})` : ""}`
+          : "غرفة سكنية نشطة";
+        return {
+          cannotDelete: true,
+          roomNumber: activeAssignment?.roomNumber || null,
+          messageAr: `لا يمكن حذف هذا الملف الشخصي لأن الموظف (${emp.firstName} ${emp.lastName}) مقيم حالياً في ${roomDesc}. يجب إجراء تسجيل مغادرة (Check-out) أولاً قبل حذف الملف الشخصي.`,
+          messageEn: `Cannot delete profile (${emp.firstName} ${emp.lastName}) because they are currently residing in ${activeAssignment?.roomNumber ? `room ${activeAssignment.roomNumber}` : "a room"}. Please perform check-out first.`,
+        };
+      }
+
+      // Safe to delete
+      await tenantDb
+        .delete(profilesTable)
+        .where(eq(profilesTable.id, params.data.id));
+
+      return { success: true, emp };
     });
 
-    if (existing) {
+    if (result.notFound) {
+      res.status(404).json({ error: "Profile not found" });
+      return;
+    }
+
+    if (result.cannotDelete) {
+      res.status(400).json({
+        error: result.messageAr,
+        errorEn: result.messageEn,
+        roomNumber: result.roomNumber,
+        code: "PROFILE_CURRENTLY_HOUSED",
+      });
+      return;
+    }
+
+    if (result.emp) {
       const s = su(req);
       await logActivity({
         req,
@@ -988,15 +1163,15 @@ router.delete(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `حذف الموظف: ${existing.firstName} ${existing.lastName} (${existing.profileId})`,
+        action: `حذف الموظف: ${result.emp.firstName} ${result.emp.lastName} (${result.emp.profileId})`,
         actionType: "DELETE",
         module: "profiles",
         entityType: "profile",
-        entityId: existing.id,
+        entityId: result.emp.id,
         severity: "warning",
-        details: `Dept: ${existing.department}`,
+        details: `Dept: ${result.emp.department}`,
       });
-      broadcastToProperty(propertyId, { module: "profiles", action: "deleted", entityId: existing.id });
+      broadcastToProperty(propertyId, { module: "profiles", action: "deleted", entityId: result.emp.id });
     }
     res.sendStatus(204);
   },
