@@ -26,8 +26,7 @@ export const familyVisitRequestsTable = pgTable(
     visitHotelId: integer("visit_hotel_id"),
 
     requesterUserId: integer("requester_user_id")
-      .notNull()
-      .references(() => usersTable.id),
+      .references(() => usersTable.id, { onDelete: "set null" }),
     profileName: varchar("profile_name", { length: 200 }).notNull(),
     clockNumber: varchar("clock_number", { length: 50 }).notNull(),
     department: varchar("department", { length: 150 }).notNull(),
@@ -91,6 +90,7 @@ export const familyVisitApprovalStepsTable = pgTable(
 
     signedByUserId: integer("signed_by_user_id").references(
       () => usersTable.id,
+      { onDelete: "set null" },
     ),
     signedAt: timestamp("signed_at", { withTimezone: true }),
     signatureImageUrlSnapshot: text("signature_image_url_snapshot"),

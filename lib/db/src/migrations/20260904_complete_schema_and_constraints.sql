@@ -1801,5 +1801,23 @@ BEGIN
 
   -- Reset search path back to public
   SET search_path TO public;
+
+  -- User foreign key cascades and set null
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_signatures') THEN
+    ALTER TABLE public.user_signatures DROP CONSTRAINT IF EXISTS user_signatures_user_id_fkey;
+    ALTER TABLE public.user_signatures ADD CONSTRAINT user_signatures_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'hosting_request_approval_steps') THEN
+    ALTER TABLE public.hosting_request_approval_steps DROP CONSTRAINT IF EXISTS hosting_request_approval_steps_signed_by_user_id_fkey;
+    ALTER TABLE public.hosting_request_approval_steps ADD CONSTRAINT hosting_request_approval_steps_signed_by_user_id_fkey FOREIGN KEY (signed_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'hosting_requests') THEN
+    ALTER TABLE public.hosting_requests ALTER COLUMN requester_user_id DROP NOT NULL;
+    ALTER TABLE public.hosting_requests DROP CONSTRAINT IF EXISTS hosting_requests_requester_user_id_fkey;
+    ALTER TABLE public.hosting_requests ADD CONSTRAINT hosting_requests_requester_user_id_fkey FOREIGN KEY (requester_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+  END IF;
+
   RAISE NOTICE '>>> All schemas, tables, and constraints migrated successfully!';
 END $$;

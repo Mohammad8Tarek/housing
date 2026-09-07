@@ -1,5 +1,13 @@
 import { Router } from "express";
-import { db, pool, usersTable, userSignaturesTable } from "@workspace/db";
+import {
+  db,
+  pool,
+  usersTable,
+  userSignaturesTable,
+  passwordHistoryTable,
+  familyVisitApprovalStepsTable,
+  familyVisitRequestsTable,
+} from "@workspace/db";
 import { eq, and, SQL, sql, or, not, ilike } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
@@ -608,14 +616,80 @@ router.delete(
       return;
     }
 
-    const requesterIsSystemAdmin = (req.session as any)?.isSystemAdmin;
-    if (isSystemAdminRoles(targetUser.roles ?? []) && !requesterIsSystemAdmin) {
-      res.status(403).json({ error: "Permission denied" });
+    const currentUserId = (req.session as any)?.userId;
+    if (currentUserId === params.data.id) {
+      res.status(400).json({
+        error: "لا يمكنك حذف حسابك الشخصي المسجل به حالياً",
+        errorEn: "You cannot delete your currently logged-in account",
+      });
       return;
     }
 
-    await db.delete(usersTable).where(eq(usersTable.id, params.data.id));
-    res.sendStatus(204);
+    const requesterIsSystemAdmin = (req.session as any)?.isSystemAdmin;
+    if (isSystemAdminRoles(targetUser.roles ?? []) && !requesterIsSystemAdmin) {
+      res.status(403).json({ error: "Permission denied: Cannot delete system admin" });
+      return;
+    }
+
+    try {
+      await db.transaction(async (tx) => {
+        // 1. Delete user signatures
+        await tx
+          .delete(userSignaturesTable)
+          .where(eq(userSignaturesTable.userId, params.data.id));
+
+        // 2. Clean up password history
+        try {
+          await tx
+            .delete(passwordHistoryTable)
+            .where(eq(passwordHistoryTable.userId, params.data.id));
+        } catch {}
+
+        // 3. Clear signed_by on approval steps
+        try {
+          await tx
+            .update(familyVisitApprovalStepsTable)
+            .set({ signedByUserId: null })
+            .where(eq(familyVisitApprovalStepsTable.signedByUserId, params.data.id));
+        } catch {}
+
+        // 4. Clear requester on hosting requests
+        try {
+          await tx
+            .update(familyVisitRequestsTable)
+            .set({ requesterUserId: null as any })
+            .where(eq(familyVisitRequestsTable.requesterUserId, params.data.id));
+        } catch {}
+
+        // 5. Delete the user
+        await tx.delete(usersTable).where(eq(usersTable.id, params.data.id));
+      });
+
+      // Audit log
+      const session = req.session as any;
+      await logActivity({
+        req,
+        propertyId: targetUser.propertyId ?? 0,
+        username: session?.username ?? "System",
+        userId: session?.userId,
+        userRole: session?.userRole ?? "super_admin",
+        action: `حذف المستخدم: ${targetUser.username} (${targetUser.id})`,
+        actionType: "DELETE",
+        module: "users",
+        entityType: "user",
+        entityId: targetUser.id,
+        severity: "warning",
+        details: `Roles: ${(targetUser.roles ?? []).join(", ")}`,
+      });
+
+      res.sendStatus(204);
+    } catch (err: any) {
+      console.error("Failed to delete user:", err);
+      res.status(500).json({
+        error: "فشل حذف المستخدم لوجود ارتباطات متعلقة بالسجل",
+        details: err.message,
+      });
+    }
   },
 );
 

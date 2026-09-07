@@ -6,7 +6,7 @@ export const userSignaturesTable = pgTable("user_signatures", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
     .notNull()
-    .references(() => usersTable.id)
+    .references(() => usersTable.id, { onDelete: "cascade" })
     .unique(),
   signatureImageUrl: text("signature_image_url").notNull(),
   uploadedAt: timestamp("uploaded_at", { withTimezone: true })
