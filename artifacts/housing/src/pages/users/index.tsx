@@ -346,7 +346,11 @@ export default function UsersPage() {
         />
       )}
       {editUser && (
-        <EditUserDialog user={editUser} onClose={() => setEditUser(null)} />
+        <EditUserDialog
+          user={editUser}
+          properties={properties ?? []}
+          onClose={() => setEditUser(null)}
+        />
       )}
       {editPropsUser && (
         <EditPropertiesDialog
@@ -871,7 +875,7 @@ export default function UsersPage() {
                               {u.username === currentUser?.username && (
                                 <Badge
                                   variant="outline"
-                                  className="text-[10px] ms-2 rtl:mr-2 rtl:ml-0 border-[#C9A24D]/40 text-[#C9A24D]"
+                                  className="text-[10px] ms-2 border-[#C9A24D]/40 text-[#C9A24D]"
                                 >
                                   {ar ? "أنت" : "You"}
                                 </Badge>
@@ -1254,7 +1258,7 @@ export default function UsersPage() {
                                   }
                                   className="cursor-pointer text-red-600 dark:text-red-400"
                                 >
-                                  <Trash className="w-4 h-4 mr-2" />
+                                  <Trash className="w-4 h-4 me-2" />
                                   <span>
                                     {ar ? "حذف المستخدم" : "Delete User"}
                                   </span>

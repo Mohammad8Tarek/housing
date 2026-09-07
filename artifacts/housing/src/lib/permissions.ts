@@ -73,7 +73,7 @@ export const ACTIONS: Action[] = [
 ];
 
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
-  dashboard: ["view", "export"],
+  dashboard: ["view", "export", "audit"],
   housing: ["view", "create", "edit", "delete", "export", "bulk_export"],
   housekeeping: ["view", "edit", "assign", "approve", "bulk_export"],
   profiles: [
@@ -105,6 +105,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "view",
     "create",
     "edit",
+    "delete",
     "checkin",
     "checkout",
     "approve",
@@ -116,6 +117,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "view",
     "create",
     "edit",
+    "delete",
     "assign",
     "approve",
     "bulk_export",
