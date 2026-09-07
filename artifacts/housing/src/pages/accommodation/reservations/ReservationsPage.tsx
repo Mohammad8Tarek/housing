@@ -328,15 +328,20 @@ export default function ReservationsPage() {
 
 
   const { isSuperAdmin, isAdmin, hasRole, can } = usePermission();
-  const canOverrideSingleOccupancy =
+  const canOverrideSingleOccupancy = Boolean(
     isSuperAdmin ||
     isAdmin ||
-    hasRole("super_admin") ||
-    hasRole("admin") ||
-    hasRole("housing_manager") ||
-    hasRole("manager") ||
-    can("reservations", "override_single_occupancy") ||
-    can("accommodation", "override_single_occupancy");
+    (typeof hasRole === "function" && (
+      hasRole("super_admin") ||
+      hasRole("admin") ||
+      hasRole("housing_manager") ||
+      hasRole("manager")
+    )) ||
+    (typeof can === "function" && (
+      can("reservations", "override_single_occupancy") ||
+      can("accommodation", "override_single_occupancy")
+    ))
+  );
 
   const { data: _aData } = useListAssignments(
     { propertyId: activePropertyId, limit: 5000 } as any,

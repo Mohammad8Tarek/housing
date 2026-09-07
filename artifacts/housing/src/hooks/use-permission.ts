@@ -55,6 +55,18 @@ export function usePermission() {
       ["admin", "system_admin"].includes(normalize(r)),
     );
 
+  const hasRole = (role: string): boolean => {
+    if (!user) return false;
+    const target = normalize(role);
+    if (target === "super_admin" && (isSuperAdmin || isSystemAdmin)) return true;
+    if (target === "admin" && isAdmin) return true;
+    if (user.roles && Array.isArray(user.roles)) {
+      if (user.roles.some((r) => normalize(r) === target)) return true;
+    }
+    if ((user as any).role && normalize((user as any).role) === target) return true;
+    return false;
+  };
+
   const effectivePermissions = (): Set<string> => {
     if (!user) return new Set();
 
@@ -134,6 +146,7 @@ export function usePermission() {
     canExport,
     isAdmin,
     isSuperAdmin,
+    hasRole,
     perms,
   };
 }
