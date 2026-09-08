@@ -1097,16 +1097,12 @@ export function TabChat({
   /* ── Search employees ── */
   const searchEmployees = async (q: string) => {
     setSearch(q);
-    if (!q.trim()) {
-      setEmployees([]);
-      return;
-    }
     setSearching(true);
     try {
-      const res = await apiFetch(
-        `/api/portal-auth/employees?search=${encodeURIComponent(q.trim())}`,
-        { credentials: "include" },
-      );
+      const url = q.trim()
+        ? `/api/portal-auth/employees?search=${encodeURIComponent(q.trim())}`
+        : `/api/portal-auth/employees`;
+      const res = await apiFetch(url, { credentials: "include" });
       if (!res.ok) {
         setEmployees([]);
         return;
@@ -1119,6 +1115,12 @@ export function TabChat({
       setSearching(false);
     }
   };
+
+  useEffect(() => {
+    if (showNewConv) {
+      searchEmployees("");
+    }
+  }, [showNewConv]);
 
   /* ── Start new conversation ── */
   const startConversation = async (emp: Employee) => {

@@ -93,7 +93,13 @@ app.use(
       if (allowList.includes(origin)) return cb(null, true);
       try {
         const { hostname } = new URL(origin);
-        if (hostname.endsWith(".vercel.app")) return cb(null, true);
+        if (
+          hostname === "localhost" ||
+          hostname === "127.0.0.1" ||
+          hostname.endsWith(".vercel.app")
+        ) {
+          return cb(null, true);
+        }
       } catch {
         // Fall through to explicit CORS rejection.
       }

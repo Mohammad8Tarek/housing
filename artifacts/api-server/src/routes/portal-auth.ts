@@ -10,7 +10,7 @@ import {
   roomsTable,
   passwordResetTokensTable,
 } from "@workspace/db";
-import { eq, and, not, sql } from "drizzle-orm";
+import { eq, and, not, sql, or, ilike } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
@@ -1279,5 +1279,67 @@ router.post(
     }
   },
 );
+
+/**
+ * GET /portal-auth/employees
+ * Search colleagues for chat & employee directory
+ */
+router.get("/employees", requirePortalAuth, async (req, res, next) => {
+  try {
+    const sess = portalSession(req)!;
+    const search = ((req.query.search as string) || "").trim();
+
+    const employees = await withTenant(sess.propertyId, async (tenantDb) => {
+      const baseSelect = tenantDb
+        .select({
+          id: profilesTable.id,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
+          department: profilesTable.department,
+          jobTitle: profilesTable.jobTitle,
+          photoUrl: profilesTable.photoUrl,
+          profileId: profilesTable.profileId,
+          status: profilesTable.status,
+        })
+        .from(profilesTable);
+
+      const excludeSelfAndLeft = and(
+        not(eq(profilesTable.id, sess.profileDbId)),
+        not(sql`UPPER(${profilesTable.status}) IN ('LEFT', 'TERMINATED', 'DEPARTED')`),
+      );
+
+      if (search) {
+        const term = `%${search}%`;
+        return await baseSelect
+          .where(
+            and(
+              excludeSelfAndLeft,
+              or(
+                ilike(profilesTable.firstName, term),
+                ilike(profilesTable.lastName, term),
+                ilike(profilesTable.profileId, term),
+                ilike(profilesTable.nationalId, term),
+                ilike(profilesTable.department, term),
+                ilike(profilesTable.jobTitle, term),
+                sql`CONCAT(${profilesTable.firstName}, ' ', ${profilesTable.lastName}) ILIKE ${term}`,
+                sql`CONCAT(${profilesTable.firstName}, ' ', ${profilesTable.thirdName}, ' ', ${profilesTable.lastName}) ILIKE ${term}`,
+              ),
+            ),
+          )
+          .limit(50);
+      }
+
+      // Default: list active colleagues in the same property
+      return await baseSelect
+        .where(excludeSelfAndLeft)
+        .limit(50);
+    });
+
+    res.json({ success: true, employees });
+  } catch (err: any) {
+    console.error("[portal-auth/employees] Error:", err);
+    res.status(500).json({ success: false, message: "Internal error" });
+  }
+});
 
 export default router;
