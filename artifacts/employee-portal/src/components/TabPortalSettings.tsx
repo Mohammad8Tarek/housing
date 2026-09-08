@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { usePWA } from "../lib/pwa";
+import { usePushNotifications } from "../hooks/usePushNotifications";
+import { toast } from "sonner";
 import { apiFetch, clearSessionCache } from "../lib/api";
 import { useLocation } from "wouter";
 import { Preferences } from "@capacitor/preferences";
@@ -17,6 +19,10 @@ import MaterialIcon from "./MaterialIcon";
 import { useBiometric } from "../hooks/useBiometric";
 
 const isNative = Capacitor.isNativePlatform();
+
+function isIOS(): boolean {
+  return typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
 
 export default function TabPortalSettings() {
   const { t, lang, setLang, setTheme, theme } = useTheme();
@@ -37,6 +43,15 @@ export default function TabPortalSettings() {
   const [cpMsg, setCpMsg] = useState("");
   const [bioEnabled, setBioEnabled] = useState(false);
 
+  const push = usePushNotifications();
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [isNotifLoading, setIsNotifLoading] = useState(false);
+
+  const isInstalled =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true);
+
   useEffect(() => {
     if (biometric.isAvailable) {
       biometric
@@ -47,10 +62,83 @@ export default function TabPortalSettings() {
   }, [biometric]);
 
   useEffect(() => {
-    if (installPrompt) {
-      handleInstall();
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setNotifEnabled(Notification.permission === "granted");
     }
-  }, [installPrompt]);
+  }, [push.isSubscribed]);
+
+  const handleToggleNotifications = async () => {
+    setIsNotifLoading(true);
+    try {
+      if (!("Notification" in window)) {
+        toast.error(
+          isRtl ? "الإشعارات غير مدعومة في هذا المتصفح" : "Notifications not supported",
+        );
+        return;
+      }
+      const perm = await Notification.requestPermission();
+      if (perm === "granted") {
+        await push.subscribe();
+        setNotifEnabled(true);
+        toast.success(
+          isRtl ? "تم تفعيل الإشعارات بنجاح!" : "Notifications enabled successfully!",
+        );
+      } else {
+        setNotifEnabled(false);
+        toast.warning(
+          isRtl ? "تم رفض إذن الإشعارات" : "Notification permission denied",
+        );
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update notifications");
+    } finally {
+      setIsNotifLoading(false);
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    try {
+      if (!("Notification" in window)) {
+        toast.error(
+          isRtl ? "الإشعارات غير مدعومة في هذا الجهاز" : "Notifications not supported",
+        );
+        return;
+      }
+      let perm = Notification.permission;
+      if (perm !== "granted") {
+        perm = await Notification.requestPermission();
+        if (perm !== "granted") {
+          toast.error(
+            isRtl
+              ? "يرجى السماح بالإشعارات أولاً من إعدادات المتصفح"
+              : "Please allow notifications first",
+          );
+          return;
+        }
+      }
+      const title = isRtl ? "صن رايز لإدارة السكن" : "Sunrise Staff Housing";
+      const options = {
+        body: isRtl
+          ? "تم تأكيد وصول الإشعارات بنجاح إلى هاتفك! 🎉"
+          : "Push notifications are working perfectly on your phone! 🎉",
+        icon: "/pwa-192x192.png",
+        badge: "/pwa-192x192.png",
+        tag: "test-alert-" + Date.now(),
+        vibrate: [200, 100, 200],
+      };
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(title, options);
+      } else {
+        new Notification(title, options);
+      }
+      toast.success(
+        isRtl ? "تم إرسال الإشعار التجريبي بنجاح!" : "Test notification sent successfully!",
+      );
+    } catch (e: any) {
+      toast.error(e.message || "Failed to trigger notification");
+    }
+  };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -434,21 +522,122 @@ export default function TabPortalSettings() {
         </div>
       </div>
 
-      {/* Appearance */}
-      <div>
-        <h3 className="text-sm font-bold text-foreground mb-3">
-          {t("settings.appearance")}
-        </h3>
-        <div className="grid grid-cols-2 gap-2.5"></div>
-      </div>
-
-      {/* Language */}
+      {/* Mobile App Installation / PWA */}
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-          <MaterialIcon icon="language" size={18} className="text-accent2" />
-          {t("settings.language")}
+          <MaterialIcon icon="install_mobile" size={18} className="text-accent2" />
+          {isRtl ? "تثبيت التطبيق على الهاتف" : "Install Mobile App"}
         </h3>
-        <div className="grid grid-cols-2 gap-2.5"></div>
+        <div className="bg-card border border-border2 rounded-xl p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent2/10 flex items-center justify-center flex-shrink-0">
+              <MaterialIcon icon="smartphone" size={20} className="text-accent2" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-foreground">
+                {isRtl ? "تطبيق صن رايز لإدارة السكن" : "Sunrise Staff Housing Portal"}
+              </div>
+              <p className="text-[11px] text-muted2 mt-0.5 leading-relaxed">
+                {isRtl
+                  ? "قم بتثبيت التطبيق على شاشتك الرئيسية للوصول الفوري، دعم العمل بدون اتصال، وتجربة سلسة وسريعة بدون متصفح."
+                  : "Install the app on your home screen for instant access, offline support, and a fast native experience."}
+              </p>
+            </div>
+          </div>
+
+          {isInstalled ? (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-[12px] font-semibold">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{isRtl ? "التطبيق مثبت بالفعل ويعمل كـ PWA على هذا الجهاز" : "App is installed and running as PWA on this device"}</span>
+            </div>
+          ) : installPrompt ? (
+            <button
+              onClick={handleInstall}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-accent2 text-accent2-foreground text-[12px] font-bold hover:brightness-110 active:scale-[0.99] transition-all shadow-md shadow-accent2/20"
+            >
+              <MaterialIcon icon="download" size={18} />
+              <span>{isRtl ? "تثبيت التطبيق على هاتفك الآن" : "Install App to Your Phone Now"}</span>
+            </button>
+          ) : isIOS() ? (
+            <div className="p-3 rounded-lg bg-surface border border-border2 space-y-1.5 text-[11px] text-muted2">
+              <div className="font-bold text-foreground flex items-center gap-1.5">
+                <MaterialIcon icon="ios_share" size={16} className="text-accent2" />
+                <span>{isRtl ? "طريقة التثبيت على أجهزة iPhone / iPad:" : "How to install on iOS:"}</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-1 ps-1">
+                <li>{isRtl ? "اضغط على زر المشاركة (Share) في متصفح Safari." : "Tap the Share button in Safari."}</li>
+                <li>{isRtl ? "اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen)." : "Select 'Add to Home Screen'."}</li>
+                <li>{isRtl ? "اضغط على 'إضافة' (Add) في الزاوية العلوية." : "Tap 'Add' in the top corner."}</li>
+              </ol>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-surface border border-border2 text-[11px] text-muted2">
+              <MaterialIcon icon="info" size={16} className="text-accent2 flex-shrink-0" />
+              <span>{isRtl ? "يمكنك تثبيت التطبيق من قائمة المتصفح (المزيد ⋮ > تثبيت التطبيق / Install App)." : "You can install this app from your browser menu (More ⋮ > Install app)."}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Notifications & Push Alerts */}
+      <div>
+        <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+          <MaterialIcon icon="notifications" size={18} className="text-accent2" />
+          {isRtl ? "إشعارات الهاتف والتنبيهات" : "Notifications & Push Alerts"}
+        </h3>
+        <div className="bg-card border border-border2 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
+                <MaterialIcon
+                  icon={notifEnabled ? "notifications_active" : "notifications_off"}
+                  size={18}
+                  className={notifEnabled ? "text-green-400" : "text-muted2"}
+                />
+              </div>
+              <div>
+                <div className="text-[12px] font-semibold text-foreground">
+                  {isRtl ? "إشعارات الموبايل المباشرة" : "Mobile Push Alerts"}
+                </div>
+                <div className="text-[10px] text-muted2">
+                  {notifEnabled
+                    ? (isRtl ? "مفعّلة - ستصلك التنبيهات فوراً" : "Active - You'll receive instant alerts")
+                    : (isRtl ? "غير مفعّلة - اضغط للتفعيل" : "Disabled - Tap to enable")}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleToggleNotifications}
+              disabled={isNotifLoading}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                notifEnabled
+                  ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                  : "bg-accent2 text-accent2-foreground shadow-sm hover:brightness-110"
+              }`}
+            >
+              {isNotifLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : notifEnabled ? (
+                isRtl ? "مفعّلة ✓" : "Active ✓"
+              ) : (
+                isRtl ? "تفعيل الآن" : "Enable"
+              )}
+            </button>
+          </div>
+
+          <div className="pt-2 border-t border-border2 flex items-center justify-between">
+            <span className="text-[11px] text-muted2">
+              {isRtl ? "اختبار وصول الإشعار لهاتفك:" : "Test alert delivery on your phone:"}
+            </span>
+            <button
+              onClick={handleSendTestNotification}
+              className="px-2.5 py-1 rounded-md bg-surface border border-border2 text-[11px] font-semibold text-foreground hover:bg-accent2/10 hover:text-accent2 transition-all flex items-center gap-1.5"
+            >
+              <MaterialIcon icon="send" size={14} />
+              <span>{isRtl ? "إرسال إشعار تجريبي" : "Send Test Alert"}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Logout */}
