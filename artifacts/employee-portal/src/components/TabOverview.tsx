@@ -33,6 +33,17 @@ interface Props {
   onHR: () => void;
 }
 
+function getTimeGreeting(isRtl: boolean): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) {
+    return isRtl ? "صباح الخير" : "Good Morning";
+  }
+  if (hour >= 12 && hour < 17) {
+    return isRtl ? "مساء الخير" : "Good Afternoon";
+  }
+  return isRtl ? "مساء الخير" : "Good Evening";
+}
+
 export default function TabOverview({
   employee,
   portalData,
@@ -53,6 +64,16 @@ export default function TabOverview({
   const assignments = portalData?.assignments || [];
   const firstName = employee.fullName?.split(" ")[0] || "Employee";
   const empAddress = employee.address as string | undefined;
+
+  const [greeting, setGreeting] = useState(() => getTimeGreeting(isRtl));
+
+  useEffect(() => {
+    setGreeting(getTimeGreeting(isRtl));
+    const timer = setInterval(() => {
+      setGreeting(getTimeGreeting(isRtl));
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [isRtl]);
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [docCount, setDocCount] = useState(0);
@@ -123,7 +144,7 @@ export default function TabOverview({
             className="text-xl font-bold text-white mb-1 leading-tight"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
-            {isRtl ? "صباح الخير" : "Good Morning"},{" "}
+            {greeting},{" "}
             <span className="text-[#E0C070]">{firstName}</span>
           </h2>
           <p className="text-white/60 text-[12px] max-w-xs leading-relaxed">
