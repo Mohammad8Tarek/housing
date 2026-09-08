@@ -128,15 +128,15 @@ export function ProfilesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [view, setView] = useState<"table" | "grid">("table");
 
+  const debouncedSearch = useDebounce(search, 300);
+
   // Reset to page 1 when search or status changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterStatus, filterDept]);
+  }, [debouncedSearch, filterStatus, filterDept]);
   const [resettingPasswordId, setResettingPasswordId] = useState<number | null>(
     null,
   );
-
-  const debouncedSearch = useDebounce(search, 300);
 
   const queryParams = {
     propertyId: activePropertyId ?? undefined,

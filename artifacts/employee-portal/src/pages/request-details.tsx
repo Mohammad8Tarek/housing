@@ -55,7 +55,9 @@ export default function RequestDetails() {
         Array.isArray((d as { requests: Request[] }).requests) &&
         (d as { requests: Request[] }).requests.length > 0
       ) {
-        setRequest((d as { requests: Request[] }).requests[0]);
+        const allReqs = (d as { requests: Request[] }).requests;
+        const target = allReqs.find((r) => r.id === Number(requestId)) || allReqs[0];
+        setRequest(target);
       }
     } catch {
     } finally {
@@ -156,6 +158,12 @@ export default function RequestDetails() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setLocation("/dashboard")}
+            className="p-2 rounded-full bg-card border border-border2 hover:bg-muted2/20 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-foreground" />
+          </button>
           <h1 className="text-2xl font-bold text-foreground capitalize">
             {request.problemType.replace(/_/g, " ")}
           </h1>
@@ -252,8 +260,17 @@ export default function RequestDetails() {
       </div>
 
       {selectedImage && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-4xl w-full">
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
             <img
               src={selectedImage}
               alt=""

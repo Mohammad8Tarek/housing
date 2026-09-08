@@ -609,13 +609,14 @@ router.patch(
   "/rooms/:id",
   requireAnyPermission(["housing", "edit"], ["housekeeping", "edit"]),
   async (req, res): Promise<void> => {
-    let propertyId = getTenantId(req);
+    try {
+      let propertyId = getTenantId(req);
 
-    const params = UpdateRoomParams.safeParse(req.params);
-    if (!params.success) {
-      res.status(400).json({ error: params.error.message });
-      return;
-    }
+      const params = UpdateRoomParams.safeParse(req.params);
+      if (!params.success) {
+        res.status(400).json({ error: params.error.message });
+        return;
+      }
 
     if (!propertyId) {
       propertyId = (await findPropertyByRoomId(params.data.id)) || 0;
@@ -772,6 +773,10 @@ router.patch(
     });
 
     res.json({ ...updated, genderPolicy: updated.gender, propertyId });
+    } catch (err: any) {
+      console.error("[rooms/update] Error:", err);
+      res.status(500).json({ error: err.message || "Failed to update room" });
+    }
   },
 );
 
@@ -923,29 +928,29 @@ router.post(
   "/rooms/bulk-delete",
   requirePermission("housing", "delete"),
   async (req, res): Promise<void> => {
-    let propertyId = getTenantId(req);
-    const { ids } = req.body || {};
-    if (!Array.isArray(ids) || ids.length === 0) {
-      res.status(400).json({ error: "ids must be a non-empty array of room IDs" });
-      return;
-    }
-
-    const numIds = ids.map((id: any) => Number(id)).filter((id: number) => !isNaN(id) && id > 0);
-    if (numIds.length === 0) {
-      res.status(400).json({ error: "No valid room IDs provided" });
-      return;
-    }
-
-    if (!propertyId) {
-      propertyId = (await findPropertyByRoomId(numIds[0])) || 0;
-    }
-
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
     try {
+      let propertyId = getTenantId(req);
+      const { ids } = req.body || {};
+      if (!Array.isArray(ids) || ids.length === 0) {
+        res.status(400).json({ error: "ids must be a non-empty array of room IDs" });
+        return;
+      }
+
+      const numIds = ids.map((id: any) => Number(id)).filter((id: number) => !isNaN(id) && id > 0);
+      if (numIds.length === 0) {
+        res.status(400).json({ error: "No valid room IDs provided" });
+        return;
+      }
+
+      if (!propertyId) {
+        propertyId = (await findPropertyByRoomId(numIds[0])) || 0;
+      }
+
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+
       const result = await withTenant(propertyId, async (tenantDb) => {
         // Find which rooms have active occupants
         const idListSql = sql.join(numIds.map((id) => sql`${id}`), sql`, `);
@@ -1027,98 +1032,103 @@ router.delete(
   "/rooms/:id",
   requirePermission("housing", "delete"),
   async (req, res): Promise<void> => {
-    let propertyId = getTenantId(req);
-    const roomId = parseInt(req.params.id, 10);
-    if (isNaN(roomId)) {
-      res.status(400).json({ error: "Invalid room ID" });
-      return;
-    }
-
-    if (!propertyId) {
-      propertyId = (await findPropertyByRoomId(roomId)) || 0;
-    }
-
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
-    const result = await withTenant(propertyId, async (tenantDb) => {
-      const [room] = await tenantDb
-        .select()
-        .from(roomsTable)
-        .where(eq(roomsTable.id, roomId));
-      if (!room) return { notFound: true };
-
-      // Check active residents
-      const activeOccupants = await tenantDb.execute(sql`
-        SELECT count(*)::int as count 
-        FROM assignments a
-        WHERE a.room_id = ${roomId} AND a.status = 'ACTIVE'
-      `);
-      const count = Number((activeOccupants.rows?.[0] as any)?.count ?? 0);
-      if (count > 0) {
-        return { hasActiveResidents: true, count, room };
+    try {
+      let propertyId = getTenantId(req);
+      const roomId = parseInt(req.params.id, 10);
+      if (isNaN(roomId)) {
+        res.status(400).json({ error: "Invalid room ID" });
+        return;
       }
 
-      // Clean up dependent child records to prevent foreign key errors
-      try { await tenantDb.execute(sql`DELETE FROM room_beds WHERE room_id = ${roomId}`); } catch {}
-      try { await tenantDb.execute(sql`DELETE FROM room_keys WHERE room_id = ${roomId}`); } catch {}
-      try { await tenantDb.execute(sql`DELETE FROM room_locks WHERE room_id = ${roomId}`); } catch {}
-      try { await tenantDb.execute(sql`DELETE FROM reservations WHERE room_id = ${roomId}`); } catch {}
-      try { await tenantDb.execute(sql`DELETE FROM assignments WHERE room_id = ${roomId} AND status != 'ACTIVE'`); } catch {}
-      try { await tenantDb.execute(sql`DELETE FROM hostings WHERE room_id = ${roomId}`); } catch {}
-      try { await tenantDb.execute(sql`DELETE FROM maintenance WHERE room_id = ${roomId}`); } catch {}
+      if (!propertyId) {
+        propertyId = (await findPropertyByRoomId(roomId)) || 0;
+      }
 
-      await tenantDb
-        .delete(roomsTable)
-        .where(eq(roomsTable.id, roomId));
-      return { success: true, room };
-    });
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-    if (result.notFound) {
-      res.status(404).json({ error: "Room not found" });
-      return;
-    }
+      const result = await withTenant(propertyId, async (tenantDb) => {
+        const [room] = await tenantDb
+          .select()
+          .from(roomsTable)
+          .where(eq(roomsTable.id, roomId));
+        if (!room) return { notFound: true };
 
-    if (result.hasActiveResidents) {
-      res.status(400).json({
-        error: `لا يمكن حذف الغرفة لوجود ${result.count} موظف مسكن بها حالياً. يرجى إخلاء أو نقل الموظف أولاً.`,
-        code: "ROOM_HAS_ACTIVE_RESIDENTS",
-      });
-      return;
-    }
+        // Check active residents
+        const activeOccupants = await tenantDb.execute(sql`
+          SELECT count(*)::int as count 
+          FROM assignments a
+          WHERE a.room_id = ${roomId} AND a.status = 'ACTIVE'
+        `);
+        const count = Number((activeOccupants.rows?.[0] as any)?.count ?? 0);
+        if (count > 0) {
+          return { hasActiveResidents: true, count, room };
+        }
 
-    if (result.room) {
-      const s = su(req);
-      await logActivity({
-        req,
-        propertyId,
-        username: s.username,
-        userId: s.userId,
-        userRole: s.userRole,
-        action: `حذف الغرفة رقم ${result.room.roomNumber}`,
-        actionType: "DELETE",
-        module: "housing",
-        entityType: "room",
-        entityId: result.room.id,
-        severity: "warning",
-        details: {
-          roomNumber: result.room.roomNumber,
-          roomId: result.room.id,
-          capacity: result.room.capacity,
-          user: s.username,
-          role: s.userRole,
-        },
+        // Clean up dependent child records to prevent foreign key errors
+        try { await tenantDb.execute(sql`DELETE FROM room_beds WHERE room_id = ${roomId}`); } catch {}
+        try { await tenantDb.execute(sql`DELETE FROM room_keys WHERE room_id = ${roomId}`); } catch {}
+        try { await tenantDb.execute(sql`DELETE FROM room_locks WHERE room_id = ${roomId}`); } catch {}
+        try { await tenantDb.execute(sql`DELETE FROM reservations WHERE room_id = ${roomId}`); } catch {}
+        try { await tenantDb.execute(sql`DELETE FROM assignments WHERE room_id = ${roomId} AND status != 'ACTIVE'`); } catch {}
+        try { await tenantDb.execute(sql`DELETE FROM hostings WHERE room_id = ${roomId}`); } catch {}
+        try { await tenantDb.execute(sql`DELETE FROM maintenance WHERE room_id = ${roomId}`); } catch {}
+
+        await tenantDb
+          .delete(roomsTable)
+          .where(eq(roomsTable.id, roomId));
+        return { success: true, room };
       });
 
-      broadcastToProperty(propertyId, {
-        module: "housing",
-        action: "deleted",
-        entityId: result.room.id,
-      });
+      if (result.notFound) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
+      if (result.hasActiveResidents) {
+        res.status(400).json({
+          error: `لا يمكن حذف الغرفة لوجود ${result.count} موظف مسكن بها حالياً. يرجى إخلاء أو نقل الموظف أولاً.`,
+          code: "ROOM_HAS_ACTIVE_RESIDENTS",
+        });
+        return;
+      }
+
+      if (result.room) {
+        const s = su(req);
+        await logActivity({
+          req,
+          propertyId,
+          username: s.username,
+          userId: s.userId,
+          userRole: s.userRole,
+          action: `حذف الغرفة رقم ${result.room.roomNumber}`,
+          actionType: "DELETE",
+          module: "housing",
+          entityType: "room",
+          entityId: result.room.id,
+          severity: "warning",
+          details: {
+            roomNumber: result.room.roomNumber,
+            roomId: result.room.id,
+            capacity: result.room.capacity,
+            user: s.username,
+            role: s.userRole,
+          },
+        });
+
+        broadcastToProperty(propertyId, {
+          module: "housing",
+          action: "deleted",
+          entityId: result.room.id,
+        });
+      }
+      res.json({ success: true, id: roomId });
+    } catch (err: any) {
+      console.error("[rooms/delete] Error:", err);
+      res.status(500).json({ error: err.message || "Failed to delete room" });
     }
-    res.json({ success: true, id: roomId });
   },
 );
 

@@ -46,7 +46,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useProperty } from "@/context/PropertyContext";
-import { usePermission } from "@/hooks/use-permission";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 
@@ -92,7 +92,7 @@ export default function Dashboard() {
   const ar = language === "ar";
   const isAll = activePropertyId === "all";
 
-  const { data: stats, isLoading: statsLoading } = useGetDashboardStats(
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useGetDashboardStats(
     { propertyId: isAll ? 0 : activePropertyId! },
     { query: { enabled: !isAll && !!activePropertyId } },
   );
@@ -109,7 +109,7 @@ export default function Dashboard() {
   );
   const totalProfilesCount = profilesData?.pagination?.total ?? stats?.totalProfiles ?? 0;
 
-  const { data: allStats, isLoading: allLoading } = useQuery({
+  const { data: allStats, isLoading: allLoading, isError: allStatsError } = useQuery({
     queryKey: ["/api/dashboard/all-stats"],
     queryFn: async () => {
       const r = await fetch("/api/dashboard/all-stats");
@@ -119,7 +119,7 @@ export default function Dashboard() {
     enabled: isAll,
   });
 
-  const { data: pendingData, isLoading: depLoading } = useQuery({
+  const { data: pendingData, isLoading: depLoading, isError: pendingError } = useQuery({
     queryKey: ["/api/dashboard/pending", isAll ? 0 : activePropertyId!],
     queryFn: async () => {
       const res = await fetch(
@@ -268,6 +268,17 @@ export default function Dashboard() {
           </Badge>
         )}
       </div>
+
+      {((isAll ? allStatsError : statsError) || pendingError) && (
+        <div className="flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-sm">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <p>
+            {ar
+              ? "حدث خطأ أثناء تحميل بعض بيانات لوحة القيادة. يرجى إعادة المحاولة."
+              : "Failed to load some dashboard data. Please try again."}
+          </p>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div
@@ -546,6 +557,7 @@ export default function Dashboard() {
                       : "Occupancy rate per building"}
                   </CardDescription>
                 </div>
+                <PermissionGate module="housing" action="view">
                 <Link href="/housing">
                   <Badge
                     variant="outline"
@@ -555,6 +567,7 @@ export default function Dashboard() {
                     <ArrowRight className="w-3 h-3" />
                   </Badge>
                 </Link>
+                </PermissionGate>
               </CardHeader>
               <CardContent className="pl-0 h-[280px]">
                 {occupancy && occupancy.length > 0 ? (
@@ -625,6 +638,7 @@ export default function Dashboard() {
                       : "Upcoming profile checkouts"}
                   </CardDescription>
                 </div>
+                <PermissionGate module="accommodation" action="view">
                 <Link href="/accommodation/in-house">
                   <Badge
                     variant="outline"
@@ -633,6 +647,7 @@ export default function Dashboard() {
                     {ar ? "عرض" : "View"} <ArrowRight className="w-3 h-3" />
                   </Badge>
                 </Link>
+                </PermissionGate>
               </CardHeader>
               <CardContent className="flex-1 overflow-auto space-y-2">
                 {departureAlerts && departureAlerts.length > 0 ? (

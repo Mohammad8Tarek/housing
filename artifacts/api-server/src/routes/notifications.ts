@@ -186,9 +186,10 @@ router.get(
 
         // 7. Hosting requests waiting for approval
         if (canViewHostingReqs && userRoles.length > 0) {
-          const rolesArr = userRoles
-            .map((r) => `'${r.replace(/'/g, "''")}'`)
-            .join(",");
+          const rolesListSql = sql.join(
+            userRoles.map((r) => sql`${r}`),
+            sql`, `,
+          );
           queries.push(
             isSystemAdmin
               ? tenantDb.execute(
@@ -205,7 +206,7 @@ router.get(
                       JOIN hosting_request_approval_steps s
                         ON f.id = s.request_id AND f.current_step_order = s.step_order
                       WHERE f.status = 'in_signing'
-                        AND s.role_required = ANY(ARRAY[${sql.raw(rolesArr)}]::text[])
+                        AND s.role_required IN (${rolesListSql})
                       LIMIT 20`,
                 ).catch(() => ({ rows: [] })),
           );
