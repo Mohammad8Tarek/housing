@@ -938,20 +938,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {children}
             </div>
 
-            {/* Footer التعديل الجديد هنا - حجم أصغر */}
+            {/* Footer */}
             <footer className="py-3 border-t bg-card/30 backdrop-blur-sm mt-auto">
-              <div className="container mx-auto flex flex-col items-center justify-center gap-0.5 text-center px-4">
-                <p className="text-[11px] md:text-xs font-medium text-sidebar-foreground/70/80 flex flex-wrap items-center justify-center gap-x-2">
-                  <span className="text-sidebar-primary/80 font-bold">© 2026</span>
-                  <span className="font-semibold uppercase tracking-wider">
-                    SUNRISE IT Team
-                  </span>
-                  <span className="hidden md:inline text-sidebar-foreground/70/20">
-                    |
-                  </span>
-                  <span className="font-normal">
-                    White Hills & Meraki Resort
-                  </span>
+              <div className="container mx-auto flex flex-col items-center justify-center text-center px-4">
+                <p className="text-xs md:text-sm font-semibold text-[#d4b060] flex items-center justify-center">
+                  Copyright &copy; {new Date().getFullYear()} SUNRISE Resorts &amp; Cruises
                 </p>
               </div>
             </footer>

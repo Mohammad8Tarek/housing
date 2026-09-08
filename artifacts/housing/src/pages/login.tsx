@@ -167,7 +167,7 @@ export default function Login() {
               <Building2 className="h-6 w-6 text-primary-foreground" />
             </div>
             <span className="text-2xl font-black tracking-tight drop-shadow-md">
-              Sunrise Housing
+              SUNRISE Resident
             </span>
           </div>
         </div>
@@ -175,25 +175,19 @@ export default function Login() {
         <div className="relative z-10 flex-1 flex items-end p-10 pb-16 animate-in fade-in slide-in-from-left-8 duration-700 delay-150">
           <div>
             <h2 className="text-4xl font-extrabold leading-tight mb-3 drop-shadow-lg">
-              {isAr ? "نظام إدارة سكن الموظفين" : "Staff Housing Management"}
+              {isAr ? "نظام إدارة السكن" : "Resident Management System"}
             </h2>
             <p className="text-white/75 text-lg leading-relaxed max-w-md drop-shadow">
               {isAr
-                ? "المنصة المتكاملة لإدارة التسكين، الحجوزات، والصيانة عبر جميع فروع ومنشآت سانرايز."
+                ? "المنصة الموحدة لإدارة التسكين، الحجوزات، والصيانة عبر جميع فروع ومنشآت صن رايز."
                 : "The unified platform for managing accommodations, reservations, and maintenance across all Sunrise properties."}
             </p>
           </div>
         </div>
 
         <div className="relative z-10 p-10 pt-0 space-y-1 animate-in fade-in duration-700 delay-300">
-          <p className="text-sm text-white/50 font-medium">
-            &copy; {new Date().getFullYear()} Sunrise Resorts & Cruises.{" "}
-            {isAr ? "جميع الحقوق محفوظة." : "All rights reserved."}
-          </p>
-          <p className="text-xs text-primary font-bold tracking-wide drop-shadow">
-            {isAr
-              ? "تصميم وتطوير: م. محمد طارق"
-              : "Built by Eng. Mohamed Tarek"}
+          <p className="text-sm text-white/75 font-medium">
+            Copyright &copy; {new Date().getFullYear()} SUNRISE Resorts &amp; Cruises
           </p>
         </div>
       </div>
@@ -206,10 +200,10 @@ export default function Login() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
-                Sunrise Housing
+                SUNRISE Resident
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {isAr ? "نظام إدارة السكن" : "Staff Housing Management"}
+                {isAr ? "نظام إدارة السكن" : "Resident Management System"}
               </p>
             </div>
           </div>
