@@ -18,7 +18,7 @@ import {
   TransferAssignmentResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requirePermission } from "../middlewares/permissions.js";
+import { requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 
@@ -392,14 +392,15 @@ router.post(
         );
 
       const effectiveOccupancy = Math.max(room.currentOccupancy ?? 0, activeAssignmentsInRoom.length);
-      const authUser = (req as any).user;
+      const authUser = (req as any).authUser || (req as any).user;
       const sInfo = su(req);
       const userRole = (authUser?.roles?.[0] || sInfo.userRole || "").toLowerCase();
       const userPerms: string[] = Array.isArray(authUser?.permissions) ? authUser.permissions : [];
       const hasOverridePerm =
         ["super_admin", "system_admin", "admin", "housing_manager", "manager"].includes(userRole) ||
         userPerms.includes("accommodation.override_single_occupancy") ||
-        userPerms.includes("reservations.override_single_occupancy");
+        userPerms.includes("reservations.override_single_occupancy") ||
+        (authUser && (hasPermission(authUser, "accommodation", "override_single_occupancy") || hasPermission(authUser, "reservations", "override_single_occupancy")));
 
       if (room.capacity > 1 && effectiveOccupancy === 1 && !hasOverridePerm) {
         return {
@@ -472,14 +473,19 @@ router.post(
             };
           }
 
-          // شاغل السرير في إجازة رسمية: يتطلب صلاحية مدير السكن أو الآدمن
-          const isManagerOrAdmin = ["super_admin", "system_admin", "admin", "manager"].includes(
-            su(req).userRole?.toLowerCase() || "",
-          );
+          // شاغل السرير في إجازة رسمية: يتطلب صلاحية مدير السكن أو الآدمن أو صلاحية الاستثناء التفصيلية
+          const vacAuthUser = (req as any).authUser || (req as any).user;
+          const vacUserRole = (vacAuthUser?.roles?.[0] || su(req).userRole || "").toLowerCase();
+          const vacUserPerms: string[] = Array.isArray(vacAuthUser?.permissions) ? vacAuthUser.permissions : [];
+          const isManagerOrAdmin =
+            ["super_admin", "system_admin", "admin", "manager"].includes(vacUserRole) ||
+            vacUserPerms.includes("accommodation.override_vacation") ||
+            vacUserPerms.includes("accommodation.edit") ||
+            (vacAuthUser && (hasPermission(vacAuthUser, "accommodation", "override_vacation" as any) || hasPermission(vacAuthUser, "accommodation", "edit")));
 
           if (!isManagerOrAdmin) {
             return {
-              error: `السرير رقم ${parsed.data.bedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة. تسكين شخص بديل مؤقت يتطلب صلاحية مدير السكن أو الآدمن فقط.`,
+              error: `السرير رقم ${parsed.data.bedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة. تسكين شخص بديل مؤقت يتطلب صلاحية مدير السكن أو الآدمن أو صلاحية (accommodation.override_vacation).`,
               code: "PERMISSION_DENIED_VACATION_OVERRIDE",
               status: 403,
             };
@@ -903,13 +909,19 @@ router.post(
             };
           }
 
-          const isManagerOrAdmin = ["super_admin", "system_admin", "admin", "manager"].includes(
-            su(req).userRole?.toLowerCase() || "",
-          );
+          const transAuthUser = (req as any).authUser || (req as any).user;
+          const transUserRole = (transAuthUser?.roles?.[0] || su(req).userRole || "").toLowerCase();
+          const transUserPerms: string[] = Array.isArray(transAuthUser?.permissions) ? transAuthUser.permissions : [];
+          const isManagerOrAdmin =
+            ["super_admin", "system_admin", "admin", "manager"].includes(transUserRole) ||
+            transUserPerms.includes("accommodation.override_vacation") ||
+            transUserPerms.includes("accommodation.transfer") ||
+            transUserPerms.includes("accommodation.edit") ||
+            (transAuthUser && (hasPermission(transAuthUser, "accommodation", "transfer") || hasPermission(transAuthUser, "accommodation", "edit")));
 
           if (!isManagerOrAdmin) {
             return {
-              error: `السرير رقم ${parsed.data.newBedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة. النقل المؤقت كبديل يتطلب صلاحية مدير السكن أو الآدمن.`,
+              error: `السرير رقم ${parsed.data.newBedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة. النقل المؤقت كبديل يتطلب صلاحية مدير السكن أو الآدمن أو صلاحية (accommodation.transfer).`,
               code: "PERMISSION_DENIED_VACATION_OVERRIDE",
               status: 403,
             };

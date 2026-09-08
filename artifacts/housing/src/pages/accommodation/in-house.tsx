@@ -1962,8 +1962,8 @@ export default function InHouse() {
             </div>
           )}
           <div className="space-y-4 pt-1">
-            {/* Cross-property transfer for super_admin */}
-            {isSuperAdmin && contextProperties.length > 1 && (
+            {/* Cross-property transfer for super_admin or users with accommodation.transfer */}
+            {(isSuperAdmin || can("accommodation", "transfer")) && contextProperties.length > 1 && (
               <div className="space-y-1.5">
                 <Label>{ar ? "الفرع المستهدف" : "Target Property"}</Label>
                 <Select

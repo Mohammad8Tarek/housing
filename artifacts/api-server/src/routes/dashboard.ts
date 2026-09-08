@@ -50,10 +50,6 @@ router.get(
   "/dashboard/all-stats",
   requirePermission("dashboard", "audit"),
   async (req, res): Promise<void> => {
-    if (!(req.session as any)?.isSystemAdmin) {
-      res.status(403).json({ success: false, message: "Access denied" });
-      return;
-    }
 
     const result = await pool.query(
       "SELECT id, name, code FROM properties ORDER BY id",

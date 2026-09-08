@@ -94,11 +94,12 @@ const ALL_ROLES = [...SYSTEM_ROLES, ...WORKFLOW_ROLES];
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
-  const { isSuperAdmin } = useProperty();
+  const { isSuperAdmin, properties: ctxProperties, canSeeAllProperties } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
   const { can, isAdmin } = usePermission();
+  const showPropertyCol = isSuperAdmin || Boolean(canSeeAllProperties) || (ctxProperties && ctxProperties.length > 1) || can("users", "view");
 
   const [deleteUser, setDeleteUser] = useState<any | null>(null);
   const [matrixUser, setMatrixUser] = useState<any | null>(null);
@@ -812,7 +813,7 @@ export default function UsersPage() {
                     {ar ? "التوقيع" : "Signature"}
                   </TableHead>
                 )}
-                {isUVisible("property") && isSuperAdmin && (
+                {isUVisible("property") && showPropertyCol && (
                   <TableHead className="font-semibold">
                     {ar ? "الفرع" : "Property"}
                   </TableHead>
@@ -1000,7 +1001,7 @@ export default function UsersPage() {
                           )}
                         </TableCell>
                       )}
-                      {isUVisible("property") && isSuperAdmin && (
+                      {isUVisible("property") && showPropertyCol && (
                         <TableCell>
                           {(() => {
                             const pids: number[] = (u as any).propertyIds?.length
@@ -1200,7 +1201,7 @@ export default function UsersPage() {
                                   </span>
                                 </DropdownMenuItem>
                               </PermissionGate>
-                              {(isAdmin || u.id === currentUser?.id) && (
+                              {(isAdmin || can("users", "edit") || u.id === currentUser?.id) && (
                                 <DropdownMenuItem
                                   onClick={() => setSignatureUser(u)}
                                   className="cursor-pointer"
@@ -1211,7 +1212,7 @@ export default function UsersPage() {
                                   </span>
                                 </DropdownMenuItem>
                               )}
-                              {isSuperAdmin &&
+                              {(isSuperAdmin || can("users", "edit") || can("users", "manage_permissions")) &&
                                 u.roles?.[0] !== "super_admin" && (
                                   <DropdownMenuItem
                                     onClick={() => setEditPropsUser(u)}

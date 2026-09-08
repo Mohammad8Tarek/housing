@@ -17,7 +17,7 @@ import {
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission } from "../middlewares/permissions.js";
+import { requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 
 const router: Router = Router();
@@ -312,14 +312,15 @@ router.post(
                 ),
               );
             const effOcc = Math.max(roomData.currentOccupancy ?? 0, activeInRoom.length);
-            const authUser = (req as any).user;
+            const authUser = (req as any).authUser || (req as any).user;
             const sInfo = su(req);
             const userRole = (authUser?.roles?.[0] || sInfo.userRole || "").toLowerCase();
             const userPerms: string[] = Array.isArray(authUser?.permissions) ? authUser.permissions : [];
             const hasOverridePerm =
               ["super_admin", "system_admin", "admin", "housing_manager", "manager"].includes(userRole) ||
               userPerms.includes("reservations.override_single_occupancy") ||
-              userPerms.includes("accommodation.override_single_occupancy");
+              userPerms.includes("accommodation.override_single_occupancy") ||
+              (authUser && (hasPermission(authUser, "reservations", "override_single_occupancy") || hasPermission(authUser, "accommodation", "override_single_occupancy")));
 
             if (effOcc === 1 && !hasOverridePerm) {
               return {

@@ -153,9 +153,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     activePropertyId,
     properties,
     isSuperAdmin,
+    canSeeAllProperties,
     setActivePropertyId,
   } = useProperty();
-  const { canView } = usePermission();
+  const { canView, can } = usePermission();
+  const canSwitchOrViewProperties =
+    isSuperAdmin || Boolean(canSeeAllProperties) || canView("properties") || can("dashboard", "audit");
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { language, setLanguage, dir } = useLanguage();
@@ -378,7 +381,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const visibleNavItems = navItems.filter((n) => {
-    if (n.superAdminOnly && !isSuperAdmin) return false;
+    if (n.superAdminOnly && !isSuperAdmin && (!n.permissionModule || !canView(n.permissionModule))) return false;
     if (n.permissionModule && !canView(n.permissionModule)) return false;
     return true;
   });
@@ -535,8 +538,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Sheet>
 
               {/* Property Switcher in Topbar with property logo */}
-              {(isSuperAdmin || activeProperty) &&
-                (isSuperAdmin || properties.length > 1 ? (
+              {(canSwitchOrViewProperties || activeProperty) &&
+                (canSwitchOrViewProperties || properties.length > 1 ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-primary/8 border border-primary/15 hover:bg-primary/12 transition-colors">
@@ -563,7 +566,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 ? "اختر الفرع"
                                 : "Select Property"}
                         </span>
-                        {isSuperAdmin &&
+                        {canSwitchOrViewProperties &&
                           activeProperty &&
                           activePropertyId !== "all" && (
                             <span className="text-[9px] font-mono text-sidebar-foreground/70 uppercase bg-muted px-1 rounded">
@@ -578,7 +581,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         {ar ? "تبديل الفرع / المنشأة" : "Switch Property"}
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {isSuperAdmin && (
+                      {canSwitchOrViewProperties && (
                         <>
                           <DropdownMenuItem
                             onClick={() => handleSwitchProperty("all")}
@@ -644,7 +647,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <span className="text-xs font-semibold text-sidebar-primary truncate max-w-[140px]">
                       {activeProperty.displayName || activeProperty.name}
                     </span>
-                    {isSuperAdmin && (
+                    {canSwitchOrViewProperties && (
                       <span className="ml-1 text-[9px] font-mono text-sidebar-foreground/70 uppercase bg-muted px-1 rounded">
                         {activeProperty.code}
                       </span>

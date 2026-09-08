@@ -20,7 +20,7 @@ import {
   UpdatePropertyResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requirePermission, requireAuth } from "../middlewares/permissions.js";
+import { requirePermission, requireAuth, hasPermission } from "../middlewares/permissions.js";
 import { su } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -31,7 +31,10 @@ router.get("/properties", requireAuth, async (req, res): Promise<void> => {
     .select()
     .from(propertiesTable)
     .orderBy(propertiesTable.id);
-  const allowed = authUser?.isSystemAdmin
+  const canSeeAll =
+    Boolean(authUser?.isSystemAdmin) ||
+    Boolean(authUser && (hasPermission(authUser, "properties", "view") || hasPermission(authUser, "dashboard", "audit")));
+  const allowed = canSeeAll
     ? properties
     : properties.filter((p) => (authUser?.propertyIds ?? []).includes(p.id));
   const serialized = allowed.map((p) => ({

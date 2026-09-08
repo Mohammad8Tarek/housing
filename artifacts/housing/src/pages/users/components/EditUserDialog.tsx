@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
+import { usePermission } from "@/hooks/use-permission";
 import {
   Dialog,
   DialogContent,
@@ -92,6 +93,7 @@ export function EditUserDialog({
   const { language } = useLanguage();
   const ar = language === "ar";
   const { user: currentUser, isSystemAdmin } = useAuth();
+  const { can, isAdmin } = usePermission();
   const { properties: contextProperties, activePropertyId } = useProperty();
   const queryClient = useQueryClient();
 
@@ -152,7 +154,7 @@ export function EditUserDialog({
 
   // Digital Signature Management
   const isSelf = currentUser?.id === user.id;
-  const canUploadSignature = isSystemAdmin || isSelf;
+  const canUploadSignature = isSystemAdmin || isAdmin || isSelf || can("users", "edit");
   const [isUploadingSig, setIsUploadingSig] = useState(false);
   const [showSigPreview, setShowSigPreview] = useState(false);
   const [saving, setSaving] = useState(false);

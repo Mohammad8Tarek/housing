@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useListProperties } from "@workspace/api-client-react";
 import { useAuth } from "./AuthContext";
+import { usePermission } from "@/hooks/use-permission";
 
 type Property = {
   id: number;
@@ -17,6 +18,7 @@ interface PropertyContextType {
   activeProperty: Property | undefined;
   properties: Property[];
   isSuperAdmin: boolean;
+  canSeeAllProperties?: boolean;
   setActivePropertyId: (id: number | "all") => void;
 }
 
@@ -38,12 +40,16 @@ async function saveLastPropertyId(propertyId: number | "all"): Promise<void> {
 
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
   const { user, isSystemAdmin: authIsSuperAdmin } = useAuth();
+  const { can, canView } = usePermission();
 
   const isSuperAdmin =
     authIsSuperAdmin ||
     !!user?.roles?.some((r: string) =>
       ["super_admin", "system_admin"].includes(r.toLowerCase()),
     );
+
+  const canSeeAllProperties =
+    isSuperAdmin || canView("properties") || can("dashboard", "audit");
 
   const { data: _pData } = useListProperties({
     query: {
@@ -61,7 +67,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     return user.propertyId ? [user.propertyId] : [];
   })();
 
-  const properties: Property[] = isSuperAdmin
+  const properties: Property[] = canSeeAllProperties
     ? (allProperties as Property[])
     : (allProperties as Property[]).filter((p) =>
         userPropertyIds.includes(p.id),
@@ -83,7 +89,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       const serverId = (user as any).lastPropertyId;
       let targetId: number | "all" | undefined;
 
-      if (isSuperAdmin) {
+      if (canSeeAllProperties) {
         if (serverId === -1) {
           targetId = "all";
         } else {
@@ -115,7 +121,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     } else {
       // Enforce restrictions if they have an activePropertyId
       if (
-        !isSuperAdmin &&
+        !canSeeAllProperties &&
         (activePropertyId === "all" ||
           !userPropertyIds.includes(activePropertyId as number))
       ) {
@@ -130,17 +136,17 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [user, isSuperAdmin, activePropertyId, userPropertyIds, allProperties]);
+  }, [user, canSeeAllProperties, isSuperAdmin, activePropertyId, userPropertyIds, allProperties]);
 
   const setActivePropertyId = (id: number | "all") => {
     if (id === "all") {
-      if (!isSuperAdmin) return;
+      if (!canSeeAllProperties) return;
       setActivePropertyIdState("all");
       localStorage.setItem("activePropertyId", "all");
       saveLastPropertyId("all");
       return;
     }
-    if (!isSuperAdmin && !userPropertyIds.includes(id)) return;
+    if (!canSeeAllProperties && !userPropertyIds.includes(id)) return;
     setActivePropertyIdState(id);
     localStorage.setItem("activePropertyId", String(id));
     saveLastPropertyId(id);
@@ -164,6 +170,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         activeProperty,
         properties,
         isSuperAdmin,
+        canSeeAllProperties,
         setActivePropertyId,
       }}
     >

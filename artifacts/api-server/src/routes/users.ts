@@ -22,8 +22,7 @@ import {
   UpdateUserResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requireAuth } from "../middlewares/permissions.js";
-import { requirePermission } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
 
@@ -71,8 +70,11 @@ router.get(
   "/users",
   requirePermission("users", "view"),
   async (req, res): Promise<void> => {
-    const isSystemAdmin = (req.session as any)?.isSystemAdmin;
-    const sessionPropertyId = (req.session as any)?.propertyId;
+    const authUser = (req as any).authUser;
+    const isSystemAdmin = (req.session as any)?.isSystemAdmin || Boolean(authUser?.isSystemAdmin);
+    const sessionPropertyId = (req.session as any)?.propertyId || authUser?.propertyId;
+    const hasGlobalPropertiesView = Boolean(authUser && (hasPermission(authUser, "properties", "view") || hasPermission(authUser, "dashboard", "audit")));
+    const requestedPid = req.query.propertyId ? Number(req.query.propertyId) : null;
 
     // Server-side pagination params
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -88,7 +90,15 @@ router.get(
 
     const filters = [];
     if (!isSystemAdmin) {
-      filters.push(eq(usersTable.propertyId, Number(sessionPropertyId)));
+      if (!hasGlobalPropertiesView) {
+        if (requestedPid && (authUser?.propertyIds ?? []).includes(requestedPid)) {
+          filters.push(eq(usersTable.propertyId, requestedPid));
+        } else if (sessionPropertyId) {
+          filters.push(eq(usersTable.propertyId, Number(sessionPropertyId)));
+        }
+      } else if (requestedPid) {
+        filters.push(eq(usersTable.propertyId, requestedPid));
+      }
       filters.push(
         not(
           or(
@@ -98,6 +108,8 @@ router.get(
           )!
         )
       );
+    } else if (requestedPid) {
+      filters.push(eq(usersTable.propertyId, requestedPid));
     }
 
     if (search) {
