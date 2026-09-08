@@ -119,10 +119,6 @@ export function useWebSocket(): { isConnected: boolean } {
         },
         refetchType: "active",
       });
-      queryClient.invalidateQueries({
-        type: "active",
-        refetchType: "active",
-      });
     },
     [queryClient],
   );

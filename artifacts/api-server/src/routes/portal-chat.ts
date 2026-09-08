@@ -425,7 +425,11 @@ router.post(
       await broadcastToProperty(sess.propertyId, {
         module: "chat",
         action: "typing_start",
-        data: { conversationId: convId, profileId: sess.profileDbId },
+        data: {
+          conversationId: convId,
+          profileId: sess.profileDbId,
+          employeeId: sess.profileDbId,
+        },
       });
 
       return res.json({ success: true });
