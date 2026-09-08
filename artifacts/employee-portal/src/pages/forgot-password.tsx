@@ -47,10 +47,11 @@ export default function ForgotPassword() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          employeeId,
-          nationalId,
-          roomNumber,
-          dateOfBirth,
+          employeeId: employeeId.trim(),
+          profileId: employeeId.trim(),
+          nationalId: nationalId.trim(),
+          roomNumber: roomNumber.trim(),
+          dateOfBirth: dateOfBirth.trim(),
         }),
       });
 

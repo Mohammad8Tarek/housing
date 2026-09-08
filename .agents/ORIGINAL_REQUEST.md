@@ -40,3 +40,44 @@ Integrity mode: development
 - [ ] User creation, editing, and custom permission assignment save successfully via the API with immediate query invalidation and success toasts.
 - [ ] Protected endpoints and actions respect the assigned permissions in both frontend (`<PermissionGate>`) and backend API routes.
 - [ ] Frontend production build (`cd artifacts/housing && npm run build`) executes cleanly with exit code 0.
+
+## 2026-09-08T13:32:04Z
+
+Comprehensive end-to-end automated testing of every interactive element, button, modal dialog, permission check, and business workflow across the entire Sunrise Staff Housing Management system and the Employee Portal.
+
+Working directory: e:\lab\Sunrise-Housing-FULL\final_project
+
+## Requirements
+
+### R1. Housing Core UI & Button Interaction Suite
+Automated execution and validation of every interactive button, dropdown, tab, search bar, filter, and pagination control across Dashboard, Housing (Buildings/Floors/Rooms/Housekeeping), Profiles, Accommodation (In-House, Reservations, Room Assignment, History, Guest Hosting), Maintenance, Users & Permissions, Settings, and Activity Log.
+
+### R2. Dual-Layer RBAC & Permission Matrix Verification
+Systematic verification that all UI buttons and backend API endpoints enforce dual-layer role-based access control (`PermissionGate` on frontend and `requirePermission` on backend) across standard roles, custom role matrices, and single/multi-property user accounts.
+
+### R3. Employee Portal Comprehensive Flow Testing
+Full automated testing of the Employee Portal (`artifacts/employee-portal`) covering login, biometric fallback, dashboard requests, request detail view, image zoom modal, back navigation, and password update workflows.
+
+### R4. Zero-Data-Loss & Negative Boundary Assertions
+Execution of negative edge cases, concurrent operations, and input boundary validations ensuring zero unhandled exceptions, zero data loss, and graceful error boundaries.
+
+## Acceptance Criteria
+
+### Automated Button & UI Coverage
+- [ ] Every button, action menu item, modal trigger, and tab in the Housing frontend is visited and clicked with zero uncaught runtime exceptions in the browser console.
+- [ ] Every form submission validates required inputs and produces proper bilingual feedback toasts.
+- [ ] All table pagination, page size selectors, and debounced search inputs return valid records without resets or UI freezes.
+
+### Dual-Layer RBAC Enforcement
+- [ ] Users without specific permissions have corresponding action buttons hidden or disabled by `<PermissionGate>`.
+- [ ] Direct API requests without adequate permissions return HTTP 403 Forbidden.
+- [ ] Single-property users are restricted strictly to their assigned property schema without data leaks.
+
+### Employee Portal Verification
+- [ ] Authentication guards properly redirect unauthenticated users to `/login`.
+- [ ] Request details view correctly displays matching request by ID, allows zooming image, and returns via back button.
+- [ ] Portal console remains at 0 uncaught errors during complete user session.
+
+### Full System Health Report
+- [ ] Automated execution report generated detailing pass/fail status, response times, and DOM coverage percentage.
+

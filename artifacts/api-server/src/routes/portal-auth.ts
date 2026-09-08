@@ -983,12 +983,47 @@ router.post(
   },
 );
 
-const ForgotPasswordVerifySchema = z.object({
-  profileId: z.string().min(1),
-  nationalId: z.string().min(1),
-  roomNumber: z.string().min(1),
-  dateOfBirth: z.string().min(1),
-});
+function toAsciiDigits(str: string): string {
+  return (str ?? "").replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+}
+
+function normalizeDateOnly(val: unknown): string {
+  if (!val) return "";
+  if (val instanceof Date) {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const y = val.getFullYear();
+    const m = pad(val.getMonth() + 1);
+    const d = pad(val.getDate());
+    return `${y}-${m}-${d}`;
+  }
+  let str = toAsciiDigits(String(val)).trim();
+  // YYYY-MM-DD or YYYY/MM/DD
+  const ymd = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/.exec(str);
+  if (ymd) {
+    return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}`;
+  }
+  // DD/MM/YYYY or DD-MM-YYYY
+  const dmy = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/.exec(str);
+  if (dmy) {
+    return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+  }
+  return str;
+}
+
+const ForgotPasswordVerifySchema = z
+  .object({
+    profileId: z.string().optional(),
+    employeeId: z.string().optional(),
+    nationalId: z.string().min(1, "National ID is required"),
+    roomNumber: z.string().min(1, "Room number is required"),
+    dateOfBirth: z.string().min(1, "Date of birth is required"),
+  })
+  .refine(
+    (data) => Boolean((data.profileId || data.employeeId || "").trim()),
+    {
+      message: "Missing required fields",
+    },
+  );
 
 router.post(
   "/forgot-password/verify",
@@ -1003,7 +1038,13 @@ router.post(
         return;
       }
 
-      const { profileId, nationalId, roomNumber, dateOfBirth } = parsed.data;
+      const rawProfileId = (
+        parsed.data.profileId ||
+        parsed.data.employeeId ||
+        ""
+      ).trim();
+      const profileId = toAsciiDigits(rawProfileId).trim();
+      const { nationalId, roomNumber, dateOfBirth } = parsed.data;
       const properties = await db.select().from(propertiesTable);
 
       let profile: any = null;
@@ -1017,15 +1058,26 @@ router.post(
             const [emp] = await tenantDb
               .select()
               .from(profilesTable)
-              .where(eq(profilesTable.profileId, profileId.trim()))
+              .where(
+                or(
+                  eq(profilesTable.profileId, profileId),
+                  eq(profilesTable.profileId, rawProfileId),
+                  ilike(profilesTable.profileId, profileId),
+                ),
+              )
               .limit(1);
             if (!emp) return null;
             const [acc] = await tenantDb
               .select()
               .from(profilePortalAccountsTable)
               .where(
-                eq(profilePortalAccountsTable.profileId, profileId.trim()),
+                or(
+                  eq(profilePortalAccountsTable.profileId, emp.profileId),
+                  eq(profilePortalAccountsTable.profileId, profileId),
+                  eq(profilePortalAccountsTable.profileId, rawProfileId),
+                ),
               )
+              .orderBy(sql`id DESC`)
               .limit(1);
             const [st] = await tenantDb.select().from(settingsTable).limit(1);
             return { emp, acc, propertyId: p.id, st };
@@ -1042,12 +1094,25 @@ router.post(
 
       const genericErrorMsg = "المعلومات المدخلة غير صحيحة";
 
-      if (!profile || !account || !targetPropertyId) {
+      if (!profile || !targetPropertyId) {
         res.status(400).json({ success: false, message: genericErrorMsg });
         return;
       }
 
-      if (account.resetLockedUntil && account.resetLockedUntil > new Date()) {
+      if (!account) {
+        await ensureProfilePortalAccount(targetPropertyId, profile.profileId);
+        account = await withTenant(targetPropertyId, async (tenantDb) => {
+          const [acc] = await tenantDb
+            .select()
+            .from(profilePortalAccountsTable)
+            .where(eq(profilePortalAccountsTable.profileId, profile.profileId))
+            .orderBy(sql`id DESC`)
+            .limit(1);
+          return acc;
+        });
+      }
+
+      if (account?.resetLockedUntil && account.resetLockedUntil > new Date()) {
         res
           .status(429)
           .json({
@@ -1077,15 +1142,27 @@ router.post(
         },
       );
 
-      const isNationalIdMatch =
-        profile.nationalId &&
-        profile.nationalId.trim().toLowerCase() ===
-          nationalId.trim().toLowerCase();
+      const cleanInputNationalId = toAsciiDigits(nationalId).replace(/\D/g, "");
+      const cleanDbNationalId = profile.nationalId
+        ? toAsciiDigits(String(profile.nationalId)).replace(/\D/g, "")
+        : "";
+      const isNationalIdMatch = Boolean(
+        cleanDbNationalId && cleanDbNationalId === cleanInputNationalId,
+      );
 
-      const empDobStr = profile.dateOfBirth ? String(profile.dateOfBirth).trim() : "";
-      const isDobMatch = empDobStr && empDobStr === dateOfBirth.trim();
-      const isRoomMatch =
-        assignment && assignment.roomNumber === roomNumber.trim();
+      const cleanInputDob = normalizeDateOnly(dateOfBirth);
+      const cleanDbDob = normalizeDateOnly(profile.dateOfBirth);
+      const isDobMatch = Boolean(cleanDbDob && cleanDbDob === cleanInputDob);
+
+      const cleanInputRoom = toAsciiDigits(roomNumber).trim().toLowerCase();
+      const cleanDbRoom = assignment?.roomNumber
+        ? toAsciiDigits(String(assignment.roomNumber)).trim().toLowerCase()
+        : "";
+      const isRoomMatch = Boolean(
+        cleanDbRoom &&
+          (cleanDbRoom === cleanInputRoom ||
+            cleanDbRoom.replace(/^0+/, "") === cleanInputRoom.replace(/^0+/, "")),
+      );
 
       if (!isNationalIdMatch || !isDobMatch || !isRoomMatch) {
         await withTenant(targetPropertyId, async (tenantDb) => {

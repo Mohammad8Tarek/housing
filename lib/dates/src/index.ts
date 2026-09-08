@@ -24,6 +24,10 @@ function isRealDate(d: unknown): d is Date {
   );
 }
 
+export function toAsciiDigits(str: string): string {
+  return (str ?? "").replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+}
+
 /** Parse Date | ISO/datetime string | timestamp → Date at local time (null when invalid). */
 export function toDate(value: DateInput): Date | null {
   if (value == null) return null;
@@ -32,7 +36,7 @@ export function toDate(value: DateInput): Date | null {
     const d = new Date(value);
     return isRealDate(d) ? d : null;
   }
-  const trimmed = String(value).trim();
+  const trimmed = toAsciiDigits(String(value)).trim();
   if (!trimmed) return null;
   // Strict ISO calendar prefix first (avoids TZ-shift surprises for date-only strings).
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
@@ -109,7 +113,7 @@ export function parseDMY(
   min?: string,
   max?: string,
 ): string | null {
-  const trimmed = (input ?? "").trim();
+  const trimmed = toAsciiDigits(input ?? "").trim();
   if (!trimmed) return null;
   const digits = trimmed.replace(/\D/g, "");
   let day: number;
