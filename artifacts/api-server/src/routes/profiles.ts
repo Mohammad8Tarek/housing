@@ -172,7 +172,7 @@ router.get(
   },
 );
 
-/* Cross-property profile search (خاص بـ SYSTEM_ADMIN) */
+/* Cross-property profile search */
 router.get(
   "/profiles/search",
   requirePermission("profiles", "view"),
@@ -189,63 +189,96 @@ router.get(
           ilike(profilesTable.profileId, term),
           ilike(profilesTable.nationalId, term),
           ilike(profilesTable.department, term),
+          ilike(profilesTable.jobTitle, term),
+          ilike(profilesTable.phone, term),
+          ilike(roomsTable.roomNumber, term),
         ) as SQL,
       );
     }
 
-    // في حالة الـ Multi-tenant, الـ search في كل الـ properties بيحتاج يجيب كل الـ schemas
-    // لتبسيط هذا الكود حالياً: سنبحث فقط في الـ property المحددة أو نرجع فارغ (يجب تطويرها لاحقاً للبحث الشامل)
-    const pId = Number(propertyId);
-    if (!pId) {
+    if (conditions.length === 0) {
       res.json([]);
       return;
     }
 
-    const rows = await withTenant(pId, async (tenantDb) => {
-      if (conditions.length === 0) return [];
-
-      const queryResult = await tenantDb
-        .select({
-          profile: profilesTable,
-          accommodationRoom: roomsTable.roomNumber,
-          accommodationRoomType: roomsTable.roomType,
-          accommodationBuilding: buildingsTable.name,
-          accommodationFloor: floorsTable.floorNumber,
-        })
-        .from(profilesTable)
-        .leftJoin(
-          assignmentsTable,
-          and(
-            eq(assignmentsTable.profileId, profilesTable.id),
-            eq(assignmentsTable.status, "ACTIVE"),
-          ),
-        )
-        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
-        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
-        .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
-        .where(and(...conditions))
-        .limit(30);
-
-      return queryResult.map((r) => ({
-        ...r.profile,
-        accommodationRoom: r.accommodationRoom,
-        accommodationRoomType: r.accommodationRoomType,
-        accommodationBuilding: r.accommodationBuilding,
-        accommodationFloor: r.accommodationFloor,
-      }));
-    });
+    const authUser = (req.session as any)?.user;
+    const sessionPid = (req.session as any)?.propertyId || authUser?.propertyId;
+    const userPropertyIds: number[] =
+      authUser?.propertyIds ?? (sessionPid ? [Number(sessionPid)] : []);
 
     const properties = await db
       .select({ id: propertiesTable.id, name: propertiesTable.name })
       .from(propertiesTable);
     const propMap = Object.fromEntries(properties.map((p) => [p.id, p.name]));
 
-    const result = rows.map((e) => ({
-      ...e,
-      propertyId: pId,
-      propertyName: propMap[pId] ?? null,
-    }));
-    res.json(filterSensitive(result, req));
+    let targetPropertyIds: number[] = [];
+    const requestedPid = Number(propertyId);
+
+    if (requestedPid && !isNaN(requestedPid)) {
+      targetPropertyIds = [requestedPid];
+    } else {
+      // If propertyId is omitted or "all", determine accessible properties
+      if (
+        (req.session as any)?.isSystemAdmin ||
+        authUser?.isSystemAdmin ||
+        hasPermission(authUser, "properties", "view") ||
+        hasPermission(authUser, "dashboard", "audit")
+      ) {
+        targetPropertyIds = properties.map((p) => p.id);
+      } else if (userPropertyIds.length > 0) {
+        targetPropertyIds = userPropertyIds;
+      } else if (sessionPid) {
+        targetPropertyIds = [Number(sessionPid)];
+      } else {
+        targetPropertyIds = properties.map((p) => p.id);
+      }
+    }
+
+    const aggregated: any[] = [];
+
+    for (const pId of targetPropertyIds) {
+      if (aggregated.length >= 30) break;
+      try {
+        const rows = await withTenant(pId, async (tenantDb) => {
+          const queryResult = await tenantDb
+            .select({
+              profile: profilesTable,
+              accommodationRoom: roomsTable.roomNumber,
+              accommodationRoomType: roomsTable.roomType,
+              accommodationBuilding: buildingsTable.name,
+              accommodationFloor: floorsTable.floorNumber,
+            })
+            .from(profilesTable)
+            .leftJoin(
+              assignmentsTable,
+              and(
+                eq(assignmentsTable.profileId, profilesTable.id),
+                eq(assignmentsTable.status, "ACTIVE"),
+              ),
+            )
+            .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+            .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+            .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
+            .where(and(...conditions))
+            .limit(30 - aggregated.length);
+
+          return queryResult.map((r) => ({
+            ...r.profile,
+            accommodationRoom: r.accommodationRoom,
+            accommodationRoomType: r.accommodationRoomType,
+            accommodationBuilding: r.accommodationBuilding,
+            accommodationFloor: r.accommodationFloor,
+            propertyId: pId,
+            propertyName: propMap[pId] ?? null,
+          }));
+        });
+        aggregated.push(...rows);
+      } catch (err) {
+        console.warn(`[profiles/search] Error querying tenant ${pId}:`, err);
+      }
+    }
+
+    res.json(filterSensitive(aggregated, req));
   },
 );
 

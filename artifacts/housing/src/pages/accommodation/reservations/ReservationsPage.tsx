@@ -163,9 +163,19 @@ export default function ReservationsPage() {
   const [empResults, setEmpResults] = useState<ProfileResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [searchPropertyId, setSearchPropertyId] = useState<string>("all");
+  const [searchPropertyId, setSearchPropertyId] = useState<string>(
+    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
+  );
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (activePropertyId && activePropertyId !== "all") {
+      setSearchPropertyId(String(activePropertyId));
+    } else if (allProperties && allProperties.length === 1) {
+      setSearchPropertyId(String(allProperties[0].id));
+    }
+  }, [activePropertyId, allProperties]);
 
   // Full New Person Profile State
   const [newForm, setNewForm] = useState({
@@ -648,7 +658,7 @@ export default function ReservationsPage() {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!empSearch.trim() || empSearch.trim().length < 2) {
+    if (!empSearch.trim() || empSearch.trim().length < 1) {
       setEmpResults([]);
       setShowDropdown(false);
       return;
@@ -656,7 +666,11 @@ export default function ReservationsPage() {
     debounceRef.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const pp = searchPropertyId !== "all" ? `&propertyId=${searchPropertyId}` : "";
+        const effectivePropId =
+          searchPropertyId && searchPropertyId !== "all"
+            ? searchPropertyId
+            : (activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "");
+        const pp = effectivePropId ? `&propertyId=${effectivePropId}` : "";
         const resp = await fetch(`/api/profiles/search?q=${encodeURIComponent(empSearch.trim())}${pp}`, { credentials: "include" });
         setEmpResults(await resp.json());
         setShowDropdown(true);
@@ -666,7 +680,7 @@ export default function ReservationsPage() {
         setIsSearching(false);
       }
     }, 300);
-  }, [empSearch, searchPropertyId]);
+  }, [empSearch, searchPropertyId, activePropertyId]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {

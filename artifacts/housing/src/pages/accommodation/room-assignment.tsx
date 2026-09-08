@@ -116,12 +116,22 @@ export default function RoomAssignment() {
   const [isFamilyHousing, setIsFamilyHousing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [searchPropertyId, setSearchPropertyId] = useState<string>("all");
+  const [searchPropertyId, setSearchPropertyId] = useState<string>(
+    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
+  );
 
   const { data: _pData } = useListProperties({
     query: { queryKey: ["/api/properties"] },
   });
   const allProperties = _pData || [];
+
+  useEffect(() => {
+    if (activePropertyId && activePropertyId !== "all") {
+      setSearchPropertyId(String(activePropertyId));
+    } else if (allProperties && allProperties.length === 1) {
+      setSearchPropertyId(String(allProperties[0].id));
+    }
+  }, [activePropertyId, allProperties]);
   const { data: settings } = useGetSettings(undefined, {
     query: {
       queryKey: ["/api/settings"],
@@ -515,7 +525,7 @@ export default function RoomAssignment() {
   /* Cross-property profile search */
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!empSearch.trim() || empSearch.trim().length < 2) {
+    if (!empSearch.trim() || empSearch.trim().length < 1) {
       setEmpResults([]);
       setShowDropdown(false);
       return;
@@ -523,8 +533,11 @@ export default function RoomAssignment() {
     debounceRef.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const propParam =
-          searchPropertyId !== "all" ? `&propertyId=${searchPropertyId}` : "";
+        const effectivePropId =
+          searchPropertyId && searchPropertyId !== "all"
+            ? searchPropertyId
+            : (activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "");
+        const propParam = effectivePropId ? `&propertyId=${effectivePropId}` : "";
         const resp = await fetch(
           `/api/profiles/search?q=${encodeURIComponent(empSearch.trim())}${propParam}`,
         );
@@ -537,7 +550,7 @@ export default function RoomAssignment() {
         setIsSearching(false);
       }
     }, 300);
-  }, [empSearch, searchPropertyId]);
+  }, [empSearch, searchPropertyId, activePropertyId]);
 
   /* Close dropdown on outside click */
   useEffect(() => {
