@@ -169,14 +169,6 @@ export default function ReservationsPage() {
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (activePropertyId && activePropertyId !== "all") {
-      setSearchPropertyId(String(activePropertyId));
-    } else if (allProperties && allProperties.length === 1) {
-      setSearchPropertyId(String(allProperties[0].id));
-    }
-  }, [activePropertyId, allProperties]);
-
   // Full New Person Profile State
   const [newForm, setNewForm] = useState({
     profileId: "",
@@ -363,6 +355,14 @@ export default function ReservationsPage() {
 
   const { data: _pData } = useListProperties();
   const allProperties = _pData?.data || _pData || [];
+
+  useEffect(() => {
+    if (activePropertyId && activePropertyId !== "all") {
+      setSearchPropertyId(String(activePropertyId));
+    } else if (allProperties && allProperties.length === 1) {
+      setSearchPropertyId(String(allProperties[0].id));
+    }
+  }, [activePropertyId, allProperties]);
   const { data: settings } = useGetSettings({ query: { enabled: !!activePropertyId } });
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
   const { data: departmentValues = [] } = useLookupValues(activePropertyId, LOOKUP_CATEGORIES.DEPARTMENT);
