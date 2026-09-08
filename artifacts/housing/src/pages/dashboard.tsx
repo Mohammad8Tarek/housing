@@ -84,6 +84,7 @@ export default function Dashboard() {
     activeProperty,
     properties,
     isSuperAdmin,
+    canSeeAllProperties,
     setActivePropertyId,
   } = useProperty();
   const [, setLocation] = useLocation();
@@ -258,7 +259,7 @@ export default function Dashboard() {
             {ar ? "كل الفروع" : "ALL"}
           </Badge>
         )}
-        {!isAll && isSuperAdmin && activeProperty && (
+        {!isAll && (isSuperAdmin || canSeeAllProperties) && activeProperty && (
           <Badge
             variant="outline"
             className="text-xs px-3 py-1 border-primary/40 text-primary font-mono"

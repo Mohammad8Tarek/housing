@@ -1476,7 +1476,7 @@ export default function GuestHosting() {
                       )}
                       {isHVisible("actions") && (
                         <TableCell>
-                          {(h.status !== "COMPLETED" && h.status !== "CANCELLED") || isSystemAdmin ? (
+                          {(h.status !== "COMPLETED" && h.status !== "CANCELLED") || can("guest_hosting", "edit") ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
@@ -1552,15 +1552,12 @@ export default function GuestHosting() {
                                     )}
                                   </>
                                 )}
-                                {(h.status === "PENDING" ||
-                                  h.status === "APPROVED" ||
-                                  isSystemAdmin) &&
-                                  can("guest_hosting", "edit") && (
-                                    <DropdownMenuItem onClick={() => openEdit(h)}>
-                                      <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                                      {ar ? "تعديل" : "Edit"}
-                                    </DropdownMenuItem>
-                                  )}
+                                {can("guest_hosting", "edit") && (
+                                  <DropdownMenuItem onClick={() => openEdit(h)}>
+                                    <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                                    {ar ? "تعديل" : "Edit"}
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           ) : (
