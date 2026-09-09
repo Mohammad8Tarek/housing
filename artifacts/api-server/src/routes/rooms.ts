@@ -1034,7 +1034,7 @@ router.delete(
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
-      const roomId = parseInt(req.params.id as string, 10);
+      const roomId = parseInt(String(req.params.id), 10);
       if (isNaN(roomId)) {
         res.status(400).json({ error: "Invalid room ID" });
         return;

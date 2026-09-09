@@ -17,6 +17,11 @@ import {
   useListRooms,
   useListAssignments,
   useListProfiles,
+  getListBuildingsQueryKey,
+  getListFloorsQueryKey,
+  getListRoomsQueryKey,
+  getListAssignmentsQueryKey,
+  getListProfilesQueryKey,
 } from "@workspace/api-client-react";
 
 import { RoomSpaceViewTab } from "./components/RoomSpaceViewTab";
@@ -53,28 +58,28 @@ export function HousingPage() {
   const hasAccommodation = can("accommodation", "view");
   const hasProfiles = can("profiles", "view");
 
-  const { data: bData, isLoading: bLoading } = useListBuildings(
-    { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { queryKey: ["buildings", activePropertyId, 1000], enabled: !!activePropertyId } as any },
-  );
-  const { data: fData, isLoading: fLoading } = useListFloors(
-    { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { queryKey: ["floors", activePropertyId, 1000], enabled: !!activePropertyId } as any },
-  );
-  const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
-    { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { queryKey: ["rooms", activePropertyId, 1000], enabled: !!activePropertyId } },
-  );
+  const bParams = { propertyId: activePropertyId as number, limit: 1000 } as any;
+  const { data: bData, isLoading: bLoading } = useListBuildings(bParams, {
+    query: { queryKey: getListBuildingsQueryKey(bParams), enabled: !!activePropertyId },
+  });
+  const fParams = { propertyId: activePropertyId as number, limit: 1000 } as any;
+  const { data: fData, isLoading: fLoading } = useListFloors(fParams, {
+    query: { queryKey: getListFloorsQueryKey(fParams), enabled: !!activePropertyId },
+  });
+  const rParams = { propertyId: activePropertyId as number, limit: 1000 } as any;
+  const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(rParams, {
+    query: { queryKey: getListRoomsQueryKey(rParams), enabled: !!activePropertyId },
+  });
   const rData = (_rDataWrapper as any)?.data || _rDataWrapper || [];
-  const { data: aData } = useListAssignments(
-    { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { queryKey: ["assignments", activePropertyId, 1000], enabled: !!activePropertyId && hasAccommodation } as any },
-  );
+  const aParams = { propertyId: activePropertyId as number, limit: 1000 } as any;
+  const { data: aData } = useListAssignments(aParams, {
+    query: { queryKey: getListAssignmentsQueryKey(aParams), enabled: !!activePropertyId && hasAccommodation },
+  });
 
-  const { data: eDataWrapper } = useListProfiles(
-    { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { queryKey: ["profiles", activePropertyId, 1000], enabled: !!activePropertyId && hasProfiles } as any },
-  );
+  const eParams = { propertyId: activePropertyId as number, limit: 1000 } as any;
+  const { data: eDataWrapper } = useListProfiles(eParams, {
+    query: { queryKey: getListProfilesQueryKey(eParams), enabled: !!activePropertyId && hasProfiles },
+  });
   const eData = (eDataWrapper as any)?.data || eDataWrapper || [];
   if (!activePropertyId) {
     return (
@@ -92,7 +97,7 @@ export function HousingPage() {
 
   const buildings = (bData as any)?.data || bData || [];
   const floors = (fData as any)?.data || fData || [];
-  const rooms = (rData as any)?.data || rData || [];
+  const rooms = rData || [];
   const assignments = (aData as any)?.data || aData || [];
   const profiles = (eData as any)?.profiles || eData || [];
 
