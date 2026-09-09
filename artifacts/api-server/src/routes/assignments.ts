@@ -1073,7 +1073,13 @@ router.post(
           bedNumber: isEntireRoomRequested ? (parsed.data.newBedNumber || 1) : (parsed.data.newBedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
           checkInDate: nowStr,
-          notes: `تم النقل من الغرفة ${oldRoom?.roomNumber || assignment.roomId}`,
+          notes: [
+            assignment.notes,
+            `تم النقل من الغرفة ${oldRoom?.roomNumber || assignment.roomId} إلى الغرفة ${newRoom.roomNumber}`,
+            parsed.data.transferReason
+              ? `السبب: ${parsed.data.transferReason}`
+              : null,
+          ].filter(Boolean).join(" | "),
         })
         .where(eq(assignmentsTable.id, params.data.id))
         .returning();
