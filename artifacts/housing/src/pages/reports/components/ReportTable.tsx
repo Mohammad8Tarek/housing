@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -9,7 +10,15 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Bed, Building, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Bed, Building, Clock, AlertTriangle, CheckCircle2, Eye, PackageCheck } from "lucide-react";
 import { roomStatusBadge, getRoomStatusLabel } from "@/pages/housing/utils";
 import { SortableHead } from "@/components/ui/sortable-head";
 
@@ -20,6 +29,7 @@ export function ReportTable({
   selectedRows,
   setSelectedRows,
   activeTab,
+  inventoryViewMode = "summary",
   ar,
   sort,
   onSortToggle,
@@ -28,6 +38,7 @@ export function ReportTable({
   empMap,
   roomMap,
 }: any) {
+  const [selectedItemRooms, setSelectedItemRooms] = useState<any | null>(null);
   const H = (sortKey: string, label: React.ReactNode, className?: string) => (
     <SortableHead
       label={label}
@@ -230,16 +241,27 @@ export function ReportTable({
 
             {/* 10. EQUIPMENT INVENTORY HEADERS */}
             {activeTab === "equipment_inventory" && (
-              <>
-                {H("roomNumber", ar ? "الغرفة والموقع" : "Room & Location")}
-                {H("itemName", ar ? "اسم المعدة / القطعة" : "Equipment / Item")}
-                {H("category", ar ? "التصنيف" : "Category")}
-                {H("quantity", ar ? "العدد" : "Qty", "text-center")}
-                {H("condition", ar ? "الحالة" : "Condition")}
-                {H("serialNumber", ar ? "الرقم التسلسلي / الكود" : "Serial / Asset Tag")}
-                {H("lastInspectedAt", ar ? "تاريخ الفحص" : "Last Inspected")}
-                {H("notes", ar ? "ملاحظات" : "Notes")}
-              </>
+              inventoryViewMode === "summary" ? (
+                <>
+                  {H("itemName", ar ? "اسم العهدة / المعدة" : "Equipment / Item")}
+                  {H("category", ar ? "التصنيف" : "Category")}
+                  {H("totalQuantity", ar ? "إجمالي الكمية بالسكن" : "Total in Housing", "text-center")}
+                  <TableHead className="text-start">{ar ? "الحالة التشغيلية" : "Condition Breakdown"}</TableHead>
+                  {H("roomsCount", ar ? "عدد الغرف" : "Rooms Count", "text-center")}
+                  <TableHead className="text-start">{ar ? "تفاصيل وتوزيع الغرف" : "Rooms Breakdown"}</TableHead>
+                </>
+              ) : (
+                <>
+                  {H("roomNumber", ar ? "الغرفة والموقع" : "Room & Location")}
+                  {H("itemName", ar ? "اسم المعدة / القطعة" : "Equipment / Item")}
+                  {H("category", ar ? "التصنيف" : "Category")}
+                  {H("quantity", ar ? "العدد" : "Qty", "text-center")}
+                  {H("condition", ar ? "الحالة" : "Condition")}
+                  {H("serialNumber", ar ? "الرقم التسلسلي / الكود" : "Serial / Asset Tag")}
+                  {H("lastInspectedAt", ar ? "تاريخ الفحص" : "Last Inspected")}
+                  {H("notes", ar ? "ملاحظات" : "Notes")}
+                </>
+              )
             )}
           </TableRow>
         </TableHeader>
@@ -656,98 +678,269 @@ export function ReportTable({
 
                 {/* 10. EQUIPMENT INVENTORY ROWS */}
                 {activeTab === "equipment_inventory" && (
-                  <>
-                    <TableCell>
-                      <div className="font-semibold text-sm">
-                        {ar ? "غرفة" : "Room"} {row.roomNumber}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                        <span>{row.buildingName}</span>
-                        <span>•</span>
-                        <span>{row.floorName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-sm text-foreground flex items-center gap-1.5">
-                        <span>{row.itemName}</span>
-                      </div>
-                      {row.modelNumber && row.modelNumber !== "—" && (
-                        <div className="text-[11px] text-muted-foreground">
-                          {row.modelNumber}
+                  inventoryViewMode === "summary" ? (
+                    <>
+                      <TableCell>
+                        <div className="font-semibold text-sm text-foreground flex items-center gap-2">
+                          <PackageCheck className="w-4 h-4 text-cyan-600 shrink-0" />
+                          <span>{row.itemName}</span>
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs capitalize font-medium">
-                        {ar
-                          ? row.category === "electronics" ? "إلكترونيات وشاشات"
-                          : row.category === "appliances" ? "أجهزة وتكييف"
-                          : row.category === "furniture" ? "أثاث"
-                          : row.category === "fixtures" ? "مرافق وخزائن"
-                          : row.category === "linen" ? "مفروشات"
-                          : "أخرى"
-                          : row.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center font-bold text-sm">
-                      {row.quantity || 1}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          row.condition === "good"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold"
-                            : row.condition === "fair"
-                            ? "bg-blue-50 text-blue-700 border-blue-200 text-xs"
-                            : row.condition === "needs_repair"
-                            ? "bg-amber-50 text-amber-700 border-amber-200 text-xs font-bold"
-                            : row.condition === "damaged"
-                            ? "bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold"
-                            : "bg-purple-50 text-purple-700 border-purple-200 text-xs font-bold"
-                        }
-                      >
-                        {ar
-                          ? row.condition === "good" ? "ممتاز / سليم"
-                          : row.condition === "fair" ? "مقبول / يعمل"
-                          : row.condition === "needs_repair" ? "بحاجة لصيانة"
-                          : row.condition === "damaged" ? "تالف / معطل"
-                          : row.condition === "missing" ? "مفقود"
-                          : row.condition
-                          : row.condition === "good" ? "Good / OK"
-                          : row.condition === "fair" ? "Fair"
-                          : row.condition === "needs_repair" ? "Needs Repair"
-                          : row.condition === "damaged" ? "Damaged"
-                          : row.condition === "missing" ? "Missing"
-                          : row.condition}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs font-mono text-foreground">
-                        {row.serialNumber && row.serialNumber !== "—" ? row.serialNumber : (row.barcode || "—")}
-                      </div>
-                      {row.barcode && row.barcode !== "—" && row.serialNumber && row.serialNumber !== "—" && (
-                        <div className="text-[10px] text-muted-foreground font-mono">
-                          Tag: {row.barcode}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs capitalize font-medium">
+                          {ar
+                            ? row.category === "electronics" ? "إلكترونيات وشاشات"
+                            : row.category === "appliances" ? "أجهزة وتكييف"
+                            : row.category === "furniture" ? "أثاث"
+                            : row.category === "fixtures" ? "مرافق وخزائن"
+                            : row.category === "linen" ? "مفروشات"
+                            : "أخرى"
+                            : row.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="inline-flex items-center justify-center min-w-[38px] px-2.5 py-1 text-sm font-bold rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 shadow-xs">
+                          {row.totalQuantity}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {row.goodCount > 0 && (
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-semibold">
+                              {ar ? "سليم" : "Good"}: {row.goodCount}
+                            </Badge>
+                          )}
+                          {row.needsRepairCount > 0 && (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[11px] font-bold">
+                              {ar ? "صيانة" : "Repair"}: {row.needsRepairCount}
+                            </Badge>
+                          )}
+                          {row.damagedCount > 0 && (
+                            <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-[11px] font-bold">
+                              {ar ? "تالف" : "Damaged"}: {row.damagedCount}
+                            </Badge>
+                          )}
+                          {row.missingCount > 0 && (
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[11px] font-bold">
+                              {ar ? "مفقود" : "Missing"}: {row.missingCount}
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs text-muted-foreground">{row.lastInspectedAt || "—"}</div>
-                      {row.inspectedBy && row.inspectedBy !== "—" && (
-                        <div className="text-[10px] text-muted-foreground">{row.inspectedBy}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[160px] truncate text-xs text-muted-foreground" title={row.notes}>
-                      {row.notes || "—"}
-                    </TableCell>
-                  </>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary" className="text-xs font-semibold">
+                          {row.roomsCount} {ar ? "غرفة" : "rooms"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1.5 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800 hover:bg-cyan-50 dark:hover:bg-cyan-950/40"
+                            onClick={() => setSelectedItemRooms(row)}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            {ar ? "استعراض الغرف" : "View Rooms"}
+                            <span className="text-[10px] text-muted-foreground font-mono">({row.roomsCount})</span>
+                          </Button>
+                          <span className="text-[11px] text-muted-foreground truncate max-w-[140px]" title={row.roomsSummary}>
+                            {row.roomsSummary}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell>
+                        <div className="font-semibold text-sm">
+                          {ar ? "غرفة" : "Room"} {row.roomNumber}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <span>{row.buildingName}</span>
+                          <span>•</span>
+                          <span>{row.floorName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-sm text-foreground flex items-center gap-1.5">
+                          <span>{row.itemName}</span>
+                        </div>
+                        {row.modelNumber && row.modelNumber !== "—" && (
+                          <div className="text-[11px] text-muted-foreground">
+                            {row.modelNumber}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs capitalize font-medium">
+                          {ar
+                            ? row.category === "electronics" ? "إلكترونيات وشاشات"
+                            : row.category === "appliances" ? "أجهزة وتكييف"
+                            : row.category === "furniture" ? "أثاث"
+                            : row.category === "fixtures" ? "مرافق وخزائن"
+                            : row.category === "linen" ? "مفروشات"
+                            : "أخرى"
+                            : row.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-sm">
+                        {row.quantity || 1}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            row.condition === "good"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold"
+                              : row.condition === "fair"
+                              ? "bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                              : row.condition === "needs_repair"
+                              ? "bg-amber-50 text-amber-700 border-amber-200 text-xs font-bold"
+                              : row.condition === "damaged"
+                              ? "bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold"
+                              : "bg-purple-50 text-purple-700 border-purple-200 text-xs font-bold"
+                          }
+                        >
+                          {ar
+                            ? row.condition === "good" ? "ممتاز / سليم"
+                            : row.condition === "fair" ? "مقبول / يعمل"
+                            : row.condition === "needs_repair" ? "بحاجة لصيانة"
+                            : row.condition === "damaged" ? "تالف / معطل"
+                            : row.condition === "missing" ? "مفقود"
+                            : row.condition
+                            : row.condition === "good" ? "Good / OK"
+                            : row.condition === "fair" ? "Fair"
+                            : row.condition === "needs_repair" ? "Needs Repair"
+                            : row.condition === "damaged" ? "Damaged"
+                            : row.condition === "missing" ? "Missing"
+                            : row.condition}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs font-mono text-foreground">
+                          {row.serialNumber && row.serialNumber !== "—" ? row.serialNumber : (row.barcode || "—")}
+                        </div>
+                        {row.barcode && row.barcode !== "—" && row.serialNumber && row.serialNumber !== "—" && (
+                          <div className="text-[10px] text-muted-foreground font-mono">
+                            Tag: {row.barcode}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs text-muted-foreground">{row.lastInspectedAt || "—"}</div>
+                        {row.inspectedBy && row.inspectedBy !== "—" && (
+                          <div className="text-[10px] text-muted-foreground">{row.inspectedBy}</div>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[160px] truncate text-xs text-muted-foreground" title={row.notes}>
+                        {row.notes || "—"}
+                      </TableCell>
+                    </>
+                  )
                 )}
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
+
+      {/* Drill-down Dialog for Rooms containing the Item */}
+      <Dialog open={!!selectedItemRooms} onOpenChange={(open) => !open && setSelectedItemRooms(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir={ar ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <PackageCheck className="w-5 h-5 text-cyan-600" />
+              <span>{selectedItemRooms?.itemName}</span>
+              <Badge variant="secondary" className="capitalize text-xs font-semibold">
+                {selectedItemRooms?.category}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {ar
+                ? `إجمالي الكمية المسجلة: ${selectedItemRooms?.totalQuantity || 0} قطعة موزعة على ${selectedItemRooms?.roomsCount || 0} غرفة بالسكن`
+                : `Total quantity: ${selectedItemRooms?.totalQuantity || 0} units across ${selectedItemRooms?.roomsCount || 0} rooms in housing`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 mt-2">
+            {/* Condition Stats Banner */}
+            <div className="grid grid-cols-4 gap-2 p-2.5 rounded-lg bg-muted/30 border text-center text-xs">
+              <div>
+                <div className="text-muted-foreground text-[10px]">{ar ? "إجمالي الكمية" : "Total"}</div>
+                <div className="font-bold text-sm text-foreground">{selectedItemRooms?.totalQuantity || 0}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-[10px]">{ar ? "سليم / ممتاز" : "Good"}</div>
+                <div className="font-bold text-sm text-emerald-600">{selectedItemRooms?.goodCount || 0}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-[10px]">{ar ? "بحاجة لصيانة" : "Needs Repair"}</div>
+                <div className="font-bold text-sm text-amber-600">{selectedItemRooms?.needsRepairCount || 0}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-[10px]">{ar ? "تالف / مفقود" : "Damaged / Missing"}</div>
+                <div className="font-bold text-sm text-rose-600">{(selectedItemRooms?.damagedCount || 0) + (selectedItemRooms?.missingCount || 0)}</div>
+              </div>
+            </div>
+
+            {/* Rooms List Table */}
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40">
+                    <TableHead className="text-xs font-bold">{ar ? "الغرفة" : "Room"}</TableHead>
+                    <TableHead className="text-xs font-bold">{ar ? "المبنى والطابق" : "Building & Floor"}</TableHead>
+                    <TableHead className="text-xs font-bold text-center">{ar ? "الكمية" : "Qty"}</TableHead>
+                    <TableHead className="text-xs font-bold">{ar ? "الحالة" : "Condition"}</TableHead>
+                    <TableHead className="text-xs font-bold">{ar ? "السيريال / الكود" : "Serial / Tag"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedItemRooms?.roomsList?.map((rm: any, rmIdx: number) => (
+                    <TableRow key={rmIdx} className="text-xs hover:bg-muted/30">
+                      <TableCell className="font-semibold text-foreground">
+                        {ar ? "غرفة" : "Room"} {rm.roomNumber}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {rm.buildingName} • {rm.floorName || rm.floorNumber}
+                      </TableCell>
+                      <TableCell className="text-center font-bold">
+                        {rm.quantity || 1}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            rm.condition === "good"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-semibold"
+                              : rm.condition === "fair"
+                              ? "bg-blue-50 text-blue-700 border-blue-200 text-[10px]"
+                              : rm.condition === "needs_repair"
+                              ? "bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold"
+                              : "bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-bold"
+                          }
+                        >
+                          {ar
+                            ? rm.condition === "good" ? "ممتاز"
+                            : rm.condition === "fair" ? "مقبول"
+                            : rm.condition === "needs_repair" ? "صيانة"
+                            : rm.condition === "damaged" ? "تالف"
+                            : "مفقود"
+                            : rm.condition}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-muted-foreground">
+                        {rm.serialNumber || rm.barcode || "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

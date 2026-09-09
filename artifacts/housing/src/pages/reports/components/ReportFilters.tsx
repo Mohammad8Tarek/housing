@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, RotateCcw, X } from "lucide-react";
+import { Search, RotateCcw, X, Layers, LayoutList } from "lucide-react";
 
 export function ReportFilters({
   ar,
@@ -52,6 +52,8 @@ export function ReportFilters({
   hasActiveReportFilters,
   currentDataLength,
   selectedRowsSize,
+  inventoryViewMode = "summary",
+  setInventoryViewMode,
 }: any) {
   const getStatusOptions = (): { value: string; label: string; labelAr: string }[] => {
     switch (activeTab) {
@@ -179,7 +181,32 @@ export function ReportFilters({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {activeTab === "equipment_inventory" && setInventoryViewMode && (
+            <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border">
+              <Button
+                type="button"
+                size="sm"
+                variant={inventoryViewMode === "summary" ? "default" : "ghost"}
+                className="h-8 px-3 text-xs font-semibold gap-1.5"
+                onClick={() => setInventoryViewMode("summary")}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                {ar ? "إجمالي مجمّع" : "Aggregated"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={inventoryViewMode === "detailed" ? "default" : "ghost"}
+                className="h-8 px-3 text-xs font-semibold gap-1.5"
+                onClick={() => setInventoryViewMode("detailed")}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                {ar ? "تفصيلي حسب الغرف" : "By Room"}
+              </Button>
+            </div>
+          )}
+
           {hasActiveReportFilters && (
             <Button
               variant="outline"

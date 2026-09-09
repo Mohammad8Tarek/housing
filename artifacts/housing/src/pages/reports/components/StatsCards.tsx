@@ -31,11 +31,15 @@ export function StatsCards({ stats, isLoading, ar, activeTab, equipmentInventory
       .filter((it: any) => it.condition === "damaged" || it.condition === "missing")
       .reduce((acc: number, it: any) => acc + (it.quantity || 1), 0);
 
+    const distinctTypes = new Set(
+      equipmentInventory.map((it: any) => (it.itemName || "").trim().toLowerCase()).filter(Boolean)
+    ).size;
+
     const invCards = [
       {
-        label: ar ? "إجمالي العهد والمعدات" : "Total Equipment Items",
+        label: ar ? "إجمالي العهد بالسكن" : "Total Equipment in Housing",
         value: totalQty,
-        sub: ar ? `${equipmentInventory.length} صنف مسجل` : `${equipmentInventory.length} registered assets`,
+        sub: ar ? `${distinctTypes} صنف ونوع مسجل` : `${distinctTypes} distinct asset types`,
         color: "text-foreground",
         bg: "bg-card",
       },

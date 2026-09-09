@@ -19,6 +19,7 @@ export function useReportDataProcessor({
   filterFloor,
   filterStatus,
   filterCategory,
+  inventoryViewMode = "summary",
   filterDepartment,
   filterGender,
   filterNationality,
@@ -678,7 +679,7 @@ export function useReportDataProcessor({
       }
 
       case "equipment_inventory": {
-        const list = (Array.isArray(equipmentInventory) ? equipmentInventory : [])
+        const rawFiltered = (Array.isArray(equipmentInventory) ? equipmentInventory : [])
           .filter((item: any) => {
             const bId = item.buildingId || (roomMap[item.roomId]?.buildingId);
             const fId = item.floorId || (roomMap[item.roomId]?.floorId);
@@ -687,28 +688,110 @@ export function useReportDataProcessor({
             if (filterStatus !== "all" && item.condition?.toLowerCase() !== filterStatus.toLowerCase()) return false;
             if (filterCategory !== "all" && item.category?.toLowerCase() !== filterCategory.toLowerCase()) return false;
             return true;
-          })
-          .map((item: any) => {
+          });
+
+        if (inventoryViewMode === "summary") {
+          const map = new Map<string, any>();
+
+          for (const item of rawFiltered) {
             const room = roomMap[item.roomId];
+            const roomNum = item.roomNumber || room?.roomNumber || (item.roomId ? `#${item.roomId}` : "—");
+            const bName = item.buildingName || (room ? buildingMap[room.buildingId] : "—") || "—";
+            const fName = item.floorName || (room ? floorMap[room.floorId] : "—") || "—";
+            const key = `${item.itemName.trim().toLowerCase()}:::${(item.category || "other").toLowerCase()}`;
+
+            if (!map.has(key)) {
+              map.set(key, {
+                id: key,
+                itemName: item.itemName.trim(),
+                category: item.category || "other",
+                totalQuantity: 0,
+                goodCount: 0,
+                needsRepairCount: 0,
+                damagedCount: 0,
+                missingCount: 0,
+                roomsSet: new Set<number>(),
+                roomsList: [],
+              });
+            }
+
+            const entry = map.get(key);
+            const qty = Number(item.quantity) || 1;
+            entry.totalQuantity += qty;
+
+            const cond = (item.condition || "good").toLowerCase();
+            if (cond === "good" || cond === "fair") {
+              entry.goodCount += qty;
+            } else if (cond === "needs_repair") {
+              entry.needsRepairCount += qty;
+            } else if (cond === "damaged") {
+              entry.damagedCount += qty;
+            } else if (cond === "missing") {
+              entry.missingCount += qty;
+            } else {
+              entry.goodCount += qty;
+            }
+
+            if (item.roomId) {
+              entry.roomsSet.add(item.roomId);
+              entry.roomsList.push({
+                roomId: item.roomId,
+                roomNumber: roomNum,
+                buildingName: bName,
+                floorName: fName,
+                quantity: qty,
+                condition: item.condition || "good",
+                serialNumber: item.serialNumber || "",
+                barcode: item.barcode || "",
+                notes: item.notes || "",
+              });
+            }
+          }
+
+          const aggregatedList = Array.from(map.values()).map((item) => {
+            const uniqueRoomNumbers = Array.from(
+              new Set(item.roomsList.map((r: any) => r.roomNumber))
+            );
             return {
-              id: item.id,
-              roomId: item.roomId,
-              roomNumber: item.roomNumber || room?.roomNumber || "—",
-              buildingName: item.buildingName || (room ? buildingMap[room.buildingId] : "—") || "—",
-              floorName: item.floorName || (room ? floorMap[room.floorId] : "—") || "—",
-              itemName: item.itemName,
-              category: item.category || "electronics",
-              quantity: item.quantity || 1,
-              condition: item.condition || "good",
-              barcode: item.barcode || "—",
-              serialNumber: item.serialNumber || "—",
-              modelNumber: item.modelNumber || "—",
-              lastInspectedAt: formatDate(item.lastInspectedAt, "—"),
-              inspectedBy: item.inspectedBy || "—",
-              notes: item.notes || "",
-              createdAt: formatDate(item.createdAt, "—"),
+              ...item,
+              roomsCount: item.roomsSet.size,
+              roomsSummary: uniqueRoomNumbers.join(", "),
             };
           });
+
+          // Sort by total quantity descending
+          aggregatedList.sort((a, b) => b.totalQuantity - a.totalQuantity);
+
+          return applySearchAndDate(aggregatedList, undefined, (item) => [
+            item.itemName,
+            item.category,
+            item.roomsSummary,
+            ...item.roomsList.map((r: any) => r.roomNumber),
+          ]);
+        }
+
+        // Detailed View Mode
+        const list = rawFiltered.map((item: any) => {
+          const room = roomMap[item.roomId];
+          return {
+            id: item.id,
+            roomId: item.roomId,
+            roomNumber: item.roomNumber || room?.roomNumber || "—",
+            buildingName: item.buildingName || (room ? buildingMap[room.buildingId] : "—") || "—",
+            floorName: item.floorName || (room ? floorMap[room.floorId] : "—") || "—",
+            itemName: item.itemName,
+            category: item.category || "electronics",
+            quantity: item.quantity || 1,
+            condition: item.condition || "good",
+            barcode: item.barcode || "—",
+            serialNumber: item.serialNumber || "—",
+            modelNumber: item.modelNumber || "—",
+            lastInspectedAt: formatDate(item.lastInspectedAt, "—"),
+            inspectedBy: item.inspectedBy || "—",
+            notes: item.notes || "",
+            createdAt: formatDate(item.createdAt, "—"),
+          };
+        });
 
         return applySearchAndDate(list, undefined, (item) => [
           item.roomNumber,

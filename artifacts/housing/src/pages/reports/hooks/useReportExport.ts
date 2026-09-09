@@ -22,6 +22,7 @@ export function useReportExport({
   empMap,
   roomMap,
   openPrintDialog,
+  inventoryViewMode = "summary",
 }: any) {
   const toExcelRows = (): Record<string, any>[] => {
     const data = currentData();
@@ -170,6 +171,28 @@ export function useReportExport({
         }));
 
       case "equipment_inventory":
+        if (inventoryViewMode === "summary") {
+          return data.map((it: any) => ({
+            [ar ? "اسم المعدة / الصنف" : "Equipment / Item Name"]: it.itemName,
+            [ar ? "التصنيف" : "Category"]:
+              ar
+                ? it.category === "electronics" ? "إلكترونيات وشاشات"
+                : it.category === "appliances" ? "أجهزة وتكييف"
+                : it.category === "furniture" ? "أثاث"
+                : it.category === "fixtures" ? "مرافق وخزائن"
+                : it.category === "linen" ? "مفروشات"
+                : "أخرى"
+                : it.category,
+            [ar ? "إجمالي الكمية بالسكن" : "Total Quantity in Housing"]: it.totalQuantity,
+            [ar ? "سليم / ممتاز" : "Good / Working"]: it.goodCount,
+            [ar ? "بحاجة لصيانة" : "Needs Repair"]: it.needsRepairCount,
+            [ar ? "تالف" : "Damaged"]: it.damagedCount,
+            [ar ? "مفقود" : "Missing"]: it.missingCount,
+            [ar ? "عدد الغرف المتواجد بها" : "Rooms Count"]: it.roomsCount,
+            [ar ? "أرقام الغرف" : "Rooms List"]: it.roomsSummary || "—",
+          }));
+        }
+
         return data.map((it: any) => ({
           [ar ? "رقم الغرفة" : "Room No"]: it.roomNumber,
           [ar ? "المبنى" : "Building"]: it.buildingName,

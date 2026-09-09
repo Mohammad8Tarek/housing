@@ -197,6 +197,133 @@ router.get(
   }
 );
 
+// ─── GET /api/room-inventory/summary ─────────────────────────────────────
+router.get(
+  "/summary",
+  requireAnyPermission(["housing", "view"], ["reports", "view"]),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ success: false, message: "propertyId required" });
+        return;
+      }
+
+      const { buildingId, floorId, category, search } = req.query;
+
+      const summary = await withTableFallback(
+        async () =>
+          withTenant(propertyId, async (tenantDb) => {
+            const rows = await tenantDb
+              .select({
+                id: roomInventoryTable.id,
+                roomId: roomInventoryTable.roomId,
+                itemName: roomInventoryTable.itemName,
+                category: roomInventoryTable.category,
+                quantity: roomInventoryTable.quantity,
+                condition: roomInventoryTable.condition,
+                serialNumber: roomInventoryTable.serialNumber,
+                roomNumber: roomsTable.roomNumber,
+                buildingId: roomsTable.buildingId,
+                buildingName: buildingsTable.name,
+                floorId: roomsTable.floorId,
+                floorNumber: floorsTable.floorNumber,
+              })
+              .from(roomInventoryTable)
+              .leftJoin(roomsTable, eq(roomInventoryTable.roomId, roomsTable.id))
+              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id));
+
+            const map = new Map<string, any>();
+
+            for (const r of rows) {
+              if (buildingId && buildingId !== "all" && String(r.buildingId) !== String(buildingId)) continue;
+              if (floorId && floorId !== "all" && String(r.floorId) !== String(floorId)) continue;
+              if (category && category !== "all" && r.category?.toLowerCase() !== String(category).toLowerCase()) continue;
+
+              const key = `${r.itemName.trim().toLowerCase()}:::${r.category?.toLowerCase() || "other"}`;
+              if (!map.has(key)) {
+                map.set(key, {
+                  id: key,
+                  itemName: r.itemName.trim(),
+                  category: r.category || "other",
+                  totalQuantity: 0,
+                  goodCount: 0,
+                  needsRepairCount: 0,
+                  damagedCount: 0,
+                  missingCount: 0,
+                  roomsSet: new Set<number>(),
+                  roomsList: [],
+                });
+              }
+
+              const entry = map.get(key);
+              const qty = Number(r.quantity) || 1;
+              entry.totalQuantity += qty;
+
+              const cond = (r.condition || "good").toLowerCase();
+              if (cond === "good" || cond === "fair") {
+                entry.goodCount += qty;
+              } else if (cond === "needs_repair") {
+                entry.needsRepairCount += qty;
+              } else if (cond === "damaged") {
+                entry.damagedCount += qty;
+              } else if (cond === "missing") {
+                entry.missingCount += qty;
+              } else {
+                entry.goodCount += qty;
+              }
+
+              if (r.roomId) {
+                entry.roomsSet.add(r.roomId);
+                entry.roomsList.push({
+                  roomId: r.roomId,
+                  roomNumber: r.roomNumber || `#${r.roomId}`,
+                  buildingName: r.buildingName || "—",
+                  floorNumber: r.floorNumber ? `Floor ${r.floorNumber}` : "—",
+                  quantity: qty,
+                  condition: r.condition || "good",
+                  serialNumber: r.serialNumber || "",
+                });
+              }
+            }
+
+            let result = Array.from(map.values()).map((item) => ({
+              id: item.id,
+              itemName: item.itemName,
+              category: item.category,
+              totalQuantity: item.totalQuantity,
+              goodCount: item.goodCount,
+              needsRepairCount: item.needsRepairCount,
+              damagedCount: item.damagedCount,
+              missingCount: item.missingCount,
+              roomsCount: item.roomsSet.size,
+              roomsList: item.roomsList,
+            }));
+
+            if (search && String(search).trim()) {
+              const q = String(search).trim().toLowerCase();
+              result = result.filter(
+                (item) =>
+                  item.itemName.toLowerCase().includes(q) ||
+                  item.category.toLowerCase().includes(q) ||
+                  item.roomsList.some((rm: any) => String(rm.roomNumber).toLowerCase().includes(q))
+              );
+            }
+
+            result.sort((a, b) => b.totalQuantity - a.totalQuantity);
+            return result;
+          }),
+        []
+      );
+
+      res.json({ success: true, data: summary });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // ─── GET /api/room-inventory/room/:roomId ─────────────────────────────────
 router.get(
   "/room/:roomId",

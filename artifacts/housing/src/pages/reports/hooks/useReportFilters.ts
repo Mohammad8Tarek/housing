@@ -17,6 +17,7 @@ export function useReportFilters() {
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterGender, setFilterGender] = useState<string>("all");
   const [filterNationality, setFilterNationality] = useState<string>("all");
+  const [inventoryViewMode, setInventoryViewMode] = useState<"summary" | "detailed">("summary");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -35,6 +36,7 @@ export function useReportFilters() {
     setFilterRoomType("all");
     setFilterEmploymentType("all");
     setFilterCategory("all");
+    setInventoryViewMode("summary");
     setSelectedRows(new Set());
     setCurrentPage(1);
   };
@@ -58,6 +60,8 @@ export function useReportFilters() {
   return {
     activeTab,
     setActiveTab,
+    inventoryViewMode,
+    setInventoryViewMode,
     filterProperty,
     setFilterProperty,
     filterBuilding,

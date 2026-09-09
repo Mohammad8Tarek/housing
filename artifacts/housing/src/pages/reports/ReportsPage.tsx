@@ -135,6 +135,7 @@ export default function Reports() {
       empMap: data.empMap,
       roomMap: data.roomMap,
       openPrintDialog: openDialog,
+      inventoryViewMode: filters.inventoryViewMode,
     });
 
   return (
@@ -235,6 +236,8 @@ export default function Reports() {
             hasActiveReportFilters={filters.hasActiveReportFilters}
             currentDataLength={totalCount}
             selectedRowsSize={filters.selectedRows.size}
+            inventoryViewMode={filters.inventoryViewMode}
+            setInventoryViewMode={filters.setInventoryViewMode}
           />
 
           <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
@@ -245,6 +248,7 @@ export default function Reports() {
               selectedRows={filters.selectedRows}
               setSelectedRows={filters.setSelectedRows}
               activeTab={filters.activeTab}
+              inventoryViewMode={filters.inventoryViewMode}
               ar={ar}
               sort={sort}
               onSortToggle={handleSortToggle}
