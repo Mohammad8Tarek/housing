@@ -94,6 +94,7 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
     locationAr: "",
     locationEn: "",
     coverImage: "",
+    isPublished: true,
   });
 
   const { data: activityCategories = [] } = useQuery({
@@ -194,6 +195,7 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
         locationAr: "",
         locationEn: "",
         coverImage: "",
+        isPublished: true,
       });
       setCoverPreview("");
     },
@@ -251,6 +253,7 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
       locationAr: act.locationAr || "",
       locationEn: act.locationEn || "",
       coverImage: act.coverImage || "",
+      isPublished: act.isPublished ?? true,
     });
     setCoverPreview(act.coverImage || "");
     setEditOpen(true);
@@ -316,15 +319,61 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
               )}
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
-                  <div className="flex gap-1 mb-2 flex-wrap">
+                  <div className="flex gap-1 mb-2 flex-wrap items-center">
                     <Badge variant="secondary">
                       {categoryLabel(act.category)}
                     </Badge>
                     <Badge variant="outline" className="text-[10px]">
                       {statusLabel(act.status || "planned")}
                     </Badge>
+                    <Badge
+                      variant={act.isPublished ? "default" : "outline"}
+                      className={`text-[10px] font-medium transition-colors ${
+                        act.isPublished
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "bg-muted text-muted-foreground border-dashed"
+                      }`}
+                    >
+                      {act.isPublished
+                        ? ar
+                          ? "منشور في البوابة"
+                          : "Published"
+                        : ar
+                          ? "مسودة / غير منشور"
+                          : "Draft / Hidden"}
+                    </Badge>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${
+                        act.isPublished
+                          ? "text-emerald-500 hover:text-emerald-600"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title={
+                        act.isPublished
+                          ? ar
+                            ? "إلغاء النشر من بوابة الموظفين"
+                            : "Unpublish from Portal"
+                          : ar
+                            ? "نشر في بوابة الموظفين"
+                            : "Publish to Portal"
+                      }
+                      onClick={() =>
+                        updateMutation.mutate({
+                          id: act.id,
+                          isPublished: !act.isPublished,
+                        })
+                      }
+                    >
+                      {act.isPublished ? (
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      ) : (
+                        <Globe className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -566,6 +615,22 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                 </div>
               </div>
             </div>
+            <div className="col-span-2 flex items-center gap-2.5 p-3 rounded-lg bg-muted/40 border">
+              <input
+                type="checkbox"
+                id="form-isPublished"
+                checked={form.isPublished ?? true}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, isPublished: e.target.checked }))
+                }
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+              />
+              <Label htmlFor="form-isPublished" className="cursor-pointer text-xs font-semibold text-foreground">
+                {ar
+                  ? "نشر الفعالية فوراً في بوابة الموظفين (لتظهر للموظفين)"
+                  : "Publish immediately to Employee Portal (visible to staff)"}
+              </Label>
+            </div>
           </div>
           <Button
             className="w-full"
@@ -752,6 +817,25 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                     />
                   </div>
                 </div>
+              </div>
+              <div className="col-span-2 flex items-center gap-2.5 p-3 rounded-lg bg-muted/40 border">
+                <input
+                  type="checkbox"
+                  id="edit-isPublished"
+                  checked={editForm.isPublished ?? true}
+                  onChange={(e) =>
+                    setEditForm((f: any) => ({
+                      ...f,
+                      isPublished: e.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                />
+                <Label htmlFor="edit-isPublished" className="cursor-pointer text-xs font-semibold text-foreground">
+                  {ar
+                    ? "نشر الفعالية في بوابة الموظفين (لتكون مرئية للموظفين)"
+                    : "Published in Employee Portal (visible to staff)"}
+                </Label>
               </div>
               <div className="col-span-2">
                 <Button

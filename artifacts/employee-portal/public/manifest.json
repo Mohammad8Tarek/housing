@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Sunrise Housing - Employee Portal",
   "short_name": "Sunrise Portal",
   "description": "Manage your housing assignments, maintenance requests, documents, and evaluations",
@@ -29,6 +30,12 @@
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
+    },
+    {
+      "src": "/pwa-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
       "src": "/pwa-512x512.png",

@@ -31,6 +31,8 @@ const CreateActivitySchema = z.object({
   status: z.string().optional().default("planned"),
   expiresAt: z.string().optional(),
   coverImage: z.string().optional(),
+  isPublished: z.boolean().optional().default(true),
+  targetDepartments: z.array(z.string()).optional().default([]),
 });
 
 // @ts-ignore
@@ -113,6 +115,10 @@ router.post(
       ]);
 
       const insertData = { ...sanitized };
+      insertData.isPublished = parsed.data.isPublished ?? true;
+      if (parsed.data.targetDepartments) {
+        insertData.targetDepartments = parsed.data.targetDepartments;
+      }
       if (insertData.expiresAt) {
         insertData.expiresAt = new Date(insertData.expiresAt) as any;
       } else {
@@ -159,6 +165,11 @@ router.post(
       const [record] = result;
       broadcastToProperty(propertyId, {
         type: "data_updated",
+        module: "activities",
+        action: "created",
+      });
+      broadcastToProperty(propertyId, {
+        type: "data_updated",
         module: "notifications",
         action: "created",
       });
@@ -191,6 +202,8 @@ const UpdateActivitySchema = z.object({
   status: z.string().optional(),
   expiresAt: z.string().optional().nullable(),
   coverImage: z.string().optional(),
+  isPublished: z.boolean().optional(),
+  targetDepartments: z.array(z.string()).optional(),
 });
 
 // @ts-ignore
@@ -223,6 +236,12 @@ router.put(
       ]);
 
       const updateData: any = { ...sanitized };
+      if (typeof parsed.data.isPublished === "boolean") {
+        updateData.isPublished = parsed.data.isPublished;
+      }
+      if (parsed.data.targetDepartments) {
+        updateData.targetDepartments = parsed.data.targetDepartments;
+      }
       if (updateData.expiresAt === null) {
         updateData.expiresAt = null;
       } else if (updateData.expiresAt) {
@@ -243,6 +262,12 @@ router.put(
         return res
           .status(404)
           .json({ success: false, message: "Activity not found" });
+
+      broadcastToProperty(propertyId, {
+        type: "data_updated",
+        module: "activities",
+        action: "updated",
+      });
 
       return res.json({
         ...updated,
@@ -336,6 +361,12 @@ router.delete(
         return await tenantDb
           .delete(activitiesTable)
           .where(eq(activitiesTable.id, Number(req.params.id)));
+      });
+
+      broadcastToProperty(propertyId, {
+        type: "data_updated",
+        module: "activities",
+        action: "deleted",
       });
 
       return res.json({ success: true });

@@ -22,6 +22,7 @@ import {
 import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission, requireAuth, hasPermission } from "../middlewares/permissions.js";
 import { su } from "../lib/request-utils.js";
+import { provisionTenantSchema } from "../lib/migrations.js";
 
 const router: Router = Router();
 
@@ -171,96 +172,7 @@ router.post(
         .returning();
 
       // ====== 🏗️ إنشاء السكيما والجداول بشكل أوتوماتيكي للسكن الجديد ======
-      const TENANT_TABLES = [
-        "buildings",
-        "floors",
-        "rooms",
-        "profiles",
-        "profile_portal_accounts",
-        "assignments",
-        "maintenance",
-        "reservations",
-        "activity_logs",
-        "settings",
-        "hostings",
-        "hosting_companions",
-        "lookup_values",
-        "portal_documents",
-        "portal_contacts",
-        "evaluations",
-        "activities",
-        "activity_registrations",
-        "survey_items",
-        "survey_item_responses",
-        "portal_notifications",
-        "portal_notification_reads",
-        "room_locks",
-        "room_keys",
-        "key_audit_log",
-        "push_subscriptions",
-        "room_import_history",
-        "room_import_templates",
-        "room_beds",
-        "password_reset_tokens",
-      ];
-
-      // Tables that need property_id column (smart lock + push subscription tables)
-      const TABLES_WITH_PROPERTY_ID = new Set([
-        "room_locks",
-        "room_keys",
-        "key_audit_log",
-        "push_subscriptions",
-        "room_import_history",
-        "room_import_templates",
-        "password_reset_tokens",
-      ]);
-
-      const client = await pool.connect();
-      let schemaOk = false;
-      try {
-        await client.query("BEGIN");
-        await client.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
-
-        for (const table of TENANT_TABLES) {
-          await client.query(
-            `CREATE TABLE IF NOT EXISTS "${schemaName}".${table} (LIKE public.${table} INCLUDING ALL)`,
-          );
-
-          // Only drop property_id for tables that don't need it
-          if (!TABLES_WITH_PROPERTY_ID.has(table)) {
-            await client.query(
-              `ALTER TABLE "${schemaName}".${table} DROP COLUMN IF EXISTS property_id`,
-            );
-          }
-
-          // Fix sequences
-          const seqRes = await client.query(
-            `SELECT pg_get_serial_sequence('public.${table}', 'id') as seq`,
-          );
-          if (seqRes.rows[0]?.seq) {
-            await client
-              .query(
-                `SELECT setval(pg_get_serial_sequence('"${schemaName}".${table}', 'id'), 1, false)`,
-              )
-              .catch((err: any) =>
-                console.warn(
-                  `[Properties] Sequence reset skipped for ${table}: ${err.message}`,
-                ),
-              );
-          }
-        }
-        await client.query("COMMIT");
-        schemaOk = true;
-      } catch (err) {
-        await client
-          .query("ROLLBACK")
-          .catch((rollbackErr: any) =>
-            console.warn("[Properties] ROLLBACK failed:", rollbackErr.message),
-          );
-        console.error("Error creating tenant schema:", err);
-      } finally {
-        client.release();
-      }
+      const schemaOk = await provisionTenantSchema(schemaName, property.id);
 
       // Never return 201 for a property without its schema — roll back the
       // row instead of leaving a broken property behind.

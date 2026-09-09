@@ -22,6 +22,7 @@ import {
 } from "@workspace/db";
 import {
   eq,
+  ne,
   and,
   desc,
   sql,
@@ -718,19 +719,59 @@ router.get("/catalog", async (req, res): Promise<void> => {
 
 // ─── Portal Activities ──────────────────────────
 router.get("/my-activities", async (req, res): Promise<void> => {
-  const sess = portalSession(req)!;
+  const sess = portalSession(req);
+  if (!sess) {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+    return;
+  }
 
   const result = await withTenant(sess.propertyId, async (tenantDb) => {
-    const activities = await tenantDb
+    // Fetch profile's department for targeting filter
+    let employeeDept: string | null = null;
+    try {
+      const [prof] = await tenantDb
+        .select({ department: profilesTable.department })
+        .from(profilesTable)
+        .where(eq(profilesTable.id, sess.profileDbId))
+        .limit(1);
+      employeeDept = prof?.department ?? null;
+    } catch {}
+
+    const allActivities = await tenantDb
       .select()
       .from(activitiesTable)
       .where(
-        or(
-          isNull(activitiesTable.expiresAt),
-          gte(activitiesTable.expiresAt, new Date()),
+        and(
+          eq(activitiesTable.isPublished, true),
+          ne(activitiesTable.status, "cancelled"),
         ),
       )
-      .orderBy(desc(activitiesTable.createdAt));
+      .orderBy(desc(activitiesTable.startDate), desc(activitiesTable.createdAt));
+
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+
+    const activities = allActivities.filter((act) => {
+      // Expiry logic: if expiresAt is set and in the past, only skip if start and end dates are also in past
+      if (act.expiresAt && new Date(act.expiresAt) < now) {
+        const startStr = String(act.startDate);
+        const endStr = act.endDate ? String(act.endDate) : startStr;
+        if (endStr < todayStr) return false;
+      }
+
+      // Target departments filter
+      if (
+        act.targetDepartments &&
+        Array.isArray(act.targetDepartments) &&
+        act.targetDepartments.length > 0
+      ) {
+        if (!employeeDept || !act.targetDepartments.includes(employeeDept)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
 
     let registrations: { activityId: number; status: string }[] = [];
     try {

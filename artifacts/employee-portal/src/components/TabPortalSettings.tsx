@@ -29,7 +29,7 @@ export default function TabPortalSettings() {
   const { t, lang, setLang, setTheme, theme } = useTheme();
   const isRtl = lang === "ar";
   const [, setLocation] = useLocation();
-  const { installPrompt, handleInstall } = usePWA();
+  const { installPrompt, isInstalled: pwaInstalled, handleInstall } = usePWA();
   const biometric = useBiometric();
 
   const [cpForm, setCpForm] = useState({
@@ -98,9 +98,10 @@ export default function TabPortalSettings() {
   };
 
   const isInstalled =
-    typeof window !== "undefined" &&
-    (window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true);
+    pwaInstalled ||
+    (typeof window !== "undefined" &&
+      (window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true));
 
   useEffect(() => {
     if (biometric.isAvailable) {
@@ -607,30 +608,34 @@ export default function TabPortalSettings() {
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>{isRtl ? "التطبيق مثبت بالفعل ويعمل كـ PWA على هذا الجهاز" : "App is installed and running as PWA on this device"}</span>
             </div>
-          ) : installPrompt ? (
-            <button
-              onClick={handleInstall}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-accent2 text-accent2-foreground text-[12px] font-bold hover:brightness-110 active:scale-[0.99] transition-all shadow-md shadow-accent2/20"
-            >
-              <MaterialIcon icon="download" size={18} />
-              <span>{isRtl ? "تثبيت التطبيق على هاتفك الآن" : "Install App to Your Phone Now"}</span>
-            </button>
-          ) : isIOS() ? (
-            <div className="p-3 rounded-lg bg-surface border border-border2 space-y-1.5 text-[11px] text-muted2">
-              <div className="font-bold text-foreground flex items-center gap-1.5">
-                <MaterialIcon icon="ios_share" size={16} className="text-accent2" />
-                <span>{isRtl ? "طريقة التثبيت على أجهزة iPhone / iPad:" : "How to install on iOS:"}</span>
-              </div>
-              <ol className="list-decimal list-inside space-y-1 ps-1">
-                <li>{isRtl ? "اضغط على زر المشاركة (Share) في متصفح Safari." : "Tap the Share button in Safari."}</li>
-                <li>{isRtl ? "اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen)." : "Select 'Add to Home Screen'."}</li>
-                <li>{isRtl ? "اضغط على 'إضافة' (Add) في الزاوية العلوية." : "Tap 'Add' in the top corner."}</li>
-              </ol>
-            </div>
           ) : (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-surface border border-border2 text-[11px] text-muted2">
-              <MaterialIcon icon="info" size={16} className="text-accent2 flex-shrink-0" />
-              <span>{isRtl ? "يمكنك تثبيت التطبيق من قائمة المتصفح (المزيد ⋮ > تثبيت التطبيق / Install App)." : "You can install this app from your browser menu (More ⋮ > Install app)."}</span>
+            <div className="space-y-3">
+              <button
+                onClick={handleInstall}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-accent2 text-accent2-foreground text-[12px] font-bold hover:brightness-110 active:scale-[0.99] transition-all shadow-md shadow-accent2/20 cursor-pointer"
+              >
+                <MaterialIcon icon="download" size={18} />
+                <span>{isRtl ? "تثبيت التطبيق على هاتفك الآن" : "Install App to Your Phone Now"}</span>
+              </button>
+
+              {isIOS() ? (
+                <div className="p-3 rounded-lg bg-surface border border-border2 space-y-1.5 text-[11px] text-muted2">
+                  <div className="font-bold text-foreground flex items-center gap-1.5">
+                    <MaterialIcon icon="ios_share" size={16} className="text-accent2" />
+                    <span>{isRtl ? "طريقة التثبيت على أجهزة iPhone / iPad:" : "How to install on iOS:"}</span>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1 ps-1">
+                    <li>{isRtl ? "اضغط على زر المشاركة (Share) أسفل متصفح Safari." : "Tap the Share button at the bottom of Safari."}</li>
+                    <li>{isRtl ? "اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen)." : "Select 'Add to Home Screen'."}</li>
+                    <li>{isRtl ? "اضغط على 'إضافة' (Add) في الزاوية العلوية." : "Tap 'Add' in the top corner."}</li>
+                  </ol>
+                </div>
+              ) : !installPrompt ? (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-surface border border-border2 text-[11px] text-muted2">
+                  <MaterialIcon icon="info" size={16} className="text-accent2 flex-shrink-0" />
+                  <span>{isRtl ? "يمكنك أيضاً تثبيت التطبيق من قائمة المتصفح (المزيد ⋮ > تثبيت التطبيق / Install App)." : "You can also install this app from your browser menu (More ⋮ > Install app)."}</span>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

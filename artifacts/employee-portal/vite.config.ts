@@ -17,6 +17,7 @@ export default defineConfig({
         name: "Sunrise Housing - Employee Portal",
         short_name: "Sunrise Portal",
         description: "Manage your housing, requests, and documents",
+        id: "/",
         theme_color: "#f0a500",
         background_color: "#0d0f14",
         display: "standalone",
@@ -29,6 +30,12 @@ export default defineConfig({
             sizes: "192x192",
             type: "image/png",
             purpose: "any",
+          },
+          {
+            src: "/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
           },
           {
             src: "/pwa-512x512.png",
@@ -106,7 +113,8 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: false,
+        enabled: true,
+        type: "module",
         navigateFallback: "/index.html",
         suppressWarnings: true,
       },

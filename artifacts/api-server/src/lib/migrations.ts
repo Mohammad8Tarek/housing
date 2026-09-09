@@ -901,6 +901,25 @@ const MIGRATIONS = [
     name: "public.profile_portal_accounts.last_login_at",
     q: "ALTER TABLE public.profile_portal_accounts ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ",
   },
+  {
+    name: "public.room_inventory",
+    q: `CREATE TABLE IF NOT EXISTS public.room_inventory (
+      id SERIAL PRIMARY KEY,
+      room_id INTEGER NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
+      item_name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'electronics',
+      quantity INTEGER NOT NULL DEFAULT 1,
+      condition TEXT NOT NULL DEFAULT 'good',
+      barcode TEXT,
+      serial_number TEXT,
+      model_number TEXT,
+      last_inspected_at TIMESTAMPTZ,
+      inspected_by TEXT,
+      notes TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1703,4 +1722,141 @@ export async function runMigrations(): Promise<void> {
   } catch (e: any) {
     console.warn(`[migrations] room-inventory auto-sync notice:`, e?.message);
   }
+}
+
+export async function applyTenantMigrationsToSchema(schemaName: string): Promise<number> {
+  const client = await pool.connect();
+  let count = 0;
+  try {
+    await client.query(`SET search_path TO "${schemaName}", public`);
+    for (const m of TENANT_MIGRATIONS) {
+      try {
+        await client.query(m.q);
+        count++;
+      } catch (err: any) {
+        if (
+          !err?.message?.includes("already exists") &&
+          !err?.message?.includes("duplicate key") &&
+          !err?.message?.includes("cannot be dropped")
+        ) {
+          console.warn(`[migrations] tenant ${schemaName} (${m.name}): ${err?.message}`);
+        }
+      }
+    }
+  } finally {
+    try {
+      await client.query("SET search_path TO public");
+    } catch {}
+    client.release();
+  }
+  return count;
+}
+
+export async function provisionTenantSchema(schemaName: string, propertyId: number): Promise<boolean> {
+  const TENANT_TABLES = [
+    "buildings",
+    "floors",
+    "rooms",
+    "room_beds",
+    "profiles",
+    "profile_portal_accounts",
+    "assignments",
+    "maintenance",
+    "reservations",
+    "activity_logs",
+    "settings",
+    "hostings",
+    "hosting_companions",
+    "lookup_values",
+    "portal_documents",
+    "portal_contacts",
+    "evaluations",
+    "activities",
+    "activity_registrations",
+    "survey_items",
+    "survey_item_responses",
+    "portal_notifications",
+    "portal_notification_reads",
+    "room_locks",
+    "room_keys",
+    "key_audit_log",
+    "push_subscriptions",
+    "room_import_history",
+    "room_import_templates",
+    "password_reset_tokens",
+    "room_inventory",
+    "portal_feedback",
+    "portal_comments",
+    "portal_comment_likes",
+  ];
+
+  const TABLES_WITH_PROPERTY_ID = new Set([
+    "room_locks",
+    "room_keys",
+    "key_audit_log",
+    "push_subscriptions",
+    "room_import_history",
+    "room_import_templates",
+    "password_reset_tokens",
+  ]);
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+
+    for (const table of TENANT_TABLES) {
+      const { rows } = await client.query(
+        "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1",
+        [table],
+      );
+      if (rows.length > 0) {
+        await client.query(
+          `CREATE TABLE IF NOT EXISTS "${schemaName}".${table} (LIKE public.${table} INCLUDING ALL)`,
+        );
+
+        if (!TABLES_WITH_PROPERTY_ID.has(table)) {
+          await client.query(
+            `ALTER TABLE "${schemaName}".${table} DROP COLUMN IF EXISTS property_id`,
+          );
+        }
+
+        const seqRes = await client.query(
+          `SELECT pg_get_serial_sequence('public.${table}', 'id') as seq`,
+        );
+        if (seqRes.rows[0]?.seq) {
+          await client
+            .query(
+              `SELECT setval(pg_get_serial_sequence('"${schemaName}".${table}', 'id'), 1, false)`,
+            )
+            .catch(() => {});
+        }
+      }
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error(`[Properties] Error provisioning schema "${schemaName}":`, err);
+    return false;
+  } finally {
+    client.release();
+  }
+
+  // Apply full tenant migrations to newly provisioned schema
+  try {
+    const applied = await applyTenantMigrationsToSchema(schemaName);
+    console.info(`[Properties] Applied ${applied} tenant migrations to "${schemaName}"`);
+  } catch (e: any) {
+    console.warn(`[Properties] Tenant migrations warning on "${schemaName}":`, e?.message);
+  }
+
+  // Sync rooms inventory
+  try {
+    const { syncAllRoomsFeaturesToInventory } = await import("../routes/room-inventory.js");
+    await syncAllRoomsFeaturesToInventory(propertyId);
+  } catch (e: any) {
+    console.warn(`[Properties] syncAllRoomsFeaturesToInventory warning:`, e?.message);
+  }
+
+  return true;
 }

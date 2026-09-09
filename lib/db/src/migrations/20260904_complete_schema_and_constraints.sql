@@ -1747,10 +1747,72 @@ BEGIN
     ALTER TABLE "ws_sessions" ADD COLUMN IF NOT EXISTS "property_id" INTEGER;
     ALTER TABLE "ws_sessions" ADD COLUMN IF NOT EXISTS "session_key" TEXT;
     ALTER TABLE "ws_sessions" ADD COLUMN IF NOT EXISTS "connected_at" TIMESTAMPTZ DEFAULT now();
-    ALTER TABLE "ws_sessions" ADD COLUMN IF NOT EXISTS "last_ping_at" TIMESTAMPTZ DEFAULT now();
-    ALTER TABLE "ws_sessions" ADD COLUMN IF NOT EXISTS "server_node" TEXT;
-    ALTER TABLE "ws_sessions" ADD COLUMN IF NOT EXISTS "is_active" BOOLEAN DEFAULT true;
+    -- --------------------------------------------------------
+    -- Table: room_inventory
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "room_inventory" (
+      "id" SERIAL PRIMARY KEY,
+      "room_id" INTEGER NOT NULL,
+      "item_name" TEXT NOT NULL,
+      "category" TEXT NOT NULL DEFAULT 'electronics',
+      "quantity" INTEGER NOT NULL DEFAULT 1,
+      "condition" TEXT NOT NULL DEFAULT 'good',
+      "barcode" TEXT,
+      "serial_number" TEXT,
+      "model_number" TEXT,
+      "last_inspected_at" TIMESTAMPTZ,
+      "inspected_by" TEXT,
+      "notes" TEXT,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
 
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "room_id" INTEGER;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "item_name" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "category" TEXT DEFAULT 'electronics';
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "quantity" INTEGER DEFAULT 1;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "condition" TEXT DEFAULT 'good';
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "barcode" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "serial_number" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "model_number" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "last_inspected_at" TIMESTAMPTZ;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "inspected_by" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "notes" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
+
+    -- --------------------------------------------------------
+    -- Table: portal_feedback & comments
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "portal_feedback" (
+      "id" SERIAL PRIMARY KEY,
+      "content_type" TEXT NOT NULL,
+      "content_id" INTEGER NOT NULL,
+      "profile_id" INTEGER NOT NULL,
+      "rating" REAL,
+      "comment" TEXT,
+      "helpful" TEXT,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS "portal_comments" (
+      "id" SERIAL PRIMARY KEY,
+      "content_type" TEXT NOT NULL,
+      "content_id" INTEGER NOT NULL,
+      "profile_id" INTEGER NOT NULL,
+      "text" TEXT NOT NULL,
+      "parent_comment_id" INTEGER,
+      "likes_count" INTEGER NOT NULL DEFAULT 0,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS "portal_comment_likes" (
+      "id" SERIAL PRIMARY KEY,
+      "comment_id" INTEGER NOT NULL,
+      "profile_id" INTEGER NOT NULL,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
 
     -- ========================================================
     -- CONSTRAINTS & DATA CLEANING
