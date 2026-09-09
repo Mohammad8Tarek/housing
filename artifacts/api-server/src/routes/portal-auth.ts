@@ -478,6 +478,10 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
       profile: userObj,
       employee: userObj,
       mustChangePassword: result.account?.mustChangePassword ?? false,
+      lastLoginAt:
+        result.account?.lastLoginAt instanceof Date
+          ? result.account.lastLoginAt.toISOString()
+          : ((result.account?.lastLoginAt as unknown as string) ?? null),
     });
   } catch (error: any) {
     console.error("Portal /me error:", error);

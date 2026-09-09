@@ -17,6 +17,7 @@ import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
 import MaterialIcon from "./MaterialIcon";
 import { useBiometric } from "../hooks/useBiometric";
+import { formatDMYTime, toISODate } from "@workspace/dates";
 
 const isNative = Capacitor.isNativePlatform();
 
@@ -42,10 +43,59 @@ export default function TabPortalSettings() {
   >("idle");
   const [cpMsg, setCpMsg] = useState("");
   const [bioEnabled, setBioEnabled] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [lastLoginAt, setLastLoginAt] = useState<string | null>(null);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const push = usePushNotifications();
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [isNotifLoading, setIsNotifLoading] = useState(false);
+
+  const openActivity = async () => {
+    setActivityOpen(true);
+    setActivityLoading(true);
+    try {
+      const res = await apiFetch("/api/portal-auth/me");
+      const d = await res.json();
+      setLastLoginAt(d?.lastLoginAt ?? null);
+    } catch {
+      setLastLoginAt(null);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setExporting(true);
+    try {
+      const res = await apiFetch("/api/portal-auth/me");
+      const d = await res.json();
+      if (!res.ok || !d?.success) throw new Error("fetch failed");
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        profile: d.profile ?? d.employee ?? null,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `my-data-${toISODate(new Date())}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      toast.success(
+        isRtl ? "تم تنزيل بياناتك بنجاح" : "Your data downloaded successfully",
+      );
+    } catch {
+      toast.error(
+        isRtl ? "تعذر تنزيل البيانات" : "Failed to download data",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const isInstalled =
     typeof window !== "undefined" &&
@@ -493,7 +543,10 @@ export default function TabPortalSettings() {
           </p>
         </div>
         <div className="bg-card border border-border2 rounded-xl divide-y divide-border2">
-          <button className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent2/5 transition-colors">
+          <button
+            onClick={openActivity}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent2/5 transition-colors"
+          >
             <div className="flex items-center gap-3">
               <MaterialIcon icon="history" size={16} className="text-muted2" />
               <span className="text-[12px] text-foreground">
@@ -506,7 +559,11 @@ export default function TabPortalSettings() {
               className="text-muted2"
             />
           </button>
-          <button className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent2/5 transition-colors">
+          <button
+            onClick={handleExportData}
+            disabled={exporting}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent2/5 transition-colors disabled:opacity-50"
+          >
             <div className="flex items-center gap-3">
               <MaterialIcon icon="download" size={16} className="text-muted2" />
               <span className="text-[12px] text-foreground">
@@ -648,6 +705,45 @@ export default function TabPortalSettings() {
         <MaterialIcon icon="logout" size={18} />
         {t("settings.logOut")}
       </button>
+
+      {activityOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setActivityOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-card border border-border2 rounded-2xl p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <MaterialIcon icon="history" size={20} className="text-accent2" />
+              <h3 className="text-sm font-bold text-foreground">
+                {t("settings.loginActivity")}
+              </h3>
+            </div>
+            {activityLoading ? (
+              <p className="text-[12px] text-muted2">
+                {isRtl ? "جاري التحميل..." : "Loading..."}
+              </p>
+            ) : (
+              <div className="bg-surface border border-border2 rounded-xl px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted2 mb-1">
+                  {isRtl ? "آخر تسجيل دخول" : "Last login"}
+                </p>
+                <p className="text-[14px] font-bold text-foreground tabular-nums" dir="ltr">
+                  {lastLoginAt ? formatDMYTime(lastLoginAt, "—") : "—"}
+                </p>
+              </div>
+            )}
+            <button
+              onClick={() => setActivityOpen(false)}
+              className="mt-4 w-full py-2.5 rounded-xl bg-surface border border-border2 text-[12px] font-bold text-foreground hover:bg-accent2/10 transition-all"
+            >
+              {isRtl ? "إغلاق" : "Close"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <p
         className="text-center text-[13px] text-accent2/40 italic leading-relaxed px-4"
