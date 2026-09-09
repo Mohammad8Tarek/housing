@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Bed, Building, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { roomStatusBadge, getRoomStatusLabel } from "@/pages/housing/utils";
+import { SortableHead } from "@/components/ui/sortable-head";
 
 export function ReportTable({
   isLoading,
@@ -20,11 +21,23 @@ export function ReportTable({
   setSelectedRows,
   activeTab,
   ar,
+  sort,
+  onSortToggle,
   floorMap,
   buildingMap,
   empMap,
   roomMap,
 }: any) {
+  const H = (sortKey: string, label: React.ReactNode, className?: string) => (
+    <SortableHead
+      label={label}
+      sortKey={sortKey}
+      activeKey={sort?.key ?? null}
+      dir={sort?.dir ?? "asc"}
+      onToggle={onSortToggle ?? (() => {})}
+      className={className}
+    />
+  );
   if (isLoading) {
     return (
       <div className="space-y-2 p-4">
@@ -88,130 +101,130 @@ export function ReportTable({
             {/* 1. ASSIGNMENTS HEADERS */}
             {activeTab === "assignments" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "الموظف / المقيم" : "Occupant / Profile"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "نوع التوظيف" : "Employment"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الغرفة والسرير" : "Room & Bed"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "المبنى والطابق" : "Building & Floor"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "القسم والمسمى" : "Dept & Title"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الهاتف" : "Phone"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "تاريخ التسكين" : "Check-In"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "انتهاء العقد" : "Contract End"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "المغادرة المتوقعة" : "Expected Out"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الحالة" : "Status"}</TableHead>
+                {H("fullName", ar ? "الموظف / المقيم" : "Occupant / Profile")}
+                {H("employmentType", ar ? "نوع التوظيف" : "Employment")}
+                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
+                {H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {H("department", ar ? "القسم والمسمى" : "Dept & Title")}
+                {H("phone", ar ? "الهاتف" : "Phone")}
+                {H("checkInDate", ar ? "تاريخ التسكين" : "Check-In")}
+                {H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
+                {H("expectedCheckOutDate", ar ? "المغادرة المتوقعة" : "Expected Out")}
+                {H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
             {/* 2. VACANT ROOMS HEADERS */}
             {activeTab === "vacant_rooms" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "رقم الغرفة" : "Room No"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "المبنى والطابق" : "Building & Floor"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "نوع الغرفة" : "Room Type"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "السعة" : "Capacity"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "المشغول" : "Occupied"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "الأسرة الشاغرة" : "Vacant Beds"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "أرقام الأسرة المتاحة" : "Available Beds"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "سياسة الجنس" : "Gender Policy"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "حالة الغرفة" : "Room Status"}</TableHead>
+                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
+                {H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {H("roomType", ar ? "نوع الغرفة" : "Room Type")}
+                {H("capacity", ar ? "السعة" : "Capacity", "text-center")}
+                {H("currentOccupancy", ar ? "المشغول" : "Occupied", "text-center")}
+                {H("vacantBedsCount", ar ? "الأسرة الشاغرة" : "Vacant Beds", "text-center")}
+                {H("availableBedsText", ar ? "أرقام الأسرة المتاحة" : "Available Beds")}
+                {H("genderPolicy", ar ? "سياسة الجنس" : "Gender Policy")}
+                {H("status", ar ? "حالة الغرفة" : "Room Status")}
               </>
             )}
 
             {/* 3. HOUSING INVENTORY HEADERS */}
             {activeTab === "housing" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "رقم الغرفة" : "Room No"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "المبنى والطابق" : "Building & Floor"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "النوع" : "Type"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "السعة" : "Capacity"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "المشغول" : "Occupied"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "الشاغر" : "Vacant"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "نسبة الإشغال" : "Occupancy Rate"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "سياسة الجنس" : "Gender Policy"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الحالة" : "Status"}</TableHead>
+                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
+                {H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {H("roomType", ar ? "النوع" : "Type")}
+                {H("capacity", ar ? "السعة" : "Capacity", "text-center")}
+                {H("currentOccupancy", ar ? "المشغول" : "Occupied", "text-center")}
+                {H("vacantBeds", ar ? "الشاغر" : "Vacant", "text-center")}
+                {H("occupancyRate", ar ? "نسبة الإشغال" : "Occupancy Rate", "text-center")}
+                {H("genderPolicy", ar ? "سياسة الجنس" : "Gender Policy")}
+                {H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
             {/* 4. PROFILES HEADERS */}
             {activeTab === "profiles" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "كود والاسم" : "Code & Name"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "النوع والشركة" : "Employment & Company"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الرقم القومي" : "National ID"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الهاتف" : "Phone"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "القسم والمسمى" : "Dept & Job Title"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "السكن الحالي" : "Housing"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "تاريخ التعيين" : "Hire Date"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "انتهاء العقد" : "Contract End"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الحالة" : "Status"}</TableHead>
+                {H("fullName", ar ? "كود والاسم" : "Code & Name")}
+                {H("employmentType", ar ? "النوع والشركة" : "Employment & Company")}
+                {H("nationalId", ar ? "الرقم القومي" : "National ID")}
+                {H("phone", ar ? "الهاتف" : "Phone")}
+                {H("department", ar ? "القسم والمسمى" : "Dept & Job Title")}
+                {H("assignedRoom", ar ? "السكن الحالي" : "Housing")}
+                {H("hireDate", ar ? "تاريخ التعيين" : "Hire Date")}
+                {H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
+                {H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
             {/* 5. EXPIRING CONTRACTS HEADERS */}
             {activeTab === "expiring_contracts" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "الموظف" : "Employee"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "القسم والوظيفة" : "Dept & Title"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "السكن الحالي" : "Current Housing"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الهاتف" : "Phone"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "تاريخ انتهاء العقد" : "Contract End Date"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "الأيام المتبقية" : "Days Remaining"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "حالة العقد" : "Contract Status"}</TableHead>
+                {H("fullName", ar ? "الموظف" : "Employee")}
+                {H("department", ar ? "القسم والوظيفة" : "Dept & Title")}
+                {H("assignedRoom", ar ? "السكن الحالي" : "Current Housing")}
+                {H("phone", ar ? "الهاتف" : "Phone")}
+                {H("contractEndDate", ar ? "تاريخ انتهاء العقد" : "Contract End Date")}
+                {H("daysRemaining", ar ? "الأيام المتبقية" : "Days Remaining", "text-center")}
+                {H("expStatus", ar ? "حالة العقد" : "Contract Status")}
               </>
             )}
 
             {/* 6. RESERVATIONS HEADERS */}
             {activeTab === "reservations" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "اسم الضيف" : "Guest Name"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الرقم القومي والهاتف" : "ID & Phone"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "القسم والوظيفة" : "Dept & Title"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "نوع الغرفة" : "Room Type"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الغرفة المحجوزة" : "Reserved Room"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "تاريخ الوصول" : "Arrival Date"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "تاريخ المغادرة" : "Check-Out"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الحالة" : "Status"}</TableHead>
+                {H("guestName", ar ? "اسم الضيف" : "Guest Name")}
+                {H("nationalId", ar ? "الرقم القومي والهاتف" : "ID & Phone")}
+                {H("department", ar ? "القسم والوظيفة" : "Dept & Title")}
+                {H("roomType", ar ? "نوع الغرفة" : "Room Type")}
+                {H("roomNumber", ar ? "الغرفة المحجوزة" : "Reserved Room")}
+                {H("checkInDate", ar ? "تاريخ الوصول" : "Arrival Date")}
+                {H("checkOutDate", ar ? "تاريخ المغادرة" : "Check-Out")}
+                {H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
             {/* 7. HOSTINGS HEADERS */}
             {activeTab === "hostings" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "الموظف المستضيف" : "Host Employee"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "اسم الضيف والصلة" : "Guest & Relation"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "رقم الغرفة" : "Room No"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "من تاريخ" : "Check-In"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "إلى تاريخ" : "Check-Out"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "سعر اليوم" : "Daily Rate"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الإجمالي" : "Total Fee"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الحالة" : "Status"}</TableHead>
+                {H("hostEmployee", ar ? "الموظف المستضيف" : "Host Employee")}
+                {H("guestName", ar ? "اسم الضيف والصلة" : "Guest & Relation")}
+                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
+                {H("checkInDate", ar ? "من تاريخ" : "Check-In")}
+                {H("checkOutDate", ar ? "إلى تاريخ" : "Check-Out")}
+                {H("dailyRate", ar ? "سعر اليوم" : "Daily Rate")}
+                {H("totalAmount", ar ? "الإجمالي" : "Total Fee")}
+                {H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
             {/* 8. MAINTENANCE HEADERS */}
             {activeTab === "maintenance" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "الغرفة والمبنى" : "Room & Building"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الفئة" : "Category"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "وصف المشكلة" : "Problem Details"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الأولوية" : "Priority"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الفني المعين" : "Assigned To"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "تاريخ البلاغ" : "Reported At"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الحالة" : "Status"}</TableHead>
+                {H("roomNumber", ar ? "الغرفة والمبنى" : "Room & Building")}
+                {H("category", ar ? "الفئة" : "Category")}
+                {H("problemType", ar ? "وصف المشكلة" : "Problem Details")}
+                {H("priority", ar ? "الأولوية" : "Priority")}
+                {H("assignedTo", ar ? "الفني المعين" : "Assigned To")}
+                {H("reportedAt", ar ? "تاريخ البلاغ" : "Reported At")}
+                {H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
             {/* 9. HOUSEKEEPING HEADERS */}
             {activeTab === "housekeeping" && (
               <>
-                <TableHead className="text-white font-semibold">{ar ? "رقم الغرفة" : "Room No"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "المبنى والطابق" : "Building & Floor"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "نوع الغرفة" : "Room Type"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "السعة" : "Cap"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "المشغول" : "Occ"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "الأسرة الشاغرة" : "Vacant"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "حالة الغرفة" : "Room Status"}</TableHead>
-                <TableHead className="text-white font-semibold">{ar ? "الإجراء المطلوب" : "HK Action"}</TableHead>
-                <TableHead className="text-white font-semibold text-center">{ar ? "تذاكر مفتوحة" : "Open Tickets"}</TableHead>
+                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
+                {H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {H("roomType", ar ? "نوع الغرفة" : "Room Type")}
+                {H("capacity", ar ? "السعة" : "Cap", "text-center")}
+                {H("currentOccupancy", ar ? "المشغول" : "Occ", "text-center")}
+                {H("vacantBeds", ar ? "الأسرة الشاغرة" : "Vacant", "text-center")}
+                {H("status", ar ? "حالة الغرفة" : "Room Status")}
+                {H("hkPriority", ar ? "الإجراء المطلوب" : "HK Action")}
+                {H("openHkTickets", ar ? "تذاكر مفتوحة" : "Open Tickets", "text-center")}
               </>
             )}
           </TableRow>

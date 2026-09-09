@@ -11,6 +11,7 @@ import { useReportFilters } from "./hooks/useReportFilters";
 import { useReportDataProcessor } from "./hooks/useReportDataProcessor";
 import { useReportAnalytics } from "./hooks/useReportAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
+import { sortReportRows, useReportSort } from "./hooks/useReportSort";
 
 import { ExportToolbar } from "./components/ExportToolbar";
 import { StatsCards } from "./components/StatsCards";
@@ -94,11 +95,22 @@ export default function Reports() {
   });
 
   const allData = processor.currentData();
-  const totalCount = allData.length;
+  const { sort, toggle } = useReportSort(filters.activeTab);
+  const sortedData = useMemo(
+    () => sortReportRows(allData, sort),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allData, sort],
+  );
+  const totalCount = sortedData.length;
+
+  const handleSortToggle = (key: string) => {
+    toggle(key);
+    filters.setCurrentPage(1);
+  };
 
   // Real-time responsive pagination based on filtered data
   const startIndex = (filters.currentPage - 1) * filters.pageSize;
-  const paginatedData = allData.slice(startIndex, startIndex + filters.pageSize);
+  const paginatedData = sortedData.slice(startIndex, startIndex + filters.pageSize);
 
   const { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF } =
     useReportExport({
@@ -221,12 +233,14 @@ export default function Reports() {
           <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
             <ReportTable
               isLoading={data.isLoading}
-              allData={allData}
+              allData={sortedData}
               paginatedData={paginatedData}
               selectedRows={filters.selectedRows}
               setSelectedRows={filters.setSelectedRows}
               activeTab={filters.activeTab}
               ar={ar}
+              sort={sort}
+              onSortToggle={handleSortToggle}
               floorMap={data.floorMap}
               buildingMap={data.buildingMap}
               empMap={data.empMap}
