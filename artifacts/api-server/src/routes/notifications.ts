@@ -217,7 +217,8 @@ router.get(
         if (canViewHousekeeping || canViewHousing) {
           queries.push(
             tenantDb.execute(
-              sql`SELECT id, room_number, status, building_id, floor_id 
+              sql`SELECT id, room_number, status, building_id, floor_id,
+                         COUNT(*) OVER () AS total_count
                   FROM rooms 
                   WHERE status IN ('dirty', 'occupied_dirty')
                   LIMIT 30`,
@@ -477,16 +478,17 @@ router.get(
 
         // Housekeeping: Dirty rooms
         const dirtyRows: any[] = (byLabel.dirtyRooms as any)?.rows ?? [];
-        if (dirtyRows.length > 0) {
+        const dirtyTotal = Number(dirtyRows[0]?.total_count ?? dirtyRows.length);
+        if (dirtyTotal > 0) {
           notifications.push({
-            id: `dirty-rooms-${dirtyRows.length}`,
+            id: `dirty-rooms-${dirtyTotal}`,
             type: "DIRTY_ROOMS",
             category: "housekeeping",
             priority: "high",
-            title: `${dirtyRows.length} Room(s) Need Housekeeping Cleaning`,
-            titleAr: `${dirtyRows.length} غرفة تحتاج تنظيف فوري (هاوس كيبنج)`,
-            description: `${dirtyRows.length} room(s) are currently dirty or occupied dirty.`,
-            descriptionAr: `يوجد ${dirtyRows.length} غرفة متسخة أو مشغولة تحتاج للتنظيف.`,
+            title: `${dirtyTotal} Room(s) Need Housekeeping Cleaning`,
+            titleAr: `${dirtyTotal} غرفة تحتاج تنظيف فوري (هاوس كيبنج)`,
+            description: `${dirtyTotal} room(s) are currently dirty or occupied dirty.`,
+            descriptionAr: `يوجد ${dirtyTotal} غرفة متسخة أو مشغولة تحتاج للتنظيف.`,
             entityId: dirtyRows[0].id,
             entityType: "room",
             targetUrl: "/housekeeping",
