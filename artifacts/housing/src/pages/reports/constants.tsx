@@ -9,6 +9,7 @@ import {
   Clock,
   Home,
   Sparkles,
+  PackageCheck,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
@@ -33,9 +34,15 @@ export const TABS: TabConfig[] = [
   },
   {
     id: "housing",
-    label: "Room Inventory",
-    labelAr: "جرد وحالة الغرف",
+    label: "Room Occupancy",
+    labelAr: "حالة وإشغال الغرف",
     icon: <Building2 className="w-4 h-4 text-sky-500" />,
+  },
+  {
+    id: "equipment_inventory",
+    label: "Amenities & Equipment Inventory",
+    labelAr: "جرد المحتويات والمعدات",
+    icon: <PackageCheck className="w-4 h-4 text-cyan-500" />,
   },
   {
     id: "profiles",

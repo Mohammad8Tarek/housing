@@ -1,4 +1,4 @@
-import { History, Check, Sparkles, AlertTriangle, Palmtree, Plus, X, Pencil, FileText, Tag } from "lucide-react";
+import { History, Check, Sparkles, AlertTriangle, Palmtree, Plus, X, Pencil, FileText, Tag, PackageCheck, Trash2, Wrench, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getListRoomsQueryKey } from "@workspace/api-client-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/date-utils";
@@ -101,12 +101,151 @@ export function RoomDetailsDialog({
     }
   };
 
+  // Room Equipment Inventory State
+  const [showAddInventory, setShowAddInventory] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemCategory, setNewItemCategory] = useState("electronics");
+  const [newItemQuantity, setNewItemQuantity] = useState(1);
+  const [newItemCondition, setNewItemCondition] = useState("good");
+  const [newItemSerial, setNewItemSerial] = useState("");
+  const [newItemBarcode, setNewItemBarcode] = useState("");
+  const [isSubmittingItem, setIsSubmittingItem] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const { data: inventoryData, refetch: refetchInventory } = useQuery({
+    queryKey: ["room-inventory-single", room?.id, propertyId],
+    queryFn: async () => {
+      if (!room?.id || !propertyId) return [];
+      const res = await fetch(`/api/room-inventory/room/${room.id}?propertyId=${propertyId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: !!room?.id && !!propertyId,
+  });
+  const roomInventory: any[] = inventoryData || [];
+
+  const handleSyncFromFeatures = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/room-inventory/sync-from-features", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ roomId: room.id, propertyId }),
+      });
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      toast.success(
+        ar
+          ? `تم استيراد ${json.data?.createdCount || 0} صنف جديد من تجهيزات الغرفة`
+          : `Synced ${json.data?.createdCount || 0} items from room features`
+      );
+      refetchInventory();
+      qc.invalidateQueries({ queryKey: ["room-inventory"] });
+    } catch {
+      toast.error(ar ? "فشل استيراد المحتويات" : "Failed to sync inventory");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleAddItem = async () => {
+    if (!newItemName.trim()) {
+      toast.error(ar ? "اسم المعدة مطلوب" : "Item name is required");
+      return;
+    }
+    setIsSubmittingItem(true);
+    try {
+      const res = await fetch("/api/room-inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          roomId: room.id,
+          propertyId,
+          itemName: newItemName.trim(),
+          category: newItemCategory,
+          quantity: Number(newItemQuantity) || 1,
+          condition: newItemCondition,
+          serialNumber: newItemSerial.trim() || undefined,
+          barcode: newItemBarcode.trim() || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(ar ? "تمت إضافة العهدة/المعدة بنجاح" : "Equipment item added");
+      setNewItemName("");
+      setNewItemSerial("");
+      setNewItemBarcode("");
+      setNewItemQuantity(1);
+      setShowAddInventory(false);
+      refetchInventory();
+      qc.invalidateQueries({ queryKey: ["room-inventory"] });
+    } catch {
+      toast.error(ar ? "فشل إضافة العهدة" : "Failed to add item");
+    } finally {
+      setIsSubmittingItem(false);
+    }
+  };
+
+  const handleUpdateCondition = async (itemId: number, newCond: string) => {
+    try {
+      const res = await fetch(`/api/room-inventory/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ condition: newCond, propertyId }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(ar ? "تم تحديث حالة المعدة" : "Item condition updated");
+      refetchInventory();
+      qc.invalidateQueries({ queryKey: ["room-inventory"] });
+    } catch {
+      toast.error(ar ? "فشل تحديث الحالة" : "Failed to update condition");
+    }
+  };
+
+  const handleDeleteInventory = async (itemId: number) => {
+    try {
+      const res = await fetch(`/api/room-inventory/${itemId}?propertyId=${propertyId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error();
+      toast.success(ar ? "تم حذف الصنف من الجرد" : "Item removed from inventory");
+      refetchInventory();
+      qc.invalidateQueries({ queryKey: ["room-inventory"] });
+    } catch {
+      toast.error(ar ? "فشل الحذف" : "Failed to delete item");
+    }
+  };
+
+  const handleCreateTicket = async (itemId: number) => {
+    try {
+      const res = await fetch(`/api/room-inventory/${itemId}/create-ticket`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ propertyId }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(ar ? "تم إنشاء طلب صيانة عاجل بنجاح!" : "Maintenance ticket created!");
+      refetchInventory();
+      qc.invalidateQueries({ queryKey: ["room-inventory"] });
+      qc.invalidateQueries({ queryKey: ["maintenance"] });
+    } catch {
+      toast.error(ar ? "فشل إنشاء طلب الصيانة" : "Failed to create ticket");
+    }
+  };
+
   const empMap = Object.fromEntries((profiles ?? []).map((e) => [e.id, e]));
 
   return (
     <Dialog open={!!room} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-w-lg"
+        className="max-w-xl max-h-[90vh] overflow-y-auto"
         srTitle={`${ar ? "الغرفة" : "Room"} ${room.roomNumber}`}
       >
         <DialogHeader>
@@ -342,7 +481,229 @@ export function RoomDetailsDialog({
           )}
         </div>
 
+        {/* ── Room Equipment Inventory (جرد العهد والمعدات) ── */}
+        <div className="p-3.5 rounded-lg bg-card border shadow-xs mt-2 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PackageCheck className="w-4 h-4 text-cyan-600" />
+              <p className="text-xs font-bold text-foreground">
+                {ar ? "جرد محتويات ومعدات الغرفة:" : "Room Equipment & Inventory:"}
+              </p>
+              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-bold">
+                {roomInventory.length}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-[11px] gap-1 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800"
+                onClick={handleSyncFromFeatures}
+                disabled={isSyncing}
+                title={ar ? "توليد تلقائي من مميزات الغرفة" : "Sync from room features"}
+              >
+                <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
+                {ar ? "توليد تلقائي" : "Sync"}
+              </Button>
+              <Button
+                variant={showAddInventory ? "secondary" : "default"}
+                size="sm"
+                className="h-6 px-2 text-[11px] gap-1"
+                onClick={() => setShowAddInventory(!showAddInventory)}
+              >
+                <Plus className="w-3 h-3" />
+                {ar ? "إضافة عهدة" : "Add Asset"}
+              </Button>
+            </div>
+          </div>
 
+          {/* Add Item Form */}
+          {showAddInventory && (
+            <div className="p-3 rounded-md bg-muted/40 border border-dashed space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                    {ar ? "اسم المعدة *" : "Item Name *"}
+                  </label>
+                  <Input
+                    placeholder={ar ? "مثال: تلفزيون 43 بوصة" : "e.g. Smart TV 43\""}
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    className="h-7 text-xs bg-background"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                    {ar ? "التصنيف" : "Category"}
+                  </label>
+                  <Select value={newItemCategory} onValueChange={setNewItemCategory}>
+                    <SelectTrigger className="h-7 text-xs bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="electronics">{ar ? "إلكترونيات وشاشات" : "Electronics"}</SelectItem>
+                      <SelectItem value="appliances">{ar ? "أجهزة وتكييف" : "Appliances"}</SelectItem>
+                      <SelectItem value="furniture">{ar ? "أثاث وغرف نوم" : "Furniture"}</SelectItem>
+                      <SelectItem value="fixtures">{ar ? "مرافق وخزائن" : "Fixtures"}</SelectItem>
+                      <SelectItem value="linen">{ar ? "مفروشات وبياضات" : "Linen"}</SelectItem>
+                      <SelectItem value="other">{ar ? "أخرى" : "Other"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                    {ar ? "العدد" : "Quantity"}
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={newItemQuantity}
+                    onChange={(e) => setNewItemQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    className="h-7 text-xs bg-background"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                    {ar ? "الحالة" : "Condition"}
+                  </label>
+                  <Select value={newItemCondition} onValueChange={setNewItemCondition}>
+                    <SelectTrigger className="h-7 text-xs bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="good">{ar ? "سليم / ممتاز" : "Good"}</SelectItem>
+                      <SelectItem value="fair">{ar ? "مقبول / يعمل" : "Fair"}</SelectItem>
+                      <SelectItem value="needs_repair">{ar ? "بحاجة لصيانة" : "Needs Repair"}</SelectItem>
+                      <SelectItem value="damaged">{ar ? "تالف / معطل" : "Damaged"}</SelectItem>
+                      <SelectItem value="missing">{ar ? "مفقود" : "Missing"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
+                    {ar ? "سيريال / كود" : "Serial / Tag"}
+                  </label>
+                  <Input
+                    placeholder="S/N: 92831"
+                    value={newItemSerial}
+                    onChange={(e) => setNewItemSerial(e.target.value)}
+                    className="h-7 text-xs bg-background"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setShowAddInventory(false)}
+                >
+                  {ar ? "إلغاء" : "Cancel"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-6 px-2.5 text-xs font-semibold"
+                  onClick={handleAddItem}
+                  disabled={isSubmittingItem}
+                >
+                  {isSubmittingItem ? "..." : ar ? "حفظ العهدة" : "Save Item"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Inventory Items List */}
+          {roomInventory.length === 0 ? (
+            <div className="p-3 text-center rounded-md bg-muted/20 border text-xs text-muted-foreground">
+              {ar
+                ? "لا توجد عهد أو معدات مسجلة لهذه الغرفة بعد. اضغط 'توليد تلقائي' للاستيراد من تجهيزات الغرفة."
+                : "No equipment registered for this room yet. Click 'Sync' to import from room features."}
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              {roomInventory.map((item: any) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border text-xs hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-foreground truncate">{item.itemName}</span>
+                      {item.quantity > 1 && (
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                          x{item.quantity}
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-[10px] h-4 px-1 capitalize">
+                        {item.category}
+                      </Badge>
+                    </div>
+                    {(item.serialNumber || item.barcode) && (
+                      <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                        {item.serialNumber ? `S/N: ${item.serialNumber}` : ""}
+                        {item.serialNumber && item.barcode ? " | " : ""}
+                        {item.barcode ? `Tag: ${item.barcode}` : ""}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2 rtl:mr-2 rtl:ml-0">
+                    <Select
+                      value={item.condition || "good"}
+                      onValueChange={(val) => handleUpdateCondition(item.id, val)}
+                    >
+                      <SelectTrigger
+                        className={`h-6 text-[10px] px-1.5 font-bold ${
+                          item.condition === "good"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                            : item.condition === "fair"
+                            ? "bg-blue-50 text-blue-700 border-blue-300"
+                            : item.condition === "needs_repair"
+                            ? "bg-amber-50 text-amber-700 border-amber-300"
+                            : "bg-rose-50 text-rose-700 border-rose-300"
+                        }`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="good">{ar ? "سليم" : "Good"}</SelectItem>
+                        <SelectItem value="fair">{ar ? "مقبول" : "Fair"}</SelectItem>
+                        <SelectItem value="needs_repair">{ar ? "يحتاج صيانة" : "Needs Repair"}</SelectItem>
+                        <SelectItem value="damaged">{ar ? "تالف" : "Damaged"}</SelectItem>
+                        <SelectItem value="missing">{ar ? "مفقود" : "Missing"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {(item.condition === "needs_repair" || item.condition === "damaged") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-1.5 text-[10px] gap-1 text-rose-600 border-rose-200 hover:bg-rose-50"
+                        onClick={() => handleCreateTicket(item.id)}
+                        title={ar ? "إنشاء تذكرة صيانة" : "Create maintenance ticket"}
+                      >
+                        <Wrench className="w-2.5 h-2.5" />
+                        {ar ? "صيانة" : "Fix"}
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteInventory(item.id)}
+                      title={ar ? "حذف" : "Delete"}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {(() => {
           const roomAssignments = (assignments ?? []).filter(

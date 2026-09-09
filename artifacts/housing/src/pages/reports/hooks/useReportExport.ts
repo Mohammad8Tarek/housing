@@ -169,6 +169,39 @@ export function useReportExport({
           [ar ? "الحالة" : "Status"]: m.status,
         }));
 
+      case "equipment_inventory":
+        return data.map((it: any) => ({
+          [ar ? "رقم الغرفة" : "Room No"]: it.roomNumber,
+          [ar ? "المبنى" : "Building"]: it.buildingName,
+          [ar ? "الطابق" : "Floor"]: it.floorName,
+          [ar ? "اسم المعدة / القطعة" : "Item Name"]: it.itemName,
+          [ar ? "الموديل" : "Model"]: it.modelNumber || "—",
+          [ar ? "التصنيف" : "Category"]:
+            ar
+              ? it.category === "electronics" ? "إلكترونيات وشاشات"
+              : it.category === "appliances" ? "أجهزة وتكييف"
+              : it.category === "furniture" ? "أثاث"
+              : it.category === "fixtures" ? "مرافق وخزائن"
+              : it.category === "linen" ? "مفروشات"
+              : "أخرى"
+              : it.category,
+          [ar ? "العدد" : "Quantity"]: it.quantity,
+          [ar ? "الحالة" : "Condition"]:
+            ar
+              ? it.condition === "good" ? "ممتاز / سليم"
+              : it.condition === "fair" ? "مقبول / يعمل"
+              : it.condition === "needs_repair" ? "بحاجة لصيانة"
+              : it.condition === "damaged" ? "تالف / معطل"
+              : it.condition === "missing" ? "مفقود"
+              : it.condition
+              : it.condition,
+          [ar ? "الرقم التسلسلي" : "Serial Number"]: it.serialNumber || "—",
+          [ar ? "كود الأصل / الباركود" : "Asset Tag / Barcode"]: it.barcode || "—",
+          [ar ? "تاريخ الفحص" : "Last Inspected"]: it.lastInspectedAt || "—",
+          [ar ? "القائم بالفحص" : "Inspected By"]: it.inspectedBy || "—",
+          [ar ? "ملاحظات" : "Notes"]: it.notes || "—",
+        }));
+
       default:
         return data;
     }

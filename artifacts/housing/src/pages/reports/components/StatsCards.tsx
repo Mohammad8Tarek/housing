@@ -14,9 +14,72 @@ interface StatsCardsProps {
   };
   isLoading: boolean;
   ar?: boolean;
+  activeTab?: string;
+  equipmentInventory?: any[];
 }
 
-export function StatsCards({ stats, isLoading, ar }: StatsCardsProps) {
+export function StatsCards({ stats, isLoading, ar, activeTab, equipmentInventory = [] }: StatsCardsProps) {
+  if (activeTab === "equipment_inventory") {
+    const totalQty = equipmentInventory.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0);
+    const goodQty = equipmentInventory
+      .filter((it: any) => it.condition === "good" || it.condition === "fair")
+      .reduce((acc: number, it: any) => acc + (it.quantity || 1), 0);
+    const repairQty = equipmentInventory
+      .filter((it: any) => it.condition === "needs_repair")
+      .reduce((acc: number, it: any) => acc + (it.quantity || 1), 0);
+    const damagedQty = equipmentInventory
+      .filter((it: any) => it.condition === "damaged" || it.condition === "missing")
+      .reduce((acc: number, it: any) => acc + (it.quantity || 1), 0);
+
+    const invCards = [
+      {
+        label: ar ? "إجمالي العهد والمعدات" : "Total Equipment Items",
+        value: totalQty,
+        sub: ar ? `${equipmentInventory.length} صنف مسجل` : `${equipmentInventory.length} registered assets`,
+        color: "text-foreground",
+        bg: "bg-card",
+      },
+      {
+        label: ar ? "بحالة ممتازة / صالحة" : "Good & Working Condition",
+        value: goodQty,
+        sub: totalQty > 0 ? `${Math.round((goodQty / totalQty) * 100)}% ${ar ? "من الإجمالي" : "of total"}` : "—",
+        color: "text-emerald-600 dark:text-emerald-400",
+        bg: "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40",
+      },
+      {
+        label: ar ? "بحاجة لصيانة وإصلاح" : "Needs Maintenance",
+        value: repairQty,
+        sub: ar ? "تتطلب فحص فني" : "Requires technician",
+        color: "text-rose-600 dark:text-rose-400",
+        bg: "bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/40",
+      },
+      {
+        label: ar ? "تالف أو مفقود" : "Damaged or Missing",
+        value: damagedQty,
+        sub: ar ? "يتطلب استبدال" : "Requires replacement",
+        color: "text-amber-600 dark:text-amber-400",
+        bg: "bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/40",
+      },
+    ];
+
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {invCards.map((s) => (
+          <div
+            key={s.label}
+            className={`border rounded-xl p-3 text-center shadow-xs transition-shadow hover:shadow-sm ${s.bg}`}
+          >
+            <p className={`text-2xl font-bold tracking-tight ${s.color}`}>
+              {isLoading ? "—" : s.value}
+            </p>
+            <p className="text-xs font-semibold text-foreground mt-0.5">{s.label}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{s.sub}</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   const cards = [
     {
       label: ar ? "إجمالي الغرف" : "Total Rooms",

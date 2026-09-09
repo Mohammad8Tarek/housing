@@ -88,6 +88,7 @@ export default function Reports() {
     reservations: data.reservations,
     maintenance: data.maintenance,
     hostings: data.hostings,
+    equipmentInventory: data.equipmentInventory,
     buildingMap: data.buildingMap,
     floorMap: data.floorMap,
     roomMap: data.roomMap,
@@ -163,7 +164,13 @@ export default function Reports() {
       </div>
 
       {/* KPI Cards */}
-      <StatsCards stats={stats} isLoading={data.isLoading} ar={ar} />
+      <StatsCards
+        stats={stats}
+        isLoading={data.isLoading}
+        ar={ar}
+        activeTab={filters.activeTab}
+        equipmentInventory={data.equipmentInventory}
+      />
 
       {/* Tabs Navigation */}
       <TabsNav

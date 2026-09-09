@@ -1591,6 +1591,32 @@ const TENANT_MIGRATIONS = [
        CREATE INDEX IF NOT EXISTS idx_reset_tokens_token_hash ON password_reset_tokens (token_hash);
        CREATE INDEX IF NOT EXISTS idx_reset_tokens_expires_at ON password_reset_tokens (expires_at);`,
   },
+  {
+    name: "room_inventory.table",
+    q: `CREATE TABLE IF NOT EXISTS room_inventory (
+      id SERIAL PRIMARY KEY,
+      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      item_name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'electronics',
+      quantity INTEGER NOT NULL DEFAULT 1,
+      condition TEXT NOT NULL DEFAULT 'good',
+      barcode TEXT,
+      serial_number TEXT,
+      model_number TEXT,
+      last_inspected_at TIMESTAMPTZ,
+      inspected_by TEXT,
+      notes TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+  },
+  {
+    name: "room_inventory.indexes",
+    q: `CREATE INDEX IF NOT EXISTS idx_room_inventory_room_id ON room_inventory (room_id);
+       CREATE INDEX IF NOT EXISTS idx_room_inventory_condition ON room_inventory (condition);
+       CREATE INDEX IF NOT EXISTS idx_room_inventory_category ON room_inventory (category);
+       CREATE INDEX IF NOT EXISTS idx_room_inventory_room_category ON room_inventory (room_id, category);`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {
@@ -1624,6 +1650,9 @@ async function runForAllTenants(query: string): Promise<number> {
     }
     return count;
   } finally {
+    try {
+      await client.query("SET search_path TO public");
+    } catch {}
     client.release();
   }
 }

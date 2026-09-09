@@ -131,19 +131,27 @@ export function ReportFilters({
           { value: "CANCELLED",   label: "Cancelled",             labelAr: "ملغي" },
           { value: "COMPLETED",   label: "Completed",             labelAr: "منتهي" },
         ];
+      case "equipment_inventory":
+        return [
+          { value: "good",         label: "Good / Excellent",     labelAr: "سليم / ممتاز" },
+          { value: "fair",         label: "Fair / Working",       labelAr: "مقبول / يعمل" },
+          { value: "needs_repair", label: "Needs Repair",         labelAr: "بحاجة لصيانة" },
+          { value: "damaged",      label: "Damaged / Broken",     labelAr: "تالف / معطل" },
+          { value: "missing",      label: "Missing / Lost",       labelAr: "مفقود / ناقص" },
+        ];
       default:
         return [];
     }
   };
 
   const statusOptions = getStatusOptions();
-  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping"].includes(activeTab);
+  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping", "equipment_inventory"].includes(activeTab);
   const showEmploymentType = ["assignments", "profiles", "analytics"].includes(activeTab);
   const showRoomType = ["housing", "vacant_rooms", "assignments", "reservations"].includes(activeTab);
   const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts"].includes(activeTab);
   const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts"].includes(activeTab);
   const showNationality = ["assignments", "profiles", "expiring_contracts"].includes(activeTab);
-  const showCategory = activeTab === "maintenance";
+  const showCategory = activeTab === "maintenance" || activeTab === "equipment_inventory";
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-xs space-y-3 p-4">
@@ -331,19 +339,36 @@ export function ReportFilters({
           </div>
         )}
 
-        {/* Maintenance Category */}
+        {/* Category (Maintenance or Equipment Inventory) */}
         {showCategory && (
           <div className="space-y-1">
-            <Label className="text-[11px] font-bold text-muted-foreground">{ar ? "فئة الصيانة" : "Category"}</Label>
+            <Label className="text-[11px] font-bold text-muted-foreground">
+              {activeTab === "equipment_inventory"
+                ? ar ? "تصنيف المعدات" : "Equipment Category"
+                : ar ? "فئة الصيانة" : "Category"}
+            </Label>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
               <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={ar ? "كل الفئات" : "All Categories"} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{ar ? "كل الفئات" : "All Categories"}</SelectItem>
-                <SelectItem value="plumbing">{ar ? "سباكة" : "Plumbing"}</SelectItem>
-                <SelectItem value="electrical">{ar ? "كهرباء" : "Electrical"}</SelectItem>
-                <SelectItem value="hvac">{ar ? "تكييف وتبريد" : "HVAC"}</SelectItem>
-                <SelectItem value="carpentry">{ar ? "نجارة" : "Carpentry"}</SelectItem>
-                <SelectItem value="general">{ar ? "عامة" : "General"}</SelectItem>
+                {activeTab === "equipment_inventory" ? (
+                  <>
+                    <SelectItem value="electronics">{ar ? "أجهزة إلكترونية وشاشات" : "Electronics & Screens"}</SelectItem>
+                    <SelectItem value="appliances">{ar ? "أجهزة كهربائية وتكييف" : "Appliances & AC"}</SelectItem>
+                    <SelectItem value="furniture">{ar ? "أثاث وغرف نوم" : "Furniture"}</SelectItem>
+                    <SelectItem value="fixtures">{ar ? "مرافق وخزائن" : "Fixtures & Safes"}</SelectItem>
+                    <SelectItem value="linen">{ar ? "مفروشات وبياضات" : "Linen & Bedding"}</SelectItem>
+                    <SelectItem value="other">{ar ? "أخرى" : "Other"}</SelectItem>
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value="plumbing">{ar ? "سباكة" : "Plumbing"}</SelectItem>
+                    <SelectItem value="electrical">{ar ? "كهرباء" : "Electrical"}</SelectItem>
+                    <SelectItem value="hvac">{ar ? "تكييف وتبريد" : "HVAC"}</SelectItem>
+                    <SelectItem value="carpentry">{ar ? "نجارة" : "Carpentry"}</SelectItem>
+                    <SelectItem value="general">{ar ? "عامة" : "General"}</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

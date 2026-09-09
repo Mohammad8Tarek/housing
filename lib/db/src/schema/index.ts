@@ -29,3 +29,4 @@ export * from "./portal_chat";
 export * from "./user_signatures";
 export * from "./family_visit";
 export * from "./room_import";
+export * from "./room_inventory";

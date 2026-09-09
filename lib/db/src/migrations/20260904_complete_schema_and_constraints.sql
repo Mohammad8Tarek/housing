@@ -1473,6 +1473,41 @@ BEGIN
     ALTER TABLE "rooms" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
 
     -- --------------------------------------------------------
+    -- Table: room_inventory
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "room_inventory" (
+      "id" SERIAL PRIMARY KEY,
+      "room_id" INTEGER NOT NULL REFERENCES "rooms"("id") ON DELETE CASCADE,
+      "item_name" TEXT NOT NULL,
+      "category" TEXT NOT NULL DEFAULT 'electronics',
+      "quantity" INTEGER NOT NULL DEFAULT 1,
+      "condition" TEXT NOT NULL DEFAULT 'good',
+      "barcode" TEXT,
+      "serial_number" TEXT,
+      "model_number" TEXT,
+      "last_inspected_at" TIMESTAMPTZ,
+      "inspected_by" TEXT,
+      "notes" TEXT,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- Ensure all columns exist
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "room_id" INTEGER;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "item_name" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "category" TEXT DEFAULT 'electronics';
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "quantity" INTEGER DEFAULT 1;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "condition" TEXT DEFAULT 'good';
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "barcode" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "serial_number" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "model_number" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "last_inspected_at" TIMESTAMPTZ;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "inspected_by" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "notes" TEXT;
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE "room_inventory" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
+
+    -- --------------------------------------------------------
     -- Table: settings
     -- --------------------------------------------------------
     CREATE TABLE IF NOT EXISTS "settings" (
@@ -1847,6 +1882,13 @@ BEGIN
 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'portal_messages') THEN
       CREATE INDEX IF NOT EXISTS idx_portal_messages_conv ON portal_messages(conversation_id);
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'room_inventory') THEN
+      CREATE INDEX IF NOT EXISTS idx_room_inventory_room_id ON room_inventory(room_id);
+      CREATE INDEX IF NOT EXISTS idx_room_inventory_condition ON room_inventory(condition);
+      CREATE INDEX IF NOT EXISTS idx_room_inventory_category ON room_inventory(category);
+      CREATE INDEX IF NOT EXISTS idx_room_inventory_room_category ON room_inventory(room_id, category);
     END IF;
 
   END LOOP;

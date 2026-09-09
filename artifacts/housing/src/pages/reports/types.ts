@@ -10,7 +10,8 @@ export type Tab =
   | "reservations"
   | "hostings"
   | "maintenance"
-  | "housekeeping";
+  | "housekeeping"
+  | "equipment_inventory";
 
 export interface TabConfig {
   id: Tab;

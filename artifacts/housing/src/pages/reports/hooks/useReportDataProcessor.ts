@@ -35,6 +35,7 @@ export function useReportDataProcessor({
   reservations,
   maintenance,
   hostings,
+  equipmentInventory = [],
   buildingMap,
   floorMap,
   roomMap,
@@ -673,6 +674,54 @@ export function useReportDataProcessor({
           r.status,
           r.hkAction,
           r.genderPolicy,
+        ]);
+      }
+
+      case "equipment_inventory": {
+        const list = (Array.isArray(equipmentInventory) ? equipmentInventory : [])
+          .filter((item: any) => {
+            const bId = item.buildingId || (roomMap[item.roomId]?.buildingId);
+            const fId = item.floorId || (roomMap[item.roomId]?.floorId);
+            if (filterBuilding !== "all" && bId && !filteredBuildingIds.has(bId)) return false;
+            if (filterFloor !== "all" && fId && !filteredFloorIds.has(fId)) return false;
+            if (filterStatus !== "all" && item.condition?.toLowerCase() !== filterStatus.toLowerCase()) return false;
+            if (filterCategory !== "all" && item.category?.toLowerCase() !== filterCategory.toLowerCase()) return false;
+            return true;
+          })
+          .map((item: any) => {
+            const room = roomMap[item.roomId];
+            return {
+              id: item.id,
+              roomId: item.roomId,
+              roomNumber: item.roomNumber || room?.roomNumber || "—",
+              buildingName: item.buildingName || (room ? buildingMap[room.buildingId] : "—") || "—",
+              floorName: item.floorName || (room ? floorMap[room.floorId] : "—") || "—",
+              itemName: item.itemName,
+              category: item.category || "electronics",
+              quantity: item.quantity || 1,
+              condition: item.condition || "good",
+              barcode: item.barcode || "—",
+              serialNumber: item.serialNumber || "—",
+              modelNumber: item.modelNumber || "—",
+              lastInspectedAt: formatDate(item.lastInspectedAt, "—"),
+              inspectedBy: item.inspectedBy || "—",
+              notes: item.notes || "",
+              createdAt: formatDate(item.createdAt, "—"),
+            };
+          });
+
+        return applySearchAndDate(list, undefined, (item) => [
+          item.roomNumber,
+          item.buildingName,
+          item.floorName,
+          item.itemName,
+          item.category,
+          item.condition,
+          item.serialNumber,
+          item.barcode,
+          item.modelNumber,
+          item.inspectedBy,
+          item.notes,
         ]);
       }
 

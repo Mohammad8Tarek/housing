@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   useListRooms,
@@ -82,6 +83,21 @@ export function useReportData(
   );
   const hostings: any[] = (_hData as any)?.data || _hData || [];
 
+  const { data: _invData, isLoading: invLoad } = useQuery({
+    queryKey: ["room-inventory", propId],
+    queryFn: async () => {
+      if (!propId) return [];
+      const res = await fetch(`/api/room-inventory?propertyId=${propId}&limit=5000`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: !!propId,
+  });
+  const equipmentInventory: any[] = _invData || [];
+
   const [evalStats, setEvalStats] = useState({
     total: 0,
     average: 0,
@@ -104,7 +120,7 @@ export function useReportData(
   }, [propId]);
 
   const isLoading =
-    roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad;
+    roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad || invLoad;
 
   const buildingMap = useMemo(() => {
     const m: Record<number, string> = {};
@@ -164,6 +180,7 @@ export function useReportData(
     reservations,
     maintenance,
     hostings,
+    equipmentInventory,
     evalStats,
     isLoading,
     buildingMap,

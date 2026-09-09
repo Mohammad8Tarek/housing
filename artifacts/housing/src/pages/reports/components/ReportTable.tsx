@@ -227,6 +227,20 @@ export function ReportTable({
                 {H("openHkTickets", ar ? "تذاكر مفتوحة" : "Open Tickets", "text-center")}
               </>
             )}
+
+            {/* 10. EQUIPMENT INVENTORY HEADERS */}
+            {activeTab === "equipment_inventory" && (
+              <>
+                {H("roomNumber", ar ? "الغرفة والموقع" : "Room & Location")}
+                {H("itemName", ar ? "اسم المعدة / القطعة" : "Equipment / Item")}
+                {H("category", ar ? "التصنيف" : "Category")}
+                {H("quantity", ar ? "العدد" : "Qty", "text-center")}
+                {H("condition", ar ? "الحالة" : "Condition")}
+                {H("serialNumber", ar ? "الرقم التسلسلي / الكود" : "Serial / Asset Tag")}
+                {H("lastInspectedAt", ar ? "تاريخ الفحص" : "Last Inspected")}
+                {H("notes", ar ? "ملاحظات" : "Notes")}
+              </>
+            )}
           </TableRow>
         </TableHeader>
 
@@ -636,6 +650,96 @@ export function ReportTable({
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
+                    </TableCell>
+                  </>
+                )}
+
+                {/* 10. EQUIPMENT INVENTORY ROWS */}
+                {activeTab === "equipment_inventory" && (
+                  <>
+                    <TableCell>
+                      <div className="font-semibold text-sm">
+                        {ar ? "غرفة" : "Room"} {row.roomNumber}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <span>{row.buildingName}</span>
+                        <span>•</span>
+                        <span>{row.floorName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-sm text-foreground flex items-center gap-1.5">
+                        <span>{row.itemName}</span>
+                      </div>
+                      {row.modelNumber && row.modelNumber !== "—" && (
+                        <div className="text-[11px] text-muted-foreground">
+                          {row.modelNumber}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs capitalize font-medium">
+                        {ar
+                          ? row.category === "electronics" ? "إلكترونيات وشاشات"
+                          : row.category === "appliances" ? "أجهزة وتكييف"
+                          : row.category === "furniture" ? "أثاث"
+                          : row.category === "fixtures" ? "مرافق وخزائن"
+                          : row.category === "linen" ? "مفروشات"
+                          : "أخرى"
+                          : row.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center font-bold text-sm">
+                      {row.quantity || 1}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          row.condition === "good"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold"
+                            : row.condition === "fair"
+                            ? "bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                            : row.condition === "needs_repair"
+                            ? "bg-amber-50 text-amber-700 border-amber-200 text-xs font-bold"
+                            : row.condition === "damaged"
+                            ? "bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold"
+                            : "bg-purple-50 text-purple-700 border-purple-200 text-xs font-bold"
+                        }
+                      >
+                        {ar
+                          ? row.condition === "good" ? "ممتاز / سليم"
+                          : row.condition === "fair" ? "مقبول / يعمل"
+                          : row.condition === "needs_repair" ? "بحاجة لصيانة"
+                          : row.condition === "damaged" ? "تالف / معطل"
+                          : row.condition === "missing" ? "مفقود"
+                          : row.condition
+                          : row.condition === "good" ? "Good / OK"
+                          : row.condition === "fair" ? "Fair"
+                          : row.condition === "needs_repair" ? "Needs Repair"
+                          : row.condition === "damaged" ? "Damaged"
+                          : row.condition === "missing" ? "Missing"
+                          : row.condition}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs font-mono text-foreground">
+                        {row.serialNumber && row.serialNumber !== "—" ? row.serialNumber : (row.barcode || "—")}
+                      </div>
+                      {row.barcode && row.barcode !== "—" && row.serialNumber && row.serialNumber !== "—" && (
+                        <div className="text-[10px] text-muted-foreground font-mono">
+                          Tag: {row.barcode}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs text-muted-foreground">{row.lastInspectedAt || "—"}</div>
+                      {row.inspectedBy && row.inspectedBy !== "—" && (
+                        <div className="text-[10px] text-muted-foreground">{row.inspectedBy}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-[160px] truncate text-xs text-muted-foreground" title={row.notes}>
+                      {row.notes || "—"}
                     </TableCell>
                   </>
                 )}
