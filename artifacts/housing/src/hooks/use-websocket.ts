@@ -237,93 +237,11 @@ export function useWebSocket(): { isConnected: boolean } {
               invalidateAll();
             }
 
-            // Show toast for specific module events
-            if (msg.action === "created") {
-              let tTitle = "";
-              let tDesc = "";
-              if (msg.module === "maintenance") {
-                tTitle = arRef.current
-                  ? "تذكرة صيانة جديدة"
-                  : "New Maintenance Ticket";
-                tDesc = arRef.current
-                  ? "تم إنشاء تذكرة صيانة جديدة بنجاح."
-                  : "A new maintenance ticket was created successfully.";
-              } else if (msg.module === "assignments" || msg.module === "accommodation") {
-                tTitle = arRef.current ? "تسكين جديد" : "New Assignment";
-                tDesc = arRef.current
-                  ? "تم تسكين موظف جديد بنجاح."
-                  : "A new assignment was created successfully.";
-              } else if (msg.module === "reservations") {
-                tTitle = arRef.current ? "حجز جديد" : "New Reservation";
-                tDesc = arRef.current
-                  ? "تم إضافة حجز جديد بنجاح."
-                  : "A new reservation was added successfully.";
-              } else if (msg.module === "housing") {
-                tTitle = arRef.current ? "إضافة جديدة" : "New Housing Item";
-                tDesc = arRef.current
-                  ? "تم إضافة عنصر جديد إلى الإسكان."
-                  : "A new item was added to housing.";
-              }
-              if (tTitle) {
-                toastRef.current(tTitle, { description: tDesc });
-              }
-            } else if (msg.action === "updated") {
-              let tTitle = "";
-              let tDesc = "";
-              if (msg.module === "maintenance") {
-                tTitle = arRef.current
-                  ? "تحديث في تذكرة صيانة"
-                  : "Maintenance Ticket Updated";
-                tDesc = arRef.current
-                  ? "تم تحديث بيانات تذكرة الصيانة بنجاح."
-                  : "A maintenance ticket was updated successfully.";
-              } else if (msg.module === "assignments" || msg.module === "accommodation") {
-                tTitle = arRef.current ? "تحديث بيانات التسكين" : "Assignment Updated";
-                tDesc = arRef.current
-                  ? "تم تحديث بيانات التسكين بنجاح."
-                  : "Assignment details were updated successfully.";
-              } else if (msg.module === "housing" || msg.module === "housekeeping") {
-                tTitle = arRef.current ? "تحديث حالة الغرفة" : "Room Updated";
-                tDesc = arRef.current
-                  ? "تم تحديث بيانات أو حالة الغرفة بنجاح."
-                  : "Room details or status updated successfully.";
-              } else if (msg.module === "reservations") {
-                tTitle = arRef.current ? "تحديث الحجز" : "Reservation Updated";
-                tDesc = arRef.current
-                  ? "تم تحديث بيانات الحجز بنجاح."
-                  : "Reservation details were updated successfully.";
-              }
-              if (tTitle) {
-                toastRef.current(tTitle, { description: tDesc });
-              }
-            } else if (msg.action === "deleted") {
-              let tTitle = "";
-              let tDesc = "";
-              if (msg.module === "housing") {
-                tTitle = arRef.current ? "حذف من الإسكان" : "Housing Item Deleted";
-                tDesc = arRef.current
-                  ? "تم حذف غرفة أو عنصر من الإسكان بنجاح."
-                  : "A room or housing item was deleted successfully.";
-              } else if (msg.module === "assignments" || msg.module === "accommodation") {
-                tTitle = arRef.current ? "حذف سجل تسكين" : "Assignment Deleted";
-                tDesc = arRef.current
-                  ? "تم حذف سجل التسكين بنجاح."
-                  : "Assignment record was deleted successfully.";
-              } else if (msg.module === "maintenance") {
-                tTitle = arRef.current ? "حذف تذكرة صيانة" : "Maintenance Ticket Deleted";
-                tDesc = arRef.current
-                  ? "تم حذف تذكرة الصيانة بنجاح."
-                  : "Maintenance ticket was deleted successfully.";
-              } else if (msg.module === "reservations") {
-                tTitle = arRef.current ? "حذف حجز" : "Reservation Deleted";
-                tDesc = arRef.current
-                  ? "تم إلغاء أو حذف الحجز بنجاح."
-                  : "Reservation was deleted successfully.";
-              }
-              if (tTitle) {
-                toastRef.current(tTitle, { description: tDesc });
-              }
-            }
+            // NOTE: no success toasts here on purpose. The broadcast reaches
+            // EVERY connected client in the property, so a "done successfully"
+            // toast would pop up on other users' screens for actions they did
+            // not perform. Feedback belongs to the local mutation that the
+            // acting user triggered. Background refresh only.
           }
         } catch (e) {
           console.error("[WS] ❌ Failed to parse message:", e);
