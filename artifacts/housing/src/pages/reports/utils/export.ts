@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { getExportFileName } from "@/lib/date-utils";
+import { getExportFileName, formatDate } from "@/lib/date-utils";
 
 export const exportExcel = (activeTab: string, rows: Record<string, any>[]) => {
   if (!rows.length) return;
@@ -290,15 +290,42 @@ export const exportAnalyticsPDF = async (
     properties.find((p: any) => p.id === (propId ?? activePropertyId))?.name ??
     "";
 
-  const sH = (text: string, x: number, sy: number) => {
+  const sH = (text: string, x: number, sy: number, colWidth?: number) => {
+    // Gold pill marker (pure vector shapes — no font glyphs)
     doc.setFillColor(201, 162, 77);
-    doc.rect(x, sy - 3.5, 2.5, 5, "F");
-    doc.setFontSize(9);
+    doc.roundedRect(x, sy - 4.5, 9, 5.5, 1, 1, "F");
+    doc.setFillColor(255, 255, 255);
+    doc.circle(x + 4.5, sy - 1.75, 1.1, "F");
+    // Title
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 42, 68);
-    doc.text(text, x + 4.5, sy);
+    doc.text(text, x + 11.5, sy);
+    // Hairline under the section
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(x, sy + 2.2, x + (colWidth ?? 60), sy + 2.2);
     doc.setTextColor(0, 0, 0);
   };
+
+  const rateColor = (v: unknown): [number, number, number] => {
+    const n =
+      typeof v === "number"
+        ? v
+        : parseFloat(String(v ?? "").replace("%", ""));
+    if (!Number.isFinite(n)) return [100, 116, 139];
+    if (n >= 90) return [220, 38, 38];
+    if (n >= 70) return [234, 88, 12];
+    return [22, 163, 74];
+  };
+
+  const paintRateColumn = (colIndexes: number[]) => ({
+    didParseCell: (d: any) => {
+      if (d.section !== "body" || !colIndexes.includes(d.column.index)) return;
+      d.cell.styles.textColor = rateColor(d.cell.text);
+      d.cell.styles.fontStyle = "bold";
+    },
+  });
 
   const drawFooter = (pageNum: number, totalPages: number) => {
     doc.setDrawColor(201, 162, 77);
@@ -324,7 +351,7 @@ export const exportAnalyticsPDF = async (
     doc,
     pageW,
     `Staff Housing Analytics & Performance Report${propName ? ` — ${propName}` : ""}`,
-    `Generated: ${new Date().toLocaleString()}  |  Property: ${propName || "All Properties"}`,
+    `Generated: ${formatDate(new Date())}  |  Property: ${propName || "All Properties"}`,
     settings,
     properties,
     propId,
@@ -333,41 +360,50 @@ export const exportAnalyticsPDF = async (
 
   // ─── 6 TOP KPI CARDS ──────────────────────────────────────────
   const kpiY = y;
-  const kpiCardW = (usable - 5 * 2.5) / 6;
-  const kpiCardH = 18;
+  const kpiGap = 3;
+  const kpiCardW = (usable - 5 * kpiGap) / 6;
+  const kpiCardH = 20;
 
   const kpiCards = [
     { label: "Total Rooms", value: String(rooms.length), sub: `${analytics.totalCapacity ?? 0} Beds`, color: [15, 42, 68], accent: [201, 162, 77] },
     { label: "Available Rooms", value: String(analytics.availableRooms ?? 0), sub: `${analytics.availableBeds ?? 0} Beds`, color: [22, 163, 74], accent: [34, 197, 94] },
     { label: "Occupied Rooms", value: String(analytics.occupiedRooms ?? 0), sub: `${analytics.totalOccupied ?? 0} Pax`, color: [37, 99, 235], accent: [59, 130, 246] },
     { label: "Maintenance", value: String(analytics.maintRooms ?? 0), sub: `${analytics.openMaint ?? 0} Open`, color: [234, 88, 12], accent: [249, 115, 22] },
-    { label: "Total Beds", value: String(analytics.totalCapacity ?? 0), sub: `${analytics.totalOccupied ?? 0} Occupied`, color: [15, 42, 68], accent: [15, 42, 68] },
+    { label: "Total Beds", value: String(analytics.totalCapacity ?? 0), sub: `${analytics.totalOccupied ?? 0} Occupied`, color: [15, 42, 68], accent: [100, 116, 139] },
     { label: "Occupancy Rate", value: `${analytics.occRate ?? 0}%`, sub: `${analytics.totalOccupied ?? 0}/${analytics.totalCapacity ?? 0}`, color: (analytics.occRate ?? 0) >= 90 ? [220, 38, 38] : (analytics.occRate ?? 0) >= 70 ? [234, 88, 12] : [22, 163, 74], accent: [201, 162, 77] },
   ];
 
   kpiCards.forEach((card, i) => {
-    const cx = MARGIN + i * (kpiCardW + 2.5);
-    doc.setFillColor(250, 252, 255);
+    const cx = MARGIN + i * (kpiCardW + kpiGap);
+    // Soft shadow
+    doc.setFillColor(235, 238, 242);
+    doc.roundedRect(cx + 0.8, kpiY + 0.8, kpiCardW, kpiCardH, 2, 2, "F");
+    // Card body
+    doc.setFillColor(255, 255, 255);
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(cx, kpiY, kpiCardW, kpiCardH, 1.5, 1.5, "FD");
+    doc.roundedRect(cx, kpiY, kpiCardW, kpiCardH, 2, 2, "FD");
 
+    // Left accent bar
     doc.setFillColor(card.accent[0], card.accent[1], card.accent[2]);
-    doc.rect(cx, kpiY, kpiCardW, 1.5, "F");
+    doc.roundedRect(cx, kpiY + 2, 1.6, kpiCardH - 4, 0.8, 0.8, "F");
 
+    // Value
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(13);
     doc.setTextColor(card.color[0], card.color[1], card.color[2]);
-    doc.text(card.value, cx + kpiCardW / 2, kpiY + 8.5, { align: "center" });
+    doc.text(card.value, cx + kpiCardW / 2 + 0.8, kpiY + 9, { align: "center" });
 
+    // Label
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.5);
-    doc.setTextColor(15, 42, 68);
-    doc.text(card.label, cx + kpiCardW / 2, kpiY + 13, { align: "center" });
+    doc.setTextColor(100, 116, 139);
+    doc.text(card.label.toUpperCase(), cx + kpiCardW / 2 + 0.8, kpiY + 13.5, { align: "center" });
 
+    // Sub
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(5.5);
-    doc.setTextColor(120, 130, 145);
-    doc.text(card.sub, cx + kpiCardW / 2, kpiY + 16.5, { align: "center" });
+    doc.setFontSize(6);
+    doc.setTextColor(148, 163, 184);
+    doc.text(card.sub, cx + kpiCardW / 2 + 0.8, kpiY + 17, { align: "center" });
   });
 
   // ─── Occupancy Progress Gauge Bar ──────────────────────────────
@@ -385,7 +421,7 @@ export const exportAnalyticsPDF = async (
   const tablesStartY = gaugeY + barH + 5;
 
   // ─── Table 1: Building Occupancy ───────────────────────────────
-  sH("Occupancy by Building", colL, tablesStartY);
+  sH("Occupancy by Building", colL, tablesStartY, colW);
   if (analytics.byBuilding && analytics.byBuilding.length > 0) {
     autoTable(doc, {
       head: [["Building", "Rooms", "Beds", "Occ.", "Avail.", "Rate %"]],
@@ -395,9 +431,10 @@ export const exportAnalyticsPDF = async (
         String(b.capacity ?? 0),
         String(b.currentOccupancy ?? 0),
         String(b.availableBeds ?? Math.max(0, (b.capacity ?? 0) - (b.currentOccupancy ?? 0))),
-        `${b.rate}%`,
+        `${b.rate ?? 0}%`,
       ]),
       startY: tablesStartY + 2,
+      ...paintRateColumn([5]),
       styles: tblStyle,
       headStyles: tblHead,
       alternateRowStyles: tblAlt,
@@ -421,7 +458,7 @@ export const exportAnalyticsPDF = async (
 
   // ─── Table 2: Room Types ───────────────────────────────────────
   const typeStartY = bldgEndY + 6;
-  sH("Occupancy by Room Type", colL, typeStartY);
+  sH("Occupancy by Room Type", colL, typeStartY, colW);
   if (analytics.byType && analytics.byType.length > 0) {
     autoTable(doc, {
       head: [["Room Type", "Rooms", "Total Beds", "Occupied", "Rate %"]],
@@ -430,9 +467,10 @@ export const exportAnalyticsPDF = async (
         String(t.rooms ?? 0),
         String(t.capacity ?? 0),
         String(t.occupied ?? 0),
-        `${t.rate}%`,
+        `${t.rate ?? 0}%`,
       ]),
       startY: typeStartY + 2,
+      ...paintRateColumn([4]),
       styles: tblStyle,
       headStyles: tblHead,
       alternateRowStyles: tblAlt,
@@ -449,7 +487,7 @@ export const exportAnalyticsPDF = async (
   }
 
   // ─── Table 3: Residents by Department (Right Column) ──────────
-  sH("Residents by Department", colR, tablesStartY);
+  sH("Residents by Department", colR, tablesStartY, colW);
   if (analytics.byDept && analytics.byDept.length > 0) {
     const totalDeptCount = analytics.byDept.reduce((acc: number, d: any) => acc + (d.count || 0), 0) || 1;
     autoTable(doc, {
@@ -476,7 +514,7 @@ export const exportAnalyticsPDF = async (
 
   // ─── Table 4: Maintenance Overview (Right Column) ──────────────
   const maintStartY = deptEndY + 6;
-  sH("Maintenance & Requests Overview", colR, maintStartY);
+  sH("Maintenance & Requests Overview", colR, maintStartY, colW);
   autoTable(doc, {
     head: [["Category / Status", "Count", "Status"]],
     body: [
@@ -499,7 +537,8 @@ export const exportAnalyticsPDF = async (
     margin: { left: colR, right: MARGIN },
   });
 
-  drawFooter(1, 2);
+  // Footers are stamped dynamically at the end (see loop before save).
+
 
   // ─── PAGE 2: Details & Quality Evaluations ─────────────────────
   doc.addPage();
@@ -517,7 +556,7 @@ export const exportAnalyticsPDF = async (
   const p2StartY = y2 + 2;
 
   // Evaluations
-  sH("Resident Evaluations & Satisfaction", colL, p2StartY);
+  sH("Resident Evaluations & Satisfaction", colL, p2StartY, colW);
   autoTable(doc, {
     head: [["Evaluation Metric", "Result"]],
     body: [
@@ -542,7 +581,7 @@ export const exportAnalyticsPDF = async (
   // Gender Policy
   if (analytics.byGender && analytics.byGender.length > 0) {
     const genderStartY = p2EvalEndY + 6;
-    sH("Housing Allocation by Gender Policy", colL, genderStartY);
+    sH("Housing Allocation by Gender Policy", colL, genderStartY, colW);
     autoTable(doc, {
       head: [["Policy Classification", "Rooms Count"]],
       body: analytics.byGender.map((g: any) => [
@@ -563,7 +602,7 @@ export const exportAnalyticsPDF = async (
   }
 
   // Top Technicians
-  sH("Maintenance Technician Performance", colR, p2StartY);
+  sH("Maintenance Technician Performance", colR, p2StartY, colW);
   if (analytics.topProfiles && analytics.topProfiles.length > 0) {
     autoTable(doc, {
       head: [["Technician Name", "Total", "Open", "Resolved", "Rate %"]],
@@ -597,28 +636,43 @@ export const exportAnalyticsPDF = async (
     doc.text("No technician performance records", colR + 4, p2StartY + 8);
   }
 
-  // Signatures on Page 2
-  const sigY = pageH - 32;
-  doc.setDrawColor(220, 225, 230);
+  // Signatures on Page 2 — boxed cards
+  const sigY = pageH - 34;
+  doc.setDrawColor(201, 162, 77);
+  doc.setLineWidth(0.5);
   doc.line(MARGIN, sigY, pageW - MARGIN, sigY);
 
-  const sigColW = usable / 3;
+  const sigGap = 4;
+  const sigColW = (usable - 2 * sigGap) / 3;
+  const sigBoxH = 21;
   const sigTitles = ["Prepared By / Housing Officer", "Housing Manager", "General Manager / HR Director"];
   sigTitles.forEach((st, i) => {
-    const sx = MARGIN + i * sigColW;
+    const sx = MARGIN + i * (sigColW + sigGap);
+    doc.setFillColor(250, 252, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(sx, sigY + 3, sigColW, sigBoxH, 1.5, 1.5, "FD");
+
+    doc.setFillColor(201, 162, 77);
+    doc.roundedRect(sx, sigY + 3, sigColW, 1.6, 1, 1, "F");
+
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setTextColor(15, 42, 68);
-    doc.text(st, sx + sigColW / 2, sigY + 5, { align: "center" });
+    doc.text(st, sx + sigColW / 2, sigY + 9.5, { align: "center" });
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(160, 160, 160);
-    doc.text("Signature: ______________________", sx + sigColW / 2, sigY + 14, { align: "center" });
-    doc.text("Date: ____ / ____ / ________", sx + sigColW / 2, sigY + 19, { align: "center" });
+    doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text("Signature: ___________________", sx + sigColW / 2, sigY + 15.5, { align: "center" });
+    doc.text("Date: __ / __ / ______", sx + sigColW / 2, sigY + 20, { align: "center" });
   });
 
-  drawFooter(2, 2);
+  // Dynamic footers with correct page numbers on every page
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    drawFooter(i, totalPages);
+  }
 
   doc.save(getExportFileName("Analytics_Report", "pdf"));
 };
