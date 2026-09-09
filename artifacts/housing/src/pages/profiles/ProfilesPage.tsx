@@ -78,6 +78,8 @@ import {
   CreditCard,
 } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
+import { SortableHead } from "@/components/ui/sortable-head";
+import { useReportSort } from "@/pages/reports/hooks/useReportSort";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,6 +140,12 @@ export function ProfilesPage() {
     null,
   );
 
+  const { sort, toggle } = useReportSort("profiles");
+  const handleSortToggle = (key: string) => {
+    toggle(key);
+    setCurrentPage(1);
+  };
+
   const queryParams = {
     propertyId: activePropertyId ?? undefined,
     page: currentPage,
@@ -145,6 +153,7 @@ export function ProfilesPage() {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(filterStatus !== "ALL" ? { status: filterStatus } : {}),
     ...(filterDept !== "ALL" ? { department: filterDept } : {}),
+    ...(sort ? { sortBy: sort.key, sortDir: sort.dir } : {}),
   };
 
   const { data: _eData, isLoading } = useListProfiles(
@@ -176,6 +185,17 @@ export function ProfilesPage() {
     if (!deleteTarget) return null;
     return profiles.find((p: any) => p.id === deleteTarget);
   }, [deleteTarget, profiles]);
+
+  const H = (sortKey: string, label: React.ReactNode, className?: string) => (
+    <SortableHead
+      label={label}
+      sortKey={sortKey}
+      activeKey={sort?.key ?? null}
+      dir={sort?.dir ?? "asc"}
+      onToggle={handleSortToggle}
+      className={className}
+    />
+  );
 
   const isTargetHoused = Boolean(
     targetProfile?.status === "ASSIGNED" || targetProfile?.currentRoom
@@ -642,53 +662,73 @@ export function ProfilesPage() {
                     />
                   </TableHead>
                   {isColVisible("profile") && (
-                    <TableHead className="font-semibold text-xs text-foreground min-w-[210px]">
-                      {ar ? "الملف والشخص" : "Profile & Person"}
-                    </TableHead>
+                    H("fullName", ar ? "الملف والشخص" : "Profile & Person", "font-semibold text-xs text-foreground min-w-[210px]")
                   )}
                   {isColVisible("employmentType") && (
-                    <TableHead className="font-semibold text-xs text-foreground min-w-[160px]">
-                      {ar ? "نوع التوظيف والشركة / مكان العمل" : "Employment & Company"}
-                    </TableHead>
+                    H("employmentType", ar ? "نوع التوظيف والشركة / مكان العمل" : "Employment & Company", "font-semibold text-xs text-foreground min-w-[160px]")
                   )}
                   {isColVisible("job") && (
-                    <TableHead className="font-semibold text-xs text-foreground min-w-[160px]">
-                      {ar ? "الوظيفة والقسم والدرجة" : "Job, Dept & Level"}
-                    </TableHead>
+                    H("jobTitle", ar ? "الوظيفة والقسم والدرجة" : "Job, Dept & Level", "font-semibold text-xs text-foreground min-w-[160px]")
                   )}
                   {isColVisible("contact") && (
-                    <TableHead className="font-semibold text-xs text-foreground min-w-[130px]">
-                      {ar ? "الهوية والتواصل" : "Contact & ID"}
-                    </TableHead>
+                    H("nationalId", ar ? "الهوية والتواصل" : "Contact & ID", "font-semibold text-xs text-foreground min-w-[130px]")
                   )}
                   {isColVisible("dates") && (
-                    <TableHead className="font-semibold text-xs text-foreground min-w-[130px]">
-                      {ar ? "التعيين / العقد" : "Hire / Contract"}
-                    </TableHead>
+                    H("hireDate", ar ? "التعيين / العقد" : "Hire / Contract", "font-semibold text-xs text-foreground min-w-[130px]")
                   )}
                   {/* Granular Headers if user specifically enables them in ColumnChooser */}
                   {isColVisible("photo") && <TableHead className="font-semibold text-xs">{ar ? "صورة" : "Photo"}</TableHead>}
-                  {isColVisible("code") && <TableHead className="font-semibold text-xs">{ar ? "الكود" : "Code"}</TableHead>}
-                  {isColVisible("firstName") && <TableHead className="font-semibold text-xs">{ar ? "الاسم الأول" : "First Name"}</TableHead>}
+                  {isColVisible("code") && (
+                    H("profileId", ar ? "الكود" : "Code", "font-semibold text-xs")
+                  )}
+                  {isColVisible("firstName") && (
+                    H("firstName", ar ? "الاسم الأول" : "First Name", "font-semibold text-xs")
+                  )}
                   {isColVisible("secondName") && <TableHead className="font-semibold text-xs">{ar ? "الاسم الثاني" : "Second Name"}</TableHead>}
-                  {isColVisible("thirdName") && <TableHead className="font-semibold text-xs">{ar ? "الاسم الثالث" : "Third Name"}</TableHead>}
-                  {isColVisible("fourthName") && <TableHead className="font-semibold text-xs">{ar ? "الاسم الرابع" : "Fourth Name"}</TableHead>}
-                  {isColVisible("nid") && <TableHead className="font-semibold text-xs">{ar ? "رقم الهوية" : "National ID"}</TableHead>}
-                  {isColVisible("phone") && <TableHead className="font-semibold text-xs">{ar ? "الهاتف" : "Phone"}</TableHead>}
-                  {isColVisible("nationality") && <TableHead className="font-semibold text-xs">{ar ? "الجنسية" : "Nationality"}</TableHead>}
-                  {isColVisible("gender") && <TableHead className="font-semibold text-xs">{ar ? "الجنس" : "Gender"}</TableHead>}
-                  {isColVisible("dept") && <TableHead className="font-semibold text-xs">{ar ? "القسم" : "Department"}</TableHead>}
-                  {isColVisible("title") && <TableHead className="font-semibold text-xs">{ar ? "المسمى الوظيفي" : "Job Title"}</TableHead>}
-                  {isColVisible("level") && <TableHead className="font-semibold text-xs">{ar ? "الدرجة" : "Level"}</TableHead>}
-                  {isColVisible("companyName") && <TableHead className="font-semibold text-xs">{ar ? "الشركة" : "Company"}</TableHead>}
-                  {isColVisible("dateOfBirth") && <TableHead className="font-semibold text-xs">{ar ? "تاريخ الميلاد" : "Date of Birth"}</TableHead>}
-                  {isColVisible("address") && <TableHead className="font-semibold text-xs">{ar ? "العنوان" : "Address"}</TableHead>}
-                  {isColVisible("hiredate") && <TableHead className="font-semibold text-xs">{ar ? "تاريخ التعيين" : "Hire Date"}</TableHead>}
-                  {isColVisible("contractEndDate") && <TableHead className="font-semibold text-xs">{ar ? "انتهاء العقد" : "Contract End"}</TableHead>}
+                  {isColVisible("thirdName") && (
+                    H("thirdName", ar ? "الاسم الثالث" : "Third Name", "font-semibold text-xs")
+                  )}
+                  {isColVisible("fourthName") && (
+                    H("fourthName", ar ? "الاسم الرابع" : "Fourth Name", "font-semibold text-xs")
+                  )}
+                  {isColVisible("nid") && (
+                    H("nationalId", ar ? "رقم الهوية" : "National ID", "font-semibold text-xs")
+                  )}
+                  {isColVisible("phone") && (
+                    H("phone", ar ? "الهاتف" : "Phone", "font-semibold text-xs")
+                  )}
+                  {isColVisible("nationality") && (
+                    H("nationality", ar ? "الجنسية" : "Nationality", "font-semibold text-xs")
+                  )}
+                  {isColVisible("gender") && (
+                    H("gender", ar ? "الجنس" : "Gender", "font-semibold text-xs")
+                  )}
+                  {isColVisible("dept") && (
+                    H("department", ar ? "القسم" : "Department", "font-semibold text-xs")
+                  )}
+                  {isColVisible("title") && (
+                    H("jobTitle", ar ? "المسمى الوظيفي" : "Job Title", "font-semibold text-xs")
+                  )}
+                  {isColVisible("level") && (
+                    H("level", ar ? "الدرجة" : "Level", "font-semibold text-xs")
+                  )}
+                  {isColVisible("companyName") && (
+                    H("companyName", ar ? "الشركة" : "Company", "font-semibold text-xs")
+                  )}
+                  {isColVisible("dateOfBirth") && (
+                    H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth", "font-semibold text-xs")
+                  )}
+                  {isColVisible("address") && (
+                    H("address", ar ? "العنوان" : "Address", "font-semibold text-xs")
+                  )}
+                  {isColVisible("hiredate") && (
+                    H("hireDate", ar ? "تاريخ التعيين" : "Hire Date", "font-semibold text-xs")
+                  )}
+                  {isColVisible("contractEndDate") && (
+                    H("contractEndDate", ar ? "انتهاء العقد" : "Contract End", "font-semibold text-xs")
+                  )}
                   {isColVisible("status") && (
-                    <TableHead className="font-semibold text-xs text-foreground min-w-[95px]">
-                      {ar ? "الحالة" : "Status"}
-                    </TableHead>
+                    H("status", ar ? "الحالة" : "Status", "font-semibold text-xs text-foreground min-w-[95px]")
                   )}
                   {isColVisible("actions") && (
                     <TableHead className="w-24 text-center sticky rtl:left-0 ltr:right-0 z-20 bg-muted/90 border-s border-border font-semibold text-xs">

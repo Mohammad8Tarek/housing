@@ -598,6 +598,8 @@ propertyId?: number;
 status?: string;
 department?: string;
 search?: string;
+sortBy?: string;
+sortDir?: string;
 };
 
 export type ListInHouseAssignmentsParams = {

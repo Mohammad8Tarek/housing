@@ -12,7 +12,7 @@ import {
   floorsTable,
   propertiesTable,
 } from "@workspace/db";
-import { eq, and, or, ilike, sql, SQL } from "drizzle-orm";
+import { eq, and, or, ilike, sql, SQL, asc, desc } from "drizzle-orm";
 import {
   CreateProfileBody,
   UpdateProfileBody,
@@ -113,6 +113,36 @@ router.get(
     );
     const offset = (page - 1) * limit;
 
+    // Server-side sorting — strict allowlist, no raw column injection.
+    const SORTABLE_PROFILE_COLUMNS: Record<string, any> = {
+      profileId: profilesTable.profileId,
+      firstName: profilesTable.firstName,
+      lastName: profilesTable.lastName,
+      thirdName: profilesTable.thirdName,
+      fourthName: profilesTable.fourthName,
+      nationalId: profilesTable.nationalId,
+      department: profilesTable.department,
+      jobTitle: profilesTable.jobTitle,
+      status: profilesTable.status,
+      hireDate: profilesTable.hireDate,
+      contractEndDate: profilesTable.contractEndDate,
+      dateOfBirth: profilesTable.dateOfBirth,
+      address: profilesTable.address,
+      phone: profilesTable.phone,
+      employmentType: profilesTable.employmentType,
+      companyName: profilesTable.companyName,
+      level: profilesTable.level,
+      gender: profilesTable.gender,
+      nationality: profilesTable.nationality,
+      createdAt: profilesTable.createdAt,
+    };
+    const sortByRaw = String(req.query.sortBy || "");
+    const sortDir =
+      String(req.query.sortDir || "asc").toLowerCase() === "desc"
+        ? "desc"
+        : "asc";
+    const sortCol = SORTABLE_PROFILE_COLUMNS[sortByRaw];
+
     if (query.success) {
       if (query.data.search) {
         conditions.push(
@@ -149,6 +179,20 @@ router.get(
           .offset(offset) as any;
         if (conditions.length > 0)
           baseQuery = baseQuery.where(and(...conditions));
+        if (sortByRaw === "fullName") {
+          baseQuery = baseQuery.orderBy(
+            sortDir === "desc"
+              ? desc(profilesTable.firstName)
+              : asc(profilesTable.firstName),
+            sortDir === "desc"
+              ? desc(profilesTable.lastName)
+              : asc(profilesTable.lastName),
+          );
+        } else if (sortCol) {
+          baseQuery = baseQuery.orderBy(
+            sortDir === "desc" ? desc(sortCol) : asc(sortCol),
+          );
+        }
 
         const rows = await baseQuery;
         return { profiles: rows, total: totalCount };

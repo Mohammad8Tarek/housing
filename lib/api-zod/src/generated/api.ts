@@ -387,7 +387,9 @@ export const ListProfilesQueryParams = zod.object({
   "propertyId": zod.coerce.number().optional(),
   "status": zod.coerce.string().optional(),
   "department": zod.coerce.string().optional(),
-  "search": zod.coerce.string().optional()
+  "search": zod.coerce.string().optional(),
+  "sortBy": zod.coerce.string().optional(),
+  "sortDir": zod.coerce.string().optional()
 })
 
 export const ListProfilesResponseItem = zod.object({
