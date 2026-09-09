@@ -19,7 +19,7 @@ export async function runAutoSeeder() {
   try {
     const client = await pool.connect();
     try {
-      const { rows } = await client.query("SELECT count(*) as count FROM properties;");
+      const { rows } = await client.query("SELECT count(*) as count FROM public.properties;");
       if (Number(rows[0]?.count || 0) > 0) {
         logger.info("[seeder] Database already contains properties/data. Skipping auto-seeder to protect existing data.");
         // Mark as done so it never runs again

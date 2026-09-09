@@ -8,7 +8,7 @@
 DO $$
 DECLARE
   schema_names text[];
-  current_schema text;
+  target_schema text;
 BEGIN
   -- 1. Ensure required extensions exist in public
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -27,10 +27,10 @@ BEGIN
     schema_names := ARRAY['public'];
   END IF;
 
-  FOREACH current_schema IN ARRAY schema_names
+  FOREACH target_schema IN ARRAY schema_names
   LOOP
-    RAISE NOTICE '>>> Applying master migrations to schema: %', current_schema;
-    EXECUTE 'SET search_path TO ' || quote_ident(current_schema) || ', public';
+    RAISE NOTICE '>>> Applying master migrations to schema: %', target_schema;
+    EXECUTE 'SET search_path TO ' || quote_ident(target_schema) || ', public';
 
     -- --------------------------------------------------------
     -- Table: activities
@@ -120,7 +120,10 @@ BEGIN
       "profile_id" INTEGER,
       "activity_id" INTEGER,
       "status" TEXT DEFAULT 'joined'::text,
-      "created_at" TIMESTAMPTZ DEFAULT now()
+      "created_at" TIMESTAMPTZ DEFAULT now(),
+      "badge_number" TEXT,
+      "attended" BOOLEAN NOT NULL DEFAULT FALSE,
+      "attended_at" TIMESTAMPTZ
     );
 
     -- Ensure all columns exist
@@ -128,6 +131,9 @@ BEGIN
     ALTER TABLE "activity_registrations" ADD COLUMN IF NOT EXISTS "activity_id" INTEGER;
     ALTER TABLE "activity_registrations" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'joined'::text;
     ALTER TABLE "activity_registrations" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE "activity_registrations" ADD COLUMN IF NOT EXISTS "badge_number" TEXT;
+    ALTER TABLE "activity_registrations" ADD COLUMN IF NOT EXISTS "attended" BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE "activity_registrations" ADD COLUMN IF NOT EXISTS "attended_at" TIMESTAMPTZ;
 
     -- --------------------------------------------------------
     -- Table: assignments
@@ -202,7 +208,8 @@ BEGIN
       "profile_rating" REAL,
       "profile_response" TEXT,
       "expires_at" TIMESTAMPTZ,
-      "status" TEXT DEFAULT 'pending'::text
+      "status" TEXT DEFAULT 'pending'::text,
+      "survey_template_id" INTEGER
     );
 
     -- Ensure all columns exist
@@ -221,6 +228,7 @@ BEGIN
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "profile_response" TEXT;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "expires_at" TIMESTAMPTZ;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'pending'::text;
+    ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "survey_template_id" INTEGER;
 
     -- --------------------------------------------------------
     -- Table: floors
@@ -517,7 +525,8 @@ BEGIN
       "reported_by" TEXT,
       "category" TEXT DEFAULT 'maintenance'::text,
       "assigned_to" INTEGER,
-      "photo_url" TEXT
+      "photo_url" TEXT,
+      "parent_id" INTEGER
     );
 
     -- Ensure all columns exist
@@ -537,6 +546,7 @@ BEGIN
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "category" TEXT DEFAULT 'maintenance'::text;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "assigned_to" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "photo_url" TEXT;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "parent_id" INTEGER;
 
     -- --------------------------------------------------------
     -- Table: password_history
@@ -552,6 +562,30 @@ BEGIN
     ALTER TABLE "password_history" ADD COLUMN IF NOT EXISTS "user_id" INTEGER;
     ALTER TABLE "password_history" ADD COLUMN IF NOT EXISTS "password_hash" TEXT;
     ALTER TABLE "password_history" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
+
+    -- --------------------------------------------------------
+    -- Table: password_reset_tokens (forgot-password flow, per tenant)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "password_reset_tokens" (
+      "id" SERIAL PRIMARY KEY,
+      "profile_id" TEXT NOT NULL,
+      "property_id" INTEGER NOT NULL,
+      "token_hash" TEXT NOT NULL,
+      "expires_at" TIMESTAMPTZ NOT NULL,
+      "used_at" TIMESTAMPTZ,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- Ensure all columns exist
+    ALTER TABLE "password_reset_tokens" ADD COLUMN IF NOT EXISTS "profile_id" TEXT NOT NULL;
+    ALTER TABLE "password_reset_tokens" ADD COLUMN IF NOT EXISTS "property_id" INTEGER NOT NULL;
+    ALTER TABLE "password_reset_tokens" ADD COLUMN IF NOT EXISTS "token_hash" TEXT NOT NULL;
+    ALTER TABLE "password_reset_tokens" ADD COLUMN IF NOT EXISTS "expires_at" TIMESTAMPTZ NOT NULL;
+    ALTER TABLE "password_reset_tokens" ADD COLUMN IF NOT EXISTS "used_at" TIMESTAMPTZ;
+    ALTER TABLE "password_reset_tokens" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT now();
+    CREATE INDEX IF NOT EXISTS "idx_reset_tokens_profile_id" ON "password_reset_tokens" ("profile_id");
+    CREATE INDEX IF NOT EXISTS "idx_reset_tokens_token_hash" ON "password_reset_tokens" ("token_hash");
+    CREATE INDEX IF NOT EXISTS "idx_reset_tokens_expires_at" ON "password_reset_tokens" ("expires_at");
 
     -- --------------------------------------------------------
     -- Table: portal_comment_likes
@@ -1456,7 +1490,16 @@ BEGIN
       "updated_at" TIMESTAMPTZ DEFAULT now(),
       "portal_contact_email" TEXT,
       "portal_contact_phone" TEXT,
-      "portal_contact_ext" TEXT
+      "portal_contact_ext" TEXT,
+      "password_min_length" INTEGER NOT NULL DEFAULT 8,
+      "password_require_uppercase" BOOLEAN NOT NULL DEFAULT TRUE,
+      "password_require_lowercase" BOOLEAN NOT NULL DEFAULT TRUE,
+      "password_require_number" BOOLEAN NOT NULL DEFAULT TRUE,
+      "password_require_symbol" BOOLEAN NOT NULL DEFAULT FALSE,
+      "password_expiry_days" INTEGER NOT NULL DEFAULT 90,
+      "password_history_count" INTEGER NOT NULL DEFAULT 5,
+      "lockout_threshold" INTEGER NOT NULL DEFAULT 5,
+      "lockout_duration_minutes" INTEGER NOT NULL DEFAULT 15
     );
 
     -- Ensure all columns exist
@@ -1474,6 +1517,15 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_email" TEXT;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_phone" TEXT;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_ext" TEXT;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_min_length" INTEGER NOT NULL DEFAULT 8;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_require_uppercase" BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_require_lowercase" BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_require_number" BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_require_symbol" BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_expiry_days" INTEGER NOT NULL DEFAULT 90;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_history_count" INTEGER NOT NULL DEFAULT 5;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "lockout_threshold" INTEGER NOT NULL DEFAULT 5;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "lockout_duration_minutes" INTEGER NOT NULL DEFAULT 15;
 
     -- --------------------------------------------------------
     -- Table: survey_item_responses

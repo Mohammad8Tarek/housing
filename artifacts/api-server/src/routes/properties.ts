@@ -201,6 +201,7 @@ router.post(
         "room_import_history",
         "room_import_templates",
         "room_beds",
+        "password_reset_tokens",
       ];
 
       // Tables that need property_id column (smart lock + push subscription tables)
@@ -211,6 +212,7 @@ router.post(
         "push_subscriptions",
         "room_import_history",
         "room_import_templates",
+        "password_reset_tokens",
       ]);
 
       const client = await pool.connect();

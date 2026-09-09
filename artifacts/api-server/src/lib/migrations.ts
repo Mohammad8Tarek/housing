@@ -855,6 +855,52 @@ const MIGRATIONS = [
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`,
   },
+  {
+    name: "public.password_reset_tokens.profile_id_text",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'profile_id' AND data_type = 'integer') THEN
+        ALTER TABLE public.password_reset_tokens ALTER COLUMN profile_id TYPE TEXT USING profile_id::text;
+      END IF;
+    END $$;`,
+  },
+  {
+    name: "public.settings.password_policy",
+    q: `DO $$ BEGIN
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS password_min_length INTEGER NOT NULL DEFAULT 8;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS password_require_uppercase BOOLEAN NOT NULL DEFAULT TRUE;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS password_require_lowercase BOOLEAN NOT NULL DEFAULT TRUE;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS password_require_number BOOLEAN NOT NULL DEFAULT TRUE;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS password_require_symbol BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS password_expiry_days INTEGER NOT NULL DEFAULT 90;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS password_history_count INTEGER NOT NULL DEFAULT 5;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS lockout_threshold INTEGER NOT NULL DEFAULT 5;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS lockout_duration_minutes INTEGER NOT NULL DEFAULT 15;
+    END $$;`,
+  },
+  {
+    name: "public.maintenance.parent_id",
+    q: "ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS parent_id INTEGER",
+  },
+  {
+    name: "public.activity_registrations.attendance",
+    q: `DO $$ BEGIN
+      ALTER TABLE public.activity_registrations ADD COLUMN IF NOT EXISTS badge_number TEXT;
+      ALTER TABLE public.activity_registrations ADD COLUMN IF NOT EXISTS attended BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE public.activity_registrations ADD COLUMN IF NOT EXISTS attended_at TIMESTAMPTZ;
+    END $$;`,
+  },
+  {
+    name: "public.rooms.extras",
+    q: `DO $$ BEGIN
+      ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS size_sqm NUMERIC;
+      ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS features_list TEXT[];
+      ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+    END $$;`,
+  },
+  {
+    name: "public.profile_portal_accounts.last_login_at",
+    q: "ALTER TABLE public.profile_portal_accounts ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ",
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1508,13 +1554,55 @@ const TENANT_MIGRATIONS = [
     name: "activity_registrations.attended_at",
     q: "ALTER TABLE activity_registrations ADD COLUMN IF NOT EXISTS attended_at TIMESTAMPTZ",
   },
+  {
+    name: "rooms.classification",
+    q: "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS classification TEXT",
+  },
+  {
+    name: "profile_portal_accounts.last_login_at",
+    q: "ALTER TABLE profile_portal_accounts ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ",
+  },
+  {
+    name: "password_reset_tokens",
+    q: `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      property_id INTEGER NOT NULL,
+      token_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+  },
+  {
+    name: "password_reset_tokens.columns",
+    q: `DO $$ BEGIN
+      ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS profile_id TEXT NOT NULL;
+      ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS property_id INTEGER NOT NULL;
+      ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS token_hash TEXT NOT NULL;
+      ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NOT NULL;
+      ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ;
+      ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+    END $$;`,
+  },
+  {
+    name: "password_reset_tokens.indexes",
+    q: `CREATE INDEX IF NOT EXISTS idx_reset_tokens_profile_id ON password_reset_tokens (profile_id);
+       CREATE INDEX IF NOT EXISTS idx_reset_tokens_token_hash ON password_reset_tokens (token_hash);
+       CREATE INDEX IF NOT EXISTS idx_reset_tokens_expires_at ON password_reset_tokens (expires_at);`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {
   const client = await pool.connect();
   try {
+    // Pooled clients may carry a tenant search_path left by a previous raw
+    // SET (this function itself used to leak it). Reset first AND qualify
+    // the catalog query — otherwise `FROM properties` can resolve to an
+    // EMPTY tenant.properties table and every migration silently skips.
+    await client.query("SET search_path TO public");
     const { rows: properties } = await client.query(
-      "SELECT id, schema_name FROM properties WHERE schema_name IS NOT NULL",
+      "SELECT id, schema_name FROM public.properties WHERE schema_name IS NOT NULL",
     );
     let count = 0;
     for (const prop of properties) {

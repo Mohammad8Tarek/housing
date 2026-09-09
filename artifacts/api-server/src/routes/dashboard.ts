@@ -52,7 +52,7 @@ router.get(
   async (req, res): Promise<void> => {
 
     const result = await pool.query(
-      "SELECT id, name, code FROM properties ORDER BY id",
+      "SELECT id, name, code FROM public.properties ORDER BY id",
     );
     const allProperties = result.rows.map((r: any) => ({
       id: r.id as number,
