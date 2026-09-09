@@ -178,11 +178,22 @@ router.get(
     const limit = Math.max(1, parseInt(query.limit || "20"));
     const offset = (page - 1) * limit;
 
-    const conditions: SQL[] = [sql`${assignmentsTable.status} != 'ACTIVE'`];
+    const conditions: SQL[] = [sql`upper(${assignmentsTable.status}) != 'ACTIVE'`];
 
     if (query.status && query.status !== "ALL") {
-      conditions.push(eq(assignmentsTable.status, query.status));
+      const s = String(query.status).toUpperCase();
+      if (s === "ENDED" || s === "CHECKED_OUT") {
+        conditions.push(
+          or(
+            eq(assignmentsTable.status, "CHECKED_OUT"),
+            eq(assignmentsTable.status, "ENDED"),
+          )!,
+        );
+      } else {
+        conditions.push(eq(assignmentsTable.status, s));
+      }
     }
+
     if (query.search) {
       const q = `%${query.search}%`;
       conditions.push(
@@ -190,8 +201,12 @@ router.get(
           ilike(profilesTable.firstName, q),
           ilike(profilesTable.lastName, q),
           ilike(profilesTable.profileId, q),
-          ilike(roomsTable.roomNumber, q)
-        )!
+          ilike(profilesTable.nationalId, q),
+          ilike(profilesTable.department, q),
+          ilike(profilesTable.jobTitle, q),
+          ilike(roomsTable.roomNumber, q),
+          ilike(buildingsTable.name, q),
+        )!,
       );
     }
 
@@ -199,11 +214,27 @@ router.get(
       const baseQuery = tenantDb
         .select({
           id: assignmentsTable.id,
-          assignment: assignmentsTable
+          assignment: assignmentsTable,
+          profileFirstName: profilesTable.firstName,
+          profileLastName: profilesTable.lastName,
+          profileCode: profilesTable.profileId,
+          profileNationalId: profilesTable.nationalId,
+          profileNationality: profilesTable.nationality,
+          profileDepartment: profilesTable.department,
+          profileJobTitle: profilesTable.jobTitle,
+          profilePhotoUrl: profilesTable.photoUrl,
+          roomNumber: roomsTable.roomNumber,
+          roomType: roomsTable.roomType,
+          buildingId: roomsTable.buildingId,
+          floorId: roomsTable.floorId,
+          buildingName: buildingsTable.name,
+          floorNumber: floorsTable.floorNumber,
         })
         .from(assignmentsTable)
         .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+        .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
         .where(and(...conditions));
 
       const countResult = await tenantDb
@@ -211,16 +242,37 @@ router.get(
         .from(assignmentsTable)
         .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+        .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
         .where(and(...conditions));
 
       const total = Number(countResult[0]?.count || 0);
 
       const items = await baseQuery
-        .orderBy(desc(assignmentsTable.createdAt))
+        .orderBy(desc(sql`COALESCE(${assignmentsTable.checkOutDate}, ${assignmentsTable.createdAt}::text)`))
         .limit(limit)
         .offset(offset);
 
-      return { total, data: items.map(i => i.assignment) };
+      return {
+        total,
+        data: items.map((i) => ({
+          ...i.assignment,
+          profileFirstName: i.profileFirstName,
+          profileLastName: i.profileLastName,
+          profileCode: i.profileCode,
+          profileNationalId: i.profileNationalId,
+          profileNationality: i.profileNationality,
+          profileDepartment: i.profileDepartment,
+          profileJobTitle: i.profileJobTitle,
+          profilePhotoUrl: i.profilePhotoUrl,
+          roomNumber: i.roomNumber,
+          roomType: i.roomType,
+          buildingId: i.buildingId,
+          floorId: i.floorId,
+          buildingName: i.buildingName,
+          floorNumber: i.floorNumber,
+        })),
+      };
     });
 
     res.json({
@@ -228,8 +280,8 @@ router.get(
       pagination: {
         total: result.total,
         page,
-        limit
-      }
+        limit,
+      },
     });
   },
 );
@@ -998,12 +1050,30 @@ router.post(
         })
         .where(eq(roomsTable.id, newRoom.id));
 
+      // Archive previous stay in old room to history as TRANSFERRED
+      const nowStr = new Date().toISOString();
+      await tenantDb.insert(assignmentsTable).values({
+        profileId: assignment.profileId,
+        roomId: assignment.roomId,
+        bedNumber: assignment.bedNumber,
+        isEntireRoom: assignment.isEntireRoom,
+        checkInDate: assignment.checkInDate,
+        expectedCheckOutDate: assignment.expectedCheckOutDate,
+        checkOutDate: nowStr,
+        notes: assignment.notes
+          ? `${assignment.notes} | تم النقل إلى الغرفة ${newRoom.roomNumber}`
+          : `تم النقل إلى الغرفة ${newRoom.roomNumber}`,
+        status: "TRANSFERRED",
+      });
+
       const [updated] = await tenantDb
         .update(assignmentsTable)
         .set({
           roomId: parsed.data.newRoomId,
           bedNumber: isEntireRoomRequested ? (parsed.data.newBedNumber || 1) : (parsed.data.newBedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
+          checkInDate: nowStr,
+          notes: `تم النقل من الغرفة ${oldRoom?.roomNumber || assignment.roomId}`,
         })
         .where(eq(assignmentsTable.id, params.data.id))
         .returning();

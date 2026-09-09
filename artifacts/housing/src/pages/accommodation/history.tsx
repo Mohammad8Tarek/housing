@@ -67,11 +67,20 @@ import * as XLSX from "xlsx";
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
     ENDED: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+    CHECKED_OUT: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
     TRANSFERRED:
       "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
     CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   };
   return map[status] ?? "bg-gray-100 text-gray-600";
+};
+
+const formatStatus = (status: string, ar: boolean) => {
+  if (status === "CHECKED_OUT") return ar ? "مغادرة" : "Checked Out";
+  if (status === "TRANSFERRED") return ar ? "منقول" : "Transferred";
+  if (status === "ENDED") return ar ? "منتهي" : "Ended";
+  if (status === "CANCELLED") return ar ? "ملغي" : "Cancelled";
+  return status;
 };
 
 function ProfileMini({
@@ -81,8 +90,11 @@ function ProfileMini({
   emp: any;
   photoUrl?: string | null;
 }) {
-  const initials =
-    `${emp?.firstName?.[0] ?? ""}${emp?.lastName?.[0] ?? ""}`.toUpperCase();
+  const fName = emp?.firstName || "";
+  const lName = emp?.lastName || "";
+  const initials = (fName || lName)
+    ? `${fName[0] ?? ""}${lName[0] ?? ""}`.toUpperCase()
+    : "ID";
   return (
     <div className="flex items-center gap-2">
       {photoUrl ? (
@@ -98,7 +110,7 @@ function ProfileMini({
       )}
       <div className="min-w-0">
         <p className="font-medium text-sm whitespace-nowrap">
-          {emp?.firstName} {emp?.lastName}
+          {fName || lName ? `${fName} ${lName}` : `#${emp?.profileId || "—"}`}
         </p>
         <p className="text-xs text-muted-foreground">{emp?.department ?? ""}</p>
       </div>
@@ -309,8 +321,17 @@ export default function HistoryPage() {
     const rows = exportTarget().map((a) => {
       const emp = empMap[a.profileId];
       const room = roomMap[a.roomId];
-      const building = room ? buildingMap[room.buildingId] : null;
-      const floor = room ? floorMap[room.floorId] : null;
+      const building = a.buildingName || (room ? buildingMap[room.buildingId] : null);
+      const floorNum = a.floorNumber ?? (room && floorMap[room.floorId] ? floorMap[room.floorId].number : "");
+      const roomNum = a.roomNumber || room?.roomNumber || String(a.roomId);
+      const empName = (a.profileFirstName && a.profileLastName)
+        ? `${a.profileFirstName} ${a.profileLastName}`
+        : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`);
+      const empCode = a.profileCode || emp?.profileId || "";
+      const nationalId = a.profileNationalId || emp?.nationalId || "";
+      const nationality = a.profileNationality || (emp as any)?.nationality || "";
+      const jobTitle = a.profileJobTitle || emp?.jobTitle || "";
+      const department = a.profileDepartment || emp?.department || "";
       const checkOutDate = a.checkOutDate || (a as any).actualCheckOutDate;
       const daysStayed =
         a.checkInDate && checkOutDate
@@ -324,21 +345,21 @@ export default function HistoryPage() {
             )
           : null;
       return {
-        Name: emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`,
-        Code: emp?.profileId ?? "",
-        "National ID": emp?.nationalId ?? "",
-        Nationality: (emp as any)?.nationality ?? "",
-        "Job Title": emp?.jobTitle ?? "",
-        Department: emp?.department ?? "",
+        Name: empName,
+        Code: empCode,
+        "National ID": nationalId,
+        Nationality: nationality,
+        "Job Title": jobTitle,
+        Department: department,
         Building: building ?? "",
-        Floor: floor?.number ?? "",
-        Room: room?.roomNumber ?? String(a.roomId),
+        Floor: floorNum,
+        Room: roomNum,
         Bed: a.bedNumber ?? "",
         "Check-in": formatDate(a.checkInDate, ""),
         "Check-out": formatDate(checkOutDate, ""),
         Days: daysStayed ?? "",
         Notes: a.notes ?? "",
-        Status: a.status,
+        Status: formatStatus(a.status, ar),
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -367,8 +388,15 @@ export default function HistoryPage() {
     const rows = exportTarget().map((a) => {
       const emp = empMap[a.profileId];
       const room = roomMap[a.roomId];
-      const building = room ? buildingMap[room.buildingId] : null;
-      const floor = room ? floorMap[room.floorId] : null;
+      const building = a.buildingName || (room ? buildingMap[room.buildingId] : null);
+      const floorNum = a.floorNumber ?? (room && floorMap[room.floorId] ? String(floorMap[room.floorId].number) : "—");
+      const roomNum = a.roomNumber || room?.roomNumber || String(a.roomId);
+      const empName = (a.profileFirstName && a.profileLastName)
+        ? `${a.profileFirstName} ${a.profileLastName}`
+        : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`);
+      const empCode = a.profileCode || emp?.profileId || "";
+      const nationalId = a.profileNationalId || emp?.nationalId || "";
+      const department = a.profileDepartment || emp?.department || "";
       const checkOutDate = a.checkOutDate || (a as any).actualCheckOutDate;
       const daysStayed =
         a.checkInDate && checkOutDate
@@ -382,18 +410,18 @@ export default function HistoryPage() {
             )
           : null;
       return [
-        emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`,
-        emp?.profileId ?? "",
-        emp?.nationalId ?? "",
-        emp?.department ?? "",
+        empName,
+        empCode,
+        nationalId,
+        department,
         pdfTextSafe(building ?? "") || "—",
-        floor?.number ? String(floor.number) : "—",
-        room?.roomNumber ?? String(a.roomId),
+        floorNum,
+        roomNum,
         a.bedNumber ? String(a.bedNumber) : "—",
         formatDate(a.checkInDate),
         formatDate(checkOutDate),
         daysStayed !== null ? String(daysStayed) : "—",
-        a.status,
+        formatStatus(a.status, ar),
       ];
     });
 
@@ -612,12 +640,17 @@ export default function HistoryPage() {
             <SelectItem value="ALL">
               {ar ? "كل الحالات" : "All Status"}
             </SelectItem>
-            <SelectItem value="ENDED">{ar ? "منتهي" : "Ended"}</SelectItem>
+            <SelectItem value="CHECKED_OUT">
+              {ar ? "تمت المغادرة (Checked Out)" : "Checked Out"}
+            </SelectItem>
             <SelectItem value="TRANSFERRED">
-              {ar ? "منقول" : "Transferred"}
+              {ar ? "تم النقل (Transferred)" : "Transferred"}
+            </SelectItem>
+            <SelectItem value="ENDED">
+              {ar ? "منتهي (Ended)" : "Ended"}
             </SelectItem>
             <SelectItem value="CANCELLED">
-              {ar ? "ملغي" : "Cancelled"}
+              {ar ? "ملغي (Cancelled)" : "Cancelled"}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -713,10 +746,26 @@ export default function HistoryPage() {
             </TableHeader>
             <TableBody>
               {paged.map((a) => {
-                const emp = empMap[a.profileId];
+                const emp = empMap[a.profileId] || {
+                  firstName: a.profileFirstName,
+                  lastName: a.profileLastName,
+                  profileId: a.profileCode,
+                  nationalId: a.profileNationalId,
+                  nationality: a.profileNationality,
+                  jobTitle: a.profileJobTitle,
+                  department: a.profileDepartment,
+                  photoUrl: a.profilePhotoUrl,
+                };
                 const room = roomMap[a.roomId];
-                const building = room ? buildingMap[room.buildingId] : null;
-                const floor = room ? floorMap[room.floorId] : null;
+                const building =
+                  a.buildingName || (room ? buildingMap[room.buildingId] : null);
+                const floorNumber =
+                  a.floorNumber ??
+                  (room && floorMap[room.floorId]
+                    ? floorMap[room.floorId].number
+                    : null);
+                const roomNumber =
+                  a.roomNumber || room?.roomNumber || String(a.roomId);
                 const checkOutDate =
                   a.checkOutDate || (a as any).actualCheckOutDate;
                 const daysStayed =
@@ -749,28 +798,28 @@ export default function HistoryPage() {
                       <TableCell>
                         <ProfileMini
                           emp={emp}
-                          photoUrl={(emp as any)?.photoUrl}
+                          photoUrl={a.profilePhotoUrl || (emp as any)?.photoUrl}
                         />
                       </TableCell>
                     )}
                     {isHistVisible("code") && (
                       <TableCell className="font-mono text-xs text-muted-foreground">
-                        {emp?.profileId ?? `#${a.profileId}`}
+                        {a.profileCode || emp?.profileId || `#${a.profileId}`}
                       </TableCell>
                     )}
                     {isHistVisible("nationalid") && (
                       <TableCell className="font-mono text-xs">
-                        {emp?.nationalId ?? "—"}
+                        {a.profileNationalId || emp?.nationalId || "—"}
                       </TableCell>
                     )}
                     {isHistVisible("nationality") && (
                       <TableCell className="text-sm">
-                        {(emp as any)?.nationality ?? "—"}
+                        {a.profileNationality || (emp as any)?.nationality || "—"}
                       </TableCell>
                     )}
                     {isHistVisible("jobtitle") && (
                       <TableCell className="text-sm">
-                        {emp?.jobTitle ?? "—"}
+                        {a.profileJobTitle || emp?.jobTitle || "—"}
                       </TableCell>
                     )}
                     {isHistVisible("building") && (
@@ -787,13 +836,13 @@ export default function HistoryPage() {
                     )}
                     {isHistVisible("floor") && (
                       <TableCell className="text-sm">
-                        {floor?.number ?? "—"}
+                        {floorNumber ?? "—"}
                       </TableCell>
                     )}
                     {isHistVisible("room") && (
                       <TableCell>
                         <span className="font-mono font-semibold text-primary">
-                          {room?.roomNumber ?? a.roomId}
+                          {roomNumber}
                         </span>
                       </TableCell>
                     )}
@@ -841,7 +890,7 @@ export default function HistoryPage() {
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge(a.status)}`}
                         >
-                          {a.status}
+                          {formatStatus(a.status, ar)}
                         </span>
                       </TableCell>
                     )}
