@@ -708,7 +708,7 @@ router.post(
       details: `Total: ${result.total}, Inserted: ${result.success}, Skipped: ${result.skipped}`,
     });
 
-    broadcastToProperty(propertyId, { module: "profiles", action: "created", count: result.success });
+    broadcastToProperty(propertyId, { module: "profiles", action: "created", data: { count: result.success } });
 
     res.status(200).json(result);
   },

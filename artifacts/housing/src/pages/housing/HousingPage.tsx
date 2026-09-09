@@ -55,11 +55,11 @@ export function HousingPage() {
 
   const { data: bData, isLoading: bLoading } = useListBuildings(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId } },
+    { query: { queryKey: ["buildings", activePropertyId, 1000], enabled: !!activePropertyId } as any },
   );
   const { data: fData, isLoading: fLoading } = useListFloors(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId } },
+    { query: { queryKey: ["floors", activePropertyId, 1000], enabled: !!activePropertyId } as any },
   );
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
@@ -68,12 +68,12 @@ export function HousingPage() {
   const rData = (_rDataWrapper as any)?.data || _rDataWrapper || [];
   const { data: aData } = useListAssignments(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId && hasAccommodation } },
+    { query: { queryKey: ["assignments", activePropertyId, 1000], enabled: !!activePropertyId && hasAccommodation } as any },
   );
 
   const { data: eDataWrapper } = useListProfiles(
     { propertyId: activePropertyId as number, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId && hasProfiles } },
+    { query: { queryKey: ["profiles", activePropertyId, 1000], enabled: !!activePropertyId && hasProfiles } as any },
   );
   const eData = (eDataWrapper as any)?.data || eDataWrapper || [];
   if (!activePropertyId) {

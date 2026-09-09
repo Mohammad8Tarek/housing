@@ -1211,7 +1211,7 @@ router.delete(
   requirePermission("accommodation", "delete"),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
-    const assignmentId = parseInt(req.params.id, 10);
+    const assignmentId = parseInt(req.params.id as string, 10);
     if (isNaN(assignmentId)) {
       res.status(400).json({ error: "Invalid assignment ID" });
       return;
@@ -1360,7 +1360,7 @@ router.post(
         broadcastToProperty(propertyId, {
           module: "accommodation",
           action: "deleted",
-          details: { count: result.deletedCount },
+          data: { count: result.deletedCount },
         });
       }
 
