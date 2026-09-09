@@ -689,12 +689,14 @@ export function ReportTable({
                       <TableCell>
                         <Badge variant="outline" className="text-xs capitalize font-medium">
                           {ar
-                            ? row.category === "electronics" ? "إلكترونيات وشاشات"
-                            : row.category === "appliances" ? "أجهزة وتكييف"
-                            : row.category === "furniture" ? "أثاث"
-                            : row.category === "fixtures" ? "مرافق وخزائن"
-                            : row.category === "linen" ? "مفروشات"
-                            : "أخرى"
+                            ? row.category === "appliances" ? "كهربائية وتكييف (Electric)"
+                            : row.category === "other" ? "أخرى (Other)"
+                            : row.category === "electronics" ? "إلكترونيات (Electronics)"
+                            : row.category === "furniture" ? "أثاث (Furniture)"
+                            : row.category === "fixtures" ? "مرافق (Fixtures)"
+                            : row.category === "linen" ? "مفروشات (Linen)"
+                            : "أخرى (Other)"
+                            : row.category === "appliances" ? "Electric / Appliances"
                             : row.category}
                         </Badge>
                       </TableCell>
@@ -775,12 +777,14 @@ export function ReportTable({
                       <TableCell>
                         <Badge variant="outline" className="text-xs capitalize font-medium">
                           {ar
-                            ? row.category === "electronics" ? "إلكترونيات وشاشات"
-                            : row.category === "appliances" ? "أجهزة وتكييف"
-                            : row.category === "furniture" ? "أثاث"
-                            : row.category === "fixtures" ? "مرافق وخزائن"
-                            : row.category === "linen" ? "مفروشات"
-                            : "أخرى"
+                            ? row.category === "appliances" ? "كهربائية وتكييف (Electric)"
+                            : row.category === "other" ? "أخرى (Other)"
+                            : row.category === "electronics" ? "إلكترونيات (Electronics)"
+                            : row.category === "furniture" ? "أثاث (Furniture)"
+                            : row.category === "fixtures" ? "مرافق (Fixtures)"
+                            : row.category === "linen" ? "مفروشات (Linen)"
+                            : "أخرى (Other)"
+                            : row.category === "appliances" ? "Electric / Appliances"
                             : row.category}
                         </Badge>
                       </TableCell>

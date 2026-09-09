@@ -27,6 +27,7 @@ import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
+import { syncRoomFeaturesToInventory } from "./room-inventory.js";
 
 const router: Router = Router();
 
@@ -524,6 +525,14 @@ router.post(
           .returning();
       });
 
+      if (extraData.featuresList && Array.isArray(extraData.featuresList) && extraData.featuresList.length > 0) {
+        try {
+          await syncRoomFeaturesToInventory(propertyId, room.id, extraData.featuresList);
+        } catch (e) {
+          console.error("[rooms/create] Failed to sync inventory:", e);
+        }
+      }
+
       const s = su(req);
       await logActivity({
         req,
@@ -708,6 +717,14 @@ router.patch(
       return;
     }
 
+    if (extraData.featuresList && Array.isArray(extraData.featuresList)) {
+      try {
+        await syncRoomFeaturesToInventory(propertyId, updated.id, extraData.featuresList);
+      } catch (e) {
+        console.error("[rooms/update] Failed to sync inventory:", e);
+      }
+    }
+
     const s = su(req);
     
     // Log specific status change if status was updated
@@ -815,6 +832,12 @@ router.patch(
       if (!updated) {
         res.status(404).json({ error: "Room not found" });
         return;
+      }
+
+      try {
+        await syncRoomFeaturesToInventory(propertyId, updated.id, list);
+      } catch (e) {
+        console.error("[rooms/patch-features] Failed to sync inventory:", e);
       }
 
       res.json({ success: true, room: { ...updated, propertyId } });
@@ -980,6 +1003,7 @@ router.post(
           try { await tenantDb.execute(sql`DELETE FROM assignments WHERE room_id IN (${deletableSql}) AND status != 'ACTIVE'`); } catch {}
           try { await tenantDb.execute(sql`DELETE FROM hostings WHERE room_id IN (${deletableSql})`); } catch {}
           try { await tenantDb.execute(sql`DELETE FROM maintenance WHERE room_id IN (${deletableSql})`); } catch {}
+          try { await tenantDb.execute(sql`DELETE FROM room_inventory WHERE room_id IN (${deletableSql})`); } catch {}
 
           await tenantDb
             .delete(roomsTable)
@@ -1075,6 +1099,7 @@ router.delete(
         try { await tenantDb.execute(sql`DELETE FROM assignments WHERE room_id = ${roomId} AND status != 'ACTIVE'`); } catch {}
         try { await tenantDb.execute(sql`DELETE FROM hostings WHERE room_id = ${roomId}`); } catch {}
         try { await tenantDb.execute(sql`DELETE FROM maintenance WHERE room_id = ${roomId}`); } catch {}
+        try { await tenantDb.execute(sql`DELETE FROM room_inventory WHERE room_id = ${roomId}`); } catch {}
 
         await tenantDb
           .delete(roomsTable)

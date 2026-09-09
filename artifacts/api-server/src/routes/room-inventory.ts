@@ -16,66 +16,360 @@ import { withTableFallback } from "../lib/with-table-fallback.js";
 
 const router: Router = Router();
 
-// Helper to categorize standard room amenities
+// Helper to normalize Arabic and English item names
+export function normalizeItemName(name: string): string {
+  if (!name) return "";
+  let s = name.trim().toLowerCase();
+  // Unify Arabic alef variants
+  s = s.replace(/[إأآا]/g, "ا");
+  // Unify taa marbuta and haa
+  s = s.replace(/ة/g, "ه");
+  // Unify yaa and alef maqsura
+  s = s.replace(/ى/g, "ي");
+  // Collapse whitespace
+  s = s.replace(/\s+/g, " ");
+  return s;
+}
+
+// Comprehensive helper to categorize room amenities (Arabic & English)
 export function categorizeAmenity(name: string): string {
-  const n = name.trim().toLowerCase();
+  const n = normalizeItemName(name);
+
+  // 1. APPLIANCES & ELECTRICAL ("أجهزة كهربائية وتكييف / Electric")
   if (
-    n.includes("tv") ||
-    n.includes("television") ||
-    n.includes("screen") ||
-    n.includes("satellite") ||
-    n.includes("wifi") ||
-    n.includes("router")
-  ) {
-    return "electronics";
-  }
-  if (
-    n.includes("air condition") ||
-    n.includes("ac") ||
+    // English
     n.includes("fridge") ||
     n.includes("refrigerator") ||
+    n.includes("mini fridge") ||
+    n.includes("freezer") ||
+    n.includes("air condition") ||
+    n.includes("air-condition") ||
+    n.includes("aircondition") ||
+    n.includes("ac") ||
+    n.includes("a/c") ||
+    n.includes("hvac") ||
+    n.includes("cooler") ||
     n.includes("washing") ||
+    n.includes("washer") ||
     n.includes("iron") ||
     n.includes("kettle") ||
     n.includes("microwave") ||
     n.includes("heater") ||
-    n.includes("dryer")
+    n.includes("dryer") ||
+    n.includes("cooker") ||
+    n.includes("stove") ||
+    n.includes("toaster") ||
+    n.includes("electric") ||
+    n.includes("electrical") ||
+    n.includes("fan") ||
+    n.includes("blender") ||
+    n.includes("vacuum") ||
+    // Arabic (normalized: ا / ه / ي)
+    n.includes("ثلاجه") ||
+    n.includes("تلاجه") ||
+    n.includes("ميني بار") ||
+    n.includes("فريزر") ||
+    n.includes("تكييف") ||
+    n.includes("مكيف") ||
+    n.includes("تبريد") ||
+    n.includes("غساله") ||
+    n.includes("نشافه") ||
+    n.includes("مكواه") ||
+    n.includes("غلايه") ||
+    n.includes("كاتل") ||
+    n.includes("بويلر") ||
+    n.includes("ميكروويف") ||
+    n.includes("مايكروويف") ||
+    n.includes("سخان") ||
+    n.includes("مروحه") ||
+    n.includes("بوتجاز") ||
+    n.includes("بوتاجاز") ||
+    n.includes("فرن") ||
+    n.includes("شوايه") ||
+    n.includes("كهرباي") ||
+    n.includes("اجهزه")
   ) {
     return "appliances";
   }
+
+  // 2. ELECTRONICS & SCREENS ("إلكترونيات وشاشات")
   if (
+    // English
+    n.includes("tv") ||
+    n.includes("television") ||
+    n.includes("screen") ||
+    n.includes("led") ||
+    n.includes("lcd") ||
+    n.includes("satellite") ||
+    n.includes("receiver") ||
+    n.includes("wifi") ||
+    n.includes("wi-fi") ||
+    n.includes("router") ||
+    n.includes("modem") ||
+    n.includes("phone") ||
+    n.includes("telephone") ||
+    n.includes("intercom") ||
+    n.includes("computer") ||
+    n.includes("monitor") ||
+    n.includes("pc") ||
+    n.includes("speaker") ||
+    n.includes("audio") ||
+    // Arabic (normalized)
+    n.includes("تلفزيون") ||
+    n.includes("تلفاز") ||
+    n.includes("شاشه") ||
+    n.includes("ريسيفر") ||
+    n.includes("رسيفر") ||
+    n.includes("ستالايت") ||
+    n.includes("واي فاي") ||
+    n.includes("راوتر") ||
+    n.includes("مودم") ||
+    n.includes("انترنت") ||
+    n.includes("هاتف") ||
+    n.includes("تليفون") ||
+    n.includes("انتركم") ||
+    n.includes("كمبيوتر") ||
+    n.includes("سماعه")
+  ) {
+    return "electronics";
+  }
+
+  // 3. FURNITURE ("أثاث وغرف نوم")
+  if (
+    // English
     n.includes("wardrobe") ||
     n.includes("desk") ||
     n.includes("chair") ||
     n.includes("bed") ||
+    n.includes("mattress") ||
     n.includes("sofa") ||
+    n.includes("couch") ||
     n.includes("seating") ||
     n.includes("table") ||
-    n.includes("closet")
+    n.includes("closet") ||
+    n.includes("cupboard") ||
+    n.includes("nightstand") ||
+    n.includes("dresser") ||
+    n.includes("shelf") ||
+    n.includes("bookshelf") ||
+    n.includes("drawer") ||
+    // Arabic (normalized)
+    n.includes("سرير") ||
+    n.includes("سراير") ||
+    n.includes("اسره") ||
+    n.includes("مرتبه") ||
+    n.includes("دولاب") ||
+    n.includes("دواليب") ||
+    n.includes("مكتب") ||
+    n.includes("كرسي") ||
+    n.includes("كراسي") ||
+    n.includes("كنبه") ||
+    n.includes("صوفا") ||
+    n.includes("جلسه") ||
+    n.includes("جلوس") ||
+    n.includes("طاوله") ||
+    n.includes("ترابيزه") ||
+    n.includes("طربيزه") ||
+    n.includes("كومود") ||
+    n.includes("تسريحه") ||
+    n.includes("انتريه") ||
+    n.includes("صالون") ||
+    n.includes("غرفه نوم") ||
+    n.includes("دريسنج")
   ) {
     return "furniture";
   }
+
+  // 4. FIXTURES & SAFES ("مرافق وخزائن")
   if (
+    // English
     n.includes("safe") ||
     n.includes("mirror") ||
     n.includes("curtain") ||
+    n.includes("drapes") ||
     n.includes("balcony") ||
+    n.includes("terrace") ||
     n.includes("bathroom") ||
+    n.includes("bath room") ||
+    n.includes("bath") ||
+    n.includes("shower") ||
+    n.includes("cabin") ||
+    n.includes("toilet") ||
+    n.includes("sink") ||
+    n.includes("basin") ||
+    n.includes("tap") ||
+    n.includes("faucet") ||
     n.includes("kitchenette") ||
-    n.includes("lamp")
+    n.includes("kitchen") ||
+    n.includes("lamp") ||
+    n.includes("light") ||
+    n.includes("chandelier") ||
+    n.includes("hanger") ||
+    n.includes("bin") ||
+    // Arabic (normalized)
+    n.includes("خزنه") ||
+    n.includes("سيف") ||
+    n.includes("امانات") ||
+    n.includes("مراه") ||
+    n.includes("مرايه") ||
+    n.includes("ستاره") ||
+    n.includes("ستائر") ||
+    n.includes("بلكونه") ||
+    n.includes("تراس") ||
+    n.includes("شرفه") ||
+    n.includes("حمام") ||
+    n.includes("تواليت") ||
+    n.includes("مرحاض") ||
+    n.includes("شاور") ||
+    n.includes("دش") ||
+    n.includes("كابينه") ||
+    n.includes("حوض") ||
+    n.includes("خلاط") ||
+    n.includes("صنبور") ||
+    n.includes("حنفيه") ||
+    n.includes("مطبخ") ||
+    n.includes("اباجوره") ||
+    n.includes("نجفه") ||
+    n.includes("شماعه") ||
+    n.includes("سله")
   ) {
     return "fixtures";
   }
+
+  // 5. LINEN & BEDDING ("مفروشات وبياضات")
   if (
+    // English
     n.includes("linen") ||
     n.includes("bedding") ||
     n.includes("pillow") ||
     n.includes("blanket") ||
-    n.includes("towel")
+    n.includes("towel") ||
+    n.includes("sheet") ||
+    n.includes("quilt") ||
+    n.includes("duvet") ||
+    n.includes("carpet") ||
+    n.includes("rug") ||
+    // Arabic (normalized)
+    n.includes("مفروشات") ||
+    n.includes("بياضات") ||
+    n.includes("ملايه") ||
+    n.includes("مخده") ||
+    n.includes("وساده") ||
+    n.includes("بطانيه") ||
+    n.includes("لحاف") ||
+    n.includes("كوفرته") ||
+    n.includes("فوطه") ||
+    n.includes("بشكير") ||
+    n.includes("سجاده") ||
+    n.includes("موكيت")
   ) {
     return "linen";
   }
+
   return "other";
+}
+
+// Sync room features into roomInventoryTable for a single room
+export async function syncRoomFeaturesToInventory(
+  propertyId: number,
+  roomId: number,
+  featuresList: string[]
+): Promise<{ added: number; removed: number }> {
+  if (!propertyId || !roomId) return { added: 0, removed: 0 };
+
+  return await withTenant(propertyId, async (tenantDb) => {
+    // 1. Fetch existing inventory items for this room
+    const existingItems = await tenantDb
+      .select()
+      .from(roomInventoryTable)
+      .where(eq(roomInventoryTable.roomId, roomId));
+
+    const existingMap = new Map<string, any>();
+    for (const item of existingItems) {
+      existingMap.set(normalizeItemName(item.itemName), item);
+    }
+
+    let added = 0;
+    let removed = 0;
+    const currentFeaturesNorm = new Set<string>();
+
+    // 2. Parse and insert new features
+    const parsedFeatures: string[] = [];
+    for (const raw of featuresList) {
+      const subItems = String(raw).split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean);
+      for (const item of subItems) {
+        if (item) parsedFeatures.push(item);
+      }
+    }
+
+    for (const feat of parsedFeatures) {
+      const trimmed = feat.trim();
+      if (!trimmed) continue;
+
+      const norm = normalizeItemName(trimmed);
+      currentFeaturesNorm.add(norm);
+
+      if (!existingMap.has(norm)) {
+        const category = categorizeAmenity(trimmed);
+        await tenantDb.insert(roomInventoryTable).values({
+          roomId,
+          itemName: trimmed,
+          category,
+          quantity: 1,
+          condition: "good",
+          notes: "Generated from room features",
+        });
+        added++;
+      }
+    }
+
+    // 3. Clean up auto-generated items that were removed from room features
+    for (const item of existingItems) {
+      const isAutoGenerated =
+        item.notes === "Generated from room features" ||
+        item.notes === null ||
+        item.notes === "";
+      const hasSpecificDetails = Boolean(item.serialNumber || item.barcode || item.modelNumber);
+
+      const norm = normalizeItemName(item.itemName);
+      if (isAutoGenerated && !hasSpecificDetails && !currentFeaturesNorm.has(norm)) {
+        await tenantDb
+          .delete(roomInventoryTable)
+          .where(eq(roomInventoryTable.id, item.id));
+        removed++;
+      }
+    }
+
+    return { added, removed };
+  });
+}
+
+// Sync features across all rooms for a property
+export async function syncAllRoomsFeaturesToInventory(
+  propertyId: number
+): Promise<{ roomCount: number; addedCount: number }> {
+  if (!propertyId) return { roomCount: 0, addedCount: 0 };
+
+  return await withTenant(propertyId, async (tenantDb) => {
+    const rooms = await tenantDb.select().from(roomsTable);
+    let addedCount = 0;
+
+    for (const room of rooms) {
+      const rawFeatures: string[] =
+        Array.isArray(room.featuresList) && room.featuresList.length > 0
+          ? room.featuresList
+          : room.features
+          ? String(room.features).split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean)
+          : [];
+
+      if (rawFeatures.length === 0) continue;
+
+      const res = await syncRoomFeaturesToInventory(propertyId, room.id, rawFeatures);
+      addedCount += res.added;
+    }
+
+    return { roomCount: rooms.length, addedCount };
+  });
 }
 
 // ─── GET /api/room-inventory ──────────────────────────────────────────────
@@ -241,7 +535,9 @@ router.get(
               if (floorId && floorId !== "all" && String(r.floorId) !== String(floorId)) continue;
               if (category && category !== "all" && r.category?.toLowerCase() !== String(category).toLowerCase()) continue;
 
-              const key = `${r.itemName.trim().toLowerCase()}:::${r.category?.toLowerCase() || "other"}`;
+              const normName = normalizeItemName(r.itemName);
+              const normCat = (r.category || "other").toLowerCase();
+              const key = `${normName}:::${normCat}`;
               if (!map.has(key)) {
                 map.set(key, {
                   id: key,
@@ -581,68 +877,26 @@ router.post(
         return;
       }
 
-      const roomId = req.body.roomId ? parseInt(String(req.body.roomId), 10) : undefined;
-      const buildingId = req.body.buildingId ? parseInt(String(req.body.buildingId), 10) : undefined;
+      let syncResult = { createdCount: 0, roomCount: 0 };
 
-      const syncResult = await withTenant(propertyId, async (tenantDb) => {
-        let roomsQuery = tenantDb.select().from(roomsTable);
-        const whereClauses: SQL[] = [];
-        if (roomId && !isNaN(roomId)) {
-          whereClauses.push(eq(roomsTable.id, roomId));
+      if (roomId && !isNaN(roomId)) {
+        const [targetRoom] = await withTenant(propertyId, async (tenantDb) =>
+          tenantDb.select().from(roomsTable).where(eq(roomsTable.id, roomId))
+        );
+        if (targetRoom) {
+          const rawFeatures: string[] =
+            Array.isArray(targetRoom.featuresList) && targetRoom.featuresList.length > 0
+              ? targetRoom.featuresList
+              : targetRoom.features
+              ? String(targetRoom.features).split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean)
+              : [];
+          const res = await syncRoomFeaturesToInventory(propertyId, targetRoom.id, rawFeatures);
+          syncResult = { createdCount: res.added, roomCount: 1 };
         }
-        if (buildingId && !isNaN(buildingId)) {
-          whereClauses.push(eq(roomsTable.buildingId, buildingId));
-        }
-
-        const targetRooms = whereClauses.length > 0
-          ? await tenantDb.select().from(roomsTable).where(and(...whereClauses))
-          : await tenantDb.select().from(roomsTable);
-
-        let createdCount = 0;
-
-        for (const room of targetRooms) {
-          // Extract features list
-          const rawFeatures: string[] = Array.isArray(room.featuresList) && room.featuresList.length > 0
-            ? room.featuresList
-            : room.features
-            ? String(room.features).split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean)
-            : [];
-
-          if (rawFeatures.length === 0) continue;
-
-          // Fetch existing inventory items for this room
-          const existingItems = await tenantDb
-            .select({ itemName: roomInventoryTable.itemName })
-            .from(roomInventoryTable)
-            .where(eq(roomInventoryTable.roomId, room.id));
-
-          const existingNames = new Set(
-            existingItems.map((item) => item.itemName.trim().toLowerCase())
-          );
-
-          // Insert new items that do not exist yet
-          for (const feat of rawFeatures) {
-            const trimmed = feat.trim();
-            if (!trimmed) continue;
-            if (existingNames.has(trimmed.toLowerCase())) continue;
-
-            const category = categorizeAmenity(trimmed);
-            await tenantDb.insert(roomInventoryTable).values({
-              roomId: room.id,
-              itemName: trimmed,
-              category,
-              quantity: 1,
-              condition: "good",
-              notes: "Generated from room features",
-            });
-
-            existingNames.add(trimmed.toLowerCase());
-            createdCount++;
-          }
-        }
-
-        return { createdCount, roomCount: targetRooms.length };
-      });
+      } else {
+        const res = await syncAllRoomsFeaturesToInventory(propertyId);
+        syncResult = { createdCount: res.addedCount, roomCount: res.roomCount };
+      }
 
       const s = su(req);
       await logActivity({

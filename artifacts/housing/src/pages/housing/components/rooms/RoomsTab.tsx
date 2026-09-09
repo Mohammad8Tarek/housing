@@ -105,6 +105,7 @@ export function RoomsTab({
     queryClient.invalidateQueries({ queryKey: ["/api/buildings"] });
     queryClient.invalidateQueries({ queryKey: ["/api/floors"] });
     queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+    queryClient.invalidateQueries({ queryKey: ["room-inventory"] });
     queryClient.invalidateQueries();
   };
 

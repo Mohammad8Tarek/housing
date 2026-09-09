@@ -1691,4 +1691,16 @@ export async function runMigrations(): Promise<void> {
   console.info(
     `[migrations] Tenant migrations done — ${tOk} total tenant-applications.`,
   );
+
+  // Sync existing rooms' features into room_inventory across all properties
+  try {
+    const { syncAllRoomsFeaturesToInventory } = await import("../routes/room-inventory.js");
+    const { rows: props } = await pool.query("SELECT id FROM public.properties");
+    for (const p of props) {
+      await syncAllRoomsFeaturesToInventory(p.id);
+    }
+    console.info(`[migrations] Automatic room features inventory sync complete across all tenants.`);
+  } catch (e: any) {
+    console.warn(`[migrations] room-inventory auto-sync notice:`, e?.message);
+  }
 }

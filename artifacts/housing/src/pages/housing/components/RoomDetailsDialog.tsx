@@ -92,6 +92,8 @@ export function RoomDetailsDialog({
       if (!res.ok) throw new Error();
       toast.success(ar ? "تم حفظ مميزات الغرفة بنجاح" : "Room features saved");
       qc.invalidateQueries({ queryKey: getListRoomsQueryKey() });
+      qc.invalidateQueries({ queryKey: ["room-inventory"] });
+      refetchInventory();
       setFeaturesEditMode(false);
       setLocalFeatures(null);
     } catch {
@@ -204,6 +206,23 @@ export function RoomDetailsDialog({
       qc.invalidateQueries({ queryKey: ["room-inventory"] });
     } catch {
       toast.error(ar ? "فشل تحديث الحالة" : "Failed to update condition");
+    }
+  };
+
+  const handleUpdateCategory = async (itemId: number, newCat: string) => {
+    try {
+      const res = await fetch(`/api/room-inventory/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ category: newCat, propertyId }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(ar ? "تم تحديث تصنيف المعدة" : "Item category updated");
+      refetchInventory();
+      qc.invalidateQueries({ queryKey: ["room-inventory"] });
+    } catch {
+      toast.error(ar ? "فشل تحديث التصنيف" : "Failed to update category");
     }
   };
 
@@ -541,12 +560,12 @@ export function RoomDetailsDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="electronics">{ar ? "إلكترونيات وشاشات" : "Electronics"}</SelectItem>
-                      <SelectItem value="appliances">{ar ? "أجهزة وتكييف" : "Appliances"}</SelectItem>
-                      <SelectItem value="furniture">{ar ? "أثاث وغرف نوم" : "Furniture"}</SelectItem>
-                      <SelectItem value="fixtures">{ar ? "مرافق وخزائن" : "Fixtures"}</SelectItem>
-                      <SelectItem value="linen">{ar ? "مفروشات وبياضات" : "Linen"}</SelectItem>
-                      <SelectItem value="other">{ar ? "أخرى" : "Other"}</SelectItem>
+                      <SelectItem value="appliances">{ar ? "أجهزة كهربائية وتكييف (Electric)" : "Electric & Appliances"}</SelectItem>
+                      <SelectItem value="electronics">{ar ? "إلكترونيات وشاشات (Electronics)" : "Electronics"}</SelectItem>
+                      <SelectItem value="furniture">{ar ? "أثاث وغرف نوم (Furniture)" : "Furniture"}</SelectItem>
+                      <SelectItem value="fixtures">{ar ? "مرافق وخزائن (Fixtures)" : "Fixtures"}</SelectItem>
+                      <SelectItem value="linen">{ar ? "مفروشات وبياضات (Linen)" : "Linen"}</SelectItem>
+                      <SelectItem value="other">{ar ? "أخرى (Other)" : "Other"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -636,9 +655,22 @@ export function RoomDetailsDialog({
                           x{item.quantity}
                         </Badge>
                       )}
-                      <Badge variant="outline" className="text-[10px] h-4 px-1 capitalize">
-                        {item.category}
-                      </Badge>
+                      <Select
+                        value={item.category || "other"}
+                        onValueChange={(val) => handleUpdateCategory(item.id, val)}
+                      >
+                        <SelectTrigger className="h-5 text-[10px] px-1.5 bg-background/50 border border-muted-foreground/30 text-muted-foreground hover:text-foreground rounded">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="appliances">{ar ? "كهربائية (Electric)" : "Electric"}</SelectItem>
+                          <SelectItem value="electronics">{ar ? "إلكترونيات (Electronics)" : "Electronics"}</SelectItem>
+                          <SelectItem value="furniture">{ar ? "أثاث (Furniture)" : "Furniture"}</SelectItem>
+                          <SelectItem value="fixtures">{ar ? "مرافق (Fixtures)" : "Fixtures"}</SelectItem>
+                          <SelectItem value="linen">{ar ? "مفروشات (Linen)" : "Linen"}</SelectItem>
+                          <SelectItem value="other">{ar ? "أخرى (Other)" : "Other"}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     {(item.serialNumber || item.barcode) && (
                       <div className="text-[10px] text-muted-foreground font-mono mt-0.5">

@@ -12,6 +12,7 @@ import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { requirePermission } from "../middlewares/permissions.js";
+import { syncRoomFeaturesToInventory } from "./room-inventory.js";
 
 const router = Router();
 
@@ -266,6 +267,11 @@ router.post(
               updatedRows++;
               processedRoomIds.push(existingRoom.id);
               batchProcessedRooms.set(roomKey, existingRoom);
+
+              const featuresToSync = Array.isArray(r.featuresList) ? r.featuresList : existingRoom.featuresList;
+              if (Array.isArray(featuresToSync) && featuresToSync.length > 0) {
+                try { await syncRoomFeaturesToInventory(propertyId, existingRoom.id, featuresToSync); } catch {}
+              }
             } else {
               // New Room Handling
               if (importMode === "update_only") {
@@ -317,6 +323,10 @@ router.post(
               existingRoomByBuildingMap.set(roomKey, newRoom);
               existingRoomByNumberMap.set(normRoomNumber, newRoom);
               batchProcessedRooms.set(roomKey, newRoom);
+
+              if (Array.isArray(r.featuresList) && r.featuresList.length > 0) {
+                try { await syncRoomFeaturesToInventory(propertyId, newRoom.id, r.featuresList); } catch {}
+              }
             }
           } catch (rowErr: any) {
             failedRows++;

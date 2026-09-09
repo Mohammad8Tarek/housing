@@ -380,12 +380,12 @@ export function ReportFilters({
                 <SelectItem value="all">{ar ? "كل الفئات" : "All Categories"}</SelectItem>
                 {activeTab === "equipment_inventory" ? (
                   <>
-                    <SelectItem value="electronics">{ar ? "أجهزة إلكترونية وشاشات" : "Electronics & Screens"}</SelectItem>
-                    <SelectItem value="appliances">{ar ? "أجهزة كهربائية وتكييف" : "Appliances & AC"}</SelectItem>
-                    <SelectItem value="furniture">{ar ? "أثاث وغرف نوم" : "Furniture"}</SelectItem>
-                    <SelectItem value="fixtures">{ar ? "مرافق وخزائن" : "Fixtures & Safes"}</SelectItem>
-                    <SelectItem value="linen">{ar ? "مفروشات وبياضات" : "Linen & Bedding"}</SelectItem>
-                    <SelectItem value="other">{ar ? "أخرى" : "Other"}</SelectItem>
+                    <SelectItem value="appliances">{ar ? "أجهزة كهربائية وتكييف (Electric / Appliances)" : "Electric & Appliances"}</SelectItem>
+                    <SelectItem value="other">{ar ? "أخرى (Other)" : "Other"}</SelectItem>
+                    <SelectItem value="electronics">{ar ? "أجهزة إلكترونية وشاشات (Electronics)" : "Electronics & Screens"}</SelectItem>
+                    <SelectItem value="furniture">{ar ? "أثاث وغرف نوم (Furniture)" : "Furniture"}</SelectItem>
+                    <SelectItem value="fixtures">{ar ? "مرافق وتجهيزات (Fixtures & Safes)" : "Fixtures & Safes"}</SelectItem>
+                    <SelectItem value="linen">{ar ? "مفروشات وبياضات (Linen & Bedding)" : "Linen & Bedding"}</SelectItem>
                   </>
                 ) : (
                   <>

@@ -12,6 +12,16 @@ function comparableDate(v: unknown): string {
   return s.slice(0, 10);
 }
 
+function normalizeItemName(name: string): string {
+  if (!name) return "";
+  let s = name.trim().toLowerCase();
+  s = s.replace(/[إأآا]/g, "ا");
+  s = s.replace(/ة/g, "ه");
+  s = s.replace(/ى/g, "ي");
+  s = s.replace(/\s+/g, " ");
+  return s;
+}
+
 export function useReportDataProcessor({
   ar = true,
   activeTab,
@@ -698,7 +708,9 @@ export function useReportDataProcessor({
             const roomNum = item.roomNumber || room?.roomNumber || (item.roomId ? `#${item.roomId}` : "—");
             const bName = item.buildingName || (room ? buildingMap[room.buildingId] : "—") || "—";
             const fName = item.floorName || (room ? floorMap[room.floorId] : "—") || "—";
-            const key = `${item.itemName.trim().toLowerCase()}:::${(item.category || "other").toLowerCase()}`;
+            const normName = normalizeItemName(item.itemName);
+            const normCat = (item.category || "other").toLowerCase();
+            const key = `${normName}:::${normCat}`;
 
             if (!map.has(key)) {
               map.set(key, {
