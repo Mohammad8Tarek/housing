@@ -7,7 +7,7 @@ import {
   pool,
   invalidateSchemaCache,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
   CreatePropertyBody,
@@ -24,6 +24,51 @@ import { requirePermission, requireAuth, hasPermission } from "../middlewares/pe
 import { su } from "../lib/request-utils.js";
 
 const router: Router = Router();
+
+/**
+ * Canonical admin provisioning for a property (used by create AND update).
+ * Find-before-create: links the property to an existing username instead
+ * of inserting a duplicate user row.
+ */
+async function ensurePropertyAdmin(
+  username: unknown,
+  password: unknown,
+  propertyId: number,
+): Promise<void> {
+  const trimmedUsername = String(username ?? "").trim();
+  const trimmedPassword = String(password ?? "");
+  if (!trimmedUsername || !trimmedPassword) return;
+  const [existingUser] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.username, trimmedUsername))
+    .limit(1);
+
+  if (existingUser) {
+    const curIds = (existingUser.propertyIds || []).map(Number);
+    const newIds = curIds.includes(propertyId)
+      ? curIds
+      : [...curIds, propertyId];
+    await db
+      .update(usersTable)
+      .set({
+        propertyIds: newIds,
+        propertyId: existingUser.propertyId ?? propertyId,
+      })
+      .where(eq(usersTable.id, existingUser.id));
+  } else {
+    const passwordHash = await bcrypt.hash(trimmedPassword, 10);
+    await db.insert(usersTable).values({
+      propertyId,
+      propertyIds: [propertyId],
+      username: trimmedUsername,
+      passwordHash,
+      roles: ["admin"],
+      permissions: [],
+      status: "active",
+    });
+  }
+}
 
 router.get("/properties", requireAuth, async (req, res): Promise<void> => {
   const authUser = (req as any).authUser;
@@ -61,18 +106,68 @@ router.post(
 
       const { adminUsername, adminPassword, ...propData } = parsed.data as any;
 
+      // Normalize code server-side (frontend sends uppercase, but the API
+      // must not depend on that — UNIQUE is case-sensitive in Postgres).
+      const normalizedCode = String(propData.code ?? "").trim().toUpperCase();
+      if (!normalizedCode) {
+        res.status(400).json({ error: "Property code is required" });
+        return;
+      }
+
+      // Pre-check duplicate code (case-insensitive) → friendly 409 instead
+      // of a raw 500 from the UNIQUE constraint.
+      const [codeClash] = await db
+        .select({ id: propertiesTable.id })
+        .from(propertiesTable)
+        .where(sql`UPPER(${propertiesTable.code}) = ${normalizedCode}`)
+        .limit(1);
+      if (codeClash) {
+        res.status(409).json({
+          error: `Property code "${normalizedCode}" already exists`,
+          code: "PROPERTY_DUPLICATE",
+        });
+        return;
+      }
+
       // توليد اسم السكيما من اسم السكن (مثال: TAAL Housing -> taal_housing)
-      let schemaName = propData.name
+      const baseSchemaName = propData.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "");
 
-      if (!schemaName || !/^[a-z][a-z0-9_]*$/.test(schemaName))
-        schemaName = `prop_${Date.now()}`;
+      let schemaName =
+        baseSchemaName && /^[a-z][a-z0-9_]*$/.test(baseSchemaName)
+          ? baseSchemaName
+          : `prop_${Date.now()}`;
+
+      // Ensure schema name uniqueness — two names like "Taal Housing" and
+      // "Taal-Housing" normalize identically and must NOT share tables.
+      // (Closed race window is acceptable: schema creation below uses
+      // CREATE SCHEMA IF NOT EXISTS + per-table IF NOT EXISTS.)
+      // eslint-disable-next-line no-await-in-loop
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const candidate = attempt === 0 ? schemaName : `${schemaName}_${attempt + 1}`;
+        const [schemaClash] = await db
+          .select({ id: propertiesTable.id })
+          .from(propertiesTable)
+          .where(eq(propertiesTable.schemaName, candidate))
+          .limit(1);
+        if (!schemaClash) {
+          schemaName = candidate;
+          break;
+        }
+        if (attempt === 99) {
+          res.status(409).json({
+            error: "Could not allocate a unique schema for this property",
+            code: "PROPERTY_SCHEMA_CONFLICT",
+          });
+          return;
+        }
+      }
 
       const [property] = await db
         .insert(propertiesTable)
-        .values({ ...propData, schemaName })
+        .values({ ...propData, code: normalizedCode, schemaName })
         .returning();
 
       // ====== 🏗️ إنشاء السكيما والجداول بشكل أوتوماتيكي للسكن الجديد ======
@@ -119,6 +214,7 @@ router.post(
       ]);
 
       const client = await pool.connect();
+      let schemaOk = false;
       try {
         await client.query("BEGIN");
         await client.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
@@ -152,6 +248,7 @@ router.post(
           }
         }
         await client.query("COMMIT");
+        schemaOk = true;
       } catch (err) {
         await client
           .query("ROLLBACK")
@@ -162,42 +259,25 @@ router.post(
       } finally {
         client.release();
       }
+
+      // Never return 201 for a property without its schema — roll back the
+      // row instead of leaving a broken property behind.
+      if (!schemaOk) {
+        await db
+          .delete(propertiesTable)
+          .where(eq(propertiesTable.id, property.id))
+          .catch(() => {});
+        res.status(500).json({
+          error: "Failed to provision property storage. Property was not created.",
+        });
+        return;
+      }
       // =================================================================
 
       // Create default admin user for property (or link existing user)
       if (adminUsername && adminPassword) {
         try {
-          const trimmedUsername = String(adminUsername).trim();
-          const [existingUser] = await db
-            .select()
-            .from(usersTable)
-            .where(eq(usersTable.username, trimmedUsername))
-            .limit(1);
-
-          if (existingUser) {
-            // User already exists (e.g. 'admin' or existing property manager)
-            // Add this new property to their accessible properties
-            const curIds = (existingUser.propertyIds || []).map(Number);
-            const newIds = curIds.includes(property.id) ? curIds : [...curIds, property.id];
-            await db
-              .update(usersTable)
-              .set({
-                propertyIds: newIds,
-                propertyId: existingUser.propertyId ?? property.id,
-              })
-              .where(eq(usersTable.id, existingUser.id));
-          } else {
-            const passwordHash = await bcrypt.hash(adminPassword, 10);
-            await db.insert(usersTable).values({
-              propertyId: property.id,
-              propertyIds: [property.id],
-              username: trimmedUsername,
-              passwordHash,
-              roles: ["admin"],
-              permissions: [],
-              status: "active",
-            });
-          }
+          await ensurePropertyAdmin(adminUsername, adminPassword, property.id);
         } catch (userErr: any) {
           console.error("[Properties] Error setting up admin user:", userErr?.message || userErr);
         }
@@ -212,7 +292,12 @@ router.post(
       `,
           [property.name, property.primaryColor, property.defaultLanguage],
         );
-      } catch (e) {}
+      } catch (e: any) {
+        console.warn(
+          "[Properties] Default settings insert skipped:",
+          e?.message || e,
+        );
+      }
 
       const sp = {
         ...property,
@@ -296,6 +381,28 @@ router.patch(
 
     const { adminUsername, adminPassword, ...propData } = parsed.data as any;
 
+    // Same duplicate-code guard as create (excluding this property itself).
+    if (propData.code !== undefined) {
+      const normalizedCode = String(propData.code ?? "").trim().toUpperCase();
+      if (!normalizedCode) {
+        res.status(400).json({ error: "Property code is required" });
+        return;
+      }
+      const [codeClash] = await db
+        .select({ id: propertiesTable.id })
+        .from(propertiesTable)
+        .where(sql`UPPER(${propertiesTable.code}) = ${normalizedCode}`)
+        .limit(1);
+      if (codeClash && Number(codeClash.id) !== Number(params.data.id)) {
+        res.status(409).json({
+          error: `Property code "${normalizedCode}" already exists`,
+          code: "PROPERTY_DUPLICATE",
+        });
+        return;
+      }
+      propData.code = normalizedCode;
+    }
+
     const [updated] = await db
       .update(propertiesTable)
       .set(propData as any)
@@ -309,17 +416,13 @@ router.patch(
     // Invalidate schema cache after property update
     invalidateSchemaCache(params.data.id);
 
-    // If admin credentials provided on edit, create a new user for the property
+    // If admin credentials provided on edit, link or create (same as create).
     if (adminUsername && adminPassword) {
-      const passwordHash = await bcrypt.hash(adminPassword, 10);
-      await db.insert(usersTable).values({
-        propertyId: params.data.id,
-        username: adminUsername,
-        passwordHash,
-        roles: ["admin"],
-        permissions: [],
-        status: "active",
-      });
+      try {
+        await ensurePropertyAdmin(adminUsername, adminPassword, params.data.id);
+      } catch (userErr: any) {
+        console.error("[Properties] Error setting up admin user on update:", userErr?.message || userErr);
+      }
     }
 
     const sp2 = {
