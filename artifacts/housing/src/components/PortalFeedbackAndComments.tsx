@@ -301,9 +301,9 @@ export default function PortalFeedbackAndComments() {
                         {"⭐".repeat(Math.floor(comment.rating))}
                       </span>
                     )}
-                    <button className="flex items-center gap-1 hover:text-primary transition-colors">
+                    <span className="flex items-center gap-1" title={ar ? "عدد الإعجابات" : "Likes"}>
                       <Heart className="w-3 h-3" /> {comment.likes || 0}
-                    </button>
+                    </span>
                   </div>
                 </div>
               ))}

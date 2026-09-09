@@ -342,9 +342,6 @@ export default function TabOverview({
           <h3 className="text-sm font-bold text-foreground">
             {isRtl ? "أحدث التنبيهات" : "Latest Alerts"}
           </h3>
-          <button className="p-1 rounded-lg hover:bg-surface transition-colors">
-            <MaterialIcon icon="more_vert" size={18} className="text-muted2" />
-          </button>
         </div>
         <div className="space-y-2.5">
           {loadingState === "loading" ? (

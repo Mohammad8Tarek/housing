@@ -8,6 +8,7 @@ import MaterialIcon from "./MaterialIcon";
 
 interface Props {
   photoUrl?: string;
+  onDocTab?: () => void;
 }
 
 const SAMPLE_DOCS = [
@@ -20,7 +21,7 @@ const SAMPLE_DOCS = [
   },
 ];
 
-export default function TabProfile({ photoUrl }: Props) {
+export default function TabProfile({ photoUrl, onDocTab }: Props) {
   const { t, lang } = useTheme();
   const isRtl = lang === "ar";
   const [, setLocation] = useLocation();
@@ -359,7 +360,10 @@ export default function TabProfile({ photoUrl }: Props) {
         <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
           <MaterialIcon icon="description" size={18} className="text-accent2" />
           {isRtl ? "المستندات الأساسية" : "Key Documents"}
-          <button className="ms-auto text-[10px] font-bold text-accent2 hover:text-accent2/80 transition-colors flex items-center gap-1">
+          <button
+            onClick={() => onDocTab?.()}
+            className="ms-auto text-[10px] font-bold text-accent2 hover:text-accent2/80 transition-colors flex items-center gap-1"
+          >
             {isRtl ? "عرض المستندات" : "View Vault"}
             <MaterialIcon
               icon={isRtl ? "chevron_left" : "chevron_right"}

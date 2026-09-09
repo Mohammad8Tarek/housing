@@ -859,7 +859,7 @@ export default function Dashboard() {
             ))}
           {activeTab === "portal-settings" && <TabPortalSettings />}
           {activeTab === "profile" && (
-            <TabProfile photoUrl={employee?.photoUrl} />
+            <TabProfile photoUrl={employee?.photoUrl} onDocTab={() => changeTab("documents")} />
           )}
           {activeTab === "roommates" && (
             <TabRoommates

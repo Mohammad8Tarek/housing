@@ -334,7 +334,10 @@ export default function TabNotifications({ onChangeTab }: Props) {
             ? "إذا كان لديك استفسار، فريق الموارد البشرية جاهز للمساعدة."
             : "If you have any questions, our Concierge HR team is here to help."}
         </p>
-        <button className="px-4 py-2 rounded-lg bg-[#C9A24D] text-white text-[11px] font-bold hover:bg-[#B8922E] transition-all">
+        <button
+          onClick={() => onChangeTab?.("chat")}
+          className="px-4 py-2 rounded-lg bg-[#C9A24D] text-white text-[11px] font-bold hover:bg-[#B8922E] transition-all"
+        >
           {isRtl ? "تواصل مع الموارد البشرية" : "Contact HR Concierge"}
         </button>
       </div>

@@ -122,7 +122,14 @@ export default function TabDocuments({ documents }: Props) {
     }
   };
 
-  const recentDocs = search ? filtered.slice(0, 5) : documents.slice(0, 5);
+  const [showAll, setShowAll] = useState(false);
+  const recentDocs = showAll
+    ? search
+      ? filtered
+      : documents
+    : search
+      ? filtered.slice(0, 5)
+      : documents.slice(0, 5);
 
   return (
     <div className="px-4 pt-4 pb-4">
@@ -179,8 +186,17 @@ export default function TabDocuments({ documents }: Props) {
               <h3 className="text-sm font-bold text-foreground">
                 {isRtl ? "المستندات الحديثة" : "Recent Documents"}
               </h3>
-              <button className="text-[10px] font-bold text-accent2 hover:text-accent2/80 transition-colors flex items-center gap-1">
-                {isRtl ? "عرض الكل" : "View All History"}
+              <button
+                onClick={() => setShowAll((v) => !v)}
+                className="text-[10px] font-bold text-accent2 hover:text-accent2/80 transition-colors flex items-center gap-1"
+              >
+                {showAll
+                  ? isRtl
+                    ? "عرض أقل"
+                    : "Show Less"
+                  : isRtl
+                    ? "عرض الكل"
+                    : "View All History"}
                 <MaterialIcon
                   icon={isRtl ? "chevron_left" : "chevron_right"}
                   size={14}
@@ -294,7 +310,14 @@ export default function TabDocuments({ documents }: Props) {
                         </span>
                       </div>
                       <div className="flex justify-end sm:justify-center mt-2 sm:mt-0">
-                        <button className="w-8 h-8 rounded-lg hover:bg-surface transition-colors flex items-center justify-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDoc(doc);
+                          }}
+                          aria-label={isRtl ? "فتح المستند" : "Open document"}
+                          className="w-8 h-8 rounded-lg hover:bg-surface transition-colors flex items-center justify-center"
+                        >
                           <MaterialIcon
                             icon="more_vert"
                             size={16}
