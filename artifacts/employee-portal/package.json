@@ -25,6 +25,8 @@
     "@sentry/react": "^10.69.0",
     "@tailwindcss/postcss": "^4.2.4",
     "@tanstack/react-query": "catalog:",
+    "@tanstack/react-query-persist-client": "^5.100.8",
+    "@tanstack/query-sync-storage-persister": "^5.100.8",
     "@workspace/api-client-react": "workspace:*",
     "@workspace/dates": "workspace:*",
     "clsx": "^2.1.1",

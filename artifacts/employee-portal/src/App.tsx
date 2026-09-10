@@ -1,5 +1,7 @@
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "./lib/theme";
 import { PWAProvider } from "./lib/pwa";
@@ -13,18 +15,18 @@ import Dashboard from "./pages/dashboard";
 import ChangePassword from "./pages/change-password";
 import RequestDetails from "./pages/request-details";
 import BiometricLockScreen from "./components/BiometricLockScreen";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { apiFetch, clearSessionCache, setCachedSessionId } from "./lib/api";
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
-import { useBiometric } from "./hooks/useBiometric";
 
+// ─── Query Client with aggressive caching ───────────────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
+      staleTime: 5 * 60_000,       // data stays fresh 5 min
+      gcTime: 24 * 60 * 60_000,    // keep in memory 24 h (for persistence)
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       retry: 1,
@@ -32,41 +34,57 @@ const queryClient = new QueryClient({
   },
 });
 
+// ─── LocalStorage persister for offline / instant-load caching ───────────────
+const localStoragePersister = createSyncStoragePersister({
+  storage: typeof window !== "undefined" ? window.localStorage : undefined,
+  key: "SUNRISE_PORTAL_QUERY_CACHE",
+  throttleTime: 1000,
+});
+
+// ─── AuthGuard ───────────────────────────────────────────────────────────────
+// IMPORTANT: We do NOT include `biometric` in the checkAuth useCallback deps.
+// The biometric hook updates its state after mount which previously caused a
+// second re-run of checkAuth → double API call → race condition → logout.
+// We read biometric state directly from Preferences inside checkAuth instead.
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   const [checking, setChecking] = useState(true);
   const [locked, setLocked] = useState(false);
   const isNative = Capacitor.isNativePlatform();
-  const biometric = useBiometric();
   const wasBackground = useRef(false);
+  const authDone = useRef(false); // prevent double-run in StrictMode
 
   const checkAuth = useCallback(async () => {
+    if (authDone.current) return;
+    authDone.current = true;
+
     try {
       if (isNative) {
-        // If session_only flag set, this is a cold start - clear session and go to login
+        // session_only flag → user chose rememberMe=false → don't auto-login on cold start
         const { value: sessionOnly } = await Preferences.get({ key: "login_session_only" });
         if (sessionOnly === "true") {
-          // Clear for next cold start (but user already logged in this session via sessionStorage)
           const hasCurrent = sessionStorage.getItem("portal_employee");
           if (!hasCurrent) {
-            // Cold start with no session - clear and go to login
             await Preferences.remove({ key: "portal_employee" });
             await Preferences.remove({ key: "session_id" });
             await Preferences.remove({ key: "login_session_only" });
             clearSessionCache();
+            setChecking(false);
             setLocation("/login");
             return;
           }
-          // Already has session in memory - keep going
         }
 
         const { value: empJson } = await Preferences.get({ key: "portal_employee" });
         if (!empJson) {
           clearSessionCache();
+          setChecking(false);
           setLocation("/login");
           return;
         }
         sessionStorage.setItem("portal_employee", empJson);
+
         const { value: sid } = await Preferences.get({ key: "session_id" });
         if (sid) {
           sessionStorage.setItem("session_id", sid);
@@ -78,6 +96,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
           localStorage.getItem("portal_employee");
         if (!empJson) {
           clearSessionCache();
+          setChecking(false);
           setLocation("/login");
           return;
         }
@@ -91,69 +110,81 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const res = await apiFetch("/api/portal-auth/me");
-      if (!res.ok) {
+      // Verify session with backend (single call, no retry here)
+      try {
+        const res = await apiFetch("/api/portal-auth/me");
         if (res.status === 401 || res.status === 403) {
           clearSessionCache();
+          setChecking(false);
+          setLocation("/login");
+          return;
+        }
+        // Any other status (200, network error handled below) → allow in
+      } catch {
+        // Network offline → use cached data, allow in
+        const hasLocal =
+          sessionStorage.getItem("portal_employee") ||
+          localStorage.getItem("portal_employee");
+        if (!hasLocal) {
+          clearSessionCache();
+          setChecking(false);
           setLocation("/login");
           return;
         }
       }
+
+      // Check biometric lock for initial open — read Preferences directly (no hook dep)
+      if (isNative) {
+        try {
+          const { value: useFingerprint } = await Preferences.get({ key: "login_use_fingerprint" });
+          if (useFingerprint === "true") {
+            const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
+            const available = await NativeBiometric.isAvailable().catch(() => ({ isAvailable: false }));
+            if (available.isAvailable) {
+              const creds = await NativeBiometric.getCredentials({ server: "com.sunrisehousing.portal" }).catch(() => null);
+              if (creds) {
+                setLocked(true);
+                setChecking(false);
+                return;
+              }
+            }
+          }
+        } catch {
+          // Biometric not available — skip lock
+        }
+      }
+
+      setChecking(false);
+
+      // Register push notifications after successful auth (fire-and-forget)
+      if (isNative) {
+        import("@capacitor/push-notifications").then(({ PushNotifications }) => {
+          PushNotifications.requestPermissions().then(() => PushNotifications.register());
+          PushNotifications.addListener("registration", (token) => {
+            apiFetch("/api/push/register-device", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token: token.value, platform: "android" }),
+            }).catch(() => {});
+          });
+          PushNotifications.addListener("pushNotificationReceived", (n) => {
+            console.log("[push] received:", n.title);
+          });
+        }).catch(() => {});
+      }
     } catch {
-      const hasStored =
-        sessionStorage.getItem("portal_employee") ||
-        localStorage.getItem("portal_employee");
-      if (!hasStored) {
-        clearSessionCache();
-        setLocation("/login");
-        return;
-      }
+      setChecking(false);
+      setLocation("/login");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNative, setLocation]); // NOT including biometric — see note above
 
-    // Check if biometric lock should be shown on first open
-    if (isNative && biometric.isAvailable) {
-      const { value: useFingerprint } = await Preferences.get({ key: "login_use_fingerprint" });
-      const creds = await biometric.getCredentials();
-      if (useFingerprint === "true" && creds) {
-        setLocked(true);
-        setChecking(false);
-        return;
-      }
-    }
+  // Run once on mount
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
-    setChecking(false);
-
-    // Request permissions on native after auth check
-    if (isNative) {
-      try {
-        const { PushNotifications } = await import("@capacitor/push-notifications");
-        const { LocalNotifications } = await import("@capacitor/local-notifications");
-        await PushNotifications.requestPermissions();
-        await LocalNotifications.requestPermissions();
-
-        // Register push and listen for notifications
-        await PushNotifications.register();
-        PushNotifications.addListener("registration", (token) => {
-          console.log("FCM Token:", token.value);
-          apiFetch("/api/push/register-device", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: token.value, platform: "android" }),
-          }).catch(() => {});
-        });
-        PushNotifications.addListener("pushNotificationReceived", (notification) => {
-          console.log("Push received:", notification);
-        });
-        PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
-          console.log("Push action:", action);
-        });
-      } catch (err) {
-        console.error("Permission request failed", err);
-      }
-    }
-  }, [isNative, biometric, setLocation]);
-
-  // App resume biometric lock — use visibilitychange (works in Capacitor WebView)
+  // Re-lock biometric on app resume
   useEffect(() => {
     if (!isNative) return;
 
@@ -162,24 +193,23 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         wasBackground.current = true;
       } else if (document.visibilityState === "visible" && wasBackground.current) {
         wasBackground.current = false;
-        // Re-lock when app comes to foreground
-        const { value: useFingerprint } = await Preferences.get({ key: "login_use_fingerprint" });
-        const creds = await biometric.getCredentials();
-        if (useFingerprint === "true" && creds && biometric.isAvailable) {
-          setLocked(true);
-        }
+        try {
+          const { value: useFingerprint } = await Preferences.get({ key: "login_use_fingerprint" });
+          if (useFingerprint === "true") {
+            const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
+            const available = await NativeBiometric.isAvailable().catch(() => ({ isAvailable: false }));
+            if (available.isAvailable) {
+              const creds = await NativeBiometric.getCredentials({ server: "com.sunrisehousing.portal" }).catch(() => null);
+              if (creds) setLocked(true);
+            }
+          }
+        } catch {}
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [isNative, biometric]);
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [isNative]);
 
   if (checking) {
     return (
@@ -215,6 +245,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// ─── Routes ───────────────────────────────────────────────────────────────────
 function AnimatedRoutes() {
   const [location] = useLocation();
   const routeSlug = location.split("/")[0] || "root";
@@ -236,9 +267,6 @@ function AnimatedRoutes() {
               <RequestDetails />
             </AuthGuard>
           </Route>
-          <Route path="/tickets">
-            <Redirect to="/login" />
-          </Route>
           <Route path="/">
             <Redirect to="/login" />
           </Route>
@@ -248,21 +276,25 @@ function AnimatedRoutes() {
   );
 }
 
-function Router() {
-  return <AnimatedRoutes />;
-}
-
+// ─── Root App ─────────────────────────────────────────────────────────────────
 function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister: localStoragePersister,
+          maxAge: 24 * 60 * 60 * 1000, // cache survives 24 h
+          buster: "v1",
+        }}
+      >
         <PWAProvider>
           <ThemeProvider translations={translations}>
-            <Router />
+            <AnimatedRoutes />
             <AppToaster />
           </ThemeProvider>
         </PWAProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   );
 }
