@@ -49,7 +49,7 @@ export function useBiometric() {
         await import("@capgo/capacitor-native-biometric");
       await NativeBiometric.verifyIdentity({
         reason,
-        title: "Sunrise Portal",
+        title: "SUNRISE Resident Portal",
         subtitle: "Biometric Login",
         description: reason,
       });

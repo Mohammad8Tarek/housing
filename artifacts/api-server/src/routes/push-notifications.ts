@@ -99,6 +99,23 @@ router.post("/unsubscribe", requirePortalAuth, async (req, res, next) => {
   }
 });
 
+// POST /push/register-device — Register native FCM token (Android)
+// @ts-ignore
+router.post("/register-device", requirePortalAuth, async (req, res, next) => {
+  try {
+    const { token, platform } = req.body;
+    if (!token) {
+      return res.status(400).json({ success: false, message: "Missing token" });
+    }
+    // Store FCM token in session for future use; log it for now
+    console.log(`[push] FCM device token registered — platform=${platform || "unknown"}, token=${token.slice(0, 20)}...`);
+    // TODO: persist to device_tokens table when FCM server-side sending is implemented
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── Helper: Send push notification to all profiles of a property ───
 export async function sendPushToProperty(
   propertyId: number,

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.sunrisehousing.portal",
-  appName: "Sunrise Portal",
+  appName: "SUNRISE Resident Portal",
   webDir: "dist",
   server: {
     androidScheme: "https",
@@ -18,11 +18,12 @@ const config: CapacitorConfig = {
       iconColor: "#18B0BB",
     },
     SplashScreen: {
-      launchAutoHide: true,
-      launchShowDuration: 1500,
+      launchAutoHide: false,
+      launchShowDuration: 3000,
       backgroundColor: "#0c0e14",
       androidScaleType: "CENTER_CROP",
-      showSpinner: false,
+      showSpinner: true,
+      spinnerColor: "#18B0BB",
       splashFullScreen: true,
       splashImmersive: true,
     },
