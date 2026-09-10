@@ -15,8 +15,15 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 // Module-level configuration
 // ---------------------------------------------------------------------------
 
+export type SessionIdGetter = () => Promise<string | null> | string | null;
+
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _sessionIdGetter: SessionIdGetter | null = null;
+
+export function setSessionIdGetter(getter: SessionIdGetter | null): void {
+  _sessionIdGetter = getter;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -379,15 +386,22 @@ export async function customFetch<T = unknown>(
   // Attach session id when available in storage and not explicitly provided
   if (!headers.has("x-session-id")) {
     let sid: string | null = null;
-    try {
-      if (typeof sessionStorage !== "undefined") {
-        sid = sessionStorage.getItem("session_id");
+    if (_sessionIdGetter) {
+      try {
+        sid = await _sessionIdGetter();
+      } catch {}
+    }
+    if (!sid) {
+      try {
+        if (typeof sessionStorage !== "undefined") {
+          sid = sessionStorage.getItem("session_id");
+        }
+        if (!sid && typeof localStorage !== "undefined") {
+          sid = localStorage.getItem("session_id");
+        }
+      } catch {
+        // Storage access may be restricted in some environments
       }
-      if (!sid && typeof localStorage !== "undefined") {
-        sid = localStorage.getItem("session_id");
-      }
-    } catch {
-      // Storage access may be restricted in some environments
     }
     if (sid) {
       headers.set("x-session-id", sid);

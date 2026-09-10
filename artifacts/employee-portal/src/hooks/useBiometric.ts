@@ -52,6 +52,8 @@ export function useBiometric() {
         title: "SUNRISE Resident Portal",
         subtitle: "Biometric Login",
         description: reason,
+        negativeButtonText: "إلغاء / Cancel",
+        maxAttempts: 5,
       });
       return true;
     } catch {

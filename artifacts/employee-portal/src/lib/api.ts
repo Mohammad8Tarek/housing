@@ -25,7 +25,7 @@ const SERVER_URL = (isNative
 // Cache session_id in memory to avoid slow Preferences.get on every request
 let _cachedSid: string | null | undefined = undefined;
 
-async function getSessionId(): Promise<string | null> {
+export async function getSessionId(): Promise<string | null> {
   if (_cachedSid !== undefined && _cachedSid !== null) return _cachedSid;
   if (typeof sessionStorage !== "undefined") {
     const sid = sessionStorage.getItem("session_id");

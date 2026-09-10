@@ -5,9 +5,13 @@ import "./mobile-additions.css";
 import App from "./App.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 
-import { setBaseUrl } from "@workspace/api-client-react";
+import { setBaseUrl, setSessionIdGetter } from "@workspace/api-client-react";
+import { getSessionId } from "./lib/api";
 import { Capacitor } from "@capacitor/core";
 import * as Sentry from "@sentry/react";
+
+// Automatically attach session ID to all TanStack Query / customFetch requests
+setSessionIdGetter(getSessionId);
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({

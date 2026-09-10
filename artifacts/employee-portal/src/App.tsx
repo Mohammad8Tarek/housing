@@ -203,16 +203,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       if (isNative) {
         try {
           const { value: useFingerprint } = await Preferences.get({ key: "login_use_fingerprint" });
-          if (useFingerprint === "true") {
+          if (useFingerprint !== "false") {
             const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
             const available = await NativeBiometric.isAvailable().catch(() => ({ isAvailable: false }));
             if (available.isAvailable) {
-              const creds = await NativeBiometric.getCredentials({ server: "com.sunrisehousing.portal" }).catch(() => null);
-              if (creds) {
-                setLocked(true);
-                setChecking(false);
-                return;
-              }
+              setLocked(true);
+              setChecking(false);
+              return;
             }
           }
         } catch {
@@ -244,12 +241,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         wasBackground.current = false;
         try {
           const { value: useFingerprint } = await Preferences.get({ key: "login_use_fingerprint" });
-          if (useFingerprint === "true") {
+          if (useFingerprint !== "false") {
             const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
             const available = await NativeBiometric.isAvailable().catch(() => ({ isAvailable: false }));
             if (available.isAvailable) {
-              const creds = await NativeBiometric.getCredentials({ server: "com.sunrisehousing.portal" }).catch(() => null);
-              if (creds) setLocked(true);
+              setLocked(true);
             }
           }
         } catch {}

@@ -36,7 +36,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
   const [rememberMe, setRememberMe] = useState(true);
-  const [useFingerprint, setUseFingerprint] = useState(false);
+  const [useFingerprint, setUseFingerprint] = useState(true);
   const [showBiometricBtn, setShowBiometricBtn] = useState(false);
   const biometric = useBiometric();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +54,7 @@ export default function Login() {
       });
       if (rm !== null) setRememberMe(rm === "true");
       if (uf !== null) setUseFingerprint(uf === "true");
+      else setUseFingerprint(true);
     } catch {}
   }, []);
 
@@ -439,9 +440,9 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Remember me */}
+              {/* Remember me & Fingerprint */}
               {isNative && (
-                <div className="pt-1">
+                <div className="pt-1 flex flex-col gap-2.5">
                   <label className="flex items-center gap-3 cursor-pointer select-none group w-max">
                     <div className="relative flex items-center justify-center">
                       <input
@@ -466,8 +467,39 @@ export default function Login() {
                       </div>
                     </div>
                     <span className="text-[13px] text-white/70 group-hover:text-white transition-colors">
-                      {lang === "ar" ? "تذكرني" : "Remember my login"}
+                      {lang === "ar" ? "تذكر بيانات الدخول" : "Remember login"}
                     </span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer select-none group w-max">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={useFingerprint}
+                        onChange={(e) => setUseFingerprint(e.target.checked)}
+                        className="peer sr-only"
+                      />
+                      <div
+                        className={`w-5 h-5 rounded-md border transition-all flex items-center justify-center ${
+                          useFingerprint
+                            ? "border-[#18B0BB] bg-[#18B0BB]"
+                            : "border-white/30 bg-black/20"
+                        }`}
+                      >
+                        {useFingerprint && (
+                          <Check
+                            className="w-3.5 h-3.5 text-black"
+                            strokeWidth={3}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[13px] text-white/80 group-hover:text-white transition-colors">
+                      <Fingerprint className="w-4 h-4 text-[#18B0BB]" />
+                      <span>
+                        {lang === "ar" ? "تفعيل الدخول بالبصمة عند الفتح" : "Enable Biometric / Fingerprint Login"}
+                      </span>
+                    </div>
                   </label>
                 </div>
               )}

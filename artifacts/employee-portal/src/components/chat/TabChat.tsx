@@ -788,13 +788,24 @@ export function TabChat({
       return "ws://localhost:4000/ws";
     };
 
+
     const connectWs = () => {
       if (isUnmounted) return;
 
       const wsBase = getWsEndpoint();
-      const sid = typeof sessionStorage !== "undefined"
-        ? sessionStorage.getItem("session_id")
-        : (typeof localStorage !== "undefined" ? localStorage.getItem("session_id") : null);
+      // Try sessionStorage first, then localStorage (needed on native Android where
+      // Preferences.get async restoration may not have finished yet on first connect)
+      let sid: string | null = null;
+      try {
+        if (typeof sessionStorage !== "undefined") {
+          sid = sessionStorage.getItem("session_id");
+        }
+        if (!sid && typeof localStorage !== "undefined") {
+          sid = localStorage.getItem("session_id");
+        }
+      } catch {
+        /* storage may be restricted */
+      }
 
       const url = sid
         ? `${wsBase}${wsBase.includes("?") ? "&" : "?"}sessionId=${encodeURIComponent(sid)}`
