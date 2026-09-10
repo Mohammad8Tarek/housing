@@ -22,8 +22,9 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
-if (import.meta.env.VITE_API_URL && Capacitor.isNativePlatform()) {
-  setBaseUrl(import.meta.env.VITE_API_URL);
+if (Capacitor.isNativePlatform()) {
+  const nativeApiUrl = import.meta.env.VITE_API_URL?.trim() || "https://resident.sunrise-resorts.com";
+  setBaseUrl(nativeApiUrl);
 }
 
 createRoot(document.getElementById("root")!).render(

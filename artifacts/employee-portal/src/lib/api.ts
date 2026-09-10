@@ -7,7 +7,7 @@ import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 
 const isNative = Capacitor.isNativePlatform();
-const DEFAULT_RAILWAY_API_URL = "https://housing-production-302d.up.railway.app";
+const DEFAULT_PRODUCTION_API_URL = "https://resident.sunrise-resorts.com";
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 
 function isVercelHost(): boolean {
@@ -18,7 +18,7 @@ function isVercelHost(): boolean {
 }
 
 const SERVER_URL = (isNative
-  ? configuredApiUrl || DEFAULT_RAILWAY_API_URL
+  ? configuredApiUrl || DEFAULT_PRODUCTION_API_URL
   : ""
 ).replace(/\/+$/, "");
 
@@ -84,7 +84,7 @@ export function apiUrl(path: string): string {
 
 function fallbackApiUrl(path: string): string | null {
   if (SERVER_URL || !isVercelHost() || !path.startsWith("/api")) return null;
-  const fallbackBaseUrl = (configuredApiUrl || DEFAULT_RAILWAY_API_URL).replace(
+  const fallbackBaseUrl = (configuredApiUrl || DEFAULT_PRODUCTION_API_URL).replace(
     /\/+$/,
     "",
   );

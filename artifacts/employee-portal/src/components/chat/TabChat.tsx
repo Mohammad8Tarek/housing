@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../lib/theme";
 import { apiFetch } from "../../lib/api";
+import { Capacitor } from "@capacitor/core";
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface Employee {
@@ -768,9 +769,14 @@ export function TabChat({
       const configuredWs = import.meta.env.VITE_WS_URL?.trim();
       if (configuredWs) return configuredWs;
 
+      if (Capacitor.isNativePlatform()) {
+        const prodUrl = import.meta.env.VITE_API_URL?.trim() || "https://resident.sunrise-resorts.com";
+        return prodUrl.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
+      }
+
       const isVercel = typeof window !== "undefined" && window.location.hostname.endsWith(".vercel.app");
       if (isVercel) {
-        const railwayUrl = import.meta.env.VITE_API_URL?.trim() || "https://housing-production-302d.up.railway.app";
+        const railwayUrl = import.meta.env.VITE_API_URL?.trim() || "https://resident.sunrise-resorts.com";
         return railwayUrl.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
       }
 
