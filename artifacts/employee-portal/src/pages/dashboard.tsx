@@ -120,14 +120,6 @@ export default function Dashboard() {
 
   // Update employee and portalData when query data changes
   useEffect(() => {
-    if (isProfileError) {
-      const status = (profileError as any)?.status;
-      if (status === 401 || status === 403) {
-        clearSessionCache();
-        window.location.href = "/login";
-        return;
-      }
-    }
     const profileData = profileRes as any;
     if (profileData) {
       setEmployee((prev: any) => ({
@@ -146,10 +138,10 @@ export default function Dashboard() {
       alerts: alertsRes as any,
     } as any);
 
-    if (profileData && roomRes) {
+    if (profileData || employee || roomRes) {
       setIsLoading(false);
     }
-  }, [profileRes, roomRes, notifRes, alertsRes, isProfileError]);
+  }, [profileRes, roomRes, notifRes, alertsRes, employee]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -164,8 +156,8 @@ export default function Dashboard() {
 
   const redirectToLogin = useCallback(() => {
     clearSessionCache();
-    window.location.href = "/login";
-  }, []);
+    setLocation("/login");
+  }, [setLocation]);
 
   const playNotifSound = useCallback(() => {
     try {
@@ -208,7 +200,6 @@ export default function Dashboard() {
         credentials: "include",
       });
       if (r.status === 401) {
-        redirectToLogin();
         return;
       }
       markFetched("documents");
@@ -221,7 +212,7 @@ export default function Dashboard() {
     } catch {
       /* silent - offline */
     }
-  }, [redirectToLogin, markFetched]);
+  }, [markFetched]);
 
   const fetchEvaluations = useCallback(async () => {
     if (fetched.current.has("evaluations")) return;
@@ -230,7 +221,6 @@ export default function Dashboard() {
         credentials: "include",
       });
       if (r.status === 401) {
-        redirectToLogin();
         return;
       }
       if (!r.ok) return;
@@ -245,7 +235,7 @@ export default function Dashboard() {
     } catch {
       /* silent - offline */
     }
-  }, [redirectToLogin, markFetched]);
+  }, [markFetched]);
 
   const fetchRoommates = useCallback(async () => {
     if (fetched.current.has("roommates")) return;
@@ -254,7 +244,6 @@ export default function Dashboard() {
         credentials: "include",
       });
       if (r.status === 401) {
-        redirectToLogin();
         return;
       }
       markFetched("roommates");
@@ -267,7 +256,7 @@ export default function Dashboard() {
     } catch {
       /* silent - offline */
     }
-  }, [redirectToLogin, markFetched]);
+  }, [markFetched]);
 
   const changeTab = useCallback(
     (tab: Tab, forceRefresh = false) => {
@@ -444,14 +433,16 @@ export default function Dashboard() {
           credentials: "include",
         });
         if (me.status === 401 || me.status === 403) {
-          redirectToLogin();
+          // On native or temporary auth mismatch, keep current session from cache
           return;
         }
 
-        const data = await me.json();
+        const data = await me.json().catch(() => null);
+        if (!data || !data.success) {
+          return;
+        }
         const emp = data.employee || data.profile;
-        if (!data.success || !emp) {
-          redirectToLogin();
+        if (!emp) {
           return;
         }
 
@@ -531,12 +522,12 @@ export default function Dashboard() {
     };
 
     bootstrap().catch(() => {
-      if (!cancelled) redirectToLogin();
+      // Keep cached session on error / offline
     });
     return () => {
       cancelled = true;
     };
-  }, [setLocation, redirectToLogin]);
+  }, [setLocation]);
 
   // Memoize activeTab for conditional rendering
   const isDocFetched = useMemo(

@@ -63,7 +63,7 @@ export default function Login() {
         // If user chose not to remember session, don't auto-login on cold start
         const { value: sessionOnly } = await Preferences.get({ key: "login_session_only" });
         if (sessionOnly === "true") {
-          // Clean up stale preferences
+          // Clean up stale preferences — user must login manually
           await Preferences.remove({ key: "portal_employee" });
           await Preferences.remove({ key: "session_id" });
           await Preferences.remove({ key: "login_session_only" });
@@ -71,9 +71,7 @@ export default function Login() {
           setCheckingSession(false);
           return;
         }
-        const { value: empJson } = await Preferences.get({
-          key: "portal_employee",
-        });
+        const { value: empJson } = await Preferences.get({ key: "portal_employee" });
         if (!empJson) {
           setCheckingSession(false);
           return;
@@ -84,6 +82,9 @@ export default function Login() {
           sessionStorage.setItem("session_id", sid);
           setCachedSessionId(sid);
         }
+        // Has saved session — navigate to dashboard (AuthGuard will verify there)
+        setLocation("/dashboard");
+        return;
       } else {
         const empJson =
           sessionStorage.getItem("portal_employee") ||
@@ -100,13 +101,10 @@ export default function Login() {
           sessionStorage.setItem("session_id", sid);
           setCachedSessionId(sid);
         }
-      }
-      const res = await apiFetch("/api/portal-auth/me");
-      if (res.ok) {
+        // Has saved session — navigate to dashboard
         setLocation("/dashboard");
         return;
       }
-      clearSessionCache();
     } catch {}
     setCheckingSession(false);
   }, [setLocation]);

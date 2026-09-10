@@ -110,18 +110,84 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Verify session with backend (single call, no retry here)
+      // ── Verify session with backend ──────────────────────────────────────
+      // On native, the X-Session-Id header lookup in requirePortalAuth is async
+      // and the server session may have expired on server restart.
+      // Strategy:
+      //   1. Try /me — if OK, continue normally
+      //   2. If 401 and we have biometric credentials → silent re-login
+      //   3. If 401 and no biometric → trust local session (user just logged in)
+      //   4. If network error → trust local session
       try {
         const res = await apiFetch("/api/portal-auth/me");
-        if (res.status === 401 || res.status === 403) {
-          clearSessionCache();
-          setChecking(false);
-          setLocation("/login");
-          return;
+
+        if (res.ok) {
+          // Session valid — update stored employee data from fresh server response
+          try {
+            const data = await res.json();
+            if (data.profile || data.employee) {
+              const emp = data.profile || data.employee;
+              const empJson = JSON.stringify(emp);
+              sessionStorage.setItem("portal_employee", empJson);
+              localStorage.setItem("portal_employee", empJson);
+              if (isNative) {
+                await Preferences.set({ key: "portal_employee", value: empJson });
+              }
+            }
+          } catch {}
+        } else if (res.status === 401 || res.status === 403) {
+          if (isNative) {
+            // Try silent re-login with saved biometric credentials
+            let reloginOk = false;
+            try {
+              const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
+              const creds = await NativeBiometric.getCredentials({ server: "com.sunrisehousing.portal" }).catch(() => null);
+              if (creds?.username && creds?.password) {
+                const loginRes = await apiFetch("/api/portal-auth/login", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ employeeId: creds.username, password: creds.password }),
+                });
+                if (loginRes.ok) {
+                  const loginData = await loginRes.json();
+                  if (loginData.sessionId) {
+                    sessionStorage.setItem("session_id", loginData.sessionId);
+                    localStorage.setItem("session_id", loginData.sessionId);
+                    await Preferences.set({ key: "session_id", value: loginData.sessionId });
+                    setCachedSessionId(loginData.sessionId);
+                  }
+                  if (loginData.profile || loginData.employee) {
+                    const emp = loginData.profile || loginData.employee;
+                    const empJson = JSON.stringify(emp);
+                    sessionStorage.setItem("portal_employee", empJson);
+                    localStorage.setItem("portal_employee", empJson);
+                    await Preferences.set({ key: "portal_employee", value: empJson });
+                  }
+                  reloginOk = true;
+                }
+              }
+            } catch {}
+
+            if (!reloginOk) {
+              // No biometric creds — trust local session (user may have just logged in)
+              const hasSid = sessionStorage.getItem("session_id") || localStorage.getItem("session_id");
+              if (!hasSid) {
+                clearSessionCache();
+                setChecking(false);
+                setLocation("/login");
+                return;
+              }
+              // Has session_id → let through; APIs will handle per-request auth
+            }
+          } else {
+            clearSessionCache();
+            setChecking(false);
+            setLocation("/login");
+            return;
+          }
         }
-        // Any other status (200, network error handled below) → allow in
       } catch {
-        // Network offline → use cached data, allow in
+        // Network offline or server error → trust local session data
         const hasLocal =
           sessionStorage.getItem("portal_employee") ||
           localStorage.getItem("portal_employee");
@@ -248,7 +314,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 // ─── Routes ───────────────────────────────────────────────────────────────────
 function AnimatedRoutes() {
   const [location] = useLocation();
-  const routeSlug = location.split("/")[0] || "root";
+  const routeSlug = location.split("/").filter(Boolean)[0] || "root";
 
   return (
     <AnimatePresence mode="wait">
