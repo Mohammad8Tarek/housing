@@ -67,7 +67,7 @@ export function useBiometric() {
       await NativeBiometric.setCredentials({
         username,
         password,
-        server: "sunrise-portal",
+        server: "com.sunrisehousing.portal",
       });
     } catch {
       /* ignore */
@@ -80,7 +80,7 @@ export function useBiometric() {
       const { NativeBiometric } =
         await import("@capgo/capacitor-native-biometric");
       const creds = await NativeBiometric.getCredentials({
-        server: "sunrise-portal",
+        server: "com.sunrisehousing.portal",
       });
       return { username: creds.username, password: creds.password };
     } catch {
@@ -93,7 +93,7 @@ export function useBiometric() {
     try {
       const { NativeBiometric } =
         await import("@capgo/capacitor-native-biometric");
-      await NativeBiometric.deleteCredentials({ server: "sunrise-portal" });
+      await NativeBiometric.deleteCredentials({ server: "com.sunrisehousing.portal" });
     } catch {
       /* ignore */
     }

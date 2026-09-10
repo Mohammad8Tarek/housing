@@ -221,23 +221,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       }
 
       setChecking(false);
-
-      // Register push notifications after successful auth (fire-and-forget)
-      if (isNative) {
-        import("@capacitor/push-notifications").then(({ PushNotifications }) => {
-          PushNotifications.requestPermissions().then(() => PushNotifications.register());
-          PushNotifications.addListener("registration", (token) => {
-            apiFetch("/api/push/register-device", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ token: token.value, platform: "android" }),
-            }).catch(() => {});
-          });
-          PushNotifications.addListener("pushNotificationReceived", (n) => {
-            console.log("[push] received:", n.title);
-          });
-        }).catch(() => {});
-      }
     } catch {
       setChecking(false);
       setLocation("/login");
