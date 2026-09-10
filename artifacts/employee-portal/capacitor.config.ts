@@ -34,9 +34,9 @@ const config: CapacitorConfig = {
       permissions: ["camera", "photos"],
     },
     Keyboard: {
-      resize: "body",
+      resize: "none",
       style: "dark",
-      resizeOnFullScreen: true,
+      resizeOnFullScreen: false,
     },
   },
   android: {

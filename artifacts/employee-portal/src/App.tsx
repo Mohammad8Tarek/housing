@@ -43,6 +43,23 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const checkAuth = useCallback(async () => {
     try {
       if (isNative) {
+        // If session_only flag set, this is a cold start - clear session and go to login
+        const { value: sessionOnly } = await Preferences.get({ key: "login_session_only" });
+        if (sessionOnly === "true") {
+          // Clear for next cold start (but user already logged in this session via sessionStorage)
+          const hasCurrent = sessionStorage.getItem("portal_employee");
+          if (!hasCurrent) {
+            // Cold start with no session - clear and go to login
+            await Preferences.remove({ key: "portal_employee" });
+            await Preferences.remove({ key: "session_id" });
+            await Preferences.remove({ key: "login_session_only" });
+            clearSessionCache();
+            setLocation("/login");
+            return;
+          }
+          // Already has session in memory - keep going
+        }
+
         const { value: empJson } = await Preferences.get({ key: "portal_employee" });
         if (!empJson) {
           clearSessionCache();

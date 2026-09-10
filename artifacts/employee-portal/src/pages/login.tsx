@@ -60,6 +60,17 @@ export default function Login() {
   const checkSavedSession = useCallback(async () => {
     try {
       if (isNative) {
+        // If user chose not to remember session, don't auto-login on cold start
+        const { value: sessionOnly } = await Preferences.get({ key: "login_session_only" });
+        if (sessionOnly === "true") {
+          // Clean up stale preferences
+          await Preferences.remove({ key: "portal_employee" });
+          await Preferences.remove({ key: "session_id" });
+          await Preferences.remove({ key: "login_session_only" });
+          clearSessionCache();
+          setCheckingSession(false);
+          return;
+        }
         const { value: empJson } = await Preferences.get({
           key: "portal_employee",
         });
@@ -178,13 +189,12 @@ export default function Login() {
         });
         if (useFingerprint && biometric.isAvailable) {
           await biometric.saveCredentials(employeeId, password);
-        } else {
+        } else if (!useFingerprint) {
           await biometric.deleteCredentials();
         }
-        if (!rememberMe) {
-          await Preferences.remove({ key: "portal_employee" });
-          await Preferences.remove({ key: "session_id" });
-        }
+        // Always keep session data in Preferences for current session
+        // rememberMe=false just means don't auto-login on next cold start
+        await Preferences.set({ key: "login_session_only", value: String(!rememberMe) });
       }
       if (data.mustChangePassword) {
         await hapticFeedback("medium");
