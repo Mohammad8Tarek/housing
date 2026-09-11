@@ -170,12 +170,36 @@ export default function Tickets() {
   const ar = language === "ar";
   const { can, canView, isSuperAdmin, isAdmin } = usePermission();
 
-  const hasMaintenance = isSuperAdmin || isAdmin || canView("maintenance");
-  const hasHousekeeping = isSuperAdmin || isAdmin || canView("housekeeping");
+  const canViewMnt = isSuperAdmin || isAdmin || can("maintenance", "view");
+  const canEditMnt = isSuperAdmin || isAdmin || can("maintenance", "edit");
+  const canCreateMnt = isSuperAdmin || isAdmin || can("maintenance", "create");
+  const canDeleteMnt = isSuperAdmin || isAdmin || can("maintenance", "delete");
+
+  const canViewHsk = isSuperAdmin || isAdmin || can("housekeeping", "view");
+  const canEditHsk = isSuperAdmin || isAdmin || can("housekeeping", "edit");
+  const canCreateHsk = isSuperAdmin || isAdmin || can("housekeeping", "create");
+  const canDeleteHsk = isSuperAdmin || isAdmin || can("housekeeping", "delete");
+
+  const hasMaintenance = canViewMnt;
+  const hasHousekeeping = canViewHsk;
 
   const isOnlyHousekeeping = !hasMaintenance && hasHousekeeping;
   const isOnlyMaintenance = hasMaintenance && !hasHousekeeping;
   const hasBoth = hasMaintenance && hasHousekeeping;
+
+  const canCreateAny = isSuperAdmin || isAdmin || (isOnlyHousekeeping ? canCreateHsk : isOnlyMaintenance ? canCreateMnt : (canCreateMnt || canCreateHsk));
+  const canEditAny = isSuperAdmin || isAdmin || (isOnlyHousekeeping ? canEditHsk : isOnlyMaintenance ? canEditMnt : (canEditMnt || canEditHsk));
+  const canDeleteAny = isSuperAdmin || isAdmin || (isOnlyHousekeeping ? canDeleteHsk : isOnlyMaintenance ? canDeleteMnt : (canDeleteMnt || canDeleteHsk));
+
+  const defaultCreateCategory = isOnlyHousekeeping || (!canCreateMnt && canCreateHsk) ? "housekeeping" : "maintenance";
+
+  const allowedCreateCategories = isSuperAdmin || isAdmin
+    ? CATEGORIES
+    : [
+        ...(canCreateMnt ? ["maintenance"] : []),
+        ...(canCreateHsk ? ["housekeeping"] : []),
+        ...(canCreateMnt || canCreateHsk ? ["general"] : []),
+      ];
 
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
@@ -232,7 +256,7 @@ export default function Tickets() {
 
   const [form, setForm] = useState({
     roomId: "",
-    category: isOnlyHousekeeping ? "housekeeping" : "maintenance",
+    category: defaultCreateCategory,
     problemType: "",
     description: "",
     priority: "MEDIUM",
@@ -410,7 +434,7 @@ export default function Tickets() {
   const resetForm = () => {
     setForm({
       roomId: "",
-      category: isOnlyHousekeeping ? "housekeeping" : "maintenance",
+      category: defaultCreateCategory,
       problemType: "",
       description: "",
       priority: "MEDIUM",
@@ -791,6 +815,20 @@ export default function Tickets() {
               </button>
             </div>
           )}
+
+          {isOnlyHousekeeping && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-xl text-xs font-semibold text-sky-700 dark:text-sky-300">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{ar ? "صلاحية طلبات الهاوس كيبنج فقط" : "Housekeeping Tickets Only"}</span>
+            </div>
+          )}
+
+          {isOnlyMaintenance && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300">
+              <Wrench className="w-3.5 h-3.5" />
+              <span>{ar ? "صلاحية طلبات الصيانة فقط" : "Maintenance Tickets Only"}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -830,7 +868,7 @@ export default function Tickets() {
           }
           initialPropertyId={propertyFilter}
           initialType={categoryFilter === "all" ? "" : categoryFilter}
-          onCreateNew={() => setIsOpen(true)}
+          onCreateNew={canCreateAny ? () => setIsOpen(true) : undefined}
           onFiltersChange={(filters) => {
             setFilterBarFilters(filters);
             setFromDate(filters.fromDate ?? "");
@@ -916,7 +954,7 @@ export default function Tickets() {
               </Label>
               <Select
                 value={form.category}
-                disabled={isOnlyHousekeeping || isOnlyMaintenance}
+                disabled={allowedCreateCategories.length <= 1}
                 onValueChange={(v) =>
                   setForm((f) => ({
                     ...f,
@@ -931,12 +969,7 @@ export default function Tickets() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {(isOnlyHousekeeping
-                    ? ["housekeeping"]
-                    : isOnlyMaintenance
-                      ? ["maintenance"]
-                      : CATEGORIES
-                  ).map((c) => (
+                  {allowedCreateCategories.map((c) => (
                     <SelectItem key={c} value={c}>
                       <span className="flex items-center gap-2">
                         {CATEGORY_ICONS[c]}
@@ -1108,57 +1141,61 @@ export default function Tickets() {
             onClear={() => setSelectedTicketIds(new Set())}
             onExportExcel={exportSelectedTicketsExcel}
             extraActions={
-              <div className="flex items-center gap-2">
-                <Select
-                  disabled={bulkStatusLoading}
-                  onValueChange={(val) => handleBulkStatusChange(val)}
-                >
-                  <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
-                    <SelectValue
-                      placeholder={
-                        ar ? "تغيير الحالة جماعياً..." : "Change Status..."
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                        <span>{ar ? "مفتوحة" : "Open"}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="in_progress">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                        <span>{ar ? "قيد التنفيذ" : "In Progress"}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="resolved">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                        <span>{ar ? "تم الحل" : "Resolved"}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="closed">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                        <span>{ar ? "مغلقة" : "Closed"}</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <PermissionGate anyPermission={[["maintenance", "delete"], ["housekeeping", "delete"]]}>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleBulkDelete}
-                    className="gap-1.5 h-8 text-xs font-semibold"
-                  >
-                    <Trash className="w-3.5 h-3.5" />
-                    {ar ? "حذف المحدد" : "Delete"}
-                  </Button>
-                </PermissionGate>
-              </div>
+              (canEditAny || canDeleteAny) ? (
+                <div className="flex items-center gap-2">
+                  {canEditAny && (
+                    <Select
+                      disabled={bulkStatusLoading}
+                      onValueChange={(val) => handleBulkStatusChange(val)}
+                    >
+                      <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
+                        <SelectValue
+                          placeholder={
+                            ar ? "تغيير الحالة جماعياً..." : "Change Status..."
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                            <span>{ar ? "مفتوحة" : "Open"}</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="in_progress">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                            <span>{ar ? "قيد التنفيذ" : "In Progress"}</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="resolved">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                            <span>{ar ? "تم الحل" : "Resolved"}</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="closed">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                            <span>{ar ? "مغلقة" : "Closed"}</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {canDeleteAny && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleBulkDelete}
+                      className="gap-1.5 h-8 text-xs font-semibold"
+                    >
+                      <Trash className="w-3.5 h-3.5" />
+                      {ar ? "حذف المحدد" : "Delete"}
+                    </Button>
+                  )}
+                </div>
+              ) : undefined
             }
             ar={ar}
           />
@@ -1428,7 +1465,7 @@ export default function Tickets() {
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </Button>
-                          <PermissionGate anyPermission={[["maintenance", "delete"], ["housekeeping", "delete"]]}>
+                          {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1437,7 +1474,7 @@ export default function Tickets() {
                             >
                               <Trash className="w-3.5 h-3.5 text-red-500" />
                             </Button>
-                          </PermissionGate>
+                          )}
                         </div>
                       </TableCell>
                     )}
@@ -1549,53 +1586,64 @@ export default function Tickets() {
       </AlertDialog>
 
       {/* Ticket Detail Modal */}
-      <TicketDetailModal
-        open={selectedTicketId !== null}
-        onClose={() => setSelectedTicketId(null)}
-        ticket={allTickets?.find((t) => t.id === selectedTicketId)}
-        profiles={empOptions}
-        ar={ar}
-        onStatusChange={(id, data) => {
-          const targetTicket = allTickets?.find((t) => t.id === id);
-          const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-          updateMutation.mutate({
-            id,
-            data: {
-              ...data,
-              propertyId: pId,
-            },
-          });
-        }}
-        onAssignChange={(id, empId) => {
-          const targetTicket = allTickets?.find((t) => t.id === id);
-          const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-          updateMutation.mutate({
-            id,
-            data: {
-              assignedTo: empId,
-              propertyId: pId,
-            },
-          });
-        }}
-        subTickets={subTickets}
-        loadingSubTickets={loadingSubTickets}
-        onCreateSubTicket={(parentId, data) => {
-          const parentTicket = allTickets?.find((t) => t.id === parentId);
-          const pId = parentTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
-          createMutation.mutate({
-            data: {
-              propertyId: pId,
-              roomId: parentTicket?.roomId,
-              category: "maintenance",
-              problemType: data.problemType,
-              description: data.description,
-              priority: data.priority,
-              parentId,
-            },
-          });
-          fetchSubTickets(parentId);
-        }}
-      />
+      {(() => {
+        const selectedTicket = allTickets?.find((t) => t.id === selectedTicketId);
+        const canEditSelectedTicket = isSuperAdmin || isAdmin || (selectedTicket?.category === "housekeeping" ? canEditHsk : canEditMnt);
+        return (
+          <TicketDetailModal
+            open={selectedTicketId !== null}
+            onClose={() => setSelectedTicketId(null)}
+            ticket={selectedTicket}
+            profiles={empOptions}
+            ar={ar}
+            canEdit={canEditSelectedTicket}
+            onStatusChange={(id, data) => {
+              const targetTicket = allTickets?.find((t) => t.id === id);
+              const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+              updateMutation.mutate({
+                id,
+                data: {
+                  ...data,
+                  propertyId: pId,
+                },
+              });
+            }}
+            onAssignChange={(id, empId) => {
+              const targetTicket = allTickets?.find((t) => t.id === id);
+              const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+              updateMutation.mutate({
+                id,
+                data: {
+                  assignedTo: empId,
+                  propertyId: pId,
+                },
+              });
+            }}
+            subTickets={subTickets}
+            loadingSubTickets={loadingSubTickets}
+            onCreateSubTicket={
+              canEditSelectedTicket
+                ? (parentId, data) => {
+                    const parentTicket = allTickets?.find((t) => t.id === parentId);
+                    const pId = parentTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
+                    createMutation.mutate({
+                      data: {
+                        propertyId: pId,
+                        roomId: parentTicket?.roomId,
+                        category: parentTicket?.category || "maintenance",
+                        problemType: data.problemType,
+                        description: data.description,
+                        priority: data.priority,
+                        parentId,
+                      },
+                    });
+                    fetchSubTickets(parentId);
+                  }
+                : undefined
+            }
+          />
+        );
+      })()}
     </div>
   );
 }

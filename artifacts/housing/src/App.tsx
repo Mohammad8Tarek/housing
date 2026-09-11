@@ -108,10 +108,12 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 /** Renders `children` if user has permission, else redirects to /dashboard */
 function PermissionLayout({
   module,
+  modules,
   action = "view",
   children,
 }: {
-  module: Module;
+  module?: Module;
+  modules?: Module[];
   action?: Action;
   children: React.ReactNode;
 }) {
@@ -123,8 +125,11 @@ function PermissionLayout({
   if (isLoading) return <PageLoader />;
   if (!isAuthenticated) return <Redirect to="/login" />;
 
-  // Strictly check permission
-  if (!can(module, action)) {
+  // Strictly check permission (single module or any module from modules list)
+  const targetModules = modules || (module ? [module] : []);
+  const hasAccess = targetModules.some((m) => can(m, action));
+
+  if (!hasAccess) {
     return (
       <AppLayout>
         <div className="flex flex-col items-center justify-center h-full gap-5 py-24 px-4 text-center">
@@ -275,12 +280,12 @@ function Router() {
           <Redirect to="/accommodation/reservations" />
         </Route>
         <Route path="/maintenance/:id">
-          <PermissionLayout module="maintenance">
+          <PermissionLayout modules={["maintenance", "housekeeping"]}>
             <MaintenanceDetails />
           </PermissionLayout>
         </Route>
         <Route path="/maintenance">
-          <PermissionLayout module="maintenance">
+          <PermissionLayout modules={["maintenance", "housekeeping"]}>
             <Maintenance />
           </PermissionLayout>
         </Route>

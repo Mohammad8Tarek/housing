@@ -75,7 +75,15 @@ export const ACTIONS: Action[] = [
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
   dashboard: ["view", "export", "audit"],
   housing: ["view", "create", "edit", "delete", "export", "bulk_export"],
-  housekeeping: ["view", "edit", "assign", "approve", "bulk_export"],
+  housekeeping: [
+    "view",
+    "create",
+    "edit",
+    "delete",
+    "assign",
+    "approve",
+    "bulk_export",
+  ],
   profiles: [
     "view",
     "create",

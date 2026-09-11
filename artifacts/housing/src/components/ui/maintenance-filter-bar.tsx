@@ -270,13 +270,15 @@ export default function MaintenanceFilterBar({
         ) : (
           <div />
         )}
-        <button
-          onClick={onCreateNew}
-          className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded text-xs font-semibold hover:bg-primary/90 transition"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          {ar ? "إنشاء تذكرة جديدة" : "Create New Ticket"}
-        </button>
+        {onCreateNew && (
+          <button
+            onClick={onCreateNew}
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded text-xs font-semibold hover:bg-primary/90 transition"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {ar ? "إنشاء تذكرة جديدة" : "Create New Ticket"}
+          </button>
+        )}
       </div>
     </div>
   );

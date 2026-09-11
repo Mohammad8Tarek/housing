@@ -39,6 +39,7 @@ import {
   FileText,
   Wrench,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
@@ -48,6 +49,7 @@ interface TicketDetailModalProps {
   ticket: any;
   profiles: any[];
   ar: boolean;
+  canEdit?: boolean;
   onStatusChange: (id: number, data: any) => void;
   onAssignChange: (id: number, empId: number | null) => void;
   onCreateSubTicket?: (parentId: number, data: any) => void;
@@ -129,6 +131,7 @@ export default function TicketDetailModal({
   ticket,
   profiles = [],
   ar,
+  canEdit = true,
   onStatusChange,
   onAssignChange,
   onCreateSubTicket,
@@ -242,6 +245,15 @@ export default function TicketDetailModal({
                         ticket.priority.slice(1).toLowerCase()
                       : ticket.priority}
                 </Badge>
+                {!canEdit && (
+                  <Badge
+                    variant="outline"
+                    className="text-amber-700 bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-xs flex items-center gap-1 font-semibold"
+                  >
+                    <Lock className="w-3 h-3" />
+                    {ar ? "للعرض فقط" : "Read-Only"}
+                  </Badge>
+                )}
               </div>
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="w-4 h-4" />
@@ -357,111 +369,128 @@ export default function TicketDetailModal({
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">
                       {ar ? "الإجراءات" : "Actions"}
                     </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <Label className="text-xs">
-                          {ar ? "تعيين إلى" : "Assign To"}
-                        </Label>
-                        <Select
-                          value={
-                            ticket.assignedTo ? String(ticket.assignedTo) : ""
-                          }
-                          onValueChange={(v) =>
-                            onAssignChange(ticket.id, v ? parseInt(v) : null)
-                          }
-                        >
-                          <SelectTrigger className="h-8 text-xs mt-1">
-                            <SelectValue
-                              placeholder={ar ? "اختر..." : "Select..."}
-                            />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-48 overflow-y-auto">
-                            <SelectItem value="unassigned">
-                              — {ar ? "غير مسند" : "Unassigned"} —
-                            </SelectItem>
-                            {profiles.map((e) => (
-                              <SelectItem key={e.id} value={String(e.id)}>
-                                {e.firstName} {e.lastName}
+                    {canEdit ? (
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-xs">
+                            {ar ? "تعيين إلى" : "Assign To"}
+                          </Label>
+                          <Select
+                            value={
+                              ticket.assignedTo ? String(ticket.assignedTo) : ""
+                            }
+                            onValueChange={(v) =>
+                              onAssignChange(ticket.id, v ? parseInt(v) : null)
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs mt-1">
+                              <SelectValue
+                                placeholder={ar ? "اختر..." : "Select..."}
+                              />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-48 overflow-y-auto">
+                              <SelectItem value="unassigned">
+                                — {ar ? "غير مسند" : "Unassigned"} —
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                              {profiles.map((e) => (
+                                <SelectItem key={e.id} value={String(e.id)}>
+                                  {e.firstName} {e.lastName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {canStart && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() =>
+                                onStatusChange(ticket.id, {
+                                  status: "in_progress",
+                                  startedAt: new Date().toISOString(),
+                                })
+                              }
+                            >
+                              <Play className="w-3 h-3 mr-1" />
+                              {ar ? "بدء" : "Start"}
+                            </Button>
+                          )}
+                          {canResolve && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs text-green-600 border-green-200 hover:bg-green-50"
+                              onClick={() =>
+                                onStatusChange(ticket.id, {
+                                  status: "resolved",
+                                  resolvedAt: new Date().toISOString(),
+                                })
+                              }
+                            >
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              {ar ? "حل" : "Resolve"}
+                            </Button>
+                          )}
+                          {canDone && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={() =>
+                                onStatusChange(ticket.id, { status: "closed" })
+                              }
+                            >
+                              <Handshake className="w-3 h-3 mr-1" />
+                              {ar ? "تم" : "Done"}
+                            </Button>
+                          )}
+                          {canReopen && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
+                              onClick={() =>
+                                onStatusChange(ticket.id, { status: "open" })
+                              }
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />
+                              {ar ? "إعادة فتح" : "Re-open"}
+                            </Button>
+                          )}
+                          {onCreateSubTicket && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                setActiveTab("tasks");
+                                setShowSubTicketForm(true);
+                              }}
+                            >
+                              <Plus className="w-3 h-3 mr-1" />
+                              {ar ? "تذكرة فرعية" : "Sub Ticket"}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {canStart && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() =>
-                              onStatusChange(ticket.id, {
-                                status: "in_progress",
-                                startedAt: new Date().toISOString(),
-                              })
-                            }
-                          >
-                            <Play className="w-3 h-3 mr-1" />
-                            {ar ? "بدء" : "Start"}
-                          </Button>
-                        )}
-                        {canResolve && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs text-green-600 border-green-200 hover:bg-green-50"
-                            onClick={() =>
-                              onStatusChange(ticket.id, {
-                                status: "resolved",
-                                resolvedAt: new Date().toISOString(),
-                              })
-                            }
-                          >
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                            {ar ? "حل" : "Resolve"}
-                          </Button>
-                        )}
-                        {canDone && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
-                            onClick={() =>
-                              onStatusChange(ticket.id, { status: "closed" })
-                            }
-                          >
-                            <Handshake className="w-3 h-3 mr-1" />
-                            {ar ? "تم" : "Done"}
-                          </Button>
-                        )}
-                        {canReopen && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
-                            onClick={() =>
-                              onStatusChange(ticket.id, { status: "open" })
-                            }
-                          >
-                            <RotateCcw className="w-3 h-3 mr-1" />
-                            {ar ? "إعادة فتح" : "Re-open"}
-                          </Button>
-                        )}
-                        {onCreateSubTicket && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() => {
-                              setActiveTab("tasks");
-                              setShowSubTicketForm(true);
-                            }}
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            {ar ? "تذكرة فرعية" : "Sub Ticket"}
-                          </Button>
-                        )}
+                    ) : (
+                      <div className="p-3 bg-muted/40 border rounded-lg text-xs space-y-2">
+                        <div className="flex justify-between items-center text-muted-foreground">
+                          <span>{ar ? "المسند إليه:" : "Assigned To:"}</span>
+                          <span className="font-semibold text-foreground">
+                            {ticket.assignedTo && empMap[ticket.assignedTo]
+                              ? empMap[ticket.assignedTo]
+                              : (ar ? "غير مسند" : "Unassigned")}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5 pt-1 border-t">
+                          <Lock className="w-3.5 h-3.5 shrink-0" />
+                          <span>{ar ? "للعرض فقط — لا تملك صلاحية تعديل هذه التذكرة" : "Read-only — No edit permissions for this ticket"}</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Time Sheet */}
@@ -527,15 +556,17 @@ export default function TicketDetailModal({
                       </Badge>
                     )}
                   </h3>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    onClick={() => setShowSubTicketForm(!showSubTicketForm)}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    {ar ? "إضافة تذكرة فرعية" : "Add Sub-Ticket"}
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setShowSubTicketForm(!showSubTicketForm)}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      {ar ? "إضافة تذكرة فرعية" : "Add Sub-Ticket"}
+                    </Button>
+                  )}
                 </div>
 
                 {showSubTicketForm && (
@@ -709,18 +740,20 @@ export default function TicketDetailModal({
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase">
                   {ar ? "التعليقات" : "Comments"}
                 </h3>
-                <div className="space-y-3">
-                  <Textarea
-                    placeholder={ar ? "أضف تعليقاً..." : "Add a comment..."}
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    rows={3}
-                  />
-                  <Button size="sm" className="h-7 text-xs">
-                    <MessageSquare className="w-3 h-3 mr-1" />
-                    {ar ? "إرسال" : "Send"}
-                  </Button>
-                </div>
+                {canEdit && (
+                  <div className="space-y-3">
+                    <Textarea
+                      placeholder={ar ? "أضف تعليقاً..." : "Add a comment..."}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      rows={3}
+                    />
+                    <Button size="sm" className="h-7 text-xs">
+                      <MessageSquare className="w-3 h-3 mr-1" />
+                      {ar ? "إرسال" : "Send"}
+                    </Button>
+                  </div>
+                )}
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">

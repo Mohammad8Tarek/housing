@@ -25,7 +25,9 @@ import {
   CheckCircle2,
   Play,
   Trash,
+  Lock,
 } from "lucide-react";
+import { usePermission } from "@/hooks/use-permission";
 import { differenceInMinutes, differenceInHours } from "date-fns";
 import { formatDateTime } from "@/lib/date-utils";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
@@ -77,10 +79,15 @@ export default function MaintenanceDetails() {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
+  const { can, isSuperAdmin, isAdmin } = usePermission();
 
   const [ticket, setTicket] = useState(null);
   const [comment, setComment] = useState("");
   const [lightboxSrc, setLightboxSrc] = useState(null);
+
+  const canEditMnt = isSuperAdmin || isAdmin || can("maintenance", "edit");
+  const canEditHsk = isSuperAdmin || isAdmin || can("housekeeping", "edit");
+  const canEditTicket = isSuperAdmin || isAdmin || (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
 
   const { data: _allTicketsWrapper } = useListMaintenance({
     query: { enabled: !!activePropertyId },
@@ -301,124 +308,153 @@ export default function MaintenanceDetails() {
 
             {/* Actions Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold mb-4">
-                {ar ? "الإجراءات" : "Actions"}
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-xs">
-                    {ar ? "التعيين إلى" : "Assign To"}
-                  </Label>
-                  <Select
-                    value={ticket.assignedTo ? String(ticket.assignedTo) : ""}
-                    onValueChange={(v) => {
-                      const empId = v ? parseInt(v) : null;
-                      updateMutation.mutate({
-                        id: ticket.id,
-                        data: { assignedTo: empId },
-                      });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">
-                        — {ar ? "غير مسند" : "Unassigned"} —
-                      </SelectItem>
-                      {empOptions.map((e) => (
-                        <SelectItem key={e.id} value={String(e.id)}>
-                          {e.firstName} {e.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs">
-                    {ar ? "تغيير الحالة" : "Change Status"}
-                  </Label>
-                  <Select
-                    value={ticket.status || ""}
-                    onValueChange={(status) =>
-                      updateMutation.mutate({ id: ticket.id, data: { status } })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="open">
-                        {ar ? "مفتوح" : "Open"}
-                      </SelectItem>
-                      <SelectItem value="in_progress">
-                        {ar ? "قيد التنفيذ" : "In Progress"}
-                      </SelectItem>
-                      <SelectItem value="resolved">
-                        {ar ? "محلول" : "Resolved"}
-                      </SelectItem>
-                      <SelectItem value="closed">
-                        {ar ? "مغلق" : "Closed"}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs">
-                    {ar ? "إضافة ملاحظة" : "Add Note"}
-                  </Label>
-                  <Textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder={ar ? "إضافة ملاحظة..." : "Add a note..."}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  {ticket.status?.toLowerCase() === "open" && (
-                    <Button
-                      onClick={() =>
-                        updateMutation.mutate({
-                          id: ticket.id,
-                          data: {
-                            status: "in_progress",
-                            startedAt: new Date().toISOString(),
-                          },
-                        })
-                      }
-                      className="flex-1"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      {ar ? "بدء" : "Start"}
-                    </Button>
-                  )}
-                  {ticket.status?.toLowerCase() === "in_progress" && (
-                    <Button
-                      onClick={() =>
-                        updateMutation.mutate({
-                          id: ticket.id,
-                          data: {
-                            status: "resolved",
-                            resolvedAt: new Date().toISOString(),
-                          },
-                        })
-                      }
-                      className="flex-1"
-                      variant="outline"
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      {ar ? "حل" : "Resolve"}
-                    </Button>
-                  )}
-                  <Button onClick={() => setComment("")} variant="outline">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    {ar ? "تعليق" : "Comment"}
-                  </Button>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">
+                  {ar ? "الإجراءات" : "Actions"}
+                </h2>
+                {!canEditTicket && (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded bg-amber-50 text-amber-700 border border-amber-200">
+                    <Lock className="w-3.5 h-3.5" />
+                    {ar ? "للعرض فقط" : "Read-Only"}
+                  </span>
+                )}
               </div>
+              {canEditTicket ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-xs">
+                      {ar ? "التعيين إلى" : "Assign To"}
+                    </Label>
+                    <Select
+                      value={ticket.assignedTo ? String(ticket.assignedTo) : ""}
+                      onValueChange={(v) => {
+                        const empId = v ? parseInt(v) : null;
+                        updateMutation.mutate({
+                          id: ticket.id,
+                          data: { assignedTo: empId },
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">
+                          — {ar ? "غير مسند" : "Unassigned"} —
+                        </SelectItem>
+                        {empOptions.map((e) => (
+                          <SelectItem key={e.id} value={String(e.id)}>
+                            {e.firstName} {e.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">
+                      {ar ? "تغيير الحالة" : "Change Status"}
+                    </Label>
+                    <Select
+                      value={ticket.status || ""}
+                      onValueChange={(status) =>
+                        updateMutation.mutate({ id: ticket.id, data: { status } })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">
+                          {ar ? "مفتوح" : "Open"}
+                        </SelectItem>
+                        <SelectItem value="in_progress">
+                          {ar ? "قيد التنفيذ" : "In Progress"}
+                        </SelectItem>
+                        <SelectItem value="resolved">
+                          {ar ? "محلول" : "Resolved"}
+                        </SelectItem>
+                        <SelectItem value="closed">
+                          {ar ? "مغلق" : "Closed"}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">
+                      {ar ? "إضافة ملاحظة" : "Add Note"}
+                    </Label>
+                    <Textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder={ar ? "إضافة ملاحظة..." : "Add a note..."}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    {ticket.status?.toLowerCase() === "open" && (
+                      <Button
+                        onClick={() =>
+                          updateMutation.mutate({
+                            id: ticket.id,
+                            data: {
+                              status: "in_progress",
+                              startedAt: new Date().toISOString(),
+                            },
+                          })
+                        }
+                        className="flex-1"
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        {ar ? "بدء" : "Start"}
+                      </Button>
+                    )}
+                    {ticket.status?.toLowerCase() === "in_progress" && (
+                      <Button
+                        onClick={() =>
+                          updateMutation.mutate({
+                            id: ticket.id,
+                            data: {
+                              status: "resolved",
+                              resolvedAt: new Date().toISOString(),
+                            },
+                          })
+                        }
+                        className="flex-1"
+                        variant="outline"
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        {ar ? "حل" : "Resolve"}
+                      </Button>
+                    )}
+                    <Button onClick={() => setComment("")} variant="outline">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      {ar ? "تعليق" : "Comment"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-gray-500">{ar ? "المسند إليه:" : "Assigned To:"}</span>
+                    <span className="font-semibold text-gray-900">
+                      {ticket.assignedTo
+                        ? (() => {
+                            const emp = empOptions.find((e) => e.id === ticket.assignedTo);
+                            return emp ? `${emp.firstName} ${emp.lastName}` : (ar ? "غير مسند" : "Unassigned");
+                          })()
+                        : (ar ? "غير مسند" : "Unassigned")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    {ar
+                      ? "أنت في وضع العرض فقط — لا تملك صلاحية تعديل هذه التذكرة أو تغيير حالتها."
+                      : "You are in read-only mode — you do not have permission to edit or change the status of this ticket."}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
