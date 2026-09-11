@@ -13,9 +13,77 @@ type Property = {
   defaultLanguage: string;
 };
 
+export const RESERVED_FIRST_SEGMENTS = new Set([
+  "login",
+  "dashboard",
+  "housing",
+  "room-space-view",
+  "profiles",
+  "accommodation",
+  "housekeeping",
+  "maintenance",
+  "reports",
+  "users",
+  "properties",
+  "portal",
+  "settings",
+  "activity-log",
+  "hosting-requests",
+  "api",
+  "assets",
+  "favicon.ico",
+]);
+
+export function getPropertySlug(
+  prop?: { name?: string | null; code?: string | null; id?: number } | null,
+): string {
+  if (!prop) return "";
+  if (prop.name) {
+    const slug = prop.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    if (slug) return slug;
+  }
+  if (prop.code) {
+    return prop.code.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  }
+  if (prop.id) return String(prop.id);
+  return "";
+}
+
+export function findPropertyBySlug(
+  properties: Property[],
+  slug: string,
+): Property | undefined {
+  if (!slug) return undefined;
+  const clean = slug.trim().toLowerCase();
+  return properties.find((p) => {
+    const pSlug = getPropertySlug(p);
+    return (
+      pSlug === clean ||
+      p.name?.trim().toLowerCase() === clean ||
+      p.code?.trim().toLowerCase() === clean ||
+      String(p.id) === clean
+    );
+  });
+}
+
+export function extractPropertySlugFromPath(): string | null {
+  if (typeof window === "undefined") return null;
+  const segments = window.location.pathname.split("/").filter(Boolean);
+  const first = segments[0];
+  if (!first || RESERVED_FIRST_SEGMENTS.has(first.toLowerCase())) {
+    return null;
+  }
+  return first.toLowerCase();
+}
+
 interface PropertyContextType {
   activePropertyId: number | "all" | undefined;
   activeProperty: Property | undefined;
+  propertySlug: string;
   properties: Property[];
   isSuperAdmin: boolean;
   canSeeAllProperties?: boolean;
@@ -73,39 +141,12 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         userPropertyIds.includes(p.id),
       );
 
-  // Helper to get URL slug for property
-  const getPropertySlug = (prop?: Property | null): string => {
-    if (!prop) return "";
-    return prop.code || prop.name;
-  };
-
-  // Update browser URL query param without triggering full page reload
-  const updateUrlPropertyParam = (slug: string | null) => {
-    if (typeof window === "undefined") return;
-    try {
-      if (window.location.pathname === "/login") return;
-      const url = new URL(window.location.href);
-      const current = url.searchParams.get("property");
-      if (slug) {
-        if (current !== slug) {
-          url.searchParams.set("property", slug);
-          window.history.replaceState({}, "", url.toString());
-        }
-      } else {
-        if (url.searchParams.has("property")) {
-          url.searchParams.delete("property");
-          window.history.replaceState({}, "", url.toString());
-        }
-      }
-    } catch (err) {
-      console.error("Failed to update property in URL:", err);
-    }
-  };
-
   const [activePropertyId, setActivePropertyIdState] = useState<
     number | "all" | undefined
   >(() => {
     if (typeof window !== "undefined") {
+      const slug = extractPropertySlugFromPath();
+      if (slug === "all") return "all";
       const urlProp = new URLSearchParams(window.location.search).get("property");
       if (urlProp === "all") return "all";
       if (urlProp && !isNaN(Number(urlProp))) return Number(urlProp);
@@ -119,13 +160,16 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user || allProperties.length === 0) return;
 
-    // Check if URL specifies a property by slug, code, or name
-    const urlProp = typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("property")
-      : null;
+    // Check path prefix first, then fallback to URL search param
+    const pathSlug = extractPropertySlugFromPath();
+    const querySlug =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("property")
+        : null;
+    const targetSlug = pathSlug || querySlug;
 
-    if (urlProp) {
-      const clean = urlProp.trim().toLowerCase();
+    if (targetSlug) {
+      const clean = targetSlug.trim().toLowerCase();
       if (clean === "all" && canSeeAllProperties) {
         if (activePropertyId !== "all") {
           setActivePropertyIdState("all");
@@ -133,12 +177,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         }
         return;
       }
-      const matched = (allProperties as Property[]).find(
-        (p) =>
-          p.code?.toLowerCase() === clean ||
-          p.name?.toLowerCase() === clean ||
-          String(p.id) === clean,
-      );
+      const matched = findPropertyBySlug(allProperties as Property[], clean);
       if (matched && (canSeeAllProperties || userPropertyIds.includes(matched.id))) {
         if (activePropertyId !== matched.id) {
           setActivePropertyIdState(matched.id);
@@ -206,17 +245,12 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       if (!canSeeAllProperties) return;
       setActivePropertyIdState("all");
       localStorage.setItem("activePropertyId", "all");
-      updateUrlPropertyParam("all");
       saveLastPropertyId("all");
       return;
     }
     if (!canSeeAllProperties && !userPropertyIds.includes(id)) return;
     setActivePropertyIdState(id);
     localStorage.setItem("activePropertyId", String(id));
-    const targetProp = (allProperties as Property[]).find((p) => p.id === id);
-    if (targetProp) {
-      updateUrlPropertyParam(getPropertySlug(targetProp));
-    }
     saveLastPropertyId(id);
   };
 
@@ -226,76 +260,43 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       : activePropertyId ||
         user?.propertyId ||
         (properties.length > 0 ? properties[0].id : undefined);
+
   const activeProperty =
     effectiveId === "all"
       ? undefined
       : (allProperties as Property[]).find((p) => p.id === effectiveId);
 
-  // Sync URL and retain property param across all page navigations
+  const propertySlug =
+    effectiveId === "all"
+      ? "all"
+      : (activeProperty
+          ? getPropertySlug(activeProperty)
+          : (properties.length > 0 ? getPropertySlug(properties[0]) : "taal_housing"));
+
+  // Clean any old ?property= query param from the URL to keep paths clean
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    const currentSlug =
-      effectiveId === "all" ? "all" : getPropertySlug(activeProperty);
-    if (!currentSlug) return;
-
-    if (window.location.pathname !== "/login") {
-      updateUrlPropertyParam(currentSlug);
-    }
-
-    // Intercept pushState & replaceState so Wouter and link navigations retain ?property=
-    const originalPushState = window.history.pushState.bind(window.history);
-    const originalReplaceState = window.history.replaceState.bind(window.history);
-
-    window.history.pushState = function (state: any, unused: string, url?: string | URL | null) {
-      let finalUrl = url;
-      if (url && typeof url === "string" && !url.includes("/login")) {
-        try {
-          const parsed = new URL(url, window.location.origin);
-          if (!parsed.searchParams.has("property")) {
-            parsed.searchParams.set("property", currentSlug);
-            finalUrl = parsed.pathname + parsed.search + parsed.hash;
-          }
-        } catch {}
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("property")) {
+        url.searchParams.delete("property");
+        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
       }
-      return originalPushState(state, unused, finalUrl);
-    };
+    } catch {}
+  }, [effectiveId]);
 
-    window.history.replaceState = function (state: any, unused: string, url?: string | URL | null) {
-      let finalUrl = url;
-      if (url && typeof url === "string" && !url.includes("/login")) {
-        try {
-          const parsed = new URL(url, window.location.origin);
-          if (!parsed.searchParams.has("property")) {
-            parsed.searchParams.set("property", currentSlug);
-            finalUrl = parsed.pathname + parsed.search + parsed.hash;
-          }
-        } catch {}
-      }
-      return originalReplaceState(state, unused, finalUrl);
-    };
-
-    return () => {
-      window.history.pushState = originalPushState;
-      window.history.replaceState = originalReplaceState;
-    };
-  }, [effectiveId, activeProperty]);
-
-  // Listen for browser Back/Forward (popstate) to sync property from URL
+  // Listen for browser Back/Forward (popstate) to sync property from URL path
   useEffect(() => {
     const handlePopState = () => {
-      const urlProp = new URLSearchParams(window.location.search).get("property");
-      if (!urlProp || allProperties.length === 0) return;
-      const clean = urlProp.trim().toLowerCase();
+      const pathSlug = extractPropertySlugFromPath();
+      const querySlug = new URLSearchParams(window.location.search).get("property");
+      const targetSlug = pathSlug || querySlug;
+      if (!targetSlug || allProperties.length === 0) return;
+      const clean = targetSlug.trim().toLowerCase();
       if (clean === "all" && canSeeAllProperties) {
         setActivePropertyIdState("all");
       } else {
-        const matched = (allProperties as Property[]).find(
-          (p) =>
-            p.code?.toLowerCase() === clean ||
-            p.name?.toLowerCase() === clean ||
-            String(p.id) === clean,
-        );
+        const matched = findPropertyBySlug(allProperties as Property[], clean);
         if (matched && (canSeeAllProperties || userPropertyIds.includes(matched.id))) {
           setActivePropertyIdState(matched.id);
         }
@@ -310,6 +311,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       value={{
         activePropertyId: effectiveId,
         activeProperty,
+        propertySlug,
         properties,
         isSuperAdmin,
         canSeeAllProperties,

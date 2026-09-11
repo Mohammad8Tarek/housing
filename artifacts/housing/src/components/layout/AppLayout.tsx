@@ -152,6 +152,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const {
     activeProperty,
     activePropertyId,
+    propertySlug: ctxPropertySlug,
     properties,
     isSuperAdmin,
     canSeeAllProperties,
@@ -166,7 +167,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [accommodationOpen, setAccommodationOpen] = useState(
-    location.startsWith("/accommodation"),
+    location.includes("/accommodation"),
   );
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -257,6 +258,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     [seenIds, userSeenKey],
   );
 
+  const propertySlug = ctxPropertySlug || "all";
 
   const handleSwitchProperty = async (id: number | "all") => {
     if (id === activePropertyId) return;
@@ -272,36 +274,38 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
     setActivePropertyId(id);
     localStorage.setItem("activePropertyId", String(id));
+
     const target = properties.find((p) => p.id === id);
-    const slug = id === "all" ? "all" : (target?.code || target?.name || String(id));
-    const currentPath = window.location.pathname === "/login" ? "/dashboard" : window.location.pathname;
-    window.location.href = `${currentPath}?property=${encodeURIComponent(slug)}`;
+    const newSlug =
+      id === "all"
+        ? "all"
+        : (target?.name
+            ? target.name
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_+|_+$/g, "")
+            : String(id));
+
+    // Extract current sub-path without old property slug
+    const currentPath = window.location.pathname;
+    let subPath = "/dashboard";
+    if (currentPath !== "/" && currentPath !== "/login") {
+      const stripped = currentPath.replace(/^\/[^/]+/, "");
+      if (stripped && stripped !== "") {
+        subPath = stripped;
+      }
+    }
+
+    const newUrl = `/${newSlug}${subPath}`;
+    window.location.href = newUrl;
   };
 
   const ar = language === "ar";
 
-  const propertySlug =
-    activePropertyId === "all"
-      ? "all"
-      : activeProperty?.code || activeProperty?.name || "";
-
   const buildNavHref = (baseHref: string) => {
-    if (!propertySlug) return baseHref;
-    const separator = baseHref.includes("?") ? "&" : "?";
-    return `${baseHref}${separator}property=${encodeURIComponent(propertySlug)}`;
+    return `/${propertySlug}${baseHref}`;
   };
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !propertySlug) return;
-    try {
-      if (window.location.pathname === "/login") return;
-      const url = new URL(window.location.href);
-      if (url.searchParams.get("property") !== propertySlug) {
-        url.searchParams.set("property", propertySlug);
-        window.history.replaceState({}, "", url.toString());
-      }
-    } catch {}
-  }, [location, propertySlug]);
 
   const logoutMutation = useLogout({
     mutation: { onSuccess: () => logout() },
@@ -420,8 +424,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return true;
   });
 
-  const isActive = (href: string) =>
-    location === href || (href !== "/" && location.startsWith(href + "/"));
+  const isActive = (href: string) => {
+    const fullHref = buildNavHref(href);
+    const currentSubPath = location.replace(/^\/[^/]+/, "");
+    return (
+      location === fullHref ||
+      location === href ||
+      currentSubPath === href ||
+      (href !== "/" &&
+        (location.startsWith(fullHref + "/") ||
+          currentSubPath.startsWith(href + "/")))
+    );
+  };
 
   const renderSidebar = () => (
     <div className="flex h-full flex-col bg-sidebar backdrop-blur-xl text-sidebar-foreground w-64 border-r border-white/10 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.1)] dark:shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]">
@@ -576,7 +590,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 (canSwitchOrViewProperties || properties.length > 1 ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-primary/8 border border-primary/15 hover:bg-primary/12 transition-colors">
+                      <button
+                        data-testid="property-switcher-trigger"
+                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-primary/8 border border-primary/15 hover:bg-primary/12 transition-colors cursor-pointer"
+                      >
                         {activePropertyId === "all" ? (
                           <LayoutGrid className="w-3.5 h-3.5 text-sidebar-primary flex-shrink-0" />
                         ) : activeProperty && (activeProperty as any).logo ? (
@@ -618,6 +635,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       {canSwitchOrViewProperties && (
                         <>
                           <DropdownMenuItem
+                            data-testid="property-item-all"
                             onClick={() => handleSwitchProperty("all")}
                             className="flex items-center gap-2 cursor-pointer border-b border-border/50 mb-1"
                           >
@@ -641,6 +659,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       {properties.map((p) => (
                         <DropdownMenuItem
                           key={p.id}
+                          data-testid={`property-item-${p.id}`}
                           onClick={() => handleSwitchProperty(p.id)}
                           className="flex items-center gap-2 cursor-pointer"
                         >

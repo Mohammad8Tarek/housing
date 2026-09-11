@@ -11,7 +11,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
-import { PropertyProvider } from "@/context/PropertyContext";
+import {
+  PropertyProvider,
+  useProperty,
+  RESERVED_FIRST_SEGMENTS,
+} from "@/context/PropertyContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoader } from "@/components/ui/loader";
 import { useWebSocket } from "@/hooks/use-websocket";
@@ -174,12 +178,56 @@ function PermissionLayout({
   return <AppLayout>{children}</AppLayout>;
 }
 
+interface AppRouteDef {
+  path: string;
+  module?: Module;
+  modules?: Module[];
+  action?: Action;
+  component: React.ComponentType;
+}
+
+const APP_ROUTES: AppRouteDef[] = [
+  { path: "/dashboard", module: "dashboard", component: Dashboard },
+  { path: "/room-space-view", module: "housing", component: Housing },
+  { path: "/housing", module: "housing", component: Housing },
+  { path: "/profiles/:id", module: "profiles", component: ProfileDetail },
+  { path: "/profiles", module: "profiles", component: Profiles },
+  { path: "/accommodation/reservations", module: "reservations", component: Reservations },
+  { path: "/accommodation/in-house", module: "accommodation", component: InHouse },
+  { path: "/accommodation/room-assignment", module: "accommodation", component: Reservations },
+  { path: "/accommodation/guest-hosting", module: "guest_hosting", component: GuestHosting },
+  { path: "/accommodation/history", module: "accommodation", component: History },
+  { path: "/housekeeping", module: "housekeeping", component: Housekeeping },
+  { path: "/maintenance/:id", modules: ["maintenance", "housekeeping"], component: MaintenanceDetails },
+  { path: "/maintenance", modules: ["maintenance", "housekeeping"], component: Maintenance },
+  { path: "/reports", module: "reports", component: Reports },
+  { path: "/users", module: "users", component: Users },
+  { path: "/properties", module: "properties", component: Properties },
+  { path: "/portal", module: "portal_content", component: Portal },
+  { path: "/settings", module: "settings", component: Settings },
+  { path: "/activity-log", module: "activity_log", component: ActivityLog },
+  { path: "/hosting-requests/create", module: "hosting_requests", action: "create", component: CreateHostingRequest },
+  { path: "/hosting-requests/:id/edit", module: "hosting_requests", action: "edit", component: EditHostingRequest },
+  { path: "/hosting-requests/:id", module: "hosting_requests", action: "view", component: HostingRequestDetail },
+  { path: "/hosting-requests", module: "hosting_requests", action: "view", component: HostingRequestsList },
+];
+
+/** Redirects unprefixed paths (e.g. /dashboard) to /:currentProperty/dashboard */
+function UnprefixedRedirect({ targetPath }: { targetPath: string }) {
+  const { propertySlug } = useProperty();
+  const slug = propertySlug || "all";
+  return <Redirect to={`/${slug}${targetPath}`} />;
+}
+
 /** Dynamically redirects user to their first available module based on permissions */
 function RootRedirect() {
   const { can } = usePermission();
   const { isAuthenticated, isLoading } = useAuth();
+  const { propertySlug } = useProperty();
   if (isLoading) return <PageLoader />;
   if (!isAuthenticated) return <Redirect to="/login" />;
+
+  const slug = propertySlug || "all";
 
   const candidates: Array<{ module: Module; href: string }> = [
     { module: "dashboard", href: "/dashboard" },
@@ -200,147 +248,71 @@ function RootRedirect() {
 
   for (const c of candidates) {
     if (can(c.module, "view")) {
-      return <Redirect to={c.href} />;
+      return <Redirect to={`/${slug}${c.href}`} />;
     }
   }
 
-  return <Redirect to="/dashboard" />;
+  return <Redirect to={`/${slug}/dashboard`} />;
 }
 
 function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
+        {/* 1. Login is always non-prefixed */}
         <Route path="/login">
           <Login />
         </Route>
 
+        {/* 2. Root redirects to active property home */}
         <Route path="/">
           <RootRedirect />
         </Route>
 
-        {/* Protected Routes wrapped in AppLayout */}
-        <Route path="/dashboard">
-          <PermissionLayout module="dashboard">
-            <Dashboard />
-          </PermissionLayout>
+        {/* 3. Property-prefixed application routes (/:property/:route) */}
+        {APP_ROUTES.map((r, i) => (
+          <Route key={`prop-${r.path}-${i}`} path={`/:property${r.path}`}>
+            <PermissionLayout module={r.module} modules={r.modules} action={r.action}>
+              <r.component />
+            </PermissionLayout>
+          </Route>
+        ))}
+
+        {/* Accommodation sub-route shortcut under property */}
+        <Route path="/:property/accommodation">
+          {(params) => (
+            <Redirect to={`/${params.property}/accommodation/reservations`} />
+          )}
         </Route>
 
-        <Route path="/room-space-view">
-          <PermissionLayout module="housing">
-            <Housing />
-          </PermissionLayout>
-        </Route>
-        <Route path="/housing">
-          <PermissionLayout module="housing">
-            <Housing />
-          </PermissionLayout>
-        </Route>
-        <Route path="/profiles/:id">
-          <PermissionLayout module="profiles">
-            <ProfileDetail />
-          </PermissionLayout>
-        </Route>
-        <Route path="/profiles">
-          <PermissionLayout module="profiles">
-            <Profiles />
-          </PermissionLayout>
-        </Route>
-        <Route path="/accommodation/reservations">
-          <PermissionLayout module="reservations">
-            <Reservations />
-          </PermissionLayout>
-        </Route>
-        <Route path="/accommodation/in-house">
-          <PermissionLayout module="accommodation">
-            <InHouse />
-          </PermissionLayout>
-        </Route>
-        <Route path="/accommodation/room-assignment">
-          <PermissionLayout module="accommodation">
-            <Reservations />
-          </PermissionLayout>
-        </Route>
-        <Route path="/accommodation/guest-hosting">
-          <PermissionLayout module="guest_hosting">
-            <GuestHosting />
-          </PermissionLayout>
-        </Route>
-        <Route path="/accommodation/history">
-          <PermissionLayout module="accommodation">
-            <History />
-          </PermissionLayout>
-        </Route>
-        <Route path="/housekeeping">
-          <PermissionLayout module="housekeeping">
-            <Housekeeping />
-          </PermissionLayout>
-        </Route>
+        {/* 4. Unprefixed fallback routes for backward compatibility */}
+        {APP_ROUTES.map((r, i) => (
+          <Route key={`unprefixed-${r.path}-${i}`} path={r.path}>
+            {(params: any) => {
+              let resolved = r.path;
+              if (params && params.id) {
+                resolved = resolved.replace(":id", params.id);
+              }
+              return <UnprefixedRedirect targetPath={resolved} />;
+            }}
+          </Route>
+        ))}
+
         <Route path="/accommodation">
-          <Redirect to="/accommodation/reservations" />
-        </Route>
-        <Route path="/maintenance/:id">
-          <PermissionLayout modules={["maintenance", "housekeeping"]}>
-            <MaintenanceDetails />
-          </PermissionLayout>
-        </Route>
-        <Route path="/maintenance">
-          <PermissionLayout modules={["maintenance", "housekeeping"]}>
-            <Maintenance />
-          </PermissionLayout>
-        </Route>
-        <Route path="/reports">
-          <PermissionLayout module="reports">
-            <Reports />
-          </PermissionLayout>
-        </Route>
-        <Route path="/users">
-          <PermissionLayout module="users">
-            <Users />
-          </PermissionLayout>
-        </Route>
-        <Route path="/properties">
-          <PermissionLayout module="properties">
-            <Properties />
-          </PermissionLayout>
-        </Route>
-        <Route path="/portal">
-          <PermissionLayout module="portal_content">
-            <Portal />
-          </PermissionLayout>
-        </Route>
-        <Route path="/settings">
-          <PermissionLayout module="settings">
-            <Settings />
-          </PermissionLayout>
-        </Route>
-        <Route path="/activity-log">
-          <PermissionLayout module="activity_log">
-            <ActivityLog />
-          </PermissionLayout>
+          <UnprefixedRedirect targetPath="/accommodation/reservations" />
         </Route>
 
-        <Route path="/hosting-requests/create">
-          <PermissionLayout module="hosting_requests" action="create">
-            <CreateHostingRequest />
-          </PermissionLayout>
-        </Route>
-        <Route path="/hosting-requests/:id/edit">
-          <PermissionLayout module="hosting_requests" action="edit">
-            <EditHostingRequest />
-          </PermissionLayout>
-        </Route>
-        <Route path="/hosting-requests/:id">
-          <PermissionLayout module="hosting_requests" action="view">
-            <HostingRequestDetail />
-          </PermissionLayout>
-        </Route>
-        <Route path="/hosting-requests">
-          <PermissionLayout module="hosting_requests" action="view">
-            <HostingRequestsList />
-          </PermissionLayout>
+        {/* 5. Property root alone (e.g. /taal_housing or /all) redirects to /:property/dashboard */}
+        <Route path="/:property">
+          {(params) => {
+            if (RESERVED_FIRST_SEGMENTS.has(params.property.toLowerCase())) {
+              return <RootRedirect />;
+            }
+            return <Redirect to={`/${params.property}/dashboard`} />;
+          }}
         </Route>
 
+        {/* 6. Catch-all 404 */}
         <Route>
           <ProtectedLayout>
             <NotFound />

@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { toast } from "sonner";
 import { AnimatedConfirmModal } from "@/components/shared/AnimatedConfirmModal";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/use-permission";
 import {
@@ -44,8 +44,7 @@ function approvalRoleKey(value: unknown): string {
   return String(value ?? "")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    .replace(/[\s-]+/g, "_");
 }
 
 export default function HostingRequestDetail() {
@@ -54,7 +53,7 @@ export default function HostingRequestDetail() {
   const { user, isSystemAdmin } = useAuth();
   const { canView, canEdit, canDelete } = usePermission();
   const [, setLocation] = useLocation();
-  const [, params] = useRoute("/hosting-requests/:id");
+  const params = useParams();
   const requestId = params?.id;
 
   // ── Page-level permission guard ──────────────────────────────────────────
