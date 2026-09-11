@@ -14,8 +14,8 @@ import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 import {
   PropertyProvider,
   useProperty,
-  RESERVED_FIRST_SEGMENTS,
 } from "@/context/PropertyContext";
+import { RESERVED_FIRST_SEGMENTS } from "@/lib/property-slug";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoader } from "@/components/ui/loader";
 import { useWebSocket } from "@/hooks/use-websocket";

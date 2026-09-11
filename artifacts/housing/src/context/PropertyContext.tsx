@@ -1,84 +1,17 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useListProperties } from "@workspace/api-client-react";
 import { useAuth } from "./AuthContext";
 import { usePermission } from "@/hooks/use-permission";
+import {
+  type PropertyInfo,
+  RESERVED_FIRST_SEGMENTS,
+  getPropertySlug,
+  findPropertyBySlug,
+  extractPropertySlugFromPath,
+  resolveInitialPropertyId,
+} from "@/lib/property-slug";
 
-type Property = {
-  id: number;
-  name: string;
-  code: string;
-  displayName?: string | null;
-  status: string;
-  primaryColor: string;
-  defaultLanguage: string;
-};
-
-export const RESERVED_FIRST_SEGMENTS = new Set([
-  "login",
-  "dashboard",
-  "housing",
-  "room-space-view",
-  "profiles",
-  "accommodation",
-  "housekeeping",
-  "maintenance",
-  "reports",
-  "users",
-  "properties",
-  "portal",
-  "settings",
-  "activity-log",
-  "hosting-requests",
-  "api",
-  "assets",
-  "favicon.ico",
-]);
-
-export function getPropertySlug(
-  prop?: { name?: string | null; code?: string | null; id?: number } | null,
-): string {
-  if (!prop) return "";
-  if (prop.name) {
-    const slug = prop.name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-    if (slug) return slug;
-  }
-  if (prop.code) {
-    return prop.code.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
-  }
-  if (prop.id) return String(prop.id);
-  return "";
-}
-
-export function findPropertyBySlug(
-  properties: Property[],
-  slug: string,
-): Property | undefined {
-  if (!slug) return undefined;
-  const clean = slug.trim().toLowerCase();
-  return properties.find((p) => {
-    const pSlug = getPropertySlug(p);
-    return (
-      pSlug === clean ||
-      p.name?.trim().toLowerCase() === clean ||
-      p.code?.trim().toLowerCase() === clean ||
-      String(p.id) === clean
-    );
-  });
-}
-
-export function extractPropertySlugFromPath(): string | null {
-  if (typeof window === "undefined") return null;
-  const segments = window.location.pathname.split("/").filter(Boolean);
-  const first = segments[0];
-  if (!first || RESERVED_FIRST_SEGMENTS.has(first.toLowerCase())) {
-    return null;
-  }
-  return first.toLowerCase();
-}
+export type Property = PropertyInfo;
 
 interface PropertyContextType {
   activePropertyId: number | "all" | undefined;
@@ -128,12 +61,12 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
   });
   const allProperties = _pData || [];
 
-  const userPropertyIds: number[] = (() => {
+  const userPropertyIds: number[] = useMemo(() => {
     if (!user) return [];
     const explicitIds = (user as any).propertyIds as number[] | undefined;
     if (explicitIds && explicitIds.length > 0) return explicitIds;
     return user.propertyId ? [user.propertyId] : [];
-  })();
+  }, [user]);
 
   const properties: Property[] = canSeeAllProperties
     ? (allProperties as Property[])
@@ -145,8 +78,10 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     number | "all" | undefined
   >(() => {
     if (typeof window !== "undefined") {
-      const slug = extractPropertySlugFromPath();
-      if (slug === "all") return "all";
+      const pathSlug = extractPropertySlugFromPath();
+      const initialFromSlug = resolveInitialPropertyId(pathSlug);
+      if (initialFromSlug !== undefined) return initialFromSlug;
+
       const urlProp = new URLSearchParams(window.location.search).get("property");
       if (urlProp === "all") return "all";
       if (urlProp && !isNaN(Number(urlProp))) return Number(urlProp);

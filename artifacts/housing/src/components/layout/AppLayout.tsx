@@ -298,7 +298,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     const newUrl = `/${newSlug}${subPath}`;
-    window.location.href = newUrl;
+    setLocation(newUrl);
   };
 
   const ar = language === "ar";
