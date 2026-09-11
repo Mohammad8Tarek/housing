@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/use-permission";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
@@ -216,6 +217,7 @@ function getDurationColor(
 }
 
 export default function Tickets() {
+  const { user } = useAuth();
   const { activePropertyId, properties } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -225,11 +227,13 @@ export default function Tickets() {
   const canEditMnt = isSuperAdmin || isAdmin || can("maintenance", "edit");
   const canCreateMnt = isSuperAdmin || isAdmin || can("maintenance", "create");
   const canDeleteMnt = isSuperAdmin || isAdmin || can("maintenance", "delete");
+  const canAssignMnt = isSuperAdmin || isAdmin || can("maintenance", "assign");
 
   const canViewHsk = isSuperAdmin || isAdmin || can("housekeeping", "view");
   const canEditHsk = isSuperAdmin || isAdmin || can("housekeeping", "edit");
   const canCreateHsk = isSuperAdmin || isAdmin || can("housekeeping", "create");
   const canDeleteHsk = isSuperAdmin || isAdmin || can("housekeeping", "delete");
+  const canAssignHsk = isSuperAdmin || isAdmin || can("housekeeping", "assign");
 
   const hasMaintenance = canViewMnt;
   const hasHousekeeping = canViewHsk;
@@ -237,6 +241,11 @@ export default function Tickets() {
   const isOnlyHousekeeping = !hasMaintenance && hasHousekeeping;
   const isOnlyMaintenance = hasMaintenance && !hasHousekeeping;
   const hasBoth = hasMaintenance && hasHousekeeping;
+  const hasManagerialScope = isSuperAdmin || isAdmin || canAssignMnt || canAssignHsk;
+
+  const [scopeFilter, setScopeFilter] = useState<"all" | "me" | "unassigned">(() => {
+    return hasManagerialScope ? "all" : "me";
+  });
 
   const canCreateAny = isSuperAdmin || isAdmin || (isOnlyHousekeeping ? canCreateHsk : isOnlyMaintenance ? canCreateMnt : (canCreateMnt || canCreateHsk));
   const canEditAny = isSuperAdmin || isAdmin || (isOnlyHousekeeping ? canEditHsk : isOnlyMaintenance ? canEditMnt : (canEditMnt || canEditHsk));
@@ -310,7 +319,7 @@ export default function Tickets() {
   useEffect(() => {
     setPage(1);
     setCurrentPage(1);
-  }, [debouncedSearch, statusFilter, priorityFilter, categoryFilter, propertyFilter, fromDate, toDate]);
+  }, [debouncedSearch, statusFilter, priorityFilter, categoryFilter, scopeFilter, propertyFilter, fromDate, toDate]);
 
   // Form state
   const [formPropertyId, setFormPropertyId] = useState<string>(() => {
@@ -336,6 +345,33 @@ export default function Tickets() {
         ? "all"
         : activePropertyId ?? "all";
 
+  // Pre-load profiles for employee mapping and current user match
+  const { data: _eDataWrapper } = useListProfiles(
+    { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
+    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
+  );
+  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
+
+  const currentUserProfile = useMemo(() => {
+    if (!user || !profiles || profiles.length === 0) return null;
+    const uname = String(user.username || "").toLowerCase().trim();
+    const uemail = String(user.email || "").toLowerCase().trim();
+    return profiles.find((p: any) => {
+      if (p.profileId && String(p.profileId).toLowerCase().trim() === uname) return true;
+      if (uemail && p.email && String(p.email).toLowerCase().trim() === uemail) return true;
+      const fullName = `${p.firstName || ""} ${p.lastName || ""}`.toLowerCase().trim();
+      if (fullName && fullName === uname) return true;
+      return false;
+    });
+  }, [user, profiles]);
+
+  const effectiveAssignedTo =
+    scopeFilter === "me"
+      ? (currentUserProfile?.id ? String(currentUserProfile.id) : "me")
+      : scopeFilter === "unassigned"
+        ? "unassigned"
+        : undefined;
+
   const {
     data: allTicketsWrapper,
     isLoading,
@@ -348,6 +384,8 @@ export default function Tickets() {
       status: statusFilter === "all" ? undefined : statusFilter,
       priority: priorityFilter || undefined,
       category: categoryFilter === "all" ? undefined : categoryFilter,
+      assignedTo: effectiveAssignedTo,
+      assignedToProfileId: currentUserProfile?.id,
       fromDate: fromDate || undefined,
       toDate: toDate || undefined,
     } as any,
@@ -361,6 +399,8 @@ export default function Tickets() {
           status: statusFilter === "all" ? undefined : statusFilter,
           priority: priorityFilter || undefined,
           category: categoryFilter === "all" ? undefined : categoryFilter,
+          assignedTo: effectiveAssignedTo,
+          assignedToProfileId: currentUserProfile?.id,
           fromDate: fromDate || undefined,
           toDate: toDate || undefined,
         } as any),
@@ -376,6 +416,16 @@ export default function Tickets() {
   const allTickets = allTicketsWrapper?.data || allTicketsWrapper || [];
   const paginationData = allTicketsWrapper?.pagination || { total: allTickets?.length || 0, page: currentPage, limit: pageSize };
 
+  const myTicketsCount = useMemo(() => {
+    if (!currentUserProfile || !allTickets || !Array.isArray(allTickets)) return 0;
+    return allTickets.filter(
+      (t: any) =>
+        t.assignedTo === currentUserProfile.id &&
+        t.status !== "closed" &&
+        t.status !== "resolved",
+    ).length;
+  }, [allTickets, currentUserProfile]);
+
   const { data: _roomsWrapper } = useListRooms(
     { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
     { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
@@ -390,11 +440,6 @@ export default function Tickets() {
   );
   const modalRooms = _modalRoomsWrapper?.data || [];
 
-  const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
-  );
-  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
   const { data: assignments } = useListAssignments(
     { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined } as any,
     { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
@@ -458,7 +503,8 @@ export default function Tickets() {
         : `/api/maintenance?parentId=${parentId}`;
       const res = await fetch(url);
       const data = await res.json();
-      setSubTickets(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      setSubTickets(list);
     } catch {
       setSubTickets([]);
     } finally {
@@ -806,104 +852,171 @@ export default function Tickets() {
             </div>
           </div>
 
-          {/* Top Quick Segmented Tabs for Category (Linear style) */}
-          {hasBoth && (
-            <div className="flex items-center gap-1 p-1 bg-muted/80 dark:bg-muted/40 border rounded-xl shadow-xs self-start md:self-auto overflow-x-auto max-w-full">
-              <button
-                type="button"
-                onClick={() => {
-                  setCategoryFilter("all");
-                  setCurrentPage(1);
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
-                  categoryFilter === "all"
-                    ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>{ar ? "كل التذاكر" : "All Tickets"}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  categoryFilter === "all"
-                    ? "bg-primary/15 text-primary"
-                    : "bg-muted text-muted-foreground"
-                }`}>
-                  {totalCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCategoryFilter("maintenance");
-                  setCurrentPage(1);
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
-                  categoryFilter === "maintenance"
-                    ? "bg-amber-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                }`}
-              >
-                <Wrench className="w-3.5 h-3.5" />
-                <span>{ar ? "الصيانة" : "Maintenance"}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  categoryFilter === "maintenance"
-                    ? "bg-white/20 text-white"
-                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                }`}>
-                  {maintenanceCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCategoryFilter("housekeeping");
-                  setCurrentPage(1);
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
-                  categoryFilter === "housekeeping"
-                    ? "bg-sky-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{ar ? "الهاوس كيبنج" : "Housekeeping"}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  categoryFilter === "housekeeping"
-                    ? "bg-white/20 text-white"
-                    : "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
-                }`}>
-                  {housekeepingCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCategoryFilter("general");
-                  setCurrentPage(1);
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
-                  categoryFilter === "general"
-                    ? "bg-slate-700 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>{ar ? "عام" : "General"}</span>
-                {generalCount > 0 && (
+          {/* Top Quick Segmented Tabs for Category & Scope (Linear / Plane style) */}
+          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto max-w-full">
+            {/* 1. Category Switcher */}
+            {hasBoth && (
+              <div className="flex items-center gap-1 p-1 bg-muted/80 dark:bg-muted/40 border rounded-xl shadow-xs overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter("all");
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    categoryFilter === "all"
+                      ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{ar ? "كل الأقسام" : "All Categories"}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    categoryFilter === "general"
-                      ? "bg-white/20 text-white"
-                      : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
+                    categoryFilter === "all"
+                      ? "bg-primary/15 text-primary"
+                      : "bg-muted text-muted-foreground"
                   }`}>
-                    {generalCount}
+                    {totalCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter("maintenance");
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    categoryFilter === "maintenance"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  <Wrench className="w-3.5 h-3.5" />
+                  <span>{ar ? "الصيانة" : "Maintenance"}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    categoryFilter === "maintenance"
+                      ? "bg-white/20 text-white"
+                      : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                  }`}>
+                    {maintenanceCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter("housekeeping");
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    categoryFilter === "housekeeping"
+                      ? "bg-sky-600 text-white shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{ar ? "الهاوس كيبنج" : "Housekeeping"}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    categoryFilter === "housekeeping"
+                      ? "bg-white/20 text-white"
+                      : "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
+                  }`}>
+                    {housekeepingCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter("general");
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    categoryFilter === "general"
+                      ? "bg-slate-700 text-white shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>{ar ? "عام" : "General"}</span>
+                  {generalCount > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      categoryFilter === "general"
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
+                    }`}>
+                      {generalCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* 2. User Scoping Filter (Linear / Plane style: All Orders / Assigned to Me / Unassigned) */}
+            <div className="flex items-center gap-1 p-1 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/70 rounded-xl shadow-xs overflow-x-auto">
+              {hasManagerialScope && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScopeFilter("all");
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    scopeFilter === "all"
+                      ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                      : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{ar ? "كل الأوردرات" : "All Orders"}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setScopeFilter("me");
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  scopeFilter === "me"
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>{ar ? "أوردراتي أنا فقط" : "Assigned to Me"}</span>
+                {myTicketsCount > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    scopeFilter === "me"
+                      ? "bg-white/20 text-white"
+                      : "bg-indigo-200 text-indigo-900 dark:bg-indigo-900/60 dark:text-indigo-200"
+                  }`}>
+                    {myTicketsCount}
                   </span>
                 )}
               </button>
+
+              {hasManagerialScope && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScopeFilter("unassigned");
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    scopeFilter === "unassigned"
+                      ? "bg-slate-700 text-white shadow-xs"
+                      : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>{ar ? "غير مسندة" : "Unassigned"}</span>
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 

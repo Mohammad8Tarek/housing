@@ -4,6 +4,7 @@ import {
   maintenanceTable,
   roomsTable,
   propertiesTable,
+  profilesTable,
   withTenant,
 } from "@workspace/db";
 import { eq, and, or, ilike, sql, SQL, desc, inArray } from "drizzle-orm";
@@ -75,9 +76,14 @@ async function getAccessibleProperties(user: any): Promise<{ id: number; name: s
 }
 
 /**
- * بناء شروط الفلترة لبلاغات الصيانة / النظافة
+ * بناء شروط الفلترة لبلاغات الصيانة / النظافة مع دعم الحصر للموظف
  */
-function buildConditions(query: any, allowedCategory: string | null): SQL[] {
+function buildConditions(
+  query: any,
+  allowedCategory: string | null,
+  userProfileId?: number | null,
+  isStaffOnly?: boolean,
+): SQL[] {
   const conditions: SQL[] = [];
 
   // 1. تقييد الفئة بناءً على الصلاحيات أو الفلتر
@@ -97,7 +103,34 @@ function buildConditions(query: any, allowedCategory: string | null): SQL[] {
     conditions.push(eq(maintenanceTable.priority, String(query.priority)));
   }
 
-  // 4. التاريخ من / إلى
+  // 4. تقييد التعيين للموظف (Assigned To / Scoping)
+  if (isStaffOnly && userProfileId) {
+    // موظف / فني بدون صلاحيات إشرافية: يرى أوردراته فقط حصرًا
+    conditions.push(eq(maintenanceTable.assignedTo, userProfileId));
+  } else if (query.assignedTo) {
+    if (query.assignedTo === "unassigned") {
+      conditions.push(sql`${maintenanceTable.assignedTo} IS NULL`);
+    } else if (query.assignedTo === "me" && userProfileId) {
+      conditions.push(eq(maintenanceTable.assignedTo, userProfileId));
+    } else if (query.assignedTo !== "all") {
+      const aId = parseInt(String(query.assignedTo), 10);
+      if (!isNaN(aId)) {
+        conditions.push(eq(maintenanceTable.assignedTo, aId));
+      }
+    }
+  }
+
+  // 5. فلترة التذاكر الفرعية أو التذاكر الرئيسية فقط (Sub-tickets & Parent hierarchy)
+  if (query.parentId) {
+    const pId = parseInt(String(query.parentId), 10);
+    if (!isNaN(pId)) {
+      conditions.push(eq(maintenanceTable.parentId, pId));
+    }
+  } else if (query.onlyParents === "true" || query.onlyParents === true) {
+    conditions.push(sql`${maintenanceTable.parentId} IS NULL`);
+  }
+
+  // 6. التاريخ من / إلى
   if (query.fromDate) {
     try {
       const fromD = new Date(query.fromDate);
@@ -116,7 +149,7 @@ function buildConditions(query: any, allowedCategory: string | null): SQL[] {
     } catch {}
   }
 
-  // 5. البحث النصي
+  // 7. البحث النصي
   if (query.search && String(query.search).trim()) {
     const s = String(query.search).trim();
     conditions.push(
@@ -207,6 +240,12 @@ router.get(
         }
       }
 
+      const canAssignMnt = isSysAdmin || hasPermission(user, "maintenance", "assign");
+      const canAssignHsk = isSysAdmin || hasPermission(user, "housekeeping", "assign");
+      const hasManagerialScope = isSysAdmin || canAssignMnt || canAssignHsk || user?.roles?.includes("manager") || user?.roles?.includes("admin");
+      const isStaffOnly = !hasManagerialScope;
+      const queryProfileId = req.query.assignedToProfileId ? parseInt(String(req.query.assignedToProfileId), 10) : null;
+
       let page = 1;
       let limit = 1000;
       if (req.query.page) page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -231,7 +270,17 @@ router.get(
         for (const prop of accessibleProps) {
           try {
             await withTenant(prop.id, async (tenantDb) => {
-              const conditions = buildConditions(req.query, allowedCategory);
+              let effectiveProfileId = queryProfileId;
+              if (!effectiveProfileId && user?.username) {
+                const [foundEmp] = await tenantDb
+                  .select({ id: profilesTable.id })
+                  .from(profilesTable)
+                  .where(eq(profilesTable.profileId, String(user.username)))
+                  .limit(1);
+                if (foundEmp) effectiveProfileId = foundEmp.id;
+              }
+
+              const conditions = buildConditions(req.query, allowedCategory, effectiveProfileId, isStaffOnly);
               const whereClause = conditions.length ? and(...conditions) : undefined;
 
               const [countRes] = await tenantDb
@@ -318,7 +367,17 @@ router.get(
       }
 
       const result = await withTenant(targetPropId, async (tenantDb) => {
-        const conditions = buildConditions(req.query, allowedCategory);
+        let effectiveProfileId = queryProfileId;
+        if (!effectiveProfileId && user?.username) {
+          const [foundEmp] = await tenantDb
+            .select({ id: profilesTable.id })
+            .from(profilesTable)
+            .where(eq(profilesTable.profileId, String(user.username)))
+            .limit(1);
+          if (foundEmp) effectiveProfileId = foundEmp.id;
+        }
+
+        const conditions = buildConditions(req.query, allowedCategory, effectiveProfileId, isStaffOnly);
         const whereClause = conditions.length ? and(...conditions) : undefined;
 
         const [countResult] = await tenantDb

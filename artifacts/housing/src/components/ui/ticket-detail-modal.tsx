@@ -547,9 +547,45 @@ export default function TicketDetailModal({
 
             {activeTab === "tasks" && (
               <div className="space-y-4">
+                {(() => {
+                  const completedSubCount = safeSubTickets.filter(
+                    (st: any) =>
+                      st.status?.toLowerCase() === "resolved" ||
+                      st.status?.toLowerCase() === "closed",
+                  ).length;
+                  const subProgressPct =
+                    safeSubTickets.length > 0
+                      ? Math.round((completedSubCount / safeSubTickets.length) * 100)
+                      : 0;
+
+                  return (
+                    <>
+                      {safeSubTickets.length > 0 && (
+                        <div className="p-3.5 bg-gradient-to-r from-muted/60 via-muted/30 to-muted/60 rounded-xl border space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-foreground flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              {ar ? "نسبة إنجاز المهام والتذاكر الفرعية:" : "Sub-tasks Completion Progress:"}
+                            </span>
+                            <span className="font-bold text-primary">
+                              {completedSubCount} / {safeSubTickets.length} ({subProgressPct}%)
+                            </span>
+                          </div>
+                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                              style={{ width: `${subProgressPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase">
-                    {ar ? "التذاكر الفرعية" : "Sub-Tickets"}
+                    {ar ? "قائمة التذاكر والمهام الفرعية" : "Sub-Tickets & Checklist"}
                     {safeSubTickets.length > 0 && (
                       <Badge variant="secondary" className="ml-2">
                         {safeSubTickets.length}
