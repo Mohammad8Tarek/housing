@@ -87,7 +87,8 @@ export default function Login() {
       onSuccess: (data) => {
         setLockoutMsg(null);
         setRemainingAttempts(null);
-        storeToken(data.token, keepLoggedIn);
+        const token = (data as any)?.token || "session_active";
+        storeToken(token, keepLoggedIn);
         window.location.href = "/dashboard";
       },
       onError: (error: any) => {

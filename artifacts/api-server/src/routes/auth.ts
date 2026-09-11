@@ -247,6 +247,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
           isSystemAdmin: sessionData.isSystemAdmin,
           passwordExpired,
         },
+        token: req.sessionID || "session_active",
       });
     });
   });

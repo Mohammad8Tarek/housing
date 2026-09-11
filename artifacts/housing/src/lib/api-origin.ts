@@ -1,14 +1,10 @@
 const DEFAULT_RAILWAY_API_URL = "https://housing-production-302d.up.railway.app";
 
 export function getApiBaseUrl(): string {
-  // If we are on Vercel, always use relative paths so Vercel's proxy handles it.
-  // This prevents cross-origin third-party cookie blocking issues.
-  if (typeof window !== "undefined" && window.location.hostname.endsWith(".vercel.app")) {
-    return "";
-  }
   const configured = import.meta.env.VITE_API_URL?.trim();
   if (configured) return configured.replace(/\/+$/, "");
-  if (typeof window !== "undefined") return window.location.origin;
+  // In web browsers, always use relative paths ("") so the browser/Vite proxy
+  // handles requests with same-origin cookies and credentials correctly.
   return "";
 }
 

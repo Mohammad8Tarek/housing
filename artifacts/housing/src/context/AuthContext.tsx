@@ -56,9 +56,10 @@ export function getStoredToken(): string | null {
   );
 }
 
-export function storeToken(token: string, persistent: boolean): void {
-  sessionStorage.setItem("auth_token", token);
-  if (persistent) localStorage.setItem("auth_token", token);
+export function storeToken(token?: string | null, persistent?: boolean): void {
+  const val = token || "session_active";
+  sessionStorage.setItem("auth_token", val);
+  if (persistent) localStorage.setItem("auth_token", val);
 }
 
 export function clearToken(): void {
