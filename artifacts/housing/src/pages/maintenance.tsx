@@ -50,7 +50,17 @@ import {
   ShieldCheck,
   User,
   CheckCircle,
+  List,
+  LayoutGrid,
+  ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   ColumnChooser,
   useColumnVisibility,
@@ -87,6 +97,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DataPagination } from "@/components/DataPagination";
+import { TicketsKanbanBoard } from "./maintenance/components/TicketsKanbanBoard";
 
 const CATEGORIES = ["maintenance", "housekeeping", "general"];
 const CATEGORIES_AR = {
@@ -247,6 +258,22 @@ export default function Tickets() {
   const [page, setPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
 
+  // View Mode: List vs Kanban
+  const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
+    try {
+      return (localStorage.getItem("tickets_view_mode") as "list" | "kanban") || "list";
+    } catch {
+      return "list";
+    }
+  });
+
+  const handleSetViewMode = (mode: "list" | "kanban") => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("tickets_view_mode", mode);
+    } catch {}
+  };
+
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>(() =>
     isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all"
@@ -316,7 +343,7 @@ export default function Tickets() {
     { 
       propertyId: effectivePropertyId, 
       page: currentPage, 
-      limit: pageSize,
+      limit: viewMode === "kanban" ? 200 : pageSize,
       search: debouncedSearch || undefined,
       status: statusFilter === "all" ? undefined : statusFilter,
       priority: priorityFilter || undefined,
@@ -329,7 +356,7 @@ export default function Tickets() {
         queryKey: getListMaintenanceQueryKey({
           propertyId: effectivePropertyId,
           page: currentPage,
-          limit: pageSize,
+          limit: viewMode === "kanban" ? 200 : pageSize,
           search: debouncedSearch || undefined,
           status: statusFilter === "all" ? undefined : statusFilter,
           priority: priorityFilter || undefined,
@@ -465,7 +492,7 @@ export default function Tickets() {
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast.success(ar ? "تم تحديث الحالة" : "Status updated");
+        toast.success(ar ? "تم تحديث الحالة بنجاح" : "Status updated successfully");
       },
       onError: (e: any) =>
         toast.error(ar ? "خطأ" : "Error", {
@@ -972,7 +999,7 @@ export default function Tickets() {
               {totalCount}
             </div>
             <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
-              <span>{paged.length} {ar ? "في هذه الصفحة" : "on page"}</span>
+              <span>{paged.length} {ar ? "في هذا العرض" : "in this view"}</span>
             </div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-muted-foreground">
@@ -1073,11 +1100,44 @@ export default function Tickets() {
         />
       </div>
 
-      {/* Column Chooser & Quick Actions */}
-      <div className="px-4 sm:px-6 flex items-center justify-between">
-        <div className="text-xs text-muted-foreground font-medium">
-          {ar ? `عرض ${paged.length} من أصل ${totalCount} تذكرة` : `Showing ${paged.length} of ${totalCount} tickets`}
+      {/* View Switcher, Column Chooser & Quick Actions */}
+      <div className="px-4 sm:px-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {/* Dual View Switcher: List vs Kanban */}
+          <div className="flex items-center gap-1 p-1 bg-muted/80 dark:bg-muted/40 rounded-xl border shadow-xs">
+            <button
+              type="button"
+              onClick={() => handleSetViewMode("list")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                viewMode === "list"
+                  ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+              }`}
+              title={ar ? "عرض جدول البيانات" : "Table List View"}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>{ar ? "جدول البيانات" : "Table View"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetViewMode("kanban")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                viewMode === "kanban"
+                  ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+              }`}
+              title={ar ? "لوحة كانبان التفاعلية" : "Interactive Kanban Board"}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>{ar ? "لوحة كانبان" : "Kanban Board"}</span>
+            </button>
+          </div>
+
+          <div className="text-xs text-muted-foreground font-medium hidden sm:block">
+            {ar ? `عرض ${paged.length} من أصل ${totalCount} تذكرة` : `Showing ${paged.length} of ${totalCount} tickets`}
+          </div>
         </div>
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -1088,14 +1148,16 @@ export default function Tickets() {
             <FileText className="w-3.5 h-3.5" />
             <span>{ar ? "تصدير Excel" : "Export Excel"}</span>
           </Button>
-          <ColumnChooser
-            cols={COLS}
-            visible={visible}
-            onToggle={toggle}
-            onShowAll={showAll}
-            onHideAll={hideAll}
-            ar={ar}
-          />
+          {viewMode === "list" && (
+            <ColumnChooser
+              cols={COLS}
+              visible={visible}
+              onToggle={toggle}
+              onShowAll={showAll}
+              onHideAll={hideAll}
+              ar={ar}
+            />
+          )}
         </div>
       </div>
 
@@ -1412,9 +1474,36 @@ export default function Tickets() {
         </DialogContent>
       </Dialog>
 
-      {/* Table Section */}
+      {/* Main Content Area: Kanban Board vs Data Table */}
       {isLoading ? (
         <Skeleton className="h-64 w-full mx-4 sm:mx-6" />
+      ) : viewMode === "kanban" ? (
+        <div className="px-4 sm:px-6">
+          <TicketsKanbanBoard
+            tickets={filtered}
+            ar={ar}
+            onSelectTicket={handleSelectTicket}
+            onQuickStatusChange={(id, newStatus) => {
+              updateMutation.mutate({
+                id,
+                data: { status: newStatus },
+              });
+            }}
+            onDeleteTicket={canDeleteAny ? (id) => setDeleteId(id) : undefined}
+            roomMap={roomMap}
+            roomOccupantMap={roomOccupantMap}
+            properties={properties || []}
+            canEdit={canEditAny}
+            canDelete={canDeleteAny}
+            categoryIcons={CATEGORY_ICONS}
+            categoryAr={CATEGORIES_AR}
+            problemTypesMap={PROBLEM_TYPES_MAP}
+            priorityAr={PRIORITY_AR}
+            statusAr={STATUS_AR}
+            formatDuration={formatDuration}
+            getDurationColor={getDurationColor}
+          />
+        </div>
       ) : (
         <div className="px-4 sm:px-6 pb-6 space-y-4">
           {/* Bulk Action Bar */}
@@ -1668,22 +1757,70 @@ export default function Tickets() {
 
                     {isVisible("status") && (
                       <TableCell>
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${statusColor(req.status)}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            req.status === "open" ? "bg-blue-500" :
-                            req.status === "in_progress" ? "bg-amber-500" :
-                            req.status === "resolved" ? "bg-emerald-500" : "bg-slate-400"
-                          }`} />
-                          <span>
-                            {ar
-                              ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
-                              : (req.status || "")
-                                  .replace(/_/g, " ")
-                                  .replace(/\b\w/g, (c) => c.toUpperCase())}
+                        {canEditAny ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all hover:ring-2 hover:ring-primary/20 ${statusColor(req.status)}`}
+                                title={ar ? "انقر لتغيير الحالة سريعاً" : "Click to change status"}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  req.status === "open" ? "bg-blue-500" :
+                                  req.status === "in_progress" ? "bg-amber-500" :
+                                  req.status === "resolved" ? "bg-emerald-500" : "bg-slate-400"
+                                }`} />
+                                <span>
+                                  {ar
+                                    ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
+                                    : (req.status || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                                </span>
+                                <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="text-xs">
+                              <DropdownMenuItem
+                                onClick={() => updateMutation.mutate({ id: req.id, data: { status: "open" } })}
+                              >
+                                <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+                                {ar ? "مفتوحة" : "Open"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateMutation.mutate({ id: req.id, data: { status: "in_progress" } })}
+                              >
+                                <span className="w-2 h-2 rounded-full bg-amber-500 mr-2" />
+                                {ar ? "قيد التنفيذ" : "In Progress"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateMutation.mutate({ id: req.id, data: { status: "resolved" } })}
+                              >
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+                                {ar ? "تم الحل" : "Resolved"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateMutation.mutate({ id: req.id, data: { status: "closed" } })}
+                              >
+                                <span className="w-2 h-2 rounded-full bg-slate-400 mr-2" />
+                                {ar ? "مغلقة" : "Closed"}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${statusColor(req.status)}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              req.status === "open" ? "bg-blue-500" :
+                              req.status === "in_progress" ? "bg-amber-500" :
+                              req.status === "resolved" ? "bg-emerald-500" : "bg-slate-400"
+                            }`} />
+                            <span>
+                              {ar
+                                ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
+                                : (req.status || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                            </span>
                           </span>
-                        </span>
+                        )}
                       </TableCell>
                     )}
 
