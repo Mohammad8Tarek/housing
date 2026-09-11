@@ -434,7 +434,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             src={systemLogo}
             alt="Logo"
             className="h-12 w-auto max-w-[160px] object-contain drop-shadow-md z-10 relative"
-            fetchpriority="high"
+            fetchPriority="high"
           />
         ) : (
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 z-10 relative">

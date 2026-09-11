@@ -47,10 +47,7 @@ export function SecuritySettings({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit((data) => {})}
-            className="space-y-5"
-          >
+          <div className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <FormField
                 control={form.control}
@@ -237,7 +234,7 @@ export function SecuritySettings({
                 )}
               />
             </div>
-          </form>
+          </div>
         </Form>
       </CardContent>
     </Card>

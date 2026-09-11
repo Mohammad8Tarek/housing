@@ -142,10 +142,7 @@ export function GeneralSettings({
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((data) => {})}
-              className="space-y-5"
-            >
+            <div className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <FormField
                   control={form.control}
@@ -221,7 +218,7 @@ export function GeneralSettings({
                   )}
                 />
               </div>
-            </form>
+            </div>
           </Form>
         </CardContent>
       </Card>
