@@ -189,60 +189,122 @@ export default function TabOverview({
         </div>
       )}
 
-      {/* Stat Cards - Stitch exact match */}
+      {/* Resident Dashboard Stat Cards - Executive Tremor Style */}
       <div className="grid grid-cols-3 gap-2.5">
-        <div className="bg-card border border-border2 rounded-xl p-3.5 card-hover">
-          <div className="w-8 h-8 bg-blue-400/10 rounded-lg flex items-center justify-center mb-2.5">
-            <MaterialIcon
-              icon="description"
-              size={18}
-              className="text-blue-400"
-            />
+        <div
+          onClick={onDocTab}
+          className="bg-card/85 backdrop-blur-md border border-border2/80 rounded-2xl p-3 card-hover cursor-pointer relative overflow-hidden group shadow-xs hover:border-blue-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
+              <MaterialIcon
+                icon="description"
+                size={18}
+                className="text-blue-500 dark:text-blue-400"
+              />
+            </div>
+            {/* Mini SVG sparkline */}
+            <svg width="36" height="14" className="overflow-visible opacity-60 group-hover:opacity-100 transition-opacity">
+              <polyline
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points="0,12 8,10 16,11 24,6 36,3"
+              />
+            </svg>
           </div>
-          <div className="text-[18px] font-bold text-foreground leading-none">
-            {docCount}
-          </div>
-          <div className="text-[9px] text-muted2 mt-1 font-medium">
-            +{Math.min(docCount, 2)} {isRtl ? "هذا الشهر" : "this month"}
-          </div>
-          <div className="text-[10px] text-muted2/70 mt-0.5 truncate">
-            {isRtl ? "إجمالي المستندات" : "Total Documents"}
+          <div>
+            <div className="text-[20px] font-extrabold text-foreground leading-none tracking-tight">
+              {docCount}
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                +{Math.min(docCount, 2)} {isRtl ? "جديد" : "new"}
+              </span>
+            </div>
+            <div className="text-[10px] text-muted2 mt-1 truncate font-medium">
+              {isRtl ? "المستندات" : "Documents"}
+            </div>
           </div>
         </div>
-        <div className="bg-card border border-border2 rounded-xl p-3.5 card-hover">
-          <div className="w-8 h-8 bg-amber-400/10 rounded-lg flex items-center justify-center mb-2.5">
-            <MaterialIcon
-              icon="pending_actions"
-              size={18}
-              className="text-amber-400"
-            />
+
+        <div
+          onClick={onRequestTab}
+          className="bg-card/85 backdrop-blur-md border border-border2/80 rounded-2xl p-3 card-hover cursor-pointer relative overflow-hidden group shadow-xs hover:border-amber-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
+              <MaterialIcon
+                icon="pending_actions"
+                size={18}
+                className="text-amber-500 dark:text-amber-400"
+              />
+            </div>
+            {/* Mini SVG sparkline */}
+            <svg width="36" height="14" className="overflow-visible opacity-60 group-hover:opacity-100 transition-opacity">
+              <polyline
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points="0,6 10,8 18,5 26,10 36,7"
+              />
+            </svg>
           </div>
-          <div className="text-[18px] font-bold text-foreground leading-none">
-            {pendingCount}
-          </div>
-          <div className="text-[9px] text-muted2 mt-1 font-medium">
-            {isRtl ? "الأولوية" : "Priority"}
-          </div>
-          <div className="text-[10px] text-muted2/70 mt-0.5 truncate">
-            {isRtl ? "الطلبات المعلقة" : "Pending Requests"}
+          <div>
+            <div className="text-[20px] font-extrabold text-foreground leading-none tracking-tight">
+              {pendingCount}
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                {isRtl ? "قيد المتابعة" : "Active"}
+              </span>
+            </div>
+            <div className="text-[10px] text-muted2 mt-1 truncate font-medium">
+              {isRtl ? "الطلبات" : "Requests"}
+            </div>
           </div>
         </div>
-        <div className="bg-card border border-border2 rounded-xl p-3.5 card-hover">
-          <div className="w-8 h-8 bg-emerald-400/10 rounded-lg flex items-center justify-center mb-2.5">
-            <MaterialIcon
-              icon="event_available"
-              size={18}
-              className="text-emerald-400"
-            />
+
+        <div
+          onClick={onActivitiesTab}
+          className="bg-card/85 backdrop-blur-md border border-border2/80 rounded-2xl p-3 card-hover cursor-pointer relative overflow-hidden group shadow-xs hover:border-emerald-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center shrink-0">
+              <MaterialIcon
+                icon="event_available"
+                size={18}
+                className="text-emerald-500 dark:text-emerald-400"
+              />
+            </div>
+            {/* Mini SVG sparkline */}
+            <svg width="36" height="14" className="overflow-visible opacity-60 group-hover:opacity-100 transition-opacity">
+              <polyline
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points="0,11 10,9 18,10 26,4 36,2"
+              />
+            </svg>
           </div>
-          <div className="text-[18px] font-bold text-foreground leading-none">
-            {eventCount}
-          </div>
-          <div className="text-[9px] text-muted2 mt-1 font-medium">
-            {isRtl ? "هذا الأسبوع" : "This week"}
-          </div>
-          <div className="text-[10px] text-muted2/70 mt-0.5 truncate">
-            {isRtl ? "الفعاليات القادمة" : "Upcoming Events"}
+          <div>
+            <div className="text-[20px] font-extrabold text-foreground leading-none tracking-tight">
+              {eventCount}
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                {isRtl ? "متاح" : "Open"}
+              </span>
+            </div>
+            <div className="text-[10px] text-muted2 mt-1 truncate font-medium">
+              {isRtl ? "الفعاليات" : "Activities"}
+            </div>
           </div>
         </div>
       </div>
