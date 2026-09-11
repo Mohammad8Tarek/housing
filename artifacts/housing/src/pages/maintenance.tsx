@@ -44,6 +44,12 @@ import {
   ImageIcon,
   X,
   Upload,
+  Layers,
+  Clock,
+  AlertCircle,
+  ShieldCheck,
+  User,
+  CheckCircle,
 } from "lucide-react";
 import {
   ColumnChooser,
@@ -81,7 +87,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DataPagination } from "@/components/DataPagination";
-import { PaginationBar } from "@/components/ui/PaginationBar";
 
 const CATEGORIES = ["maintenance", "housekeeping", "general"];
 const CATEGORIES_AR = {
@@ -95,32 +100,64 @@ const CATEGORY_ICONS = {
   general: <FileText className="w-3.5 h-3.5" />,
 };
 
-const PROBLEM_TYPES = [
-  "Plumbing",
-  "Electrical",
-  "HVAC",
-  "Furniture",
-  "Cleaning",
-  "Internet",
-  "Other",
+const MAINTENANCE_PROBLEM_TYPES = [
+  { key: "Plumbing", labelEn: "Plumbing", labelAr: "سباكة" },
+  { key: "Electrical", labelEn: "Electrical", labelAr: "كهرباء" },
+  { key: "HVAC", labelEn: "HVAC & AC", labelAr: "تكييف وتبريد" },
+  { key: "Furniture", labelEn: "Furniture & Woodwork", labelAr: "أثاث ونجارة" },
+  { key: "Internet", labelEn: "Internet & Network", labelAr: "إنترنت وشبكات" },
+  { key: "Appliances", labelEn: "Appliances", labelAr: "أجهزة كهربائية" },
+  { key: "Other", labelEn: "Other Maintenance", labelAr: "أعطال أخرى" },
 ];
-const PROBLEM_TYPES_AR = {
-  Plumbing: "سباكة",
-  Electrical: "كهرباء",
-  HVAC: "تكييف",
-  Furniture: "أثاث",
-  Cleaning: "نظافة",
-  Internet: "إنترنت",
-  Other: "أخرى",
+
+const HOUSEKEEPING_ORDER_TYPES = [
+  { key: "room_cleaning", labelEn: "Room Cleaning", labelAr: "تنظيف الغرفة" },
+  { key: "bed_sheets", labelEn: "Bed Linen Change", labelAr: "تغيير المفارش والأسرة" },
+  { key: "towels", labelEn: "Towels & Amenities", labelAr: "توفر مناشف ومستلزمات" },
+  { key: "deep_cleaning", labelEn: "Deep Cleaning", labelAr: "تنظيف شامل وعميق" },
+  { key: "waste_removal", labelEn: "Trash Removal", labelAr: "تفريغ المهملات" },
+  { key: "sanitization", labelEn: "Sanitization & Disinfection", labelAr: "تعقيم وتطهير" },
+  { key: "turnover", labelEn: "Turnover Preparation", labelAr: "تجهيز لنزيل جديد" },
+  { key: "other", labelEn: "Special / Other Request", labelAr: "طلب نظافة آخر" },
+];
+
+const GENERAL_PROBLEM_TYPES = [
+  { key: "general_inquiry", labelEn: "General Inquiry", labelAr: "استفسار عام" },
+  { key: "inspection", labelEn: "Room Inspection", labelAr: "فحص ومعاينة" },
+  { key: "pest_control", labelEn: "Pest Control", labelAr: "مكافحة حشرات" },
+  { key: "other", labelEn: "Other", labelAr: "أخرى" },
+];
+
+const PROBLEM_TYPES_MAP: Record<string, { labelEn: string; labelAr: string }> = {
+  Plumbing: { labelEn: "Plumbing", labelAr: "سباكة" },
+  Electrical: { labelEn: "Electrical", labelAr: "كهرباء" },
+  HVAC: { labelEn: "HVAC & AC", labelAr: "تكييف وتبريد" },
+  Furniture: { labelEn: "Furniture & Woodwork", labelAr: "أثاث ونجارة" },
+  Internet: { labelEn: "Internet & Network", labelAr: "إنترنت وشبكات" },
+  Appliances: { labelEn: "Appliances", labelAr: "أجهزة كهربائية" },
+  Cleaning: { labelEn: "Cleaning", labelAr: "نظافة" },
+  Other: { labelEn: "Other", labelAr: "أعطال أخرى" },
+  room_cleaning: { labelEn: "Room Cleaning", labelAr: "تنظيف الغرفة" },
+  bed_sheets: { labelEn: "Bed Linen Change", labelAr: "تغيير المفارش والأسرة" },
+  towels: { labelEn: "Towels & Amenities", labelAr: "مناشف ومستلزمات" },
+  deep_cleaning: { labelEn: "Deep Cleaning", labelAr: "تنظيف شامل وعميق" },
+  waste_removal: { labelEn: "Trash Removal", labelAr: "تفريغ المهملات" },
+  sanitization: { labelEn: "Sanitization & Disinfection", labelAr: "تعقيم وتطهير" },
+  turnover: { labelEn: "Turnover Preparation", labelAr: "تجهيز لنزيل جديد" },
+  general_inquiry: { labelEn: "General Inquiry", labelAr: "استفسار عام" },
+  inspection: { labelEn: "Room Inspection", labelAr: "فحص ومعاينة" },
+  pest_control: { labelEn: "Pest Control", labelAr: "مكافحة حشرات" },
+  other: { labelEn: "Other", labelAr: "طلب آخر" },
 };
+
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"];
-const PRIORITY_AR = {
+const PRIORITY_AR: Record<string, string> = {
   LOW: "منخفضة",
   MEDIUM: "متوسطة",
   HIGH: "عالية",
   URGENT: "عاجلة",
 };
-const STATUS_AR = {
+const STATUS_AR: Record<string, string> = {
   open: "مفتوحة",
   in_progress: "قيد التنفيذ",
   resolved: "تم الحل",
@@ -135,7 +172,6 @@ function getDurationMins(
   const start = reportedAt ?? startedAt;
   if (!start) return -1;
   const startDate = new Date(start);
-  // Freeze at resolvedAt if ticket is done, otherwise count live
   const endDate = resolvedAt ? new Date(resolvedAt) : new Date();
   return differenceInMinutes(endDate, startDate);
 }
@@ -148,6 +184,11 @@ function formatDuration(
   const totalMins = getDurationMins(startedAt, resolvedAt, reportedAt);
   if (totalMins < 0) return "—";
   if (totalMins < 1) return "< 1 min";
+  if (totalMins >= 60) {
+    const hours = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    return `${hours}h ${mins}m`;
+  }
   return `${totalMins} min`;
 }
 
@@ -158,10 +199,9 @@ function getDurationColor(
 ): string {
   const totalMins = getDurationMins(startedAt, resolvedAt, reportedAt);
   if (totalMins < 0) return "text-muted-foreground";
-  if (totalMins <= 20) return "text-green-600 dark:text-green-400";
-  if (totalMins <= 40) return "text-yellow-500 dark:text-yellow-400";
-  if (totalMins <= 60) return "text-red-500 dark:text-red-400";
-  return "text-gray-900 dark:text-white font-extrabold";
+  if (totalMins <= 30) return "text-emerald-600 dark:text-emerald-400";
+  if (totalMins <= 120) return "text-amber-500 dark:text-amber-400";
+  return "text-red-500 dark:text-red-400 font-bold";
 }
 
 export default function Tickets() {
@@ -203,21 +243,19 @@ export default function Tickets() {
 
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
   const [page, setPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
 
-  const [deleteId, setDeleteId] = useState(null);
-  const [categoryFilter, setCategoryFilter] = useState(() =>
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>(() =>
     isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all"
   );
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 500);
+  const debouncedSearch = useDebounce(searchTerm, 400);
   const [photoDialog, setPhotoDialog] = useState<string | null>(null);
-  const [filterBarFilters, setFilterBarFilters] = useState<Record<string, any>>(
-    {},
-  );
+  const [filterBarFilters, setFilterBarFilters] = useState<Record<string, any>>({});
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [selectedTicketIds, setSelectedTicketIds] = useState<Set<number>>(new Set());
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
@@ -233,7 +271,7 @@ export default function Tickets() {
   const [formPhotoUrl, setFormPhotoUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync category if permissions resolve
+  // Sync category filter with role boundaries
   useEffect(() => {
     if (isOnlyHousekeeping && categoryFilter !== "housekeeping") {
       setCategoryFilter("housekeeping");
@@ -257,7 +295,7 @@ export default function Tickets() {
   const [form, setForm] = useState({
     roomId: "",
     category: defaultCreateCategory,
-    problemType: "",
+    problemType: defaultCreateCategory === "housekeeping" ? "room_cleaning" : "Plumbing",
     description: "",
     priority: "MEDIUM",
     notes: "",
@@ -274,7 +312,6 @@ export default function Tickets() {
   const {
     data: allTicketsWrapper,
     isLoading,
-    isFetching,
   } = useListMaintenance(
     { 
       propertyId: effectivePropertyId, 
@@ -336,10 +373,10 @@ export default function Tickets() {
     { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
   );
 
-  // Build room → occupant name(s) map from active assignments + profiles
+  // Build room -> occupant name(s) map from active assignments + profiles
   const roomOccupantMap = useMemo(() => {
     const empLookup = Object.fromEntries(
-      profiles.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
+      profiles.map((e: any) => [e.id, `${e.firstName} ${e.lastName}`]),
     );
     const map: Record<number, string> = {};
     (assignments || []).forEach((a: any) => {
@@ -347,7 +384,6 @@ export default function Tickets() {
         const name = empLookup[a.profileId];
         if (name) {
           if (map[a.roomId]) {
-            // Multiple occupants — append
             if (!map[a.roomId].includes(name)) {
               map[a.roomId] += `, ${name}`;
             }
@@ -360,26 +396,43 @@ export default function Tickets() {
     return map;
   }, [assignments, profiles]);
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(ar ? "حجم الصورة كبير جداً (أقصى حد 5 ميجابايت)" : "Image too large (max 5MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormPhotoUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const invalidate = () => {
     queryClient.invalidateQueries({
-      queryKey: getListMaintenanceQueryKey({ propertyId: activePropertyId }),
+      predicate: (q) => {
+        const k = q.queryKey;
+        return Array.isArray(k) && (
+          k[0] === "/api/maintenance" ||
+          (typeof k[0] === "string" && k[0].includes("maintenance"))
+        );
+      },
     });
-    queryClient.invalidateQueries({ queryKey: getListMaintenanceQueryKey() });
   };
 
   const fetchSubTickets = async (parentId: number) => {
     setLoadingSubTickets(true);
     try {
-      const res = await fetch(`/api/maintenance/${parentId}/sub-tickets`, {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        setSubTickets([]);
-        return;
-      }
+      const pId = activePropertyId !== "all" ? activePropertyId : undefined;
+      const url = pId
+        ? `/api/maintenance?parentId=${parentId}&propertyId=${pId}`
+        : `/api/maintenance?parentId=${parentId}`;
+      const res = await fetch(url);
       const data = await res.json();
       setSubTickets(Array.isArray(data) ? data : []);
-    } catch (e) {
+    } catch {
       setSubTickets([]);
     } finally {
       setLoadingSubTickets(false);
@@ -397,11 +450,11 @@ export default function Tickets() {
         setCurrentPage(1);
         setPage(1);
         invalidate();
-        toast.success(ar ? "تم إنشاء الطلب" : "Request created");
+        toast.success(ar ? "تم إنشاء الطلب بنجاح" : "Ticket created successfully");
         setIsOpen(false);
         resetForm();
       },
-      onError: (e) =>
+      onError: (e: any) =>
         toast.error(ar ? "خطأ" : "Error", {
           description: e.message,
         }),
@@ -414,7 +467,7 @@ export default function Tickets() {
         invalidate();
         toast.success(ar ? "تم تحديث الحالة" : "Status updated");
       },
-      onError: (e) =>
+      onError: (e: any) =>
         toast.error(ar ? "خطأ" : "Error", {
           description: e.message,
         }),
@@ -435,7 +488,7 @@ export default function Tickets() {
     setForm({
       roomId: "",
       category: defaultCreateCategory,
-      problemType: "",
+      problemType: defaultCreateCategory === "housekeeping" ? "room_cleaning" : "Plumbing",
       description: "",
       priority: "MEDIUM",
       notes: "",
@@ -459,9 +512,9 @@ export default function Tickets() {
       );
       return;
     }
-    if (!form.roomId || !form.description) {
+    if (!form.roomId || !form.description.trim()) {
       toast.error(
-        ar ? "يرجى ملء الحقول المطلوبة" : "Please fill required fields",
+        ar ? "يرجى تحديد الغرفة وكتابة وصف للطلب" : "Please select a room and provide a description",
       );
       return;
     }
@@ -470,126 +523,77 @@ export default function Tickets() {
         propertyId: targetPropId,
         roomId: parseInt(form.roomId),
         category: form.category,
-        problemType: form.problemType || form.category,
-        description: form.description,
+        problemType: form.problemType || (form.category === "housekeeping" ? "room_cleaning" : "Plumbing"),
+        description: form.description.trim(),
         priority: form.priority,
         photoUrl: formPhotoUrl || undefined,
       },
     });
   };
 
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setFormPhotoUrl(reader.result);
-    reader.readAsDataURL(file);
-  };
-
-  const priorityColor = (p) => {
+  const priorityColor = (p: string) => {
     switch ((p || "").toLowerCase()) {
       case "urgent":
-        return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
+        return "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 border-red-200 dark:border-red-800";
       case "high":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
+        return "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300 border-orange-200 dark:border-orange-800";
       case "medium":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300";
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/50 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800";
+      case "low":
+        return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
       default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+        return "bg-slate-100 text-slate-700";
     }
   };
 
-  const statusColor = (s) => {
+  const statusColor = (s: string) => {
     switch ((s || "").toLowerCase()) {
       case "open":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800";
       case "in_progress":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300";
+        return "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800";
       case "resolved":
-        return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
       case "closed":
-        return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+        return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700";
       default:
-        return "bg-gray-100 text-gray-600";
+        return "bg-slate-100 text-slate-600";
     }
   };
 
-  const categoryColor = (c) => {
+  const categoryColor = (c: string) => {
     switch (c) {
       case "maintenance":
-        return "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300";
+        return "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800";
       case "housekeeping":
-        return "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300";
+        return "bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200 dark:border-sky-800";
       case "general":
-        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+        return "bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-800";
       default:
-        return "bg-gray-100 text-gray-600";
+        return "bg-slate-100 text-slate-600";
     }
   };
 
   const COLS = [
     { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
     { key: "room", label: "Room", labelAr: "الغرفة", defaultVisible: true },
-    {
-      key: "problemType",
-      label: "Problem",
-      labelAr: "المشكلة",
-      defaultVisible: true,
-    },
-    { key: "name", label: "Name", labelAr: "الاسم", defaultVisible: true },
-    { key: "category", label: "Type", labelAr: "النوع", defaultVisible: true },
-    {
-      key: "priority",
-      label: "Priority",
-      labelAr: "الأولوية",
-      defaultVisible: true,
-    },
+    { key: "problemType", label: "Problem", labelAr: "المشكلة / الخدمة", defaultVisible: true },
+    { key: "name", label: "Occupant", labelAr: "النزيل", defaultVisible: true },
+    { key: "category", label: "Type", labelAr: "القسم", defaultVisible: true },
+    { key: "priority", label: "Priority", labelAr: "الأولوية", defaultVisible: true },
     { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
-    {
-      key: "reported",
-      label: "Reported",
-      labelAr: "تاريخ الإبلاغ",
-      defaultVisible: true,
-    },
-    {
-      key: "started",
-      label: "Started",
-      labelAr: "بدأت",
-      defaultVisible: false,
-    },
-    {
-      key: "resolved",
-      label: "Resolved",
-      labelAr: "حُلّت",
-      defaultVisible: true,
-    },
-    {
-      key: "duration",
-      label: "Duration",
-      labelAr: "المدة",
-      defaultVisible: true,
-    },
-    {
-      key: "actions",
-      label: "Actions",
-      labelAr: "إجراءات",
-      defaultVisible: true,
-      fixed: true,
-    },
+    { key: "reported", label: "Reported", labelAr: "تاريخ الإبلاغ", defaultVisible: true },
+    { key: "duration", label: "Duration", labelAr: "المدة", defaultVisible: true },
+    { key: "actions", label: "Actions", labelAr: "إجراءات", defaultVisible: true, fixed: true },
   ];
 
-  const { visible, toggle, showAll, hideAll, isVisible } =
-    useColumnVisibility(COLS);
+  const { visible, toggle, showAll, hideAll, isVisible } = useColumnVisibility(COLS);
 
   const roomMap = Object.fromEntries(
-    (rooms || []).map((r) => [r.id, r.roomNumber]),
+    (rooms || []).map((r: any) => [r.id, r.roomNumber]),
   );
-  const empMap = Object.fromEntries(
-    profiles
-      .filter((e) => e.status === "active")
-      .map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
-  );
-  const empOptions = profiles.filter((e) => e.status === "active");
+
+  const empOptions = profiles.filter((e: any) => e.status === "active");
 
   const filtered = useMemo(() => {
     if (!Array.isArray(allTickets)) return [];
@@ -602,33 +606,41 @@ export default function Tickets() {
   }, [allTickets]);
   const paged = filtered;
 
+  // Counts
+  const totalCount = paginationData.total || 0;
+  const openCount = allTickets?.filter((t: any) => t.status === "open").length || 0;
+  const inProgressCount = allTickets?.filter((t: any) => t.status === "in_progress").length || 0;
+  const resolvedCount = allTickets?.filter((t: any) => t.status === "resolved").length || 0;
+  const closedCount = allTickets?.filter((t: any) => t.status === "closed").length || 0;
+
+  const maintenanceCount = useMemo(() => allTickets?.filter((t: any) => t.category === "maintenance").length || 0, [allTickets]);
+  const housekeepingCount = useMemo(() => allTickets?.filter((t: any) => t.category === "housekeeping").length || 0, [allTickets]);
+  const generalCount = useMemo(() => allTickets?.filter((t: any) => t.category === "general").length || 0, [allTickets]);
+
   const exportExcel = () => {
-    const rows = filtered.map((req) => ({
-      [ar ? "رقم" : "ID"]: req.id,
+    const rows = filtered.map((req: any) => ({
+      [ar ? "رقم الطلب" : "ID"]: req.id,
       [ar ? "الفندق / العقار" : "Hotel / Property"]:
         req.propertyName ||
-        properties?.find((p) => p.id === req.propertyId)?.name ||
+        properties?.find((p: any) => p.id === req.propertyId)?.name ||
         "—",
       [ar ? "الغرفة" : "Room"]:
         `${ar ? "الغرفة" : "Room"} ${req.roomNumber || (roomMap[req.roomId] ?? req.roomId)}`,
-      [ar ? "الاسم" : "Name"]: roomOccupantMap[req.roomId] || "—",
-      [ar ? "النوع" : "Type"]: ar
+      [ar ? "النزيل المقيم" : "Occupant"]: roomOccupantMap[req.roomId] || "—",
+      [ar ? "القسم / النوع" : "Type"]: ar
         ? (CATEGORIES_AR[req.category] ?? req.category)
         : req.category,
-      [ar ? "نوع المشكلة" : "Problem Type"]: ar
-        ? (PROBLEM_TYPES_AR[req.problemType] ?? req.problemType)
-        : req.problemType,
+      [ar ? "نوع المشكلة / الخدمة" : "Problem / Service"]: ar
+        ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
+        : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType),
       [ar ? "الوصف" : "Description"]: req.description,
       [ar ? "الأولوية" : "Priority"]: ar
-        ? (PRIORITY_AR[req.priority] ?? req.priority)
+        ? (PRIORITY_AR[req.priority?.toUpperCase()] ?? req.priority)
         : req.priority,
       [ar ? "الحالة" : "Status"]: ar
         ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
         : req.status,
       [ar ? "تاريخ الإبلاغ" : "Reported (Date)"]: formatDate(req.reportedAt, ""),
-      [ar ? "وقت الإبلاغ" : "Reported (Time)"]: req.reportedAt
-        ? format(new Date(req.reportedAt), "HH:mm")
-        : "",
       [ar ? "المدة" : "Duration"]: formatDuration(
         req.startedAt,
         req.resolvedAt,
@@ -638,36 +650,36 @@ export default function Tickets() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, ar ? "التذاكر" : "Tickets");
-    XLSX.writeFile(wb, getExportFileName("Maintenance_Tickets", "xlsx"));
+    XLSX.writeFile(wb, getExportFileName("Tickets_Hub", "xlsx"));
   };
 
   const exportSelectedTicketsExcel = () => {
     const target =
       selectedTicketIds.size > 0
-        ? allTickets.filter((t) => selectedTicketIds.has(t.id))
+        ? allTickets.filter((t: any) => selectedTicketIds.has(t.id))
         : allTickets;
     if (target.length === 0) return;
-    const rows = target.map((req) => ({
+    const rows = target.map((req: any) => ({
       [ar ? "رقم الطلب" : "Ticket #"]: req.id,
       [ar ? "الفندق / العقار" : "Hotel / Property"]:
         req.propertyName ||
-        properties?.find((p) => p.id === req.propertyId)?.name ||
+        properties?.find((p: any) => p.id === req.propertyId)?.name ||
         "—",
       [ar ? "الغرفة" : "Room"]: req.roomNumber || (roomMap[req.roomId] ?? req.roomId),
       [ar ? "النوع" : "Category"]: ar
         ? (CATEGORIES_AR[req.category] ?? req.category)
         : req.category,
       [ar ? "المشكلة" : "Problem Type"]: ar
-        ? (PROBLEM_TYPES_AR[req.problemType] ?? req.problemType)
-        : req.problemType,
+        ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
+        : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType),
       [ar ? "الوصف" : "Description"]: req.description,
       [ar ? "الأولوية" : "Priority"]: ar
-        ? (PRIORITY_AR[req.priority] ?? req.priority)
+        ? (PRIORITY_AR[req.priority?.toUpperCase()] ?? req.priority)
         : req.priority,
       [ar ? "الحالة" : "Status"]: ar
         ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
         : req.status,
-      [ar ? "تاريخ الإبلاغ" : "Reported (Date)"]: formatDate(req.reportedAt, ""),
+      [ar ? "تاريخ الإبلاغ" : "Reported"]: formatDate(req.reportedAt, ""),
       [ar ? "المدة" : "Duration"]: formatDuration(
         req.startedAt,
         req.resolvedAt,
@@ -677,7 +689,7 @@ export default function Tickets() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, ar ? "التذاكر المحددة" : "Selected Tickets");
-    XLSX.writeFile(wb, getExportFileName("Maintenance_Selected_Tickets", "xlsx"));
+    XLSX.writeFile(wb, getExportFileName("Selected_Tickets", "xlsx"));
   };
 
   const handleBulkStatusChange = async (newStatus: string) => {
@@ -726,134 +738,305 @@ export default function Tickets() {
     }
   };
 
-  const totalCount = paginationData.total || 0;
-  const openCount = allTickets?.filter((t) => t.status === "open").length || 0;
-  const inProgressCount =
-    allTickets?.filter((t) => t.status === "in_progress").length || 0;
-  const closedCount =
-    allTickets?.filter((t) => t.status === "closed").length || 0;
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background space-y-5">
       {/* Header */}
-      <div className="px-4 sm:px-6 pt-6 pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-              {isOnlyHousekeeping ? (
-                <>
-                  <Sparkles className="w-7 h-7 text-sky-600" />
-                  {ar ? "طلبات النظافة (الهاوس كيبنج)" : "Housekeeping Orders"}
-                </>
-              ) : isOnlyMaintenance ? (
-                <>
-                  <Wrench className="w-7 h-7 text-amber-600" />
-                  {ar ? "أوامر وبلاغات الصيانة" : "Maintenance Orders"}
-                </>
-              ) : (
-                <>
-                  <Wrench className="w-7 h-7 text-primary" />
-                  {ar ? "إدارة التذاكر والطلبات" : "Tickets & Requests Management"}
-                </>
-              )}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {isOnlyHousekeeping
-                ? (ar ? "متابعة وإدارة جميع طلبات وأوامر تنظيف ونظافة الغرف" : "Monitor and manage room housekeeping and cleaning orders")
+      <div className="px-4 sm:px-6 pt-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl shadow-xs ${
+              isOnlyHousekeeping
+                ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
                 : isOnlyMaintenance
-                  ? (ar ? "متابعة وإدارة جميع بلاغات وأوامر الصيانة والأعطال" : "Monitor and manage maintenance requests and work orders")
-                  : (ar ? "تصفية وإدارة جميع طلبات الصيانة والنظافة والخدمات عبر كافة الفنادق" : "Filter and manage maintenance, housekeeping, and service requests across hotels")}
-            </p>
+                  ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+                  : "bg-primary/10 text-primary"
+            }`}>
+              {isOnlyHousekeeping ? (
+                <Sparkles className="w-6 h-6" />
+              ) : isOnlyMaintenance ? (
+                <Wrench className="w-6 h-6" />
+              ) : (
+                <Layers className="w-6 h-6" />
+              )}
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                {isOnlyHousekeeping ? (
+                  ar ? "طلبات وأوامر الهاوس كيبنج" : "Housekeeping Orders Hub"
+                ) : isOnlyMaintenance ? (
+                  ar ? "بلاغات وأوامر الصيانة الفنية" : "Maintenance Work Orders"
+                ) : (
+                  ar ? "مركز التذاكر والعمليات الموحد" : "Operations & Tickets Hub"
+                )}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {isOnlyHousekeeping
+                  ? (ar ? "متابعة وتنفيذ جميع طلبات تنظيف الغرف وتغيير المفارش والتعقيم" : "Track and manage room cleaning, linen changes, and housekeeping requests")
+                  : isOnlyMaintenance
+                    ? (ar ? "متابعة وإصلاح أعطال الغرف والمرافق والسباكة والكهرباء والتكييف" : "Track and resolve room repairs, HVAC, electrical, and plumbing issues")
+                    : (ar ? "المنصة المركزية لإدارة وتتبع كافة تذاكر الصيانة والهاوس كيبنج والخدمات" : "Unified central hub for tracking maintenance, housekeeping, and facility tickets")}
+              </p>
+            </div>
           </div>
 
-          {/* Quick tab filters when user has access to both */}
+          {/* Top Quick Segmented Tabs for Category (Linear style) */}
           {hasBoth && (
-            <div className="flex items-center gap-1.5 p-1 bg-muted/60 border rounded-xl shadow-xs self-start sm:self-auto">
+            <div className="flex items-center gap-1 p-1 bg-muted/80 dark:bg-muted/40 border rounded-xl shadow-xs self-start md:self-auto overflow-x-auto max-w-full">
               <button
                 type="button"
                 onClick={() => {
                   setCategoryFilter("all");
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
                   categoryFilter === "all"
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
                 }`}
               >
-                {ar ? "كل الطلبات" : "All"}
+                <Layers className="w-3.5 h-3.5" />
+                <span>{ar ? "كل التذاكر" : "All Tickets"}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  categoryFilter === "all"
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {totalCount}
+                </span>
               </button>
+
               <button
                 type="button"
                 onClick={() => {
                   setCategoryFilter("maintenance");
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
                   categoryFilter === "maintenance"
                     ? "bg-amber-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
                 }`}
               >
                 <Wrench className="w-3.5 h-3.5" />
-                {ar ? "الصيانة" : "Maintenance"}
+                <span>{ar ? "الصيانة" : "Maintenance"}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  categoryFilter === "maintenance"
+                    ? "bg-white/20 text-white"
+                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                }`}>
+                  {maintenanceCount}
+                </span>
               </button>
+
               <button
                 type="button"
                 onClick={() => {
                   setCategoryFilter("housekeeping");
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
                   categoryFilter === "housekeeping"
                     ? "bg-sky-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                {ar ? "الهاوس كيبنج" : "Housekeeping"}
+                <span>{ar ? "الهاوس كيبنج" : "Housekeeping"}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  categoryFilter === "housekeeping"
+                    ? "bg-white/20 text-white"
+                    : "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
+                }`}>
+                  {housekeepingCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryFilter("general");
+                  setCurrentPage(1);
+                }}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
+                  categoryFilter === "general"
+                    ? "bg-slate-700 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>{ar ? "عام" : "General"}</span>
+                {generalCount > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    categoryFilter === "general"
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
+                  }`}>
+                    {generalCount}
+                  </span>
+                )}
               </button>
             </div>
           )}
-
-          {isOnlyHousekeeping && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-xl text-xs font-semibold text-sky-700 dark:text-sky-300">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{ar ? "صلاحية طلبات الهاوس كيبنج فقط" : "Housekeeping Tickets Only"}</span>
-            </div>
-          )}
-
-          {isOnlyMaintenance && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300">
-              <Wrench className="w-3.5 h-3.5" />
-              <span>{ar ? "صلاحية طلبات الصيانة فقط" : "Maintenance Tickets Only"}</span>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Analytics Cards */}
-      <div className="px-4 sm:px-6 pb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-sm">
-          <span className="text-sm font-medium text-muted-foreground">{ar ? "إجمالي التذاكر" : "Total Tickets"}</span>
-          <span className="text-3xl font-bold mt-2">{totalCount}</span>
+      {/* Role Awareness Context Banner */}
+      <div className="px-4 sm:px-6">
+        {hasBoth ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-gradient-to-r from-muted/60 via-muted/40 to-muted/60 border shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <span>{ar ? "وضع الإدارة الشاملة (مركز العمليات الموحد)" : "Unified Operations Hub (Management Mode)"}</span>
+                  <Badge variant="outline" className="text-[10px] font-medium py-0 px-1.5 bg-background">
+                    {ar ? "كامل الصلاحيات" : "All Access"}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {ar
+                    ? "معروض لك كافة بلاغات الصيانة، طلبات الهاوس كيبنج، والخدمات العامة لجميع الفنادق"
+                    : "Displaying all maintenance work orders, housekeeping orders, and general requests across hotels"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline">
+                {ar ? "الأقسام المتاحة:" : "Active Modules:"}
+              </span>
+              <Badge variant="outline" className="gap-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 text-[10px]">
+                <Wrench className="w-3 h-3" />
+                {ar ? "صيانة" : "Maintenance"}
+              </Badge>
+              <Badge variant="outline" className="gap-1 bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800 text-[10px]">
+                <Sparkles className="w-3 h-3" />
+                {ar ? "هاوس كيبنج" : "Housekeeping"}
+              </Badge>
+            </div>
+          </div>
+        ) : isOnlyHousekeeping ? (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                  <span>{ar ? "قسم الهاوس كيبنج والنظافة" : "Housekeeping Department Workspace"}</span>
+                  <Badge className="text-[10px] font-medium py-0 px-1.5 bg-sky-600 text-white">
+                    {ar ? "محدد للهاوس كيبنج" : "Housekeeping View"}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-sky-700/80 dark:text-sky-300/80 mt-0.5">
+                  {ar
+                    ? "معروض لك حصرياً طلبات وأوامر تنظيف ونظافة الغرف والكتان والمستلزمات"
+                    : "Displaying room cleaning, linen turnover, and amenities orders exclusively"}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : isOnlyMaintenance ? (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300">
+                <Wrench className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                  <span>{ar ? "قسم الصيانة والأعطال الفنية" : "Maintenance Department Workspace"}</span>
+                  <Badge className="text-[10px] font-medium py-0 px-1.5 bg-amber-600 text-white">
+                    {ar ? "محدد للصيانة" : "Maintenance View"}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80 mt-0.5">
+                  {ar
+                    ? "معروض لك حصرياً بلاغات وأعطال الصيانة (سباكة، كهرباء، تكييف، أثاث)"
+                    : "Displaying plumbing, electrical, HVAC, and repair work orders exclusively"}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Analytics KPI Cards (Tremor / Shadcn Style) */}
+      <div className="px-4 sm:px-6 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="bg-card border rounded-xl p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">
+              {ar ? "إجمالي التذاكر" : "Total Tickets"}
+            </span>
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-foreground">
+              {totalCount}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
+              <span>{paged.length} {ar ? "في هذه الصفحة" : "on page"}</span>
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-muted-foreground">
+            <Layers className="w-5 h-5" />
+          </div>
         </div>
-        <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-sm">
-          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{ar ? "مفتوحة" : "Open"}</span>
-          <span className="text-3xl font-bold mt-2 text-blue-700 dark:text-blue-300">{openCount}</span>
+
+        <div className="bg-card border border-blue-200/60 dark:border-blue-900/40 rounded-xl p-4 shadow-xs flex items-center justify-between bg-gradient-to-br from-blue-50/40 to-transparent dark:from-blue-950/20">
+          <div>
+            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+              {ar ? "مفتوحة وجديدة" : "Open Tickets"}
+            </span>
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-blue-700 dark:text-blue-300">
+              {openCount}
+            </div>
+            <div className="text-[11px] text-blue-600/80 dark:text-blue-400/80 mt-1 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+              <span>{ar ? "تحتاج اتخاذ إجراء" : "Requires action"}</span>
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <AlertCircle className="w-5 h-5" />
+          </div>
         </div>
-        <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-sm">
-          <span className="text-sm font-medium text-purple-600 dark:text-purple-400">{ar ? "قيد التنفيذ" : "In Progress"}</span>
-          <span className="text-3xl font-bold mt-2 text-purple-700 dark:text-purple-300">{inProgressCount}</span>
+
+        <div className="bg-card border border-amber-200/60 dark:border-amber-900/40 rounded-xl p-4 shadow-xs flex items-center justify-between bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
+          <div>
+            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+              {ar ? "قيد التنفيذ" : "In Progress"}
+            </span>
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-amber-700 dark:text-amber-300">
+              {inProgressCount}
+            </div>
+            <div className="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-1 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+              <span>{ar ? "العمل جاري عليها" : "Currently active"}</span>
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <Play className="w-5 h-5" />
+          </div>
         </div>
-        <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-sm">
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{ar ? "مغلقة" : "Closed"}</span>
-          <span className="text-3xl font-bold mt-2 text-gray-700 dark:text-gray-300">{closedCount}</span>
+
+        <div className="bg-card border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl p-4 shadow-xs flex items-center justify-between bg-gradient-to-br from-emerald-50/40 to-transparent dark:from-emerald-950/20">
+          <div>
+            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              {ar ? "مكتملة ومغلقة" : "Resolved / Closed"}
+            </span>
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-emerald-700 dark:text-emerald-300">
+              {resolvedCount + closedCount}
+            </div>
+            <div className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+              <span>{ar ? "تم إنجازها بنجاح" : "Completed successfully"}</span>
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
-      {/* FilterBar */}
-      <div className="px-4 sm:px-6 pb-4">
+      {/* FilterBar & Toolbar */}
+      <div className="px-4 sm:px-6">
         <MaintenanceFilterBar
           ar={ar}
           properties={properties || []}
@@ -890,19 +1073,33 @@ export default function Tickets() {
         />
       </div>
 
-      {/* Column Chooser */}
-      <div className="px-4 sm:px-6 pb-4 flex justify-end">
-        <ColumnChooser
-          cols={COLS}
-          visible={visible}
-          onToggle={toggle}
-          onShowAll={showAll}
-          onHideAll={hideAll}
-          ar={ar}
-        />
+      {/* Column Chooser & Quick Actions */}
+      <div className="px-4 sm:px-6 flex items-center justify-between">
+        <div className="text-xs text-muted-foreground font-medium">
+          {ar ? `عرض ${paged.length} من أصل ${totalCount} تذكرة` : `Showing ${paged.length} of ${totalCount} tickets`}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportExcel}
+            className="text-xs gap-1.5 h-8 font-medium"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>{ar ? "تصدير Excel" : "Export Excel"}</span>
+          </Button>
+          <ColumnChooser
+            cols={COLS}
+            visible={visible}
+            onToggle={toggle}
+            onShowAll={showAll}
+            onHideAll={hideAll}
+            ar={ar}
+          />
+        </div>
       </div>
 
-      {/* New Request Dialog */}
+      {/* New Ticket Dialog */}
       <Dialog
         open={isOpen}
         onOpenChange={(v) => {
@@ -911,20 +1108,21 @@ export default function Tickets() {
         }}
       >
         <DialogContent
-          className="max-w-md"
-          srTitle={ar ? "طلب جديد" : "New Request"}
+          className="max-w-md sm:max-w-lg"
+          srTitle={ar ? "إنشاء طلب جديد" : "Create New Ticket"}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5" />
-              {ar ? "طلب جديد" : "New Request"}
+              <Plus className="w-5 h-5 text-primary" />
+              {ar ? "إنشاء طلب / تذكرة جديدة" : "Create New Ticket"}
             </DialogTitle>
           </DialogHeader>
+
           <div className="space-y-4 pt-2">
             {/* Property Selector */}
             {properties.length > 1 && (
               <div className="space-y-1.5">
-                <Label>
+                <Label className="text-xs font-semibold">
                   {ar ? "الفندق / العقار" : "Hotel / Property"} <span className="text-red-500">*</span>
                 </Label>
                 <Select
@@ -948,42 +1146,122 @@ export default function Tickets() {
               </div>
             )}
 
+            {/* Category Selector (if multiple allowed) */}
             <div className="space-y-1.5">
-              <Label>
-                {ar ? "النوع" : "Type"} <span className="text-red-500">*</span>
+              <Label className="text-xs font-semibold">
+                {ar ? "نوع الطلب والقسم المختص" : "Ticket Category & Department"} <span className="text-red-500">*</span>
+              </Label>
+              {allowedCreateCategories.length > 1 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        category: "maintenance",
+                        problemType: "Plumbing",
+                      }))
+                    }
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      form.category === "maintenance"
+                        ? "bg-amber-500/15 border-amber-500 text-amber-800 dark:text-amber-300 shadow-xs ring-1 ring-amber-500"
+                        : "bg-background hover:bg-muted/50 text-muted-foreground"
+                    }`}
+                  >
+                    <Wrench className="w-4 h-4 text-amber-600" />
+                    <span>{ar ? "صيانة فنية" : "Maintenance"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        category: "housekeeping",
+                        problemType: "room_cleaning",
+                      }))
+                    }
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      form.category === "housekeeping"
+                        ? "bg-sky-500/15 border-sky-500 text-sky-800 dark:text-sky-300 shadow-xs ring-1 ring-sky-500"
+                        : "bg-background hover:bg-muted/50 text-muted-foreground"
+                    }`}
+                  >
+                    <Sparkles className="w-4 h-4 text-sky-600" />
+                    <span>{ar ? "هاوس كيبنج" : "Housekeeping"}</span>
+                  </button>
+                  {allowedCreateCategories.includes("general") && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          category: "general",
+                          problemType: "general_inquiry",
+                        }))
+                      }
+                      className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                        form.category === "general"
+                          ? "bg-purple-500/15 border-purple-500 text-purple-800 dark:text-purple-300 shadow-xs ring-1 ring-purple-500"
+                          : "bg-background hover:bg-muted/50 text-muted-foreground"
+                      }`}
+                    >
+                      <FileText className="w-4 h-4 text-purple-600" />
+                      <span>{ar ? "طلب عام" : "General"}</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/60 border text-xs font-semibold">
+                  {form.category === "housekeeping" ? (
+                    <>
+                      <Sparkles className="w-4 h-4 text-sky-600" />
+                      <span>{ar ? "طلب هاوس كيبنج ونظافة" : "Housekeeping Order"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="w-4 h-4 text-amber-600" />
+                      <span>{ar ? "بلاغ صيانة وعطل فني" : "Maintenance Work Order"}</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Dynamic Problem Type based on category */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                {form.category === "housekeeping"
+                  ? (ar ? "نوع خدمة النظافة" : "Housekeeping Service Type")
+                  : form.category === "maintenance"
+                    ? (ar ? "نوع المشكلة والعطل" : "Issue / Problem Type")
+                    : (ar ? "التصنيف" : "Classification")}{" "}
+                <span className="text-red-500">*</span>
               </Label>
               <Select
-                value={form.category}
-                disabled={allowedCreateCategories.length <= 1}
-                onValueChange={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    category: v,
-                    problemType: v === "general" ? "general" : f.problemType,
-                  }))
-                }
+                value={form.problemType}
+                onValueChange={(v) => setForm((f) => ({ ...f, problemType: v }))}
               >
                 <SelectTrigger>
-                  <SelectValue
-                    placeholder={ar ? "اختر النوع" : "Select type"}
-                  />
+                  <SelectValue placeholder={ar ? "اختر النوع..." : "Select type..."} />
                 </SelectTrigger>
-                <SelectContent>
-                  {allowedCreateCategories.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      <span className="flex items-center gap-2">
-                        {CATEGORY_ICONS[c]}
-                        {ar
-                          ? CATEGORIES_AR[c]
-                          : c.charAt(0).toUpperCase() + c.slice(1)}
-                      </span>
+                <SelectContent position="popper" sideOffset={4} className="max-h-64 overflow-y-auto">
+                  {(form.category === "housekeeping"
+                    ? HOUSEKEEPING_ORDER_TYPES
+                    : form.category === "maintenance"
+                      ? MAINTENANCE_PROBLEM_TYPES
+                      : GENERAL_PROBLEM_TYPES
+                  ).map((item) => (
+                    <SelectItem key={item.key} value={item.key}>
+                      {ar ? item.labelAr : item.labelEn}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Room Selector */}
             <div className="space-y-1.5">
-              <Label>
+              <Label className="text-xs font-semibold">
                 {ar ? "الغرفة" : "Room"} <span className="text-red-500">*</span>
               </Label>
               <Select
@@ -991,53 +1269,34 @@ export default function Tickets() {
                 onValueChange={(v) => setForm((f) => ({ ...f, roomId: v }))}
               >
                 <SelectTrigger>
-                  <SelectValue
-                    placeholder={ar ? "اختر الغرفة" : "Select room"}
-                  />
+                  <SelectValue placeholder={ar ? "اختر الغرفة..." : "Select room..."} />
                 </SelectTrigger>
-                <SelectContent
-                  position="popper"
-                  sideOffset={4}
-                  className="max-h-64 overflow-y-auto"
-                >
-                  {(modalRooms.length > 0 ? modalRooms : rooms)?.map((r) => (
+                <SelectContent position="popper" sideOffset={4} className="max-h-64 overflow-y-auto">
+                  {(modalRooms.length > 0 ? modalRooms : rooms)?.map((r: any) => (
                     <SelectItem key={r.id} value={String(r.id)}>
-                      {ar ? "الغرفة" : "Room"} {r.roomNumber}
+                      <span className="flex items-center justify-between w-full gap-3">
+                        <span>{ar ? "الغرفة" : "Room"} {r.roomNumber}</span>
+                        {roomOccupantMap[r.id] && (
+                          <span className="text-[11px] text-muted-foreground font-normal">
+                            ({roomOccupantMap[r.id]})
+                          </span>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {form.roomId && roomOccupantMap[Number(form.roomId)] && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                  <span>{ar ? "النزيل المقيم:" : "Current Occupant:"} <strong>{roomOccupantMap[Number(form.roomId)]}</strong></span>
+                </p>
+              )}
             </div>
-            {form.category !== "general" && (
-              <div className="space-y-1.5">
-                <Label>{ar ? "نوع المشكلة" : "Problem Type"}</Label>
-                <Select
-                  value={form.problemType}
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, problemType: v }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={ar ? "اختر النوع" : "Select type"}
-                    />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    sideOffset={4}
-                    className="max-h-64 overflow-y-auto"
-                  >
-                    {PROBLEM_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {ar ? PROBLEM_TYPES_AR[t] : t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+
+            {/* Priority */}
             <div className="space-y-1.5">
-              <Label>{ar ? "الأولوية" : "Priority"}</Label>
+              <Label className="text-xs font-semibold">{ar ? "الأولوية" : "Priority"}</Label>
               <Select
                 value={form.priority}
                 onValueChange={(v) => setForm((f) => ({ ...f, priority: v }))}
@@ -1048,19 +1307,32 @@ export default function Tickets() {
                 <SelectContent position="popper" sideOffset={4}>
                   {PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p}>
-                      {ar ? PRIORITY_AR[p] : p}
+                      <span className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${
+                          p === "URGENT" ? "bg-red-500" :
+                          p === "HIGH" ? "bg-orange-500" :
+                          p === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
+                        }`} />
+                        <span>{ar ? PRIORITY_AR[p] : p}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Description */}
             <div className="space-y-1.5">
-              <Label>
-                {ar ? "الوصف" : "Description"}{" "}
+              <Label className="text-xs font-semibold">
+                {ar ? "تفاصيل الطلب / المشكلة" : "Description & Details"}{" "}
                 <span className="text-red-500">*</span>
               </Label>
               <Textarea
-                placeholder={ar ? "صف المشكلة..." : "Describe the issue..."}
+                placeholder={
+                  form.category === "housekeeping"
+                    ? (ar ? "اكتب تفاصيل طلب النظافة أو المستلزمات المطلوبة..." : "Describe cleaning or amenities requested...")
+                    : (ar ? "صف المشكلة أو العطل بدقة..." : "Describe the maintenance issue...")
+                }
                 value={form.description}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, description: e.target.value }))
@@ -1068,9 +1340,10 @@ export default function Tickets() {
                 rows={3}
               />
             </div>
+
             {/* Photo Upload */}
             <div className="space-y-1.5">
-              <Label>{ar ? "صورة (اختياري)" : "Photo (optional)"}</Label>
+              <Label className="text-xs font-semibold">{ar ? "صورة مرفقة (اختياري)" : "Attach Photo (Optional)"}</Label>
               <div className="flex items-center gap-3">
                 {formPhotoUrl ? (
                   <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
@@ -1079,6 +1352,13 @@ export default function Tickets() {
                       alt=""
                       className="w-full h-full object-cover"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setFormPhotoUrl("")}
+                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
@@ -1112,6 +1392,8 @@ export default function Tickets() {
                 )}
               </div>
             </div>
+
+            {/* Actions */}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" onClick={() => setIsOpen(false)}>
                 {ar ? "إلغاء" : "Cancel"}
@@ -1119,23 +1401,23 @@ export default function Tickets() {
               <Button onClick={onSubmit} disabled={createMutation.isPending}>
                 {createMutation.isPending
                   ? ar
-                    ? "جاري الإنشاء..."
-                    : "Creating..."
+                    ? "جاري الحفظ..."
+                    : "Saving..."
                   : ar
-                    ? "إنشاء"
-                    : "Create"}
+                    ? "إنشاء الطلب"
+                    : "Create Ticket"}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Table */}
+      {/* Table Section */}
       {isLoading ? (
         <Skeleton className="h-64 w-full mx-4 sm:mx-6" />
       ) : (
         <div className="px-4 sm:px-6 pb-6 space-y-4">
-          {/* Bulk action bar */}
+          {/* Bulk Action Bar */}
           <BulkActionBar
             count={selectedTicketIds.size}
             onClear={() => setSelectedTicketIds(new Set())}
@@ -1200,26 +1482,26 @@ export default function Tickets() {
             ar={ar}
           />
 
-          <div className="border rounded-lg bg-card overflow-hidden">
+          <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30">
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="w-10 px-3">
                     <Checkbox
                       checked={
                         paged.length > 0 &&
-                        paged.every((t) => selectedTicketIds.has(t.id))
+                        paged.every((t: any) => selectedTicketIds.has(t.id))
                       }
                       onCheckedChange={(checked) => {
                         setSelectedTicketIds(
                           checked
                             ? new Set([
                                 ...selectedTicketIds,
-                                ...paged.map((t) => t.id),
+                                ...paged.map((t: any) => t.id),
                               ])
                             : new Set(
                                 Array.from(selectedTicketIds).filter(
-                                  (id) => !paged.some((t) => t.id === id),
+                                  (id) => !paged.some((t: any) => t.id === id),
                                 ),
                               ),
                         );
@@ -1238,17 +1520,17 @@ export default function Tickets() {
                   )}
                   {isVisible("problemType") && (
                     <TableHead className="font-semibold">
-                      {ar ? "المشكلة" : "Problem"}
+                      {ar ? "المشكلة / الخدمة" : "Problem / Service"}
                     </TableHead>
                   )}
                   {isVisible("name") && (
                     <TableHead className="font-semibold">
-                      {ar ? "الاسم" : "Name"}
+                      {ar ? "النزيل المقيم" : "Occupant"}
                     </TableHead>
                   )}
                   {isVisible("category") && (
                     <TableHead className="font-semibold">
-                      {ar ? "النوع" : "Type"}
+                      {ar ? "القسم" : "Category"}
                     </TableHead>
                   )}
                   {isVisible("priority") && (
@@ -1263,17 +1545,7 @@ export default function Tickets() {
                   )}
                   {isVisible("reported") && (
                     <TableHead className="font-semibold">
-                      {ar ? "الإبلاغ" : "Reported"}
-                    </TableHead>
-                  )}
-                  {isVisible("started") && (
-                    <TableHead className="font-semibold">
-                      {ar ? "بدأ" : "Started"}
-                    </TableHead>
-                  )}
-                  {isVisible("resolved") && (
-                    <TableHead className="font-semibold">
-                      {ar ? "الحل" : "Resolved"}
+                      {ar ? "تاريخ الإبلاغ" : "Reported"}
                     </TableHead>
                   )}
                   {isVisible("duration") && (
@@ -1282,15 +1554,15 @@ export default function Tickets() {
                     </TableHead>
                   )}
                   {isVisible("actions") && (
-                    <TableHead className="font-semibold">
+                    <TableHead className="font-semibold text-end">
                       {ar ? "إجراءات" : "Actions"}
                     </TableHead>
                   )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paged.map((req) => (
-                  <TableRow key={req.id} className="hover:bg-muted/20">
+                {paged.map((req: any) => (
+                  <TableRow key={req.id} className="hover:bg-muted/20 transition-colors">
                     <TableCell className="w-10 px-3">
                       <Checkbox
                         checked={selectedTicketIds.has(req.id)}
@@ -1304,140 +1576,135 @@ export default function Tickets() {
                         }}
                       />
                     </TableCell>
+
                     {isVisible("id") && (
-                      <TableCell className="font-mono text-sm font-semibold text-muted-foreground">
+                      <TableCell className="font-mono text-xs font-semibold text-muted-foreground">
                         #{req.id}
                       </TableCell>
                     )}
+
                     {isVisible("room") && (
                       <TableCell className="font-medium whitespace-nowrap">
                         <div className="flex flex-col">
-                          <span>
+                          <span className="font-semibold text-foreground">
                             {ar ? "الغرفة" : "Room"}{" "}
                             {req.roomNumber || roomMap[req.roomId] || req.roomId}
                           </span>
                           {(req.propertyName || (properties.length > 1 && req.propertyId)) && (
                             <span className="text-[10px] text-muted-foreground font-normal">
                               {req.propertyName ||
-                                properties.find((p) => p.id === req.propertyId)?.displayName ||
-                                properties.find((p) => p.id === req.propertyId)?.name}
+                                properties.find((p: any) => p.id === req.propertyId)?.displayName ||
+                                properties.find((p: any) => p.id === req.propertyId)?.name}
                             </span>
                           )}
                         </div>
                       </TableCell>
                     )}
+
                     {isVisible("problemType") && (
-                      <TableCell className="text-sm">
-                        {ar
-                          ? (PROBLEM_TYPES_AR[req.problemType] ??
-                            req.problemType)
-                          : req.problemType || (
-                              <span className="text-muted-foreground/50">
-                                —
-                              </span>
-                            )}
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col max-w-[200px]">
+                          <span className="font-semibold text-foreground truncate">
+                            {ar
+                              ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
+                              : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType || "—")}
+                          </span>
+                          {req.description && (
+                            <span className="text-[11px] text-muted-foreground line-clamp-1">
+                              {req.description}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     )}
+
                     {isVisible("name") && (
-                      <TableCell className="text-sm">
-                        {roomOccupantMap[req.roomId] || (
+                      <TableCell className="text-xs">
+                        {roomOccupantMap[req.roomId] ? (
+                          <span className="font-medium text-foreground">
+                            {roomOccupantMap[req.roomId]}
+                          </span>
+                        ) : (
                           <span className="text-muted-foreground/50">—</span>
                         )}
                       </TableCell>
                     )}
+
                     {isVisible("category") && (
                       <TableCell>
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${categoryColor(req.category)}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${categoryColor(req.category)}`}
                         >
-                          {CATEGORY_ICONS[req.category]}
-                          {ar
-                            ? (CATEGORIES_AR[req.category] ?? req.category)
-                            : req.category}
+                          {CATEGORY_ICONS[req.category] || <FileText className="w-3.5 h-3.5" />}
+                          <span>
+                            {ar
+                              ? (CATEGORIES_AR[req.category] ?? req.category)
+                              : req.category}
+                          </span>
                         </span>
                       </TableCell>
                     )}
+
                     {isVisible("priority") && (
                       <TableCell>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-semibold ${priorityColor(req.priority)}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityColor(req.priority)}`}
                         >
-                          {ar
-                            ? (PRIORITY_AR[req.priority?.toUpperCase()] ??
-                              PRIORITY_AR[req.priority] ??
-                              req.priority)
-                            : req.priority
-                              ? req.priority.charAt(0).toUpperCase() +
-                                req.priority.slice(1).toLowerCase()
-                              : req.priority}
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            (req.priority || "").toUpperCase() === "URGENT" ? "bg-red-600 animate-pulse" :
+                            (req.priority || "").toUpperCase() === "HIGH" ? "bg-orange-500" :
+                            (req.priority || "").toUpperCase() === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
+                          }`} />
+                          <span>
+                            {ar
+                              ? (PRIORITY_AR[req.priority?.toUpperCase()] ?? req.priority)
+                              : req.priority
+                                ? req.priority.charAt(0).toUpperCase() + req.priority.slice(1).toLowerCase()
+                                : req.priority}
+                          </span>
                         </span>
                       </TableCell>
                     )}
+
                     {isVisible("status") && (
                       <TableCell>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor(req.status)}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${statusColor(req.status)}`}
                         >
-                          {ar
-                            ? (STATUS_AR[req.status?.toLowerCase()] ??
-                              req.status)
-                            : (req.status || "")
-                                .replace(/_/g, " ")
-                                .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            req.status === "open" ? "bg-blue-500" :
+                            req.status === "in_progress" ? "bg-amber-500" :
+                            req.status === "resolved" ? "bg-emerald-500" : "bg-slate-400"
+                          }`} />
+                          <span>
+                            {ar
+                              ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
+                              : (req.status || "")
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          </span>
                         </span>
                       </TableCell>
                     )}
+
                     {isVisible("reported") && (
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="font-medium text-foreground">
                             {formatDate(req.reportedAt)}
                           </span>
-                          <span className="text-muted-foreground">
-                            {format(new Date(req.reportedAt), "HH:mm")}
+                          <span className="text-muted-foreground text-[11px]">
+                            {req.reportedAt ? format(new Date(req.reportedAt), "HH:mm") : ""}
                           </span>
                         </div>
                       </TableCell>
                     )}
-                    {isVisible("started") && (
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {req.startedAt ? (
-                          <div className="flex flex-col">
-                            <span className="flex items-center gap-1 font-medium text-foreground">
-                              <Play className="w-3 h-3 text-purple-500" />
-                              {formatDate(req.startedAt)}
-                            </span>
-                            <span className="pl-4 text-muted-foreground">
-                              {format(new Date(req.startedAt), "HH:mm")}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isVisible("resolved") && (
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {req.resolvedAt ? (
-                          <div className="flex flex-col">
-                            <span className="flex items-center gap-1 font-medium text-foreground">
-                              <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {formatDate(req.resolvedAt)}
-                            </span>
-                            <span className="pl-4 text-muted-foreground">
-                              {format(new Date(req.resolvedAt), "HH:mm")}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
-                      </TableCell>
-                    )}
+
                     {isVisible("duration") && (
                       <TableCell>
                         {req.startedAt || req.reportedAt ? (
                           <span
-                            className={`text-xs font-bold ${getDurationColor(req.startedAt, req.resolvedAt, req.reportedAt)}`}
+                            className={`text-xs ${getDurationColor(req.startedAt, req.resolvedAt, req.reportedAt)}`}
                           >
                             {formatDuration(
                               req.startedAt,
@@ -1446,33 +1713,33 @@ export default function Tickets() {
                             )}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground/50 text-xs">
-                            —
-                          </span>
+                          <span className="text-muted-foreground/50 text-xs">—</span>
                         )}
                       </TableCell>
                     )}
 
                     {isVisible("actions") && (
-                      <TableCell>
-                        <div className="flex items-center gap-1">
+                      <TableCell className="text-end">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 w-7 p-0"
+                            className="h-7 px-2.5 text-xs gap-1"
                             onClick={() => handleSelectTicket(req.id)}
-                            title={ar ? "عرض كامل" : "View full"}
+                            title={ar ? "عرض التفاصيل" : "View Details"}
                           >
                             <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">{ar ? "تفاصيل" : "View"}</span>
                           </Button>
                           {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              className="h-7 w-7 text-muted-foreground hover:text-red-600"
                               onClick={() => setDeleteId(req.id)}
+                              title={ar ? "حذف" : "Delete"}
                             >
-                              <Trash className="w-3.5 h-3.5 text-red-500" />
+                              <Trash className="w-3.5 h-3.5" />
                             </Button>
                           )}
                         </div>
@@ -1480,35 +1747,47 @@ export default function Tickets() {
                     )}
                   </TableRow>
                 ))}
+
                 {filtered.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={visible.size}
+                      colSpan={visible.size + 1}
                       className="py-16 text-center"
                     >
                       <div className="flex flex-col items-center justify-center space-y-3">
-                        <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-2">
-                          <Wrench className="w-8 h-8 text-muted-foreground/50" />
+                        <div className="w-16 h-16 bg-muted/60 rounded-full flex items-center justify-center mb-2">
+                          {categoryFilter === "housekeeping" ? (
+                            <Sparkles className="w-8 h-8 text-sky-500/60" />
+                          ) : (
+                            <Wrench className="w-8 h-8 text-amber-500/60" />
+                          )}
                         </div>
-                        <p className="text-lg font-semibold text-foreground">
-                          {ar ? "لم يتم العثور على تذاكر" : "No tickets found"}
+                        <p className="text-base font-bold text-foreground">
+                          {categoryFilter === "housekeeping"
+                            ? (ar ? "لا توجد طلبات هاوس كيبنج حالياً" : "No housekeeping orders found")
+                            : categoryFilter === "maintenance"
+                              ? (ar ? "لا توجد بلاغات صيانة حالياً" : "No maintenance orders found")
+                              : (ar ? "لم يتم العثور على أي تذاكر مطابقة" : "No tickets found")}
                         </p>
-                        <p className="text-sm text-muted-foreground max-w-sm text-center">
+                        <p className="text-xs text-muted-foreground max-w-sm text-center">
                           {ar
-                            ? "يبدو أنه لا توجد تذاكر تطابق معايير البحث الخاصة بك. جرب تغيير الفلاتر أو أنشئ تذكرة جديدة."
-                            : "It looks like there are no tickets matching your search criteria. Try changing the filters or create a new ticket."}
+                            ? "لا توجد تذاكر تطابق معايير البحث الحالية. يمكنك مسح الفلاتر أو إنشاء طلب جديد."
+                            : "There are no tickets matching your active filter criteria. Try clearing filters or create a new ticket."}
                         </p>
                         <Button
                           variant="outline"
-                          className="mt-4"
+                          size="sm"
+                          className="mt-2 text-xs"
                           onClick={() => {
                             setSearchTerm("");
-                            setCategoryFilter("all");
+                            if (!isOnlyHousekeeping && !isOnlyMaintenance) {
+                              setCategoryFilter("all");
+                            }
                             setStatusFilter("all");
                             setPriorityFilter("");
                           }}
                         >
-                          {ar ? "مسح الفلاتر" : "Clear Filters"}
+                          {ar ? "مسح جميع الفلاتر" : "Clear All Filters"}
                         </Button>
                       </div>
                     </TableCell>
@@ -1516,6 +1795,7 @@ export default function Tickets() {
                 )}
               </TableBody>
             </Table>
+
             {paginationData.total > 0 && (
               <DataPagination
                 total={paginationData.total}
@@ -1532,7 +1812,7 @@ export default function Tickets() {
         </div>
       )}
 
-      {/* Photo Lightbox */}
+      {/* Lightbox */}
       <Dialog
         open={!!photoDialog}
         onOpenChange={(open) => {
@@ -1563,12 +1843,12 @@ export default function Tickets() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {ar ? "حذف الطلب؟" : "Delete Request?"}
+              {ar ? "تأكيد حذف التذكرة؟" : "Delete Ticket?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {ar
-                ? "لا يمكن التراجع عن هذا الإجراء."
-                : "This action cannot be undone."}
+                ? "هل أنت متأكد من رغبتك في حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
+                : "Are you sure you want to delete this ticket? This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1579,7 +1859,7 @@ export default function Tickets() {
                 deleteId && deleteMutation.mutate({ id: deleteId })
               }
             >
-              {ar ? "حذف" : "Delete"}
+              {ar ? "حذف التذكرة" : "Delete Ticket"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1587,7 +1867,7 @@ export default function Tickets() {
 
       {/* Ticket Detail Modal */}
       {(() => {
-        const selectedTicket = allTickets?.find((t) => t.id === selectedTicketId);
+        const selectedTicket = allTickets?.find((t: any) => t.id === selectedTicketId);
         const canEditSelectedTicket = isSuperAdmin || isAdmin || (selectedTicket?.category === "housekeeping" ? canEditHsk : canEditMnt);
         return (
           <TicketDetailModal
@@ -1598,7 +1878,7 @@ export default function Tickets() {
             ar={ar}
             canEdit={canEditSelectedTicket}
             onStatusChange={(id, data) => {
-              const targetTicket = allTickets?.find((t) => t.id === id);
+              const targetTicket = allTickets?.find((t: any) => t.id === id);
               const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
               updateMutation.mutate({
                 id,
@@ -1609,7 +1889,7 @@ export default function Tickets() {
               });
             }}
             onAssignChange={(id, empId) => {
-              const targetTicket = allTickets?.find((t) => t.id === id);
+              const targetTicket = allTickets?.find((t: any) => t.id === id);
               const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
               updateMutation.mutate({
                 id,
@@ -1624,7 +1904,7 @@ export default function Tickets() {
             onCreateSubTicket={
               canEditSelectedTicket
                 ? (parentId, data) => {
-                    const parentTicket = allTickets?.find((t) => t.id === parentId);
+                    const parentTicket = allTickets?.find((t: any) => t.id === parentId);
                     const pId = parentTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
                     createMutation.mutate({
                       data: {
