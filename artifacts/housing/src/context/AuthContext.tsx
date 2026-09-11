@@ -19,6 +19,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import type { User } from "@workspace/api-client-react";
 
@@ -50,47 +51,62 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ─── Token helpers ─────────────────────────────────────────────────────────
 export function getStoredToken(): string | null {
-  // localStorage first (keepLoggedIn), then sessionStorage
-  return (
-    localStorage.getItem("auth_token") ?? sessionStorage.getItem("auth_token")
-  );
+  try {
+    return (
+      localStorage.getItem("session_id") ??
+      sessionStorage.getItem("session_id") ??
+      localStorage.getItem("auth_token") ??
+      sessionStorage.getItem("auth_token")
+    );
+  } catch {
+    return null;
+  }
 }
 
-export function storeToken(token?: string | null, persistent?: boolean): void {
+export function storeToken(token?: string | null, persistent: boolean = true): void {
   const val = token || "session_active";
-  sessionStorage.setItem("auth_token", val);
-  if (persistent) localStorage.setItem("auth_token", val);
+  try {
+    sessionStorage.setItem("auth_token", val);
+    sessionStorage.setItem("session_id", val);
+    localStorage.setItem("auth_token", val);
+    localStorage.setItem("session_id", val);
+  } catch {}
 }
 
 export function clearToken(): void {
-  sessionStorage.removeItem("auth_token");
-  localStorage.removeItem("auth_token");
+  try {
+    sessionStorage.removeItem("auth_token");
+    sessionStorage.removeItem("session_id");
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("session_id");
+  } catch {}
 }
 
 // ─── AuthProvider ──────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isTokenPresent, setIsTokenPresent] = useState<boolean>(
-    () => !!getStoredToken(),
-  );
-
+  const queryClient = useQueryClient();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoggingOut = useRef(false);
+  const hadUserRef = useRef(false);
 
   // ─── Logout ───────────────────────────────────────────────────────────
   const logout = useCallback((reason: LogoutReason = "manual") => {
     if (isLoggingOut.current) return;
     isLoggingOut.current = true;
+    hadUserRef.current = false;
 
     clearToken();
-    setIsTokenPresent(false);
 
     // Store reason so login page can display appropriate message
     if (reason !== "manual") {
-      sessionStorage.setItem("auth_logout_reason", reason);
+      try {
+        sessionStorage.setItem("auth_logout_reason", reason);
+      } catch {}
     }
 
+    queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
+
     // Notify backend (fire-and-forget — don't await)
-    // keepalive ensures the request survives the page redirect
     fetch("/api/auth/logout", {
       method: "POST",
       credentials: "include",
@@ -99,8 +115,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       /* ignore */
     });
 
-    window.location.href = "/login";
-  }, []);
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+  }, [queryClient]);
 
   // ─── Inactivity timer ─────────────────────────────────────────────────
   const resetTimer = useCallback(() => {
@@ -110,9 +128,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, INACTIVITY_MS);
   }, [logout]);
 
-  // Arm/disarm activity listeners when auth state changes
+  // ─── Fetch /auth/me ───────────────────────────────────────────────────
+  const {
+    data: user,
+    isLoading,
+    isError,
+    error,
+  } = useGetMe({
+    query: {
+      queryKey: getGetMeQueryKey(),
+      enabled: true,
+      retry: false,
+      refetchInterval: SESSION_CHECK_MS,
+      refetchOnWindowFocus: false,
+    },
+  });
+
+  // Track if user was authenticated
   useEffect(() => {
-    if (!isTokenPresent) return;
+    if (user) {
+      hadUserRef.current = true;
+    }
+  }, [user]);
+
+  // Arm/disarm activity listeners when authenticated
+  useEffect(() => {
+    if (!user) return;
 
     resetTimer(); // start immediately
 
@@ -134,33 +175,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [isTokenPresent, resetTimer]);
+  }, [user, resetTimer]);
 
-  // ─── Fetch /auth/me ───────────────────────────────────────────────────
-  const {
-    data: user,
-    isLoading,
-    isError,
-    error,
-  } = useGetMe({
-    query: {
-      queryKey: getGetMeQueryKey(),
-      enabled: isTokenPresent,
-      retry: (failureCount, err: any) => {
-        // Never retry if 401 (unauthorized) or 403 (forbidden)
-        if (err?.status === 401 || err?.status === 403) return false;
-        // Retry up to 3 times for rate limits (429) or transient network issues
-        return failureCount < 3;
-      },
-      // Re-validate session with server periodically
-      refetchInterval: SESSION_CHECK_MS,
-      refetchOnWindowFocus: true,
-    },
-  });
-
-  // If and ONLY if the server returns 401, token is invalid — logout silently
+  // If and ONLY if the server returns 401 AND user was previously authenticated, token expired — logout
   useEffect(() => {
-    if (isError && (error as any)?.status === 401) {
+    if (hadUserRef.current && isError && (error as any)?.status === 401) {
       logout("unauthorized");
     }
   }, [isError, error, logout]);
@@ -175,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextType = {
     user: typedUser ?? null,
-    isLoading: isLoading && isTokenPresent,
+    isLoading,
     isAuthenticated: !!typedUser,
     isSystemAdmin,
     logout,

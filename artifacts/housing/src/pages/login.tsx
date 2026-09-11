@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth, storeToken } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useLogin } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import {
   Form,
   FormControl,
@@ -24,6 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Login() {
+  const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { language, dir, setLanguage } = useLanguage();
@@ -84,12 +86,19 @@ export default function Login() {
 
   const loginMutation = useLogin({
     mutation: {
-      onSuccess: (data) => {
+      onSuccess: (data: any) => {
         setLockoutMsg(null);
         setRemainingAttempts(null);
-        const token = (data as any)?.token || "session_active";
-        storeToken(token, keepLoggedIn);
-        window.location.href = "/dashboard";
+        const sid =
+          data?.sessionId ||
+          data?.token ||
+          (data?.user?.id ? String(data.user.id) : "session_active");
+        storeToken(sid, keepLoggedIn);
+        if (data?.user) {
+          queryClient.setQueryData(getGetMeQueryKey(), data.user);
+        }
+        toast.success(isAr ? "تم تسجيل الدخول بنجاح" : "Logged in successfully");
+        setLocation("/dashboard");
       },
       onError: (error: any) => {
         // ApiError stores parsed body in error.data, not error.response.data

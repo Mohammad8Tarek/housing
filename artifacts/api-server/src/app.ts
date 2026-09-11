@@ -159,7 +159,7 @@ const SESSION_TIMEOUT_MS = parseInt(
 const sessionStoreType = (
   process.env["SESSION_STORE"] ?? "memory"
 ).toLowerCase();
-let sessionStore: session.Store | undefined;
+let sessionStore: session.Store;
 
 if (sessionStoreType === "postgresql") {
   try {
@@ -177,8 +177,13 @@ if (sessionStoreType === "postgresql") {
       "[Session] Failed to init PostgreSQL store, falling back to MemoryStore:",
       err,
     );
+    sessionStore = new session.MemoryStore();
   }
+} else {
+  sessionStore = new session.MemoryStore();
 }
+
+const isProduction = process.env["NODE_ENV"] === "production";
 
 const sessionMiddleware = session({
   name: "sunrise.sid",
@@ -188,8 +193,9 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   rolling: true,
   cookie: {
+    path: "/",
     httpOnly: true,
-    secure: "auto",
+    secure: process.env["COOKIE_SECURE"] === "true",
     sameSite: "lax",
     maxAge: SESSION_TIMEOUT_MS,
   },
@@ -203,7 +209,41 @@ app.use((req, res, next) => {
   ) {
     return next();
   }
-  return sessionMiddleware(req, res, next);
+  return sessionMiddleware(req, res, () => {
+    // If session already restored by cookie, proceed
+    if ((req.session as any)?.userId || (req.session as any)?.portal) {
+      return next();
+    }
+
+    // Fallback: Check X-Session-Id header or Authorization header
+    const rawSid = (req.headers["x-session-id"] || req.headers["authorization"]?.replace(/^Bearer\s+/i, "")) as string | undefined;
+    let xSid = typeof rawSid === "string" ? rawSid.trim() : "";
+
+    if (!xSid || xSid === "undefined" || xSid === "null" || xSid === "session_active") {
+      return next();
+    }
+
+    // Strip signed cookie prefix if passed
+    if (xSid.startsWith("s%3A") || xSid.startsWith("s:")) {
+      const decoded = decodeURIComponent(xSid).slice(2);
+      const dotIndex = decoded.indexOf(".");
+      if (dotIndex > 0) {
+        xSid = decoded.slice(0, dotIndex);
+      }
+    }
+
+    if (sessionStore && typeof sessionStore.get === "function") {
+      sessionStore.get(xSid, (err, storedSess) => {
+        if (!err && storedSess) {
+          Object.assign(req.session, storedSess);
+          (req as any).sessionID = xSid;
+        }
+        next();
+      });
+    } else {
+      next();
+    }
+  });
 });
 
 // 7. الـ API Routes والـ Middlewares الخاصة بها
