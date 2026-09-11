@@ -210,6 +210,16 @@ app.use((req, res, next) => {
     return next();
   }
   return sessionMiddleware(req, res, () => {
+    if (req.path.startsWith("/api/auth/")) {
+      console.log(`[AUTH_MW_DEBUG] ${req.method} ${req.path}`, {
+        cookie: req.headers.cookie,
+        xSidHeader: req.headers["x-session-id"],
+        authHeader: req.headers["authorization"],
+        sessionID: req.sessionID,
+        sessionUserId: (req.session as any)?.userId,
+      });
+    }
+
     // If session already restored by cookie, proceed
     if ((req.session as any)?.userId || (req.session as any)?.portal) {
       return next();

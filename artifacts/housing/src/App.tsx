@@ -60,7 +60,15 @@ let mutationRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
-    onSuccess: () => {
+    onSuccess: (_data, _variables, _context, mutation) => {
+      // Don't auto-invalidate all queries on auth mutations (login/logout)
+      const mutationKey = mutation.options.mutationKey;
+      if (
+        Array.isArray(mutationKey) &&
+        (mutationKey.includes("login") || mutationKey.includes("logout"))
+      ) {
+        return;
+      }
       if (mutationRefreshTimer) clearTimeout(mutationRefreshTimer);
       mutationRefreshTimer = setTimeout(() => {
         queryClient.invalidateQueries({

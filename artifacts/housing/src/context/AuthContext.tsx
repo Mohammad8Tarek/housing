@@ -138,7 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     query: {
       queryKey: getGetMeQueryKey(),
       enabled: true,
-      retry: false,
+      staleTime: 60 * 1000,
+      retry: 1,
       refetchInterval: SESSION_CHECK_MS,
       refetchOnWindowFocus: false,
     },
@@ -177,12 +178,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [user, resetTimer]);
 
-  // If and ONLY if the server returns 401 AND user was previously authenticated, token expired — logout
+  // When session is lost or 401 occurs, reset local token state gracefully without destructive reload loop
   useEffect(() => {
     if (hadUserRef.current && isError && (error as any)?.status === 401) {
-      logout("unauthorized");
+      hadUserRef.current = false;
+      clearToken();
     }
-  }, [isError, error, logout]);
+  }, [isError, error]);
 
   // ─── Derived values ───────────────────────────────────────────────────
   const typedUser = user as (User & { isSystemAdmin?: boolean }) | undefined;

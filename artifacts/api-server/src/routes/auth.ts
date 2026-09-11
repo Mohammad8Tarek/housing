@@ -330,6 +330,7 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
 // ─── GET /auth/me ─────────────────────────────────────────────────────────
 router.get("/auth/me", async (req, res): Promise<void> => {
   const userId = (req.session as any)?.userId;
+  console.log(`[AUTH_ME_ROUTE] userId=${userId}, sessionID=${req.sessionID}, cookie=${req.headers.cookie}, xSid=${req.headers["x-session-id"]}`);
   if (!userId) {
     res.status(401).json({ error: "Not authenticated" });
     return;

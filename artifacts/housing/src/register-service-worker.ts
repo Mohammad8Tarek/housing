@@ -1,9 +1,19 @@
 export function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((error) => {
-      console.warn("[PWA] Service worker registration failed", error);
-    });
+  // Always unregister active service workers and clear caches in development / local testing
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const reg of registrations) {
+      reg.unregister().catch(() => {});
+    }
   });
+
+  if ("caches" in window) {
+    caches.keys().then((names) => {
+      for (const name of names) {
+        caches.delete(name).catch(() => {});
+      }
+    });
+  }
 }
+
