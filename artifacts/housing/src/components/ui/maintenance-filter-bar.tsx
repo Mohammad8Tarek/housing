@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DateInput } from "./date-input";
 import { Plus, RotateCcw } from "lucide-react";
 
@@ -9,6 +9,9 @@ interface MaintenanceFilterBarProps {
   onCreateNew?: () => void;
   onFiltersChange?: (filters: MaintenanceFilterState) => void;
   ar?: boolean;
+  allowedCategories?: string[];
+  initialPropertyId?: string;
+  initialType?: string;
 }
 
 interface MaintenanceFilterState {
@@ -30,7 +33,7 @@ const INITIAL_FILTERS: MaintenanceFilterState = {
   priority: "",
   departments: [],
   creatorType: "",
-  propertyId: "",
+  propertyId: "all",
 };
 
 const STATUS_OPTIONS = [
@@ -63,10 +66,32 @@ export default function MaintenanceFilterBar({
   onCreateNew,
   onFiltersChange,
   ar = false,
+  allowedCategories,
+  initialPropertyId = "all",
+  initialType = "",
 }: MaintenanceFilterBarProps) {
   const [filters, setFilters] = useState<MaintenanceFilterState>({
     ...INITIAL_FILTERS,
+    propertyId: initialPropertyId,
+    type: initialType || (allowedCategories && allowedCategories.length === 1 ? allowedCategories[0] : ""),
   });
+
+  useEffect(() => {
+    if (initialPropertyId !== undefined && initialPropertyId !== filters.propertyId) {
+      setFilters((f) => ({ ...f, propertyId: initialPropertyId }));
+    }
+  }, [initialPropertyId]);
+
+  useEffect(() => {
+    if (initialType !== undefined && initialType !== filters.type) {
+      setFilters((f) => ({ ...f, type: initialType }));
+    }
+  }, [initialType]);
+
+  const availableTypeOptions = TYPE_OPTIONS.filter((t) =>
+    !allowedCategories || allowedCategories.length === 0 || allowedCategories.includes(t.value)
+  );
+
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>(
     {},
   );
@@ -136,13 +161,13 @@ export default function MaintenanceFilterBar({
       <div className="grid grid-cols-4 gap-3">
         {/* Property */}
         <div className="space-y-1">
-          <label className={labelClass}>{ar ? "العقارات" : "Properties"}</label>
+          <label className={labelClass}>{ar ? "الفندق / العقار" : "Hotel / Property"}</label>
           <select
             value={filters.propertyId}
             onChange={(e) => handleSingleSelect("propertyId", e.target.value)}
             className={selectClass}
           >
-            <option value="">{ar ? "الكل" : "All"}</option>
+            <option value="all">{ar ? "كل الفنادق" : "All Properties"}</option>
             {properties.map((p) => (
               <option key={p.id} value={String(p.id)}>
                 {p.displayName || p.name}
@@ -197,10 +222,13 @@ export default function MaintenanceFilterBar({
           <select
             value={filters.type}
             onChange={(e) => handleSingleSelect("type", e.target.value)}
+            disabled={availableTypeOptions.length <= 1}
             className={selectClass}
           >
-            <option value="">{ar ? "الكل" : "All"}</option>
-            {TYPE_OPTIONS.map((t) => (
+            {availableTypeOptions.length > 1 && (
+              <option value="">{ar ? "الكل" : "All"}</option>
+            )}
+            {availableTypeOptions.map((t) => (
               <option key={t.value} value={t.value}>
                 {ar ? t.labelAr : t.label}
               </option>

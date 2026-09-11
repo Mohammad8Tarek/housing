@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePermission } from "@/hooks/use-permission";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
@@ -167,15 +168,25 @@ export default function Tickets() {
   const { activePropertyId, properties } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
+  const { can, canView, isSuperAdmin, isAdmin } = usePermission();
+
+  const hasMaintenance = isSuperAdmin || isAdmin || canView("maintenance");
+  const hasHousekeeping = isSuperAdmin || isAdmin || canView("housekeeping");
+
+  const isOnlyHousekeeping = !hasMaintenance && hasHousekeeping;
+  const isOnlyMaintenance = hasMaintenance && !hasHousekeeping;
+  const hasBoth = hasMaintenance && hasHousekeeping;
+
   const queryClient = useQueryClient();
-  const LIMIT = 1000;
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
 
   const [deleteId, setDeleteId] = useState(null);
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState(() =>
+    isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all"
+  );
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 500);
@@ -191,24 +202,50 @@ export default function Tickets() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
-  useEffect(() => {
-    setPage(1);
-    setCurrentPage(1);
-  }, [debouncedSearch, statusFilter, priorityFilter]);
+
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [creatorTypeFilter, setCreatorTypeFilter] = useState("");
-  const [propertyFilter, setPropertyFilter] = useState("");
+  const [propertyFilter, setPropertyFilter] = useState("all");
   const [formPhotoUrl, setFormPhotoUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sync category if permissions resolve
+  useEffect(() => {
+    if (isOnlyHousekeeping && categoryFilter !== "housekeeping") {
+      setCategoryFilter("housekeeping");
+    } else if (isOnlyMaintenance && categoryFilter !== "maintenance") {
+      setCategoryFilter("maintenance");
+    }
+  }, [isOnlyHousekeeping, isOnlyMaintenance]);
+
+  useEffect(() => {
+    setPage(1);
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, priorityFilter, categoryFilter, propertyFilter, fromDate, toDate]);
+
+  // Form state
+  const [formPropertyId, setFormPropertyId] = useState<string>(() => {
+    if (activePropertyId && activePropertyId !== "all") return String(activePropertyId);
+    if (properties && properties.length > 0) return String(properties[0].id);
+    return "";
+  });
+
   const [form, setForm] = useState({
     roomId: "",
-    category: "maintenance",
+    category: isOnlyHousekeeping ? "housekeeping" : "maintenance",
     problemType: "",
     description: "",
     priority: "MEDIUM",
     notes: "",
   });
+
+  // Effective propertyId for list query
+  const effectivePropertyId =
+    propertyFilter && propertyFilter !== "all"
+      ? parseInt(propertyFilter, 10)
+      : activePropertyId === "all" || propertyFilter === "all"
+        ? "all"
+        : activePropertyId ?? "all";
 
   const {
     data: allTicketsWrapper,
@@ -216,24 +253,29 @@ export default function Tickets() {
     isFetching,
   } = useListMaintenance(
     { 
-      propertyId: activePropertyId ?? undefined, 
+      propertyId: effectivePropertyId, 
       page: currentPage, 
       limit: pageSize,
       search: debouncedSearch || undefined,
       status: statusFilter === "all" ? undefined : statusFilter,
       priority: priorityFilter || undefined,
+      category: categoryFilter === "all" ? undefined : categoryFilter,
+      fromDate: fromDate || undefined,
+      toDate: toDate || undefined,
     } as any,
     {
       query: {
         queryKey: getListMaintenanceQueryKey({
-          propertyId: activePropertyId ?? undefined,
+          propertyId: effectivePropertyId,
           page: currentPage,
           limit: pageSize,
           search: debouncedSearch || undefined,
           status: statusFilter === "all" ? undefined : statusFilter,
           priority: priorityFilter || undefined,
+          category: categoryFilter === "all" ? undefined : categoryFilter,
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
         } as any),
-        enabled: !!activePropertyId,
         refetchOnMount: true,
         staleTime: 0,
         refetchInterval: 5000,
@@ -247,18 +289,27 @@ export default function Tickets() {
   const paginationData = allTicketsWrapper?.pagination || { total: allTickets?.length || 0, page: currentPage, limit: pageSize };
 
   const { data: _roomsWrapper } = useListRooms(
-    { propertyId: activePropertyId, limit: 1000 },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
+    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
   );
   const rooms = _roomsWrapper?.data || [];
+
+  // Rooms specifically for modal's selected property
+  const selectedModalPropId = parseInt(formPropertyId, 10) || (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
+  const { data: _modalRoomsWrapper } = useListRooms(
+    { propertyId: selectedModalPropId, limit: 1000 } as any,
+    { query: { enabled: !!selectedModalPropId } },
+  );
+  const modalRooms = _modalRoomsWrapper?.data || [];
+
   const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
+    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
   );
   const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
   const { data: assignments } = useListAssignments(
-    { propertyId: activePropertyId } as any,
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined } as any,
+    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
   );
 
   // Build room → occupant name(s) map from active assignments + profiles
@@ -359,16 +410,31 @@ export default function Tickets() {
   const resetForm = () => {
     setForm({
       roomId: "",
-      category: "maintenance",
+      category: isOnlyHousekeeping ? "housekeeping" : "maintenance",
       problemType: "",
       description: "",
       priority: "MEDIUM",
       notes: "",
     });
     setFormPhotoUrl("");
+    if (activePropertyId && activePropertyId !== "all") {
+      setFormPropertyId(String(activePropertyId));
+    } else if (properties && properties.length > 0) {
+      setFormPropertyId(String(properties[0].id));
+    }
   };
 
   const onSubmit = () => {
+    const targetPropId =
+      parseInt(formPropertyId, 10) ||
+      (activePropertyId && activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
+
+    if (!targetPropId) {
+      toast.error(
+        ar ? "يرجى اختيار الفندق / العقار أولاً" : "Please select a hotel/property first",
+      );
+      return;
+    }
     if (!form.roomId || !form.description) {
       toast.error(
         ar ? "يرجى ملء الحقول المطلوبة" : "Please fill required fields",
@@ -377,7 +443,7 @@ export default function Tickets() {
     }
     createMutation.mutate({
       data: {
-        propertyId: activePropertyId,
+        propertyId: targetPropId,
         roomId: parseInt(form.roomId),
         category: form.category,
         problemType: form.problemType || form.category,
@@ -515,8 +581,12 @@ export default function Tickets() {
   const exportExcel = () => {
     const rows = filtered.map((req) => ({
       [ar ? "رقم" : "ID"]: req.id,
+      [ar ? "الفندق / العقار" : "Hotel / Property"]:
+        req.propertyName ||
+        properties?.find((p) => p.id === req.propertyId)?.name ||
+        "—",
       [ar ? "الغرفة" : "Room"]:
-        `${ar ? "الغرفة" : "Room"} ${roomMap[req.roomId] ?? req.roomId}`,
+        `${ar ? "الغرفة" : "Room"} ${req.roomNumber || (roomMap[req.roomId] ?? req.roomId)}`,
       [ar ? "الاسم" : "Name"]: roomOccupantMap[req.roomId] || "—",
       [ar ? "النوع" : "Type"]: ar
         ? (CATEGORIES_AR[req.category] ?? req.category)
@@ -555,7 +625,11 @@ export default function Tickets() {
     if (target.length === 0) return;
     const rows = target.map((req) => ({
       [ar ? "رقم الطلب" : "Ticket #"]: req.id,
-      [ar ? "الغرفة" : "Room"]: roomMap[req.roomId] ?? req.roomId,
+      [ar ? "الفندق / العقار" : "Hotel / Property"]:
+        req.propertyName ||
+        properties?.find((p) => p.id === req.propertyId)?.name ||
+        "—",
+      [ar ? "الغرفة" : "Room"]: req.roomNumber || (roomMap[req.roomId] ?? req.roomId),
       [ar ? "النوع" : "Category"]: ar
         ? (CATEGORIES_AR[req.category] ?? req.category)
         : req.category,
@@ -639,14 +713,85 @@ export default function Tickets() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="px-4 sm:px-6 pt-6 pb-4">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-          {ar ? "التذاكر" : "Tickets Management"}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {ar
-            ? "تصفية وإدارة جميع طلبات الصيانة والنظافة والخدمات"
-            : "Filter and manage all maintenance, housekeeping, and service requests"}
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+              {isOnlyHousekeeping ? (
+                <>
+                  <Sparkles className="w-7 h-7 text-sky-600" />
+                  {ar ? "طلبات النظافة (الهاوس كيبنج)" : "Housekeeping Orders"}
+                </>
+              ) : isOnlyMaintenance ? (
+                <>
+                  <Wrench className="w-7 h-7 text-amber-600" />
+                  {ar ? "أوامر وبلاغات الصيانة" : "Maintenance Orders"}
+                </>
+              ) : (
+                <>
+                  <Wrench className="w-7 h-7 text-primary" />
+                  {ar ? "إدارة التذاكر والطلبات" : "Tickets & Requests Management"}
+                </>
+              )}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {isOnlyHousekeeping
+                ? (ar ? "متابعة وإدارة جميع طلبات وأوامر تنظيف ونظافة الغرف" : "Monitor and manage room housekeeping and cleaning orders")
+                : isOnlyMaintenance
+                  ? (ar ? "متابعة وإدارة جميع بلاغات وأوامر الصيانة والأعطال" : "Monitor and manage maintenance requests and work orders")
+                  : (ar ? "تصفية وإدارة جميع طلبات الصيانة والنظافة والخدمات عبر كافة الفنادق" : "Filter and manage maintenance, housekeeping, and service requests across hotels")}
+            </p>
+          </div>
+
+          {/* Quick tab filters when user has access to both */}
+          {hasBoth && (
+            <div className="flex items-center gap-1.5 p-1 bg-muted/60 border rounded-xl shadow-xs self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryFilter("all");
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  categoryFilter === "all"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {ar ? "كل الطلبات" : "All"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryFilter("maintenance");
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  categoryFilter === "maintenance"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                {ar ? "الصيانة" : "Maintenance"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryFilter("housekeeping");
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  categoryFilter === "housekeeping"
+                    ? "bg-sky-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                {ar ? "الهاوس كيبنج" : "Housekeeping"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Analytics Cards */}
@@ -676,17 +821,32 @@ export default function Tickets() {
           properties={properties || []}
           departments={["Front Office", "Engineering", "House Keeping"]}
           profiles={profiles}
+          allowedCategories={
+            isOnlyHousekeeping
+              ? ["housekeeping"]
+              : isOnlyMaintenance
+                ? ["maintenance"]
+                : ["maintenance", "housekeeping", "general"]
+          }
+          initialPropertyId={propertyFilter}
+          initialType={categoryFilter === "all" ? "" : categoryFilter}
           onCreateNew={() => setIsOpen(true)}
           onFiltersChange={(filters) => {
             setFilterBarFilters(filters);
             setFromDate(filters.fromDate ?? "");
             setToDate(filters.toDate ?? "");
             setStatusFilter(filters.status || "all");
-            setCategoryFilter(filters.type || "all");
+            setCategoryFilter(
+              isOnlyHousekeeping
+                ? "housekeeping"
+                : isOnlyMaintenance
+                  ? "maintenance"
+                  : filters.type || "all"
+            );
             setPriorityFilter(filters.priority ?? "");
             setDepartmentFilter(filters.departments ?? []);
             setCreatorTypeFilter(filters.creatorType ?? "");
-            setPropertyFilter(filters.propertyId ?? "");
+            setPropertyFilter(filters.propertyId || "all");
             setCurrentPage(1);
           }}
         />
@@ -723,12 +883,40 @@ export default function Tickets() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {/* Property Selector */}
+            {properties.length > 1 && (
+              <div className="space-y-1.5">
+                <Label>
+                  {ar ? "الفندق / العقار" : "Hotel / Property"} <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formPropertyId}
+                  onValueChange={(v) => {
+                    setFormPropertyId(v);
+                    setForm((f) => ({ ...f, roomId: "" }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={ar ? "اختر الفندق" : "Select hotel"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {properties.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.displayName || p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>
                 {ar ? "النوع" : "Type"} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={form.category}
+                disabled={isOnlyHousekeeping || isOnlyMaintenance}
                 onValueChange={(v) =>
                   setForm((f) => ({
                     ...f,
@@ -743,7 +931,12 @@ export default function Tickets() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
+                  {(isOnlyHousekeeping
+                    ? ["housekeeping"]
+                    : isOnlyMaintenance
+                      ? ["maintenance"]
+                      : CATEGORIES
+                  ).map((c) => (
                     <SelectItem key={c} value={c}>
                       <span className="flex items-center gap-2">
                         {CATEGORY_ICONS[c]}
@@ -774,7 +967,7 @@ export default function Tickets() {
                   sideOffset={4}
                   className="max-h-64 overflow-y-auto"
                 >
-                  {rooms?.map((r) => (
+                  {(modalRooms.length > 0 ? modalRooms : rooms)?.map((r) => (
                     <SelectItem key={r.id} value={String(r.id)}>
                       {ar ? "الغرفة" : "Room"} {r.roomNumber}
                     </SelectItem>
@@ -954,7 +1147,7 @@ export default function Tickets() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <PermissionGate module="maintenance" action="delete">
+                <PermissionGate anyPermission={[["maintenance", "delete"], ["housekeeping", "delete"]]}>
                   <Button
                     variant="destructive"
                     size="sm"
@@ -1081,8 +1274,19 @@ export default function Tickets() {
                     )}
                     {isVisible("room") && (
                       <TableCell className="font-medium whitespace-nowrap">
-                        {ar ? "الغرفة" : "Room"}{" "}
-                        {roomMap[req.roomId] ?? req.roomId}
+                        <div className="flex flex-col">
+                          <span>
+                            {ar ? "الغرفة" : "Room"}{" "}
+                            {req.roomNumber || roomMap[req.roomId] || req.roomId}
+                          </span>
+                          {(req.propertyName || (properties.length > 1 && req.propertyId)) && (
+                            <span className="text-[10px] text-muted-foreground font-normal">
+                              {req.propertyName ||
+                                properties.find((p) => p.id === req.propertyId)?.displayName ||
+                                properties.find((p) => p.id === req.propertyId)?.name}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                     {isVisible("problemType") && (
@@ -1224,7 +1428,7 @@ export default function Tickets() {
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </Button>
-                          <PermissionGate module="maintenance" action="delete">
+                          <PermissionGate anyPermission={[["maintenance", "delete"], ["housekeeping", "delete"]]}>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1352,18 +1556,36 @@ export default function Tickets() {
         profiles={empOptions}
         ar={ar}
         onStatusChange={(id, data) => {
-          updateMutation.mutate({ id, data });
+          const targetTicket = allTickets?.find((t) => t.id === id);
+          const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+          updateMutation.mutate({
+            id,
+            data: {
+              ...data,
+              propertyId: pId,
+            },
+          });
         }}
         onAssignChange={(id, empId) => {
-          updateMutation.mutate({ id, data: { assignedTo: empId } });
+          const targetTicket = allTickets?.find((t) => t.id === id);
+          const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+          updateMutation.mutate({
+            id,
+            data: {
+              assignedTo: empId,
+              propertyId: pId,
+            },
+          });
         }}
         subTickets={subTickets}
         loadingSubTickets={loadingSubTickets}
         onCreateSubTicket={(parentId, data) => {
+          const parentTicket = allTickets?.find((t) => t.id === parentId);
+          const pId = parentTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
           createMutation.mutate({
             data: {
-              propertyId: activePropertyId,
-              roomId: allTickets?.find((t) => t.id === parentId)?.roomId,
+              propertyId: pId,
+              roomId: parentTicket?.roomId,
               category: "maintenance",
               problemType: data.problemType,
               description: data.description,

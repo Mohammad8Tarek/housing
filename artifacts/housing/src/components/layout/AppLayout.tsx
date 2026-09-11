@@ -70,6 +70,7 @@ type NavItem = {
   subItems?: { href: string; label: string }[];
   superAdminOnly?: boolean;
   permissionModule?: Module;
+  permissionModules?: Module[];
 };
 
 type Notification = {
@@ -336,9 +337,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     },
     {
       href: "/maintenance",
-      label: ar ? "التذاكر" : "Tickets",
-      icon: Wrench,
-      permissionModule: "maintenance",
+      label: !canView("maintenance") && canView("housekeeping")
+        ? (ar ? "طلبات النظافة" : "Housekeeping Orders")
+        : (ar ? "التذاكر" : "Tickets"),
+      icon: !canView("maintenance") && canView("housekeeping") ? Sparkles : Wrench,
+      permissionModules: ["maintenance", "housekeeping"] as Module[],
     },
     {
       href: "/reports",
@@ -382,7 +385,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const visibleNavItems = navItems.filter((n) => {
     if (n.superAdminOnly && !isSuperAdmin && (!n.permissionModule || !canView(n.permissionModule))) return false;
-    if (n.permissionModule && !canView(n.permissionModule)) return false;
+    if (n.permissionModules && n.permissionModules.length > 0) {
+      if (!n.permissionModules.some((m) => canView(m))) return false;
+    } else if (n.permissionModule && !canView(n.permissionModule)) {
+      return false;
+    }
     return true;
   });
 
