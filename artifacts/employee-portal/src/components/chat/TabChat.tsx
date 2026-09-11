@@ -49,6 +49,7 @@ interface TabChatProps {
   contacts: any[];
   autoOpenChatWith?: number | null;
   onClearAutoOpen?: () => void;
+  isActive?: boolean;
 }
 
 /* ─── Emoji Data ─────────────────────────────────────────────────── */
@@ -653,9 +654,44 @@ export function TabChat({
   contacts,
   autoOpenChatWith,
   onClearAutoOpen,
+  isActive = true,
 }: TabChatProps) {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
+
+  /* ── Resolve effective myEmployeeId with fallback to storage ── */
+  const [resolvedMyId, setResolvedMyId] = useState<number | undefined>(() => {
+    if (myEmployeeId) return myEmployeeId;
+    try {
+      const raw =
+        (typeof sessionStorage !== "undefined" && sessionStorage.getItem("portal_employee")) ||
+        (typeof localStorage !== "undefined" && localStorage.getItem("portal_employee"));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return Number(parsed.id ?? parsed.profileDbId ?? 0) || undefined;
+      }
+    } catch {}
+    return undefined;
+  });
+
+  useEffect(() => {
+    if (myEmployeeId) {
+      setResolvedMyId(myEmployeeId);
+    } else {
+      try {
+        const raw =
+          (typeof sessionStorage !== "undefined" && sessionStorage.getItem("portal_employee")) ||
+          (typeof localStorage !== "undefined" && localStorage.getItem("portal_employee"));
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const id = Number(parsed.id ?? parsed.profileDbId ?? 0) || undefined;
+          if (id) setResolvedMyId(id);
+        }
+      } catch {}
+    }
+  }, [myEmployeeId]);
+
+  const effectiveMyId = resolvedMyId;
 
   /* ── State ── */
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -755,11 +791,24 @@ export function TabChat({
     loadConversations(false);
   }, [loadConversations]);
 
+  /* ── Reload when tab becomes active or ID resolves ── */
+  useEffect(() => {
+    if (isActive) {
+      loadConversations(false);
+    }
+  }, [isActive, loadConversations]);
+
+  useEffect(() => {
+    if (effectiveMyId) {
+      loadConversations(true);
+    }
+  }, [effectiveMyId, loadConversations]);
+
   const isWsConnectedRef = useRef(false);
 
   // WebSocket Connection for Real-time chat (Optimized low-latency)
   useEffect(() => {
-    if (!myEmployeeId) return;
+    if (!effectiveMyId) return;
     let ws: WebSocket | null = null;
     let reconnectTimer: any;
     let pingTimer: any;
@@ -839,7 +888,7 @@ export function TabChat({
                 if (!newMsg || !convId) return;
 
                 // If the message is from me, skip (already handled optimistically)
-                if (newMsg.senderId === myEmployeeId) return;
+                if (newMsg.senderId === effectiveMyId) return;
 
                 // If it belongs to active conversation, append it instantly
                 if (activeConvRef.current?.id === convId) {
@@ -880,7 +929,7 @@ export function TabChat({
               } else if (parsed.action === "typing_start") {
                 const convId = parsed.data?.conversationId;
                 const empId = parsed.data?.employeeId ?? parsed.data?.profileId;
-                if (convId && empId && empId !== myEmployeeId) {
+                if (convId && empId && empId !== effectiveMyId) {
                   setTypingUsers((prev) => {
                     const current = new Set(prev[convId] || []);
                     current.add(empId);
@@ -936,7 +985,7 @@ export function TabChat({
         } catch {}
       }
     };
-  }, [myEmployeeId]);
+  }, [effectiveMyId]);
 
   // Adaptive polling: only polls frequently (every 3s) when WebSocket is disconnected!
   // When WebSocket is active, polls every 20s purely as a slow consistency check.

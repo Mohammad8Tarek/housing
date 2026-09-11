@@ -118,6 +118,21 @@ export default function Dashboard() {
   const { data: notifRes } = usePortalNotifications();
   const { data: alertsRes } = usePortalAlerts();
 
+  const isNative = Capacitor.isNativePlatform();
+
+  // Restore employee from Preferences if native and not yet in state
+  useEffect(() => {
+    if (!employee && isNative) {
+      Preferences.get({ key: "portal_employee" }).then(({ value }) => {
+        if (value) {
+          try {
+            setEmployee(JSON.parse(value) as Employee);
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+  }, [employee, isNative]);
+
   // Update employee and portalData when query data changes
   useEffect(() => {
     const profileData = profileRes as any;
@@ -125,15 +140,16 @@ export default function Dashboard() {
       setEmployee((prev: any) => ({
         ...prev,
         ...profileData,
-        fullName: profileData.name,
-        photoUrl: profileData.photo,
+        fullName: prev?.fullName || profileData.name || profileData.fullName,
+        jobTitle: prev?.jobTitle || profileData.position || profileData.jobTitle,
+        photoUrl: profileData.photo || profileData.photoUrl || prev?.photoUrl,
       }));
     }
 
     setPortalData({
       room: roomRes as any,
       assignments: [],
-      photoUrl: profileData?.photo,
+      photoUrl: profileData?.photo || profileData?.photoUrl || employee?.photoUrl,
       notifications: notifRes as any,
       alerts: alertsRes as any,
     } as any);
@@ -850,7 +866,7 @@ export default function Dashboard() {
             ))}
           {activeTab === "portal-settings" && <TabPortalSettings />}
           {activeTab === "profile" && (
-            <TabProfile photoUrl={employee?.photoUrl} onDocTab={() => changeTab("documents")} />
+            <TabProfile employee={employee} photoUrl={employee?.photoUrl} onDocTab={() => changeTab("documents")} />
           )}
           {activeTab === "roommates" && (
             <TabRoommates
@@ -880,7 +896,11 @@ export default function Dashboard() {
           {activeTab === "food" && <TabFood />}
           {activeTab === "transport" && <TabTransport />}
           <div style={{ display: activeTab === "chat" ? "block" : "none" }}>
-            <TabChat myEmployeeId={Number(employee?.id ?? employee?.profileDbId ?? 0) || undefined} contacts={contacts} />
+            <TabChat
+              myEmployeeId={Number(employee?.id ?? employee?.profileDbId ?? 0) || undefined}
+              contacts={contacts}
+              isActive={activeTab === "chat"}
+            />
           </div>
         </div>
       </div>

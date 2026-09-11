@@ -4,9 +4,11 @@ import { useTheme } from "../lib/theme";
 import { apiFetch, clearSessionCache } from "../lib/api";
 import { useLocation } from "wouter";
 import { Preferences } from "@capacitor/preferences";
+import { Capacitor } from "@capacitor/core";
 import MaterialIcon from "./MaterialIcon";
 
 interface Props {
+  employee?: any;
   photoUrl?: string;
   onDocTab?: () => void;
 }
@@ -21,49 +23,88 @@ const SAMPLE_DOCS = [
   },
 ];
 
-export default function TabProfile({ photoUrl, onDocTab }: Props) {
+export default function TabProfile({ employee: propEmployee, photoUrl, onDocTab }: Props) {
   const { t, lang } = useTheme();
   const isRtl = lang === "ar";
   const [, setLocation] = useLocation();
-  const [employee, setEmployee] = useState<any>(null);
-  const [form, setForm] = useState({
-    phone: "",
-    address: "",
-    photo: "",
-    email: "",
-    emergencyContact: "",
+
+  const [employee, setEmployee] = useState<any>(() => {
+    if (propEmployee) return propEmployee;
+    try {
+      const raw =
+        (typeof sessionStorage !== "undefined" &&
+          sessionStorage.getItem("portal_employee")) ||
+        (typeof localStorage !== "undefined" &&
+          localStorage.getItem("portal_employee"));
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
   });
-  const [preview, setPreview] = useState(photoUrl || "");
+
+  const [form, setForm] = useState(() => ({
+    phone: propEmployee?.phone || employee?.phone || "",
+    address: propEmployee?.address || employee?.address || "",
+    photo: propEmployee?.photoUrl || employee?.photoUrl || "",
+    email: propEmployee?.email || employee?.email || "",
+    emergencyContact: propEmployee?.emergencyContact || employee?.emergencyContact || "",
+  }));
+
+  const [preview, setPreview] = useState(photoUrl || propEmployee?.photoUrl || employee?.photoUrl || "");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [msg, setMsg] = useState("");
-  const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
 
+  // Sync if propEmployee updates
   useEffect(() => {
-    if (loaded) return;
-    setLoaded(true);
-    Promise.all([
-      apiFetch("/api/portal-auth/me", { credentials: "include" }).then((r) =>
-        r.json(),
-      ),
-      apiFetch("/api/portal-data/my-profile", { credentials: "include" }).then(
-        (r) => r.json(),
-      ),
-    ])
-      .then(([me, profile]) => {
+    if (propEmployee) {
+      setEmployee((prev: any) => ({ ...prev, ...propEmployee }));
+      if (propEmployee.photoUrl) setPreview(propEmployee.photoUrl);
+    }
+  }, [propEmployee]);
+
+  // If native and still no employee, restore from Preferences
+  useEffect(() => {
+    if (!employee && Capacitor.isNativePlatform()) {
+      Preferences.get({ key: "portal_employee" }).then(({ value }) => {
+        if (value) {
+          try {
+            const parsed = JSON.parse(value);
+            setEmployee((prev: any) => ({ ...prev, ...parsed }));
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+  }, [employee]);
+
+  // Fetch fresh profile data independently
+  useEffect(() => {
+    apiFetch("/api/portal-auth/me", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((me) => {
         const emp = me?.employee || me?.profile;
-        if (me?.success && emp) setEmployee(emp);
-        if (profile.success && profile.profile) {
+        if (emp) {
+          setEmployee((prev: any) => ({ ...prev, ...emp }));
+        }
+      })
+      .catch(() => {});
+
+    apiFetch("/api/portal-data/my-profile", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const p = data?.profile;
+        if (p) {
+          setEmployee((prev: any) => ({ ...prev, ...p }));
           setForm((f) => ({
             ...f,
-            phone: profile.profile.phone || "",
-            address: profile.profile.address || "",
-            email: profile.profile.email || "",
-            emergencyContact: profile.profile.emergencyContact || "",
+            phone: p.phone || f.phone || "",
+            address: p.address || f.address || "",
+            email: p.email || f.email || "",
+            emergencyContact: p.emergencyContact || f.emergencyContact || "",
           }));
-          setPreview(profile.profile.photoUrl || photoUrl || "");
+          if (p.photoUrl) setPreview(p.photoUrl);
         }
       })
       .catch(() => {});
@@ -84,6 +125,18 @@ export default function TabProfile({ photoUrl, onDocTab }: Props) {
       setStatus("success");
       setMsg(isRtl ? "تم الحفظ بنجاح" : "Saved successfully");
       setEditing(false);
+      setEmployee((prev: any) => {
+        const next = { ...prev, ...dataToSave };
+        try {
+          const str = JSON.stringify(next);
+          sessionStorage.setItem("portal_employee", str);
+          localStorage.setItem("portal_employee", str);
+          if (Capacitor.isNativePlatform()) {
+            Preferences.set({ key: "portal_employee", value: str }).catch(() => {});
+          }
+        } catch {}
+        return next;
+      });
       setTimeout(() => setStatus("idle"), 3000);
     } catch (err: any) {
       setStatus("error");
