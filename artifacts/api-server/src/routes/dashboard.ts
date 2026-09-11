@@ -662,8 +662,7 @@ router.get(
             count,
             percentage: totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0,
           }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 6);
+          .sort((a, b) => b.count - a.count);
 
         // 3. Gender Distribution
         let maleCount = 0;

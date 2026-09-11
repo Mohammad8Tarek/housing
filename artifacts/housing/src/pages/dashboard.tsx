@@ -33,6 +33,7 @@ import {
   Clock,
   Layers,
   Activity,
+  BarChart3,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
@@ -111,6 +112,11 @@ export default function Dashboard() {
   // Time horizon selector state
   const [horizon, setHorizon] = React.useState<"today" | "7d" | "30d" | "quarter">("7d");
   const [chartTab, setChartTab] = React.useState<"buildings" | "trends">("buildings");
+
+  // Dashboard multi-view mode state (comprehensive, operations, analytics, compact)
+  const [dashboardViewMode, setDashboardViewMode] = React.useState<
+    "comprehensive" | "operations" | "analytics" | "compact"
+  >("comprehensive");
 
   const buildNavHref = (baseHref: string) => {
     return propertySlug ? `/${propertySlug}${baseHref}` : baseHref;
@@ -210,56 +216,147 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Time Horizon Filter (Today / 7D / 30D / Quarter) */}
+        {/* Header Controls: View Mode Switcher + Time Horizon Filter */}
         {!isAll && (
-          <div className="flex items-center self-start sm:self-auto bg-muted/60 p-1 rounded-xl border border-border/50 text-xs font-semibold shadow-xs">
-            <button
-              onClick={() => setHorizon("today")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg transition-all",
-                horizon === "today"
-                  ? "bg-background text-foreground shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {ar ? "اليوم" : "Today"}
-            </button>
-            <button
-              onClick={() => setHorizon("7d")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg transition-all",
-                horizon === "7d"
-                  ? "bg-background text-foreground shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {ar ? "7 أيام" : "7D"}
-            </button>
-            <button
-              onClick={() => setHorizon("30d")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg transition-all",
-                horizon === "30d"
-                  ? "bg-background text-foreground shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {ar ? "30 يوم" : "30D"}
-            </button>
-            <button
-              onClick={() => setHorizon("quarter")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg transition-all",
-                horizon === "quarter"
-                  ? "bg-background text-foreground shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {ar ? "فصل سنوي" : "Quarter"}
-            </button>
+          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+            {/* Multi-View Mode Switcher */}
+            <div className="flex items-center bg-muted/70 dark:bg-muted/40 p-1 rounded-xl border border-border/60 text-xs font-semibold shadow-xs">
+              <button
+                type="button"
+                onClick={() => setDashboardViewMode("comprehensive")}
+                title={ar ? "الوضع الشامل لجميع المؤشرات والعمليات" : "Comprehensive full overview"}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
+                  dashboardViewMode === "comprehensive"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>{ar ? "شامل" : "All"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDashboardViewMode("operations")}
+                title={ar ? "التركيز على العمليات اليومية وتجهيز الغرف" : "Operational daily focus"}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
+                  dashboardViewMode === "operations"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>{ar ? "تشغيلي" : "Ops"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDashboardViewMode("analytics")}
+                title={ar ? "التحليلات التفصيلية للمباني والأقسام" : "Capacity & Department analytics"}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
+                  dashboardViewMode === "analytics"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>{ar ? "تحليلي" : "Analytics"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDashboardViewMode("compact")}
+                title={ar ? "العرض المضغوط عالي الكثافة" : "Compact high-density view"}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
+                  dashboardViewMode === "compact"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>{ar ? "مضغوط" : "Compact"}</span>
+              </button>
+            </div>
+
+            {/* Time Horizon Filter (Today / 7D / 30D / Quarter) */}
+            <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border/50 text-xs font-semibold shadow-xs">
+              <button
+                onClick={() => setHorizon("today")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg transition-all",
+                  horizon === "today"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {ar ? "اليوم" : "Today"}
+              </button>
+              <button
+                onClick={() => setHorizon("7d")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg transition-all",
+                  horizon === "7d"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {ar ? "7 أيام" : "7D"}
+              </button>
+              <button
+                onClick={() => setHorizon("30d")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg transition-all",
+                  horizon === "30d"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {ar ? "30 يوم" : "30D"}
+              </button>
+              <button
+                onClick={() => setHorizon("quarter")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg transition-all",
+                  horizon === "quarter"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {ar ? "فصل سنوي" : "Quarter"}
+              </button>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Mode Information & Quick Reset Banner (Shown when not in default Comprehensive mode) */}
+      {!isAll && dashboardViewMode !== "comprehensive" && (
+        <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span>
+              {dashboardViewMode === "operations"
+                ? ar
+                  ? "وضع التركيز التشغيلي: إبراز حركات اليوم والوصول والمغادرة وتجهيز الغرف الفوري"
+                  : "Operations Focus: Prioritizing daily movements, check-ins/outs & turnover health"
+                : dashboardViewMode === "analytics"
+                ? ar
+                  ? "وضع التحليلات المتقدمة: استعراض شامل لمعدلات إشغال المباني وتوزيع الأقسام الكامل والديموغرافيا"
+                  : "Advanced Analytics: Full building occupancy trajectory, complete department breakdown & demographics"
+                : ar
+                ? "الوضع المضغوط: تنظيم متجاور عالي الكثافة بدون تمرير رأسي طويل"
+                : "Compact Executive: High-density side-by-side view for swift operational monitoring"}
+            </span>
+          </div>
+          <button
+            onClick={() => setDashboardViewMode("comprehensive")}
+            className="text-muted-foreground hover:text-foreground underline text-[11px] shrink-0 font-medium"
+          >
+            {ar ? "العودة للوضع الشامل" : "Reset to Comprehensive"}
+          </button>
+        </div>
+      )}
 
       {/* Error Alert */}
       {((isAll ? allStatsError : statsError) || pendingError) && (
@@ -510,237 +607,238 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Operational Breakdown Section: Donut + Department Bar List + Gender Demographics */}
-      {!isAll && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Reusable Content Blocks for Multi-View Modes */}
+      {(() => {
+        if (isAll) return null;
+
+        const donutNode = (
           <DashboardAnalyticsDonut
             roomStatusBreakdown={analytics?.roomStatusBreakdown}
             bedCapacity={analytics?.bedCapacity}
             isLoading={analyticsLoading}
           />
+        );
+
+        const deptNode = (
           <DepartmentBarList
             departments={analytics?.departmentBreakdown}
             totalProfiles={totalProfilesCount}
             isLoading={analyticsLoading}
           />
+        );
+
+        const genderNode = (
           <GenderDemographicsCard
             genderDistribution={analytics?.genderDistribution}
             totalResidents={stats?.activeAssignments || (stats?.totalRooms ? stats.occupiedRooms : 0)}
             isLoading={analyticsLoading}
           />
-        </div>
-      )}
+        );
 
-      {/* Main Charts: Building Bar Chart & Occupancy Area Trend */}
-      {!isAll && (
-        <Tabs value={chartTab} onValueChange={(v) => setChartTab(v as any)} className="space-y-4">
-          <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
-              <div>
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-primary" />
-                  {chartTab === "buildings"
-                    ? ar
-                      ? "الإشغال حسب المباني والمنشآت"
-                      : "Building Occupancy Distribution"
-                    : ar
-                    ? "المسار الزمني لمعدل الإشغال"
-                    : "Occupancy Trajectory Trend"}
-                </CardTitle>
-                <CardDescription className="text-xs mt-0.5">
-                  {chartTab === "buildings"
-                    ? ar
-                      ? "نسبة استيعاب وإشغال كل مبنى سكني"
-                      : "Capacity utilization per residential building"
-                    : ar
-                    ? `معدل تدفق وحركة الإشغال خلال (${horizon})`
-                    : `Occupancy progression across (${horizon}) horizon`}
-                </CardDescription>
-              </div>
+        const chartsNode = (
+          <Tabs value={chartTab} onValueChange={(v) => setChartTab(v as any)} className="space-y-4">
+            <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-primary" />
+                    {chartTab === "buildings"
+                      ? ar
+                        ? "الإشغال حسب المباني والمنشآت"
+                        : "Building Occupancy Distribution"
+                      : ar
+                      ? "المسار الزمني لمعدل الإشغال"
+                      : "Occupancy Trajectory Trend"}
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-0.5">
+                    {chartTab === "buildings"
+                      ? ar
+                        ? "نسبة استيعاب وإشغال كل مبنى سكني"
+                        : "Capacity utilization per residential building"
+                      : ar
+                      ? `معدل تدفق وحركة الإشغال خلال (${horizon})`
+                      : `Occupancy progression across (${horizon}) horizon`}
+                  </CardDescription>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <TabsList className="bg-muted/70 p-1 border border-border/40">
-                  <TabsTrigger value="buildings" className="text-xs font-semibold gap-1.5">
-                    <Building2 className="w-3.5 h-3.5" />
-                    {ar ? "حسب المبنى" : "By Building"}
-                  </TabsTrigger>
-                  <TabsTrigger value="trends" className="text-xs font-semibold gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    {ar ? "المسار الزمني" : "Trend Flow"}
-                  </TabsTrigger>
-                </TabsList>
+                <div className="flex items-center gap-2">
+                  <TabsList className="bg-muted/70 p-1 border border-border/40">
+                    <TabsTrigger value="buildings" className="text-xs font-semibold gap-1.5">
+                      <Building2 className="w-3.5 h-3.5" />
+                      {ar ? "حسب المبنى" : "By Building"}
+                    </TabsTrigger>
+                    <TabsTrigger value="trends" className="text-xs font-semibold gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      {ar ? "المسار الزمني" : "Trend Flow"}
+                    </TabsTrigger>
+                  </TabsList>
 
-                <PermissionGate module="housing" action="view">
-                  <Link href={buildNavHref("/housing")}>
-                    <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent gap-1 py-1">
-                      {ar ? "عرض المباني" : "View All"} <ArrowRight className="w-3 h-3" />
-                    </Badge>
-                  </Link>
-                </PermissionGate>
-              </div>
-            </CardHeader>
+                  <PermissionGate module="housing" action="view">
+                    <Link href={buildNavHref("/housing")}>
+                      <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent gap-1 py-1">
+                        {ar ? "عرض المباني" : "View All"} <ArrowRight className="w-3 h-3" />
+                      </Badge>
+                    </Link>
+                  </PermissionGate>
+                </div>
+              </CardHeader>
 
-            <CardContent className="h-[290px] pt-2">
-              <TabsContent value="buildings" className="h-full mt-0">
-                {occupancy && occupancy.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={occupancy} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis
-                        dataKey="buildingName"
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(v) => `${v}%`}
-                      />
-                      <Tooltip
-                        cursor={{ fill: "hsl(var(--muted)/0.5)" }}
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const d = payload[0].payload;
-                            return (
-                              <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs">
-                                <p className="font-bold text-foreground text-sm">{d.buildingName}</p>
-                                <div className="mt-1.5 space-y-1 text-muted-foreground">
-                                  <div>
-                                    {ar ? "نسبة الإشغال:" : "Occupancy:"}{" "}
-                                    <strong className="text-primary font-mono">{d.occupancyRate}%</strong>
-                                  </div>
-                                  <div>
-                                    {ar ? "الغرف المشغولة:" : "Occupied Rooms:"}{" "}
-                                    <strong className="text-foreground">{d.occupiedRooms}</strong> / {d.totalRooms}
-                                  </div>
-                                  <div>
-                                    {ar ? "استيعاب الأسرة:" : "Beds Used:"}{" "}
-                                    <strong className="text-foreground">{d.totalOccupancy}</strong> / {d.totalCapacity}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar
-                        dataKey="occupancyRate"
-                        name={ar ? "نسبة الإشغال %" : "Occupancy %"}
-                        fill="hsl(var(--primary))"
-                        radius={[6, 6, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
-                    <Building2 className="w-10 h-10 opacity-20" />
-                    <p>{ar ? "لا توجد بيانات مبانٍ مسجلة" : "No building records found"}</p>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="trends" className="h-full mt-0">
-                {analytics?.trendPoints && analytics.trendPoints.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={analytics.trendPoints}
-                      margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis
-                        dataKey="day"
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(v) => `${v}%`}
-                        domain={[0, 100]}
-                      />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const d = payload[0].payload;
-                            return (
-                              <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs">
-                                <p className="font-bold text-foreground text-sm">{d.date} ({d.day})</p>
-                                <div className="mt-1.5 space-y-1 text-muted-foreground">
-                                  <div>
-                                    {ar ? "معدل الإشغال:" : "Occupancy Rate:"}{" "}
-                                    <strong className="text-indigo-500 font-mono text-sm">{d.occupancy}%</strong>
-                                  </div>
-                                  <div>
-                                    {ar ? "الأسرة المشغولة:" : "Occupied Beds:"}{" "}
-                                    <strong className="text-foreground">{d.occupiedBeds}</strong> / {d.capacity}
+              <CardContent className="h-[290px] pt-2">
+                <TabsContent value="buildings" className="h-full mt-0">
+                  {occupancy && occupancy.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={occupancy} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                        <XAxis
+                          dataKey="buildingName"
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) => `${v}%`}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "hsl(var(--muted)/0.5)" }}
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const d = payload[0].payload;
+                              return (
+                                <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs">
+                                  <p className="font-bold text-foreground text-sm">{d.buildingName}</p>
+                                  <div className="mt-1.5 space-y-1 text-muted-foreground">
+                                    <div>
+                                      {ar ? "نسبة الإشغال:" : "Occupancy:"}{" "}
+                                      <strong className="text-primary font-mono">{d.occupancyRate}%</strong>
+                                    </div>
+                                    <div>
+                                      {ar ? "الغرف المشغولة:" : "Occupied Rooms:"}{" "}
+                                      <strong className="text-foreground">{d.occupiedRooms}</strong> / {d.totalRooms}
+                                    </div>
+                                    <div>
+                                      {ar ? "استيعاب الأسرة:" : "Beds Used:"}{" "}
+                                      <strong className="text-foreground">{d.totalOccupancy}</strong> / {d.totalCapacity}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="occupancy"
-                        stroke="#6366f1"
-                        strokeWidth={2.5}
-                        fillOpacity={1}
-                        fill="url(#occupancyGradient)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
-                    <Activity className="w-10 h-10 opacity-20" />
-                    <p>{ar ? "جاري احتساب مؤشرات المسار الزمني..." : "Calculating trajectory trends..."}</p>
-                  </div>
-                )}
-              </TabsContent>
-            </CardContent>
-          </Card>
-        </Tabs>
-      )}
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar
+                          dataKey="occupancyRate"
+                          name={ar ? "نسبة الإشغال %" : "Occupancy %"}
+                          fill="hsl(var(--primary))"
+                          radius={[6, 6, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
+                      <Building2 className="w-10 h-10 opacity-20" />
+                      <p>{ar ? "لا توجد بيانات مبانٍ مسجلة" : "No building records found"}</p>
+                    </div>
+                  )}
+                </TabsContent>
 
-      {/* Buildings Occupancy & Capacity Matrix */}
-      {!isAll && occupancy && occupancy.length > 0 && (
-        <BuildingCapacityMatrix
-          buildings={occupancy}
-          buildNavHref={buildNavHref}
-        />
-      )}
+                <TabsContent value="trends" className="h-full mt-0">
+                  {analytics?.trendPoints && analytics.trendPoints.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={analytics.trendPoints}
+                        margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                        <XAxis
+                          dataKey="day"
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) => `${v}%`}
+                          domain={[0, 100]}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const d = payload[0].payload;
+                              return (
+                                <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs">
+                                  <p className="font-bold text-foreground text-sm">{d.date} ({d.day})</p>
+                                  <div className="mt-1.5 space-y-1 text-muted-foreground">
+                                    <div>
+                                      {ar ? "معدل الإشغال:" : "Occupancy Rate:"}{" "}
+                                      <strong className="text-indigo-500 font-mono text-sm">{d.occupancy}%</strong>
+                                    </div>
+                                    <div>
+                                      {ar ? "الأسرة المشغولة:" : "Occupied Beds:"}{" "}
+                                      <strong className="text-foreground">{d.occupiedBeds}</strong> / {d.capacity}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="occupancy"
+                          stroke="#6366f1"
+                          strokeWidth={2.5}
+                          fillOpacity={1}
+                          fill="url(#occupancyGradient)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
+                      <Activity className="w-10 h-10 opacity-20" />
+                      <p>{ar ? "جاري احتساب مؤشرات المسار الزمني..." : "Calculating trajectory trends..."}</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </CardContent>
+            </Card>
+          </Tabs>
+        );
 
-      {/* Executive Operations Pulse Hub */}
-      {!isAll && (
-        <DailyOperationsHub
-          checkIns={pendingData?.checkIns}
-          checkOuts={pendingData?.checkOuts}
-          maintenanceRequests={pendingData?.maintenanceRequests}
-          expiringContracts={pendingData?.expiringContracts}
-          buildNavHref={buildNavHref}
-        />
-      )}
+        const matrixNode = occupancy && occupancy.length > 0 ? (
+          <BuildingCapacityMatrix
+            buildings={occupancy}
+            buildNavHref={buildNavHref}
+          />
+        ) : null;
 
-      {/* Side-by-Side: Housekeeping Priority Queue & Recent Activity */}
-      {!isAll && (
-        <div className="grid gap-5 md:grid-cols-2">
-          {/* Housekeeping Priority & Turnover Queue */}
+        const operationsHubNode = (
+          <DailyOperationsHub
+            checkIns={pendingData?.checkIns}
+            checkOuts={pendingData?.checkOuts}
+            maintenanceRequests={pendingData?.maintenanceRequests}
+            expiringContracts={pendingData?.expiringContracts}
+            buildNavHref={buildNavHref}
+          />
+        );
+
+        const housekeepingNode = (
           <HousekeepingPriorityQueue
             dirtyRooms={pendingData?.dirtyRooms}
             cleanRate={analytics?.turnoverHealth?.cleanRate}
@@ -748,8 +846,9 @@ export default function Dashboard() {
             readyCount={analytics?.roomStatusBreakdown?.available ?? stats?.availableRooms ?? 0}
             buildNavHref={buildNavHref}
           />
+        );
 
-          {/* Recent Activity */}
+        const activityNode = (
           <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
@@ -803,8 +902,76 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
-        </div>
-      )}
+        );
+
+        return (
+          <>
+            {/* Mode 1: Comprehensive Full Overview */}
+            {dashboardViewMode === "comprehensive" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {donutNode}
+                  {deptNode}
+                  {genderNode}
+                </div>
+                {chartsNode}
+                {matrixNode}
+                {operationsHubNode}
+                <div className="grid gap-5 md:grid-cols-2">
+                  {housekeepingNode}
+                  {activityNode}
+                </div>
+              </div>
+            )}
+
+            {/* Mode 2: Operations Focus Mode */}
+            {dashboardViewMode === "operations" && (
+              <div className="space-y-6">
+                {operationsHubNode}
+                <div className="grid gap-5 md:grid-cols-2">
+                  {housekeepingNode}
+                  {donutNode}
+                </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  {deptNode}
+                  {activityNode}
+                </div>
+              </div>
+            )}
+
+            {/* Mode 3: Analytics & Capacity Mode */}
+            {dashboardViewMode === "analytics" && (
+              <div className="space-y-6">
+                {chartsNode}
+                {matrixNode}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {deptNode}
+                  {donutNode}
+                  {genderNode}
+                </div>
+              </div>
+            )}
+
+            {/* Mode 4: Compact High-Density View */}
+            {dashboardViewMode === "compact" && (
+              <div className="space-y-5">
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {chartsNode}
+                  {deptNode}
+                </div>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {operationsHubNode}
+                  {housekeepingNode}
+                </div>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {donutNode}
+                  {activityNode}
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }
