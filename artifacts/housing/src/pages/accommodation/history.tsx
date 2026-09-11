@@ -542,11 +542,6 @@ export default function HistoryPage() {
             <History className="w-6 h-6 text-primary" />
             {ar ? "سجل التسكين" : "Housing History"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {ar
-              ? `${totalItems} سجل — جميع من غادروا أو نُقلوا`
-              : `${totalItems} records — all who checked out or were transferred`}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <ColumnChooser

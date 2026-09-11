@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { DateInput } from "./date-input";
-import { Plus, RotateCcw } from "lucide-react";
+import {
+  Plus,
+  RotateCcw,
+  Layers,
+  Wrench,
+  Sparkles,
+  FileText,
+  User,
+  AlertCircle,
+} from "lucide-react";
 
 interface MaintenanceFilterBarProps {
   properties?: any[];
@@ -12,6 +21,17 @@ interface MaintenanceFilterBarProps {
   allowedCategories?: string[];
   initialPropertyId?: string;
   initialType?: string;
+  categoryFilter?: string;
+  onCategoryChange?: (cat: string) => void;
+  scopeFilter?: "all" | "me" | "unassigned";
+  onScopeChange?: (scope: "all" | "me" | "unassigned") => void;
+  hasBoth?: boolean;
+  hasManagerialScope?: boolean;
+  totalCount?: number;
+  maintenanceCount?: number;
+  housekeepingCount?: number;
+  generalCount?: number;
+  myTicketsCount?: number;
 }
 
 interface MaintenanceFilterState {
@@ -48,16 +68,6 @@ const PRIORITY_OPTIONS = [
   { value: "high", label: "High", labelAr: "عالية" },
   { value: "urgent", label: "Urgent", labelAr: "عاجلة" },
 ];
-const TYPE_OPTIONS = [
-  { value: "maintenance", label: "Maintenance", labelAr: "صيانة" },
-  { value: "housekeeping", label: "Housekeeping", labelAr: "هاوس كيبنج" },
-  { value: "general", label: "General", labelAr: "عام" },
-];
-const CREATOR_OPTIONS = [
-  { value: "", label: "All", labelAr: "الكل" },
-  { value: "staff", label: "Staff", labelAr: "موظف" },
-  { value: "guest", label: "Guest From App", labelAr: "ضيف من التطبيق" },
-];
 
 export default function MaintenanceFilterBar({
   properties = [],
@@ -69,6 +79,17 @@ export default function MaintenanceFilterBar({
   allowedCategories,
   initialPropertyId = "all",
   initialType = "",
+  categoryFilter = "all",
+  onCategoryChange,
+  scopeFilter = "all",
+  onScopeChange,
+  hasBoth = false,
+  hasManagerialScope = true,
+  totalCount = 0,
+  maintenanceCount = 0,
+  housekeepingCount = 0,
+  generalCount = 0,
+  myTicketsCount = 0,
 }: MaintenanceFilterBarProps) {
   const [filters, setFilters] = useState<MaintenanceFilterState>({
     ...INITIAL_FILTERS,
@@ -87,32 +108,6 @@ export default function MaintenanceFilterBar({
       setFilters((f) => ({ ...f, type: initialType }));
     }
   }, [initialType]);
-
-  const availableTypeOptions = TYPE_OPTIONS.filter((t) =>
-    !allowedCategories || allowedCategories.length === 0 || allowedCategories.includes(t.value)
-  );
-
-  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>(
-    {},
-  );
-
-  const toggleDropdown = (key: string) => {
-    setOpenDropdowns((prev) => ({
-      ...Object.keys(prev).reduce((acc, k) => ({ ...acc, [k]: false }), {}),
-      [key]: !prev[key],
-    }));
-  };
-
-  const handleMultiSelect = (value: string) => {
-    const newFilters = {
-      ...filters,
-      departments: filters.departments.includes(value)
-        ? filters.departments.filter((item) => item !== value)
-        : [...filters.departments, value],
-    };
-    setFilters(newFilters);
-    onFiltersChange?.(newFilters);
-  };
 
   const handleSingleSelect = (
     key: keyof MaintenanceFilterState,
@@ -133,33 +128,191 @@ export default function MaintenanceFilterBar({
     const resetFilters = { ...INITIAL_FILTERS };
     setFilters(resetFilters);
     onFiltersChange?.(resetFilters);
+    if (onCategoryChange && hasBoth) {
+      onCategoryChange("all");
+    }
+    if (onScopeChange && hasManagerialScope) {
+      onScopeChange("all");
+    }
   };
 
   const hasActiveFilters =
     filters.fromDate ||
     filters.toDate ||
     filters.status ||
-    filters.type ||
     filters.priority ||
-    filters.departments.length > 0 ||
-    filters.creatorType ||
-    filters.propertyId;
-
-  const getSelectedLabel = (arr: string[]) => {
-    if (arr.length === 0) return ar ? "اختر..." : "Select...";
-    if (arr.length === 1) return arr[0];
-    return `${arr[0]}, ${arr[1]}${arr.length > 2 ? "..." : ""}`;
-  };
+    filters.propertyId !== "all" ||
+    (categoryFilter !== "all" && hasBoth) ||
+    (scopeFilter !== "all" && hasManagerialScope);
 
   const selectClass =
     "w-full px-3 py-1.5 bg-muted/50 border border-border rounded text-xs text-foreground focus:outline-none focus:border-primary transition-colors";
   const labelClass = "block text-xs font-semibold text-muted-foreground";
 
   return (
-    <div className="bg-card rounded-lg p-4 space-y-4 border border-border shadow-sm">
-      {/* Row 1 */}
-      <div className="grid grid-cols-4 gap-3">
-        {/* Property */}
+    <div className="bg-card rounded-xl p-4 space-y-4 border border-border shadow-xs">
+      {/* ── Integrated Category & Scoping Bar ── */}
+      {(hasBoth || onScopeChange) && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-border">
+          {/* Category Switcher Tabs */}
+          {hasBoth && onCategoryChange && (
+            <div className="flex items-center gap-1 p-1 bg-muted/80 dark:bg-muted/40 border rounded-xl shadow-2xs overflow-x-auto max-w-full">
+              <button
+                type="button"
+                onClick={() => onCategoryChange("all")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  categoryFilter === "all"
+                    ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>{ar ? "كل الأقسام" : "All Categories"}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    categoryFilter === "all"
+                      ? "bg-primary/15 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {totalCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onCategoryChange("maintenance")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  categoryFilter === "maintenance"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>{ar ? "الصيانة" : "Maintenance"}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    categoryFilter === "maintenance"
+                      ? "bg-white/20 text-white"
+                      : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                  }`}
+                >
+                  {maintenanceCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onCategoryChange("housekeeping")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  categoryFilter === "housekeeping"
+                    ? "bg-sky-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{ar ? "الهاوس كيبنج" : "Housekeeping"}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    categoryFilter === "housekeeping"
+                      ? "bg-white/20 text-white"
+                      : "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
+                  }`}
+                >
+                  {housekeepingCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onCategoryChange("general")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  categoryFilter === "general"
+                    ? "bg-slate-700 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>{ar ? "عام" : "General"}</span>
+                {generalCount > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      categoryFilter === "general"
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
+                    }`}
+                  >
+                    {generalCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Scope Switcher Tabs */}
+          {onScopeChange && (
+            <div className="flex items-center gap-1 p-1 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/70 rounded-xl shadow-2xs overflow-x-auto max-w-full">
+              {hasManagerialScope && (
+                <button
+                  type="button"
+                  onClick={() => onScopeChange("all")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    scopeFilter === "all"
+                      ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                      : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{ar ? "كل الأوردرات" : "All Orders"}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => onScopeChange("me")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  scopeFilter === "me"
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>{ar ? "أوردراتي أنا فقط" : "Assigned to Me"}</span>
+                {myTicketsCount > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      scopeFilter === "me"
+                        ? "bg-white/20 text-white"
+                        : "bg-indigo-200 text-indigo-900 dark:bg-indigo-900/60 dark:text-indigo-200"
+                    }`}
+                  >
+                    {myTicketsCount}
+                  </span>
+                )}
+              </button>
+
+              {hasManagerialScope && (
+                <button
+                  type="button"
+                  onClick={() => onScopeChange("unassigned")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    scopeFilter === "unassigned"
+                      ? "bg-slate-700 text-white shadow-xs"
+                      : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>{ar ? "غير مسندة" : "Unassigned"}</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Filters Input Row (5 Columns) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* Hotel / Property */}
         <div className="space-y-1">
           <label className={labelClass}>{ar ? "الفندق / العقار" : "Hotel / Property"}</label>
           <select
@@ -171,6 +324,40 @@ export default function MaintenanceFilterBar({
             {properties.map((p) => (
               <option key={p.id} value={String(p.id)}>
                 {p.displayName || p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Status */}
+        <div className="space-y-1">
+          <label className={labelClass}>{ar ? "الحالة" : "Status"}</label>
+          <select
+            value={filters.status}
+            onChange={(e) => handleSingleSelect("status", e.target.value)}
+            className={selectClass}
+          >
+            <option value="">{ar ? "الكل" : "All"}</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {ar ? s.labelAr : s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Priority */}
+        <div className="space-y-1">
+          <label className={labelClass}>{ar ? "الأولوية" : "Priority"}</label>
+          <select
+            value={filters.priority}
+            onChange={(e) => handleSingleSelect("priority", e.target.value)}
+            className={selectClass}
+          >
+            <option value="">{ar ? "الكل" : "All"}</option>
+            {PRIORITY_OPTIONS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {ar ? p.labelAr : p.label}
               </option>
             ))}
           </select>
@@ -195,69 +382,9 @@ export default function MaintenanceFilterBar({
             onChange={(iso) => handleDateChange("toDate", iso)}
           />
         </div>
-
-        {/* Status */}
-        <div className="space-y-1">
-          <label className={labelClass}>{ar ? "الحالة" : "Status"}</label>
-          <select
-            value={filters.status}
-            onChange={(e) => handleSingleSelect("status", e.target.value)}
-            className={selectClass}
-          >
-            <option value="">{ar ? "الكل" : "All"}</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {ar ? s.labelAr : s.label}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
-      {/* Row 2 */}
-      <div className="grid grid-cols-4 gap-3">
-        {/* Type */}
-        <div className="space-y-1">
-          <label className={labelClass}>{ar ? "النوع" : "Type"}</label>
-          <select
-            value={filters.type}
-            onChange={(e) => handleSingleSelect("type", e.target.value)}
-            disabled={availableTypeOptions.length <= 1}
-            className={selectClass}
-          >
-            {availableTypeOptions.length > 1 && (
-              <option value="">{ar ? "الكل" : "All"}</option>
-            )}
-            {availableTypeOptions.map((t) => (
-              <option key={t.value} value={t.value}>
-                {ar ? t.labelAr : t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Priority */}
-        <div className="space-y-1">
-          <label className={labelClass}>{ar ? "الأولوية" : "Priority"}</label>
-          <select
-            value={filters.priority}
-            onChange={(e) => handleSingleSelect("priority", e.target.value)}
-            className={selectClass}
-          >
-            <option value="">{ar ? "الكل" : "All"}</option>
-            {PRIORITY_OPTIONS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {ar ? p.labelAr : p.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Departments (Removed - Not in Schema) */}
-        {/* Creator Type (Removed - Not in Schema) */}
-      </div>
-
-      {/* Action Bar */}
+      {/* ── Action Bar ── */}
       <div className="flex items-center justify-between pt-2 border-t border-border">
         {hasActiveFilters ? (
           <button
@@ -273,7 +400,7 @@ export default function MaintenanceFilterBar({
         {onCreateNew && (
           <button
             onClick={onCreateNew}
-            className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded text-xs font-semibold hover:bg-primary/90 transition"
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded text-xs font-semibold hover:bg-primary/90 transition shadow-xs"
           >
             <Plus className="w-3.5 h-3.5" />
             {ar ? "إنشاء تذكرة جديدة" : "Create New Ticket"}

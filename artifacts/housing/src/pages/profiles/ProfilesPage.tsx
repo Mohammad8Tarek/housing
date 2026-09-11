@@ -449,11 +449,6 @@ export function ProfilesPage() {
           <h1 className="text-2xl font-bold">
             {ar ? "الملفات الشخصية" : "Profiles"}
           </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {ar
-              ? `إجمالي ${totalRecords} ملف شخصي`
-              : `${totalRecords} total profiles`}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <ColumnChooser

@@ -833,14 +833,6 @@ export default function InHouse() {
           <h1 className="text-2xl font-bold">
             {ar ? "المقيمون حالياً" : "In-House"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {total} {ar ? "مقيم نشط" : "active resident(s)"}
-            {selectedRows.size > 0 && (
-              <span className="ml-2 text-primary font-semibold">
-                · {selectedRows.size} {ar ? "محدد" : "selected"}
-              </span>
-            )}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <ColumnChooser

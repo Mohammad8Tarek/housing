@@ -180,9 +180,6 @@ export default function Documents() {
           <h1 className="text-2xl font-bold">
             {ar ? "المستندات" : "Documents"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {ar ? "إدارة مستندات البوابة" : "Manage portal documents"}
-          </p>
         </div>
         <PermissionGate module="documents" action="create">
           <Button onClick={() => setIsOpen(true)}>

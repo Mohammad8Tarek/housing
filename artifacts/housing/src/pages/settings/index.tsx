@@ -107,11 +107,6 @@ export default function Settings() {
           <h1 className="text-2xl font-bold text-foreground">
             {ar ? "الإعدادات" : "Settings"}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {ar
-              ? "إدارة إعدادات النظام والقوائم المنسدلة"
-              : "Manage system configuration and dropdown lists"}
-          </p>
         </div>
 
         <Tabs defaultValue="general" className="w-full">

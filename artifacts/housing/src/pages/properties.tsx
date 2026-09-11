@@ -438,11 +438,6 @@ const closeDialog = () => {
           <h1 className="text-2xl font-bold">
             {ar ? "العقارات" : "Properties"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {ar
-              ? "إدارة العقارات والمرافق في النظام"
-              : "Manage properties and facilities in the system"}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <ColumnChooser

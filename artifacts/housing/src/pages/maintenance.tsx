@@ -842,263 +842,9 @@ export default function Tickets() {
                   ar ? "مركز التذاكر والعمليات الموحد" : "Operations & Tickets Hub"
                 )}
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {isOnlyHousekeeping
-                  ? (ar ? "متابعة وتنفيذ جميع طلبات تنظيف الغرف وتغيير المفارش والتعقيم" : "Track and manage room cleaning, linen changes, and housekeeping requests")
-                  : isOnlyMaintenance
-                    ? (ar ? "متابعة وإصلاح أعطال الغرف والمرافق والسباكة والكهرباء والتكييف" : "Track and resolve room repairs, HVAC, electrical, and plumbing issues")
-                    : (ar ? "المنصة المركزية لإدارة وتتبع كافة تذاكر الصيانة والهاوس كيبنج والخدمات" : "Unified central hub for tracking maintenance, housekeeping, and facility tickets")}
-              </p>
-            </div>
-          </div>
-
-          {/* Top Quick Segmented Tabs for Category & Scope (Linear / Plane style) */}
-          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto max-w-full">
-            {/* 1. Category Switcher */}
-            {hasBoth && (
-              <div className="flex items-center gap-1 p-1 bg-muted/80 dark:bg-muted/40 border rounded-xl shadow-xs overflow-x-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCategoryFilter("all");
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    categoryFilter === "all"
-                      ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>{ar ? "كل الأقسام" : "All Categories"}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    categoryFilter === "all"
-                      ? "bg-primary/15 text-primary"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    {totalCount}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCategoryFilter("maintenance");
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    categoryFilter === "maintenance"
-                      ? "bg-amber-600 text-white shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                  }`}
-                >
-                  <Wrench className="w-3.5 h-3.5" />
-                  <span>{ar ? "الصيانة" : "Maintenance"}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    categoryFilter === "maintenance"
-                      ? "bg-white/20 text-white"
-                      : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                  }`}>
-                    {maintenanceCount}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCategoryFilter("housekeeping");
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    categoryFilter === "housekeeping"
-                      ? "bg-sky-600 text-white shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{ar ? "الهاوس كيبنج" : "Housekeeping"}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    categoryFilter === "housekeeping"
-                      ? "bg-white/20 text-white"
-                      : "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
-                  }`}>
-                    {housekeepingCount}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCategoryFilter("general");
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    categoryFilter === "general"
-                      ? "bg-slate-700 text-white shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>{ar ? "عام" : "General"}</span>
-                  {generalCount > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      categoryFilter === "general"
-                        ? "bg-white/20 text-white"
-                        : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
-                    }`}>
-                      {generalCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {/* 2. User Scoping Filter (Linear / Plane style: All Orders / Assigned to Me / Unassigned) */}
-            <div className="flex items-center gap-1 p-1 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/70 rounded-xl shadow-xs overflow-x-auto">
-              {hasManagerialScope && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScopeFilter("all");
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    scopeFilter === "all"
-                      ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-                      : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>{ar ? "كل الأوردرات" : "All Orders"}</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setScopeFilter("me");
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  scopeFilter === "me"
-                    ? "bg-indigo-600 text-white shadow-xs"
-                    : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>{ar ? "أوردراتي أنا فقط" : "Assigned to Me"}</span>
-                {myTicketsCount > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    scopeFilter === "me"
-                      ? "bg-white/20 text-white"
-                      : "bg-indigo-200 text-indigo-900 dark:bg-indigo-900/60 dark:text-indigo-200"
-                  }`}>
-                    {myTicketsCount}
-                  </span>
-                )}
-              </button>
-
-              {hasManagerialScope && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScopeFilter("unassigned");
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    scopeFilter === "unassigned"
-                      ? "bg-slate-700 text-white shadow-xs"
-                      : "text-indigo-900 dark:text-indigo-300 hover:text-foreground hover:bg-background/40"
-                  }`}
-                >
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>{ar ? "غير مسندة" : "Unassigned"}</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Role Awareness Context Banner */}
-      <div className="px-4 sm:px-6">
-        {hasBoth ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-gradient-to-r from-muted/60 via-muted/40 to-muted/60 border shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <span>{ar ? "وضع الإدارة الشاملة (مركز العمليات الموحد)" : "Unified Operations Hub (Management Mode)"}</span>
-                  <Badge variant="outline" className="text-[10px] font-medium py-0 px-1.5 bg-background">
-                    {ar ? "كامل الصلاحيات" : "All Access"}
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {ar
-                    ? "معروض لك كافة بلاغات الصيانة، طلبات الهاوس كيبنج، والخدمات العامة لجميع الفنادق"
-                    : "Displaying all maintenance work orders, housekeeping orders, and general requests across hotels"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline">
-                {ar ? "الأقسام المتاحة:" : "Active Modules:"}
-              </span>
-              <Badge variant="outline" className="gap-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 text-[10px]">
-                <Wrench className="w-3 h-3" />
-                {ar ? "صيانة" : "Maintenance"}
-              </Badge>
-              <Badge variant="outline" className="gap-1 bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800 text-[10px]">
-                <Sparkles className="w-3 h-3" />
-                {ar ? "هاوس كيبنج" : "Housekeeping"}
-              </Badge>
-            </div>
-          </div>
-        ) : isOnlyHousekeeping ? (
-          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
-                  <span>{ar ? "قسم الهاوس كيبنج والنظافة" : "Housekeeping Department Workspace"}</span>
-                  <Badge className="text-[10px] font-medium py-0 px-1.5 bg-sky-600 text-white">
-                    {ar ? "محدد للهاوس كيبنج" : "Housekeeping View"}
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-sky-700/80 dark:text-sky-300/80 mt-0.5">
-                  {ar
-                    ? "معروض لك حصرياً طلبات وأوامر تنظيف ونظافة الغرف والكتان والمستلزمات"
-                    : "Displaying room cleaning, linen turnover, and amenities orders exclusively"}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : isOnlyMaintenance ? (
-          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300">
-                <Wrench className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                  <span>{ar ? "قسم الصيانة والأعطال الفنية" : "Maintenance Department Workspace"}</span>
-                  <Badge className="text-[10px] font-medium py-0 px-1.5 bg-amber-600 text-white">
-                    {ar ? "محدد للصيانة" : "Maintenance View"}
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80 mt-0.5">
-                  {ar
-                    ? "معروض لك حصرياً بلاغات وأعطال الصيانة (سباكة، كهرباء، تكييف، أثاث)"
-                    : "Displaying plumbing, electrical, HVAC, and repair work orders exclusively"}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
 
       {/* Analytics KPI Cards (Tremor / Shadcn Style) */}
@@ -1191,22 +937,30 @@ export default function Tickets() {
           }
           initialPropertyId={propertyFilter}
           initialType={categoryFilter === "all" ? "" : categoryFilter}
+          categoryFilter={categoryFilter}
+          onCategoryChange={(cat) => {
+            setCategoryFilter(cat);
+            setCurrentPage(1);
+          }}
+          scopeFilter={scopeFilter}
+          onScopeChange={(scope) => {
+            setScopeFilter(scope);
+            setCurrentPage(1);
+          }}
+          hasBoth={hasBoth}
+          hasManagerialScope={hasManagerialScope}
+          totalCount={totalCount}
+          maintenanceCount={maintenanceCount}
+          housekeepingCount={housekeepingCount}
+          generalCount={generalCount}
+          myTicketsCount={myTicketsCount}
           onCreateNew={canCreateAny ? () => setIsOpen(true) : undefined}
           onFiltersChange={(filters) => {
             setFilterBarFilters(filters);
             setFromDate(filters.fromDate ?? "");
             setToDate(filters.toDate ?? "");
             setStatusFilter(filters.status || "all");
-            setCategoryFilter(
-              isOnlyHousekeeping
-                ? "housekeeping"
-                : isOnlyMaintenance
-                  ? "maintenance"
-                  : filters.type || "all"
-            );
             setPriorityFilter(filters.priority ?? "");
-            setDepartmentFilter(filters.departments ?? []);
-            setCreatorTypeFilter(filters.creatorType ?? "");
             setPropertyFilter(filters.propertyId || "all");
             setCurrentPage(1);
           }}

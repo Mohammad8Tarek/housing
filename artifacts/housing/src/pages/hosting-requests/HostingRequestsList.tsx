@@ -137,11 +137,6 @@ export default function HostingRequestsList() {
           <h1 className="text-2xl font-bold text-foreground">
             {ar ? "طلبات الاستضافة" : "Hosting Requests"}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {countsData?.total != null
-              ? `${countsData.total} ${ar ? "طلب" : "requests"}`
-              : ""}
-          </p>
         </div>
         {canCreate("hosting_requests") && (
           <Button

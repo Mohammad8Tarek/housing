@@ -144,11 +144,6 @@ export function HousingPage() {
           <h1 className="text-2xl font-bold tracking-tight">
             {ar ? "إدارة السكن" : "Housing Management"}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {ar
-              ? "إدارة المباني، الطوابق، الغرف والتسكين"
-              : "Manage buildings, floors, rooms, and assignments"}
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

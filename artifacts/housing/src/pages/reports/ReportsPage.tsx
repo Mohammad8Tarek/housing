@@ -146,11 +146,6 @@ export default function Reports() {
           <h1 className="text-2xl font-bold tracking-tight">
             {ar ? "مركز التقارير الشاملة" : "Comprehensive Reports"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {ar
-              ? "استخراج وجرد وتحليل بيانات التسكين، الغرف الشاغرة والمشغولة، المقيمين، العقود، والصيانة"
-              : "Analyze, filter, and export occupancy, vacant beds, profiles, contracts, and maintenance"}
-          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <ExportToolbar

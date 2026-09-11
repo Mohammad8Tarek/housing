@@ -208,19 +208,6 @@ export default function Dashboard() {
               </Badge>
             ) : null}
           </div>
-          <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-            {isAll
-              ? ar
-                ? "نظرة شمولية موحدة على كافة فروع ومنشآت السكن"
-                : "Consolidated enterprise overview across all hotel housing properties"
-              : activeProperty
-              ? ar
-                ? `مؤشرات الأداء اللحظية وسير العمليات في: ${activeProperty.displayName || activeProperty.name}`
-                : `Live operational metrics & capacity tracking for: ${activeProperty.displayName || activeProperty.name}`
-              : ar
-              ? "نظرة عامة على عمليات الإسكان"
-              : "Overview of housing operations"}
-          </p>
         </div>
 
         {/* Time Horizon Filter (Today / 7D / 30D / Quarter) */}

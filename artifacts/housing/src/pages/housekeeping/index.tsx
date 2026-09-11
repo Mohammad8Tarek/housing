@@ -89,11 +89,6 @@ export default function HousekeepingPage() {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {ar ? "إدارة نظافة الغرف (الهاوس كيبنج)" : "Housekeeping & Room Cleaning"}
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {ar
-                ? "متابعة وتحديث حالة نظافة الغرف وجاهزيتها للتسكين"
-                : "Monitor room cleaning status, turnover and occupancy readiness"}
-            </p>
           </div>
         </div>
       </div>

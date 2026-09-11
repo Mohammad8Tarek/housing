@@ -397,11 +397,6 @@ export default function UsersPage() {
               <h1 className="text-2xl font-bold">
                 {ar ? "إدارة المستخدمين والصلاحيات" : "Users & Permissions"}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {ar
-                  ? "إدارة المستخدمين والأدوار وصلاحيات الوصول"
-                  : "Manage system users, roles, and granular access control"}
-              </p>
             </div>
           </div>
         </div>

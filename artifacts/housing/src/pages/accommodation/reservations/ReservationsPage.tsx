@@ -1205,7 +1205,6 @@ export default function ReservationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{ar ? "الحجوزات والتسكين" : "Reservations & Housing"}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{ar ? "إدارة الحجوزات وتسكين الغرف للموظفين الداخليين والطرف الثالث" : "Manage housing reservations and assign rooms for internal & third-party staff"}</p>
         </div>
         <PermissionGate module="accommodation" action="create">
           <Button onClick={openNewDialog} className="gap-2 self-start sm:self-auto shadow-sm">

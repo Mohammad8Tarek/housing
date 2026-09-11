@@ -503,11 +503,6 @@ export default function ActivityLog() {
             <Activity className="w-6 h-6 text-[#C9A24D]" />
             {ar ? "سجل النشاط" : "Activity Log"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {ar
-              ? "سجل عمليات النظام وسجل مفاتيح الغرف في مكان واحد"
-              : "System activity and room key audit trails in one place"}
-          </p>
         </div>
         <div className="flex gap-2 self-start sm:self-auto">
           {activeView === "activity" ? (

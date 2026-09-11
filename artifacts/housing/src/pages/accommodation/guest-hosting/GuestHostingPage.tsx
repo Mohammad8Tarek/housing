@@ -1124,11 +1124,6 @@ export default function GuestHosting() {
           <h1 className="text-2xl font-bold">
             {ar ? "استضافة الضيوف" : "Guest Hosting"}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {ar
-              ? "إدارة طلبات استضافة الضيوف والمرافقين"
-              : "Manage guest hosting requests with companion details"}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <PermissionGate module="guest_hosting" action="export">

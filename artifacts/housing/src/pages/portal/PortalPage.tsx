@@ -91,11 +91,6 @@ export function PortalPage() {
         <h1 className="text-2xl font-bold">
           {ar ? "بوابة الموظفين" : "Profile Portal"}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {ar
-            ? "إدارة التقييمات والفعاليات ومستندات البوابة وجهات الاتصال والتحليلات والجدولة"
-            : "Manage evaluations, activities, portal documents, contacts, analytics, and scheduling"}
-        </p>
       </div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full md:w-auto flex gap-2 whitespace-nowrap mb-8 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
