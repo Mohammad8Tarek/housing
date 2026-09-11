@@ -12,6 +12,7 @@ import {
 import { useTheme } from "../../lib/theme";
 import { apiFetch } from "../../lib/api";
 import { Capacitor } from "@capacitor/core";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface Employee {
@@ -50,6 +51,7 @@ interface TabChatProps {
   autoOpenChatWith?: number | null;
   onClearAutoOpen?: () => void;
   isActive?: boolean;
+  onUnreadChange?: (count: number) => void;
 }
 
 /* ─── Emoji Data ─────────────────────────────────────────────────── */
@@ -582,14 +584,39 @@ function playNotificationSound() {
   }
 }
 
-function showNotification(title: string, body: string, icon?: string) {
+async function showNotification(title: string, body: string, icon?: string) {
   // Always play sound and vibrate (works on mobile)
   playNotificationSound();
   if ("vibrate" in navigator) {
-    navigator.vibrate([100, 50, 100]); // short vibration pattern
+    navigator.vibrate([100, 50, 100]);
   }
 
-  // Try browser notification (works on desktop, may fail on mobile)
+  // Native Android: use Capacitor LocalNotifications
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const perm = await LocalNotifications.checkPermissions();
+      if (perm.display !== "granted") {
+        const req = await LocalNotifications.requestPermissions();
+        if (req.display !== "granted") return;
+      }
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Math.floor(Math.random() * 100000),
+            title,
+            body,
+            smallIcon: "ic_stat_icon_config_sample",
+            iconColor: "#F59E0B",
+          },
+        ],
+      });
+    } catch {
+      /* LocalNotifications not available */
+    }
+    return;
+  }
+
+  // Web: browser Notification API
   if ("Notification" in window && Notification.permission === "granted") {
     try {
       new Notification(title, {
@@ -598,7 +625,7 @@ function showNotification(title: string, body: string, icon?: string) {
         tag: "chat-message",
       });
     } catch {
-      /* ignore — mobile doesn't support this */
+      /* ignore */
     }
   }
 }
@@ -655,6 +682,7 @@ export function TabChat({
   autoOpenChatWith,
   onClearAutoOpen,
   isActive = true,
+  onUnreadChange,
 }: TabChatProps) {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
@@ -1049,6 +1077,13 @@ export function TabChat({
   useEffect(() => {
     activeConvRef.current = activeConv;
   }, [activeConv]);
+
+  /* ── Notify parent of unread count ── */
+  useEffect(() => {
+    const total = conversations.reduce((s, c) => s + c.unreadCount, 0);
+    onUnreadChange?.(total);
+  }, [conversations, onUnreadChange]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -1165,7 +1200,7 @@ export function TabChat({
     const tempMsg: Message = {
       id: tempId,
       conversationId: activeConv.id,
-      senderId: myEmployeeId || 0,
+      senderId: effectiveMyId || 0,
       content,
       createdAt: new Date().toISOString(),
       isEdited: false,
@@ -1256,7 +1291,7 @@ export function TabChat({
       if (d.success) {
         const newConv: Conversation = {
           ...d.conversation,
-          participantIds: [myEmployeeId!, emp.id],
+          participantIds: [effectiveMyId!, emp.id],
           lastMessage: null,
           unreadCount: 0,
         };
@@ -1277,7 +1312,7 @@ export function TabChat({
   /* ── Helpers ── */
   function getParticipantName(empId: number, conv?: Conversation): string {
     if (empId === 0) return isRtl ? "الإدارة" : "Management";
-    if (empId === myEmployeeId) return isRtl ? "أنا" : "Me";
+    if (empId === effectiveMyId) return isRtl ? "أنا" : "Me";
 
     if (conv?.participantsData) {
       const p = conv.participantsData.find((x) => x.id === empId);
@@ -1310,13 +1345,13 @@ export function TabChat({
 
   function getConvTitle(conv: Conversation): string {
     if (conv.isGroup) return conv.subject || (isRtl ? "مجموعة" : "Group");
-    const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
+    const otherId = conv.participantIds.find((id) => id !== effectiveMyId);
     return otherId ? getParticipantName(otherId, conv) : conv.subject || "Chat";
   }
 
   function getConvPhoto(conv: Conversation): string | null {
     if (conv.isGroup) return null;
-    const otherId = conv.participantIds.find((id) => id !== myEmployeeId);
+    const otherId = conv.participantIds.find((id) => id !== effectiveMyId);
     return otherId ? getParticipantPhoto(otherId, conv) : null;
   }
 

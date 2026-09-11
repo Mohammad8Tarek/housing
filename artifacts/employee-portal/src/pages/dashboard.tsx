@@ -111,6 +111,7 @@ export default function Dashboard() {
   const [showHR, setShowHR] = useState(false);
 
   const [unreadCount, setUnreadCount] = useState(0);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const prevUnreadRef = useRef(0);
 
   const { data: profileRes, isError: isProfileError, error: profileError } = usePortalProfile();
@@ -900,6 +901,7 @@ export default function Dashboard() {
               myEmployeeId={Number(employee?.id ?? employee?.profileDbId ?? 0) || undefined}
               contacts={contacts}
               isActive={activeTab === "chat"}
+              onUnreadChange={setChatUnreadCount}
             />
           </div>
         </div>
@@ -910,6 +912,7 @@ export default function Dashboard() {
         onChange={changeTab}
         requestCount={pendingCount}
         notifCount={unreadCount}
+        chatCount={chatUnreadCount}
       />
 
       {showHR && (

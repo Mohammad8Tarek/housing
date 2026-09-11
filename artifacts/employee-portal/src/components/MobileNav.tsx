@@ -31,6 +31,7 @@ interface Props {
   onChange: (tab: Tab) => void;
   requestCount?: number;
   notifCount?: number;
+  chatCount?: number;
 }
 
 const MORE_ITEMS: NavItem[] = [
@@ -69,6 +70,7 @@ export default function MobileNav({
   onChange,
   requestCount = 0,
   notifCount = 0,
+  chatCount = 0,
 }: Props) {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
@@ -111,6 +113,7 @@ export default function MobileNav({
       icon: Settings,
       labelAr: "المزيد",
       labelEn: "More",
+      badge: chatCount, // show chat unread count on More button
     },
   ];
 
