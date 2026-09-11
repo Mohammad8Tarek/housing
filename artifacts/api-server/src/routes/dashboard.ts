@@ -311,7 +311,10 @@ router.get(
     }
 
     const today = new Date().toISOString().split("T")[0]!;
-    const future = new Date(Date.now() + 3 * 86_400_000)
+    const future7 = new Date(Date.now() + 7 * 86_400_000)
+      .toISOString()
+      .split("T")[0]!;
+    const future30 = new Date(Date.now() + 30 * 86_400_000)
       .toISOString()
       .split("T")[0]!;
 
@@ -322,6 +325,7 @@ router.get(
             assignment: assignmentsTable,
             profile: profilesTable,
             room: roomsTable,
+            building: buildingsTable,
           })
           .from(assignmentsTable)
           .leftJoin(
@@ -329,11 +333,11 @@ router.get(
             eq(assignmentsTable.profileId, profilesTable.id),
           )
           .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
           .where(
             and(
               statusEq(assignmentsTable.status, "active"),
-              gte(assignmentsTable.expectedCheckOutDate, today),
-              lte(assignmentsTable.expectedCheckOutDate, future),
+              lte(assignmentsTable.expectedCheckOutDate, future7),
             ),
           )
           .limit(20),
@@ -341,37 +345,152 @@ router.get(
 
       const checkIns = await safeSelect(() =>
         tenantDb
-          .select()
+          .select({
+            reservation: reservationsTable,
+            room: roomsTable,
+            building: buildingsTable,
+          })
           .from(reservationsTable)
+          .leftJoin(roomsTable, eq(reservationsTable.roomId, roomsTable.id))
+          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
           .where(
             and(
               statusEq(reservationsTable.status, "upcoming"),
-              gte(reservationsTable.checkInDate, today),
-              lte(reservationsTable.checkInDate, future),
+              lte(reservationsTable.checkInDate, future7),
             ),
           )
+          .orderBy(reservationsTable.checkInDate)
           .limit(20),
       );
 
       const maintenanceRequests = await safeSelect(() =>
         tenantDb
-          .select()
+          .select({
+            maintenance: maintenanceTable,
+            room: roomsTable,
+            building: buildingsTable,
+          })
           .from(maintenanceTable)
+          .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
           .where(statusEq(maintenanceTable.status, "open"))
+          .orderBy(desc(maintenanceTable.reportedAt))
           .limit(20),
       );
 
-      return { checkOuts, checkIns, maintenanceRequests };
+      const dirtyRooms = await safeSelect(() =>
+        tenantDb
+          .select({
+            room: roomsTable,
+            building: buildingsTable,
+          })
+          .from(roomsTable)
+          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .where(
+            sql`lower(${roomsTable.status}) IN ('dirty', 'occupied_dirty')`,
+          )
+          .limit(15),
+      );
+
+      const expiringContracts = await safeSelect(() =>
+        tenantDb
+          .select({
+            profile: profilesTable,
+          })
+          .from(profilesTable)
+          .where(
+            and(
+              gte(profilesTable.contractEndDate, today),
+              lte(profilesTable.contractEndDate, future30),
+            ),
+          )
+          .orderBy(profilesTable.contractEndDate)
+          .limit(10),
+      );
+
+      return { checkOuts, checkIns, maintenanceRequests, dirtyRooms, expiringContracts };
+    });
+
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    const checkOutsEnriched = result.checkOuts.map((r) => {
+      let daysRemaining = 0;
+      if (r.assignment.expectedCheckOutDate) {
+        const exp = new Date(r.assignment.expectedCheckOutDate);
+        exp.setHours(0, 0, 0, 0);
+        daysRemaining = Math.round((exp.getTime() - todayDate.getTime()) / 86_400_000);
+      }
+      const fullName = [r.profile?.firstName, r.profile?.lastName].filter(Boolean).join(" ");
+      return {
+        ...r.assignment,
+        assignmentId: r.assignment.id,
+        profileName: fullName || r.profile?.firstName || "Unknown",
+        department: r.profile?.department || "",
+        roomNumber: r.room?.roomNumber || "N/A",
+        buildingName: r.building?.name || "",
+        daysRemaining,
+      };
+    });
+
+    const checkInsEnriched = result.checkIns.map((r) => {
+      let daysUntil = 0;
+      if (r.reservation.checkInDate) {
+        const d = new Date(r.reservation.checkInDate);
+        d.setHours(0, 0, 0, 0);
+        daysUntil = Math.round((d.getTime() - todayDate.getTime()) / 86_400_000);
+      }
+      const fullName = [r.reservation.firstName, r.reservation.lastName].filter(Boolean).join(" ");
+      return {
+        ...r.reservation,
+        guestName: fullName,
+        roomNumber: r.room?.roomNumber || "Pending",
+        buildingName: r.building?.name || "",
+        daysUntil,
+      };
+    });
+
+    const maintenanceEnriched = result.maintenanceRequests.map((r) => ({
+      ...r.maintenance,
+      roomNumber: r.room?.roomNumber || "N/A",
+      buildingName: r.building?.name || "",
+    }));
+
+    const dirtyRoomsEnriched = result.dirtyRooms.map((r) => ({
+      id: r.room.id,
+      roomNumber: r.room.roomNumber,
+      capacity: r.room.capacity,
+      status: r.room.status,
+      floorId: r.room.floorId,
+      buildingName: r.building?.name || "Main",
+      buildingId: r.room.buildingId,
+    }));
+
+    const expiringContractsEnriched = result.expiringContracts.map((r) => {
+      let daysUntil = 0;
+      if (r.profile.contractEndDate) {
+        const d = new Date(r.profile.contractEndDate);
+        d.setHours(0, 0, 0, 0);
+        daysUntil = Math.round((d.getTime() - todayDate.getTime()) / 86_400_000);
+      }
+      const fullName = [r.profile.firstName, r.profile.lastName].filter(Boolean).join(" ");
+      return {
+        id: r.profile.id,
+        profileId: r.profile.profileId,
+        name: fullName,
+        department: r.profile.department,
+        jobTitle: r.profile.jobTitle,
+        contractEndDate: r.profile.contractEndDate,
+        daysUntil,
+      };
     });
 
     res.json({
-      checkOuts: result.checkOuts.map((r) => ({
-        ...r.assignment,
-        profileName: r.profile?.firstName,
-        roomNumber: r.room?.roomNumber,
-      })),
-      checkIns: result.checkIns,
-      maintenanceRequests: result.maintenanceRequests,
+      checkOuts: checkOutsEnriched,
+      checkIns: checkInsEnriched,
+      maintenanceRequests: maintenanceEnriched,
+      dirtyRooms: dirtyRoomsEnriched,
+      expiringContracts: expiringContractsEnriched,
     });
   },
 );

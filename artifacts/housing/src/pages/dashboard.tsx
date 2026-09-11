@@ -65,6 +65,10 @@ import { DashboardKpiCard } from "./dashboard/components/DashboardKpiCard";
 import { DashboardAnalyticsDonut } from "./dashboard/components/DashboardAnalyticsDonut";
 import { DepartmentBarList } from "./dashboard/components/DepartmentBarList";
 import { ReadinessTrackerBar } from "./dashboard/components/ReadinessTrackerBar";
+import { GenderDemographicsCard } from "./dashboard/components/GenderDemographicsCard";
+import { BuildingCapacityMatrix } from "./dashboard/components/BuildingCapacityMatrix";
+import { HousekeepingPriorityQueue } from "./dashboard/components/HousekeepingPriorityQueue";
+import { DailyOperationsHub } from "./dashboard/components/DailyOperationsHub";
 
 function AnimatedNumber({ value }: { value: string | number }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -519,23 +523,24 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Operational Breakdown Section: Donut + Department Bar List */}
+      {/* Operational Breakdown Section: Donut + Department Bar List + Gender Demographics */}
       {!isAll && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div className="lg:col-span-5">
-            <DashboardAnalyticsDonut
-              roomStatusBreakdown={analytics?.roomStatusBreakdown}
-              bedCapacity={analytics?.bedCapacity}
-              isLoading={analyticsLoading}
-            />
-          </div>
-          <div className="lg:col-span-7">
-            <DepartmentBarList
-              departments={analytics?.departmentBreakdown}
-              totalProfiles={totalProfilesCount}
-              isLoading={analyticsLoading}
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <DashboardAnalyticsDonut
+            roomStatusBreakdown={analytics?.roomStatusBreakdown}
+            bedCapacity={analytics?.bedCapacity}
+            isLoading={analyticsLoading}
+          />
+          <DepartmentBarList
+            departments={analytics?.departmentBreakdown}
+            totalProfiles={totalProfilesCount}
+            isLoading={analyticsLoading}
+          />
+          <GenderDemographicsCard
+            genderDistribution={analytics?.genderDistribution}
+            totalResidents={stats?.activeAssignments || (stats?.totalRooms ? stats.occupiedRooms : 0)}
+            isLoading={analyticsLoading}
+          />
         </div>
       )}
 
@@ -726,232 +731,36 @@ export default function Dashboard() {
         </Tabs>
       )}
 
-      {/* Quick Access / Shortcuts */}
-      {(() => {
-        const quickItems = [
-          {
-            label: ar ? "الملفات التعريفية" : "Profiles",
-            desc: ar ? "سجلات الموظفين والنزلاء" : "Staff & resident profiles",
-            icon: Users,
-            href: buildNavHref("/profiles"),
-            module: "profiles",
-            bgClass: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
-            iconColor: "text-blue-600 dark:text-blue-400",
-            gradientClass: "from-blue-500 to-indigo-500",
-          },
-          {
-            label: ar ? "المقيمون حالياً" : "In-House",
-            desc: ar ? "تسكين النزلاء الفعلي" : "Active room residents",
-            icon: BedDouble,
-            href: buildNavHref("/accommodation/in-house"),
-            module: "accommodation",
-            bgClass: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
-            iconColor: "text-emerald-600 dark:text-emerald-400",
-            gradientClass: "from-emerald-500 to-teal-500",
-          },
-          {
-            label: ar ? "الإسكان والغرف" : "Housing & Rooms",
-            desc: ar ? "المباني والأدوار والغرف" : "Buildings, floors & rooms",
-            icon: Building2,
-            href: buildNavHref("/housing"),
-            module: "housing",
-            bgClass: "bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400",
-            iconColor: "text-sky-600 dark:text-sky-400",
-            gradientClass: "from-sky-500 to-blue-500",
-          },
-          {
-            label: ar ? "الحجوزات" : "Reservations",
-            desc: ar ? "حجوزات الوصول القادمة" : "Future arrival bookings",
-            icon: CalendarCheck,
-            href: buildNavHref("/accommodation/reservations"),
-            module: "reservations",
-            bgClass: "bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400",
-            iconColor: "text-purple-600 dark:text-purple-400",
-            gradientClass: "from-purple-500 to-pink-500",
-          },
-          {
-            label: ar ? "تذاكر الصيانة" : "Tickets",
-            desc: ar ? "متابعة البلاغات والإصلاحات" : "Work orders & repairs",
-            icon: Wrench,
-            href: buildNavHref("/maintenance"),
-            module: "maintenance",
-            bgClass: "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",
-            iconColor: "text-amber-600 dark:text-amber-400",
-            gradientClass: "from-amber-500 to-orange-500",
-          },
-          {
-            label: ar ? "هاوس كيبنج" : "Housekeeping",
-            desc: ar ? "نظافة وجاهزية الغرف" : "Cleaning & room turnover",
-            icon: Sparkles,
-            href: buildNavHref("/housekeeping"),
-            module: "housekeeping",
-            bgClass: "bg-teal-500/10 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400",
-            iconColor: "text-teal-600 dark:text-teal-400",
-            gradientClass: "from-teal-500 to-cyan-500",
-          },
-          {
-            label: ar ? "استضافة ضيوف" : "Guest Housing",
-            desc: ar ? "تسكين وإدارة الزوار" : "Guest & visitor stays",
-            icon: UserPlus,
-            href: buildNavHref("/accommodation/guest-hosting"),
-            module: "guest_hosting",
-            bgClass: "bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400",
-            iconColor: "text-rose-600 dark:text-rose-400",
-            gradientClass: "from-rose-500 to-red-500",
-          },
-        ].filter((item) => !item.module || canView(item.module as any));
+      {/* Buildings Occupancy & Capacity Matrix */}
+      {!isAll && occupancy && occupancy.length > 0 && (
+        <BuildingCapacityMatrix
+          buildings={occupancy}
+          buildNavHref={buildNavHref}
+        />
+      )}
 
-        if (quickItems.length === 0) return null;
+      {/* Executive Operations Pulse Hub */}
+      {!isAll && (
+        <DailyOperationsHub
+          checkIns={pendingData?.checkIns}
+          checkOuts={pendingData?.checkOuts}
+          maintenanceRequests={pendingData?.maintenanceRequests}
+          expiringContracts={pendingData?.expiringContracts}
+          buildNavHref={buildNavHref}
+        />
+      )}
 
-        const gridColsClass =
-          quickItems.length === 5
-            ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
-            : quickItems.length === 6
-            ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
-            : quickItems.length >= 7
-            ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7"
-            : "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4";
-
-        return (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between px-0.5">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-4 bg-primary rounded-full" />
-                <h2 className="text-xs sm:text-sm font-bold text-foreground uppercase tracking-wider">
-                  {ar ? "وصول سريع" : "Quick Access"}
-                </h2>
-              </div>
-              <span className="text-[11px] sm:text-xs text-muted-foreground">
-                {ar ? "روابط سريعة لأهم الأقسام" : "Shortcuts to key modules"}
-              </span>
-            </div>
-
-            <div className={`grid ${gridColsClass} gap-3`}>
-              {quickItems.map((item, i) => (
-                <Link key={i} href={item.href} className="group block h-full">
-                  <div className="relative h-full overflow-hidden rounded-xl sm:rounded-2xl border border-border/50 bg-card/75 backdrop-blur-xl p-3.5 shadow-sm hover:shadow-lg hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between cursor-pointer">
-                    <div
-                      className={`absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 ${item.bgClass}`}
-                    />
-
-                    <div className="flex items-center justify-between mb-2.5">
-                      <div
-                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${item.bgClass} flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-xs shrink-0`}
-                      >
-                        <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.iconColor}`} />
-                      </div>
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground/60 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-200">
-                        <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:group-hover:-translate-x-0.5" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
-                        {item.label}
-                      </h3>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
-                        {item.desc}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`absolute inset-x-0 bottom-0 h-0.5 sm:h-1 bg-gradient-to-r ${item.gradientClass} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Side-by-Side: Departure Alerts & Recent Activity */}
+      {/* Side-by-Side: Housekeeping Priority Queue & Recent Activity */}
       {!isAll && (
         <div className="grid gap-5 md:grid-cols-2">
-          {/* Departure Alerts */}
-          <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl flex flex-col overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <div>
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-amber-500" />
-                  {ar ? "تنبيهات المغادرة القريبة" : "Upcoming Departures"}
-                  {(departureAlerts?.length ?? 0) > 0 && (
-                    <span className="h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold">
-                      {departureAlerts!.length}
-                    </span>
-                  )}
-                </CardTitle>
-                <CardDescription className="text-xs mt-0.5">
-                  {ar ? "مواعيد إخلاء الغرف القادمة للموظفين" : "Scheduled checkout turnover dates"}
-                </CardDescription>
-              </div>
-              <PermissionGate module="accommodation" action="view">
-                <Link href={buildNavHref("/accommodation/in-house")}>
-                  <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent gap-1 py-1">
-                    {ar ? "عرض" : "View"} <ArrowRight className="w-3 h-3" />
-                  </Badge>
-                </Link>
-              </PermissionGate>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-auto space-y-2 max-h-[300px]">
-              {departureAlerts && departureAlerts.length > 0 ? (
-                departureAlerts.slice(0, 6).map((alert) => (
-                  <Link key={alert.assignmentId} href={buildNavHref("/accommodation/in-house")}>
-                    <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted/80 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer relative overflow-hidden">
-                      <div
-                        className={cn(
-                          "p-1.5 rounded-full flex-shrink-0",
-                          alert.daysRemaining <= 1
-                            ? "bg-red-100 text-red-600 dark:bg-red-950/40"
-                            : alert.daysRemaining <= 3
-                            ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40"
-                            : "bg-primary/10 text-primary",
-                        )}
-                      >
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate text-foreground">
-                          {alert.profileName}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {alert.buildingName}, {ar ? "الغرفة" : "Room"} {alert.roomNumber}
-                        </p>
-                      </div>
-                      <div className="text-end whitespace-nowrap">
-                        <p
-                          className={cn(
-                            "text-xs font-bold font-mono",
-                            alert.daysRemaining <= 1
-                              ? "text-red-600 dark:text-red-400"
-                              : alert.daysRemaining <= 3
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-foreground",
-                          )}
-                        >
-                          {alert.daysRemaining < 0
-                            ? ar
-                              ? "متأخر"
-                              : "Overdue"
-                            : `${alert.daysRemaining}d`}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground font-mono">
-                          {formatDate(alert.expectedCheckOutDate)}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="h-full min-h-[140px] flex items-center justify-center text-muted-foreground text-sm flex-col gap-2 pt-4">
-                  <CheckCircle2 className="h-8 w-8 text-emerald-500 opacity-60" />
-                  <p className="font-medium text-emerald-600 dark:text-emerald-400">
-                    {ar ? "لا مغادرات قادمة قريباً" : "No upcoming departures scheduled"}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Housekeeping Priority & Turnover Queue */}
+          <HousekeepingPriorityQueue
+            dirtyRooms={pendingData?.dirtyRooms}
+            cleanRate={analytics?.turnoverHealth?.cleanRate}
+            pendingClean={analytics?.turnoverHealth?.pendingClean}
+            readyCount={analytics?.roomStatusBreakdown?.available ?? stats?.availableRooms ?? 0}
+            buildNavHref={buildNavHref}
+          />
 
           {/* Recent Activity */}
           <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden flex flex-col">
