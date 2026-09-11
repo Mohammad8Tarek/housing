@@ -270,11 +270,38 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         });
       } catch (_) {}
     }
+    setActivePropertyId(id);
     localStorage.setItem("activePropertyId", String(id));
-    window.location.href = id === "all" ? "/dashboard" : "/dashboard";
+    const target = properties.find((p) => p.id === id);
+    const slug = id === "all" ? "all" : (target?.code || target?.name || String(id));
+    const currentPath = window.location.pathname === "/login" ? "/dashboard" : window.location.pathname;
+    window.location.href = `${currentPath}?property=${encodeURIComponent(slug)}`;
   };
 
   const ar = language === "ar";
+
+  const propertySlug =
+    activePropertyId === "all"
+      ? "all"
+      : activeProperty?.code || activeProperty?.name || "";
+
+  const buildNavHref = (baseHref: string) => {
+    if (!propertySlug) return baseHref;
+    const separator = baseHref.includes("?") ? "&" : "?";
+    return `${baseHref}${separator}property=${encodeURIComponent(propertySlug)}`;
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !propertySlug) return;
+    try {
+      if (window.location.pathname === "/login") return;
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("property") !== propertySlug) {
+        url.searchParams.set("property", propertySlug);
+        window.history.replaceState({}, "", url.toString());
+      }
+    } catch {}
+  }, [location, propertySlug]);
 
   const logoutMutation = useLogout({
     mutation: { onSuccess: () => logout() },
@@ -462,7 +489,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       return (
                         <Link
                           key={sIdx}
-                          href={sub.href}
+                          href={buildNavHref(sub.href)}
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
                           <span
@@ -487,7 +514,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           return (
             <Link
               key={idx}
-              href={item.href!}
+              href={buildNavHref(item.href!)}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <span

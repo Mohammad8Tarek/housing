@@ -83,6 +83,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
   const updateUrlPropertyParam = (slug: string | null) => {
     if (typeof window === "undefined") return;
     try {
+      if (window.location.pathname === "/login") return;
       const url = new URL(window.location.href);
       const current = url.searchParams.get("property");
       if (slug) {
@@ -230,13 +231,54 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       ? undefined
       : (allProperties as Property[]).find((p) => p.id === effectiveId);
 
-  // Sync URL when activeProperty resolves
+  // Sync URL and retain property param across all page navigations
   useEffect(() => {
-    if (effectiveId === "all") {
-      updateUrlPropertyParam("all");
-    } else if (activeProperty) {
-      updateUrlPropertyParam(getPropertySlug(activeProperty));
+    if (typeof window === "undefined") return;
+
+    const currentSlug =
+      effectiveId === "all" ? "all" : getPropertySlug(activeProperty);
+    if (!currentSlug) return;
+
+    if (window.location.pathname !== "/login") {
+      updateUrlPropertyParam(currentSlug);
     }
+
+    // Intercept pushState & replaceState so Wouter and link navigations retain ?property=
+    const originalPushState = window.history.pushState.bind(window.history);
+    const originalReplaceState = window.history.replaceState.bind(window.history);
+
+    window.history.pushState = function (state: any, unused: string, url?: string | URL | null) {
+      let finalUrl = url;
+      if (url && typeof url === "string" && !url.includes("/login")) {
+        try {
+          const parsed = new URL(url, window.location.origin);
+          if (!parsed.searchParams.has("property")) {
+            parsed.searchParams.set("property", currentSlug);
+            finalUrl = parsed.pathname + parsed.search + parsed.hash;
+          }
+        } catch {}
+      }
+      return originalPushState(state, unused, finalUrl);
+    };
+
+    window.history.replaceState = function (state: any, unused: string, url?: string | URL | null) {
+      let finalUrl = url;
+      if (url && typeof url === "string" && !url.includes("/login")) {
+        try {
+          const parsed = new URL(url, window.location.origin);
+          if (!parsed.searchParams.has("property")) {
+            parsed.searchParams.set("property", currentSlug);
+            finalUrl = parsed.pathname + parsed.search + parsed.hash;
+          }
+        } catch {}
+      }
+      return originalReplaceState(state, unused, finalUrl);
+    };
+
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
   }, [effectiveId, activeProperty]);
 
   // Listen for browser Back/Forward (popstate) to sync property from URL
