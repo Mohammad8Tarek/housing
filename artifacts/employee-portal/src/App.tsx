@@ -279,7 +279,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       <BiometricLockScreen
         onUnlocked={() => setLocked(false)}
         onFailed={() => {
-          clearSessionCache();
           setLocked(false);
           setLocation("/login");
         }}

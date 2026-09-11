@@ -318,7 +318,7 @@ export default function TabProfile({ employee: propEmployee, photoUrl, onDocTab 
               {employee?.department || ""}
             </p>
             <p className="text-[10px] text-muted2/60 mt-1">
-              ID: {employee?.employeeId || "—"}
+              ID: {employee?.employeeId || employee?.profileId || (employee?.id ? String(employee.id) : "—")}
               {employee?.nationalId && (
                 <span className="ms-3">CID: {employee.nationalId}</span>
               )}

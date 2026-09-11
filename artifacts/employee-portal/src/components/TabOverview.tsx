@@ -62,8 +62,8 @@ export default function TabOverview({
     | { roomNumber?: string; building?: string }
     | undefined;
   const assignments = portalData?.assignments || [];
-  const firstName = employee.fullName?.split(" ")[0] || "Employee";
-  const empAddress = employee.address as string | undefined;
+  const firstName = employee?.fullName?.split(" ")[0] || employee?.firstName || (isRtl ? "موظف" : "Employee");
+  const empAddress = (employee?.address as string | undefined) || "";
 
   const [greeting, setGreeting] = useState(() => getTimeGreeting(isRtl));
 

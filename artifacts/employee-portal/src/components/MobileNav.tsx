@@ -35,11 +35,18 @@ interface Props {
 }
 
 const MORE_ITEMS: NavItem[] = [
+  { id: "profile", icon: User, labelAr: "الملف الشخصي", labelEn: "Profile" },
   {
-    id: "evaluations",
-    icon: Star,
-    labelAr: "التقييمات",
-    labelEn: "Evaluations",
+    id: "documents",
+    icon: FileText,
+    labelAr: "المستندات",
+    labelEn: "Documents",
+  },
+  {
+    id: "roommates",
+    icon: Users,
+    labelAr: "زملاء السكن",
+    labelEn: "Roommates",
   },
   {
     id: "activities",
@@ -47,16 +54,14 @@ const MORE_ITEMS: NavItem[] = [
     labelAr: "الفعاليات",
     labelEn: "Activities",
   },
-  { id: "profile", icon: User, labelAr: "الملف الشخصي", labelEn: "Profile" },
   {
-    id: "roommates",
-    icon: Users,
-    labelAr: "زملاء السكن",
-    labelEn: "Roommates",
+    id: "evaluations",
+    icon: Star,
+    labelAr: "التقييمات",
+    labelEn: "Evaluations",
   },
   { id: "food", icon: UtensilsCrossed, labelAr: "الطعام", labelEn: "Food" },
   { id: "transport", icon: Bus, labelAr: "المواصلات", labelEn: "Transport" },
-  { id: "chat", icon: MessageCircle, labelAr: "المحادثة", labelEn: "Chat" },
   {
     id: "portal-settings",
     icon: Settings,
@@ -89,17 +94,18 @@ export default function MobileNav({
   const items: NavItem[] = [
     { id: "overview", icon: Home, labelAr: "الرئيسية", labelEn: "Home" },
     {
-      id: "documents",
-      icon: FileText,
-      labelAr: "المستندات",
-      labelEn: "Documents",
-    },
-    {
       id: "requests",
       icon: ListTodo,
       labelAr: "طلباتي",
       labelEn: "Requests",
       badge: requestCount,
+    },
+    {
+      id: "chat",
+      icon: MessageCircle,
+      labelAr: "المحادثة",
+      labelEn: "Chat",
+      badge: chatCount,
     },
     {
       id: "notifications",
@@ -113,7 +119,6 @@ export default function MobileNav({
       icon: Settings,
       labelAr: "المزيد",
       labelEn: "More",
-      badge: chatCount, // show chat unread count on More button
     },
   ];
 

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Fingerprint, Loader2, ShieldAlert } from "lucide-react";
 import { useBiometric } from "../hooks/useBiometric";
 import { useTheme } from "../lib/theme";
@@ -14,9 +14,9 @@ export default function BiometricLockScreen({ onUnlocked, onFailed }: BiometricL
   const biometric = useBiometric();
   const [status, setStatus] = useState<"idle" | "checking" | "failed">("idle");
   const [attempts, setAttempts] = useState(0);
-  const MAX_ATTEMPTS = 3;
+  const MAX_ATTEMPTS = 5;
 
-  const runBiometric = async () => {
+  const runBiometric = async (isAuto = false) => {
     setStatus("checking");
     const success = await biometric.authenticate(
       ar ? "تحقق من هويتك للمتابعة" : "Verify your identity to continue"
@@ -24,6 +24,11 @@ export default function BiometricLockScreen({ onUnlocked, onFailed }: BiometricL
     if (success) {
       onUnlocked();
     } else {
+      if (isAuto) {
+        // Initial auto-trigger was cancelled or not focused — stay idle so user can tap button
+        setStatus("idle");
+        return;
+      }
       const next = attempts + 1;
       setAttempts(next);
       if (next >= MAX_ATTEMPTS) {
@@ -35,10 +40,10 @@ export default function BiometricLockScreen({ onUnlocked, onFailed }: BiometricL
   };
 
   useEffect(() => {
-    // Auto-trigger on mount after short delay
+    // Auto-trigger after 850ms to ensure native Android window focus
     const timer = setTimeout(() => {
-      runBiometric();
-    }, 400);
+      runBiometric(true);
+    }, 850);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -83,7 +88,7 @@ export default function BiometricLockScreen({ onUnlocked, onFailed }: BiometricL
                 : `Verification failed. ${MAX_ATTEMPTS - attempts} attempts left`}
             </p>
             <button
-              onClick={runBiometric}
+              onClick={() => runBiometric(false)}
               className="mt-2 px-8 py-3 rounded-2xl bg-[#18B0BB]/20 border border-[#18B0BB]/40 text-[#18B0BB] font-medium text-sm flex items-center gap-2 active:scale-95 transition-transform"
             >
               <Fingerprint className="w-4 h-4" />
@@ -99,7 +104,7 @@ export default function BiometricLockScreen({ onUnlocked, onFailed }: BiometricL
               {ar ? "استخدم البصمة لإلغاء القفل" : "Use fingerprint to unlock"}
             </p>
             <button
-              onClick={runBiometric}
+              onClick={() => runBiometric(false)}
               className="mt-1 px-8 py-3 rounded-2xl bg-[#18B0BB]/20 border border-[#18B0BB]/40 text-[#18B0BB] font-medium text-sm flex items-center gap-2 active:scale-95 transition-transform"
             >
               <Fingerprint className="w-4 h-4" />

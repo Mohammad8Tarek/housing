@@ -35,6 +35,7 @@ import TabFood from "../components/TabFood";
 import TabTransport from "../components/TabTransport";
 import { TabChat } from "../components/chat/TabChat";
 import { getPortalTabFromUrl, normalizePortalTab } from "../lib/portal-tabs";
+import { useBackButton } from "../hooks/useBackButton";
 
 interface Employee {
   id?: number;
@@ -112,7 +113,34 @@ export default function Dashboard() {
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const prevUnreadRef = useRef(0);
+
+  // Fetch HR contacts for Contact HR modal & Chat
+  const fetchContacts = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/portal-data/my-contacts", { credentials: "include" });
+      if (res.ok) {
+        const d = await res.json();
+        if (d?.contacts) setContacts(d.contacts);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
+
+  // Hardware Back Button integration (Android)
+  useBackButton({
+    activeTab,
+    onTabChange: (tab) => changeTab(tab as Tab),
+    isChatOpen: activeTab === "chat" && isChatOpen,
+    isModalOpen: showHR,
+    onCloseModal: () => setShowHR(false),
+    currentPath: "/dashboard",
+    isRtl,
+  });
 
   const { data: profileRes, isError: isProfileError, error: profileError } = usePortalProfile();
   const { data: roomRes } = usePortalRoom();
@@ -591,7 +619,7 @@ export default function Dashboard() {
           zIndex: 40,
           background: "hsl(var(--card))",
           borderBottom: "0.5px solid hsl(var(--border2))",
-          display: "flex",
+          display: activeTab === "chat" && isChatOpen ? "none" : "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "10px 16px",
@@ -775,10 +803,16 @@ export default function Dashboard() {
         ref={scrollRef}
         style={{
           flex: 1,
-          overflowY: "auto",
+          overflowY: activeTab === "chat" ? "hidden" : "auto",
           overflowX: "hidden",
-          paddingTop: "calc(56px + env(safe-area-inset-top, 0px))",
-          paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
+          paddingTop:
+            activeTab === "chat" && isChatOpen
+              ? "0px"
+              : "calc(56px + env(safe-area-inset-top, 0px))",
+          paddingBottom:
+            activeTab === "chat" && isChatOpen
+              ? "0px"
+              : "calc(80px + env(safe-area-inset-bottom, 0px))",
           WebkitOverflowScrolling: "touch",
         }}
       >
@@ -896,24 +930,32 @@ export default function Dashboard() {
           )}
           {activeTab === "food" && <TabFood />}
           {activeTab === "transport" && <TabTransport />}
-          <div style={{ display: activeTab === "chat" ? "block" : "none" }}>
+          <div
+            style={{
+              display: activeTab === "chat" ? "block" : "none",
+              height: activeTab === "chat" ? "100%" : "auto",
+            }}
+          >
             <TabChat
               myEmployeeId={Number(employee?.id ?? employee?.profileDbId ?? 0) || undefined}
               contacts={contacts}
               isActive={activeTab === "chat"}
               onUnreadChange={setChatUnreadCount}
+              onChatOpenChange={setIsChatOpen}
             />
           </div>
         </div>
       </div>
 
-      <MobileNav
-        active={activeTab}
-        onChange={changeTab}
-        requestCount={pendingCount}
-        notifCount={unreadCount}
-        chatCount={chatUnreadCount}
-      />
+      {!isChatOpen && (
+        <MobileNav
+          active={activeTab}
+          onChange={changeTab}
+          requestCount={pendingCount}
+          notifCount={unreadCount}
+          chatCount={chatUnreadCount}
+        />
+      )}
 
       {showHR && (
         <div

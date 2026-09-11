@@ -52,6 +52,7 @@ interface TabChatProps {
   onClearAutoOpen?: () => void;
   isActive?: boolean;
   onUnreadChange?: (count: number) => void;
+  onChatOpenChange?: (isOpen: boolean) => void;
 }
 
 /* ─── Emoji Data ─────────────────────────────────────────────────── */
@@ -584,6 +585,23 @@ function playNotificationSound() {
   }
 }
 
+let _channelCreated = false;
+async function ensureNotificationChannel() {
+  if (_channelCreated || !Capacitor.isNativePlatform()) return;
+  try {
+    await LocalNotifications.createChannel({
+      id: "chat_messages",
+      name: "Chat Messages",
+      description: "Notifications for new chat messages",
+      importance: 5,
+      visibility: 1,
+      vibration: true,
+      sound: "default",
+    });
+    _channelCreated = true;
+  } catch {}
+}
+
 async function showNotification(title: string, body: string, icon?: string) {
   // Always play sound and vibrate (works on mobile)
   playNotificationSound();
@@ -591,9 +609,10 @@ async function showNotification(title: string, body: string, icon?: string) {
     navigator.vibrate([100, 50, 100]);
   }
 
-  // Native Android: use Capacitor LocalNotifications
+  // Native Android: use Capacitor LocalNotifications with channel
   if (Capacitor.isNativePlatform()) {
     try {
+      await ensureNotificationChannel();
       const perm = await LocalNotifications.checkPermissions();
       if (perm.display !== "granted") {
         const req = await LocalNotifications.requestPermissions();
@@ -605,13 +624,13 @@ async function showNotification(title: string, body: string, icon?: string) {
             id: Math.floor(Math.random() * 100000),
             title,
             body,
-            smallIcon: "ic_stat_icon_config_sample",
-            iconColor: "#F59E0B",
+            channelId: "chat_messages",
+            iconColor: "#18B0BB",
           },
         ],
       });
     } catch {
-      /* LocalNotifications not available */
+      /* LocalNotifications error */
     }
     return;
   }
@@ -683,6 +702,7 @@ export function TabChat({
   onClearAutoOpen,
   isActive = true,
   onUnreadChange,
+  onChatOpenChange,
 }: TabChatProps) {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
@@ -730,6 +750,22 @@ export function TabChat({
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState("");
   const [showNewConv, setShowNewConv] = useState(false);
+
+  useEffect(() => {
+    onChatOpenChange?.(!!activeConv || showNewConv);
+  }, [activeConv, showNewConv, onChatOpenChange]);
+
+  useEffect(() => {
+    const handleClose = () => {
+      if (showNewConv) {
+        setShowNewConv(false);
+      } else if (activeConv) {
+        setActiveConv(null);
+      }
+    };
+    window.addEventListener("portal_chat_close", handleClose);
+    return () => window.removeEventListener("portal_chat_close", handleClose);
+  }, [activeConv, showNewConv]);
   const [search, setSearch] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searching, setSearching] = useState(false);

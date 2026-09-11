@@ -365,9 +365,10 @@ export async function customFetch<T = unknown>(
     headers.set("content-type", "application/json");
   }
 
-  // Ensure cookies are sent cross-origin
+  // When a remote base URL is set (e.g. Capacitor native app), omit cookies
+  // and rely on X-Session-Id to avoid cross-origin CORS credential restrictions
   if (!init.credentials) {
-    init.credentials = "include";
+    init.credentials = _baseUrl ? "omit" : "include";
   }
 
   if (responseType === "json" && !headers.has("accept")) {
