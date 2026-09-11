@@ -73,9 +73,42 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         userPropertyIds.includes(p.id),
       );
 
+  // Helper to get URL slug for property
+  const getPropertySlug = (prop?: Property | null): string => {
+    if (!prop) return "";
+    return prop.code || prop.name;
+  };
+
+  // Update browser URL query param without triggering full page reload
+  const updateUrlPropertyParam = (slug: string | null) => {
+    if (typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      const current = url.searchParams.get("property");
+      if (slug) {
+        if (current !== slug) {
+          url.searchParams.set("property", slug);
+          window.history.replaceState({}, "", url.toString());
+        }
+      } else {
+        if (url.searchParams.has("property")) {
+          url.searchParams.delete("property");
+          window.history.replaceState({}, "", url.toString());
+        }
+      }
+    } catch (err) {
+      console.error("Failed to update property in URL:", err);
+    }
+  };
+
   const [activePropertyId, setActivePropertyIdState] = useState<
     number | "all" | undefined
   >(() => {
+    if (typeof window !== "undefined") {
+      const urlProp = new URLSearchParams(window.location.search).get("property");
+      if (urlProp === "all") return "all";
+      if (urlProp && !isNaN(Number(urlProp))) return Number(urlProp);
+    }
     const stored = localStorage.getItem("activePropertyId");
     if (stored === "all") return "all";
     if (stored) return Number(stored);
@@ -83,7 +116,36 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || allProperties.length === 0) return;
+
+    // Check if URL specifies a property by slug, code, or name
+    const urlProp = typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("property")
+      : null;
+
+    if (urlProp) {
+      const clean = urlProp.trim().toLowerCase();
+      if (clean === "all" && canSeeAllProperties) {
+        if (activePropertyId !== "all") {
+          setActivePropertyIdState("all");
+          localStorage.setItem("activePropertyId", "all");
+        }
+        return;
+      }
+      const matched = (allProperties as Property[]).find(
+        (p) =>
+          p.code?.toLowerCase() === clean ||
+          p.name?.toLowerCase() === clean ||
+          String(p.id) === clean,
+      );
+      if (matched && (canSeeAllProperties || userPropertyIds.includes(matched.id))) {
+        if (activePropertyId !== matched.id) {
+          setActivePropertyIdState(matched.id);
+          localStorage.setItem("activePropertyId", String(matched.id));
+        }
+        return;
+      }
+    }
 
     if (!activePropertyId) {
       const serverId = (user as any).lastPropertyId;
@@ -143,12 +205,17 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       if (!canSeeAllProperties) return;
       setActivePropertyIdState("all");
       localStorage.setItem("activePropertyId", "all");
+      updateUrlPropertyParam("all");
       saveLastPropertyId("all");
       return;
     }
     if (!canSeeAllProperties && !userPropertyIds.includes(id)) return;
     setActivePropertyIdState(id);
     localStorage.setItem("activePropertyId", String(id));
+    const targetProp = (allProperties as Property[]).find((p) => p.id === id);
+    if (targetProp) {
+      updateUrlPropertyParam(getPropertySlug(targetProp));
+    }
     saveLastPropertyId(id);
   };
 
@@ -162,6 +229,39 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     effectiveId === "all"
       ? undefined
       : (allProperties as Property[]).find((p) => p.id === effectiveId);
+
+  // Sync URL when activeProperty resolves
+  useEffect(() => {
+    if (effectiveId === "all") {
+      updateUrlPropertyParam("all");
+    } else if (activeProperty) {
+      updateUrlPropertyParam(getPropertySlug(activeProperty));
+    }
+  }, [effectiveId, activeProperty]);
+
+  // Listen for browser Back/Forward (popstate) to sync property from URL
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlProp = new URLSearchParams(window.location.search).get("property");
+      if (!urlProp || allProperties.length === 0) return;
+      const clean = urlProp.trim().toLowerCase();
+      if (clean === "all" && canSeeAllProperties) {
+        setActivePropertyIdState("all");
+      } else {
+        const matched = (allProperties as Property[]).find(
+          (p) =>
+            p.code?.toLowerCase() === clean ||
+            p.name?.toLowerCase() === clean ||
+            String(p.id) === clean,
+        );
+        if (matched && (canSeeAllProperties || userPropertyIds.includes(matched.id))) {
+          setActivePropertyIdState(matched.id);
+        }
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [allProperties, canSeeAllProperties, userPropertyIds]);
 
   return (
     <PropertyContext.Provider

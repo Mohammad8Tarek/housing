@@ -24,6 +24,7 @@ import { logger } from "./lib/logger.js";
 import { apiRateLimit } from "./middlewares/rate-limit.js";
 import { auditLogMiddleware } from "./middlewares/audit-log.js";
 import { sanitizeDates } from "./middlewares/sanitize-date.js";
+import { securityHeadersMiddleware } from "./middlewares/security-headers.js";
 import { pool } from "@workspace/db";
 // @sentry/node imported dynamically below to prevent crash if not installed
 import { setupSwagger } from "./lib/swagger.js";
@@ -325,6 +326,7 @@ app.use("/api", (_req, res, next) => {
   next();
 });
 
+app.use("/api", securityHeadersMiddleware);
 app.use("/api", apiRateLimit);
 app.use("/api", auditLogMiddleware);
 

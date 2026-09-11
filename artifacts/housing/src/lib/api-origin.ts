@@ -1,3 +1,5 @@
+import { getSecurityHeaders } from "./security-signer";
+
 const DEFAULT_RAILWAY_API_URL = "https://housing-production-302d.up.railway.app";
 
 export function getApiBaseUrl(): string {
@@ -32,6 +34,7 @@ export function createWebSocketUrl(
   return url.toString();
 }
 
+
 let fetchInterceptorInstalled = false;
 
 export function installApiFetchInterceptor(): void {
@@ -40,18 +43,59 @@ export function installApiFetchInterceptor(): void {
   const originalFetch = window.fetch.bind(window);
 
   window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    const urlStr =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as Request)?.url || "";
+
+    let targetPath = "/";
+    try {
+      if (urlStr.startsWith("http")) {
+        targetPath = new URL(urlStr).pathname;
+      } else {
+        targetPath = urlStr.split("?")[0] || "/";
+      }
+    } catch {
+      targetPath = "/";
+    }
+
+    const isApi = targetPath.startsWith("/api");
+    const method =
+      init?.method ||
+      (typeof input === "object" && "method" in input
+        ? (input as Request).method
+        : "GET");
+
+    let updatedInit = init;
+    if (isApi) {
+      try {
+        const secHeaders = getSecurityHeaders(method, targetPath);
+        const headers = new Headers(init?.headers);
+        for (const [k, v] of Object.entries(secHeaders)) {
+          if (!headers.has(k)) {
+            headers.set(k, v);
+          }
+        }
+        updatedInit = { ...init, headers };
+      } catch {
+        // Fallback to original init if header construction fails
+      }
+    }
+
     if (typeof input === "string") {
-      return originalFetch(resolveApiUrl(input), init);
+      return originalFetch(resolveApiUrl(input), updatedInit);
     }
 
     if (input instanceof URL && input.pathname.startsWith("/api")) {
       return originalFetch(
         resolveApiUrl(`${input.pathname}${input.search}`),
-        init,
+        updatedInit,
       );
     }
 
-    return originalFetch(input, init);
+    return originalFetch(input, updatedInit);
   }) as typeof window.fetch;
 
   fetchInterceptorInstalled = true;
