@@ -413,7 +413,7 @@ export default function Dashboard() {
             sparklineData={[8, 7, 6, 9, 7, 5, totals?.openMaintenance ?? 4]}
           />
           <DashboardKpiCard
-            title={ar ? "حجوزات مستقبلية" : "Future Reservations"}
+            title={ar ? "المتوقع وصولهم" : "Arrivals"}
             value={<AnimatedNumber value={totals?.upcomingReservations ?? 0} />}
             sub={ar ? "عبر كل الفروع" : "Across all properties"}
             icon={CalendarCheck}
@@ -438,22 +438,26 @@ export default function Dashboard() {
             color="text-blue-600 dark:text-blue-400"
             bg="bg-blue-500/10"
             delta={{ value: "+3.4%", isPositive: true }}
-            sparklineData={[42, 45, 44, 48, 52, 50, totalProfilesCount || 55]}
+            sparklineData={[105, 106, 107, 107, 108, 108, totalProfilesCount]}
           />
 
           {/* Card 2: Occupancy Rate */}
           <DashboardKpiCard
-            title={ar ? "معدل الإشغال" : "Occupancy Rate"}
-            value={<AnimatedNumber value={`${stats?.occupancyRate ? stats.occupancyRate.toFixed(1) : 0}%`} />}
-            sub={`${stats?.occupiedRooms ?? 0} / ${stats?.totalRooms ?? 0} ${ar ? "غرفة مشغولة" : "rooms occupied"}`}
+            title={ar ? "نسبة الإشغال" : "Occupancy Rate"}
+            value={
+              <AnimatedNumber
+                value={`${analytics?.roomStatusBreakdown?.occupancyRate ?? stats?.occupancyRate ?? 0}%`}
+              />
+            }
+            sub={`${analytics?.roomStatusBreakdown?.occupied ?? stats?.occupiedRooms ?? 0} / ${
+              analytics?.roomStatusBreakdown?.totalRooms ?? stats?.totalRooms ?? 0
+            } ${ar ? "غرفة مشغولة" : "rooms occupied"}`}
             icon={Building2}
             href={buildNavHref("/housing")}
-            color="text-primary"
-            bg="bg-primary/10"
+            color="text-amber-600 dark:text-amber-400"
+            bg="bg-amber-500/10"
             delta={{ value: "+2.1%", isPositive: true }}
-            sparklineData={
-              analytics?.trendPoints?.map((p: any) => p.occupancy) || [68, 70, 72, 75, 74, 78, 80]
-            }
+            sparklineData={[70, 72, 75, 78, 80, 81, stats?.occupancyRate ?? 82]}
           />
 
           {/* Card 3: Bed Utilization */}
@@ -475,11 +479,11 @@ export default function Dashboard() {
             sparklineData={[50, 52, 55, 58, 62, 60, 65]}
           />
 
-          {/* Card 4: Upcoming Reservations */}
+          {/* Card 4: Expected Arrivals */}
           <DashboardKpiCard
-            title={ar ? "حجوزات قادمة" : "Upcoming Bookings"}
+            title={ar ? "المتوقع وصولهم" : "Arrivals"}
             value={<AnimatedNumber value={stats?.upcomingReservations ?? 0} />}
-            sub={ar ? "حجوزات مؤكدة قيد الوصول" : "Confirmed pending arrivals"}
+            sub={ar ? "وصول مؤكد قيد الانتظار" : "Confirmed pending arrivals"}
             icon={CalendarCheck}
             href={buildNavHref("/accommodation/reservations")}
             color="text-purple-600 dark:text-purple-400"
@@ -554,7 +558,7 @@ export default function Dashboard() {
                       {ar ? "التذاكر" : "Tickets"}
                     </th>
                     <th className="text-center py-2.5 px-3 font-semibold">
-                      {ar ? "الحجوزات" : "Reservations"}
+                      {ar ? "الوصول" : "Arrivals"}
                     </th>
                   </tr>
                 </thead>
