@@ -65,7 +65,7 @@ import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
   Building, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
-  Phone, CreditCard, AlertCircle, Lock, AlertTriangle, Ban, Check,
+  Phone, CreditCard, AlertCircle, Lock, AlertTriangle, Ban, Check, ArrowRightLeft,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
@@ -168,6 +168,10 @@ export default function ReservationsPage() {
   );
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">("PERMANENT");
+  const [archiveSourceProfile, setArchiveSourceProfile] = useState<boolean>(true);
+  const [crossPropertyModalOpen, setCrossPropertyModalOpen] = useState<boolean>(false);
 
   // Full New Person Profile State
   const [newForm, setNewForm] = useState({
@@ -357,14 +361,21 @@ export default function ReservationsPage() {
   const allProperties = _pData?.data || _pData || [];
 
   useEffect(() => {
-    if (activePropertyId && activePropertyId !== "all") {
-      setSearchPropertyId(String(activePropertyId));
-    } else if (allProperties && allProperties.length === 1) {
-      setSearchPropertyId(String(allProperties[0].id));
-    }
-  }, [activePropertyId, allProperties]);
+    // Default search to "all" so cross-property employees are discovered immediately by name/code
+    setSearchPropertyId("all");
+  }, []);
   const { data: settings } = useGetSettings({ query: { enabled: !!activePropertyId } });
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
+
+  const isCrossProperty = Boolean(
+    personMode === "existing" &&
+    selectedProfile &&
+    activePropertyId &&
+    (
+      (selectedProfile.propertyId && Number(selectedProfile.propertyId) !== Number(activePropertyId)) ||
+      (selectedProfile.propertyName && activeProp?.name && selectedProfile.propertyName.trim().toLowerCase() !== activeProp?.name.trim().toLowerCase())
+    )
+  );
   const { data: departmentValues = [] } = useLookupValues(activePropertyId, LOOKUP_CATEGORIES.DEPARTMENT);
   const { data: jobTitleValues = [] } = useLookupValues(activePropertyId, LOOKUP_CATEGORIES.JOB_TITLE);
   const { data: nationalityValues = [] } = useLookupValues(activePropertyId, LOOKUP_CATEGORIES.NATIONALITY);
@@ -797,7 +808,7 @@ export default function ReservationsPage() {
       );
       return;
     }
-    if (bookingType === "direct" && personMode === "existing" && selectedProfile?.accommodationRoom) {
+    if (bookingType === "direct" && personMode === "existing" && selectedProfile?.accommodationRoom && !isCrossProperty) {
       toast.error(
         ar
           ? `الموظف (${selectedProfile.firstName} ${selectedProfile.lastName}) مقيم بالفعل بالسكن في غرفة #${selectedProfile.accommodationRoom}. لا يمكن تسكينه مرتين؛ استخدم خيار (نقل الغرفة) لنقله.`
@@ -805,6 +816,19 @@ export default function ReservationsPage() {
       );
       return;
     }
+
+    // If cross-property: OPEN THE EXPLICIT CONFIRMATION MODAL TO ASK THE USER DIRECTLY!
+    if (isCrossProperty) {
+      setCrossPropertyModalOpen(true);
+      return;
+    }
+
+    executeSubmission();
+  };
+
+  const executeSubmission = async (archiveOverride?: boolean) => {
+    const finalArchive = archiveOverride !== undefined ? archiveOverride : archiveSourceProfile;
+    const finalTransferType = finalArchive ? "PERMANENT" : "TASK_FORCE";
 
     // Effective Checkout: if not entered, pull contractEndDate for internal employees
     const effectiveCheckOut =
@@ -838,6 +862,10 @@ export default function ReservationsPage() {
             bedNumber: selectedBed === "ALL" ? 1 : (selectedBed ? parseInt(selectedBed) : 1),
             isEntireRoom: selectedBed === "ALL",
             notes: selectedBed === "ALL" ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim() : (notes || undefined),
+            sourcePropertyId: isCrossProperty ? selectedProfile.propertyId : undefined,
+            transferType: isCrossProperty ? finalTransferType : undefined,
+            archiveSourceProfile: isCrossProperty ? finalArchive : undefined,
+            checkoutPreviousAssignment: isCrossProperty && Boolean(selectedProfile.accommodationRoom),
           } as any,
         });
       } else {
@@ -967,6 +995,7 @@ export default function ReservationsPage() {
         toast.error(e.message || (ar ? "خطأ في إنشاء الملف الشخصي" : "Error creating profile"));
       }
     }
+    setCrossPropertyModalOpen(false);
   };
 
   const handleStartCheckin = (res: any) => {
@@ -1674,7 +1703,7 @@ export default function ReservationsPage() {
                       <Badge variant="outline" className="ml-auto rtl:ml-0 rtl:mr-auto bg-blue-50 text-blue-700 text-xs font-semibold">{ar ? "موظف داخلي" : "Internal Employee"}</Badge>
                     )}
                   </div>
-                  {selectedProfile.accommodationRoom && (
+                  {selectedProfile.accommodationRoom && !isCrossProperty && (
                     <div className="mt-3 p-3 rounded-lg border border-red-300 bg-red-50/90 dark:bg-red-950/40 text-red-800 dark:text-red-300 text-xs flex items-start gap-2.5">
                       <X className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                       <div>
@@ -1685,9 +1714,120 @@ export default function ReservationsPage() {
                         </p>
                         <p className="mt-1 text-red-700 dark:text-red-400">
                           {ar
-                            ? "لا يمكن تسكينه مرتين. لنقل الموظف لغرفة أخرى، يرجى استخدام خيار (نقل لغرفة أخرى) من صفحة المقيمين بالسكن."
-                            : "Cannot be double-assigned. To transfer this employee, use 'Room Move' from the In-House page."}
+                            ? "لا يمكن تسكينه مرتين في نفس الفندق. لنقل الموظف لغرفة أخرى، يرجى استخدام خيار (نقل لغرفة أخرى) من صفحة المقيمين بالسكن."
+                            : "Cannot be double-assigned in same hotel. Use 'Room Move' from In-House page instead."}
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── كارت التسكين العابر للفنادق (Cross-Property Transfer Card) ── */}
+                  {isCrossProperty && (
+                    <div className="mt-3 p-3.5 rounded-xl border-2 border-amber-500/60 bg-amber-50/80 dark:bg-amber-950/40 space-y-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="p-2 rounded-lg bg-amber-500 text-white shrink-0 shadow-2xs">
+                          <ArrowRightLeft className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-xs text-foreground">
+                              {ar ? "تسكين موظف من فندق آخر (Cross-Property Transfer)" : "Cross-Property Employee Assignment"}
+                            </span>
+                            <Badge variant="outline" className="text-[10px] font-semibold border-amber-500/60 bg-amber-100/60 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">
+                              {selectedProfile.propertyName || (ar ? "فندق خارجي" : "Foreign Hotel")} ➔ {activeProp?.name || (ar ? "الفندق الحالي" : "Target Hotel")}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            {ar
+                              ? `الموظف مسجل حالياً في (${selectedProfile.propertyName}). سيتم مزامنة بياناته ونقله إلى هذا الفندق فور إتمام التسكين.`
+                              : `Resident belongs to (${selectedProfile.propertyName}). Data will be synchronized upon assignment.`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* تنبيه إذا كان ساكناً في الفندق القديم */}
+                      {selectedProfile.accommodationRoom && (
+                        <div className="p-2.5 rounded-lg border border-amber-500/50 bg-amber-100/80 dark:bg-amber-900/50 text-amber-950 dark:text-amber-100 text-xs flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-bold text-[11px]">
+                              {ar
+                                ? `تنبيه: الموظف ساكن حالياً في ${selectedProfile.propertyName} - غرفة رقم ${selectedProfile.accommodationRoom}!`
+                                : `Notice: Resident is housed in ${selectedProfile.propertyName} - Room ${selectedProfile.accommodationRoom}!`}
+                            </p>
+                            <p className="text-[10.5px] text-muted-foreground dark:text-amber-200/90 leading-relaxed mt-0.5">
+                              {ar
+                                ? "⚡ سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور التسكين، مع الحفاظ الكامل على كافة سجلات الغرف التاريخية 100% دون أي حذف."
+                                : "System will check out previous accommodation and release bed, preserving 100% of historical room logs."}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* خيارات مصير البروفايل */}
+                      <div className="space-y-1.5 pt-0.5">
+                        <label className="text-xs font-bold text-foreground block">
+                          {ar
+                            ? `سؤال: ماذا تريد أن تفعل بملف الموظف في الفندق القديم (${selectedProfile.propertyName})؟`
+                            : `What should happen to the profile in (${selectedProfile.propertyName})?`}
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setArchiveSourceProfile(true);
+                              setTransferType("PERMANENT");
+                            }}
+                            className={`p-2.5 rounded-lg border text-start transition-all cursor-pointer relative ${
+                              archiveSourceProfile
+                                ? "bg-primary/10 border-primary shadow-2xs ring-1 ring-primary/30"
+                                : "bg-background border-border hover:bg-muted/40"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-foreground">
+                                {ar ? "1. نقله وحذفه من هناك" : "1. Transfer & Archive There"}
+                              </span>
+                              {archiveSourceProfile && <Check className="w-3.5 h-3.5 text-primary" />}
+                            </div>
+                            <Badge variant="outline" className="mt-1 text-[9px] font-medium bg-muted/60 text-muted-foreground">
+                              {ar ? "أرشفة لمنع تكرار الاسم" : "Archive duplicate"}
+                            </Badge>
+                            <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                              {ar
+                                ? "أرشفة ملفه هناك لعدم ظهوره مرتين، مع بقاء كل سجلات الإقامة القديمة واللوج 100%."
+                                : "Archive old profile to avoid duplicate active records, keeping all stay logs."}
+                            </p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setArchiveSourceProfile(false);
+                              setTransferType("TASK_FORCE");
+                            }}
+                            className={`p-2.5 rounded-lg border text-start transition-all cursor-pointer relative ${
+                              !archiveSourceProfile
+                                ? "bg-primary/10 border-primary shadow-2xs ring-1 ring-primary/30"
+                                : "bg-background border-border hover:bg-muted/40"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-foreground">
+                                {ar ? "2. نقله وتسيب البروفايل هناك" : "2. Keep Active in Both"}
+                              </span>
+                              {!archiveSourceProfile && <Check className="w-3.5 h-3.5 text-primary" />}
+                            </div>
+                            <Badge variant="outline" className="mt-1 text-[9px] font-medium bg-muted/60 text-muted-foreground">
+                              {ar ? "انتداب / فرعين" : "Secondment / Dual"}
+                            </Badge>
+                            <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                              {ar
+                                ? "إبقاء الملف الشخصي متاحاً ونشطاً في الفندق القديم أيضاً (مناسب للانتداب والمأموريات)."
+                                : "Keep profile active in source hotel too (for Task Force / dual property work)."}
+                            </p>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1695,7 +1835,7 @@ export default function ReservationsPage() {
               )}
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setStep(1)}><ChevronLeft className="w-4 h-4 mr-1 rtl:rotate-180" />{ar ? "رجوع" : "Back"}</Button>
-                <Button onClick={() => setStep(3)} disabled={!selectedProfile}>{ar ? "التالي" : "Next"}<ChevronRight className="w-4 h-4 ml-1 rtl:rotate-180" /></Button>
+                <Button onClick={() => setStep(3)} disabled={!selectedProfile || (Boolean(selectedProfile.accommodationRoom) && !isCrossProperty)}>{ar ? "التالي" : "Next"}<ChevronRight className="w-4 h-4 ml-1 rtl:rotate-180" /></Button>
               </div>
             </div>
           )}
@@ -2818,6 +2958,163 @@ export default function ReservationsPage() {
               <Button onClick={() => { setKeyPromptOpen(false); setLocation("/accommodation/in-house"); }}>{ar ? "عرض المقيمين" : "View In-House"}</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── نافذة تأكيد النقل والتسكين العابر للفنادق (Explicit Confirmation Modal) ── */}
+      <Dialog open={crossPropertyModalOpen} onOpenChange={setCrossPropertyModalOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <ArrowRightLeft className="w-5 h-5 text-amber-600" />
+              <span>{ar ? "تأكيد نقل وتسكين موظف من فندق آخر" : "Confirm Cross-Property Assignment"}</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedProfile && (
+            <div className="space-y-4 pt-1">
+              {/* ملخص الموظف والفرعين */}
+              <div className="p-3.5 rounded-xl border bg-muted/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-foreground">
+                    {selectedProfile.firstName} {selectedProfile.lastName}
+                  </span>
+                  <Badge variant="outline" className="font-mono text-xs">
+                    #{selectedProfile.profileId}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                  <span className="font-medium text-foreground">
+                    {selectedProfile.jobTitle || selectedProfile.department || (ar ? "موظف" : "Employee")}
+                  </span>
+                  <span>•</span>
+                  <span>{ar ? "الفندق المسجل به حالياً:" : "Current Hotel:"} <strong className="text-foreground">{selectedProfile.propertyName}</strong></span>
+                  <span>➔</span>
+                  <span>{ar ? "فندق التسكين الجديد:" : "Target Hotel:"} <strong className="text-primary">{activeProp?.name}</strong></span>
+                </div>
+              </div>
+
+              {/* تنبيه إذا كان ساكناً في الفندق القديم */}
+              {selectedProfile.accommodationRoom && (
+                <div className="p-3 rounded-lg border-2 border-amber-500/60 bg-amber-100/90 dark:bg-amber-900/60 text-amber-950 dark:text-amber-100 flex items-start gap-2.5 shadow-2xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-0.5">
+                    <p className="font-bold">
+                      {ar
+                        ? `تنبيه: الموظف ساكن حالياً في ${selectedProfile.propertyName} - غرفة رقم ${selectedProfile.accommodationRoom}!`
+                        : `Notice: Resident is currently housed in ${selectedProfile.propertyName} - Room ${selectedProfile.accommodationRoom}!`}
+                    </p>
+                    <p className="text-muted-foreground dark:text-amber-200/90 leading-relaxed">
+                      {ar
+                        ? "⚡ سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور تأكيد التسكين، مع الحفاظ الكامل على كافة سجلات الغرف واللوج التاريخي 100% دون أي حذف."
+                        : "System will automatically check out previous accommodation and release bed upon assignment, preserving 100% of historical room logs."}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* السؤال الصريح: ماذا تريد أن تفعل بملف الموظف في الفندق القديم؟ */}
+              <div className="space-y-2 pt-1">
+                <label className="text-sm font-bold text-foreground block">
+                  {ar
+                    ? `سؤال: ماذا تريد أن تفعل بملف الموظف في الفندق القديم (${selectedProfile.propertyName})؟`
+                    : `What should happen to the profile in (${selectedProfile.propertyName})?`}
+                </label>
+
+                <div className="grid grid-cols-1 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setArchiveSourceProfile(true);
+                      setTransferType("PERMANENT");
+                    }}
+                    className={`p-3 rounded-xl border-2 text-start transition-all cursor-pointer relative ${
+                      archiveSourceProfile
+                        ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
+                        : "bg-background border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          archiveSourceProfile ? "border-primary bg-primary text-white" : "border-muted-foreground"
+                        }`}>
+                          {archiveSourceProfile && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                        <span className="text-xs font-bold text-foreground">
+                          {ar ? "1. نقله وحذفه من قائمة الفندق القديم (أرشفة لعدم التكرار)" : "1. Transfer & Archive from Old Hotel"}
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-medium bg-muted/60 text-muted-foreground">
+                        {ar ? "الموصى به" : "Recommended"}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 ms-6 leading-relaxed">
+                      {ar
+                        ? "يتم نقل الموظف لهذا الفندق وأرشفة ملفه القديم لعدم تكرار اسمه في القوائم النشطة، مع بقاء كل سجلات الإقامة ولوج الغرف القديمة 100% دون مساس."
+                        : "Permanently move employee, archiving old profile while fully preserving past room stay logs."}
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setArchiveSourceProfile(false);
+                      setTransferType("TASK_FORCE");
+                    }}
+                    className={`p-3 rounded-xl border-2 text-start transition-all cursor-pointer relative ${
+                      !archiveSourceProfile
+                        ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
+                        : "bg-background border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          !archiveSourceProfile ? "border-primary bg-primary text-white" : "border-muted-foreground"
+                        }`}>
+                          {!archiveSourceProfile && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                        <span className="text-xs font-bold text-foreground">
+                          {ar ? "2. نقله وتسيب البروفايل موجود ونشط في الفندق القديم أيضاً" : "2. Keep Profile Active in Both Hotels"}
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-medium bg-muted/60 text-muted-foreground">
+                        {ar ? "انتداب / فرعين" : "Secondment / Dual"}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 ms-6 leading-relaxed">
+                      {ar
+                        ? "تسكين الموظف هنا مع إبقاء ملفه الشخصي متاحاً ونشطاً في الفندق القديم أيضاً (مناسب للانتداب أو العمل المشترك بالفرعين)."
+                        : "Assign resident here while keeping profile active in the source property (for Task Force / dual work)."}
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* أزرار النافذة */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCrossPropertyModalOpen(false)}
+                >
+                  {ar ? "إلغاء" : "Cancel"}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => executeSubmission()}
+                  disabled={createAssignmentMutation.isPending || createReservationMutation.isPending}
+                  className="gap-2 bg-primary hover:bg-primary/90 font-bold"
+                >
+                  {(createAssignmentMutation.isPending || createReservationMutation.isPending) && (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  <span>{ar ? "تأكيد التسكين والنقل الآن" : "Confirm Assignment & Transfer"}</span>
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -1010,7 +1010,7 @@ export default function RoomAssignment() {
                               }}
                               className="h-7 text-xs font-bold px-3 gap-1 shadow-xs group-hover:bg-primary"
                             >
-                              <span>{ar ? "تسكين" : "Select"}</span>
+                              <span>{ar ? (isOtherBranch ? "اختيار للنقل" : "اختيار") : "Select"}</span>
                               <ArrowRight className="w-3 h-3 rtl:rotate-180" />
                             </Button>
                           </div>
