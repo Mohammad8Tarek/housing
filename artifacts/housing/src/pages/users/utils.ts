@@ -3,7 +3,8 @@ export const SYSTEM_ROLES = [
   { value: "admin", label: "System Admin", labelAr: "مدير النظام" },
   { value: "manager", label: "Property Manager", labelAr: "مدير المجمع" },
   { value: "receptionist", label: "Receptionist", labelAr: "موظف استقبال" },
-  { value: "maintenance_staff", label: "Tickets Staff", labelAr: "موظف صيانة" },
+  { value: "maintenance_staff", label: "Maintenance Staff", labelAr: "موظف صيانة فنية" },
+  { value: "housekeeping_staff", label: "Housekeeping Staff", labelAr: "موظف خدمات ونظافة" },
 ];
 
 export const WORKFLOW_ROLES = [
@@ -54,6 +55,8 @@ export const roleColor = (role: string) => {
       return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
     case "maintenance_staff":
       return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
+    case "housekeeping_staff":
+      return "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300";
     default:
       return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
   }

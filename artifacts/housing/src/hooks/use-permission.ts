@@ -27,6 +27,7 @@ const ROLE_INHERITANCE = {
   security_staff: [],
   receptionist: [],
   maintenance_staff: [],
+  housekeeping_staff: [],
 };
 
 function resolveInheritedRoles(roles: string[]): string[] {

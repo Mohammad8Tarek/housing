@@ -117,8 +117,14 @@ const SYSTEM_ROLE_PRESETS: SystemRolePreset[] = [
   {
     value: "maintenance_staff",
     labelEn: "Maintenance Staff",
-    labelAr: "موظف صيانة",
+    labelAr: "موظف صيانة فنية",
     badgeClass: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 border-orange-300",
+  },
+  {
+    value: "housekeeping_staff",
+    labelEn: "Housekeeping Staff",
+    labelAr: "موظف خدمات ونظافة",
+    badgeClass: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300 border-sky-300",
   },
   {
     value: "hr_admin",

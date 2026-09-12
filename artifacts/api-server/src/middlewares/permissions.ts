@@ -92,6 +92,7 @@ const ROLE_INHERITANCE: Record<string, string[]> = {
   security_staff: [],
   receptionist: [],
   maintenance_staff: [],
+  housekeeping_staff: [],
 };
 
 function resolveInheritedRoles(roles: string[]): string[] {
@@ -212,14 +213,23 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   maintenance_staff: [
     "dashboard.view",
     "housing.view",
-    "housekeeping.view",
-    "housekeeping.edit",
     "maintenance.view",
     "maintenance.create",
     "maintenance.edit",
     "maintenance.assign",
     "maintenance.approve",
     "profiles.view",
+    "activity_log.view",
+    "documents.view",
+  ],
+  housekeeping_staff: [
+    "dashboard.view",
+    "housing.view",
+    "housekeeping.view",
+    "housekeeping.create",
+    "housekeeping.edit",
+    "housekeeping.assign",
+    "housekeeping.approve",
     "activity_log.view",
     "documents.view",
   ],

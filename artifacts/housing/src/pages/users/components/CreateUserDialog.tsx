@@ -321,6 +321,8 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
         return <Headphones className="w-4 h-4 text-green-600 dark:text-green-400" />;
       case "maintenance_staff":
         return <Wrench className="w-4 h-4 text-orange-600 dark:text-orange-400" />;
+      case "housekeeping_staff":
+        return <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400" />;
       default:
         return <ShieldCheck className="w-4 h-4 text-muted-foreground" />;
     }

@@ -187,6 +187,7 @@ export default function UsersPage() {
       manager: 0,
       receptionist: 0,
       maintenance: 0,
+      housekeeping: 0,
       active: 0,
       locked: 0,
       inactive: 0,
@@ -214,6 +215,8 @@ export default function UsersPage() {
         s.receptionist++;
       if (roles.some((r: string) => r.toLowerCase() === "maintenance_staff"))
         s.maintenance++;
+      if (roles.some((r: string) => r.toLowerCase() === "housekeeping_staff"))
+        s.housekeeping++;
     }
     return s;
   }, [allUsers, users]);
@@ -249,6 +252,12 @@ export default function UsersPage() {
       label: ar ? "صيانة" : "Maintenance",
       icon: Wrench,
       count: stats.maintenance,
+    },
+    {
+      id: "housekeeping_staff",
+      label: ar ? "نظافة" : "Housekeeping",
+      icon: Sparkles,
+      count: stats.housekeeping,
     },
   ];
 
