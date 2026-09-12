@@ -52,14 +52,14 @@ export function BuildingCapacityMatrix({
 
       <CardContent className="pt-1">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {buildings.map((b) => {
+          {buildings.map((b, bIdx) => {
             const vacantBeds = Math.max(0, b.totalCapacity - b.totalOccupancy);
             const isHigh = b.occupancyRate >= 85;
             const isMedium = b.occupancyRate >= 60 && b.occupancyRate < 85;
 
             return (
               <div
-                key={b.buildingId}
+                key={`${b.buildingId}-${bIdx}`}
                 className="p-3.5 rounded-xl border border-border/50 bg-card/60 hover:bg-muted/60 transition-all duration-200 flex flex-col justify-between gap-3 relative group"
               >
                 <div className="flex items-start justify-between gap-2">

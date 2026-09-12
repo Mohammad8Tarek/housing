@@ -361,7 +361,7 @@ export function ReportTable({
 
             return (
               <TableRow
-                key={row.id || idx}
+                key={`${activeTab}-${row.id ?? "row"}-${idx}`}
                 className={`hover:bg-muted/50 transition-colors ${
                   isSelected ? "bg-primary/5" : ""
                 }`}
