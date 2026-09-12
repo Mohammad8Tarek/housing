@@ -21,6 +21,11 @@ import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import {
+  syncProfileAcrossProperties,
+  closeSourceAssignmentOnTransfer,
+  executeCrossPropertyTransfer,
+} from "../lib/cross-property-service.js";
 
 const router: Router = Router();
 
@@ -374,6 +379,44 @@ router.post(
 
     const isTemporaryVacationOverride = Boolean((req.body as any)?.isTemporaryVacationOverride);
 
+    // ── Cross-Property Sync & Auto-Resolution ─────────────────────────────
+    const rawSourcePropertyId = (req.body as any)?.sourcePropertyId;
+    const sourcePropertyId = rawSourcePropertyId ? Number(rawSourcePropertyId) : null;
+    const transferType = (req.body as any)?.transferType === "TASK_FORCE" ? "TASK_FORCE" : "PERMANENT";
+    const checkoutPreviousAssignment = Boolean(
+      (req.body as any)?.checkoutPreviousAssignment ?? (transferType === "PERMANENT")
+    );
+
+    let resolvedProfileId = parsed.data.profileId;
+    let crossPropertyNoteTag = "";
+
+    if (sourcePropertyId && sourcePropertyId !== propertyId) {
+      try {
+        const { targetProfile, targetName, srcName } = await syncProfileAcrossProperties({
+          sourcePropertyId,
+          targetPropertyId: propertyId,
+          sourceProfileId: parsed.data.profileId,
+          transferType,
+        });
+        resolvedProfileId = targetProfile.id;
+        crossPropertyNoteTag = transferType === "TASK_FORCE"
+          ? `[انتداب مؤقت من ${srcName}]`
+          : `[محوّل من ${srcName}]`;
+
+        if (checkoutPreviousAssignment) {
+          await closeSourceAssignmentOnTransfer(
+            sourcePropertyId,
+            parsed.data.profileId,
+            targetName,
+          );
+        }
+      } catch (syncErr: any) {
+        console.error("[assignments] Cross-property sync failed:", syncErr);
+        res.status(500).json({ error: `فشل مزامنة الملف الشخصي عبر الفنادق: ${syncErr.message}` });
+        return;
+      }
+    }
+
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [room] = await tenantDb
         .select()
@@ -476,7 +519,7 @@ router.post(
         .from(assignmentsTable)
         .where(
           and(
-            eq(assignmentsTable.profileId, parsed.data.profileId),
+            eq(assignmentsTable.profileId, resolvedProfileId),
             eq(assignmentsTable.status, "ACTIVE"),
           ),
         );
@@ -591,20 +634,20 @@ router.post(
         .where(eq(roomsTable.id, parsed.data.roomId));
 
       // Workflow: Checked-in profile becomes "ACTIVE" (ان هاوس)
-      if (parsed.data.profileId) {
+      if (resolvedProfileId) {
         await tenantDb
           .update(profilesTable)
           .set({ status: "ACTIVE" })
-          .where(eq(profilesTable.id, parsed.data.profileId));
+          .where(eq(profilesTable.id, resolvedProfileId));
       }
 
       // Fallback: If no expected check-out date is given, pull contractEndDate for internal employees
       let expectedCheckOut = parsed.data.expectedCheckOutDate;
-      if (!expectedCheckOut && parsed.data.profileId) {
+      if (!expectedCheckOut && resolvedProfileId) {
         const [prof] = await tenantDb
           .select({ contractEndDate: profilesTable.contractEndDate, employmentType: profilesTable.employmentType })
           .from(profilesTable)
-          .where(eq(profilesTable.id, parsed.data.profileId))
+          .where(eq(profilesTable.id, resolvedProfileId))
           .limit(1);
         if (prof?.contractEndDate && prof.employmentType !== "THIRD_PARTY") {
           try {
@@ -616,6 +659,9 @@ router.post(
       }
 
       let finalNotes = parsed.data.notes || "";
+      if (crossPropertyNoteTag) {
+        finalNotes = `${crossPropertyNoteTag} ${finalNotes}`.trim();
+      }
       if (isEntireRoomRequested) {
         finalNotes = `[تسكين الغرفة بالكامل - استخدام فردي] ${finalNotes}`.trim();
       }
@@ -627,6 +673,7 @@ router.post(
         .insert(assignmentsTable)
         .values({
           ...(parsed.data as any),
+          profileId: resolvedProfileId,
           bedNumber: isEntireRoomRequested ? (parsed.data.bedNumber || 1) : (parsed.data.bedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
           notes: finalNotes,
@@ -861,6 +908,36 @@ router.post(
     }
 
     const isTemporaryVacationOverride = Boolean((req.body as any)?.isTemporaryVacationOverride);
+
+    const rawTargetPropertyId = (req.body as any)?.targetPropertyId;
+    const targetPropertyId = rawTargetPropertyId ? Number(rawTargetPropertyId) : null;
+
+    if (targetPropertyId && targetPropertyId !== propertyId) {
+      const crossResult = await executeCrossPropertyTransfer({
+        sourcePropertyId: propertyId,
+        targetPropertyId,
+        assignmentId: params.data.id,
+        newRoomId: parsed.data.newRoomId,
+        newBedNumber: parsed.data.newBedNumber,
+        transferReason: parsed.data.transferReason,
+        isEntireRoom: Boolean((req.body as any)?.isEntireRoom),
+        isTemporaryVacationOverride,
+        req,
+      });
+
+      if ("error" in crossResult) {
+        res.status(crossResult.status || 400).json(crossResult);
+        return;
+      }
+
+      res.json(
+        TransferAssignmentResponse.parse({
+          ...fmtAssignment(crossResult.updated),
+          propertyId: targetPropertyId,
+        })
+      );
+      return;
+    }
 
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [assignment] = await tenantDb

@@ -54,6 +54,7 @@ import {
   Key,
   Printer,
   Lock,
+  ArrowRightLeft,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import {
@@ -119,6 +120,9 @@ export default function RoomAssignment() {
   const [searchPropertyId, setSearchPropertyId] = useState<string>(
     activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
   );
+  const [targetPropertyId, setTargetPropertyId] = useState<string>(() =>
+    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : ""
+  );
 
   const { data: _pData } = useListProperties({
     query: { queryKey: ["/api/properties"] },
@@ -128,10 +132,15 @@ export default function RoomAssignment() {
   useEffect(() => {
     if (activePropertyId && activePropertyId !== "all") {
       setSearchPropertyId(String(activePropertyId));
+      setTargetPropertyId(String(activePropertyId));
     } else if (allProperties && allProperties.length === 1) {
       setSearchPropertyId(String(allProperties[0].id));
+      setTargetPropertyId(String(allProperties[0].id));
     }
   }, [activePropertyId, allProperties]);
+
+  const effectiveTargetPropId = Number(targetPropertyId) || (typeof activePropertyId === "number" ? activePropertyId : 1);
+
   const { data: settings } = useGetSettings(undefined, {
     query: {
       queryKey: ["/api/settings"],
@@ -139,6 +148,15 @@ export default function RoomAssignment() {
     },
   });
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
+  const targetProp = allProperties.find((p: any) => p.id === effectiveTargetPropId) || activeProp;
+
+  const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">("PERMANENT");
+  const isCrossProperty = Boolean(
+    selectedProfile &&
+    selectedProfile.propertyId &&
+    Number(selectedProfile.propertyId) !== effectiveTargetPropId
+  );
+
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -209,13 +227,13 @@ export default function RoomAssignment() {
   // NOTE: backend reads `limit` from the query string even though the
   // generated ListRoomsParams type omits it — keep it via cast (no runtime change).
   const roomsQuery = {
-    propertyId: activePropertyId as number,
+    propertyId: effectiveTargetPropId,
     limit: 1000,
   } as ListRoomsParams;
   const { data: _rData } = useListRooms(roomsQuery, {
     query: {
       queryKey: ["/api/rooms", roomsQuery],
-      enabled: !!activePropertyId,
+      enabled: !!effectiveTargetPropId,
       staleTime: 30000,
     },
   });
@@ -242,11 +260,11 @@ export default function RoomAssignment() {
     } catch {}
   }, [rooms]);
   const { data: _bData } = useListBuildings(
-    { propertyId: activePropertyId as number },
+    { propertyId: effectiveTargetPropId },
     {
       query: {
-        queryKey: ["/api/buildings", activePropertyId],
-        enabled: !!activePropertyId,
+        queryKey: ["/api/buildings", effectiveTargetPropId],
+        enabled: !!effectiveTargetPropId,
         staleTime: 300000,
       },
     },
@@ -255,11 +273,11 @@ export default function RoomAssignment() {
     ? _bData
     : (((_bData as any)?.data as Building[] | undefined) || []);
   const { data: _fData } = useListFloors(
-    { propertyId: activePropertyId as number },
+    { propertyId: effectiveTargetPropId },
     {
       query: {
-        queryKey: ["/api/floors", activePropertyId],
-        enabled: !!activePropertyId,
+        queryKey: ["/api/floors", effectiveTargetPropId],
+        enabled: !!effectiveTargetPropId,
         staleTime: 300000,
       },
     },
@@ -284,11 +302,11 @@ export default function RoomAssignment() {
   );
 
   const { data: _aData } = useListAssignments(
-    { propertyId: activePropertyId as number, limit: 5000 } as any,
+    { propertyId: effectiveTargetPropId, limit: 5000 } as any,
     {
       query: {
-        queryKey: ["/api/assignments", activePropertyId, 5000],
-        enabled: !!activePropertyId,
+        queryKey: ["/api/assignments", effectiveTargetPropId, 5000],
+        enabled: !!effectiveTargetPropId,
         staleTime: 30000,
       },
     },
@@ -472,12 +490,30 @@ export default function RoomAssignment() {
       onSuccess: (data: any) => {
         queryClient.invalidateQueries({
           queryKey: getListAssignmentsQueryKey({
-            propertyId: activePropertyId as number,
+            propertyId: effectiveTargetPropId,
           }),
         });
         queryClient.invalidateQueries({
           queryKey: getListRoomsQueryKey(roomsQuery),
         });
+        if (isCrossProperty && selectedProfile?.propertyId) {
+          queryClient.invalidateQueries({
+            queryKey: getListAssignmentsQueryKey({
+              propertyId: selectedProfile.propertyId,
+            }),
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["/api/rooms"],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["/api/assignments"],
+          });
+        }
+        toast.success(
+          isCrossProperty
+            ? (ar ? "تم تسكين الموظف ونقل بياناته بنجاح بين الفنادق" : "Employee accommodated and synchronized successfully across properties")
+            : (ar ? "تم التسكين بنجاح" : "Assignment created successfully")
+        );
         // Show key issuance prompt
         setLastAssignment(data);
         setKeyPromptOpen(true);
@@ -527,6 +563,13 @@ export default function RoomAssignment() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!empSearch.trim() || empSearch.trim().length < 1) {
       setEmpResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    if (
+      selectedProfile &&
+      empSearch === `${selectedProfile.firstName} ${selectedProfile.lastName} (${selectedProfile.profileId})`
+    ) {
       setShowDropdown(false);
       return;
     }
@@ -621,7 +664,7 @@ export default function RoomAssignment() {
 
     createMutation.mutate({
       data: {
-        propertyId: activePropertyId!,
+        propertyId: effectiveTargetPropId,
         profileId: selectedProfile.id,
         roomId: parseInt(selectedRoomId),
         checkInDate: new Date(checkInDate).toISOString(),
@@ -631,6 +674,9 @@ export default function RoomAssignment() {
         bedNumber: isEntireRoom ? (selectedBed ? parseInt(selectedBed) : 1) : (selectedBed ? parseInt(selectedBed) : undefined),
         isEntireRoom: isEntireRoom,
         notes: notes || undefined,
+        sourcePropertyId: isCrossProperty ? selectedProfile.propertyId : undefined,
+        transferType: isCrossProperty ? transferType : undefined,
+        checkoutPreviousAssignment: isCrossProperty && transferType === "PERMANENT",
       } as any,
     });
   };
@@ -649,7 +695,7 @@ export default function RoomAssignment() {
 
     createMutation.mutate({
       data: {
-        propertyId: activePropertyId!,
+        propertyId: effectiveTargetPropId,
         profileId: selectedProfile.id,
         roomId: parseInt(selectedRoomId),
         checkInDate: new Date(checkInDate).toISOString(),
@@ -657,6 +703,9 @@ export default function RoomAssignment() {
         bedNumber: selectedBed ? parseInt(selectedBed) : undefined,
         notes: notes || undefined,
         isTemporaryVacationOverride: true,
+        sourcePropertyId: isCrossProperty ? selectedProfile.propertyId : undefined,
+        transferType: isCrossProperty ? transferType : undefined,
+        checkoutPreviousAssignment: isCrossProperty && transferType === "PERMANENT",
       } as any,
     });
     setVacationPromptData(null);
@@ -814,7 +863,7 @@ export default function RoomAssignment() {
                     {selectedProfile.jobTitle || "—"} •{" "}
                     {selectedProfile.department || "—"}
                   </p>
-                  {selectedProfile.propertyId !== activePropertyId && (
+                  {isCrossProperty && (
                     <Badge className="mt-1 text-[10px] bg-amber-500">
                       <Building2 className="w-2.5 h-2.5 mr-1" />
                       {selectedProfile.propertyName}
@@ -841,6 +890,88 @@ export default function RoomAssignment() {
                   title={ar ? "إلغاء التحديد" : "Clear"}
                 >
                   <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── كارت التسكين العابر للفنادق (Cross-Property Assignment) ── */}
+          {selectedProfile && isCrossProperty && (
+            <div className="mt-4 p-4 rounded-xl border-2 border-amber-500/40 bg-amber-50/60 dark:bg-amber-950/20 space-y-3 animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-amber-500 text-white flex-shrink-0 shadow-sm">
+                  <ArrowRightLeft className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm text-foreground">
+                      {ar ? "تسكين موظف من فندق آخر (Cross-Property)" : "Cross-Property Employee Assignment"}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-700 dark:text-amber-300">
+                      {selectedProfile.propertyName || (ar ? "فندق خارجي" : "Foreign Hotel")} ➔ {targetProp?.name || (ar ? "الفندق الحالي" : "Target Hotel")}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {ar
+                      ? `هذا الموظف مسجل في قاعدة بيانات (${selectedProfile.propertyName}). سيتم مزامنة ملفه ومستنداته إلى (${targetProp?.name}) تلقائياً وبأمان تام.`
+                      : `This employee belongs to (${selectedProfile.propertyName}). Profile and documents will be automatically synchronized to (${targetProp?.name}).`}
+                  </p>
+                  {(selectedProfile as any).accommodationRoom && (
+                    <div className="mt-2 text-xs font-medium text-amber-800 dark:text-amber-200 bg-amber-100/70 dark:bg-amber-900/40 px-2.5 py-1.5 rounded-md border border-amber-300/40 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
+                      <span>
+                        {ar
+                          ? `الموظف مقيم حالياً في الغرفة ${(selectedProfile as any).accommodationRoom} (${selectedProfile.propertyName}). سيتم إنهاء إقامته السابقة وتحرير سريره فور النقل.`
+                          : `Resident currently occupies Room ${(selectedProfile as any).accommodationRoom} in (${selectedProfile.propertyName}). Previous stay will be checked out automatically.`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setTransferType("PERMANENT")}
+                  className={`p-3 rounded-lg border text-start transition-all ${
+                    transferType === "PERMANENT"
+                      ? "bg-primary/10 border-primary shadow-2xs"
+                      : "bg-background border-border hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">
+                      {ar ? "1. نقل دائم إلى هذا الفندق" : "1. Permanent Transfer"}
+                    </span>
+                    {transferType === "PERMANENT" && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                    {ar
+                      ? "نقل الموظف نهائياً مع تسجيل خروجه وتحرير سريره في الفندق السابق تلقائياً."
+                      : "Permanently transfer employee and automatically check out previous accommodation."}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransferType("TASK_FORCE")}
+                  className={`p-3 rounded-lg border text-start transition-all ${
+                    transferType === "TASK_FORCE"
+                      ? "bg-primary/10 border-primary shadow-2xs"
+                      : "bg-background border-border hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">
+                      {ar ? "2. إقامة مؤقتة / انتداب (Task Force)" : "2. Task Force / Guest Stay"}
+                    </span>
+                    {transferType === "TASK_FORCE" && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                    {ar
+                      ? "إقامة مؤقتة مع الاحتفاظ بتسكينه في الفندق الأصلي (يجب تحديد تاريخ المغادرة المتوقع)."
+                      : "Temporary secondment without canceling primary accommodation."}
+                  </p>
                 </button>
               </div>
             </div>
@@ -911,10 +1042,51 @@ export default function RoomAssignment() {
       {/* بطاقة الغرفة */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <BedDouble className="w-4 h-4 text-primary" />
-            {ar ? "بيانات الغرفة" : "Room Details"}
-          </CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BedDouble className="w-4 h-4 text-primary" />
+              {ar ? "بيانات الغرفة والتسكين" : "Room & Accommodation Details"}
+            </CardTitle>
+
+            {/* محدد فندق التسكين المستهدف */}
+            {allProperties.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                  {ar ? "فندق التسكين:" : "Target Hotel:"}
+                </span>
+                <Select
+                  value={targetPropertyId || String(activePropertyId ?? "")}
+                  onValueChange={(v) => {
+                    setTargetPropertyId(v);
+                    setSelectedRoomId("");
+                    setSelectedBed("");
+                    setSearchBuilding("all");
+                    setSearchFloor("all");
+                    setSearchRoomNumber("");
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-48 text-xs font-semibold">
+                    <SelectValue placeholder={ar ? "اختر الفندق..." : "Select Hotel..."} />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4}>
+                    {allProperties.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)} className="text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-primary" />
+                          <span>{p.name}</span>
+                          {p.id === activePropertyId && (
+                            <Badge variant="secondary" className="text-[9px] py-0 px-1 ml-1 rtl:mr-1">
+                              {ar ? "الحالي" : "Current"}
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* ── فلاتر البحث ── */}

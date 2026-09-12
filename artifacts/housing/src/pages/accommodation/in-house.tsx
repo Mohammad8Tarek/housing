@@ -559,7 +559,17 @@ export default function InHouse() {
         const targetRoom = targetRooms.find(
           (r) => r.id === parseInt(transferRoomId),
         );
-        toast.success(ar ? "تم نقل الغرفة بنجاح" : "Room Move successful");
+        const isCross = Boolean(transferPropertyId && String(transferPropertyId) !== String(activePropertyId));
+        if (isCross) {
+          queryClient.invalidateQueries({ queryKey: ["/api/assignments"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        }
+        toast.success(
+          isCross
+            ? (ar ? "تم نقل الموظف بنجاح إلى الفندق والغرفة الجديدة" : "Resident successfully transferred to the new hotel & room")
+            : (ar ? "تم نقل الغرفة بنجاح" : "Room Move successful")
+        );
         setPrintAfterTransfer({
           assignment: data,
           emp,
@@ -758,6 +768,7 @@ export default function InHouse() {
       toast.error(ar ? "الرجاء اختيار سرير" : "Please select a bed");
       return;
     }
+    const targetPropId = transferPropertyId ? parseInt(transferPropertyId) : undefined;
     transferMutation.mutate({
       id: transferDialog.id,
       data: {
@@ -767,6 +778,7 @@ export default function InHouse() {
           : undefined,
         transferDate: new Date().toISOString(),
         transferReason: transferReason || undefined,
+        targetPropertyId: targetPropId,
       } as any,
     });
   };
