@@ -106,6 +106,20 @@ export function useReportExport({
           [ar ? "الإجراء الموصى به" : "Recommended Action"]: d.recommendedAction,
         }));
 
+      case "occupancy_forecast":
+        return data.map((f: any) => ({
+          [ar ? "التاريخ" : "Date"]: f.dateDisplay,
+          [ar ? "اليوم" : "Day"]: f.dayName,
+          [ar ? "الوصول المتوقع (+ Due In)" : "Arrivals (+ Due In)"]: f.dayArrivals,
+          [ar ? "المغادرة المتوقعة (- Due Out)" : "Departures (- Due Out)"]: f.dayDepartures,
+          [ar ? "صافي الحركة" : "Net Movement"]: f.netShift,
+          [ar ? "الأسرة المشغولة" : "Projected Occupied"]: f.projectedOccupied,
+          [ar ? "الأسرة الشاغرة" : "Projected Vacant"]: f.projectedVacant,
+          [ar ? "إجمالي الطاقة" : "Total Capacity"]: f.totalBeds,
+          [ar ? "نسبة الإشغال" : "Occupancy Rate"]: f.occupancyRate,
+          [ar ? "مستوى الضغط" : "Demand Tier"]: f.demandLevel,
+        }));
+
       case "assignments":
         return data.map((a: any) => ({
           [ar ? "كود الموظف" : "Employee Code"]: a.profileCode,

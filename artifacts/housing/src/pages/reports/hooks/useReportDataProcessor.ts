@@ -540,6 +540,81 @@ export function useReportDataProcessor({
         ]);
       }
 
+      // OPERA PMS: 7/14/30-DAY OCCUPANCY & AVAILABILITY FORECAST (توقعات الإشغال المستقبلية)
+      case "occupancy_forecast": {
+        const horizon = 14;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const fRooms = filterBuilding === "all" || !filterBuilding
+          ? rooms
+          : rooms.filter((r: any) => r.buildingId === Number(filterBuilding));
+        
+        const totalBeds = fRooms.reduce((acc: number, r: any) => acc + (r.capacity || 1), 0);
+        const fRoomIds = new Set(fRooms.map((r: any) => r.id));
+
+        const activeAssignments = assignments.filter(
+          (a: any) => fRoomIds.has(a.roomId) && (a.status === "ACTIVE" || a.status === "VACATION")
+        );
+
+        let runningInHouse = activeAssignments.length;
+        const dailyRows = [];
+
+        for (let i = 0; i < horizon; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          const dIso = d.toISOString().split("T")[0];
+
+          const dayNameAr = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"][d.getDay()];
+          const dayNameEn = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
+          const dayName = ar ? dayNameAr : dayNameEn;
+
+          const dayArrivals = reservations.filter((r: any) => {
+            if (r.status?.toUpperCase() === "CANCELLED") return false;
+            if (r.roomId && !fRoomIds.has(r.roomId)) return false;
+            if (!r.checkInDate) return false;
+            return r.checkInDate.slice(0, 10) === dIso;
+          }).length;
+
+          const dayDepartures = assignments.filter((a: any) => {
+            if (!fRoomIds.has(a.roomId)) return false;
+            if (a.status !== "ACTIVE" && a.status !== "VACATION") return false;
+            if (!a.checkOutDate) return false;
+            return a.checkOutDate.slice(0, 10) === dIso;
+          }).length;
+
+          const netShift = dayArrivals - dayDepartures;
+          if (i > 0) {
+            runningInHouse = Math.max(0, runningInHouse + netShift);
+          }
+          const projectedOccupied = Math.min(totalBeds, runningInHouse);
+          const projectedVacant = Math.max(0, totalBeds - projectedOccupied);
+          const occRate = totalBeds > 0 ? Math.round((projectedOccupied / totalBeds) * 100) : 0;
+
+          dailyRows.push({
+            id: i + 1,
+            dateIso: dIso,
+            dateDisplay: `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`,
+            dayName,
+            dayArrivals,
+            dayDepartures,
+            netShift: netShift > 0 ? `+${netShift}` : `${netShift}`,
+            projectedOccupied,
+            projectedVacant,
+            totalBeds,
+            occupancyRate: `${occRate}%`,
+            demandLevel: occRate >= 90 ? (ar ? "ذروة إشغال" : "Peak") : occRate >= 75 ? (ar ? "إشغال مرتفع" : "High") : (ar ? "طبيعي" : "Normal"),
+          });
+        }
+
+        return applySearchAndDate(dailyRows, undefined, (d) => [
+          d.dateDisplay,
+          d.dayName,
+          d.demandLevel,
+          d.occupancyRate,
+        ]);
+      }
+
       // 1. IN-HOUSE & ASSIGNMENTS REPORT (المقيمين والتسكين)
       case "assignments": {
         const list = assignments

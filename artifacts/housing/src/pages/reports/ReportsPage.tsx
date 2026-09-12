@@ -20,6 +20,7 @@ import { TabsNav } from "./components/TabsNav";
 import { ReportFilters } from "./components/ReportFilters";
 import { ReportTable } from "./components/ReportTable";
 import { ManagerFlashTab } from "./components/ManagerFlashTab";
+import { OccupancyForecastTab } from "./components/OccupancyForecastTab";
 
 export default function Reports() {
   const { activePropertyId } = useProperty();
@@ -211,8 +212,24 @@ export default function Reports() {
         />
       )}
 
+      {/* Opera PMS: 7/14/30-Day Occupancy Forecast */}
+      {filters.activeTab === "occupancy_forecast" && (
+        <OccupancyForecastTab
+          ar={ar}
+          isLoading={data.isLoading}
+          properties={data.properties}
+          activePropertyId={activePropertyId}
+          rooms={data.rooms}
+          buildings={data.buildings}
+          assignments={data.assignments}
+          reservations={data.reservations}
+          onExportPDF={handleExportPDF}
+          onExportExcel={handleExportExcel}
+        />
+      )}
+
       {/* Other Tabs: Data Table & Filters */}
-      {filters.activeTab !== "analytics" && filters.activeTab !== "manager_flash" && (
+      {filters.activeTab !== "analytics" && filters.activeTab !== "manager_flash" && filters.activeTab !== "occupancy_forecast" && (
         <>
           <ReportFilters
             ar={ar}

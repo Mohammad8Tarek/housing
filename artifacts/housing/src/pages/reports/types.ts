@@ -6,6 +6,7 @@ export type Tab =
   | "departures_manifest"
   | "housekeeping_sheet"
   | "room_discrepancy"
+  | "occupancy_forecast"
   | "analytics"
   | "assignments"
   | "vacant_rooms"

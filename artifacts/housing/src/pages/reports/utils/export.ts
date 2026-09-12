@@ -148,6 +148,7 @@ export const exportPDF = async (
     departures_manifest: "Due Out & Departures Manifest",
     housekeeping_sheet: "Housekeeping Room Attendant Daily Task Sheet",
     room_discrepancy: "Room Status Discrepancy & Audit Report",
+    occupancy_forecast: "Occupancy & Bed Availability Forecast",
     assignments: "In-House Resident Occupancy Report",
     vacant_rooms: "Vacant Rooms & Available Beds Report",
     housing: "Housing Room Inventory & Status Report",

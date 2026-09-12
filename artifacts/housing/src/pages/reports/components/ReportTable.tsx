@@ -184,6 +184,20 @@ export function ReportTable({
               </>
             )}
 
+            {/* OPERA PMS: OCCUPANCY FORECAST HEADERS */}
+            {activeTab === "occupancy_forecast" && (
+              <>
+                {H("dateDisplay", ar ? "التاريخ واليوم" : "Date & Day")}
+                {H("dayArrivals", ar ? "الوصول المتوقع" : "Arrivals", "text-center")}
+                {H("dayDepartures", ar ? "المغادرة المتوقعة" : "Departures", "text-center")}
+                {H("netShift", ar ? "صافي الحركة" : "Net Shift", "text-center")}
+                {H("projectedOccupied", ar ? "الأسرة المشغولة" : "Projected Occupied", "text-center")}
+                {H("projectedVacant", ar ? "الأسرة الشاغرة" : "Projected Vacant", "text-center")}
+                {H("occupancyRate", ar ? "نسبة الإشغال" : "Occupancy Rate", "text-center")}
+                {H("demandLevel", ar ? "مستوى الضغط" : "Demand Level", "text-center")}
+              </>
+            )}
+
             {/* 1. ASSIGNMENTS HEADERS */}
             {activeTab === "assignments" && (
               <>
@@ -603,6 +617,50 @@ export function ReportTable({
                       <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50">
                         {row.recommendedAction}
                       </p>
+                    </TableCell>
+                  </>
+                )}
+
+                {/* OPERA PMS: OCCUPANCY FORECAST ROW */}
+                {activeTab === "occupancy_forecast" && (
+                  <>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/50 flex flex-col items-center justify-center text-[10px] font-bold text-violet-700 dark:text-violet-300 shrink-0">
+                          <span>{row.dateDisplay?.slice(0, 2)}</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-foreground">{row.dayName}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{row.dateDisplay}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center font-mono">
+                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">
+                        +{row.dayArrivals}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center font-mono">
+                      <Badge variant="secondary" className="bg-rose-50 text-rose-700 border-rose-200 font-bold">
+                        -{row.dayDepartures}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-bold text-xs">
+                      {row.netShift}
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-bold text-sm">
+                      {row.projectedOccupied}
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-semibold text-emerald-600">
+                      {row.projectedVacant}
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-bold text-xs">
+                      {row.occupancyRate}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="text-xs">
+                        {row.demandLevel}
+                      </Badge>
                     </TableCell>
                   </>
                 )}

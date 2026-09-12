@@ -15,6 +15,7 @@ import {
   LogOut,
   ClipboardCheck,
   AlertOctagon,
+  CalendarRange,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
@@ -48,6 +49,12 @@ export const TABS: TabConfig[] = [
     label: "Room Discrepancy & Audit",
     labelAr: "تدقيق ومطابقة الغرف",
     icon: <AlertOctagon className="w-4 h-4 text-red-500" />,
+  },
+  {
+    id: "occupancy_forecast",
+    label: "Occupancy Forecast",
+    labelAr: "توقعات الإشغال المستقبلية",
+    icon: <CalendarRange className="w-4 h-4 text-violet-500" />,
   },
   {
     id: "analytics",

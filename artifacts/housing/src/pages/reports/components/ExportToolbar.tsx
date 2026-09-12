@@ -96,6 +96,31 @@ export function ExportToolbar({
     );
   }
 
+  if (activeTab === "occupancy_forecast") {
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportExcel}
+          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          {ar ? "تصدير التوقعات Excel" : "Forecast Excel"}
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleExportPDF}
+          className="gap-2 bg-violet-600 hover:bg-violet-700 text-white text-xs shadow-xs"
+        >
+          <FileText className="w-4 h-4" />
+          {ar ? "تقرير التوقعات PDF" : "Forecast PDF"}
+        </Button>
+      </div>
+    );
+  }
+
   if (activeTab === "analytics") {
     return (
       <Button
