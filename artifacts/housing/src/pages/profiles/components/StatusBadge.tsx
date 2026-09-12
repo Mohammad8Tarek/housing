@@ -121,6 +121,10 @@ export function StatusBadge({ status }: { status: string }) {
       label: ar ? "موقوف" : "Suspended",
       className: "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800",
     },
+    TRANSFERRED: {
+      label: ar ? "منقول لفندق آخر" : "Transferred",
+      className: "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800",
+    },
   };
 
   const cfg = map[status] ?? {

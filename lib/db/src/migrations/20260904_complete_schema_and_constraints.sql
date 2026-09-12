@@ -1835,7 +1835,7 @@ BEGIN
 
       ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
       ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status 
-        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT'));
+        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED'));
 
       ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_gender;
       ALTER TABLE profiles ADD CONSTRAINT chk_profiles_gender 

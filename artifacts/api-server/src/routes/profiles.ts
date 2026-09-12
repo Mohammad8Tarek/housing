@@ -155,10 +155,16 @@ router.get(
           ) as SQL,
         );
       }
-      if (query.data.status)
+      if (query.data.status && query.data.status !== "ALL") {
         conditions.push(eq(profilesTable.status, query.data.status));
-      if (query.data.department)
+      } else {
+        conditions.push(sql`upper(${profilesTable.status}) != 'TRANSFERRED'`);
+      }
+      if (query.data.department && query.data.department !== "ALL") {
         conditions.push(eq(profilesTable.department, query.data.department));
+      }
+    } else {
+      conditions.push(sql`upper(${profilesTable.status}) != 'TRANSFERRED'`);
     }
 
     const { profiles, total } = await withTenant(

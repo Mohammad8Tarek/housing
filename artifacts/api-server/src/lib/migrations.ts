@@ -1453,7 +1453,7 @@ const TENANT_MIGRATIONS = [
     q: `DO $$ BEGIN
       ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
       ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status
-        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT'));
+        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED'));
     END $$`,
   },
   {
@@ -1635,6 +1635,14 @@ const TENANT_MIGRATIONS = [
        CREATE INDEX IF NOT EXISTS idx_room_inventory_condition ON room_inventory (condition);
        CREATE INDEX IF NOT EXISTS idx_room_inventory_category ON room_inventory (category);
        CREATE INDEX IF NOT EXISTS idx_room_inventory_room_category ON room_inventory (room_id, category);`,
+  },
+  {
+    name: "allow_transferred_in_chk_profiles_status",
+    q: `DO $$ BEGIN
+      ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
+      ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status
+        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED'));
+    END $$;`,
   },
 ];
 

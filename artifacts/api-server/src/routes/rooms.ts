@@ -28,6 +28,7 @@ import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
+import { findProfileAcrossAllProperties } from "../lib/cross-property-service.js";
 
 const router: Router = Router();
 
@@ -427,6 +428,24 @@ router.get(
         status: a.status,
         notes: a.notes,
       }));
+
+      // Resilient fallback: Enrich any history record whose profile data is missing locally
+      for (const item of history) {
+        if (!item.profileName && item.profileId) {
+          try {
+            const found = await findProfileAcrossAllProperties(item.profileId);
+            if (found?.profile) {
+              item.profileName = `${found.profile.firstName ?? ""} ${found.profile.lastName ?? ""}`.trim();
+              item.profileCode = found.profile.profileId;
+              item.department = found.profile.department;
+              item.jobTitle = found.profile.jobTitle;
+              item.nationality = found.profile.nationality;
+            }
+          } catch (lookupErr) {
+            // non-fatal
+          }
+        }
+      }
 
       res.json({
         room: {

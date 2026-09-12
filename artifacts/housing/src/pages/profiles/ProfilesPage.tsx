@@ -556,6 +556,7 @@ export function ProfilesPage() {
                 <SelectItem value="UNASSIGNED">{ar ? "غير مسكّن" : "Unassigned"}</SelectItem>
                 <SelectItem value="LEFT">{ar ? "تمت المغادرة" : "Checked Out"}</SelectItem>
                 <SelectItem value="VACATION">{ar ? "في إجازة" : "On Vacation"}</SelectItem>
+                <SelectItem value="TRANSFERRED">{ar ? "منقول لفندق آخر" : "Transferred"}</SelectItem>
               </SelectContent>
             </Select>
           </div>

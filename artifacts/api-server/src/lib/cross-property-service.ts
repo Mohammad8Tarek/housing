@@ -187,13 +187,15 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
 }
 
 /**
- * Completely removes a profile and all its related records from the source property schema
- * when an employee is permanently housed/transferred to another hotel property.
- * Prevents duplicates and ensures profiles are not counted twice.
+ * Preserves all room logs, history records, and accommodation history in the source property
+ * while updating the profile status to 'TRANSFERRED'.
+ * This ensures room occupancy audit logs are NEVER lost, while excluding the employee from
+ * the source property's active staff list and count.
  */
-export async function deleteSourceProfileOnTransfer(
+export async function archiveSourceProfileOnTransfer(
   sourcePropertyId: number,
   sourceProfileId: number,
+  targetPropertyName: string = "فندق آخر",
 ): Promise<boolean> {
   return await withTenant(sourcePropertyId, async (srcDb) => {
     const [srcProfile] = await srcDb
@@ -206,124 +208,13 @@ export async function deleteSourceProfileOnTransfer(
       .from(profilesTable)
       .where(eq(profilesTable.id, sourceProfileId));
 
-    if (!srcProfile) {
-      console.log(`[cross-property] Profile #${sourceProfileId} already absent from property #${sourcePropertyId}`);
-      return false;
-    }
+    if (!srcProfile) return false;
 
     console.log(
-      `[cross-property] 🗑️ Deleting source profile #${sourceProfileId} (${srcProfile.firstName} ${srcProfile.lastName}, code: ${srcProfile.profileId}) from property #${sourcePropertyId} to prevent duplicates`,
+      `[cross-property] 🔄 Preserving room logs & archiving profile #${sourceProfileId} (${srcProfile.firstName} ${srcProfile.lastName}) as TRANSFERRED to ${targetPropertyName} in property #${sourcePropertyId}...`,
     );
 
-    // 1. Unlink key_audit_log for keys associated with this profile or its assignments
-    await srcDb.execute(sql`
-      UPDATE key_audit_log
-      SET key_id = NULL
-      WHERE key_id IN (
-        SELECT id FROM room_keys
-        WHERE profile_id = ${sourceProfileId}
-           OR assignment_id IN (SELECT id FROM assignments WHERE profile_id = ${sourceProfileId})
-      )
-    `).catch((e) => console.warn(`[cross-property] unlink key_audit_log warning:`, e?.message));
-
-    // 2. Delete room keys associated with this profile
-    await srcDb.execute(sql`
-      DELETE FROM room_keys
-      WHERE profile_id = ${sourceProfileId}
-         OR assignment_id IN (SELECT id FROM assignments WHERE profile_id = ${sourceProfileId})
-    `).catch((e) => console.warn(`[cross-property] delete room_keys warning:`, e?.message));
-
-    // 3. Unlink maintenance tickets assigned to this profile
-    await srcDb.execute(sql`
-      UPDATE maintenance
-      SET assigned_to = NULL
-      WHERE assigned_to = ${sourceProfileId}
-    `).catch((e) => console.warn(`[cross-property] unlink maintenance warning:`, e?.message));
-
-    // 4. Delete hosting companions
-    await srcDb.execute(sql`
-      DELETE FROM hosting_companions
-      WHERE hosting_id IN (SELECT id FROM hostings WHERE profile_id = ${sourceProfileId})
-    `).catch((e) => console.warn(`[cross-property] delete hosting_companions warning:`, e?.message));
-
-    // 5. Delete hostings
-    await srcDb.execute(sql`
-      DELETE FROM hostings
-      WHERE profile_id = ${sourceProfileId}
-    `).catch((e) => console.warn(`[cross-property] delete hostings warning:`, e?.message));
-
-    // 6. Delete profile vacations
-    await srcDb.execute(sql`
-      DELETE FROM profile_vacations
-      WHERE profile_id = ${sourceProfileId}
-    `).catch((e) => console.warn(`[cross-property] delete vacations warning:`, e?.message));
-
-    // 7. Delete profile documents (already copied to target property)
-    await srcDb.execute(sql`
-      DELETE FROM profile_documents
-      WHERE profile_id = ${sourceProfileId}
-    `).catch((e) => console.warn(`[cross-property] delete documents warning:`, e?.message));
-
-    // 8. Delete activity registrations
-    await srcDb.execute(sql`
-      DELETE FROM activity_registrations
-      WHERE profile_id = ${sourceProfileId}
-    `).catch((e) => console.warn(`[cross-property] delete activity_registrations warning:`, e?.message));
-
-    // 9. Delete evaluations
-    await srcDb.execute(sql`
-      DELETE FROM evaluations
-      WHERE profile_id = ${sourceProfileId}
-    `).catch((e) => console.warn(`[cross-property] delete evaluations warning:`, e?.message));
-
-    // 10. Delete assignments in source property
-    await srcDb.execute(sql`
-      DELETE FROM assignments
-      WHERE profile_id = ${sourceProfileId}
-    `).catch((e) => console.warn(`[cross-property] delete assignments warning:`, e?.message));
-
-    // 11. Delete portal account if exists in source
-    if (srcProfile.profileId) {
-      await srcDb.execute(sql`
-        DELETE FROM profile_portal_accounts
-        WHERE profile_id = ${srcProfile.profileId}
-      `).catch((e) => console.warn(`[cross-property] delete portal account warning:`, e?.message));
-    }
-
-    // 12. Delete the profile itself from source property
-    await srcDb.execute(sql`
-      DELETE FROM profiles
-      WHERE id = ${sourceProfileId}
-    `);
-
-    // 10. Real-time broadcast to source property clients
-    broadcastToProperty(sourcePropertyId, {
-      module: "profiles",
-      action: "deleted",
-      entityId: sourceProfileId,
-    });
-    broadcastToProperty(sourcePropertyId, {
-      module: "dashboard",
-      action: "sync",
-    });
-
-    console.log(
-      `[cross-property] ✅ Successfully deleted profile #${sourceProfileId} from property #${sourcePropertyId}`,
-    );
-    return true;
-  });
-}
-
-/**
- * Cleanly close active stay in source property and delete profile when permanent transfer occurs.
- */
-export async function closeSourceAssignmentOnTransfer(
-  sourcePropertyId: number,
-  sourceProfileId: number,
-  targetPropertyName: string,
-) {
-  // Update rooms in source property first to release capacity
-  await withTenant(sourcePropertyId, async (srcDb) => {
+    // 1. Mark active assignments in source property as TRANSFERRED and record checkout (KEEP assignments for room logs!)
     const activeAssignments = await srcDb
       .select()
       .from(assignmentsTable)
@@ -334,7 +225,20 @@ export async function closeSourceAssignmentOnTransfer(
         ),
       );
 
+    const nowStr = new Date().toISOString();
+
     for (const oldAssignment of activeAssignments) {
+      await srcDb
+        .update(assignmentsTable)
+        .set({
+          status: "TRANSFERRED",
+          checkOutDate: nowStr,
+          notes: oldAssignment.notes
+            ? `${oldAssignment.notes} | تم النقل إلى فندق: ${targetPropertyName}`
+            : `تم النقل إلى فندق: ${targetPropertyName}`,
+        })
+        .where(eq(assignmentsTable.id, oldAssignment.id));
+
       const [room] = await srcDb
         .select()
         .from(roomsTable)
@@ -376,11 +280,46 @@ export async function closeSourceAssignmentOnTransfer(
         entityId: oldAssignment.id,
       });
     }
-  });
 
-  // Permanently delete profile from source property to prevent duplicate counts
-  await deleteSourceProfileOnTransfer(sourcePropertyId, sourceProfileId);
-  return true;
+    // 2. Set profile status in source property to TRANSFERRED (preserving the profile and its history)
+    await srcDb
+      .update(profilesTable)
+      .set({
+        status: "TRANSFERRED",
+        vacationNotes: `[تم النقل إلى فندق: ${targetPropertyName}]`,
+      })
+      .where(eq(profilesTable.id, sourceProfileId));
+
+    // 3. Broadcast real-time updates
+    broadcastToProperty(sourcePropertyId, {
+      module: "profiles",
+      action: "updated",
+      entityId: sourceProfileId,
+    });
+    broadcastToProperty(sourcePropertyId, {
+      module: "dashboard",
+      action: "sync",
+    });
+
+    console.log(
+      `[cross-property] ✅ Profile #${sourceProfileId} and all room logs safely preserved in property #${sourcePropertyId} (Status: TRANSFERRED).`,
+    );
+    return true;
+  });
+}
+
+// Backward-compatible export alias so any existing references continue to work seamlessly
+export const deleteSourceProfileOnTransfer = archiveSourceProfileOnTransfer;
+
+/**
+ * Cleanly close active stay in source property and archive profile when permanent transfer occurs.
+ */
+export async function closeSourceAssignmentOnTransfer(
+  sourcePropertyId: number,
+  sourceProfileId: number,
+  targetPropertyName: string,
+) {
+  return await archiveSourceProfileOnTransfer(sourcePropertyId, sourceProfileId, targetPropertyName);
 }
 
 export interface CrossPropertyTransferParams {
@@ -596,7 +535,10 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
 
     await srcDb
       .update(profilesTable)
-      .set({ status: "LEFT" })
+      .set({
+        status: "TRANSFERRED",
+        vacationNotes: `[تم النقل إلى فندق: ${targetName}]`,
+      })
       .where(eq(profilesTable.id, oldAssignment.profileId));
   });
 
@@ -712,9 +654,9 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
   broadcastToProperty(targetPropertyId, { module: "housing", action: "updated", entityId: newRoom.id });
   broadcastToProperty(targetPropertyId, { module: "dashboard", action: "sync" });
 
-  // 7. Delete transferred profile from source property so it is not duplicated
-  await deleteSourceProfileOnTransfer(sourcePropertyId, oldAssignment.profileId).catch((delErr) => {
-    console.warn("[cross-property] deleteSourceProfileOnTransfer in executeCrossPropertyTransfer warning:", delErr?.message);
+  // 7. Archive transferred profile in source property (preserving room logs & history intact!)
+  await archiveSourceProfileOnTransfer(sourcePropertyId, oldAssignment.profileId, targetName).catch((delErr) => {
+    console.warn("[cross-property] archiveSourceProfileOnTransfer in executeCrossPropertyTransfer warning:", delErr?.message);
   });
 
   return {
@@ -963,11 +905,12 @@ export async function cleanupDuplicateTransferredProfiles(): Promise<number> {
       for (const dup of duplicatesToDelete) {
         if (dup.propertyId === primary.propertyId && dup.id === primary.id) continue;
 
+        const targetPropName = allProperties.find((p) => p.id === primary.propertyId)?.name || "فندق آخر";
         console.log(
-          `[dedup] Deleting duplicate profile #${dup.id} in property #${dup.propertyId} (${dup.firstName} ${dup.lastName}, code: ${dup.profileId}) -> Primary is #${primary.id} in property #${primary.propertyId}`,
+          `[dedup] Archiving duplicate profile #${dup.id} in property #${dup.propertyId} (${dup.firstName} ${dup.lastName}, code: ${dup.profileId}) -> Primary is #${primary.id} in property #${primary.propertyId} (${targetPropName})`,
         );
 
-        await deleteSourceProfileOnTransfer(dup.propertyId, dup.id);
+        await archiveSourceProfileOnTransfer(dup.propertyId, dup.id, targetPropName);
         cleanedCount++;
       }
     }
