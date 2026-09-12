@@ -3,15 +3,12 @@ import { useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLocation } from "wouter";
 import {
-  BedDouble,
   Building2,
   Layers,
   Search,
-  Users,
   Palmtree,
   UserPlus,
   Sparkles,
-  CheckCircle,
   Wrench,
   AlertCircle,
   Clock,
@@ -121,30 +118,6 @@ export function RoomSpaceViewTab({
     });
   }, [rooms, selectedBuildingId, selectedFloorId, statusFilter, search, assignmentsByRoom, profileMap]);
 
-  // KPI Calculations
-  const stats = useMemo(() => {
-    const totalRooms = rooms.length;
-    let totalBeds = 0;
-    let occupiedBeds = 0;
-    let vacationBeds = 0;
-
-    for (const r of rooms) {
-      const cap = r.capacity || 1;
-      totalBeds += cap;
-      const occs = assignmentsByRoom[r.id] || [];
-      occupiedBeds += occs.length;
-      for (const a of occs) {
-        const prof = profileMap.get(a.profileId);
-        if (prof?.status === "VACATION") vacationBeds++;
-      }
-    }
-
-    const freeBeds = Math.max(0, totalBeds - occupiedBeds);
-    const occPct = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
-
-    return { totalRooms, totalBeds, occupiedBeds, freeBeds, vacationBeds, occPct };
-  }, [rooms, assignmentsByRoom, profileMap]);
-
   // Paginate filtered rooms
   const paginatedRooms = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -191,58 +164,6 @@ export function RoomSpaceViewTab({
 
   return (
     <div className="space-y-6">
-      {/* ── KPI HIGHLIGHTS STRIP ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="p-3.5 rounded-xl border bg-card/60 backdrop-blur shadow-sm">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs font-semibold">
-            <Building2 className="w-4 h-4 text-primary" />
-            <span>{ar ? "إجمالي الغرف" : "Total Rooms"}</span>
-          </div>
-          <p className="text-2xl font-black mt-1 text-foreground">{stats.totalRooms}</p>
-          <span className="text-[11px] text-muted-foreground">{filteredRooms.length} {ar ? "مطابقة للفلتر" : "filtered"}</span>
-        </div>
-
-        <div className="p-3.5 rounded-xl border bg-card/60 backdrop-blur shadow-sm">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs font-semibold">
-            <BedDouble className="w-4 h-4 text-indigo-500" />
-            <span>{ar ? "إجمالي مساحات الأسرة" : "Total Bed Spaces"}</span>
-          </div>
-          <p className="text-2xl font-black mt-1 text-indigo-700 dark:text-indigo-300">{stats.totalBeds}</p>
-          <span className="text-[11px] text-muted-foreground">{ar ? "سعة الطاقة الإجمالية" : "Max Capacity"}</span>
-        </div>
-
-        <div className="p-3.5 rounded-xl border bg-card/60 backdrop-blur shadow-sm">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs font-semibold">
-            <Users className="w-4 h-4 text-blue-500" />
-            <span>{ar ? "الأسرة المشغولة" : "Occupied Beds"}</span>
-          </div>
-          <p className="text-2xl font-black mt-1 text-blue-700 dark:text-blue-300">{stats.occupiedBeds}</p>
-          <span className="text-[11px] text-muted-foreground font-semibold">{stats.occPct}% {ar ? "نسبة الإشغال" : "Occupancy"}</span>
-        </div>
-
-        <div className="p-3.5 rounded-xl border bg-emerald-500/10 border-emerald-500/20 backdrop-blur shadow-sm">
-          <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
-            <CheckCircle className="w-4 h-4 text-emerald-600" />
-            <span>{ar ? "الأسِرّة المتاحة" : "Free Bed Spaces"}</span>
-          </div>
-          <p className="text-2xl font-black mt-1 text-emerald-600 dark:text-emerald-400">{stats.freeBeds}</p>
-          <span className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80 font-medium">
-            {ar ? "جاهزة للتسكين الفوري" : "Ready to assign"}
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-xl border bg-amber-500/10 border-amber-500/20 backdrop-blur shadow-sm col-span-2 sm:col-span-1">
-          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 text-xs font-bold">
-            <Palmtree className="w-4 h-4 text-amber-600" />
-            <span>{ar ? "في إجازة" : "On Vacation"}</span>
-          </div>
-          <p className="text-2xl font-black mt-1 text-amber-600 dark:text-amber-400">{stats.vacationBeds}</p>
-          <span className="text-[11px] text-amber-700/80 dark:text-amber-300/80 font-medium">
-            {ar ? "أسرة محجوزة لمجازين" : "Reserved for leaves"}
-          </span>
-        </div>
-      </div>
-
       {/* ── FILTER & CONTROL BAR ── */}
       <div className="p-4 rounded-xl border bg-card shadow-sm space-y-3">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
