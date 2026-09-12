@@ -317,7 +317,7 @@ export default function Reports() {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">
-                    {ar ? "مركز تدقيق ومطابقة حالات الغرف (PMS Discrepancy Hub)" : "Room Status Discrepancy & Audit Center"}
+                    {ar ? "مركز تدقيق ومطابقة حالات الغرف والنزلاء" : "Room Status Discrepancy & Audit Center"}
                   </h4>
                   <p className="text-muted-foreground mt-0.5">
                     {ar

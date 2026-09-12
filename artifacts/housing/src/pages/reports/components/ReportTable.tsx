@@ -174,7 +174,7 @@ export function ReportTable({
             {activeTab === "room_discrepancy" && (
               <>
                 {H("severity", ar ? "الخطورة" : "Severity", "text-center")}
-                {H("type", ar ? "نوع التباين (PMS Discrepancy)" : "Discrepancy Type")}
+                {H("type", ar ? "نوع التباين والفحص الميداني" : "Discrepancy Type")}
                 {H("roomNumber", ar ? "الغرفة" : "Room")}
                 {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
                 {H("foStatus", ar ? "حالة الاستقبال (Front Office)" : "Front Office")}

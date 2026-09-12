@@ -22,8 +22,8 @@ import { TabConfig } from "./types";
 export const TABS: TabConfig[] = [
   {
     id: "manager_flash",
-    label: "Manager Flash Report",
-    labelAr: "تقرير المدير الصباحي (Flash)",
+    label: "Morning Operations Report",
+    labelAr: "التقرير الصباحي الشامل",
     icon: <FileBarChart2 className="w-4 h-4 text-amber-500" />,
   },
   {

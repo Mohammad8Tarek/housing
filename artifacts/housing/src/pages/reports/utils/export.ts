@@ -143,7 +143,7 @@ export const exportPDF = async (
     "";
 
   const TAB_TITLES: Record<string, string> = {
-    manager_flash: "Manager Flash Report",
+    manager_flash: "Daily Operations & Occupancy Morning Report",
     arrivals_manifest: "Expected Arrivals Manifest",
     departures_manifest: "Due Out & Departures Manifest",
     housekeeping_sheet: "Housekeeping Room Attendant Daily Task Sheet",

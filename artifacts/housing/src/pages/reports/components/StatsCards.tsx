@@ -270,7 +270,7 @@ export function StatsCards({
         sparkColor: "#ea580c",
       },
       {
-        label: ar ? "نسبة مطابقة البيانات" : "PMS Audit Match Rate",
+        label: ar ? "نسبة مطابقة البيانات الميدانية" : "System Audit Match Rate",
         value: `${complianceRate}%`,
         sub: ar ? "دقة التسكين الفعلي" : "System-Physical alignment",
         color: complianceRate >= 95 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400",

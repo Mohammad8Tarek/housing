@@ -40,7 +40,7 @@ export function ExportToolbar({
           className="gap-2 bg-amber-600 hover:bg-amber-700 text-white text-xs shadow-xs"
         >
           <FileText className="w-4 h-4" />
-          {ar ? "تقرير المدير الصباحي PDF" : "Manager Flash PDF"}
+          {ar ? "تقرير المدير الصباحي PDF" : "Morning Operations PDF"}
         </Button>
       </div>
     );
