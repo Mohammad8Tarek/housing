@@ -400,7 +400,7 @@ router.get(
   }
 );
 
-/* Fast existing identifiers endpoint for Excel import duplicate detection */
+/* Fast existing identifiers endpoint for Excel import duplicate & update detection */
 router.get(
   "/profiles/existing-identifiers",
   requirePermission("profiles", "view"),
@@ -415,20 +415,56 @@ router.get(
       const rows = await withTenant(propertyId, async (tenantDb) => {
         return tenantDb
           .select({
+            id: profilesTable.id,
             profileId: profilesTable.profileId,
             nationalId: profilesTable.nationalId,
             phone: profilesTable.phone,
             firstName: profilesTable.firstName,
             lastName: profilesTable.lastName,
+            thirdName: profilesTable.thirdName,
+            fourthName: profilesTable.fourthName,
+            department: profilesTable.department,
+            jobTitle: profilesTable.jobTitle,
+            level: profilesTable.level,
+            nationality: profilesTable.nationality,
+            gender: profilesTable.gender,
+            employmentType: profilesTable.employmentType,
+            companyName: profilesTable.companyName,
+            email: profilesTable.email,
+            emergencyContact: profilesTable.emergencyContact,
+            dateOfBirth: profilesTable.dateOfBirth,
+            hireDate: profilesTable.hireDate,
+            contractEndDate: profilesTable.contractEndDate,
+            address: profilesTable.address,
+            status: profilesTable.status,
           })
           .from(profilesTable);
       });
 
       res.json({
         profiles: rows.map((r) => ({
-          profileId: r.profileId?.trim().toLowerCase() || "",
+          id: r.id,
+          profileId: r.profileId?.trim() || "",
           nationalId: r.nationalId?.trim() || "",
           phone: r.phone?.trim() || "",
+          firstName: r.firstName || "",
+          lastName: r.lastName || "",
+          thirdName: r.thirdName || "",
+          fourthName: r.fourthName || "",
+          department: r.department || "",
+          jobTitle: r.jobTitle || "",
+          level: r.level || "",
+          nationality: r.nationality || "",
+          gender: r.gender || "M",
+          employmentType: r.employmentType || "INTERNAL",
+          companyName: r.companyName || "",
+          email: r.email || "",
+          emergencyContact: r.emergencyContact || "",
+          dateOfBirth: r.dateOfBirth || "",
+          hireDate: r.hireDate || "",
+          contractEndDate: r.contractEndDate || "",
+          address: r.address || "",
+          status: r.status || "UNASSIGNED",
           name: [r.firstName, r.lastName].filter(Boolean).join(" ").trim(),
         })),
       });
@@ -573,28 +609,47 @@ router.post(
     const toProcess = rawProfiles.slice(0, maxBulkLimit);
 
     const result = await withTenant(propertyId, async (tenantDb) => {
-      // 1. Fetch existing profile IDs, national IDs, and phones to check duplicates
+      // 1. Fetch all existing profiles in this tenant for duplicate & update detection
       const existing = await tenantDb
         .select({
+          id: profilesTable.id,
           profileId: profilesTable.profileId,
           nationalId: profilesTable.nationalId,
           phone: profilesTable.phone,
           firstName: profilesTable.firstName,
           lastName: profilesTable.lastName,
+          thirdName: profilesTable.thirdName,
+          fourthName: profilesTable.fourthName,
+          department: profilesTable.department,
+          jobTitle: profilesTable.jobTitle,
+          level: profilesTable.level,
+          nationality: profilesTable.nationality,
+          gender: profilesTable.gender,
+          employmentType: profilesTable.employmentType,
+          companyName: profilesTable.companyName,
+          email: profilesTable.email,
+          emergencyContact: profilesTable.emergencyContact,
+          dateOfBirth: profilesTable.dateOfBirth,
+          hireDate: profilesTable.hireDate,
+          contractEndDate: profilesTable.contractEndDate,
+          address: profilesTable.address,
+          status: profilesTable.status,
         })
         .from(profilesTable);
 
-      const dbProfileIds = new Set(existing.map((e) => e.profileId?.trim().toLowerCase()).filter(Boolean));
-      const dbNationalIds = new Set(existing.map((e) => e.nationalId?.trim()).filter(Boolean));
-      const dbPhones = new Set(existing.map((e) => e.phone?.trim()).filter(Boolean));
+      const dbByProfileId = new Map<string, (typeof existing)[0]>();
+      const dbByNationalId = new Map<string, (typeof existing)[0]>();
+      for (const e of existing) {
+        if (e.profileId) dbByProfileId.set(e.profileId.trim().toLowerCase(), e);
+        if (e.nationalId) dbByNationalId.set(e.nationalId.trim(), e);
+      }
 
-      // Tracking sets for duplicates within the current batch
+      // Tracking sets for duplicates within current batch
       const batchSeenProfileIds = new Set<string>();
       const batchSeenNationalIds = new Set<string>();
-      const batchSeenPhones = new Set<string>();
 
-      const validRows: any[] = [];
-      let skippedCount = 0;
+      const rowsToInsert: any[] = [];
+      const rowsToUpdate: Array<{ id: number; profileId: string; updates: Record<string, any>; diffSummary: string[] }> = [];
       const skippedItems: Array<{
         profileId: string;
         name: string;
@@ -609,132 +664,165 @@ router.post(
         const nid = String(p.nationalId || "").trim();
         const ph = String(p.phone || "").trim();
         const pName = [p.firstName, p.lastName, p.thirdName, p.fourthName].filter(Boolean).join(" ").trim() || pId || `Row ${i + 1}`;
+        const lowerPid = pId.toLowerCase();
 
-        // 1. Check Profile ID duplicate
-        if (pId) {
-          const lowerPid = pId.toLowerCase();
-          if (dbProfileIds.has(lowerPid)) {
-            skippedCount++;
-            skippedItems.push({
-              profileId: pId,
-              name: pName,
-              nationalId: nid,
-              phone: ph,
-              reason: `كود الموظف مسجل مسبقاً في النظام (${pId})`,
-            });
-            continue;
-          }
-          if (batchSeenProfileIds.has(lowerPid)) {
-            skippedCount++;
-            skippedItems.push({
-              profileId: pId,
-              name: pName,
-              nationalId: nid,
-              phone: ph,
-              reason: `كود الموظف مكرر داخل نفس ملف الإكسل (${pId})`,
-            });
-            continue;
-          }
+        // 1. Check duplicate within current file batch
+        if (lowerPid && batchSeenProfileIds.has(lowerPid)) {
+          skippedItems.push({
+            profileId: pId,
+            name: pName,
+            nationalId: nid,
+            phone: ph,
+            reason: `كود الموظف مكرر داخل نفس ملف الإكسل (${pId})`,
+          });
+          continue;
         }
-
-        // 2. Check National ID duplicate
-        if (nid) {
-          if (dbNationalIds.has(nid)) {
-            skippedCount++;
-            skippedItems.push({
-              profileId: pId,
-              name: pName,
-              nationalId: nid,
-              phone: ph,
-              reason: `الرقم القومي مسجل مسبقاً في النظام (${nid})`,
-            });
-            continue;
-          }
-          if (batchSeenNationalIds.has(nid)) {
-            skippedCount++;
-            skippedItems.push({
-              profileId: pId,
-              name: pName,
-              nationalId: nid,
-              phone: ph,
-              reason: `الرقم القومي مكرر داخل نفس ملف الإكسل (${nid})`,
-            });
-            continue;
-          }
-        }
-
-        // 3. Check Phone duplicate
-        if (ph) {
-          if (dbPhones.has(ph)) {
-            skippedCount++;
-            skippedItems.push({
-              profileId: pId,
-              name: pName,
-              nationalId: nid,
-              phone: ph,
-              reason: `رقم الهاتف مسجل مسبقاً في النظام (${ph})`,
-            });
-            continue;
-          }
-          if (batchSeenPhones.has(ph)) {
-            skippedCount++;
-            skippedItems.push({
-              profileId: pId,
-              name: pName,
-              nationalId: nid,
-              phone: ph,
-              reason: `رقم الهاتف مكرر داخل نفس ملف الإكسل (${ph})`,
-            });
-            continue;
-          }
+        if (nid && batchSeenNationalIds.has(nid)) {
+          skippedItems.push({
+            profileId: pId,
+            name: pName,
+            nationalId: nid,
+            phone: ph,
+            reason: `الرقم القومي مكرر داخل نفس ملف الإكسل (${nid})`,
+          });
+          continue;
         }
 
         // Register in seen sets
-        if (pId) batchSeenProfileIds.add(pId.toLowerCase());
+        if (lowerPid) batchSeenProfileIds.add(lowerPid);
         if (nid) batchSeenNationalIds.add(nid);
-        if (ph) batchSeenPhones.add(ph);
 
-        validRows.push({
-          profileId: pId || `EMP-${Date.now().toString().slice(-6)}${i + 1}`,
-          firstName: String(p.firstName || "—").trim(),
-          lastName: String(p.lastName || "—").trim(),
-          thirdName: String(p.thirdName || "").trim(),
-          fourthName: String(p.fourthName || "").trim(),
-          nationalId: nid,
-          nationality: String(p.nationality || "").trim(),
-          address: String(p.address || "").trim(),
-          jobTitle: String(p.jobTitle || "").trim(),
-          level: String(p.level || "—").trim(),
-          phone: ph,
-          department: String(p.department || "").trim(),
-          status: "UNASSIGNED",
-          hireDate: p.hireDate || new Date().toISOString().split("T")[0],
-          gender: p.gender === "F" ? "F" : "M",
-          employmentType: p.employmentType || "INTERNAL",
-          companyName: p.companyName || "",
-          contractEndDate: p.contractEndDate || null,
-          dateOfBirth: p.dateOfBirth || "",
-        });
+        // 2. Find existing record by profileId or nationalId
+        const existingRecord = (lowerPid ? dbByProfileId.get(lowerPid) : null) || (nid ? dbByNationalId.get(nid) : null);
+
+        if (existingRecord) {
+          // Employee exists! Check for updates
+          const updates: Record<string, any> = {};
+          const diffSummary: string[] = [];
+
+          const checkField = (field: string, incomingVal: any, existingVal: any, label: string) => {
+            const inc = incomingVal !== undefined && incomingVal !== null ? String(incomingVal).trim() : "";
+            const ext = existingVal !== undefined && existingVal !== null ? String(existingVal).trim() : "";
+            // Only update if incoming is provided, not empty, not placeholder, and differs from existing
+            if (inc && inc !== "—" && inc !== ext) {
+              updates[field] = inc;
+              diffSummary.push(`${label}: ${ext || "—"} ➔ ${inc}`);
+            }
+          };
+
+          checkField("firstName", p.firstName, existingRecord.firstName, "الاسم الأول");
+          checkField("lastName", p.lastName, existingRecord.lastName, "اسم العائلة");
+          checkField("thirdName", p.thirdName, existingRecord.thirdName, "الاسم الثالث");
+          checkField("fourthName", p.fourthName, existingRecord.fourthName, "الاسم الرابع");
+          checkField("department", p.department, existingRecord.department, "القسم");
+          checkField("jobTitle", p.jobTitle, existingRecord.jobTitle, "الوظيفة");
+          checkField("level", p.level, existingRecord.level, "الدرجة");
+          checkField("nationality", p.nationality, existingRecord.nationality, "الجنسية");
+          if (p.gender && (p.gender === "M" || p.gender === "F") && p.gender !== existingRecord.gender) {
+            updates.gender = p.gender;
+            diffSummary.push(`النوع: ${existingRecord.gender} ➔ ${p.gender}`);
+          }
+          checkField("phone", p.phone, existingRecord.phone, "الهاتف");
+          checkField("email", p.email, existingRecord.email, "البريد الإلكتروني");
+          checkField("emergencyContact", p.emergencyContact, existingRecord.emergencyContact, "طوارئ");
+          checkField("companyName", p.companyName, existingRecord.companyName, "الشركة");
+          checkField("employmentType", p.employmentType, existingRecord.employmentType, "نوع التوظيف");
+          checkField("hireDate", p.hireDate, existingRecord.hireDate, "تاريخ التعيين");
+          checkField("contractEndDate", p.contractEndDate, existingRecord.contractEndDate, "انتهاء العقد");
+          checkField("dateOfBirth", p.dateOfBirth, existingRecord.dateOfBirth, "تاريخ الميلاد");
+          checkField("address", p.address, existingRecord.address, "العنوان");
+
+          // Also check nationalId if matched by profileId
+          if (nid && nid !== existingRecord.nationalId) {
+            const conflict = dbByNationalId.get(nid);
+            if (!conflict || conflict.id === existingRecord.id) {
+              updates.nationalId = nid;
+              diffSummary.push(`الرقم القومي: ${existingRecord.nationalId} ➔ ${nid}`);
+            }
+          }
+
+          if (Object.keys(updates).length > 0) {
+            rowsToUpdate.push({
+              id: existingRecord.id,
+              profileId: existingRecord.profileId,
+              updates,
+              diffSummary,
+            });
+          } else {
+            // 100% identical duplicate with zero changes -> Skip safely without re-inserting or touching!
+            skippedItems.push({
+              profileId: existingRecord.profileId,
+              name: pName,
+              nationalId: nid || existingRecord.nationalId,
+              phone: ph || existingRecord.phone,
+              reason: "سجل مكرر ومطابق تماماً في النظام (تم التخطي بدون تعديل)",
+            });
+          }
+        } else {
+          // New employee -> Insert!
+          rowsToInsert.push({
+            profileId: pId || `EMP-${Date.now().toString().slice(-6)}${i + 1}`,
+            firstName: String(p.firstName || "—").trim(),
+            lastName: String(p.lastName || "—").trim(),
+            thirdName: String(p.thirdName || "").trim(),
+            fourthName: String(p.fourthName || "").trim(),
+            nationalId: nid,
+            nationality: String(p.nationality || "").trim(),
+            address: String(p.address || "").trim(),
+            jobTitle: String(p.jobTitle || "").trim(),
+            level: String(p.level || "—").trim(),
+            phone: ph,
+            department: String(p.department || "").trim(),
+            status: "UNASSIGNED",
+            hireDate: p.hireDate || new Date().toISOString().split("T")[0],
+            gender: p.gender === "F" ? "F" : "M",
+            employmentType: p.employmentType || "INTERNAL",
+            companyName: p.companyName || "",
+            contractEndDate: p.contractEndDate || null,
+            dateOfBirth: p.dateOfBirth || "",
+            email: String(p.email || "").trim(),
+            emergencyContact: String(p.emergencyContact || "").trim(),
+          });
+        }
       }
 
-      // Insert in chunks of 100 for safety and performance
+      // Execute Inserts in chunks of 100
       const CHUNK_SIZE = 100;
       let insertedCount = 0;
-      for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
-        const chunk = validRows.slice(i, i + CHUNK_SIZE);
-        const inserted = await tenantDb.insert(profilesTable).values(chunk).returning({ id: profilesTable.id, profileId: profilesTable.profileId });
+      for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
+        const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE);
+        const inserted = await tenantDb
+          .insert(profilesTable)
+          .values(chunk)
+          .returning({ id: profilesTable.id, profileId: profilesTable.profileId });
         insertedCount += inserted.length;
-        // Ensure portal accounts asynchronously
         for (const ins of inserted) {
           ensureProfilePortalAccount(propertyId, ins.profileId).catch(() => {});
         }
       }
 
+      // Execute Updates
+      let updatedCount = 0;
+      for (const item of rowsToUpdate) {
+        await tenantDb
+          .update(profilesTable)
+          .set(item.updates)
+          .where(eq(profilesTable.id, item.id));
+        updatedCount++;
+        ensureProfilePortalAccount(propertyId, item.profileId).catch(() => {});
+      }
+
       return {
         total: toProcess.length,
-        success: insertedCount,
-        skipped: skippedCount,
+        success: insertedCount + updatedCount,
+        created: insertedCount,
+        updated: updatedCount,
+        skipped: skippedItems.length,
         skippedItems,
+        updatedItems: rowsToUpdate.map((u) => ({
+          profileId: u.profileId,
+          diff: u.diffSummary.join(", "),
+        })),
       };
     });
 
@@ -745,14 +833,18 @@ router.post(
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `استيراد جماعي للملفات الشخصية: ${result.success} ملف`,
-      actionType: "CREATE",
+      action: `استيراد ذكي للملفات الشخصية: تم إضافة ${result.created}، تحديث ${result.updated}، وتخطي ${result.skipped} سجل مكرر`,
+      actionType: result.updated > 0 && result.created === 0 ? "UPDATE" : "CREATE",
       module: "profiles",
       entityType: "profile",
-      details: `Total: ${result.total}, Inserted: ${result.success}, Skipped: ${result.skipped}`,
+      details: `Total: ${result.total}, Created: ${result.created}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
     });
 
-    broadcastToProperty(propertyId, { module: "profiles", action: "created", data: { count: result.success } });
+    broadcastToProperty(propertyId, {
+      module: "profiles",
+      action: "updated",
+      data: { created: result.created, updated: result.updated, count: result.success },
+    });
 
     res.status(200).json(result);
   },

@@ -24,11 +24,15 @@ import {
   RotateCcw,
   Check,
   FileDown,
+  PlusCircle,
+  RefreshCw,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const MAX_PROFILE_IMPORT_FILE_SIZE = 25 * 1024 * 1024;
 const PROFILE_IMPORT_EXTENSIONS = [".xlsx", ".xls"];
+
+export type ProfileRowAction = "create" | "update" | "skip" | "invalid";
 
 export interface ProfileImportRow {
   profileId: string;
@@ -54,16 +58,24 @@ export interface ProfileImportRow {
   status: string;
 }
 
-interface AnalyzedRow {
+export interface ProfileFieldDiff {
+  field: string;
+  labelAr: string;
+  labelEn: string;
+  oldValue: string;
+  newValue: string;
+}
+
+export interface AnalyzedRow {
   index: number;
   raw: any;
   profile: ProfileImportRow;
-  isDuplicate: boolean;
-  duplicateReason?: string;
-  duplicateField?: "profileId" | "nationalId" | "phone" | "in_file";
+  action: ProfileRowAction;
+  statusReason: string;
+  diffs: ProfileFieldDiff[];
 }
 
-interface SkippedItem {
+export interface SkippedItem {
   profileId: string;
   name: string;
   nationalId: string;
@@ -71,11 +83,21 @@ interface SkippedItem {
   reason: string;
 }
 
-interface ImportResult {
+export interface UpdatedItem {
+  profileId: string;
+  name: string;
+  nationalId: string;
+  diffsSummary: string;
+}
+
+export interface ImportResult {
   total: number;
   success: number;
+  created: number;
+  updated: number;
   skipped: number;
   skippedItems: SkippedItem[];
+  updatedItems: UpdatedItem[];
 }
 
 export function ExcelImportDialog({
@@ -104,27 +126,22 @@ export function ExcelImportDialog({
   const [allParsedRows, setAllParsedRows] = useState<any[]>([]);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
 
-  // DB existing identifiers for fast client-side check
-  const [existingIdentifiers, setExistingIdentifiers] = useState<{
-    profileIds: Set<string>;
-    nationalIds: Set<string>;
-    phones: Set<string>;
-  }>({
-    profileIds: new Set(),
-    nationalIds: new Set(),
-    phones: new Set(),
-  });
+  // DB existing profiles for client-side comparison
+  const [existingProfiles, setExistingProfiles] = useState<any[]>([]);
 
   // Preview filtering & search
-  const [previewFilter, setPreviewFilter] = useState<"all" | "valid" | "duplicates">("all");
+  const [previewFilter, setPreviewFilter] = useState<"all" | "create" | "update" | "skip">("all");
   const [previewSearch, setPreviewSearch] = useState("");
+
+  // Result tab view: 'skipped' | 'updated'
+  const [resultTab, setResultTab] = useState<"skipped" | "updated">("skipped");
 
   // Processing state
   const [progressPercent, setProgressPercent] = useState(0);
   const [progressStage, setProgressStage] = useState("");
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
-  // Load existing identifiers when dialog opens
+  // Load existing profiles when dialog opens
   useEffect(() => {
     if (!isOpen || !propertyId) return;
     let isMounted = true;
@@ -135,19 +152,11 @@ export function ExcelImportDialog({
         if (res.ok) {
           const data = await res.json();
           if (isMounted && Array.isArray(data.profiles)) {
-            const pIds = new Set<string>();
-            const nIds = new Set<string>();
-            const phones = new Set<string>();
-            for (const r of data.profiles) {
-              if (r.profileId) pIds.add(r.profileId.trim().toLowerCase());
-              if (r.nationalId) nIds.add(r.nationalId.trim());
-              if (r.phone) phones.add(r.phone.trim());
-            }
-            setExistingIdentifiers({ profileIds: pIds, nationalIds: nIds, phones: phones });
+            setExistingProfiles(data.profiles);
           }
         }
       } catch (err) {
-        console.error("Error fetching existing identifiers:", err);
+        console.error("Error fetching existing profiles:", err);
       } finally {
         if (isMounted) setIsCheckingDuplicates(false);
       }
@@ -157,6 +166,17 @@ export function ExcelImportDialog({
       isMounted = false;
     };
   }, [isOpen, propertyId]);
+
+  // Fast lookup maps of existing profiles
+  const existingMaps = useMemo(() => {
+    const byProfileId = new Map<string, any>();
+    const byNationalId = new Map<string, any>();
+    for (const r of existingProfiles) {
+      if (r.profileId) byProfileId.set(r.profileId.trim().toLowerCase(), r);
+      if (r.nationalId) byNationalId.set(r.nationalId.trim(), r);
+    }
+    return { byProfileId, byNationalId };
+  }, [existingProfiles]);
 
   const parseExcelDate = (val: any): string => {
     if (!val) return "";
@@ -452,102 +472,157 @@ export function ExcelImportDialog({
     };
   };
 
-  // Analyze all parsed rows for duplicates
+  // Analyze all parsed rows for Smart Upsert (Create, Update, Skip Duplicates)
   const analyzedRows = useMemo<AnalyzedRow[]>(() => {
     if (allParsedRows.length === 0) return [];
 
     const seenProfileIdsInFile = new Set<string>();
     const seenNationalIdsInFile = new Set<string>();
-    const seenPhonesInFile = new Set<string>();
 
     return allParsedRows.map((raw, index) => {
       const profile = mapRawToProfile(raw, index);
       const pId = profile.profileId?.trim().toLowerCase();
       const nid = profile.nationalId?.trim();
-      const ph = profile.phone?.trim();
 
-      let isDuplicate = false;
-      let duplicateReason = "";
-      let duplicateField: "profileId" | "nationalId" | "phone" | "in_file" | undefined;
+      // Check 1: Duplicate within file itself
+      if (pId && seenProfileIdsInFile.has(pId)) {
+        return {
+          index,
+          raw,
+          profile,
+          action: "skip",
+          statusReason: ar
+            ? `كود الموظف (${profile.profileId}) مكرر داخل نفس ملف الإكسل (لن ينزل)`
+            : `Profile ID (${profile.profileId}) duplicate inside file (skipped)`,
+          diffs: [],
+        };
+      }
+      if (nid && seenNationalIdsInFile.has(nid)) {
+        return {
+          index,
+          raw,
+          profile,
+          action: "skip",
+          statusReason: ar
+            ? `الرقم القومي (${nid}) مكرر داخل نفس ملف الإكسل (لن ينزل)`
+            : `National ID (${nid}) duplicate inside file (skipped)`,
+          diffs: [],
+        };
+      }
 
-      // Check 1: Profile ID
-      if (pId) {
-        if (existingIdentifiers.profileIds.has(pId)) {
-          isDuplicate = true;
-          duplicateField = "profileId";
-          duplicateReason = ar
-            ? `كود الموظف (${profile.profileId}) مسجل مسبقاً في النظام`
-            : `Profile ID (${profile.profileId}) already exists in system`;
-        } else if (seenProfileIdsInFile.has(pId)) {
-          isDuplicate = true;
-          duplicateField = "in_file";
-          duplicateReason = ar
-            ? `كود الموظف (${profile.profileId}) مكرر داخل نفس ملف الإكسل`
-            : `Profile ID (${profile.profileId}) duplicate inside file`;
+      if (pId) seenProfileIdsInFile.add(pId);
+      if (nid) seenNationalIdsInFile.add(nid);
+
+      // Check 2: Match against existing database records
+      const existing = (pId ? existingMaps.byProfileId.get(pId) : null) || (nid ? existingMaps.byNationalId.get(nid) : null);
+
+      if (existing) {
+        // Employee exists in database -> Compare fields for updates
+        const diffs: ProfileFieldDiff[] = [];
+
+        const checkDiff = (field: string, labelAr: string, labelEn: string, rawVal: any, extVal: any) => {
+          const inc = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : "";
+          const ext = extVal !== undefined && extVal !== null ? String(extVal).trim() : "";
+          if (inc && inc !== "—" && inc !== ext) {
+            diffs.push({
+              field,
+              labelAr,
+              labelEn,
+              oldValue: ext || "—",
+              newValue: inc,
+            });
+          }
+        };
+
+        checkDiff("firstName", "الاسم الأول", "First Name", profile.firstName, existing.firstName);
+        checkDiff("lastName", "اسم العائلة", "Last Name", profile.lastName, existing.lastName);
+        checkDiff("thirdName", "الاسم الثالث", "Third Name", profile.thirdName, existing.thirdName);
+        checkDiff("fourthName", "الاسم الرابع", "Fourth Name", profile.fourthName, existing.fourthName);
+        checkDiff("department", "القسم", "Department", profile.department, existing.department);
+        checkDiff("jobTitle", "الوظيفة", "Job Title", profile.jobTitle, existing.jobTitle);
+        checkDiff("level", "الدرجة", "Level", profile.level, existing.level);
+        checkDiff("nationality", "الجنسية", "Nationality", profile.nationality, existing.nationality);
+        if (profile.gender && (profile.gender === "M" || profile.gender === "F") && profile.gender !== existing.gender) {
+          diffs.push({
+            field: "gender",
+            labelAr: "النوع",
+            labelEn: "Gender",
+            oldValue: existing.gender || "M",
+            newValue: profile.gender,
+          });
+        }
+        checkDiff("phone", "الهاتف", "Phone", profile.phone, existing.phone);
+        checkDiff("email", "البريد الإلكتروني", "Email", profile.email, existing.email);
+        checkDiff("emergencyContact", "طوارئ", "Emergency Contact", profile.emergencyContact, existing.emergencyContact);
+        checkDiff("companyName", "الشركة", "Company", profile.companyName, existing.companyName);
+        checkDiff("employmentType", "نوع التوظيف", "Employment Type", profile.employmentType, existing.employmentType);
+        checkDiff("hireDate", "تاريخ التعيين", "Hire Date", profile.hireDate, existing.hireDate);
+        checkDiff("contractEndDate", "انتهاء العقد", "Contract End Date", profile.contractEndDate, existing.contractEndDate);
+        checkDiff("dateOfBirth", "تاريخ الميلاد", "Date of Birth", profile.dateOfBirth, existing.dateOfBirth);
+        checkDiff("address", "العنوان", "Address", profile.address, existing.address);
+
+        if (nid && nid !== existing.nationalId) {
+          diffs.push({
+            field: "nationalId",
+            labelAr: "الرقم القومي",
+            labelEn: "National ID",
+            oldValue: existing.nationalId || "—",
+            newValue: nid,
+          });
+        }
+
+        if (diffs.length > 0) {
+          return {
+            index,
+            raw,
+            profile,
+            action: "update",
+            statusReason: ar
+              ? `تحديث ${diffs.length} حقل: ${diffs.map((d) => d.labelAr).join("، ")}`
+              : `Update ${diffs.length} fields: ${diffs.map((d) => d.labelEn).join(", ")}`,
+            diffs,
+          };
+        } else {
+          // Identical duplicate -> Skip safely!
+          return {
+            index,
+            raw,
+            profile,
+            action: "skip",
+            statusReason: ar
+              ? "سجل مكرر ومطابق تماماً في النظام (لن ينزل)"
+              : "Identical duplicate record in system (skipped)",
+            diffs: [],
+          };
         }
       }
 
-      // Check 2: National ID
-      if (!isDuplicate && nid) {
-        if (existingIdentifiers.nationalIds.has(nid)) {
-          isDuplicate = true;
-          duplicateField = "nationalId";
-          duplicateReason = ar
-            ? `الرقم القومي (${nid}) مسجل مسبقاً في النظام`
-            : `National ID (${nid}) already exists in system`;
-        } else if (seenNationalIdsInFile.has(nid)) {
-          isDuplicate = true;
-          duplicateField = "in_file";
-          duplicateReason = ar
-            ? `الرقم القومي (${nid}) مكرر داخل نفس ملف الإكسل`
-            : `National ID (${nid}) duplicate inside file`;
-        }
-      }
-
-      // Check 3: Phone
-      if (!isDuplicate && ph) {
-        if (existingIdentifiers.phones.has(ph)) {
-          isDuplicate = true;
-          duplicateField = "phone";
-          duplicateReason = ar
-            ? `رقم الهاتف (${ph}) مسجل مسبقاً في النظام`
-            : `Phone (${ph}) already exists in system`;
-        } else if (seenPhonesInFile.has(ph)) {
-          isDuplicate = true;
-          duplicateField = "in_file";
-          duplicateReason = ar
-            ? `رقم الهاتف (${ph}) مكرر داخل نفس ملف الإكسل`
-            : `Phone (${ph}) duplicate inside file`;
-        }
-      }
-
-      if (!isDuplicate) {
-        if (pId) seenProfileIdsInFile.add(pId);
-        if (nid) seenNationalIdsInFile.add(nid);
-        if (ph) seenPhonesInFile.add(ph);
-      }
-
+      // Check 3: New Profile -> Create!
       return {
         index,
         raw,
         profile,
-        isDuplicate,
-        duplicateReason,
-        duplicateField,
+        action: "create",
+        statusReason: ar ? "موظف جديد (سيتم إضافته)" : "New employee (will be created)",
+        diffs: [],
       };
     });
-  }, [allParsedRows, existingIdentifiers, ar]);
+  }, [allParsedRows, existingMaps, ar]);
 
-  const validRows = useMemo(() => analyzedRows.filter((r) => !r.isDuplicate), [analyzedRows]);
-  const duplicateRows = useMemo(() => analyzedRows.filter((r) => r.isDuplicate), [analyzedRows]);
+  const createRows = useMemo(() => analyzedRows.filter((r) => r.action === "create"), [analyzedRows]);
+  const updateRows = useMemo(() => analyzedRows.filter((r) => r.action === "update"), [analyzedRows]);
+  const skipRows = useMemo(() => analyzedRows.filter((r) => r.action === "skip"), [analyzedRows]);
+  const actionableRows = useMemo(() => analyzedRows.filter((r) => r.action === "create" || r.action === "update"), [analyzedRows]);
 
   // Filtered rows for the preview table
   const displayedPreviewRows = useMemo(() => {
     let list = analyzedRows;
-    if (previewFilter === "valid") {
-      list = validRows;
-    } else if (previewFilter === "duplicates") {
-      list = duplicateRows;
+    if (previewFilter === "create") {
+      list = createRows;
+    } else if (previewFilter === "update") {
+      list = updateRows;
+    } else if (previewFilter === "skip") {
+      list = skipRows;
     }
 
     if (!previewSearch.trim()) return list;
@@ -561,25 +636,25 @@ export function ExcelImportDialog({
         p.nationalId.includes(q) ||
         p.phone.includes(q) ||
         p.department.toLowerCase().includes(q) ||
-        (r.duplicateReason && r.duplicateReason.toLowerCase().includes(q))
+        (r.statusReason && r.statusReason.toLowerCase().includes(q))
       );
     });
-  }, [analyzedRows, validRows, duplicateRows, previewFilter, previewSearch]);
+  }, [analyzedRows, createRows, updateRows, skipRows, previewFilter, previewSearch]);
 
   // Execute the import with processing feedback
   const handleStartImport = async () => {
-    if (validRows.length === 0) {
+    if (actionableRows.length === 0) {
       toast.error(
         ar
-          ? "لا توجد سجلات صالحة للاستيراد. جميع السجلات بالملف مكررة ومسجلة مسبقاً."
-          : "No valid records to import. All rows are duplicates.",
+          ? "لا توجد تعديلات أو سجلات جديدة للاستيراد. جميع السجلات بالملف مكررة ومطابقة للبيانات الحالية."
+          : "No changes or new profiles to import. All rows are identical duplicates.",
       );
       return;
     }
 
     setStep("processing");
     setProgressPercent(10);
-    setProgressStage(ar ? "جاري تدقيق السجلات والتأكد من مطابقة المعايير..." : "Validating records...");
+    setProgressStage(ar ? "جاري تدقيق ومطابقة السجلات مع قاعدة البيانات..." : "Matching records with database...");
 
     // Smooth simulated progress while sending request
     const interval = setInterval(() => {
@@ -593,20 +668,20 @@ export function ExcelImportDialog({
       setTimeout(() => {
         setProgressStage(
           ar
-            ? `تصفية واستبعاد ${duplicateRows.length} سجل مكرر لمنع تكرار البيانات...`
-            : `Filtering ${duplicateRows.length} duplicate records...`,
+            ? `تصفية واستبعاد ${skipRows.length} سجل مكرر ومطابق لمنع تكرار البيانات...`
+            : `Filtering ${skipRows.length} duplicate records...`,
         );
       }, 600);
 
       setTimeout(() => {
         setProgressStage(
           ar
-            ? `جاري حفظ وإدخال ${validRows.length} ملف شخصي جديد في قاعدة البيانات...`
-            : `Inserting ${validRows.length} new profiles into database...`,
+            ? `جاري حفظ وإدخال ${createRows.length} ملف شخصي جديد وتحديث ${updateRows.length} موظف...`
+            : `Inserting ${createRows.length} new profiles and updating ${updateRows.length} existing...`,
         );
       }, 1300);
 
-      const payload = validRows.map((r) => r.profile);
+      const payload = actionableRows.map((r) => r.profile);
       const res = await fetch(`/api/profiles/bulk?propertyId=${propertyId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -631,28 +706,39 @@ export function ExcelImportDialog({
       setProgressPercent(100);
       setProgressStage(ar ? "اكتملت العملية بنجاح!" : "Import completed successfully!");
 
-      // Combine client-side detected duplicates with any server-skipped items
       const allSkippedCombined: SkippedItem[] = [
-        ...duplicateRows.map((d) => ({
-          profileId: d.profile.profileId,
-          name: `${d.profile.firstName} ${d.profile.lastName}`.trim() || d.profile.profileId,
-          nationalId: d.profile.nationalId,
-          phone: d.profile.phone,
-          reason: d.duplicateReason || (ar ? "سجل مكرر" : "Duplicate record"),
+        ...skipRows.map((s) => ({
+          profileId: s.profile.profileId,
+          name: [s.profile.firstName, s.profile.lastName, s.profile.thirdName, s.profile.fourthName].filter(Boolean).join(" "),
+          nationalId: s.profile.nationalId,
+          phone: s.profile.phone,
+          reason: s.statusReason,
         })),
         ...(data.skippedItems || []).filter(
-          (s: any) =>
-            !duplicateRows.some(
-              (d) => d.profile.profileId?.toLowerCase() === s.profileId?.toLowerCase(),
+          (srvSkip: any) =>
+            !skipRows.some(
+              (cl) => cl.profile.profileId?.toLowerCase() === srvSkip.profileId?.toLowerCase(),
             ),
         ),
       ];
 
+      const allUpdatedList: UpdatedItem[] = updateRows.map((u) => ({
+        profileId: u.profile.profileId,
+        name: [u.profile.firstName, u.profile.lastName, u.profile.thirdName, u.profile.fourthName].filter(Boolean).join(" "),
+        nationalId: u.profile.nationalId,
+        diffsSummary: u.diffs
+          .map((d) => (ar ? `${d.labelAr}: ${d.oldValue} ➔ ${d.newValue}` : `${d.labelEn}: ${d.oldValue} ➔ ${d.newValue}`))
+          .join(" | "),
+      }));
+
       setImportResult({
         total: allParsedRows.length,
-        success: data.success,
+        success: data.success ?? (createRows.length + updateRows.length),
+        created: data.created ?? createRows.length,
+        updated: data.updated ?? updateRows.length,
         skipped: allSkippedCombined.length,
         skippedItems: allSkippedCombined,
+        updatedItems: allUpdatedList,
       });
 
       if (onImportSuccess) {
@@ -713,12 +799,12 @@ export function ExcelImportDialog({
     <Dialog open={isOpen} onOpenChange={(v) => !v && step !== "processing" && reset()}>
       <DialogContent
         className="max-w-5xl max-h-[92vh] overflow-y-auto"
-        srTitle={ar ? "استيراد ملفات شخصية من إكسل" : "Import Profiles from Excel"}
+        srTitle={ar ? "استيراد وتحديث ملفات الموظفين من إكسل" : "Import & Update Profiles from Excel"}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-green-600" />
-            {ar ? "استيراد ملفات شخصية من إكسل" : "Import Profiles from Excel"}
+            <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+            {ar ? "استيراد وتحديث ملفات الموظفين (Create & Update)" : "Import & Update Profiles from Excel"}
           </DialogTitle>
         </DialogHeader>
 
@@ -734,8 +820,8 @@ export function ExcelImportDialog({
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400">
                     {ar
-                      ? "قم بتحميل القالب الجاهز، وتعبئة بيانات الموظفين، ثم رفعه مرة أخرى"
-                      : "Download the pre-formatted template, fill in profiles data, and re-upload"}
+                      ? "يدعم النظام الاستيراد الذكي (Smart Upsert): الموظفون الجدد يضافون تلقائياً، والمسجلون مسبقاً يتم تحديث بياناتهم، والسجلات المتطابقة يتم تخطيها تلقائياً."
+                      : "Supports Smart Upsert: New profiles are inserted, existing profiles updated, and duplicate records safely skipped."}
                   </p>
                 </div>
                 <Button
@@ -775,7 +861,7 @@ export function ExcelImportDialog({
 
                 {fileName && (
                   <span className="text-sm text-muted-foreground flex items-center gap-2 px-3 py-1 bg-muted rounded-lg">
-                    <FileSpreadsheet className="w-4 h-4 text-green-600 shrink-0" />
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span className="truncate max-w-xs">{fileName}</span>
                     <button
                       onClick={() => {
@@ -809,8 +895,8 @@ export function ExcelImportDialog({
             {/* Step 3: Analysis Summary & Preview */}
             {allParsedRows.length > 0 && (
               <div className="space-y-3 pt-2">
-                {/* Statistics Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* 4 Statistics Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="p-3 rounded-xl border bg-muted/30">
                     <div className="text-xs text-muted-foreground mb-1">
                       {ar ? "إجمالي السجلات بالملف" : "Total in File"}
@@ -820,47 +906,57 @@ export function ExcelImportDialog({
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900">
-                    <div className="text-xs text-green-700 dark:text-green-400 font-medium flex items-center gap-1 mb-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {ar ? "جاهز للاستيراد (سجلات جديدة)" : "Ready to Import (New)"}
+                  <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900">
+                    <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1 mb-1">
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      {ar ? "إضافة جديد (Create)" : "To Create (New)"}
                     </div>
-                    <div className="text-2xl font-bold font-mono text-green-700 dark:text-green-400">
-                      {validRows.length}
+                    <div className="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                      {createRows.length}
                     </div>
                   </div>
 
-                  <div className={`p-3 rounded-xl border ${duplicateRows.length > 0 ? "border-amber-300 bg-amber-50/60 dark:bg-amber-950/30 dark:border-amber-800" : "border-muted bg-muted/20"}`}>
-                    <div className={`text-xs font-medium flex items-center gap-1 mb-1 ${duplicateRows.length > 0 ? "text-amber-800 dark:text-amber-400" : "text-muted-foreground"}`}>
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      {ar ? "مكررة (سيتم استبعادها)" : "Duplicates (Skipped)"}
+                  <div className="p-3 rounded-xl border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900">
+                    <div className="text-xs text-blue-700 dark:text-blue-400 font-medium flex items-center gap-1 mb-1">
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      {ar ? "تحديث بيانات (Update)" : "To Update"}
                     </div>
-                    <div className={`text-2xl font-bold font-mono ${duplicateRows.length > 0 ? "text-amber-800 dark:text-amber-400" : "text-muted-foreground"}`}>
-                      {duplicateRows.length}
+                    <div className="text-2xl font-bold font-mono text-blue-700 dark:text-blue-400">
+                      {updateRows.length}
+                    </div>
+                  </div>
+
+                  <div className={`p-3 rounded-xl border ${skipRows.length > 0 ? "border-amber-300 bg-amber-50/60 dark:bg-amber-950/30 dark:border-amber-800" : "border-muted bg-muted/20"}`}>
+                    <div className={`text-xs font-medium flex items-center gap-1 mb-1 ${skipRows.length > 0 ? "text-amber-800 dark:text-amber-400" : "text-muted-foreground"}`}>
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      {ar ? "مكرر ومطابق (لن ينزل)" : "Duplicates (Skip)"}
+                    </div>
+                    <div className={`text-2xl font-bold font-mono ${skipRows.length > 0 ? "text-amber-800 dark:text-amber-400" : "text-muted-foreground"}`}>
+                      {skipRows.length}
                     </div>
                   </div>
                 </div>
 
-                {/* Duplicates Notification Alert */}
-                {duplicateRows.length > 0 && (
+                {/* Duplicates Notice */}
+                {skipRows.length > 0 && (
                   <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-start gap-2.5 text-xs">
                     <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
                       <span className="font-bold">
                         {ar
-                          ? `تنبيه التكرارات: تم العثور على ${duplicateRows.length} سجل مكرر.`
-                          : `Duplicate Warning: Found ${duplicateRows.length} duplicate records.`}
+                          ? `تنبيه التكرارات: تم العثور على ${skipRows.length} سجل مكرر ومطابق.`
+                          : `Duplicates Alert: Found ${skipRows.length} duplicate records.`}
                       </span>{" "}
                       {ar
-                        ? "سيتم استبعاد هذه السجلات تلقائياً ولن يتم إضافتها لمنع تكرار البيانات. سيتم فقط استيراد السجلات الصالحة (الخضراء)."
-                        : "These records will be skipped automatically to prevent duplicates. Only clean, valid records will be imported."}
+                        ? "هذه السجلات مطابقة تماماً للمسجل بالنظام أو مكررة في الملف، وسيتم تخطيها تلقائياً ولن يتم تكرارها."
+                        : "These records are identical to existing data or duplicate in file, and will be safely skipped."}
                     </div>
                   </div>
                 )}
 
                 {/* Table Filters & Search */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
-                  <div className="flex items-center gap-1.5 p-1 bg-muted rounded-lg text-xs w-fit">
+                  <div className="flex items-center gap-1.5 p-1 bg-muted rounded-lg text-xs w-fit overflow-x-auto">
                     <button
                       type="button"
                       onClick={() => setPreviewFilter("all")}
@@ -870,17 +966,24 @@ export function ExcelImportDialog({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPreviewFilter("valid")}
-                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${previewFilter === "valid" ? "bg-background text-green-700 shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                      onClick={() => setPreviewFilter("create")}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${previewFilter === "create" ? "bg-background text-emerald-700 shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
                     >
-                      {ar ? `الصالحة فقط (${validRows.length})` : `Valid (${validRows.length})`}
+                      {ar ? `إضافة جديد (${createRows.length})` : `New (${createRows.length})`}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPreviewFilter("duplicates")}
-                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${previewFilter === "duplicates" ? "bg-background text-amber-800 shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                      onClick={() => setPreviewFilter("update")}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${previewFilter === "update" ? "bg-background text-blue-700 shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
                     >
-                      {ar ? `المكررات (${duplicateRows.length})` : `Duplicates (${duplicateRows.length})`}
+                      {ar ? `تحديث (${updateRows.length})` : `Update (${updateRows.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewFilter("skip")}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${previewFilter === "skip" ? "bg-background text-amber-800 shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {ar ? `مكرر ومطابق (${skipRows.length})` : `Duplicates (${skipRows.length})`}
                     </button>
                   </div>
 
@@ -901,14 +1004,15 @@ export function ExcelImportDialog({
                     <table className="w-full text-xs">
                       <thead className="bg-muted/60 sticky top-0 z-10">
                         <tr>
-                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الحالة" : "Status"}</th>
+                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الإجراء" : "Action"}</th>
                           <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "كود الموظف" : "Code"}</th>
                           <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الاسم" : "Full Name"}</th>
                           <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الرقم القومي" : "National ID"}</th>
                           <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الهاتف" : "Phone"}</th>
                           <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "القسم" : "Department"}</th>
                           <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الوظيفة" : "Job Title"}</th>
-                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "نوع التوظيف" : "Employment"}</th>
+                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الدرجة" : "Level"}</th>
+                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "تفاصيل التحديث / الحالة" : "Details / Status"}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -919,27 +1023,39 @@ export function ExcelImportDialog({
                             <tr
                               key={i}
                               className={
-                                row.isDuplicate
+                                row.action === "update"
+                                  ? "bg-blue-50/30 dark:bg-blue-950/15 hover:bg-blue-100/30"
+                                  : row.action === "skip"
                                   ? "bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/40"
                                   : "hover:bg-muted/30"
                               }
                             >
                               <td className="p-2 whitespace-nowrap">
-                                {row.isDuplicate ? (
+                                {row.action === "create" && (
                                   <Badge
                                     variant="outline"
-                                    className="bg-amber-100/80 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700 text-[10px] gap-1 font-semibold"
+                                    className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700 text-[10px] gap-1 font-semibold"
                                   >
-                                    <AlertTriangle className="w-3 h-3" />
-                                    {row.duplicateReason}
+                                    <PlusCircle className="w-3 h-3" />
+                                    {ar ? "إضافة جديد" : "New"}
                                   </Badge>
-                                ) : (
+                                )}
+                                {row.action === "update" && (
                                   <Badge
                                     variant="outline"
-                                    className="bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-300 dark:border-green-700 text-[10px] gap-1"
+                                    className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-700 text-[10px] gap-1 font-semibold"
                                   >
-                                    <Check className="w-3 h-3" />
-                                    {ar ? "صالح للاستيراد" : "Ready"}
+                                    <RefreshCw className="w-3 h-3" />
+                                    {ar ? "تحديث بيانات" : "Update"}
+                                  </Badge>
+                                )}
+                                {row.action === "skip" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 text-[10px] gap-1 font-semibold"
+                                  >
+                                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                    {ar ? "مكرر (لن ينزل)" : "Duplicate (Skip)"}
                                   </Badge>
                                 )}
                               </td>
@@ -951,10 +1067,27 @@ export function ExcelImportDialog({
                               <td className="p-2 font-mono whitespace-nowrap">{p.phone || "—"}</td>
                               <td className="p-2 whitespace-nowrap text-muted-foreground">{p.department}</td>
                               <td className="p-2 whitespace-nowrap text-muted-foreground">{p.jobTitle}</td>
-                              <td className="p-2 whitespace-nowrap">
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted font-medium">
-                                  {p.employmentType}
-                                </span>
+                              <td className="p-2 whitespace-nowrap">{p.level}</td>
+                              <td className="p-2">
+                                {row.action === "update" ? (
+                                  <div className="flex flex-wrap gap-1 max-w-xs">
+                                    {row.diffs.map((d, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-900 dark:text-blue-200 px-1.5 py-0.5 rounded font-medium inline-flex items-center gap-1"
+                                      >
+                                        <span>{ar ? d.labelAr : d.labelEn}:</span>
+                                        <span className="line-through text-muted-foreground text-[9px]">{d.oldValue}</span>
+                                        <span>➔</span>
+                                        <span className="font-semibold text-blue-700 dark:text-blue-300">{d.newValue}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-[11px] truncate max-w-xs block">
+                                    {row.statusReason}
+                                  </span>
+                                )}
                               </td>
                             </tr>
                           );
@@ -970,7 +1103,7 @@ export function ExcelImportDialog({
                       ? `معاينة ${Math.min(displayedPreviewRows.length, 100)} من إجمالي ${displayedPreviewRows.length} سجل معروض`
                       : `Showing ${Math.min(displayedPreviewRows.length, 100)} of ${displayedPreviewRows.length} rows`}
                   </span>
-                  <span>{ar ? "سيتم حفظ الملفات بالسكن الحالي النشط" : "Profiles will be linked to active property"}</span>
+                  <span>{ar ? "سيتم ربط الملفات بالسكن الحالي النشط" : "Profiles will be linked to active property"}</span>
                 </div>
               </div>
             )}
@@ -982,23 +1115,23 @@ export function ExcelImportDialog({
               </Button>
               <Button
                 onClick={handleStartImport}
-                disabled={allParsedRows.length === 0 || validRows.length === 0}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold gap-2"
+                disabled={allParsedRows.length === 0 || actionableRows.length === 0}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2"
               >
                 <FileSpreadsheet className="w-4 h-4" />
-                {validRows.length > 0
+                {actionableRows.length > 0
                   ? ar
-                    ? `استيراد السجلات الصالحة فقط (${validRows.length})`
-                    : `Import Valid Profiles Only (${validRows.length})`
+                    ? `تنفيذ الاستيراد والتحديث (${actionableRows.length})`
+                    : `Execute Import & Update (${actionableRows.length})`
                   : ar
-                    ? "لا توجد سجلات صالحة"
-                    : "No Valid Profiles"}
+                    ? "لا توجد تعديلات أو سجلات جديدة"
+                    : "No Changes or New Profiles"}
               </Button>
             </div>
           </div>
         )}
 
-        {/* ── STEP 2: PROCESSING SCREEN (عملية البروسيسنج أثناء الرفع) ────────────────── */}
+        {/* ── STEP 2: PROCESSING SCREEN ────────────────────────────────────────────── */}
         {step === "processing" && (
           <div className="py-12 px-6 flex flex-col items-center justify-center space-y-6 text-center">
             {/* Spinning Indicator */}
@@ -1009,7 +1142,7 @@ export function ExcelImportDialog({
 
             <div className="space-y-2 max-w-md">
               <h3 className="text-lg font-bold">
-                {ar ? "جاري معالجة ورفع الملفات الشخصية..." : "Processing Profiles Import..."}
+                {ar ? "جاري معالجة وتحديث الملفات الشخصية..." : "Processing Profiles Import & Update..."}
               </h3>
               <p className="text-sm text-muted-foreground transition-all duration-300">
                 {progressStage}
@@ -1031,127 +1164,203 @@ export function ExcelImportDialog({
             </div>
 
             {/* Real-time counters summary */}
-            <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground pt-2">
               <div>
-                <span className="font-bold text-foreground font-mono">{validRows.length}</span>{" "}
-                {ar ? "سجل صالح جاري إدخاله" : "valid records"}
+                <span className="font-bold text-emerald-600 font-mono">{createRows.length}</span>{" "}
+                {ar ? "ملف جديد للإضافة" : "to create"}
               </div>
               <div className="w-1 h-1 rounded-full bg-muted-foreground" />
               <div>
-                <span className="font-bold text-amber-700 dark:text-amber-400 font-mono">{duplicateRows.length}</span>{" "}
-                {ar ? "سجل مكرر مستبعد" : "duplicates skipped"}
+                <span className="font-bold text-blue-600 font-mono">{updateRows.length}</span>{" "}
+                {ar ? "ملف للتحديث" : "to update"}
+              </div>
+              <div className="w-1 h-1 rounded-full bg-muted-foreground" />
+              <div>
+                <span className="font-bold text-amber-700 dark:text-amber-400 font-mono">{skipRows.length}</span>{" "}
+                {ar ? "مكرر مستبعد" : "duplicates skipped"}
               </div>
             </div>
 
             <p className="text-[11px] text-muted-foreground italic">
-              {ar ? "يرجى عدم إغلاق الصفحة حتى تكتمل المعالجة بأمان..." : "Please wait while records are safely saved..."}
+              {ar ? "يرجى عدم إغلاق الصفحة حتى تكتمل المعالجة بأمان..." : "Please wait while records are safely processed..."}
             </p>
           </div>
         )}
 
-        {/* ── STEP 3: RESULTS & REPORT SCREEN (تقرير النتائج والمكررات) ────────────────── */}
+        {/* ── STEP 3: RESULTS & REPORT SCREEN ────────────────────────────────────── */}
         {step === "result" && importResult && (
           <div className="space-y-5 py-2">
             {/* Header Status Card */}
-            <div className="p-5 rounded-xl border bg-gradient-to-br from-green-50 to-background dark:from-green-950/20 dark:to-background border-green-200 dark:border-green-900 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-start">
-              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 flex items-center justify-center shrink-0">
+            <div className="p-5 rounded-xl border bg-gradient-to-br from-emerald-50 to-background dark:from-emerald-950/20 dark:to-background border-emerald-200 dark:border-emerald-900 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-start">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-foreground">
-                  {ar ? "اكتملت عملية الاستيراد بنجاح!" : "Import Completed Successfully!"}
+                  {ar ? "اكتملت عملية الاستيراد والتحديث بنجاح!" : "Import & Update Completed Successfully!"}
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {ar
-                    ? `تم استيراد ${importResult.success} ملف شخصي جديد بنجاح${importResult.skipped > 0 ? `، وتم استبعاد ${importResult.skipped} سجل مكرر لمنع تكرار البيانات.` : "."}`
-                    : `Successfully imported ${importResult.success} profiles${importResult.skipped > 0 ? ` and skipped ${importResult.skipped} duplicate records.` : "."}`}
+                    ? `تم إضافة ${importResult.created} موظف جديد، وتحديث بيانات ${importResult.updated} موظف، واستبعاد ${importResult.skipped} سجل مكرر ومطابق لمنع تكرار البيانات.`
+                    : `Created ${importResult.created} profiles, updated ${importResult.updated} profiles, and skipped ${importResult.skipped} duplicates.`}
                 </p>
               </div>
             </div>
 
             {/* Stat Counters */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 rounded-xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900">
-                <div className="text-xs text-green-700 dark:text-green-400 font-medium mb-1 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900">
+                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mb-1 flex items-center gap-1.5">
+                  <PlusCircle className="w-4 h-4" />
                   {ar ? "تمت الإضافة بنجاح" : "Successfully Added"}
                 </div>
-                <div className="text-3xl font-bold font-mono text-green-700 dark:text-green-400">
-                  {importResult.success}
+                <div className="text-3xl font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                  {importResult.created}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-1">
-                  {ar ? "ملفات شخصية جديدة في السكن" : "New profiles inserted"}
+                  {ar ? "ملفات شخصية جديدة بالسكن" : "New profiles created"}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900">
+                <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1 flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4" />
+                  {ar ? "تم التحديث بنجاح" : "Successfully Updated"}
+                </div>
+                <div className="text-3xl font-bold font-mono text-blue-700 dark:text-blue-400">
+                  {importResult.updated}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  {ar ? "ملفات قائمة تم تحديث بياناتها" : "Existing profiles updated"}
                 </div>
               </div>
 
               <div className={`p-4 rounded-xl border ${importResult.skipped > 0 ? "border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900" : "border-muted bg-muted/20"}`}>
                 <div className={`text-xs font-medium mb-1 flex items-center gap-1.5 ${importResult.skipped > 0 ? "text-amber-800 dark:text-amber-400" : "text-muted-foreground"}`}>
                   <AlertTriangle className="w-4 h-4" />
-                  {ar ? "سجلات مكررة تم استبعادها" : "Duplicates Skipped"}
+                  {ar ? "مكررات تم تخطيها" : "Duplicates Skipped"}
                 </div>
                 <div className={`text-3xl font-bold font-mono ${importResult.skipped > 0 ? "text-amber-800 dark:text-amber-400" : "text-muted-foreground"}`}>
                   {importResult.skipped}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-1">
-                  {ar ? "لم يتم إضافتها لمنع التكرار" : "Not inserted to prevent duplicates"}
+                  {ar ? "لم تنزل لمنع تكرار البيانات" : "Not added to prevent duplicates"}
                 </div>
               </div>
             </div>
 
-            {/* Skipped Items Detailed Report */}
-            {importResult.skippedItems.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    {ar ? "تفاصيل السجلات المكررة المستبعدة" : "Skipped Duplicates Details"}
-                  </h4>
+            {/* Results Details Tabs: Skipped vs Updated */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between border-b pb-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setResultTab("skipped")}
+                    className={`text-xs font-bold pb-1 transition-colors ${resultTab === "skipped" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {ar ? `المكررات المستبعدة (${importResult.skippedItems.length})` : `Skipped Duplicates (${importResult.skippedItems.length})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResultTab("updated")}
+                    className={`text-xs font-bold pb-1 transition-colors ${resultTab === "updated" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {ar ? `السجلات المحدثة (${importResult.updatedItems.length})` : `Updated Profiles (${importResult.updatedItems.length})`}
+                  </button>
+                </div>
+
+                {resultTab === "skipped" && importResult.skippedItems.length > 0 && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={downloadSkippedDuplicatesExcel}
                     className="gap-2 text-xs border-amber-200 text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-300"
                   >
-                    <FileDown className="w-4 h-4" />
+                    <FileDown className="w-3.5 h-3.5" />
                     {ar ? "تنزيل تقرير المكررات (Excel)" : "Download Duplicates (Excel)"}
                   </Button>
-                </div>
-
-                <div className="border rounded-xl overflow-hidden bg-card">
-                  <div className="overflow-x-auto max-h-60">
-                    <table className="w-full text-xs">
-                      <thead className="bg-muted/60 sticky top-0 z-10">
-                        <tr>
-                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "كود الموظف" : "Code"}</th>
-                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الاسم" : "Name"}</th>
-                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الرقم القومي" : "National ID"}</th>
-                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الهاتف" : "Phone"}</th>
-                          <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "سبب الاستبعاد" : "Reason"}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {importResult.skippedItems.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-muted/30">
-                            <td className="p-2 font-mono font-semibold whitespace-nowrap">{item.profileId || "—"}</td>
-                            <td className="p-2 whitespace-nowrap font-medium">{item.name || "—"}</td>
-                            <td className="p-2 font-mono whitespace-nowrap">{item.nationalId || "—"}</td>
-                            <td className="p-2 font-mono whitespace-nowrap">{item.phone || "—"}</td>
-                            <td className="p-2 whitespace-nowrap">
-                              <Badge
-                                variant="outline"
-                                className="bg-amber-100/80 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700 text-[10px]"
-                              >
-                                {item.reason}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                )}
               </div>
-            )}
+
+              {/* Tab 1: Skipped Duplicates */}
+              {resultTab === "skipped" && (
+                <div className="border rounded-xl overflow-hidden bg-card">
+                  {importResult.skippedItems.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-muted-foreground">
+                      {ar ? "لا توجد سجلات مكررة تم استبعادها." : "No duplicate records were skipped."}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto max-h-60">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/60 sticky top-0 z-10">
+                          <tr>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "كود الموظف" : "Code"}</th>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الاسم" : "Name"}</th>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الرقم القومي" : "National ID"}</th>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الهاتف" : "Phone"}</th>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "سبب الاستبعاد" : "Reason"}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {importResult.skippedItems.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-muted/30">
+                              <td className="p-2 font-mono font-semibold whitespace-nowrap">{item.profileId || "—"}</td>
+                              <td className="p-2 whitespace-nowrap font-medium">{item.name || "—"}</td>
+                              <td className="p-2 font-mono whitespace-nowrap">{item.nationalId || "—"}</td>
+                              <td className="p-2 font-mono whitespace-nowrap">{item.phone || "—"}</td>
+                              <td className="p-2 whitespace-nowrap">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-amber-100/80 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700 text-[10px]"
+                                >
+                                  {item.reason}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Updated Profiles */}
+              {resultTab === "updated" && (
+                <div className="border rounded-xl overflow-hidden bg-card">
+                  {importResult.updatedItems.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-muted-foreground">
+                      {ar ? "لم يتم تحديث أي موظف (جميع السجلات كانت جديدة أو مكررة مطابقة)." : "No existing profiles were updated."}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto max-h-60">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/60 sticky top-0 z-10">
+                          <tr>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "كود الموظف" : "Code"}</th>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الاسم" : "Name"}</th>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "الرقم القومي" : "National ID"}</th>
+                            <th className="p-2 text-start font-semibold text-muted-foreground whitespace-nowrap">{ar ? "التحديثات المنفذة" : "Applied Changes"}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {importResult.updatedItems.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-muted/30">
+                              <td className="p-2 font-mono font-semibold whitespace-nowrap text-blue-700 dark:text-blue-400">{item.profileId || "—"}</td>
+                              <td className="p-2 whitespace-nowrap font-medium">{item.name || "—"}</td>
+                              <td className="p-2 font-mono whitespace-nowrap">{item.nationalId || "—"}</td>
+                              <td className="p-2 text-muted-foreground font-mono text-[11px] leading-relaxed">
+                                {item.diffsSummary}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Bottom Final Actions */}
             <div className="flex justify-between items-center pt-4 border-t">
@@ -1175,8 +1384,8 @@ export function ExcelImportDialog({
                   reset();
                   toast.success(
                     ar
-                      ? `تم استيراد ${importResult.success} ملف شخصي بنجاح`
-                      : `Imported ${importResult.success} profiles`,
+                      ? `تمت إضافة ${importResult.created} وتحديث ${importResult.updated} بنجاح`
+                      : `Added ${importResult.created} and updated ${importResult.updated} profiles`,
                   );
                 }}
                 className="bg-primary text-primary-foreground font-semibold px-6"
