@@ -32,11 +32,15 @@ import {
   BedDouble,
   Layers,
   Search,
+  FileSpreadsheet,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { DataPagination } from "@/components/DataPagination";
+import { downloadJobTitlesTemplate } from "@/lib/job-title-importer-engine";
+import { JobTitlesImportDialog } from "./JobTitlesImportDialog";
 import {
   useLookupValues,
   useCreateLookupValue,
@@ -87,6 +91,7 @@ export function LookupSection({
     id: number;
     val: string;
   }>({ open: false, id: 0, val: "" });
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Arabic vs English translations for core entities
@@ -277,8 +282,36 @@ export function LookupSection({
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{description}</p>
+        {(category === "job_title" || category === "department") && (
+          <div className="flex items-center gap-2">
+            <PermissionGate module="settings" action="export">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadJobTitlesTemplate("xlsx", ar ? "ar" : "en")}
+                className="gap-1.5 text-xs font-semibold h-8 shadow-xs"
+                title={ar ? "تحميل نموذج ملف Excel الجاهز للاستيراد" : "Download Excel Import Template"}
+              >
+                <Download className="w-3.5 h-3.5 text-primary" />
+                {ar ? "تحميل نموذج Excel" : "Excel Template"}
+              </Button>
+            </PermissionGate>
+            <PermissionGate module="settings" action="create">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setImportDialogOpen(true)}
+                className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-white shadow-md text-xs h-8"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                {ar ? "استيراد من Excel / CSV" : "Import (Excel / CSV)"}
+              </Button>
+            </PermissionGate>
+          </div>
+        )}
       </div>
 
       {/* Filter by Department / Parent */}
@@ -690,6 +723,15 @@ export function LookupSection({
         confirmText={ar ? "حذف" : "Delete"}
         cancelText={ar ? "إلغاء" : "Cancel"}
       />
+
+      {/* Job Titles & Departments Import Dialog */}
+      {(category === "job_title" || category === "department") && (
+        <JobTitlesImportDialog
+          propertyId={propertyId}
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+        />
+      )}
     </div>
   );
 }

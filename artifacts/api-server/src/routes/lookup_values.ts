@@ -82,6 +82,110 @@ router.post(
   },
 );
 
+// ─── POST /lookup-values/bulk ────────────────────────────────────────────────
+router.post(
+  "/lookup-values/bulk",
+  requirePermission("settings", "create"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    const { items } = req.body;
+    if (!propertyId || !Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ error: "propertyId and non-empty items array required" });
+      return;
+    }
+
+    try {
+      const result = await withTenant(propertyId, async (tenantDb) => {
+        const categories = Array.from(new Set(items.map((i: any) => String(i.category || "").trim()).filter(Boolean)));
+        const existing = await tenantDb
+          .select()
+          .from(lookupValuesTable)
+          .where(sql`${lookupValuesTable.category} IN ${categories}`);
+
+        // Map key: `${category}:::${value.toLowerCase()}:::${(parentValue||'').toLowerCase()}`
+        const existingMap = new Map<string, any>();
+        for (const row of existing) {
+          const k = `${row.category.toLowerCase()}:::${row.value.trim().toLowerCase()}:::${(row.parentValue || "").trim().toLowerCase()}`;
+          existingMap.set(k, row);
+        }
+
+        let insertedCount = 0;
+        let updatedCount = 0;
+        let skippedCount = 0;
+
+        for (const item of items) {
+          const category = String(item.category || "").trim();
+          const value = String(item.value || "").trim();
+          const parentValue = item.parentValue ? String(item.parentValue).trim() : null;
+          const extraValue = item.extraValue ? String(item.extraValue).trim() : null;
+          const sortOrder = typeof item.sortOrder === "number" ? item.sortOrder : 0;
+
+          if (!category || !value) {
+            skippedCount++;
+            continue;
+          }
+
+          const k = `${category.toLowerCase()}:::${value.toLowerCase()}:::${(parentValue || "").toLowerCase()}`;
+          const existingRow = existingMap.get(k);
+
+          if (existingRow) {
+            let needsUpdate = false;
+            const updatePayload: Record<string, any> = {};
+
+            if (extraValue && existingRow.extraValue !== extraValue) {
+              updatePayload.extraValue = extraValue;
+              needsUpdate = true;
+            }
+            if (existingRow.disabled) {
+              updatePayload.disabled = false;
+              needsUpdate = true;
+            }
+
+            if (needsUpdate) {
+              await tenantDb
+                .update(lookupValuesTable)
+                .set(updatePayload)
+                .where(eq(lookupValuesTable.id, existingRow.id));
+              updatedCount++;
+            } else {
+              skippedCount++;
+            }
+          } else {
+            const [created] = await tenantDb
+              .insert(lookupValuesTable)
+              .values({
+                category,
+                value,
+                parentValue,
+                extraValue,
+                sortOrder,
+                disabled: false,
+              } as any)
+              .returning();
+
+            existingMap.set(k, created);
+            insertedCount++;
+          }
+        }
+
+        return {
+          success: true,
+          insertedCount,
+          updatedCount,
+          skippedCount,
+          total: items.length,
+        };
+      });
+
+      broadcastToProperty(propertyId, { module: "settings", action: "updated" });
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error in /lookup-values/bulk:", err);
+      res.status(500).json({ error: err.message || "Failed to bulk import lookup values" });
+    }
+  },
+);
+
 // ─── PATCH /lookup-values/:id ─────────────────────────────────────────────────
 router.patch(
   "/lookup-values/:id",
