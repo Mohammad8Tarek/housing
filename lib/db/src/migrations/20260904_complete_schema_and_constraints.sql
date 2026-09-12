@@ -425,6 +425,8 @@ BEGIN
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "field_mapping" JSONB DEFAULT '{}'::jsonb;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "is_active" BOOLEAN DEFAULT false;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "last_sync_at" TIMESTAMPTZ;
+    ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "auto_checkout_on_departure" BOOLEAN DEFAULT true;
+    ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "auto_vacation_sync" BOOLEAN DEFAULT true;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
 
@@ -1835,7 +1837,7 @@ BEGIN
 
       ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
       ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status 
-        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED'));
+        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED', 'DEPARTED'));
 
       ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_gender;
       ALTER TABLE profiles ADD CONSTRAINT chk_profiles_gender 

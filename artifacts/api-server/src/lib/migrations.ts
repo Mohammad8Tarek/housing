@@ -46,6 +46,14 @@ const MIGRATIONS = [
       END IF;
     END $$;`,
   },
+  {
+    name: "public.hr_sync_config.auto_checkout_on_departure",
+    q: `ALTER TABLE public.hr_sync_config ADD COLUMN IF NOT EXISTS "auto_checkout_on_departure" BOOLEAN DEFAULT true;`,
+  },
+  {
+    name: "public.hr_sync_config.auto_vacation_sync",
+    q: `ALTER TABLE public.hr_sync_config ADD COLUMN IF NOT EXISTS "auto_vacation_sync" BOOLEAN DEFAULT true;`,
+  },
   // Existing column additions
   {
     name: "profiles.photo_url",
@@ -1453,7 +1461,7 @@ const TENANT_MIGRATIONS = [
     q: `DO $$ BEGIN
       ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
       ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status
-        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED'));
+        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED', 'DEPARTED'));
     END $$`,
   },
   {
@@ -1637,11 +1645,11 @@ const TENANT_MIGRATIONS = [
        CREATE INDEX IF NOT EXISTS idx_room_inventory_room_category ON room_inventory (room_id, category);`,
   },
   {
-    name: "allow_transferred_in_chk_profiles_status",
+    name: "allow_transferred_and_departed_in_chk_profiles_status",
     q: `DO $$ BEGIN
       ALTER TABLE profiles DROP CONSTRAINT IF EXISTS chk_profiles_status;
       ALTER TABLE profiles ADD CONSTRAINT chk_profiles_status
-        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED'));
+        CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED', 'DEPARTED'));
     END $$;`,
   },
 ];

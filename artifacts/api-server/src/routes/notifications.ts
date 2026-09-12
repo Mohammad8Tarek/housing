@@ -312,6 +312,24 @@ router.get(
           queryLabels.push("unreadPortalChat");
         }
 
+        // 15. HR Departures: Departed profiles with checkouts in last 48h needing room inspection
+        if (canViewAccommodation || canViewHousekeeping) {
+          queries.push(
+            tenantDb.execute(
+              sql`SELECT a.id, a.check_out_date, a.notes, r.room_number, r.id AS room_id, p.first_name, p.last_name, p.profile_id
+                  FROM assignments a
+                  JOIN profiles p ON a.profile_id = p.id
+                  JOIN rooms r ON a.room_id = r.id
+                  WHERE a.status = 'CHECKED_OUT'
+                    AND a.notes LIKE '%HR departure%'
+                    AND a.check_out_date >= CURRENT_DATE - INTERVAL '2 days'
+                  ORDER BY a.check_out_date DESC
+                  LIMIT 15`,
+            ).catch(() => ({ rows: [] })),
+          );
+          queryLabels.push("hrDepartures");
+        }
+
         // ── Execute all permitted queries in parallel ─────────────────────
         const results = await Promise.all(queries);
         const byLabel: Record<string, any> = {};
@@ -320,6 +338,24 @@ router.get(
         });
 
         // ── Map results to notification objects ───────────────────────────
+
+        // HR Departures Alarms
+        for (const row of (byLabel.hrDepartures as any)?.rows ?? []) {
+          notifications.push({
+            id: `hr-departure-${row.id}`,
+            type: "HR_DEPARTURE_CHECKOUT",
+            category: "accommodation",
+            priority: "high",
+            title: "تنبيه تصفية موظف من الموارد البشرية",
+            titleAr: "تنبيه تصفية موظف من الموارد البشرية",
+            description: `الموظف ${row.first_name} ${row.last_name} (${row.profile_id}) تم إنهاء خدمته وإخلاء الغرفة رقم ${row.room_number}. يرجى معاينة وتنظيف الغرفة.`,
+            descriptionAr: `الموظف ${row.first_name} ${row.last_name} (${row.profile_id}) تم إنهاء خدمته وإخلاء الغرفة رقم ${row.room_number}. يرجى معاينة وتنظيف الغرفة.`,
+            entityId: row.room_id,
+            entityType: "room",
+            targetUrl: `/${pid}/housing`,
+            createdAt: new Date().toISOString(),
+          });
+        }
 
         // Hosting requests
         for (const row of (byLabel.pendingFamilyVisits as any)?.rows ?? []) {
