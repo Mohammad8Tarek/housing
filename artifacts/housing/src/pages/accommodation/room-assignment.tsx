@@ -169,6 +169,7 @@ export default function RoomAssignment() {
   const targetProp = allProperties.find((p: any) => p.id === effectiveTargetPropId) || activeProp;
 
   const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">("PERMANENT");
+  const [archiveSourceProfile, setArchiveSourceProfile] = useState<boolean>(true);
   const isCrossProperty = Boolean(
     selectedProfile &&
     selectedProfile.propertyId &&
@@ -627,9 +628,6 @@ export default function RoomAssignment() {
     setSelectedProfile(emp);
     setEmpSearch(`${emp.firstName} ${emp.lastName} (${emp.profileId})`);
     setShowDropdown(false);
-    if (!targetPropertyId && emp.propertyId) {
-      setTargetPropertyId(String(emp.propertyId));
-    }
   };
 
   const clearProfile = () => {
@@ -653,11 +651,11 @@ export default function RoomAssignment() {
       );
       return;
     }
-    if (isMultiBed && !isEntireRoom && !selectedBed) {
-      toast.error(ar ? "الرجاء تحديد رقم السرير" : "Please select bed number");
+    if (selectedRoom && selectedRoom.capacity > 1 && !isEntireRoom && !selectedBed) {
+      toast.error(ar ? "الرجاء تحديد السرير الذي سيسكن فيه الموظف" : "Please select bed number");
       return;
     }
-    if (isMultiBed && !isEntireRoom && occupiedBeds.has(parseInt(selectedBed))) {
+    if (selectedBed && occupiedBeds.has(parseInt(selectedBed)) && !isEntireRoom) {
       toast.error(
         ar
           ? "السرير المحدد مشغول حالياً بنزيل آخر. لا يمكن التسكين عليه."
@@ -691,12 +689,13 @@ export default function RoomAssignment() {
         expectedCheckOutDate: expectedCheckOut
           ? new Date(expectedCheckOut).toISOString()
           : undefined,
-        bedNumber: isEntireRoom ? (selectedBed ? parseInt(selectedBed) : 1) : (selectedBed ? parseInt(selectedBed) : undefined),
+        bedNumber: isEntireRoom ? (selectedBed ? parseInt(selectedBed) : 1) : (selectedBed ? parseInt(selectedBed) : (selectedRoom?.capacity === 1 ? 1 : undefined)),
         isEntireRoom: isEntireRoom,
         notes: notes || undefined,
         sourcePropertyId: selectedProfile.propertyId,
-        transferType: isCrossProperty ? transferType : undefined,
-        checkoutPreviousAssignment: isCrossProperty && transferType === "PERMANENT",
+        transferType: isCrossProperty ? (archiveSourceProfile ? "PERMANENT" : "TASK_FORCE") : undefined,
+        archiveSourceProfile: isCrossProperty ? archiveSourceProfile : undefined,
+        checkoutPreviousAssignment: isCrossProperty && Boolean((selectedProfile as any).accommodationRoom),
       } as any,
     });
   };
@@ -720,12 +719,13 @@ export default function RoomAssignment() {
         roomId: parseInt(selectedRoomId),
         checkInDate: new Date(checkInDate).toISOString(),
         expectedCheckOutDate: new Date(checkout).toISOString(),
-        bedNumber: selectedBed ? parseInt(selectedBed) : undefined,
+        bedNumber: selectedBed ? parseInt(selectedBed) : (selectedRoom?.capacity === 1 ? 1 : undefined),
         notes: notes || undefined,
         isTemporaryVacationOverride: true,
         sourcePropertyId: selectedProfile.propertyId,
-        transferType: isCrossProperty ? transferType : undefined,
-        checkoutPreviousAssignment: isCrossProperty && transferType === "PERMANENT",
+        transferType: isCrossProperty ? (archiveSourceProfile ? "PERMANENT" : "TASK_FORCE") : undefined,
+        archiveSourceProfile: isCrossProperty ? archiveSourceProfile : undefined,
+        checkoutPreviousAssignment: isCrossProperty && Boolean((selectedProfile as any).accommodationRoom),
       } as any,
     });
     setVacationPromptData(null);
@@ -1077,82 +1077,112 @@ export default function RoomAssignment() {
 
           {/* ── كارت التسكين العابر للفنادق (Cross-Property Assignment) ── */}
           {selectedProfile && isCrossProperty && (
-            <div className="mt-4 p-4 rounded-xl border-2 border-amber-500/40 bg-amber-50/60 dark:bg-amber-950/20 space-y-3 animate-in fade-in">
+            <div className="mt-4 p-4 rounded-xl border-2 border-amber-500/50 bg-amber-50/70 dark:bg-amber-950/30 space-y-3.5 animate-in fade-in shadow-xs">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-amber-500 text-white flex-shrink-0 shadow-sm">
-                  <ArrowRightLeft className="w-4 h-4" />
+                <div className="p-2.5 rounded-xl bg-amber-500 text-white flex-shrink-0 shadow-xs">
+                  <ArrowRightLeft className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-sm text-foreground">
-                      {ar ? "تسكين موظف من فندق آخر (Cross-Property)" : "Cross-Property Employee Assignment"}
+                      {ar ? "تسكين موظف من فندق آخر (Cross-Property Transfer)" : "Cross-Property Employee Assignment"}
                     </span>
-                    <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-700 dark:text-amber-300">
+                    <Badge variant="outline" className="text-[11px] font-semibold border-amber-500/60 bg-amber-100/60 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">
                       {selectedProfile.propertyName || (ar ? "فندق خارجي" : "Foreign Hotel")} ➔ {targetProp?.name || (ar ? "الفندق الحالي" : "Target Hotel")}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {ar
-                      ? `هذا الموظف مسجل في قاعدة بيانات (${selectedProfile.propertyName}). سيتم مزامنة ملفه ومستنداته إلى (${targetProp?.name}) تلقائياً وبأمان تام.`
-                      : `This employee belongs to (${selectedProfile.propertyName}). Profile and documents will be automatically synchronized to (${targetProp?.name}).`}
+                      ? `هذا الموظف مسجل حالياً في (${selectedProfile.propertyName}). سيتم مزامنة بياناته ومستنداته إلى (${targetProp?.name}) بشكل كامل وفوري.`
+                      : `This employee belongs to (${selectedProfile.propertyName}). Personal data and documents will be synchronized to (${targetProp?.name}).`}
                   </p>
-                  {(selectedProfile as any).accommodationRoom && (
-                    <div className="mt-2 text-xs font-medium text-amber-800 dark:text-amber-200 bg-amber-100/70 dark:bg-amber-900/40 px-2.5 py-1.5 rounded-md border border-amber-300/40 flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
-                      <span>
-                        {ar
-                          ? `الموظف مقيم حالياً في الغرفة ${(selectedProfile as any).accommodationRoom} (${selectedProfile.propertyName}). سيتم إنهاء إقامته السابقة وتحرير سريره فور النقل.`
-                          : `Resident currently occupies Room ${(selectedProfile as any).accommodationRoom} in (${selectedProfile.propertyName}). Previous stay will be checked out automatically.`}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setTransferType("PERMANENT")}
-                  className={`p-3 rounded-lg border text-start transition-all ${
-                    transferType === "PERMANENT"
-                      ? "bg-primary/10 border-primary shadow-2xs"
-                      : "bg-background border-border hover:bg-muted/40"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-foreground">
-                      {ar ? "1. نقل دائم إلى هذا الفندق" : "1. Permanent Transfer"}
-                    </span>
-                    {transferType === "PERMANENT" && <CheckCircle2 className="w-4 h-4 text-primary" />}
+              {/* ⚠️ تنبيه الإقامة الحالية في الفندق القديم */}
+              {(selectedProfile as any).accommodationRoom && (
+                <div className="p-3 rounded-lg border-2 border-amber-500/60 bg-amber-100/90 dark:bg-amber-900/60 text-amber-950 dark:text-amber-100 flex items-start gap-2.5 shadow-2xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-0.5">
+                    <p className="font-bold">
+                      {ar
+                        ? `تنبيه: الموظف ساكن حالياً في ${selectedProfile.propertyName} - غرفة رقم ${(selectedProfile as any).accommodationRoom}${(selectedProfile as any).accommodationBed ? ` (سرير ${(selectedProfile as any).accommodationBed})` : ""}!`
+                        : `Notice: Resident is currently housed in ${selectedProfile.propertyName} - Room ${(selectedProfile as any).accommodationRoom}${(selectedProfile as any).accommodationBed ? ` (Bed ${(selectedProfile as any).accommodationBed})` : ""}!`}
+                    </p>
+                    <p className="text-muted-foreground dark:text-amber-200/90 leading-relaxed">
+                      {ar
+                        ? "⚡ سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور تأكيد التسكين، مع الحفاظ الكامل على كافة سجلات الغرف ولوج الإقامات السابقة بنسبة 100% دون أي حذف."
+                        : "System will automatically check out previous accommodation and release bed upon assignment, preserving 100% of historical room logs."}
+                    </p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                    {ar
-                      ? "نقل الموظف نهائياً مع تسجيل خروجه وتحرير سريره في الفندق السابق تلقائياً."
-                      : "Permanently transfer employee and automatically check out previous accommodation."}
-                  </p>
-                </button>
+                </div>
+              )}
 
-                <button
-                  type="button"
-                  onClick={() => setTransferType("TASK_FORCE")}
-                  className={`p-3 rounded-lg border text-start transition-all ${
-                    transferType === "TASK_FORCE"
-                      ? "bg-primary/10 border-primary shadow-2xs"
-                      : "bg-background border-border hover:bg-muted/40"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-foreground">
-                      {ar ? "2. إقامة مؤقتة / انتداب (Task Force)" : "2. Task Force / Guest Stay"}
-                    </span>
-                    {transferType === "TASK_FORCE" && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                    {ar
-                      ? "إقامة مؤقتة مع الاحتفاظ بتسكينه في الفندق الأصلي (يجب تحديد تاريخ المغادرة المتوقع)."
-                      : "Temporary secondment without canceling primary accommodation."}
-                  </p>
-                </button>
+              {/* سؤال مصير البروفايل في الفندق القديم */}
+              <div className="space-y-2 pt-1">
+                <label className="text-xs font-bold text-foreground block">
+                  {ar
+                    ? `ماذا تريد أن تفعل بملف الموظف في الفندق القديم (${selectedProfile.propertyName})؟`
+                    : `What should happen to the profile in (${selectedProfile.propertyName})?`}
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setArchiveSourceProfile(true);
+                      setTransferType("PERMANENT");
+                    }}
+                    className={`p-3 rounded-xl border text-start transition-all cursor-pointer relative ${
+                      archiveSourceProfile
+                        ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
+                        : "bg-background border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        {ar ? "1. نقله وحذفه من قائمة الفندق القديم" : "1. Transfer & Archive From Old Hotel"}
+                      </span>
+                      {archiveSourceProfile && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                    </div>
+                    <Badge variant="outline" className="mt-1 text-[10px] font-medium bg-muted/60 text-muted-foreground">
+                      {ar ? "أرشفة لمنع تكرار الموظف" : "Archive to avoid duplicate"}
+                    </Badge>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                      {ar
+                        ? "نقل الموظف نهائياً وأرشفة ملفه القديم لعدم ظهوره مرتين، مع بقاء كل سجلات وغرف الإقامة القديمة واللوج 100%."
+                        : "Permanently move employee, archiving old profile while fully preserving past room stay logs."}
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setArchiveSourceProfile(false);
+                      setTransferType("TASK_FORCE");
+                    }}
+                    className={`p-3 rounded-xl border text-start transition-all cursor-pointer relative ${
+                      !archiveSourceProfile
+                        ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
+                        : "bg-background border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        {ar ? "2. نقله وتسيب البروفايل موجود ونشط" : "2. Keep Profile Active in Both Hotels"}
+                      </span>
+                      {!archiveSourceProfile && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                    </div>
+                    <Badge variant="outline" className="mt-1 text-[10px] font-medium bg-muted/60 text-muted-foreground">
+                      {ar ? "انتداب / استمرار في الفندقين" : "Secondment / Dual Property"}
+                    </Badge>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                      {ar
+                        ? "تسكين الموظف هنا مع إبقاء ملفه موجوداً ونشطاً في الفندق القديم أيضاً (مناسب للانتداب أو العمل المشترك بالفرعين)."
+                        : "Assign resident here while keeping profile active in the source property (for Task Force / dual work)."}
+                    </p>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1393,16 +1423,22 @@ export default function RoomAssignment() {
               value={selectedRoomId}
               onValueChange={(v) => {
                 setSelectedRoomId(v);
-                setSelectedBed("");
                 setIsEntireRoom(false);
                 const picked = rooms.find((rm) => rm.id === parseInt(v));
                 if (picked) {
+                  if (picked.capacity === 1) {
+                    setSelectedBed("1");
+                  } else {
+                    setSelectedBed("");
+                  }
                   const bId = picked.buildingId ?? (picked as any).building_id;
                   const fId = picked.floorId ?? (picked as any).floor_id;
                   const rNum = picked.roomNumber ?? (picked as any).room_number;
                   if (bId != null) setSearchBuilding(String(bId));
                   if (fId != null) setSearchFloor(String(fId));
                   if (rNum != null) setSearchRoomNumber(String(rNum));
+                } else {
+                  setSelectedBed("");
                 }
               }}
             >
@@ -1644,18 +1680,51 @@ export default function RoomAssignment() {
               );
             })()}
 
-          {/* خيار تخصيص الغرفة بالكامل لشخص واحد */}
+          {/* ── خيار Full Lock: قفل الغرفة بالكامل ── */}
           {selectedRoom && !entireRoomOccupiedSet.has(selectedRoom.id) && (
             <div
-              className={`p-3 rounded-lg border transition-colors ${
+              className={`p-4 rounded-xl border-2 transition-all shadow-xs ${
                 isEntireRoom
-                  ? "bg-purple-50/80 border-purple-300 dark:bg-purple-950/30 dark:border-purple-700"
-                  : "bg-muted/20 border-border"
+                  ? "bg-purple-50/90 border-purple-500/80 dark:bg-purple-950/40 dark:border-purple-600 ring-1 ring-purple-500/20"
+                  : "bg-card border-border hover:border-muted-foreground/30"
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className={`p-2.5 rounded-lg flex-shrink-0 transition-colors ${
+                    isEntireRoom ? "bg-purple-600 text-white shadow-xs" : "bg-muted text-muted-foreground"
+                  }`}>
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm text-foreground">
+                        {ar ? "قفل الغرفة بالكامل (Full Lock / غرفة خاصة لموظف واحد)" : "Full Lock / Private Room (Single Resident)"}
+                      </span>
+                      {isEntireRoom && (
+                        <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-extrabold px-2 py-0.5 shadow-2xs">
+                          {ar ? "🔒 Full Lock مفعل" : "🔒 Full Lock Active"}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {selectedRoom.currentOccupancy > 0
+                        ? ar
+                          ? "⚠️ لا يمكن عمل Full Lock لوجود نزلاء حاليين بالغرفة. الغرفة متاحة فقط للتسكين المشترك على الأسِرّة الشاغرة."
+                          : "Cannot apply Full Lock: room already has active occupants."
+                        : isEntireRoom
+                          ? ar
+                            ? `تم حجز كافة أسِرّة الغرفة (${selectedRoom.capacity} سرير) بالكامل لهذا الموظف. لن تظهر الغرفة كشاغرة ولن يُسمح بتسكين أي شخص آخر عليها نهائياً.`
+                            : `All ${selectedRoom.capacity} beds are locked for this resident. No one else can be assigned.`
+                          : ar
+                            ? "هل تريد قفل هذه الغرفة بالكامل لهذا الموظف كغرفة خاصة مستقلة؟ (يمنع تسكين أي نزيل آخر معه في نفس الغرفة)."
+                            : "Check this to lock the entire room exclusively for this employee (prevents sharing)."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center flex-shrink-0 pt-0.5">
+                  <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       id="entire-room-toggle"
@@ -1665,7 +1734,7 @@ export default function RoomAssignment() {
                         if (!canOverrideSingleOccupancy && selectedRoom.capacity > 1) {
                           toast.error(
                             ar
-                              ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية."
+                              ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية (override_single_occupancy)."
                               : "Reserving an entire multi-bed room for a single person requires administrative permission."
                           );
                           return;
@@ -1676,57 +1745,72 @@ export default function RoomAssignment() {
                           setSelectedBed("1");
                         }
                       }}
-                      className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer disabled:cursor-not-allowed"
+                      className="sr-only peer"
                     />
-                    <label
-                      htmlFor="entire-room-toggle"
-                      className={`text-sm font-semibold cursor-pointer ${
-                        selectedRoom.currentOccupancy > 0
-                          ? "text-muted-foreground opacity-60"
-                          : "text-foreground"
-                      }`}
-                    >
-                      {ar
-                        ? "تسكين الغرفة بالكامل لهذا الموظف (استخدام فردي / غرفة كاملة)"
-                        : "Assign Entire Room to this Resident (Single/Exclusive Room)"}
-                    </label>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedRoom.currentOccupancy > 0
-                      ? ar
-                        ? "لا يمكن تخصيص الغرفة بالكامل لوجود مقيمين حاليين بها. متاحة فقط للغرف الشاغرة بالكامل (0 مقيم)."
-                        : "Cannot reserve entire room: already has active occupants."
-                      : isEntireRoom
-                        ? ar
-                          ? `تم حجز كافة أسِرّة الغرفة (${selectedRoom.capacity} سرير) بالكامل لهذا المقيم. لن تظهر الغرفة كشاغرة ولن يُسمح بتسكين أي شخص آخر عليها.`
-                          : `All ${selectedRoom.capacity} beds are reserved for this resident. No one else can be assigned.`
-                        : ar
-                          ? "قم بتفعيل هذا الخيار للغرف المخصصة للمدراء أو الإداريين (غرفة خاصة) لقفل الغرفة بالكامل ومنع إضافة مقيم آخر معهم."
-                          : "Check this to lock the whole room for single/private occupancy."}
-                  </p>
+                    <div className="w-11 h-6 bg-muted peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 peer-disabled:opacity-40 peer-disabled:cursor-not-allowed"></div>
+                  </label>
                 </div>
-                {isEntireRoom && (
-                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/60 dark:text-purple-200 text-xs font-bold whitespace-nowrap">
-                    {ar ? "غرفة خاصة كاملة" : "Exclusive Room"}
-                  </Badge>
-                )}
               </div>
             </div>
           )}
 
-          {/* اختيار السرير */}
-          {isMultiBed && !isEntireRoom && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium flex items-center gap-1.5">
-                <BedDouble className="w-4 h-4 text-primary" />
-                {ar ? "رقم السرير" : "Bed Number"}{" "}
-                <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2 flex-wrap">
+          {/* ── قسم اختيار السرير: هتسكن في أنهي سرير؟ ── */}
+          {selectedRoom && (
+            <div className="space-y-2 p-4 rounded-xl border bg-card shadow-xs">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-sm font-bold flex items-center gap-2 text-foreground">
+                  <BedDouble className="w-4 h-4 text-primary" />
+                  <span>
+                    {ar ? "هتسكن في أنهي سرير؟ (اختر رقم السرير)" : "Where will the employee sleep? (Select Bed)"}
+                  </span>
+                  <span className="text-red-500 font-bold">*</span>
+                </label>
+                {isEntireRoom ? (
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300 text-xs">
+                    {ar ? "تم قفل كل أسِرّة الغرفة (Full Lock)" : "All Beds Locked (Full Lock)"}
+                  </Badge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    {selectedRoom.capacity === 1
+                      ? (ar ? "غرفة بسرير فردي واحد" : "Single Bed Room")
+                      : (ar ? `الغرفة سعة ${selectedRoom.capacity} أسِرّة` : `Capacity: ${selectedRoom.capacity} beds`)}
+                  </span>
+                )}
+              </div>
+
+              {/* أزرار الأسرة */}
+              <div className="flex gap-2.5 flex-wrap pt-1">
                 {bedOptions.map((bed) => {
                   const isTaken = occupiedBeds.has(bed);
                   const isSelected = selectedBed === String(bed);
                   const occInfo = selectedRoomBedMap.get(bed);
+
+                  if (isEntireRoom) {
+                    const isBed1 = bed === 1;
+                    return (
+                      <div
+                        key={bed}
+                        className={`relative px-4 py-2.5 rounded-lg border text-xs font-bold transition-all inline-flex items-center gap-2 ${
+                          isBed1
+                            ? "bg-purple-600 text-white border-purple-700 shadow-sm"
+                            : "bg-purple-50/70 border-purple-200 text-purple-700 dark:bg-purple-950/30 dark:border-purple-800 dark:text-purple-300 opacity-90 select-none"
+                        }`}
+                      >
+                        {isBed1 ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                            <span>{ar ? `سرير ${bed} (السرير الرئيسي)` : `Bed ${bed} (Primary)`}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                            <span>{ar ? `سرير ${bed} (مقفل Full Lock)` : `Bed ${bed} (Locked)`}</span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  }
+
                   return (
                     <button
                       key={bed}
@@ -1743,31 +1827,61 @@ export default function RoomAssignment() {
                             : `Bed ${bed} occupied by: ${occInfo?.residentName || ""}`
                           : undefined
                       }
-                      className={`relative px-4 py-2 rounded-lg border text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+                      className={`relative px-4 py-2.5 rounded-lg border text-xs font-bold transition-all inline-flex items-center gap-2 ${
                         isTaken
                           ? "bg-destructive/10 border-destructive/30 text-destructive cursor-not-allowed opacity-75 select-none"
                           : isSelected
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                          : "bg-card hover:bg-muted border-border cursor-pointer"
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                          : "bg-background hover:bg-muted/60 border-border cursor-pointer text-foreground hover:border-primary/50"
                       }`}
                     >
-                      {isTaken && <Lock className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                      {isTaken ? (
+                        <Lock className="w-3.5 h-3.5 text-destructive shrink-0" />
+                      ) : isSelected ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground shrink-0" />
+                      ) : null}
                       <span>{ar ? `سرير ${bed}` : `Bed ${bed}`}</span>
-                      {isTaken && (
+                      {isTaken ? (
                         <span className="text-[10px] font-normal opacity-90 truncate max-w-[130px]">
                           ({occInfo?.residentName || (ar ? "مشغول" : "Occupied")})
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-normal ${isSelected ? "text-primary-foreground/90" : "text-emerald-600 dark:text-emerald-400"}`}>
+                          ({ar ? "متاح" : "Free"})
                         </span>
                       )}
                     </button>
                   );
                 })}
               </div>
-              {selectedBed && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Info className="w-3 h-3" />
-                  {ar
-                    ? `تم اختيار السرير رقم ${selectedBed}`
-                    : `Bed ${selectedBed} selected`}
+
+              {/* نص توضيحي لحالة الاختيار */}
+              {isEntireRoom ? (
+                <p className="text-xs text-purple-700 dark:text-purple-300 flex items-center gap-1.5 pt-1">
+                  <Info className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {ar
+                      ? "تم تفعيل Full Lock: تم تخصيص السرير 1 للموظف وقفل باقي أسرة الغرفة بالكامل."
+                      : "Full Lock active: Bed 1 assigned and all other beds locked for this occupant."}
+                  </span>
+                </p>
+              ) : selectedBed ? (
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 pt-1 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {ar
+                      ? `تم اختيار السرير رقم ${selectedBed} للتسكين.`
+                      : `Bed ${selectedBed} selected for assignment.`}
+                  </span>
+                </p>
+              ) : (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 pt-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {ar
+                      ? "يرجى النقر على رقم السرير المطلوب من الأزرار أعلاه لتسكين الموظف عليه."
+                      : "Please click on the desired bed button above to assign the employee."}
+                  </span>
                 </p>
               )}
             </div>

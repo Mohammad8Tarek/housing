@@ -297,6 +297,7 @@ router.get(
               accommodationRoomType: roomsTable.roomType,
               accommodationBuilding: buildingsTable.name,
               accommodationFloor: floorsTable.floorNumber,
+              accommodationBed: assignmentsTable.bedNumber,
             })
             .from(profilesTable)
             .leftJoin(
@@ -318,6 +319,7 @@ router.get(
             accommodationRoomType: r.accommodationRoomType,
             accommodationBuilding: r.accommodationBuilding,
             accommodationFloor: r.accommodationFloor,
+            accommodationBed: r.accommodationBed,
             propertyId: pId,
             propertyName: propMap[pId] ?? null,
           }));

@@ -196,6 +196,7 @@ export async function archiveSourceProfileOnTransfer(
   sourcePropertyId: number,
   sourceProfileId: number,
   targetPropertyName: string = "فندق آخر",
+  archiveProfile: boolean = true,
 ): Promise<boolean> {
   return await withTenant(sourcePropertyId, async (srcDb) => {
     const [srcProfile] = await srcDb
@@ -211,7 +212,7 @@ export async function archiveSourceProfileOnTransfer(
     if (!srcProfile) return false;
 
     console.log(
-      `[cross-property] 🔄 Preserving room logs & archiving profile #${sourceProfileId} (${srcProfile.firstName} ${srcProfile.lastName}) as TRANSFERRED to ${targetPropertyName} in property #${sourcePropertyId}...`,
+      `[cross-property] 🔄 Preserving room logs & ${archiveProfile ? 'archiving profile as TRANSFERRED' : 'checking out room stay'} for #${sourceProfileId} (${srcProfile.firstName} ${srcProfile.lastName}) -> ${targetPropertyName} in property #${sourcePropertyId}...`,
     );
 
     // 1. Mark active assignments in source property as TRANSFERRED and record checkout (KEEP assignments for room logs!)
@@ -281,14 +282,16 @@ export async function archiveSourceProfileOnTransfer(
       });
     }
 
-    // 2. Set profile status in source property to TRANSFERRED (preserving the profile and its history)
-    await srcDb
-      .update(profilesTable)
-      .set({
-        status: "TRANSFERRED",
-        vacationNotes: `[تم النقل إلى فندق: ${targetPropertyName}]`,
-      })
-      .where(eq(profilesTable.id, sourceProfileId));
+    // 2. Set profile status in source property to TRANSFERRED only if archiveProfile is true
+    if (archiveProfile) {
+      await srcDb
+        .update(profilesTable)
+        .set({
+          status: "TRANSFERRED",
+          vacationNotes: `[تم النقل إلى فندق: ${targetPropertyName}]`,
+        })
+        .where(eq(profilesTable.id, sourceProfileId));
+    }
 
     // 3. Broadcast real-time updates
     broadcastToProperty(sourcePropertyId, {
@@ -302,7 +305,7 @@ export async function archiveSourceProfileOnTransfer(
     });
 
     console.log(
-      `[cross-property] ✅ Profile #${sourceProfileId} and all room logs safely preserved in property #${sourcePropertyId} (Status: TRANSFERRED).`,
+      `[cross-property] ✅ Successfully processed profile #${sourceProfileId} in property #${sourcePropertyId} (Archived: ${archiveProfile}).`,
     );
     return true;
   });
@@ -312,14 +315,15 @@ export async function archiveSourceProfileOnTransfer(
 export const deleteSourceProfileOnTransfer = archiveSourceProfileOnTransfer;
 
 /**
- * Cleanly close active stay in source property and archive profile when permanent transfer occurs.
+ * Cleanly close active stay in source property and optionally archive profile when transfer occurs.
  */
 export async function closeSourceAssignmentOnTransfer(
   sourcePropertyId: number,
   sourceProfileId: number,
-  targetPropertyName: string,
+  targetPropertyName: string = "فندق آخر",
+  archiveProfile: boolean = true,
 ) {
-  return await archiveSourceProfileOnTransfer(sourcePropertyId, sourceProfileId, targetPropertyName);
+  return await archiveSourceProfileOnTransfer(sourcePropertyId, sourceProfileId, targetPropertyName, archiveProfile);
 }
 
 export interface CrossPropertyTransferParams {
@@ -331,6 +335,7 @@ export interface CrossPropertyTransferParams {
   transferReason?: string;
   isEntireRoom?: boolean;
   isTemporaryVacationOverride?: boolean;
+  archiveSourceProfile?: boolean;
   req: any;
 }
 
@@ -347,6 +352,7 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
     transferReason,
     isEntireRoom: reqEntireRoom,
     isTemporaryVacationOverride,
+    archiveSourceProfile = true,
     req,
   } = params;
 
@@ -533,13 +539,15 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
         .where(eq(roomsTable.id, oldRoom.id));
     }
 
-    await srcDb
-      .update(profilesTable)
-      .set({
-        status: "TRANSFERRED",
-        vacationNotes: `[تم النقل إلى فندق: ${targetName}]`,
-      })
-      .where(eq(profilesTable.id, oldAssignment.profileId));
+    if (archiveSourceProfile) {
+      await srcDb
+        .update(profilesTable)
+        .set({
+          status: "TRANSFERRED",
+          vacationNotes: `[تم النقل إلى فندق: ${targetName}]`,
+        })
+        .where(eq(profilesTable.id, oldAssignment.profileId));
+    }
   });
 
   // 5. Create new assignment and update new room in target property
@@ -654,8 +662,8 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
   broadcastToProperty(targetPropertyId, { module: "housing", action: "updated", entityId: newRoom.id });
   broadcastToProperty(targetPropertyId, { module: "dashboard", action: "sync" });
 
-  // 7. Archive transferred profile in source property (preserving room logs & history intact!)
-  await archiveSourceProfileOnTransfer(sourcePropertyId, oldAssignment.profileId, targetName).catch((delErr) => {
+  // 7. Archive transferred profile in source property if requested (preserving room logs & history intact!)
+  await archiveSourceProfileOnTransfer(sourcePropertyId, oldAssignment.profileId, targetName, archiveSourceProfile).catch((delErr) => {
     console.warn("[cross-property] archiveSourceProfileOnTransfer in executeCrossPropertyTransfer warning:", delErr?.message);
   });
 

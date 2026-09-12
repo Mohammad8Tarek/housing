@@ -418,8 +418,11 @@ router.post(
     const rawSourcePropertyId = (req.body as any)?.sourcePropertyId;
     let sourcePropertyId = rawSourcePropertyId ? Number(rawSourcePropertyId) : null;
     const transferType = (req.body as any)?.transferType === "TASK_FORCE" ? "TASK_FORCE" : "PERMANENT";
+    const archiveSourceProfile = (req.body as any)?.archiveSourceProfile !== undefined
+      ? Boolean((req.body as any)?.archiveSourceProfile)
+      : (transferType === "PERMANENT");
     const checkoutPreviousAssignment = Boolean(
-      (req.body as any)?.checkoutPreviousAssignment ?? (transferType === "PERMANENT")
+      (req.body as any)?.checkoutPreviousAssignment ?? true
     );
 
     let resolvedProfileId = parsed.data.profileId;
@@ -459,11 +462,12 @@ router.post(
           ? `[انتداب مؤقت من ${srcName}]`
           : `[محوّل من ${srcName}]`;
 
-        if (checkoutPreviousAssignment) {
+        if (checkoutPreviousAssignment || archiveSourceProfile) {
           await closeSourceAssignmentOnTransfer(
             effectiveSourcePropId,
             parsed.data.profileId,
             targetName,
+            archiveSourceProfile,
           );
         }
       } catch (syncErr: any) {
@@ -795,8 +799,8 @@ router.post(
     });
     broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
 
-    if (effectiveSourcePropId && effectiveSourcePropId !== propertyId && transferType === "PERMANENT") {
-      await deleteSourceProfileOnTransfer(effectiveSourcePropId, parsed.data.profileId).catch((delErr) => {
+    if (effectiveSourcePropId && effectiveSourcePropId !== propertyId && archiveSourceProfile) {
+      await deleteSourceProfileOnTransfer(effectiveSourcePropId, parsed.data.profileId, undefined, true).catch((delErr) => {
         console.warn("[assignments] deleteSourceProfileOnTransfer in POST /assignments warning:", delErr?.message);
       });
     }
@@ -987,6 +991,9 @@ router.post(
         transferReason: parsed.data.transferReason,
         isEntireRoom: Boolean((req.body as any)?.isEntireRoom),
         isTemporaryVacationOverride,
+        archiveSourceProfile: (req.body as any)?.archiveSourceProfile !== undefined
+          ? Boolean((req.body as any)?.archiveSourceProfile)
+          : true,
         req,
       });
 
