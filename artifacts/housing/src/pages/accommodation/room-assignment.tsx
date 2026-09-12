@@ -55,6 +55,14 @@ import {
   Printer,
   Lock,
   ArrowRightLeft,
+  Briefcase,
+  Phone,
+  Home,
+  User,
+  UserX,
+  Loader2,
+  ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import {
@@ -86,6 +94,11 @@ type ProfileResult = {
   level: string | null;
   status: string;
   gender: string | null;
+  accommodationRoom?: string | null;
+  accommodationRoomType?: string | null;
+  accommodationBuilding?: string | null;
+  accommodationFloor?: string | null;
+  photoUrl?: string | null;
 };
 
 const roomTypeCapacity: Record<string, number> = {
@@ -133,6 +146,11 @@ export default function RoomAssignment() {
     if (activePropertyId && activePropertyId !== "all") {
       setSearchPropertyId(String(activePropertyId));
       setTargetPropertyId(String(activePropertyId));
+    } else if (activePropertyId === "all" || !activePropertyId) {
+      setSearchPropertyId("all");
+      if (allProperties && allProperties.length > 0 && !targetPropertyId) {
+        setTargetPropertyId(String(allProperties[0].id));
+      }
     } else if (allProperties && allProperties.length === 1) {
       setSearchPropertyId(String(allProperties[0].id));
       setTargetPropertyId(String(allProperties[0].id));
@@ -576,16 +594,15 @@ export default function RoomAssignment() {
     debounceRef.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const effectivePropId =
+        const propParam =
           searchPropertyId && searchPropertyId !== "all"
-            ? searchPropertyId
-            : (activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "");
-        const propParam = effectivePropId ? `&propertyId=${effectivePropId}` : "";
+            ? `&propertyId=${searchPropertyId}`
+            : "";
         const resp = await fetch(
           `/api/profiles/search?q=${encodeURIComponent(empSearch.trim())}${propParam}`,
         );
         const data = await resp.json();
-        setEmpResults(data);
+        setEmpResults(Array.isArray(data) ? data : []);
         setShowDropdown(true);
       } catch {
         setEmpResults([]);
@@ -610,6 +627,9 @@ export default function RoomAssignment() {
     setSelectedProfile(emp);
     setEmpSearch(`${emp.firstName} ${emp.lastName} (${emp.profileId})`);
     setShowDropdown(false);
+    if (!targetPropertyId && emp.propertyId) {
+      setTargetPropertyId(String(emp.propertyId));
+    }
   };
 
   const clearProfile = () => {
@@ -674,7 +694,7 @@ export default function RoomAssignment() {
         bedNumber: isEntireRoom ? (selectedBed ? parseInt(selectedBed) : 1) : (selectedBed ? parseInt(selectedBed) : undefined),
         isEntireRoom: isEntireRoom,
         notes: notes || undefined,
-        sourcePropertyId: isCrossProperty ? selectedProfile.propertyId : undefined,
+        sourcePropertyId: selectedProfile.propertyId,
         transferType: isCrossProperty ? transferType : undefined,
         checkoutPreviousAssignment: isCrossProperty && transferType === "PERMANENT",
       } as any,
@@ -703,7 +723,7 @@ export default function RoomAssignment() {
         bedNumber: selectedBed ? parseInt(selectedBed) : undefined,
         notes: notes || undefined,
         isTemporaryVacationOverride: true,
-        sourcePropertyId: isCrossProperty ? selectedProfile.propertyId : undefined,
+        sourcePropertyId: selectedProfile.propertyId,
         transferType: isCrossProperty ? transferType : undefined,
         checkoutPreviousAssignment: isCrossProperty && transferType === "PERMANENT",
       } as any,
@@ -737,7 +757,13 @@ export default function RoomAssignment() {
         </CardHeader>
         <CardContent>
           {allProperties.length > 1 && (
-            <div className="mb-3">
+            <div className="mb-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-muted/40 border border-dashed">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-xs font-bold text-foreground">
+                  {ar ? "نطاق بحث الموظفين:" : "Profile Search Scope:"}
+                </span>
+              </div>
               <Select
                 value={searchPropertyId}
                 onValueChange={(v) => {
@@ -745,18 +771,29 @@ export default function RoomAssignment() {
                   clearProfile();
                 }}
               >
-                <SelectTrigger className="h-8 text-sm">
+                <SelectTrigger className="h-8 w-full sm:w-64 text-xs font-semibold">
                   <SelectValue
-                    placeholder={ar ? "كل الفروع" : "All Properties"}
+                    placeholder={ar ? "🌐 كل الفنادق والفروع (بحث شامل)" : "All Properties"}
                   />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    {ar ? "كل الفروع" : "All Properties"}
+                <SelectContent position="popper" sideOffset={4}>
+                  <SelectItem value="all" className="text-xs font-bold text-primary">
+                    <div className="flex items-center gap-1.5">
+                      <span>🌐</span>
+                      <span>{ar ? "كل الفنادق والفروع (بحث شامل)" : "All Properties (Global Search)"}</span>
+                    </div>
                   </SelectItem>
                   {allProperties.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.displayName || p.name}
+                    <SelectItem key={p.id} value={String(p.id)} className="text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>{p.displayName || p.name}</span>
+                        {p.id === activePropertyId && (
+                          <Badge variant="secondary" className="text-[9px] py-0 px-1 ml-1 rtl:mr-1">
+                            {ar ? "الحالي" : "Active"}
+                          </Badge>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -768,11 +805,11 @@ export default function RoomAssignment() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                className="pl-9 pr-9"
+                className="pl-9 pr-9 h-10 text-sm font-medium"
                 placeholder={
                   ar
-                    ? "ابحث بالاسم أو الكود أو الهوية..."
-                    : "Search by name, code, or national ID..."
+                    ? "ابحث بالاسم، أو كود الموظف، أو الرقم القومي، أو رقم الهاتف..."
+                    : "Search by employee name, staff code, national ID, or phone..."
                 }
                 value={empSearch}
                 onChange={(e) => {
@@ -784,96 +821,236 @@ export default function RoomAssignment() {
               {empSearch && (
                 <button
                   onClick={clearProfile}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
+            {/* ── مصفوفة نتائج البحث الذكية (Profile Selection Matrix) ── */}
             {showDropdown && (
-              <div className="absolute top-full mt-1 left-0 right-0 z-50 bg-card border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute top-full mt-2 left-0 right-0 z-50 bg-card border-2 border-primary/30 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1">
+                {/* شريط معلومات البحث */}
+                <div className="px-4 py-2.5 bg-muted/60 border-b flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold text-foreground">
+                      {isSearching
+                        ? (ar ? "جاري البحث..." : "Searching...")
+                        : ar
+                        ? `مصفوفة نتائج البحث (${empResults.length} موظف)`
+                        : `Search Results Matrix (${empResults.length} profiles)`}
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-semibold border-primary/30 text-primary">
+                    {searchPropertyId === "all"
+                      ? (ar ? "🌐 بحث شامل في كل الفنادق" : "🌐 All Properties Scope")
+                      : `${ar ? "فندق: " : "Property: "} ${allProperties.find(p => String(p.id) === searchPropertyId)?.name || ""}`}
+                  </Badge>
+                </div>
+
                 {isSearching && (
-                  <div className="p-3 text-sm text-muted-foreground">
-                    {ar ? "جاري البحث..." : "Searching..."}
+                  <div className="p-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2.5">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span>{ar ? "جاري البحث عبر قواعد بيانات الفنادق..." : "Searching across hotel databases..."}</span>
                   </div>
                 )}
+
                 {!isSearching && empResults.length === 0 && (
-                  <div className="p-3 text-sm text-muted-foreground">
-                    {ar ? "لا توجد نتائج" : "No results found"}
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    <UserX className="w-10 h-10 mx-auto mb-2.5 text-muted-foreground/40" />
+                    <p className="font-bold text-foreground text-sm">
+                      {ar ? "لم يتم العثور على أي نتائج مطابقة" : "No matching profiles found"}
+                    </p>
+                    <p className="text-xs text-muted-foreground/80 mt-1">
+                      {ar
+                        ? `لا يوجد موظف يطابق "${empSearch}" في نطاق البحث الحالي. جرب تغيير النطاق إلى "كل الفروع".`
+                        : `No profile matches "${empSearch}". Try switching scope to "All Properties".`}
+                    </p>
                   </div>
                 )}
-                {empResults.map((emp) => (
-                  <button
-                    key={emp.id}
-                    className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-start gap-3 border-b last:border-0 transition-colors"
-                    onClick={() => selectProfile(emp)}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-xs font-bold text-primary">
-                        {emp.firstName[0]}
-                        {emp.lastName[0]}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm">
-                        {emp.firstName} {emp.lastName}
-                      </p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {emp.profileId} • {emp.nationalId}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        {emp.jobTitle && (
-                          <span className="text-xs text-muted-foreground">
-                            {emp.jobTitle}
-                          </span>
-                        )}
-                        {emp.propertyName && (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 px-1.5 h-4"
-                          >
-                            <Building2 className="w-2.5 h-2.5 mr-0.5" />
-                            {emp.propertyName}
-                          </Badge>
-                        )}
-                        {emp.propertyId !== activePropertyId && (
-                          <Badge className="text-[10px] py-0 px-1.5 h-4 bg-amber-500">
-                            {ar ? "فرع آخر" : "Other Branch"}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+
+                {!isSearching && empResults.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 max-h-[440px] overflow-y-auto">
+                    {empResults.map((emp) => {
+                      const isOtherBranch = Number(emp.propertyId) !== effectiveTargetPropId;
+                      return (
+                        <div
+                          key={`${emp.propertyId}-${emp.id}`}
+                          onClick={() => selectProfile(emp)}
+                          className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer group shadow-2xs hover:shadow-md flex flex-col justify-between gap-3 ${
+                            isOtherBranch
+                              ? "border-amber-500/30 bg-amber-500/[0.02] hover:border-amber-500 hover:bg-amber-500/[0.06]"
+                              : "border-border/80 bg-card hover:border-primary hover:bg-muted/30"
+                          }`}
+                        >
+                          {/* الجزء العلوي: الصورة والاسم والفرع */}
+                          <div className="flex items-start gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary font-black flex items-center justify-center flex-shrink-0 border border-primary/25 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden">
+                              {emp.photoUrl ? (
+                                <img src={emp.photoUrl} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <span>
+                                  {emp.firstName?.[0] || ""}
+                                  {emp.lastName?.[0] || ""}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                                  {emp.firstName} {emp.lastName}
+                                </span>
+                                <Badge variant="outline" className="text-[10px] font-mono py-0 px-1.5 h-4 bg-muted/40">
+                                  #{emp.profileId}
+                                </Badge>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-[10px] py-0 px-1.5 h-4.5 font-semibold flex items-center gap-1 ${
+                                    isOtherBranch
+                                      ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30"
+                                      : "bg-primary/10 text-primary border-primary/25"
+                                  }`}
+                                >
+                                  <Building2 className="w-2.5 h-2.5" />
+                                  <span>{emp.propertyName || (ar ? "فندق خارجي" : "Hotel")}</span>
+                                </Badge>
+                                {isOtherBranch && (
+                                  <Badge className="text-[9px] py-0 px-1 h-4 bg-amber-500 text-white">
+                                    {ar ? "تحويل فندق" : "Cross-Hotel"}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* بيانات الوظيفة والقسم والرقم القومي */}
+                          <div className="space-y-1.5 text-xs text-muted-foreground pt-1 border-t border-border/40">
+                            {(emp.jobTitle || emp.department) && (
+                              <div className="flex items-center gap-1.5">
+                                <Briefcase className="w-3.5 h-3.5 text-muted-foreground/70 flex-shrink-0" />
+                                <span className="truncate font-medium text-foreground/80">
+                                  {emp.jobTitle || "—"}
+                                </span>
+                                {emp.department && (
+                                  <>
+                                    <span className="text-muted-foreground/40">•</span>
+                                    <span className="truncate">{emp.department}</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground/80 pt-0.5">
+                              <span className="flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3 text-muted-foreground/70" />
+                                {emp.nationalId || "—"}
+                              </span>
+                              {emp.phone && (
+                                <span className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3 text-muted-foreground/70" />
+                                  {emp.phone}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* الجزء السفلي: حالة التسكين وزر الاختيار */}
+                          <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
+                            {emp.accommodationRoom ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] py-0.5 px-2 bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 flex items-center gap-1 font-medium"
+                              >
+                                <Home className="w-3 h-3 text-amber-600 flex-shrink-0" />
+                                <span className="truncate">
+                                  {ar
+                                    ? `مقيم: ${emp.accommodationBuilding ? `${emp.accommodationBuilding} - ` : ""}غ ${emp.accommodationRoom}`
+                                    : `Housed: ${emp.accommodationBuilding ? `${emp.accommodationBuilding} ` : ""}Rm ${emp.accommodationRoom}`}
+                                </span>
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] py-0.5 px-2 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 flex items-center gap-1 font-medium"
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                                <span>{ar ? "متاح للتسكين" : "Unassigned / Ready"}</span>
+                              </Badge>
+                            )}
+
+                            <Button
+                              size="sm"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                selectProfile(emp);
+                              }}
+                              className="h-7 text-xs font-bold px-3 gap-1 shadow-xs group-hover:bg-primary"
+                            >
+                              <span>{ar ? "تسكين" : "Select"}</span>
+                              <ArrowRight className="w-3 h-3 rtl:rotate-180" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
 
+          {/* ── كارت الموظف المختار التنفيذي (Selected Profile Executive Card) ── */}
           {selectedProfile && (
-            <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">
-                    {selectedProfile.firstName} {selectedProfile.lastName}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedProfile.profileId} •{" "}
-                    {selectedProfile.jobTitle || "—"} •{" "}
-                    {selectedProfile.department || "—"}
-                  </p>
-                  {isCrossProperty && (
-                    <Badge className="mt-1 text-[10px] bg-amber-500">
-                      <Building2 className="w-2.5 h-2.5 mr-1" />
-                      {selectedProfile.propertyName}
-                    </Badge>
+            <div className="mt-3.5 p-4 rounded-xl bg-primary/[0.06] border-2 border-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-primary text-white font-black flex items-center justify-center flex-shrink-0 shadow-md text-base">
+                  {selectedProfile.photoUrl ? (
+                    <img src={selectedProfile.photoUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+                  ) : (
+                    <span>
+                      {selectedProfile.firstName?.[0] || ""}
+                      {selectedProfile.lastName?.[0] || ""}
+                    </span>
                   )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-base text-foreground">
+                      {selectedProfile.firstName} {selectedProfile.lastName}
+                    </span>
+                    <Badge variant="outline" className="text-xs font-mono font-bold bg-background">
+                      #{selectedProfile.profileId}
+                    </Badge>
+                    {selectedProfile.propertyName && (
+                      <Badge className="text-xs bg-primary/20 text-primary border border-primary/30">
+                        <Building2 className="w-3 h-3 mr-1" />
+                        {selectedProfile.propertyName}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 flex-wrap">
+                    <span className="font-semibold text-foreground/80">{selectedProfile.jobTitle || "—"}</span>
+                    <span>•</span>
+                    <span>{selectedProfile.department || "—"}</span>
+                    {selectedProfile.nationalId && (
+                      <>
+                        <span>•</span>
+                        <span className="font-mono">{selectedProfile.nationalId}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 self-end sm:self-center">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold px-2.5 py-1.5 rounded-lg border bg-background hover:bg-muted/50 transition-colors shadow-2xs">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold px-3 py-2 rounded-lg border bg-background hover:bg-muted/50 transition-colors shadow-2xs">
                   <input
                     type="checkbox"
                     checked={isFamilyHousing}
@@ -881,16 +1058,19 @@ export default function RoomAssignment() {
                     className="rounded text-primary focus:ring-primary w-4 h-4 cursor-pointer"
                   />
                   <span className="text-foreground">
-                    {ar ? "تسكين عائلي (أجنحة عائلية)" : "Family Housing (Family Suites)"}
+                    {ar ? "تسكين عائلي" : "Family Housing"}
                   </span>
                 </label>
-                <button
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={clearProfile}
-                  className="text-muted-foreground hover:text-foreground p-1 rounded-md"
-                  title={ar ? "إلغاء التحديد" : "Clear"}
+                  className="h-8 text-xs font-semibold text-muted-foreground hover:text-foreground gap-1"
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X className="w-3.5 h-3.5" />
+                  <span>{ar ? "تغيير" : "Change"}</span>
+                </Button>
               </div>
             </div>
           )}

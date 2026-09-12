@@ -1722,6 +1722,17 @@ export async function runMigrations(): Promise<void> {
   } catch (e: any) {
     console.warn(`[migrations] room-inventory auto-sync notice:`, e?.message);
   }
+
+  // Auto-heal any orphan cross-property assignments
+  try {
+    const { healOrphanAssignments } = await import("./cross-property-service.js");
+    const healed = await healOrphanAssignments();
+    if (healed > 0) {
+      console.info(`[migrations] Auto-healed ${healed} orphan cross-property assignments.`);
+    }
+  } catch (e: any) {
+    console.warn(`[migrations] healOrphanAssignments notice:`, e?.message);
+  }
 }
 
 export async function applyTenantMigrationsToSchema(schemaName: string): Promise<number> {

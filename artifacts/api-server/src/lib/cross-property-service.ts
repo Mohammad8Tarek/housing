@@ -604,3 +604,112 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
     targetPropertyId,
   };
 }
+
+/**
+ * Locate a profile by primary key ID across any property tenant schema.
+ */
+export async function findProfileAcrossAllProperties(sourceProfileId: number): Promise<{ propertyId: number; profile: any } | null> {
+  const allProperties = await db
+    .select({ id: propertiesTable.id, name: propertiesTable.name })
+    .from(propertiesTable);
+
+  for (const prop of allProperties) {
+    try {
+      const [found] = await withTenant(prop.id, async (tenantDb) => {
+        return tenantDb
+          .select()
+          .from(profilesTable)
+          .where(eq(profilesTable.id, sourceProfileId))
+          .limit(1);
+      });
+      if (found) {
+        return { propertyId: prop.id, profile: found };
+      }
+    } catch (err) {
+      // Continue searching next property
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Self-healing routine to detect and resolve orphan assignments across all hotel schemas.
+ * Clones the profile into the local tenant schema and updates the assignment profile_id.
+ */
+export async function healOrphanAssignments(): Promise<number> {
+  let healedCount = 0;
+  try {
+    const allProperties = await db
+      .select({ id: propertiesTable.id, name: propertiesTable.name })
+      .from(propertiesTable);
+
+    for (const prop of allProperties) {
+      const orphanAssignments = await withTenant(prop.id, async (tenantDb) => {
+        const rows = await tenantDb
+          .select({
+            id: assignmentsTable.id,
+            profileId: assignmentsTable.profileId,
+            roomId: assignmentsTable.roomId,
+            status: assignmentsTable.status,
+          })
+          .from(assignmentsTable)
+          .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+          .where(
+            and(
+              sql`${profilesTable.id} IS NULL`,
+              sql`lower(${assignmentsTable.status}) = 'active'`
+            )
+          );
+        return rows;
+      }).catch(() => []);
+
+      for (const orphan of orphanAssignments) {
+        if (!orphan.profileId) continue;
+        console.log(`[auto-heal] Found orphan assignment #${orphan.id} in property ${prop.id} referencing missing profile ID ${orphan.profileId}`);
+
+        const foundSource = await findProfileAcrossAllProperties(orphan.profileId);
+        if (foundSource && foundSource.propertyId !== prop.id) {
+          console.log(`[auto-heal] Located missing profile in source property ${foundSource.propertyId} (${foundSource.profile.firstName} ${foundSource.profile.lastName})`);
+          
+          const { targetProfile, targetName, srcName } = await syncProfileAcrossProperties({
+            sourcePropertyId: foundSource.propertyId,
+            targetPropertyId: prop.id,
+            sourceProfileId: foundSource.profile.id,
+            transferType: "PERMANENT",
+          });
+
+          await withTenant(prop.id, async (tenantDb) => {
+            await tenantDb
+              .update(assignmentsTable)
+              .set({
+                profileId: targetProfile.id,
+                notes: sql`COALESCE(${assignmentsTable.notes}, '') || ' ' || ${`[تم تصحيح ومزامنة الملف من ${srcName}]`}`,
+              })
+              .where(eq(assignmentsTable.id, orphan.id));
+
+            await tenantDb
+              .update(profilesTable)
+              .set({ status: "ACTIVE" })
+              .where(eq(profilesTable.id, targetProfile.id));
+          });
+
+          // Close source assignment if still active in source property
+          await closeSourceAssignmentOnTransfer(
+            foundSource.propertyId,
+            foundSource.profile.id,
+            targetName
+          ).catch((e) => console.warn(`[auto-heal] closeSourceAssignment warning:`, e?.message));
+
+          healedCount++;
+          console.log(`[auto-heal] ✅ Healed assignment #${orphan.id} in property ${prop.id} -> Linked to local profile #${targetProfile.id} (${targetProfile.firstName} ${targetProfile.lastName})`);
+        }
+      }
+    }
+  } catch (err: any) {
+    console.error("[auto-heal] Error during healOrphanAssignments:", err?.message || err);
+  }
+
+  return healedCount;
+}
+

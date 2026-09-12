@@ -25,6 +25,7 @@ import {
   syncProfileAcrossProperties,
   closeSourceAssignmentOnTransfer,
   executeCrossPropertyTransfer,
+  findProfileAcrossAllProperties,
 } from "../lib/cross-property-service.js";
 
 const router: Router = Router();
@@ -156,6 +157,22 @@ router.get(
       };
     });
 
+    // Resilient fallback: Enrich any assignment whose profile data is missing locally
+    for (const item of result.data) {
+      if (!item.profileFirstName && item.profileId) {
+        const found = await findProfileAcrossAllProperties(item.profileId);
+        if (found?.profile) {
+          item.profileFirstName = found.profile.firstName;
+          item.profileLastName = found.profile.lastName;
+          item.profileCode = found.profile.profileId;
+          item.profileNationality = found.profile.nationality;
+          item.profileDepartment = found.profile.department;
+          item.profilePhotoUrl = found.profile.photoUrl;
+          item.profileStatus = found.profile.status;
+        }
+      }
+    }
+
     res.json({
       data: result.data.map((a) => fmtAssignment({ ...a, propertyId })),
       pagination: {
@@ -280,6 +297,23 @@ router.get(
       };
     });
 
+    // Resilient fallback: Enrich any history record whose profile data is missing locally
+    for (const item of result.data) {
+      if (!item.profileFirstName && item.profileId) {
+        const found = await findProfileAcrossAllProperties(item.profileId);
+        if (found?.profile) {
+          item.profileFirstName = found.profile.firstName;
+          item.profileLastName = found.profile.lastName;
+          item.profileCode = found.profile.profileId;
+          item.profileNationalId = found.profile.nationalId;
+          item.profileNationality = found.profile.nationality;
+          item.profileDepartment = found.profile.department;
+          item.profileJobTitle = found.profile.jobTitle;
+          item.profilePhotoUrl = found.profile.photoUrl;
+        }
+      }
+    }
+
     res.json({
       data: result.data.map((a) => fmtAssignment({ ...a, propertyId })),
       pagination: {
@@ -381,7 +415,7 @@ router.post(
 
     // ── Cross-Property Sync & Auto-Resolution ─────────────────────────────
     const rawSourcePropertyId = (req.body as any)?.sourcePropertyId;
-    const sourcePropertyId = rawSourcePropertyId ? Number(rawSourcePropertyId) : null;
+    let sourcePropertyId = rawSourcePropertyId ? Number(rawSourcePropertyId) : null;
     const transferType = (req.body as any)?.transferType === "TASK_FORCE" ? "TASK_FORCE" : "PERMANENT";
     const checkoutPreviousAssignment = Boolean(
       (req.body as any)?.checkoutPreviousAssignment ?? (transferType === "PERMANENT")
@@ -390,10 +424,31 @@ router.post(
     let resolvedProfileId = parsed.data.profileId;
     let crossPropertyNoteTag = "";
 
-    if (sourcePropertyId && sourcePropertyId !== propertyId) {
+    // Check if the profile exists locally in the target tenant schema
+    const localProfile = await withTenant(propertyId, async (tenantDb) => {
+      const [found] = await tenantDb
+        .select()
+        .from(profilesTable)
+        .where(eq(profilesTable.id, parsed.data.profileId))
+        .limit(1);
+      return found || null;
+    }).catch(() => null);
+
+    let effectiveSourcePropId = sourcePropertyId;
+
+    // If profile does not exist in target property, auto-discover which property owns it
+    if (!localProfile && !effectiveSourcePropId) {
+      const foundSource = await findProfileAcrossAllProperties(parsed.data.profileId);
+      if (foundSource && foundSource.propertyId !== propertyId) {
+        effectiveSourcePropId = foundSource.propertyId;
+        console.log(`[assignments] Auto-discovered profile #${parsed.data.profileId} in source property #${foundSource.propertyId} (${foundSource.profile.firstName} ${foundSource.profile.lastName})`);
+      }
+    }
+
+    if (effectiveSourcePropId && effectiveSourcePropId !== propertyId) {
       try {
         const { targetProfile, targetName, srcName } = await syncProfileAcrossProperties({
-          sourcePropertyId,
+          sourcePropertyId: effectiveSourcePropId,
           targetPropertyId: propertyId,
           sourceProfileId: parsed.data.profileId,
           transferType,
@@ -405,7 +460,7 @@ router.post(
 
         if (checkoutPreviousAssignment) {
           await closeSourceAssignmentOnTransfer(
-            sourcePropertyId,
+            effectiveSourcePropId,
             parsed.data.profileId,
             targetName,
           );
@@ -415,6 +470,9 @@ router.post(
         res.status(500).json({ error: `فشل مزامنة الملف الشخصي عبر الفنادق: ${syncErr.message}` });
         return;
       }
+    } else if (!localProfile) {
+      res.status(404).json({ error: `الملف الشخصي #${parsed.data.profileId} غير مسجل في هذا الفندق ولا في أي فندق آخر.` });
+      return;
     }
 
     const result = await withTenant(propertyId, async (tenantDb) => {
