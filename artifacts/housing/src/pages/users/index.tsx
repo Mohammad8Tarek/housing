@@ -88,6 +88,7 @@ import { ResetPasswordDialog } from "./components/ResetPasswordDialog";
 import { DeleteUserDialog } from "./components/DeleteUserDialog";
 import { UnlockUserDialog } from "./components/UnlockUserDialog";
 import { UploadSignatureDialog } from "./components/UploadSignatureDialog";
+import { UserManagementSheet } from "./components/UserManagementSheet";
 
 import { SYSTEM_ROLES, WORKFLOW_ROLES, roleColor } from "./utils";
 const ALL_ROLES = [...SYSTEM_ROLES, ...WORKFLOW_ROLES];
@@ -116,6 +117,15 @@ export default function UsersPage() {
   const [signatureUser, setSignatureUser] = useState<any | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"users" | "matrix">("users");
   const [matrixTargetUserId, setMatrixTargetUserId] = useState<number | null>(null);
+
+  // Modern Unified User Management Drawer
+  const [sheetUser, setSheetUser] = useState<any | null>(null);
+  const [sheetTab, setSheetTab] = useState<"profile" | "properties" | "permissions" | "signature">("profile");
+
+  const openUserSheet = (u: any, tab: "profile" | "properties" | "permissions" | "signature" = "profile") => {
+    setSheetUser(u);
+    setSheetTab(tab);
+  };
 
   const debouncedSearch = useDebounce(searchQuery, 500);
 
@@ -339,6 +349,16 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6" dir={ar ? "rtl" : "ltr"}>
+      {/* Modern Unified Slide-Over Sheet Drawer */}
+      {sheetUser && (
+        <UserManagementSheet
+          user={sheetUser}
+          initialTab={sheetTab}
+          properties={properties ?? []}
+          onClose={() => setSheetUser(null)}
+        />
+      )}
+
       {/* Dynamic Dialogs */}
       {matrixUser && (
         <PermissionMatrixDialog
@@ -858,14 +878,18 @@ export default function UsersPage() {
                       </TableCell>
                       {isUVisible("username") && (
                         <TableCell>
-                          <div className="flex items-center gap-3">
+                          <div
+                            className="flex items-center gap-3 cursor-pointer group select-none"
+                            onClick={() => openUserSheet(u, "profile")}
+                            title={ar ? "انقر لعرض وإدارة المستخدم" : "Click to manage user"}
+                          >
                             <div
-                              className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white ${u.roles?.some((r: string) => r.toLowerCase() === "super_admin") ? "bg-gradient-to-br from-purple-500 to-purple-700" : u.roles?.some((r: string) => r.toLowerCase() === "admin") ? "bg-gradient-to-br from-red-500 to-red-700" : "bg-gradient-to-br from-[#0F2A44] to-[#1a3d5c]"}`}
+                              className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white transition-transform group-hover:scale-105 shadow-sm ${u.roles?.some((r: string) => r.toLowerCase() === "super_admin") ? "bg-gradient-to-br from-purple-500 to-purple-700" : u.roles?.some((r: string) => r.toLowerCase() === "admin") ? "bg-gradient-to-br from-red-500 to-red-700" : "bg-gradient-to-br from-[#0F2A44] to-[#1a3d5c]"}`}
                             >
                               {u.username.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <span className="font-semibold text-sm">
+                              <span className="font-semibold text-sm group-hover:text-[#C9A24D] transition-colors">
                                 {u.username}
                               </span>
                               {u.username === currentUser?.username && (
@@ -969,31 +993,32 @@ export default function UsersPage() {
                       )}
                       {isUVisible("signature") && (
                         <TableCell className="text-center">
-                          {u.hasSignature ? (
-                            <span
-                              className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400"
-                              title={
-                                ar ? "التوقيع متوفر" : "Signature available"
-                              }
-                            >
-                              <Pen className="w-3.5 h-3.5" />
-                              {ar ? "موجود" : "Yes"}
-                            </span>
-                          ) : u.jobTitle ? (
-                            <span
-                              className="inline-flex items-center gap-1 text-xs text-muted-foreground"
-                              title={
-                                ar ? "التوقيع غير متوفر" : "Signature missing"
-                              }
-                            >
-                              <Pen className="w-3.5 h-3.5 opacity-30" />
-                              {ar ? "مفقود" : "Missing"}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground italic">
-                              —
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => openUserSheet(u, "signature")}
+                            className="inline-flex items-center gap-1 hover:opacity-80 cursor-pointer transition-opacity"
+                            title={ar ? "انقر لإدارة التوقيع" : "Click to manage signature"}
+                          >
+                            {u.hasSignature ? (
+                              <span
+                                className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400"
+                              >
+                                <Pen className="w-3.5 h-3.5" />
+                                {ar ? "موجود" : "Yes"}
+                              </span>
+                            ) : u.jobTitle ? (
+                              <span
+                                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                              >
+                                <Pen className="w-3.5 h-3.5 opacity-30" />
+                                {ar ? "مفقود" : "Missing"}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">
+                                —
+                              </span>
+                            )}
+                          </button>
                         </TableCell>
                       )}
                       {isUVisible("property") && showPropertyCol && (
@@ -1011,13 +1036,17 @@ export default function UsersPage() {
                                 </span>
                               );
                             return (
-                              <div className="flex flex-wrap gap-1">
+                              <div
+                                className="flex flex-wrap gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => openUserSheet(u, "properties")}
+                                title={ar ? "انقر لتعديل صلاحيات الفروع" : "Click to edit hotel properties"}
+                              >
                                 {pids.map((pid) => {
                                   const p = properties?.find((x) => x.id === pid);
                                   return (
                                     <span
                                       key={pid}
-                                      className="text-xs font-mono bg-muted px-2 py-0.5 rounded font-semibold"
+                                      className="text-xs font-mono bg-muted px-2 py-0.5 rounded font-semibold hover:bg-[#C9A24D]/20 hover:text-[#C9A24D] transition-colors"
                                     >
                                       {p?.code ?? `#${pid}`}
                                     </span>
@@ -1037,12 +1066,17 @@ export default function UsersPage() {
                               );
                               if (isSuper) {
                                 return (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 w-fit">
+                                  <button
+                                    type="button"
+                                    onClick={() => openUserSheet(u, "permissions")}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors w-fit cursor-pointer"
+                                    title={ar ? "مدير النظام - انقر للاطلاع" : "Super Admin - Click to view"}
+                                  >
                                     <Crown className="w-3.5 h-3.5 text-amber-500" />
                                     <span>
                                       {ar ? "مدير النظام (شامل)" : "Super Admin (Full)"}
                                     </span>
-                                  </span>
+                                  </button>
                                 );
                               }
                               const explicitPerms = u.permissions as string[] | undefined;
@@ -1050,10 +1084,15 @@ export default function UsersPage() {
                               if (hasExplicit) {
                                 if (explicitPerms.length === 1 && explicitPerms[0] === "none") {
                                   return (
-                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 w-fit">
+                                    <button
+                                      type="button"
+                                      onClick={() => openUserSheet(u, "permissions")}
+                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-colors w-fit cursor-pointer"
+                                      title={ar ? "انقر لتعديل الصلاحيات" : "Click to edit permissions"}
+                                    >
                                       <LockKeyhole className="w-3.5 h-3.5" />
                                       <span>{ar ? "مغلق تماماً" : "Fully Blocked"}</span>
-                                    </span>
+                                    </button>
                                   );
                                 }
                                 const grouped = explicitPerms.reduce((acc: any, p: string) => {
@@ -1066,7 +1105,7 @@ export default function UsersPage() {
                                   <div className="flex flex-col gap-1">
                                     <button
                                       type="button"
-                                      onClick={() => setMatrixUser(u)}
+                                      onClick={() => openUserSheet(u, "permissions")}
                                       className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors w-fit text-start cursor-pointer"
                                       title={ar ? "انقر لتعديل الصلاحيات المخصصة" : "Click to edit permissions"}
                                     >
@@ -1097,10 +1136,15 @@ export default function UsersPage() {
                               }
                               const role = u.roles?.[0] || "user";
                               return (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium text-muted-foreground bg-muted/50 border border-border/60 w-fit">
+                                <button
+                                  type="button"
+                                  onClick={() => openUserSheet(u, "permissions")}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium text-muted-foreground bg-muted/50 border border-border/60 hover:bg-muted cursor-pointer transition-colors w-fit"
+                                  title={ar ? "انقر لتخصيص الصلاحيات" : "Click to customize permissions"}
+                                >
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                                   <span>{ar ? "افتراضي حسب الدور" : `Default (${role})`}</span>
-                                </span>
+                                </button>
                               );
                             })()}
                           </div>
@@ -1145,7 +1189,7 @@ export default function UsersPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-[#C9A24D] hover:bg-[#C9A24D]/10 rounded-lg transition-colors"
-                                onClick={() => setMatrixUser(u)}
+                                onClick={() => openUserSheet(u, "permissions")}
                                 title={ar ? "إدارة الصلاحيات" : "Manage Permissions"}
                               >
                                 <Shield className="w-4 h-4 text-[#C9A24D]" />
@@ -1161,26 +1205,26 @@ export default function UsersPage() {
                                   <MoreVertical className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuContent align="end" className="w-52">
                               <PermissionGate module="users" action="edit">
                                 <DropdownMenuItem
-                                  onClick={() => setEditUser(u)}
+                                  onClick={() => openUserSheet(u, "profile")}
                                   className="cursor-pointer"
                                 >
                                   <UserCog className="w-4 h-4 me-2 text-blue-600" />
                                   <span>
-                                    {ar ? "تعديل البيانات" : "Edit User Data"}
+                                    {ar ? "تعديل البيانات والأمان" : "Edit Profile & Security"}
                                   </span>
                                 </DropdownMenuItem>
                               </PermissionGate>
                               <PermissionGate module="users" action="manage_permissions">
                                 <DropdownMenuItem
-                                  onClick={() => setMatrixUser(u)}
+                                  onClick={() => openUserSheet(u, "permissions")}
                                   className="cursor-pointer"
                                 >
                                   <Shield className="w-4 h-4 me-2 text-[#C9A24D]" />
                                   <span>
-                                    {ar ? "تعديل سريع للصلاحيات" : "Quick Permissions Edit"}
+                                    {ar ? "صلاحيات المستخدم الذكية" : "Smart Capabilities Drawer"}
                                   </span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -1198,30 +1242,30 @@ export default function UsersPage() {
                               </PermissionGate>
                               {(isAdmin || can("users", "edit") || u.id === currentUser?.id) && (
                                 <DropdownMenuItem
-                                  onClick={() => setSignatureUser(u)}
+                                  onClick={() => openUserSheet(u, "signature")}
                                   className="cursor-pointer"
                                 >
                                   <Upload className="w-4 h-4 me-2 text-slate-600" />
                                   <span>
-                                    {ar ? "رفع توقيع" : "Upload Signature"}
+                                    {ar ? "رفع / تعديل التوقيع" : "Manage Signature"}
                                   </span>
                                 </DropdownMenuItem>
                               )}
                               {(isSuperAdmin || can("users", "edit") || can("users", "manage_permissions")) &&
                                 u.roles?.[0] !== "super_admin" && (
                                   <DropdownMenuItem
-                                    onClick={() => setEditPropsUser(u)}
+                                    onClick={() => openUserSheet(u, "properties")}
                                     className="cursor-pointer"
                                   >
                                     <Building2 className="w-4 h-4 me-2 text-green-600" />
                                     <span>
-                                      {ar ? "تعديل الفروع" : "Edit Properties"}
+                                      {ar ? "تعديل الفروع المصرحة" : "Authorized Properties"}
                                     </span>
                                   </DropdownMenuItem>
                                 )}
                               <PermissionGate module="users" action="reset_password">
                                 <DropdownMenuItem
-                                  onClick={() => setResetUser(u)}
+                                  onClick={() => openUserSheet(u, "profile")}
                                   className="cursor-pointer"
                                 >
                                   <KeyRound className="w-4 h-4 me-2 text-blue-500" />
@@ -1235,12 +1279,12 @@ export default function UsersPage() {
                               {isUserLocked(u) && (
                                 <PermissionGate module="users" action="unlock">
                                   <DropdownMenuItem
-                                    onClick={() => setUnlockUser(u)}
-                                    className="cursor-pointer"
+                                    onClick={() => openUserSheet(u, "profile")}
+                                    className="cursor-pointer font-medium text-amber-600 dark:text-amber-400"
                                   >
-                                    <Unlock className="w-4 h-4 me-2 text-amber-600" />
+                                    <Unlock className="w-4 h-4 me-2" />
                                     <span>
-                                      {ar ? "فتح قفل الحساب" : "Unlock Account"}
+                                      {ar ? "فتح قفل الحساب فوراً" : "Instant Unlock Account"}
                                     </span>
                                   </DropdownMenuItem>
                                 </PermissionGate>
