@@ -174,6 +174,7 @@ export default function InHouse() {
   const [transferReason, setTransferReason] = useState("");
   const [roomSearch, setRoomSearch] = useState("");
   const [transferPropertyId, setTransferPropertyId] = useState<string>("");
+  const [transferArchiveSource, setTransferArchiveSource] = useState<boolean>(true);
   const [profileEmpId, setProfileEmpId] = useState<number | null>(null);
 
   // Re-issue key state
@@ -769,6 +770,7 @@ export default function InHouse() {
       return;
     }
     const targetPropId = transferPropertyId ? parseInt(transferPropertyId) : undefined;
+    const isCross = Boolean(targetPropId && targetPropId !== Number(activePropertyId));
     transferMutation.mutate({
       id: transferDialog.id,
       data: {
@@ -779,6 +781,7 @@ export default function InHouse() {
         transferDate: new Date().toISOString(),
         transferReason: transferReason || undefined,
         targetPropertyId: targetPropId,
+        archiveSourceProfile: isCross ? transferArchiveSource : undefined,
       } as any,
     });
   };
@@ -2119,6 +2122,67 @@ export default function InHouse() {
                 )}
               </div>
             )}
+
+            {/* Cross-property transfer profile fate choice */}
+            {transferPropertyId && String(transferPropertyId) !== String(activePropertyId) && (
+              <div className="p-3 rounded-xl border-2 border-amber-500/50 bg-amber-50/70 dark:bg-amber-950/30 space-y-2.5">
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
+                  <ArrowRightLeft className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span className="text-xs font-bold">
+                    {ar ? "نقل موظف إلى فرع/فندق آخر (Cross-Property Transfer)" : "Cross-Property Transfer"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {ar
+                    ? "سيتم تسجيل خروج الموظف من غرفته الحالية وتحرير سريره مع حفظ كافة سجلات الغرف التاريخية 100%."
+                    : "Resident will be checked out and their bed released, with 100% room logs preserved."}
+                </p>
+
+                <div className="space-y-1.5 pt-1">
+                  <Label className="text-xs font-bold text-foreground">
+                    {ar ? "ماذا تريد أن تفعل بملف الموظف في هذا الفندق؟" : "What should happen to the profile in this hotel?"}
+                  </Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTransferArchiveSource(true)}
+                      className={`p-2.5 rounded-lg border text-start transition-all cursor-pointer ${
+                        transferArchiveSource ? "bg-primary/10 border-primary ring-1 ring-primary/30 shadow-2xs" : "bg-background border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">
+                          {ar ? "1. نقله وحذفه من هنا" : "1. Transfer & Archive Here"}
+                        </span>
+                        {transferArchiveSource && <Check className="w-3.5 h-3.5 text-primary" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {ar ? "أرشفة الملف هنا لعدم التكرار، مع بقاء كل لوج الغرف 100%." : "Archive profile here to avoid duplicates, keeping all room logs."}
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTransferArchiveSource(false)}
+                      className={`p-2.5 rounded-lg border text-start transition-all cursor-pointer ${
+                        !transferArchiveSource ? "bg-primary/10 border-primary ring-1 ring-primary/30 shadow-2xs" : "bg-background border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">
+                          {ar ? "2. نقله وتسيب البروفايل هنا" : "2. Keep Profile Active Here"}
+                        </span>
+                        {!transferArchiveSource && <Check className="w-3.5 h-3.5 text-primary" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {ar ? "إبقاء الملف متاحاً ونشطاً في هذا الفندق أيضاً (انتداب / فرعين)." : "Keep profile active in this hotel too (secondment / dual work)."}
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>{ar ? "سبب النقل" : "Transfer Reason"}</Label>
               <Textarea
