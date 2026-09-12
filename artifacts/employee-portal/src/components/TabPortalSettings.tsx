@@ -110,7 +110,7 @@ export default function TabPortalSettings() {
         .then((creds) => setBioEnabled(!!creds))
         .catch(() => {});
     }
-  }, [biometric]);
+  }, [biometric.isAvailable, biometric.getCredentials]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {

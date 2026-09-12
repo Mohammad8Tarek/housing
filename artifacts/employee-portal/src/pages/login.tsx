@@ -267,7 +267,7 @@ export default function Login() {
         setShowBiometricBtn(!!creds);
       });
     }
-  }, [biometric]);
+  }, [biometric.isAvailable, biometric.getCredentials]);
 
   if (checkingSession) {
     return (

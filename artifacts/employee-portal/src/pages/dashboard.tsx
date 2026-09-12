@@ -166,27 +166,37 @@ export default function Dashboard() {
   useEffect(() => {
     const profileData = profileRes as any;
     if (profileData) {
-      setEmployee((prev: any) => ({
-        ...prev,
-        ...profileData,
-        fullName: prev?.fullName || profileData.name || profileData.fullName,
-        jobTitle: prev?.jobTitle || profileData.position || profileData.jobTitle,
-        photoUrl: profileData.photo || profileData.photoUrl || prev?.photoUrl,
-      }));
+      setEmployee((prev: any) => {
+        if (
+          prev?.id === profileData.id &&
+          prev?.fullName === (profileData.name || profileData.fullName) &&
+          prev?.jobTitle === (profileData.position || profileData.jobTitle) &&
+          prev?.photoUrl === (profileData.photo || profileData.photoUrl)
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          ...profileData,
+          fullName: profileData.name || profileData.fullName || prev?.fullName,
+          jobTitle: profileData.position || profileData.jobTitle || prev?.jobTitle,
+          photoUrl: profileData.photo || profileData.photoUrl || prev?.photoUrl,
+        };
+      });
     }
 
     setPortalData({
       room: roomRes as any,
       assignments: [],
-      photoUrl: profileData?.photo || profileData?.photoUrl || employee?.photoUrl,
+      photoUrl: profileData?.photo || profileData?.photoUrl,
       notifications: notifRes as any,
       alerts: alertsRes as any,
     } as any);
 
-    if (profileData || employee || roomRes) {
+    if (profileData || roomRes) {
       setIsLoading(false);
     }
-  }, [profileRes, roomRes, notifRes, alertsRes, employee]);
+  }, [profileRes, roomRes, notifRes, alertsRes]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -366,7 +376,7 @@ export default function Dashboard() {
     } catch {
       /* silent - offline */
     }
-  }, [employee]);
+  }, [employee?.id]);
 
   useEffect(() => {
     fetchNotifs();
@@ -437,7 +447,7 @@ export default function Dashboard() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [employee]);
+  }, [employee?.id]);
 
   useEffect(() => {
     let cancelled = false;

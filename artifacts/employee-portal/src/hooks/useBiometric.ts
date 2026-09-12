@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Capacitor } from "@capacitor/core";
 
 interface BiometricResult {
@@ -19,12 +19,8 @@ export function useBiometric() {
   });
   const isNative = Capacitor.isNativePlatform();
 
-  useEffect(() => {
+  const checkAvailability = useCallback(async () => {
     if (!isNative) return;
-    checkAvailability();
-  }, [isNative]);
-
-  async function checkAvailability() {
     try {
       const { NativeBiometric } =
         await import("@capgo/capacitor-native-biometric");
@@ -40,9 +36,13 @@ export function useBiometric() {
         error: String(err),
       });
     }
-  }
+  }, [isNative]);
 
-  async function authenticate(reason: string): Promise<boolean> {
+  useEffect(() => {
+    checkAvailability();
+  }, [checkAvailability]);
+
+  const authenticate = useCallback(async (reason: string): Promise<boolean> => {
     if (!isNative) return false;
     try {
       const { NativeBiometric } =
@@ -59,9 +59,9 @@ export function useBiometric() {
     } catch {
       return false;
     }
-  }
+  }, [isNative]);
 
-  async function saveCredentials(username: string, password: string) {
+  const saveCredentials = useCallback(async (username: string, password: string) => {
     if (!isNative) return;
     try {
       const { NativeBiometric } =
@@ -74,9 +74,9 @@ export function useBiometric() {
     } catch {
       /* ignore */
     }
-  }
+  }, [isNative]);
 
-  async function getCredentials(): Promise<BiometricCredentials | null> {
+  const getCredentials = useCallback(async (): Promise<BiometricCredentials | null> => {
     if (!isNative) return null;
     try {
       const { NativeBiometric } =
@@ -88,9 +88,9 @@ export function useBiometric() {
     } catch {
       return null;
     }
-  }
+  }, [isNative]);
 
-  async function deleteCredentials() {
+  const deleteCredentials = useCallback(async () => {
     if (!isNative) return;
     try {
       const { NativeBiometric } =
@@ -99,9 +99,9 @@ export function useBiometric() {
     } catch {
       /* ignore */
     }
-  }
+  }, [isNative]);
 
-  return {
+  return useMemo(() => ({
     isAvailable: biometricInfo.isAvailable,
     biometryType: biometricInfo.biometryType,
     isNative,
@@ -110,5 +110,14 @@ export function useBiometric() {
     getCredentials,
     deleteCredentials,
     checkAvailability,
-  };
+  }), [
+    biometricInfo.isAvailable,
+    biometricInfo.biometryType,
+    isNative,
+    authenticate,
+    saveCredentials,
+    getCredentials,
+    deleteCredentials,
+    checkAvailability,
+  ]);
 }
