@@ -12,9 +12,12 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Building2,
+  Zap,
 } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { QuickAssistTab, QUICK_ACTIONS } from "./QuickAssistTab";
+import { usePermission } from "@/hooks/use-permission";
 
 interface DailyOperationsHubProps {
   checkIns?: any[];
@@ -34,29 +37,56 @@ export function DailyOperationsHub({
   const { language } = useLanguage();
   const ar = language === "ar";
 
-  const [activeTab, setActiveTab] = React.useState<"checkouts" | "checkins" | "maintenance" | "contracts">("checkouts");
+  const { can, isSuperAdmin } = usePermission();
+  const [activeTab, setActiveTab] = React.useState<"quick_assist" | "checkouts" | "checkins" | "maintenance" | "contracts">("quick_assist");
+
+  const permittedCount = React.useMemo(() => {
+    if (isSuperAdmin) return QUICK_ACTIONS.length;
+    return QUICK_ACTIONS.filter((item) => can(item.module, item.action)).length;
+  }, [can, isSuperAdmin]);
 
   return (
     <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden flex flex-col">
       <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <CardTitle className="text-base font-bold flex items-center gap-2">
-            <Clock className="w-4 h-4 text-primary" />
-            {ar ? "مركز العمليات والنبض اليومي" : "Daily Operations Pulse"}
+            <Zap className="w-4 h-4 text-amber-500" />
+            {ar ? "مركز العمليات والمساعد السريع" : "Operations & Quick Assist Hub"}
           </CardTitle>
           <CardDescription className="text-xs mt-0.5">
             {ar
-              ? "متابعة إجراءات الإخلاء، الوصول، الصيانة الحرجة، وتجديد العقود"
-              : "Live pipeline of departures, arrivals, work orders, and contract renewals"}
+              ? "إجراءات تشغيلية سريعة مرتبة بصلاحياتك، مع متابعة المغادرات والوصول والصيانة"
+              : "Permission-driven quick operational actions, live departures, arrivals, and maintenance"}
           </CardDescription>
         </div>
 
         {/* Tab Controls */}
         <div className="bg-muted/70 p-1 rounded-xl border border-border/40 self-start sm:self-auto h-auto flex flex-wrap gap-1">
           <button
+            onClick={() => setActiveTab("quick_assist")}
+            className={cn(
+              "px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer",
+              activeTab === "quick_assist"
+                ? "bg-amber-500 text-white shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Zap className={cn("w-3.5 h-3.5", activeTab === "quick_assist" ? "text-white animate-pulse" : "text-amber-500")} />
+            <span>{ar ? "المساعد السريع" : "Quick Assist"}</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-bold font-mono",
+                activeTab === "quick_assist" ? "bg-white/20 text-white" : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+              )}
+            >
+              {permittedCount}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("checkouts")}
             className={cn(
-              "px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5",
+              "px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer",
               activeTab === "checkouts"
                 ? "bg-background text-foreground shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground",
@@ -127,7 +157,12 @@ export function DailyOperationsHub({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-2 flex-1 overflow-auto min-h-[260px] max-h-[320px]">
+      <CardContent className={cn("pt-2 flex-1 overflow-auto", activeTab === "quick_assist" ? "min-h-[360px] max-h-[500px]" : "min-h-[260px] max-h-[320px]")}>
+        {/* TAB 0: QUICK ASSIST & PERMISSION-DRIVEN ACTIONS */}
+        {activeTab === "quick_assist" && (
+          <QuickAssistTab buildNavHref={buildNavHref} />
+        )}
+
         {/* TAB 1: CHECKOUTS / DEPARTURES */}
         {activeTab === "checkouts" && (
           <div className="space-y-2">
