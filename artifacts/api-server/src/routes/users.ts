@@ -251,6 +251,8 @@ router.get(
         u.locked_until && new Date(u.locked_until) > new Date()
           ? "LOCKED"
           : u.status || "ACTIVE",
+      failedLoginAttempts: u.failed_login_attempts ?? 0,
+      lockedUntil: u.locked_until ?? null,
       createdAt: u.created_at,
     };
     });
@@ -701,6 +703,115 @@ router.delete(
         error: "فشل حذف المستخدم لوجود ارتباطات متعلقة بالسجل",
         details: err.message,
       });
+    }
+  },
+);
+
+// ─── POST /users/bulk ──────────────────────────────────────
+router.post(
+  "/users/bulk",
+  requirePermission("users", "edit"),
+  async (req, res): Promise<void> => {
+    try {
+      const { ids, action, role, propertyIds, status } = req.body as {
+        ids: number[];
+        action: "role" | "properties" | "status";
+        role?: string;
+        propertyIds?: number[];
+        status?: "ACTIVE" | "INACTIVE" | "UNLOCK";
+      };
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        res.status(400).json({ error: "ids must be a non-empty array of user IDs" });
+        return;
+      }
+
+      const session = req.session as any;
+      let updatedCount = 0;
+
+      if (action === "role" && role) {
+        for (const id of ids) {
+          await db
+            .update(usersTable)
+            .set({ roles: [role.toLowerCase()] })
+            .where(eq(usersTable.id, id));
+          updatedCount++;
+        }
+        await logActivity({
+          req,
+          propertyId: session?.propertyId ?? 0,
+          username: session?.username ?? "System",
+          userId: session?.userId,
+          userRole: session?.userRole ?? "admin",
+          action: `تعديل دور جماعي لـ ${ids.length} مستخدم إلى: ${role}`,
+          actionType: "UPDATE",
+          module: "users",
+          entityType: "user",
+          severity: "info",
+        });
+      } else if (action === "properties" && Array.isArray(propertyIds)) {
+        for (const id of ids) {
+          await db
+            .update(usersTable)
+            .set({
+              propertyIds: propertyIds,
+              propertyId: propertyIds[0] ?? null,
+            } as any)
+            .where(eq(usersTable.id, id));
+          updatedCount++;
+        }
+        await logActivity({
+          req,
+          propertyId: session?.propertyId ?? 0,
+          username: session?.username ?? "System",
+          userId: session?.userId,
+          userRole: session?.userRole ?? "admin",
+          action: `تعديل فروع جماعي لـ ${ids.length} مستخدم`,
+          actionType: "UPDATE",
+          module: "users",
+          entityType: "user",
+          severity: "info",
+        });
+      } else if (action === "status" && status) {
+        for (const id of ids) {
+          if (status === "UNLOCK") {
+            await db
+              .update(usersTable)
+              .set({
+                lockedUntil: null,
+                failedLoginAttempts: 0,
+                status: "ACTIVE",
+              } as any)
+              .where(eq(usersTable.id, id));
+          } else {
+            await db
+              .update(usersTable)
+              .set({ status } as any)
+              .where(eq(usersTable.id, id));
+          }
+          updatedCount++;
+        }
+        await logActivity({
+          req,
+          propertyId: session?.propertyId ?? 0,
+          username: session?.username ?? "System",
+          userId: session?.userId,
+          userRole: session?.userRole ?? "admin",
+          action: `تعديل حالة جماعي لـ ${ids.length} مستخدم إلى: ${status}`,
+          actionType: "UPDATE",
+          module: "users",
+          entityType: "user",
+          severity: "info",
+        });
+      } else {
+        res.status(400).json({ error: "Invalid action or missing required parameters" });
+        return;
+      }
+
+      res.json({ success: true, updatedCount });
+    } catch (err: any) {
+      console.error("Bulk users operation failed:", err);
+      res.status(500).json({ error: "Failed to perform bulk operation", details: err.message });
     }
   },
 );

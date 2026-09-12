@@ -48,6 +48,7 @@ import {
   Loader2,
   Sparkles,
   CheckCircle2,
+  Copy,
 } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { getPermissionsForRoles } from "@/lib/permissions";
@@ -141,6 +142,33 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
   const pwdEvaluation = useMemo(() => {
     return evaluatePassword(form.password);
   }, [form.password]);
+
+  // Generate strong random password
+  const handleGeneratePassword = () => {
+    const chars = "abcdefghjkmnpqrstuvwxyz";
+    const uppers = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const numbers = "23456789";
+    const symbols = "!@#$%^&*";
+    let pwd = "";
+    pwd += uppers.charAt(Math.floor(Math.random() * uppers.length));
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    pwd += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    pwd += symbols.charAt(Math.floor(Math.random() * symbols.length));
+    const all = chars + uppers + numbers + symbols;
+    for (let i = 0; i < 8; i++) {
+      pwd += all.charAt(Math.floor(Math.random() * all.length));
+    }
+    setForm((f) => ({ ...f, password: pwd }));
+    setShowPassword(true);
+    if (errors.password) setErrors((err) => ({ ...err, password: undefined }));
+    toast.success(ar ? "تم توليد كلمة سر معقدة مطابقة لسياسة الأمان" : "Strong password generated");
+  };
+
+  const handleCopyCredentials = () => {
+    const text = `Sunrise Staff Housing Account:\nUsername: ${form.username || "-"}\nPassword: ${form.password}\nRole: ${form.role}`;
+    navigator.clipboard.writeText(text);
+    toast.success(ar ? "تم نسخ بيانات الاعتماد إلى الحافظة" : "Credentials copied to clipboard");
+  };
 
   // Handle property toggle
   const toggleProperty = (pid: number) => {
@@ -460,14 +488,36 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
 
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                     {ar ? "كلمة المرور الجديدة" : "New Password"}
                     <span className="text-destructive">*</span>
                   </Label>
-                  <span className="text-[11px] text-muted-foreground">
-                    {ar ? "تتطلب أحرف كبيرة وصغيرة وأرقام" : "Requires upper, lower & number"}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGeneratePassword}
+                      className="h-6 px-2 text-[11px] gap-1 border-[#C9A24D]/40 text-[#C9A24D] hover:bg-[#C9A24D]/10 font-semibold"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      {ar ? "توليد كلمة معقدة" : "Generate"}
+                    </Button>
+                    {form.password && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCopyCredentials}
+                        className="h-6 px-1.5 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                        title={ar ? "نسخ بيانات الحساب" : "Copy credentials"}
+                      >
+                        <Copy className="w-3 h-3" />
+                        {ar ? "نسخ" : "Copy"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 pointer-events-none" />

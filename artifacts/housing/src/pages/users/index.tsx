@@ -60,7 +60,19 @@ import {
   Gauge,
   LockKeyhole,
   ClipboardCheck,
+  AlertTriangle,
+  Sparkles,
+  Check,
+  RefreshCw,
+  Filter,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { usePermission } from "@/hooks/use-permission";
 import {
@@ -111,6 +123,16 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [workflowFilter, setWorkflowFilter] = useState<"all" | "workflow">("all");
+  const [signedFilter, setSignedFilter] = useState<"all" | "signed">("all");
+  const [customPermsFilter, setCustomPermsFilter] = useState(false);
+
+  // Bulk Operations State
+  const [bulkRoleModalOpen, setBulkRoleModalOpen] = useState(false);
+  const [bulkPropModalOpen, setBulkPropModalOpen] = useState(false);
+  const [selectedBulkRole, setSelectedBulkRole] = useState("manager");
+  const [selectedBulkProps, setSelectedBulkProps] = useState<number[]>([]);
+  const [isBulkExecuting, setIsBulkExecuting] = useState(false);
   const [editUser, setEditUser] = useState<any | null>(null);
   const [unlockUser, setUnlockUser] = useState<any | null>(null);
   const [editPropsUser, setEditPropsUser] = useState<any | null>(null);
@@ -155,9 +177,9 @@ export default function UsersPage() {
 
 
 
-  // ── Optimized Stats (Single Pass) ──
+  // ── Optimized Stats (Single Pass across all accounts) ──
   const stats = useMemo(() => {
-    const all = users || [];
+    const all = (allUsers && allUsers.length > 0) ? allUsers : (users || []);
     const s = {
       total: all.length,
       superAdmin: 0,
@@ -177,8 +199,8 @@ export default function UsersPage() {
       if (u.status === "ACTIVE") s.active++;
       if (u.status === "LOCKED") s.locked++;
       if (u.status === "INACTIVE") s.inactive++;
-      if (u.jobTitle) s.workflowUsers++;
-      if (u.jobTitle && u.hasSignature) s.signedWorkflowUsers++;
+      if (u.jobTitle && u.jobTitle !== "none") s.workflowUsers++;
+      if (u.jobTitle && u.jobTitle !== "none" && u.hasSignature) s.signedWorkflowUsers++;
       if ((u.permissions || []).length > 0) {
         s.customPermissionUsers++;
         s.customPermissionTotal += (u.permissions || []).length;
@@ -194,7 +216,7 @@ export default function UsersPage() {
         s.maintenance++;
     }
     return s;
-  }, [users]);
+  }, [allUsers, users]);
 
   const ROLE_TABS = [
     { id: "all", label: ar ? "الكل" : "All", icon: Users, count: stats.total },
@@ -286,7 +308,21 @@ export default function UsersPage() {
     isVisible: isUVisible,
   } = useColumnVisibility(USER_COLS);
 
-  const pagedUsers = users;
+  const filteredUsers = useMemo(() => {
+    let list = users;
+    if (workflowFilter === "workflow") {
+      list = list.filter((u: any) => u.jobTitle && u.jobTitle !== "none");
+    }
+    if (signedFilter === "signed") {
+      list = list.filter((u: any) => u.jobTitle && u.jobTitle !== "none" && u.hasSignature);
+    }
+    if (customPermsFilter) {
+      list = list.filter((u: any) => (u.permissions || []).length > 0);
+    }
+    return list;
+  }, [users, workflowFilter, signedFilter, customPermsFilter]);
+
+  const pagedUsers = filteredUsers;
   const pagedUserIds = pagedUsers.map((u: any) => u.id);
   const allUserPageSelected =
     pagedUserIds.length > 0 &&
@@ -335,6 +371,95 @@ export default function UsersPage() {
     XLSX.writeFile(wb, getExportFileName("Users", "xlsx"));
   };
 
+  const handleBulkRoleChange = async () => {
+    if (selectedRows.size === 0 || !selectedBulkRole) return;
+    setIsBulkExecuting(true);
+    try {
+      const res = await fetch("/api/users/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: Array.from(selectedRows),
+          action: "role",
+          role: selectedBulkRole,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update roles");
+      toast.success(
+        ar
+          ? `تم تحديث دور ${selectedRows.size} مستخدم بنجاح`
+          : `Updated roles for ${selectedRows.size} users`,
+      );
+      setBulkRoleModalOpen(false);
+      setSelectedRows(new Set());
+      invalidate();
+    } catch (err: any) {
+      toast.error(err.message || (ar ? "فشل التحديث الجماعي" : "Bulk update failed"));
+    } finally {
+      setIsBulkExecuting(false);
+    }
+  };
+
+  const handleBulkPropertiesChange = async () => {
+    if (selectedRows.size === 0) return;
+    setIsBulkExecuting(true);
+    try {
+      const res = await fetch("/api/users/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: Array.from(selectedRows),
+          action: "properties",
+          propertyIds: selectedBulkProps,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to assign properties");
+      toast.success(
+        ar
+          ? `تم تعيين الفروع لـ ${selectedRows.size} مستخدم بنجاح`
+          : `Assigned properties to ${selectedRows.size} users`,
+      );
+      setBulkPropModalOpen(false);
+      setSelectedRows(new Set());
+      invalidate();
+    } catch (err: any) {
+      toast.error(err.message || (ar ? "فشل تعيين الفروع" : "Failed to assign properties"));
+    } finally {
+      setIsBulkExecuting(false);
+    }
+  };
+
+  const handleBulkUnlock = async () => {
+    if (selectedRows.size === 0) return;
+    setIsBulkExecuting(true);
+    try {
+      const res = await fetch("/api/users/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: Array.from(selectedRows),
+          action: "status",
+          status: "UNLOCK",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to unlock users");
+      toast.success(
+        ar
+          ? `تم فك قفل ${selectedRows.size} مستخدم بنجاح`
+          : `Unlocked ${selectedRows.size} users`,
+      );
+      setSelectedRows(new Set());
+      invalidate();
+    } catch (err: any) {
+      toast.error(err.message || (ar ? "فشل فك القفل" : "Failed to unlock users"));
+    } finally {
+      setIsBulkExecuting(false);
+    }
+  };
+
   const bulkDeleteUserMutation = useDeleteUser({
     mutation: {
       onSuccess: () => {
@@ -355,6 +480,7 @@ export default function UsersPage() {
           user={sheetUser}
           initialTab={sheetTab}
           properties={properties ?? []}
+          allUsers={allUsers ?? []}
           onClose={() => setSheetUser(null)}
         />
       )}
@@ -570,45 +696,97 @@ export default function UsersPage() {
                   : "A quick health check for accounts, approval roles, and custom access."}
               </p>
             </div>
-            <Badge variant="outline" className="rounded-md">
-              {stats.customPermissionTotal} {ar ? "صلاحية" : "permissions"}
-            </Badge>
+            <button
+              type="button"
+              onClick={() => {
+                setCustomPermsFilter((prev) => !prev);
+                setCurrentPage(1);
+              }}
+              title={ar ? "تصفية المستخدمين ذوي الصلاحيات المخصصة" : "Filter users with custom permissions"}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border transition-all cursor-pointer ${
+                customPermsFilter
+                  ? "bg-[#C9A24D] text-white border-[#C9A24D] shadow-sm"
+                  : "bg-muted/50 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-[#C9A24D]" />
+              <span>{stats.customPermissionTotal} {ar ? "صلاحية مخصصة" : "custom permissions"}</span>
+              {customPermsFilter && <span className="text-[10px]">✕</span>}
+            </button>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
               {
+                id: "active",
                 label: ar ? "نشط" : "Active",
                 value: stats.active,
                 icon: ShieldCheck,
-                tone: "text-emerald-600 bg-emerald-50 border-emerald-100",
+                tone: "text-emerald-600 bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-800/40",
+                active: statusFilter === "ACTIVE",
+                onClick: () => {
+                  setStatusFilter((prev) => (prev === "ACTIVE" ? "all" : "ACTIVE"));
+                  setCurrentPage(1);
+                },
               },
               {
+                id: "locked",
                 label: ar ? "مقفول" : "Locked",
                 value: stats.locked,
                 icon: LockKeyhole,
-                tone: "text-rose-600 bg-rose-50 border-rose-100",
+                tone: "text-rose-600 bg-rose-50 border-rose-100 dark:bg-rose-950/20 dark:border-rose-800/40",
+                active: statusFilter === "LOCKED",
+                onClick: () => {
+                  setStatusFilter((prev) => (prev === "LOCKED" ? "all" : "LOCKED"));
+                  setCurrentPage(1);
+                },
               },
               {
+                id: "workflow",
                 label: ar ? "أدوار اعتماد" : "Approval roles",
                 value: stats.workflowUsers,
                 icon: ClipboardCheck,
-                tone: "text-amber-700 bg-amber-50 border-amber-100",
+                tone: "text-amber-700 bg-amber-50 border-amber-100 dark:bg-amber-950/20 dark:border-amber-800/40",
+                active: workflowFilter === "workflow",
+                onClick: () => {
+                  setWorkflowFilter((prev) => (prev === "workflow" ? "all" : "workflow"));
+                  setCurrentPage(1);
+                },
               },
               {
+                id: "signed",
                 label: ar ? "بتوقيع" : "Signed",
                 value: stats.signedWorkflowUsers,
                 icon: Fingerprint,
-                tone: "text-sky-700 bg-sky-50 border-sky-100",
+                tone: "text-sky-700 bg-sky-50 border-sky-100 dark:bg-sky-950/20 dark:border-sky-800/40",
+                active: signedFilter === "signed",
+                onClick: () => {
+                  setSignedFilter((prev) => (prev === "signed" ? "all" : "signed"));
+                  setCurrentPage(1);
+                },
               },
             ].map((item) => (
-              <div key={item.label} className={`rounded-lg border p-3 ${item.tone}`}>
+              <button
+                key={item.id}
+                type="button"
+                onClick={item.onClick}
+                className={`rounded-lg border p-3 text-start transition-all cursor-pointer hover:shadow-sm ${item.tone} ${
+                  item.active ? "ring-2 ring-offset-2 ring-[#0F2A44] dark:ring-[#C9A24D] shadow-md scale-[1.02]" : "opacity-90 hover:opacity-100"
+                }`}
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium">{item.label}</span>
+                  <span className="text-xs font-semibold">{item.label}</span>
                   <item.icon className="h-4 w-4" />
                 </div>
-                <div className="mt-2 text-2xl font-bold">{item.value}</div>
-              </div>
+                <div className="mt-2 text-2xl font-bold flex items-baseline justify-between">
+                  <span>{item.value}</span>
+                  {item.active && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10">
+                      {ar ? "مفعل" : "Filtered"}
+                    </span>
+                  )}
+                </div>
+              </button>
             ))}
           </div>
         </section>
@@ -721,30 +899,74 @@ export default function UsersPage() {
         onExportExcel={exportUserExcel}
         ar={ar}
         extraActions={
-          <PermissionGate module="settings" action="delete">
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    ar
-                      ? `هل أنت متأكد من حذف ${selectedRows.size} مستخدم محدد؟`
-                      : `Are you sure you want to delete ${selectedRows.size} selected users?`
-                  )
-                ) {
-                  selectedRows.forEach((id) =>
-                    bulkDeleteUserMutation.mutate({ id })
-                  );
-                  setSelectedRows(new Set());
-                }
-              }}
-              className="gap-1.5 h-8 text-xs font-semibold"
-            >
-              <Trash className="w-3.5 h-3.5" />
-              {ar ? "حذف المحدد" : "Delete Selected"}
-            </Button>
-          </PermissionGate>
+          <div className="flex items-center gap-2 flex-wrap">
+            <PermissionGate module="users" action="edit">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBulkRoleModalOpen(true)}
+                className="gap-1.5 h-8 text-xs font-semibold bg-background border-border/80 hover:bg-muted"
+              >
+                <Shield className="w-3.5 h-3.5 text-[#C9A24D]" />
+                {ar ? "تغيير الدور" : "Change Role"}
+              </Button>
+            </PermissionGate>
+
+            {isSuperAdmin && (
+              <PermissionGate module="users" action="edit">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedBulkProps([]);
+                    setBulkPropModalOpen(true);
+                  }}
+                  className="gap-1.5 h-8 text-xs font-semibold bg-background border-border/80 hover:bg-muted"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                  {ar ? "تخصيص الفروع" : "Assign Hotels"}
+                </Button>
+              </PermissionGate>
+            )}
+
+            <PermissionGate module="users" action="edit">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkUnlock}
+                disabled={isBulkExecuting}
+                className="gap-1.5 h-8 text-xs font-semibold bg-background border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+              >
+                <KeyRound className="w-3.5 h-3.5 text-emerald-500" />
+                {ar ? "فك القفل" : "Unlock"}
+              </Button>
+            </PermissionGate>
+
+            <PermissionGate module="settings" action="delete">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      ar
+                        ? `هل أنت متأكد من حذف ${selectedRows.size} مستخدم محدد؟`
+                        : `Are you sure you want to delete ${selectedRows.size} selected users?`
+                    )
+                  ) {
+                    selectedRows.forEach((id) =>
+                      bulkDeleteUserMutation.mutate({ id })
+                    );
+                    setSelectedRows(new Set());
+                  }
+                }}
+                className="gap-1.5 h-8 text-xs font-semibold"
+              >
+                <Trash className="w-3.5 h-3.5" />
+                {ar ? "حذف المحدد" : "Delete Selected"}
+              </Button>
+            </PermissionGate>
+          </div>
         }
       />
 
@@ -1152,31 +1374,53 @@ export default function UsersPage() {
                       )}
                       {isUVisible("status") && (
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {u.status === "LOCKED" ? (
-                              <>
-                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                <span className="text-xs font-semibold text-red-600 dark:text-red-400">
-                                  {ar ? "مقفول" : "Locked"}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <div
-                                  className={`w-2 h-2 rounded-full ${u.status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
-                                />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              {u.status === "LOCKED" ? (
+                                <>
+                                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                  <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                                    {ar ? "مقفول" : "Locked"}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <div
+                                    className={`w-2 h-2 rounded-full ${u.status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
+                                  />
+                                  <span
+                                    className={`text-xs font-semibold ${u.status === "ACTIVE" ? "text-green-700 dark:text-green-400" : "text-gray-500"}`}
+                                  >
+                                    {u.status === "ACTIVE"
+                                      ? ar
+                                        ? "نشط"
+                                        : "Active"
+                                      : ar
+                                        ? "غير نشط"
+                                        : "Inactive"}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Security Telemetry */}
+                            {u.failedLoginAttempts > 0 && (
+                              <div className="flex items-center gap-1">
                                 <span
-                                  className={`text-xs font-semibold ${u.status === "ACTIVE" ? "text-green-700 dark:text-green-400" : "text-gray-500"}`}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                                  title={ar ? `${u.failedLoginAttempts} محاولات دخول فاشلة` : `${u.failedLoginAttempts} failed login attempts`}
                                 >
-                                  {u.status === "ACTIVE"
-                                    ? ar
-                                      ? "نشط"
-                                      : "Active"
-                                    : ar
-                                      ? "غير نشط"
-                                      : "Inactive"}
+                                  <AlertTriangle className="w-2.5 h-2.5 text-amber-500" />
+                                  {u.failedLoginAttempts} {ar ? "محاولة فاشلة" : "failed"}
                                 </span>
-                              </>
+                              </div>
+                            )}
+
+                            {u.lockedUntil && new Date(u.lockedUntil) > new Date() && (
+                              <span className="text-[10px] text-muted-foreground block font-mono">
+                                {ar ? "مغلق حتى: " : "locked until: "}
+                                {new Date(u.lockedUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
                             )}
                           </div>
                         </TableCell>
@@ -1369,6 +1613,131 @@ export default function UsersPage() {
       )}
         </>
       )}
+      {/* ── Bulk Role Assignment Dialog ── */}
+      <Dialog open={bulkRoleModalOpen} onOpenChange={setBulkRoleModalOpen}>
+        <DialogContent className="max-w-md" dir={ar ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Shield className="w-5 h-5 text-[#C9A24D]" />
+              {ar ? `تغيير الدور لـ (${selectedRows.size}) مستخدم محدد` : `Change Role for (${selectedRows.size}) Users`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              {ar
+                ? "حدد الدور الوظيفي الجديد ليتم تطبيقه على جميع الحسابات المحددة فوراً:"
+                : "Select the new primary role to apply immediately to all selected accounts:"}
+            </p>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground">
+                {ar ? "الدور الجديد" : "Target Role"}
+              </label>
+              <Select value={selectedBulkRole} onValueChange={setSelectedBulkRole}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_ROLES.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      <span className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${roleColor(role.value)}`} />
+                        {ar ? role.labelAr : role.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setBulkRoleModalOpen(false)}
+              disabled={isBulkExecuting}
+            >
+              {ar ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={handleBulkRoleChange}
+              disabled={isBulkExecuting}
+              className="bg-[#0F2A44] hover:bg-[#143555] text-white"
+            >
+              {isBulkExecuting ? (
+                <RefreshCw className="w-4 h-4 animate-spin me-1.5" />
+              ) : (
+                <Check className="w-4 h-4 me-1.5" />
+              )}
+              {ar ? "تطبيق الدور الجماعي" : "Apply Role"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Bulk Property Assignment Dialog ── */}
+      <Dialog open={bulkPropModalOpen} onOpenChange={setBulkPropModalOpen}>
+        <DialogContent className="max-w-md" dir={ar ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Building2 className="w-5 h-5 text-blue-500" />
+              {ar ? `تخصيص الفروع الفندقية لـ (${selectedRows.size}) مستخدم` : `Assign Properties for (${selectedRows.size}) Users`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              {ar
+                ? "حدد الفنادق والفروع المسموح للمستخدمين المحددين الوصول إليها وإدارتها:"
+                : "Select the hotel properties these selected users will have access to:"}
+            </p>
+            <div className="space-y-2 max-h-56 overflow-y-auto border rounded-lg p-2.5 bg-muted/20">
+              {(properties ?? []).map((p: any) => {
+                const checked = selectedBulkProps.includes(p.id);
+                return (
+                  <label
+                    key={p.id}
+                    className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer transition-colors"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(val) => {
+                        if (val) {
+                          setSelectedBulkProps((prev) => [...prev, p.id]);
+                        } else {
+                          setSelectedBulkProps((prev) => prev.filter((id) => id !== p.id));
+                        }
+                      }}
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold">{p.name}</span>
+                      <span className="text-xs text-muted-foreground font-mono ms-2">({p.code})</span>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setBulkPropModalOpen(false)}
+              disabled={isBulkExecuting}
+            >
+              {ar ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={handleBulkPropertiesChange}
+              disabled={isBulkExecuting}
+              className="bg-[#0F2A44] hover:bg-[#143555] text-white"
+            >
+              {isBulkExecuting ? (
+                <RefreshCw className="w-4 h-4 animate-spin me-1.5" />
+              ) : (
+                <Check className="w-4 h-4 me-1.5" />
+              )}
+              {ar ? "تطبيق الفروع" : "Apply Properties"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

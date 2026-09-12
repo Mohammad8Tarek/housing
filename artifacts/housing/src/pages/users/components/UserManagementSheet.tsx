@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Copy, ClipboardCheck, Plus, MinusCircle, Users, Activity, HelpCircle, RefreshCw, Zap,
   UserCog,
   User,
   Mail,
@@ -96,6 +97,7 @@ interface UserManagementSheetProps {
   user: any | null;
   onClose: () => void;
   properties?: any[];
+  allUsers?: any[];
   initialTab?: "profile" | "properties" | "permissions" | "signature";
 }
 
@@ -103,6 +105,7 @@ export function UserManagementSheet({
   user,
   onClose,
   properties: propProperties = [],
+  allUsers = [],
   initialTab = "profile",
 }: UserManagementSheetProps) {
   const { language } = useLanguage();
@@ -148,6 +151,160 @@ export function UserManagementSheet({
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [permSearch, setPermSearch] = useState("");
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>("all");
+
+  // Smart Permission Clone State
+  const [cloneSourceUserId, setCloneSourceUserId] = useState<string>("");
+
+  // Live Access Simulator State
+  const [simModule, setSimModule] = useState<string>("housing");
+  const [simAction, setSimAction] = useState<string>("view");
+  const [showSimulator, setShowSimulator] = useState(false);
+
+  // Overrides & Diff filter
+  const [showOverridesOnly, setShowOverridesOnly] = useState(false);
+
+  // Available actions for the selected simulator module
+  const simActions = useMemo(() => {
+    return MODULE_ACTIONS[simModule] || ["view"];
+  }, [simModule]);
+
+  // Ensure simAction is valid when simModule changes
+  useEffect(() => {
+    if (simActions.length > 0 && !simActions.includes(simAction)) {
+      setSimAction(simActions[0]);
+    }
+  }, [simModule, simActions, simAction]);
+
+  // Default perms for currently selected role
+  const defaultPermsForRole = useMemo(() => {
+    return new Set(ROLE_DEFAULT_PERMISSIONS[primaryRole] || []);
+  }, [primaryRole]);
+
+  // Diff Stats calculation
+  const diffStats = useMemo(() => {
+    if (isDynamicInheritance) {
+      return { added: 0, revoked: 0, isIdentical: true, addedKeys: new Set<string>(), revokedKeys: new Set<string>() };
+    }
+    const added = Array.from(perms).filter((p) => !defaultPermsForRole.has(p));
+    const revoked = Array.from(defaultPermsForRole).filter((p) => !perms.has(p));
+    return {
+      added: added.length,
+      revoked: revoked.length,
+      isIdentical: added.length === 0 && revoked.length === 0,
+      addedKeys: new Set(added),
+      revokedKeys: new Set(revoked),
+    };
+  }, [perms, defaultPermsForRole, isDynamicInheritance]);
+
+  // Check if a module has overrides
+  const isModuleOverridden = (mod: string) => {
+    const actions = MODULE_ACTIONS[mod] || [];
+    return actions.some((act) => {
+      const key = permKey(mod, act);
+      return diffStats.addedKeys?.has(key) || diffStats.revokedKeys?.has(key);
+    });
+  };
+
+  // Smart Password Generator
+  const handleGeneratePassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
+    let pwd = "";
+    pwd += "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)];
+    pwd += "abcdefghijkmnpqrstuvwxyz"[Math.floor(Math.random() * 24)];
+    pwd += "23456789"[Math.floor(Math.random() * 8)];
+    pwd += "!@#$%&*"[Math.floor(Math.random() * 7)];
+    for (let i = 0; i < 8; i++) {
+      pwd += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const shuffled = pwd.split("").sort(() => 0.5 - Math.random()).join("");
+    setNewPassword(shuffled);
+    setConfirmPassword(shuffled);
+    setShowPasswordText(true);
+    toast.success(ar ? "تم توليد كلمة مرور قوية معقدة عشوائياً" : "Strong password generated");
+  };
+
+  // Copy Credentials to Clipboard
+  const handleCopyCredentials = () => {
+    if (!newPassword) {
+      toast.error(ar ? "يرجى كتابة أو توليد كلمة المرور أولاً" : "Please generate or enter password first");
+      return;
+    }
+    const text = `${ar ? "اسم المستخدم" : "Username"}: ${user?.username}\n${ar ? "كلمة المرور" : "Password"}: ${newPassword}\n${ar ? "رابط النظام" : "System URL"}: ${window.location.origin}`;
+    navigator.clipboard.writeText(text);
+    toast.success(ar ? "تم نسخ بيانات الدخول إلى الحافظة بنجاح" : "Credentials copied to clipboard");
+  };
+
+  // Clone Permissions Handler
+  const handleClonePermissions = () => {
+    if (!cloneSourceUserId) {
+      toast.error(ar ? "يرجى اختيار المستخدم أولاً" : "Please select a user to clone from");
+      return;
+    }
+    const source = allUsers?.find((u) => String(u.id) === String(cloneSourceUserId));
+    if (!source) return;
+
+    const sourceExplicit = (source.permissions as string[] | undefined) ?? [];
+    if (sourceExplicit.length === 0) {
+      const sourceRole = (source.roles?.[0] || "user").toLowerCase();
+      const roleDefaults = ROLE_DEFAULT_PERMISSIONS[sourceRole] || [];
+      setPerms(new Set(roleDefaults));
+    } else {
+      const normalized = sourceExplicit.map((p) => {
+        let s = String(p).trim().toLowerCase();
+        if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
+        if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+        return s;
+      });
+      setPerms(new Set(normalized));
+    }
+    setIsDynamicInheritance(false);
+    toast.success(
+      ar
+        ? `تم استنساخ كافة صلاحيات (${source.username}) بنجاح للمسودة`
+        : `Cloned permissions from ${source.username} successfully`,
+    );
+  };
+
+  // Access Simulator Evaluator
+  const simulatorResult = useMemo(() => {
+    if (!simModule || !simAction) return null;
+    const isSuper = primaryRole === "super_admin";
+    if (isSuper) {
+      return {
+        allowed: true,
+        reason: ar ? "مسموح بالكامل (سوبر أدمن مدير النظام العام)" : "Fully allowed (Super Admin)",
+        type: "super",
+      };
+    }
+    const key = permKey(simModule, simAction);
+    const hasPerm = perms.has(key);
+    if (hasPerm) {
+      if (isDynamicInheritance) {
+        return {
+          allowed: true,
+          reason: ar
+            ? `مسموح ✅ - موروث تلقائياً من الدور الافتراضي (${primaryRole})`
+            : `Allowed - inherited from role (${primaryRole})`,
+          type: "inherited",
+        };
+      }
+      return {
+        allowed: true,
+        reason: ar
+          ? "مسموح ✅ - ممنوح استثنائياً عبر الصلاحيات المخصصة"
+          : "Allowed - explicitly granted via custom permissions",
+        type: "custom",
+      };
+    }
+    return {
+      allowed: false,
+      reason: ar
+        ? "محظور ❌ - المستخدم لا يمتلك هذا التصريح في مصفوفته"
+        : "Denied - user does not have this permission",
+      type: "denied",
+    };
+  }, [simModule, simAction, primaryRole, perms, isDynamicInheritance, ar]);
+
 
   // Signature state
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
@@ -947,6 +1104,190 @@ export function UserManagementSheet({
                   </div>
                 </div>
 
+                
+                {/* ── Overrides Diff & Clone Permissions Toolbar ── */}
+                <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    {/* Diff Indicator */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{ar ? "تحليل الفروقات عن الدور القياسي:" : "Role Overrides Analysis:"}</span>
+                      </span>
+
+                      {diffStats.isIdentical ? (
+                        <Badge variant="outline" className="text-[11px] font-semibold bg-primary/10 text-primary border-primary/20">
+                          {ar ? "متطابق 100% مع صلاحيات الدور" : "100% Matches Role"}
+                        </Badge>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          {diffStats.added > 0 && (
+                            <Badge className="text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 gap-1">
+                              <Plus className="w-3 h-3 stroke-[3]" />
+                              <span>{diffStats.added} {ar ? "مضافة" : "added"}</span>
+                            </Badge>
+                          )}
+                          {diffStats.revoked > 0 && (
+                            <Badge className="text-[11px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 gap-1">
+                              <MinusCircle className="w-3 h-3" />
+                              <span>{diffStats.revoked} {ar ? "محجوبة" : "revoked"}</span>
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Show Overrides Only Switch */}
+                    {!isDynamicInheritance && (diffStats.added > 0 || diffStats.revoked > 0) && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {ar ? "عرض الاستثناءات فقط" : "Show Overrides Only"}
+                        </span>
+                        <Switch
+                          checked={showOverridesOnly}
+                          onCheckedChange={setShowOverridesOnly}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Clone Permissions & Simulator Triggers */}
+                  <div className="pt-2.5 border-t border-border/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    {/* Clone from User */}
+                    <div className="flex items-center gap-2 flex-1">
+                      <Select value={cloneSourceUserId} onValueChange={setCloneSourceUserId}>
+                        <SelectTrigger className="h-8 text-xs font-medium flex-1">
+                          <SelectValue placeholder={ar ? "نسخ الصلاحيات من مستخدم آخر..." : "Clone permissions from user..."} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allUsers
+                            .filter((u) => u.id !== user?.id)
+                            .map((u) => (
+                              <SelectItem key={u.id} value={String(u.id)} className="text-xs">
+                                {u.name ? `${u.name} (@${u.username})` : u.username} · ${(u.roles?.[0] || "user").toUpperCase()}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleClonePermissions}
+                        disabled={!cloneSourceUserId}
+                        className="h-8 text-xs font-bold gap-1 shrink-0"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{ar ? "استنساخ" : "Clone"}</span>
+                      </Button>
+                    </div>
+
+                    {/* Access Simulator Toggle Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSimulator(!showSimulator)}
+                      className={cn(
+                        "h-8 text-xs font-bold gap-1.5 shrink-0 transition-colors",
+                        showSimulator ? "bg-primary text-primary-foreground" : "hover:border-primary/50",
+                      )}
+                    >
+                      <Activity className="w-3.5 h-3.5" />
+                      <span>{ar ? "محاكي فحص الوصول" : "Access Simulator"}</span>
+                      {showSimulator ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </Button>
+                  </div>
+
+                  {/* ── Interactive Access Simulator Card ── */}
+                  {showSimulator && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="p-3 bg-card rounded-xl border border-primary/20 shadow-xs space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <Activity className="w-3.5 h-3.5 text-primary" />
+                          <span>{ar ? "محاكي الوصول والقرارات الأمنية اللحظي" : "Live Policy & Access Evaluator"}</span>
+                        </span>
+                        <Badge variant="outline" className="text-[10px] font-mono">
+                          {user.username}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] font-semibold text-muted-foreground">{ar ? "الموديول المستهدف" : "Target Module"}</Label>
+                          <Select value={simModule} onValueChange={setSimModule}>
+                            <SelectTrigger className="h-8 text-xs mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MODULES.map((m) => (
+                                <SelectItem key={m} value={m} className="text-xs">
+                                  {ar ? MODULE_LABELS[m]?.ar : MODULE_LABELS[m]?.en} ({m})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label className="text-[10px] font-semibold text-muted-foreground">{ar ? "الإجراء المطلوب" : "Action"}</Label>
+                          <Select value={simAction} onValueChange={setSimAction}>
+                            <SelectTrigger className="h-8 text-xs mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {simActions.map((a) => (
+                                <SelectItem key={a} value={a} className="text-xs">
+                                  {ar ? ACTION_LABELS[a]?.ar : ACTION_LABELS[a]?.en} ({a})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Live Evaluation Result */}
+                      {simulatorResult && (
+                        <div
+                          className={cn(
+                            "p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-between gap-3",
+                            simulatorResult.allowed
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                              : "bg-destructive/10 border-destructive/30 text-destructive",
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={cn(
+                                "w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold",
+                                simulatorResult.allowed ? "bg-emerald-500" : "bg-destructive",
+                              )}
+                            >
+                              {simulatorResult.allowed ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                            <span>{simulatorResult.reason}</span>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] font-bold shrink-0",
+                              simulatorResult.allowed ? "border-emerald-500/40 text-emerald-600" : "border-destructive/40 text-destructive",
+                            )}
+                          >
+                            {simulatorResult.allowed ? (ar ? "مصرح" : "ALLOWED") : (ar ? "محظور" : "DENIED")}
+                          </Badge>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+
+
                 {/* Group Filter & Perm Search */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex-1 min-w-[200px]">
@@ -978,6 +1319,7 @@ export function UserManagementSheet({
                     if (selectedGroupFilter !== "all" && selectedGroupFilter !== groupKey) return null;
 
                     const groupModules = grp.modules.filter((mod) => {
+                      if (showOverridesOnly && !isModuleOverridden(mod)) return false;
                       if (!permSearch.trim()) return true;
                       const q = permSearch.toLowerCase().trim();
                       const labelEn = MODULE_LABELS[mod]?.en?.toLowerCase() || "";
