@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+tone_instructions: "Be precise, constructive, and prioritize critical security vulnerabilities, multi-tenant isolation, and data-loss risks."
+
+reviews:
+  profile: "assertive"
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_filters:
+    - "!node_modules/**"
+    - "!dist/**"
+    - "!local_backup.dump"
+    - "!postgres.zip"
+    - "!dump.sql"
+    - "!full_dump.sql"
+    - "!backup_clean.sql/**"
+    - "!postgres_bin/**"
+
+  path_instructions:
+    - path: "artifacts/api-server/**"
+      instructions: |
+        - CRITICAL: Verify multi-tenant schema isolation. Ensure all tenant DB queries use `withTenant(req)` and do not leak cross-tenant data.
+        - CRITICAL: Dual-Layer RBAC. Check that every API endpoint is protected by `requirePermission(module, action)`.
+        - Check for SQL injection vulnerabilities. All queries must be parameterized or use Drizzle ORM safely.
+        - Ensure error handling with proper try/catch and HTTP status codes.
+
+    - path: "artifacts/housing/**"
+      instructions: |
+        - CRITICAL: Dual-Layer RBAC. Ensure every interactive button, modal trigger, and action is wrapped in `<PermissionGate>`.
+        - Ensure bilingual support (Arabic RTL / English LTR) using `const ar = language === "ar";`.
+        - Ensure tables use server-side pagination (`DataPagination`) with debounced search (`useDebounce`), not client-side `.slice()`.
+
+    - path: "artifacts/employee-portal/**"
+      instructions: |
+        - Ensure mobile touch targets, safe-area padding for Android/Capacitor, and responsive PWA layout.
+        - Verify biometric auth fallback and secure session management.
+
+    - path: "lib/db/**"
+      instructions: |
+        - ZERO DATA LOSS: Strictly flag any destructive queries (`DROP TABLE`, `DROP COLUMN`, `TRUNCATE`).
+        - All migrations must be idempotent (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+
+chat:
+  auto_reply: true
