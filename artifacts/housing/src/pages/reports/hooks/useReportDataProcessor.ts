@@ -103,6 +103,179 @@ export function useReportDataProcessor({
 
   const currentData = (): any[] => {
     switch (activeTab) {
+      // OPERA PMS: MANAGER FLASH REPORT (تقرير المدير الصباحي التنفيذي)
+      case "manager_flash": {
+        // Building-by-building capacity matrix for table/export
+        const buildingRows = buildings.map((b: any) => {
+          const bRooms = rooms.filter((r: any) => r.buildingId === b.id);
+          const totalRooms = bRooms.length;
+          const totalBeds = bRooms.reduce((acc: number, r: any) => acc + (r.capacity || 1), 0);
+          const occupiedBeds = bRooms.reduce((acc: number, r: any) => acc + (r.currentOccupancy || 0), 0);
+          const vacantBeds = Math.max(0, totalBeds - occupiedBeds);
+          const dirtyRooms = bRooms.filter((r: any) => r.status === "dirty" || r.status === "occupied_dirty").length;
+          const oooRooms = bRooms.filter((r: any) => ["maintenance", "out_of_service", "out_of_order", "ooo", "oos"].includes(r.status?.toLowerCase())).length;
+          const occRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+
+          return {
+            id: b.id,
+            buildingName: b.name || `#${b.id}`,
+            code: b.code || "—",
+            totalRooms,
+            totalBeds,
+            occupiedBeds,
+            vacantBeds,
+            dirtyRooms,
+            oooRooms,
+            occupancyRate: `${occRate}%`,
+            status: occRate >= 90 ? (ar ? "إشغال مرتفع" : "High Occupancy") : (ar ? "طبيعي" : "Normal"),
+          };
+        });
+
+        return applySearchAndDate(buildingRows, undefined, (b) => [
+          b.buildingName,
+          b.code,
+          b.status,
+        ]);
+      }
+
+      // OPERA PMS: EXPECTED ARRIVALS MANIFEST (كشف المتوقع وصولهم)
+      case "arrivals_manifest": {
+        const list = reservations
+          .filter((r: any) => {
+            if (r.status?.toUpperCase() === "CANCELLED") return false;
+            const room = r.roomId ? roomMap[r.roomId] : null;
+            if (filterBuilding !== "all" && room && !filteredBuildingIds.has(room.buildingId)) return false;
+            if (filterFloor !== "all" && room && !filteredFloorIds.has(room.floorId)) return false;
+            if (filterDepartment !== "all" && r.department !== filterDepartment) return false;
+            if (filterStatus !== "all" && r.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
+            return true;
+          })
+          .map((r: any) => {
+            const room = r.roomId ? roomMap[r.roomId] : null;
+            const bName = room ? buildingMap[room.buildingId] || "—" : "—";
+            const fName = room ? floorMap[room.floorId] || "—" : "—";
+            const checkInD = comparableDate(r.checkInDate);
+            const checkOutD = comparableDate(r.checkOutDate);
+            let nights = 0;
+            if (checkInD && checkOutD) {
+              const diffTime = Math.abs(new Date(checkOutD).getTime() - new Date(checkInD).getTime());
+              nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+            return {
+              id: r.id,
+              profileName: `${r.firstName || ""} ${r.lastName || ""}`.trim() || "—",
+              profileId: r.guestIdCardNumber || `RES-${r.id}`,
+              nationalId: r.guestIdCardNumber || "—",
+              phone: r.guestPhone || "—",
+              department: r.department || "—",
+              jobTitle: r.jobTitle || "—",
+              roomNumber: room ? room.roomNumber : (r.roomNumber || (ar ? "غير محدد" : "Unassigned")),
+              buildingName: bName,
+              floorName: fName,
+              bedNumber: r.bedNumber || (ar ? "سرير 1" : "Bed 1"),
+              checkInDate: formatDate(r.checkInDate, "—"),
+              checkOutDate: formatDate(r.checkOutDate, "—"),
+              nights: nights > 0 ? nights : "—",
+              status: r.status || "CONFIRMED",
+              vipStatus: r.isVip ? "VIP" : "Standard",
+              notes: r.notes || "",
+            };
+          })
+          .sort((a: any, b: any) => {
+            const dA = comparableDate(a.checkInDate);
+            const dB = comparableDate(b.checkInDate);
+            return dA.localeCompare(dB);
+          });
+
+        return applySearchAndDate(list, "checkInDate", (r) => [
+          r.profileName,
+          r.profileId,
+          r.nationalId,
+          r.phone,
+          r.department,
+          r.jobTitle,
+          r.roomNumber,
+          r.buildingName,
+          r.status,
+          r.notes,
+        ]);
+      }
+
+      // OPERA PMS: DUE OUT & DEPARTURES MANIFEST (كشف المغادرات والتصفيات)
+      case "departures_manifest": {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const list = assignments
+          .filter((a: any) => {
+            const emp = empMap[a.profileId] || {};
+            const room = roomMap[a.roomId];
+            if (filterBuilding !== "all" && room && !filteredBuildingIds.has(room.buildingId)) return false;
+            if (filterFloor !== "all" && room && !filteredFloorIds.has(room.floorId)) return false;
+            if (filterDepartment !== "all" && emp.department !== filterDepartment) return false;
+            if (filterGender !== "all" && emp.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterNationality !== "all" && emp.nationality?.toLowerCase() !== filterNationality.toLowerCase()) return false;
+
+            if (a.status === "ACTIVE" || a.status === "CHECKED_OUT") return true;
+            return false;
+          })
+          .map((a: any) => {
+            const emp = empMap[a.profileId] || {};
+            const room = roomMap[a.roomId] || {};
+            const bName = buildingMap[room.buildingId] || "—";
+            const fName = floorMap[room.floorId] || "—";
+            const expCheckOut = a.checkOutDate || emp.contractEndDate;
+            const isDueOut = a.status === "ACTIVE" && expCheckOut && comparableDate(expCheckOut) <= todayStr;
+            const isCheckedOut = a.status === "CHECKED_OUT";
+            const isHrClearance = (a.notes || "").toLowerCase().includes("hr departure") || (a.notes || "").includes("تصفية");
+
+            let departureCategory = ar ? "سكن مستمر" : "In-House";
+            if (isCheckedOut) {
+              departureCategory = isHrClearance ? (ar ? "تمت التصفية (HR)" : "HR Departed") : (ar ? "تمت المغادرة" : "Checked Out");
+            } else if (isDueOut) {
+              departureCategory = ar ? "مغادرة اليوم / مستحقة" : "Due Out Today";
+            } else if (expCheckOut) {
+              departureCategory = ar ? "مغادرة مجدولة" : "Scheduled Departure";
+            }
+
+            return {
+              id: a.id,
+              profileName: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || `#${a.profileId}`,
+              profileId: emp.profileId || "—",
+              nationalId: emp.nationalId || "—",
+              phone: emp.phone || "—",
+              department: emp.department || "—",
+              jobTitle: emp.jobTitle || "—",
+              roomNumber: room.roomNumber || "—",
+              buildingName: bName,
+              floorName: fName,
+              bedNumber: a.bedNumber || 1,
+              checkInDate: formatDate(a.checkInDate, "—"),
+              checkOutDate: formatDate(expCheckOut, "—"),
+              status: a.status,
+              departureCategory,
+              reason: isHrClearance ? (ar ? "تصفية ومغادرة عمل من الموارد البشرية" : "HR Termination / Clearance") : (a.notes || (ar ? "إخلاء عادي" : "Normal Departure")),
+              roomStatusAfter: room.status === "dirty" ? (ar ? "متسخة (تحتاج نظافة)" : "Dirty") : (room.status || "—"),
+            };
+          })
+          .sort((a: any, b: any) => {
+            const dA = comparableDate(a.checkOutDate);
+            const dB = comparableDate(b.checkOutDate);
+            return dB.localeCompare(dA);
+          });
+
+        return applySearchAndDate(list, "checkOutDate", (a) => [
+          a.profileName,
+          a.profileId,
+          a.nationalId,
+          a.phone,
+          a.department,
+          a.jobTitle,
+          a.roomNumber,
+          a.buildingName,
+          a.departureCategory,
+          a.reason,
+        ]);
+      }
+
       // 1. IN-HOUSE & ASSIGNMENTS REPORT (المقيمين والتسكين)
       case "assignments": {
         const list = assignments

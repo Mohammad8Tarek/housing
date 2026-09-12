@@ -10,10 +10,31 @@ import {
   Home,
   Sparkles,
   PackageCheck,
+  FileBarChart2,
+  UserCheck,
+  LogOut,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
 export const TABS: TabConfig[] = [
+  {
+    id: "manager_flash",
+    label: "Manager Flash Report",
+    labelAr: "تقرير المدير الصباحي (Flash)",
+    icon: <FileBarChart2 className="w-4 h-4 text-amber-500" />,
+  },
+  {
+    id: "arrivals_manifest",
+    label: "Expected Arrivals",
+    labelAr: "كشف المتوقع وصولهم",
+    icon: <UserCheck className="w-4 h-4 text-emerald-500" />,
+  },
+  {
+    id: "departures_manifest",
+    label: "Due Out & Departures",
+    labelAr: "كشف المغادرات والتصفيات",
+    icon: <LogOut className="w-4 h-4 text-rose-500" />,
+  },
   {
     id: "analytics",
     label: "Analytics",

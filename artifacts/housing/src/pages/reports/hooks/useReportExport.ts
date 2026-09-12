@@ -27,6 +27,56 @@ export function useReportExport({
   const toExcelRows = (): Record<string, any>[] => {
     const data = currentData();
     switch (activeTab) {
+      case "manager_flash":
+        return data.map((b: any) => ({
+          [ar ? "المبنى" : "Building"]: b.buildingName,
+          [ar ? "كود المبنى" : "Code"]: b.code,
+          [ar ? "إجمالي الغرف" : "Total Rooms"]: b.totalRooms,
+          [ar ? "إجمالي الأسرة" : "Total Beds"]: b.totalBeds,
+          [ar ? "الأسرة المشغولة" : "Occupied Beds"]: b.occupiedBeds,
+          [ar ? "الأسرة الشاغرة" : "Vacant Beds"]: b.vacantBeds,
+          [ar ? "غرف متسخة" : "Dirty Rooms"]: b.dirtyRooms,
+          [ar ? "غرف صيانة" : "OOO Rooms"]: b.oooRooms,
+          [ar ? "نسبة الإشغال" : "Occupancy Rate"]: b.occupancyRate,
+          [ar ? "الحالة" : "Status"]: b.status,
+        }));
+
+      case "arrivals_manifest":
+        return data.map((r: any) => ({
+          [ar ? "اسم النزيل" : "Guest Name"]: r.profileName,
+          [ar ? "رقم الموظف / الهوية" : "Profile / ID"]: r.profileId,
+          [ar ? "الرقم القومي" : "National ID"]: r.nationalId,
+          [ar ? "الهاتف" : "Phone"]: r.phone,
+          [ar ? "القسم" : "Department"]: r.department,
+          [ar ? "المسمى الوظيفي" : "Job Title"]: r.jobTitle,
+          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
+          [ar ? "السرير" : "Bed No"]: r.bedNumber,
+          [ar ? "المبنى" : "Building"]: r.buildingName,
+          [ar ? "الطابق" : "Floor"]: r.floorName,
+          [ar ? "تاريخ الوصول" : "Arrival Date"]: r.checkInDate,
+          [ar ? "تاريخ المغادرة" : "Departure Date"]: r.checkOutDate,
+          [ar ? "الليالي" : "Nights"]: r.nights,
+          [ar ? "الفئة" : "Category"]: r.vipStatus,
+          [ar ? "حالة الحجز" : "Reservation Status"]: r.status,
+          [ar ? "ملاحظات" : "Notes"]: r.notes,
+        }));
+
+      case "departures_manifest":
+        return data.map((d: any) => ({
+          [ar ? "اسم الموظف" : "Employee Name"]: d.profileName,
+          [ar ? "كود الموظف" : "Profile ID"]: d.profileId,
+          [ar ? "القسم" : "Department"]: d.department,
+          [ar ? "الوظيفة" : "Job Title"]: d.jobTitle,
+          [ar ? "الغرفة" : "Room No"]: d.roomNumber,
+          [ar ? "السرير" : "Bed No"]: d.bedNumber,
+          [ar ? "المبنى" : "Building"]: d.buildingName,
+          [ar ? "تاريخ التسكين" : "Check-In Date"]: d.checkInDate,
+          [ar ? "المغادرة المستحقة" : "Due Out Date"]: d.checkOutDate,
+          [ar ? "نوع المغادرة" : "Departure Type"]: d.departureCategory,
+          [ar ? "السبب / ملاحظات HR" : "Reason / Notes"]: d.reason,
+          [ar ? "حالة الغرفة" : "Room Status"]: d.roomStatusAfter,
+        }));
+
       case "assignments":
         return data.map((a: any) => ({
           [ar ? "كود الموظف" : "Employee Code"]: a.profileCode,

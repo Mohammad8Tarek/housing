@@ -1,6 +1,9 @@
 import { ReactNode } from "react";
 
 export type Tab =
+  | "manager_flash"
+  | "arrivals_manifest"
+  | "departures_manifest"
   | "analytics"
   | "assignments"
   | "vacant_rooms"

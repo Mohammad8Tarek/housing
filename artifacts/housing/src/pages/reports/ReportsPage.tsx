@@ -18,6 +18,7 @@ import { StatsCards } from "./components/StatsCards";
 import { TabsNav } from "./components/TabsNav";
 import { ReportFilters } from "./components/ReportFilters";
 import { ReportTable } from "./components/ReportTable";
+import { ManagerFlashTab } from "./components/ManagerFlashTab";
 
 export default function Reports() {
   const { activePropertyId } = useProperty();
@@ -177,6 +178,25 @@ export default function Reports() {
         ar={ar}
       />
 
+      {/* Opera PMS: Manager Flash Report */}
+      {filters.activeTab === "manager_flash" && (
+        <ManagerFlashTab
+          ar={ar}
+          isLoading={data.isLoading}
+          properties={data.properties}
+          activePropertyId={activePropertyId}
+          rooms={data.rooms}
+          buildings={data.buildings}
+          floors={data.floors}
+          assignments={data.assignments}
+          reservations={data.reservations}
+          maintenance={data.maintenance}
+          profiles={data.profiles}
+          onExportPDF={handleExportPDF}
+          onExportExcel={handleExportExcel}
+        />
+      )}
+
       {/* Tab 1: Analytics Dashboard */}
       {filters.activeTab === "analytics" && (
         <AnalyticsTab
@@ -189,7 +209,7 @@ export default function Reports() {
       )}
 
       {/* Other Tabs: Data Table & Filters */}
-      {filters.activeTab !== "analytics" && (
+      {filters.activeTab !== "analytics" && filters.activeTab !== "manager_flash" && (
         <>
           <ReportFilters
             ar={ar}
