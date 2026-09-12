@@ -3,9 +3,16 @@ import {
   withTenant,
   profilesTable,
   profileDocumentsTable,
+  profileVacationsTable,
   assignmentsTable,
   roomsTable,
   propertiesTable,
+  maintenanceTable,
+  roomLocksTable,
+  hostingsTable,
+  profilePortalAccountsTable,
+  activityRegistrationsTable,
+  evaluationsTable,
 } from "@workspace/db";
 import { eq, and, or, sql, not, count } from "drizzle-orm";
 import { broadcastToProperty } from "./websocket.js";
@@ -180,14 +187,143 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
 }
 
 /**
- * Cleanly close active stay in source property when permanent transfer occurs.
+ * Completely removes a profile and all its related records from the source property schema
+ * when an employee is permanently housed/transferred to another hotel property.
+ * Prevents duplicates and ensures profiles are not counted twice.
+ */
+export async function deleteSourceProfileOnTransfer(
+  sourcePropertyId: number,
+  sourceProfileId: number,
+): Promise<boolean> {
+  return await withTenant(sourcePropertyId, async (srcDb) => {
+    const [srcProfile] = await srcDb
+      .select({
+        id: profilesTable.id,
+        profileId: profilesTable.profileId,
+        firstName: profilesTable.firstName,
+        lastName: profilesTable.lastName,
+      })
+      .from(profilesTable)
+      .where(eq(profilesTable.id, sourceProfileId));
+
+    if (!srcProfile) {
+      console.log(`[cross-property] Profile #${sourceProfileId} already absent from property #${sourcePropertyId}`);
+      return false;
+    }
+
+    console.log(
+      `[cross-property] 🗑️ Deleting source profile #${sourceProfileId} (${srcProfile.firstName} ${srcProfile.lastName}, code: ${srcProfile.profileId}) from property #${sourcePropertyId} to prevent duplicates`,
+    );
+
+    // 1. Unlink key_audit_log for keys associated with this profile or its assignments
+    await srcDb.execute(sql`
+      UPDATE key_audit_log
+      SET key_id = NULL
+      WHERE key_id IN (
+        SELECT id FROM room_keys
+        WHERE profile_id = ${sourceProfileId}
+           OR assignment_id IN (SELECT id FROM assignments WHERE profile_id = ${sourceProfileId})
+      )
+    `).catch((e) => console.warn(`[cross-property] unlink key_audit_log warning:`, e?.message));
+
+    // 2. Delete room keys associated with this profile
+    await srcDb.execute(sql`
+      DELETE FROM room_keys
+      WHERE profile_id = ${sourceProfileId}
+         OR assignment_id IN (SELECT id FROM assignments WHERE profile_id = ${sourceProfileId})
+    `).catch((e) => console.warn(`[cross-property] delete room_keys warning:`, e?.message));
+
+    // 3. Unlink maintenance tickets assigned to this profile
+    await srcDb.execute(sql`
+      UPDATE maintenance
+      SET assigned_to = NULL
+      WHERE assigned_to = ${sourceProfileId}
+    `).catch((e) => console.warn(`[cross-property] unlink maintenance warning:`, e?.message));
+
+    // 4. Delete hosting companions
+    await srcDb.execute(sql`
+      DELETE FROM hosting_companions
+      WHERE hosting_id IN (SELECT id FROM hostings WHERE profile_id = ${sourceProfileId})
+    `).catch((e) => console.warn(`[cross-property] delete hosting_companions warning:`, e?.message));
+
+    // 5. Delete hostings
+    await srcDb.execute(sql`
+      DELETE FROM hostings
+      WHERE profile_id = ${sourceProfileId}
+    `).catch((e) => console.warn(`[cross-property] delete hostings warning:`, e?.message));
+
+    // 6. Delete profile vacations
+    await srcDb.execute(sql`
+      DELETE FROM profile_vacations
+      WHERE profile_id = ${sourceProfileId}
+    `).catch((e) => console.warn(`[cross-property] delete vacations warning:`, e?.message));
+
+    // 7. Delete profile documents (already copied to target property)
+    await srcDb.execute(sql`
+      DELETE FROM profile_documents
+      WHERE profile_id = ${sourceProfileId}
+    `).catch((e) => console.warn(`[cross-property] delete documents warning:`, e?.message));
+
+    // 8. Delete activity registrations
+    await srcDb.execute(sql`
+      DELETE FROM activity_registrations
+      WHERE profile_id = ${sourceProfileId}
+    `).catch((e) => console.warn(`[cross-property] delete activity_registrations warning:`, e?.message));
+
+    // 9. Delete evaluations
+    await srcDb.execute(sql`
+      DELETE FROM evaluations
+      WHERE profile_id = ${sourceProfileId}
+    `).catch((e) => console.warn(`[cross-property] delete evaluations warning:`, e?.message));
+
+    // 10. Delete assignments in source property
+    await srcDb.execute(sql`
+      DELETE FROM assignments
+      WHERE profile_id = ${sourceProfileId}
+    `).catch((e) => console.warn(`[cross-property] delete assignments warning:`, e?.message));
+
+    // 11. Delete portal account if exists in source
+    if (srcProfile.profileId) {
+      await srcDb.execute(sql`
+        DELETE FROM profile_portal_accounts
+        WHERE profile_id = ${srcProfile.profileId}
+      `).catch((e) => console.warn(`[cross-property] delete portal account warning:`, e?.message));
+    }
+
+    // 12. Delete the profile itself from source property
+    await srcDb.execute(sql`
+      DELETE FROM profiles
+      WHERE id = ${sourceProfileId}
+    `);
+
+    // 10. Real-time broadcast to source property clients
+    broadcastToProperty(sourcePropertyId, {
+      module: "profiles",
+      action: "deleted",
+      entityId: sourceProfileId,
+    });
+    broadcastToProperty(sourcePropertyId, {
+      module: "dashboard",
+      action: "sync",
+    });
+
+    console.log(
+      `[cross-property] ✅ Successfully deleted profile #${sourceProfileId} from property #${sourcePropertyId}`,
+    );
+    return true;
+  });
+}
+
+/**
+ * Cleanly close active stay in source property and delete profile when permanent transfer occurs.
  */
 export async function closeSourceAssignmentOnTransfer(
   sourcePropertyId: number,
   sourceProfileId: number,
   targetPropertyName: string,
 ) {
-  return await withTenant(sourcePropertyId, async (srcDb) => {
+  // Update rooms in source property first to release capacity
+  await withTenant(sourcePropertyId, async (srcDb) => {
     const activeAssignments = await srcDb
       .select()
       .from(assignmentsTable)
@@ -198,21 +334,7 @@ export async function closeSourceAssignmentOnTransfer(
         ),
       );
 
-    if (activeAssignments.length === 0) return null;
-
     for (const oldAssignment of activeAssignments) {
-      const nowStr = new Date().toISOString();
-      await srcDb
-        .update(assignmentsTable)
-        .set({
-          status: "TRANSFERRED",
-          checkOutDate: nowStr,
-          notes: oldAssignment.notes
-            ? `${oldAssignment.notes} | تم النقل إلى فندق: ${targetPropertyName}`
-            : `تم النقل إلى فندق: ${targetPropertyName}`,
-        })
-        .where(eq(assignmentsTable.id, oldAssignment.id));
-
       const [room] = await srcDb
         .select()
         .from(roomsTable)
@@ -254,16 +376,11 @@ export async function closeSourceAssignmentOnTransfer(
         entityId: oldAssignment.id,
       });
     }
-
-    // Set profile status in source property to LEFT
-    await srcDb
-      .update(profilesTable)
-      .set({ status: "LEFT" })
-      .where(eq(profilesTable.id, sourceProfileId));
-
-    broadcastToProperty(sourcePropertyId, { module: "dashboard", action: "sync" });
-    return true;
   });
+
+  // Permanently delete profile from source property to prevent duplicate counts
+  await deleteSourceProfileOnTransfer(sourcePropertyId, sourceProfileId);
+  return true;
 }
 
 export interface CrossPropertyTransferParams {
@@ -590,9 +707,15 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
   }
   broadcastToProperty(sourcePropertyId, { module: "dashboard", action: "sync" });
 
+  // Target WebSocket broadcasts
   broadcastToProperty(targetPropertyId, { module: "accommodation", action: "created", entityId: createdInTarget.id });
   broadcastToProperty(targetPropertyId, { module: "housing", action: "updated", entityId: newRoom.id });
   broadcastToProperty(targetPropertyId, { module: "dashboard", action: "sync" });
+
+  // 7. Delete transferred profile from source property so it is not duplicated
+  await deleteSourceProfileOnTransfer(sourcePropertyId, oldAssignment.profileId).catch((delErr) => {
+    console.warn("[cross-property] deleteSourceProfileOnTransfer in executeCrossPropertyTransfer warning:", delErr?.message);
+  });
 
   return {
     success: true,
@@ -706,10 +829,153 @@ export async function healOrphanAssignments(): Promise<number> {
         }
       }
     }
+
+    // Run duplicate cleanup across properties
+    const dedupedCount = await cleanupDuplicateTransferredProfiles();
+    if (dedupedCount > 0) {
+      console.log(`[auto-heal] 🧹 Cleaned up ${dedupedCount} duplicate transferred profiles across properties.`);
+    }
   } catch (err: any) {
     console.error("[auto-heal] Error during healOrphanAssignments:", err?.message || err);
   }
 
   return healedCount;
 }
+
+/**
+ * Deduplicate profiles across all hotel property schemas.
+ * Ensures each employee (by staff profileId or nationalId) exists in ONLY ONE property.
+ * If duplicates are found across properties:
+ * - The profile with an ACTIVE assignment is prioritized as primary.
+ * - If neither has an active assignment, the most recently assigned or created profile is prioritized.
+ * - All other duplicate profiles are permanently deleted from their old properties.
+ */
+export async function cleanupDuplicateTransferredProfiles(): Promise<number> {
+  let cleanedCount = 0;
+  try {
+    const allProperties = await db
+      .select({ id: propertiesTable.id, name: propertiesTable.name })
+      .from(propertiesTable);
+
+    interface ProfileEntry {
+      propertyId: number;
+      id: number;
+      profileId: string;
+      nationalId: string;
+      firstName: string;
+      lastName: string;
+      status: string;
+      createdAt: Date | string | null;
+      hasActiveAssignment: boolean;
+      latestAssignmentDate: string | null;
+    }
+
+    const allProfiles: ProfileEntry[] = [];
+
+    for (const prop of allProperties) {
+      const pRows = await withTenant(prop.id, async (tenantDb) => {
+        return tenantDb
+          .select({
+            id: profilesTable.id,
+            profileId: profilesTable.profileId,
+            nationalId: profilesTable.nationalId,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+            status: profilesTable.status,
+            createdAt: profilesTable.createdAt,
+          })
+          .from(profilesTable);
+      }).catch(() => []);
+
+      for (const p of pRows) {
+        const assignInfo = await withTenant(prop.id, async (tenantDb) => {
+          const rows = await tenantDb
+            .select({
+              id: assignmentsTable.id,
+              status: assignmentsTable.status,
+              createdAt: assignmentsTable.createdAt,
+            })
+            .from(assignmentsTable)
+            .where(eq(assignmentsTable.profileId, p.id));
+
+          const hasActive = rows.some((r) => r.status?.toLowerCase() === "active");
+          const latest = rows.length > 0
+            ? rows.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0].createdAt
+            : null;
+
+          return {
+            hasActive,
+            latestDate: latest ? new Date(latest).toISOString() : null,
+          };
+        }).catch(() => ({ hasActive: false, latestDate: null }));
+
+        allProfiles.push({
+          propertyId: prop.id,
+          id: p.id,
+          profileId: p.profileId?.trim() || "",
+          nationalId: p.nationalId?.trim() || "",
+          firstName: p.firstName || "",
+          lastName: p.lastName || "",
+          status: p.status || "",
+          createdAt: p.createdAt,
+          hasActiveAssignment: assignInfo.hasActive,
+          latestAssignmentDate: assignInfo.latestDate,
+        });
+      }
+    }
+
+    const groups: Map<string, ProfileEntry[]> = new Map();
+
+    for (const p of allProfiles) {
+      const key = p.profileId || (p.nationalId ? `nat_${p.nationalId}` : null);
+      if (!key) continue;
+
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(p);
+    }
+
+    for (const [key, list] of groups.entries()) {
+      const propertyIds = new Set(list.map((item) => item.propertyId));
+      if (propertyIds.size <= 1) continue;
+
+      list.sort((a, b) => {
+        if (a.hasActiveAssignment && !b.hasActiveAssignment) return -1;
+        if (!a.hasActiveAssignment && b.hasActiveAssignment) return 1;
+
+        if (a.latestAssignmentDate && b.latestAssignmentDate) {
+          return new Date(b.latestAssignmentDate).getTime() - new Date(a.latestAssignmentDate).getTime();
+        }
+        if (a.latestAssignmentDate && !b.latestAssignmentDate) return -1;
+        if (!a.latestAssignmentDate && b.latestAssignmentDate) return 1;
+
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (dateB !== dateA) return dateB - dateA;
+
+        return b.id - a.id;
+      });
+
+      const primary = list[0];
+      const duplicatesToDelete = list.slice(1);
+
+      for (const dup of duplicatesToDelete) {
+        if (dup.propertyId === primary.propertyId && dup.id === primary.id) continue;
+
+        console.log(
+          `[dedup] Deleting duplicate profile #${dup.id} in property #${dup.propertyId} (${dup.firstName} ${dup.lastName}, code: ${dup.profileId}) -> Primary is #${primary.id} in property #${primary.propertyId}`,
+        );
+
+        await deleteSourceProfileOnTransfer(dup.propertyId, dup.id);
+        cleanedCount++;
+      }
+    }
+  } catch (err: any) {
+    console.error("[dedup] Error during cleanupDuplicateTransferredProfiles:", err?.message || err);
+  }
+
+  return cleanedCount;
+}
+
 

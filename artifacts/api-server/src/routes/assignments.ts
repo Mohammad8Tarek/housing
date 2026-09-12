@@ -26,6 +26,7 @@ import {
   closeSourceAssignmentOnTransfer,
   executeCrossPropertyTransfer,
   findProfileAcrossAllProperties,
+  deleteSourceProfileOnTransfer,
 } from "../lib/cross-property-service.js";
 
 const router: Router = Router();
@@ -793,6 +794,12 @@ router.post(
       entityId: result.room!.id,
     });
     broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+
+    if (effectiveSourcePropId && effectiveSourcePropId !== propertyId && transferType === "PERMANENT") {
+      await deleteSourceProfileOnTransfer(effectiveSourcePropId, parsed.data.profileId).catch((delErr) => {
+        console.warn("[assignments] deleteSourceProfileOnTransfer in POST /assignments warning:", delErr?.message);
+      });
+    }
 
     res.status(201).json(
       GetAssignmentResponse.parse({
