@@ -70,6 +70,7 @@ import { GenderDemographicsCard } from "./dashboard/components/GenderDemographic
 import { BuildingCapacityMatrix } from "./dashboard/components/BuildingCapacityMatrix";
 import { HousekeepingPriorityQueue } from "./dashboard/components/HousekeepingPriorityQueue";
 import { DailyOperationsHub } from "./dashboard/components/DailyOperationsHub";
+import { QuickAssistBar } from "./dashboard/components/QuickAssistTab";
 
 function AnimatedNumber({ value }: { value: string | number }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -369,6 +370,9 @@ export default function Dashboard() {
           </p>
         </div>
       )}
+
+      {/* Quick Assist Page Navigation Tabs */}
+      <QuickAssistBar buildNavHref={buildNavHref} />
 
       {/* Modernized Executive KPI Cards with Sparklines & Deltas */}
       {isAll ? (

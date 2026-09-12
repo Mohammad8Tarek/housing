@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
-import { QuickAssistTab, QUICK_ACTIONS } from "./QuickAssistTab";
+import { QuickAssistTab, QUICK_PAGES } from "./QuickAssistTab";
 import { usePermission } from "@/hooks/use-permission";
 
 interface DailyOperationsHubProps {
@@ -37,13 +37,13 @@ export function DailyOperationsHub({
   const { language } = useLanguage();
   const ar = language === "ar";
 
-  const { can, isSuperAdmin } = usePermission();
+  const { canView, isSuperAdmin } = usePermission();
   const [activeTab, setActiveTab] = React.useState<"quick_assist" | "checkouts" | "checkins" | "maintenance" | "contracts">("quick_assist");
 
   const permittedCount = React.useMemo(() => {
-    if (isSuperAdmin) return QUICK_ACTIONS.length;
-    return QUICK_ACTIONS.filter((item) => can(item.module, item.action)).length;
-  }, [can, isSuperAdmin]);
+    if (isSuperAdmin) return QUICK_PAGES.length;
+    return QUICK_PAGES.filter((item) => canView(item.module)).length;
+  }, [canView, isSuperAdmin]);
 
   return (
     <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden flex flex-col">
@@ -55,8 +55,8 @@ export function DailyOperationsHub({
           </CardTitle>
           <CardDescription className="text-xs mt-0.5">
             {ar
-              ? "إجراءات تشغيلية سريعة مرتبة بصلاحياتك، مع متابعة المغادرات والوصول والصيانة"
-              : "Permission-driven quick operational actions, live departures, arrivals, and maintenance"}
+              ? "روابط سريعة للصفحات مرتبة بصلاحياتك، مع متابعة المغادرات والوصول والصيانة"
+              : "Direct page navigation by permissions, live departures, arrivals, and maintenance"}
           </CardDescription>
         </div>
 
@@ -157,7 +157,7 @@ export function DailyOperationsHub({
         </div>
       </CardHeader>
 
-      <CardContent className={cn("pt-2 flex-1 overflow-auto", activeTab === "quick_assist" ? "min-h-[360px] max-h-[500px]" : "min-h-[260px] max-h-[320px]")}>
+      <CardContent className="pt-2 flex-1 overflow-auto min-h-[260px] max-h-[320px]">
         {/* TAB 0: QUICK ASSIST & PERMISSION-DRIVEN ACTIONS */}
         {activeTab === "quick_assist" && (
           <QuickAssistTab buildNavHref={buildNavHref} />
