@@ -128,12 +128,15 @@ router.post(
           const k = `${category.toLowerCase()}:::${value.toLowerCase()}:::${(parentValue || "").toLowerCase()}`;
           const existingRow = existingMap.get(k);
 
+          const normExtra = extraValue ? extraValue.trim() : null;
+
           if (existingRow) {
             let needsUpdate = false;
             const updatePayload: Record<string, any> = {};
+            const normExistingExtra = existingRow.extraValue ? String(existingRow.extraValue).trim() : null;
 
-            if (extraValue && existingRow.extraValue !== extraValue) {
-              updatePayload.extraValue = extraValue;
+            if (normExtra !== null && normExtra !== normExistingExtra) {
+              updatePayload.extraValue = normExtra;
               needsUpdate = true;
             }
             if (existingRow.disabled) {
@@ -146,6 +149,8 @@ router.post(
                 .update(lookupValuesTable)
                 .set(updatePayload)
                 .where(eq(lookupValuesTable.id, existingRow.id));
+              if (normExtra !== null) existingRow.extraValue = normExtra;
+              existingRow.disabled = false;
               updatedCount++;
             } else {
               skippedCount++;
@@ -157,7 +162,7 @@ router.post(
                 category,
                 value,
                 parentValue,
-                extraValue,
+                extraValue: normExtra,
                 sortOrder,
                 disabled: false,
               } as any)

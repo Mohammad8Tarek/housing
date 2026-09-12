@@ -1,16 +1,21 @@
 /**
  * Job Titles & Departments Importer Engine
  * Handles template generation and intelligent parsing of Excel/CSV files
- * containing Departments, Job Titles, and Job Title Levels.
+ * containing Departments, Job Titles, and Job Title Levels with
+ * Create / Update / Duplicate-Skip detection.
  */
 
 import * as XLSX from "xlsx";
+
+export type RowAction = "create" | "update" | "duplicate_skip" | "invalid";
 
 export interface ParsedJobTitleRow {
   index: number;
   department: string;
   jobTitle: string;
   level: string;
+  action: RowAction;
+  existingLevel?: string;
   status: "valid" | "warning" | "invalid";
   issues: string[];
 }
@@ -19,7 +24,12 @@ export interface ParseResult {
   rows: ParsedJobTitleRow[];
   totalRows: number;
   validCount: number;
+  createCount: number;
+  updateCount: number;
+  duplicateCount: number;
+  invalidCount: number;
   departments: string[];
+  newDepartmentsCount: number;
   jobTitlesCount: number;
   headers: string[];
   filename: string;
@@ -216,9 +226,12 @@ function findValueByAliases(row: Record<string, any>, aliases: string[]): string
 }
 
 /**
- * Parses uploaded Excel/CSV file and analyzes rows
+ * Parses uploaded Excel/CSV file and analyzes rows against existing lookups
  */
-export async function parseJobTitlesFile(file: File): Promise<ParseResult> {
+export async function parseJobTitlesFile(
+  file: File,
+  existingLookups?: { departments?: any[]; jobTitles?: any[] }
+): Promise<ParseResult> {
   const buffer = await file.arrayBuffer();
   const wb = XLSX.read(buffer, { type: "array" });
   const sheetName = wb.SheetNames[0];
@@ -233,10 +246,28 @@ export async function parseJobTitlesFile(file: File): Promise<ParseResult> {
     throw new Error("الملف المرفوع فارغ ولا يحتوي على بيانات");
   }
 
+  // Pre-build indexed maps of existing database lookups for instant matching
+  const existingDeptSet = new Set<string>(
+    (existingLookups?.departments || []).map((d) => String(d.value || "").trim().toLowerCase())
+  );
+
+  const existingJobTitleMap = new Map<string, any>();
+  for (const jt of existingLookups?.jobTitles || []) {
+    const titleVal = String(jt.value || "").trim().toLowerCase();
+    const deptVal = String(jt.parentValue || "").trim().toLowerCase();
+    existingJobTitleMap.set(`${deptVal}:::${titleVal}`, jt);
+  }
+
   const headers = Object.keys(rawRows[0] || {});
   const parsedRows: ParsedJobTitleRow[] = [];
   const uniqueDeptsSet = new Set<string>();
-  const seenJobTitles = new Set<string>();
+  const seenRowsInFile = new Map<string, string>(); // `${dept}:::${title}` -> level
+
+  let createCount = 0;
+  let updateCount = 0;
+  let duplicateCount = 0;
+  let invalidCount = 0;
+  let newDepartmentsCount = 0;
 
   rawRows.forEach((row, i) => {
     // Check if entire row is empty
@@ -249,28 +280,102 @@ export async function parseJobTitlesFile(file: File): Promise<ParseResult> {
 
     const issues: string[] = [];
     let status: "valid" | "warning" | "invalid" = "valid";
+    let action: RowAction = "create";
+    let existingLevel: string | undefined = undefined;
+
+    const normDept = dept.trim().toLowerCase();
+    const normTitle = title.trim().toLowerCase();
+    const normLevel = level.trim();
+    const fileKey = `${normDept}:::${normTitle}`;
 
     if (!dept && !title) {
       status = "invalid";
-      issues.push("القسم والمسمى الوظيفي مفقودان معاً");
-    } else if (!dept) {
-      status = "warning";
-      issues.push("القسم غير محدد (سيتم التسكين بدون قسم)");
-    } else if (!title) {
-      status = "warning";
-      issues.push("سيتم إنشاء القسم فقط بدون مسمى وظيفي");
-    }
-
-    if (dept) uniqueDeptsSet.add(dept);
-
-    // Duplicate check within file
-    if (title && dept) {
-      const key = `${dept.toLowerCase()}:::${title.toLowerCase()}`;
-      if (seenJobTitles.has(key)) {
+      action = "invalid";
+      invalidCount++;
+      issues.push("القسم والمسمى الوظيفي مفقودان معاً في هذا الصف");
+    } else if (!title && dept) {
+      // Department only row
+      if (existingDeptSet.has(normDept) || seenRowsInFile.has(`dept_only:::${normDept}`)) {
+        action = "duplicate_skip";
         status = "warning";
-        issues.push("مسمى وظيفي مكرر لنفس القسم في هذا الملف");
+        duplicateCount++;
+        issues.push("القسم موجود مسبقاً في النظام (لن ينزل مجدداً)");
+      } else {
+        action = "create";
+        createCount++;
+        newDepartmentsCount++;
+        seenRowsInFile.set(`dept_only:::${normDept}`, "");
+        issues.push("قسم جديد سيتم إنشاؤه");
       }
-      seenJobTitles.add(key);
+      uniqueDeptsSet.add(dept);
+    } else {
+      // Title row (with or without department)
+      if (dept) {
+        if (!existingDeptSet.has(normDept) && !seenRowsInFile.has(`seen_dept:::${normDept}`)) {
+          newDepartmentsCount++;
+          seenRowsInFile.set(`seen_dept:::${normDept}`, "new");
+        }
+        uniqueDeptsSet.add(dept);
+      } else {
+        status = "warning";
+        issues.push("القسم غير محدد (سيتم التسكين بدون قسم)");
+      }
+
+      // Check against existing database records
+      const dbMatch = existingJobTitleMap.get(fileKey);
+      const prevFileLevel = seenRowsInFile.get(fileKey);
+
+      if (prevFileLevel !== undefined) {
+        // Seen earlier in the SAME file
+        if (normLevel.toLowerCase() === prevFileLevel.toLowerCase()) {
+          action = "duplicate_skip";
+          status = "warning";
+          duplicateCount++;
+          issues.push("مكرر داخل نفس الملف بنفس البيانات (لن ينزل مرتين)");
+        } else {
+          action = "update";
+          status = "valid";
+          existingLevel = prevFileLevel || "غير محدد";
+          updateCount++;
+          issues.push(`تعديل المستوى عن الصف السابق في الملف إلى "${normLevel}"`);
+          seenRowsInFile.set(fileKey, normLevel);
+        }
+      } else if (dbMatch) {
+        // Exists in Database!
+        const dbLevel = dbMatch.extraValue ? String(dbMatch.extraValue).trim() : "";
+        existingLevel = dbLevel;
+
+        if (normLevel && normLevel.toLowerCase() !== dbLevel.toLowerCase()) {
+          // Level is different -> UPDATE!
+          action = "update";
+          status = "valid";
+          updateCount++;
+          issues.push(
+            dbLevel
+              ? `المسمى موجود مسبقاً — سيتم تحديث الدرجة من (${dbLevel}) إلى (${normLevel})`
+              : `المسمى موجود مسبقاً — سيتم تعيين الدرجة (${normLevel})`
+          );
+          seenRowsInFile.set(fileKey, normLevel);
+        } else {
+          // Exact duplicate in DB -> DUPLICATE SKIP!
+          action = "duplicate_skip";
+          status = "warning";
+          duplicateCount++;
+          issues.push("مطابق تماماً للسجل الموجود في النظام — لن ينزل مجدداً لمنع التكرار");
+          seenRowsInFile.set(fileKey, normLevel);
+        }
+      } else {
+        // Brand new job title -> CREATE!
+        action = "create";
+        status = "valid";
+        createCount++;
+        issues.push(
+          dept && !existingDeptSet.has(normDept)
+            ? "مسمى جديد وقسم جديد (سيتم إنشاؤهما معاً)"
+            : "مسمى وظيفي جديد سيتم إنشاؤه"
+        );
+        seenRowsInFile.set(fileKey, normLevel);
+      }
     }
 
     parsedRows.push({
@@ -278,18 +383,25 @@ export async function parseJobTitlesFile(file: File): Promise<ParseResult> {
       department: dept,
       jobTitle: title,
       level: level,
+      action,
+      existingLevel,
       status,
       issues,
     });
   });
 
-  const validCount = parsedRows.filter((r) => r.status !== "invalid").length;
+  const validCount = parsedRows.filter((r) => r.action !== "invalid").length;
 
   return {
     rows: parsedRows,
     totalRows: parsedRows.length,
     validCount,
+    createCount,
+    updateCount,
+    duplicateCount,
+    invalidCount,
     departments: Array.from(uniqueDeptsSet),
+    newDepartmentsCount,
     jobTitlesCount: parsedRows.filter((r) => Boolean(r.jobTitle)).length,
     headers,
     filename: file.name,

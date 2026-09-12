@@ -36,13 +36,19 @@ import {
   Search,
   Check,
   RotateCcw,
+  ShieldCheck,
+  ArrowRight,
+  RefreshCw,
+  PlusCircle,
 } from "lucide-react";
 import {
   downloadJobTitlesTemplate,
   parseJobTitlesFile,
   type ParseResult,
   type ParsedJobTitleRow,
+  type RowAction,
 } from "@/lib/job-title-importer-engine";
+import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 interface JobTitlesImportDialogProps {
   propertyId: number;
@@ -62,10 +68,22 @@ export function JobTitlesImportDialog({
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch current database lookups for accurate duplicate & update detection
+  const { data: existingDepartments = [] } = useLookupValues(
+    propertyId,
+    LOOKUP_CATEGORIES.DEPARTMENT,
+    true
+  );
+  const { data: existingJobTitles = [] } = useLookupValues(
+    propertyId,
+    LOOKUP_CATEGORIES.JOB_TITLE,
+    true
+  );
+
   const [step, setStep] = useState<"upload" | "preview" | "importing" | "complete">("upload");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "valid" | "warning" | "invalid">("all");
+  const [actionFilter, setActionFilter] = useState<"all" | RowAction>("all");
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importStats, setImportStats] = useState<{
@@ -79,7 +97,7 @@ export function JobTitlesImportDialog({
     setStep("upload");
     setParseResult(null);
     setSearchQuery("");
-    setStatusFilter("all");
+    setActionFilter("all");
     setIsProcessingFile(false);
     setImportProgress(0);
     setImportStats(null);
@@ -98,13 +116,16 @@ export function JobTitlesImportDialog({
 
     setIsProcessingFile(true);
     try {
-      const result = await parseJobTitlesFile(file);
+      const result = await parseJobTitlesFile(file, {
+        departments: existingDepartments,
+        jobTitles: existingJobTitles,
+      });
       setParseResult(result);
       setStep("preview");
       toast.success(
         ar
-          ? `تمت قراءة الملف بنجاح (${result.totalRows} صف، ${result.departments.length} قسم)`
-          : `File parsed successfully (${result.totalRows} rows, ${result.departments.length} departments)`
+          ? `تم تحليل الملف: ${result.createCount} جديد، ${result.updateCount} للتحديث، ${result.duplicateCount} مكرر سيتم تخطيه`
+          : `Analyzed: ${result.createCount} new, ${result.updateCount} to update, ${result.duplicateCount} duplicates skipped`
       );
     } catch (err: any) {
       toast.error(err.message || (ar ? "فشلت قراءة الملف" : "Failed to parse file"));
@@ -114,14 +135,33 @@ export function JobTitlesImportDialog({
   };
 
   const handleExecuteImport = async () => {
-    if (!parseResult || parseResult.validCount === 0 || !propertyId) return;
+    if (!parseResult || !propertyId) return;
+
+    // Filter down to actionable rows ONLY (Create & Update)
+    // DUPLICATES ARE NEVER SENT TO BE INSERTED!
+    const actionableRows = parseResult.rows.filter(
+      (r) => r.action === "create" || r.action === "update"
+    );
+
+    if (actionableRows.length === 0 && parseResult.newDepartmentsCount === 0) {
+      toast.info(
+        ar
+          ? "جميع السجلات الموجودة في الملف مكررة ومطابقة للنظام مسبقاً، لا توجد تغييرات لإضافتها."
+          : "All records in the file already exist identically in the system. Nothing to import."
+      );
+      return;
+    }
 
     setStep("importing");
     setImportProgress(15);
 
     try {
       // 1. Prepare batch items:
-      // First: unique departments
+      // Unique departments that are new
+      const existingDeptNames = new Set(
+        existingDepartments.map((d) => String(d.value || "").trim().toLowerCase())
+      );
+
       const batchItems: Array<{
         category: string;
         value: string;
@@ -130,21 +170,23 @@ export function JobTitlesImportDialog({
       }> = [];
 
       for (const dept of parseResult.departments) {
-        if (dept.trim()) {
+        const norm = dept.trim().toLowerCase();
+        if (norm && !existingDeptNames.has(norm)) {
           batchItems.push({
             category: "department",
             value: dept.trim(),
             parentValue: null,
             extraValue: null,
           });
+          existingDeptNames.add(norm); // prevent in-batch duplicate
         }
       }
 
       setImportProgress(35);
 
-      // Second: job titles with their department (parentValue) and level (extraValue)
-      for (const row of parseResult.rows) {
-        if (row.jobTitle && row.status !== "invalid") {
+      // 2. Actionable Job Title rows only (new or updated)
+      for (const row of actionableRows) {
+        if (row.jobTitle) {
           batchItems.push({
             category: "job_title",
             value: row.jobTitle.trim(),
@@ -174,7 +216,12 @@ export function JobTitlesImportDialog({
       }
 
       const resData = await resp.json();
-      setImportStats(resData);
+      setImportStats({
+        insertedCount: resData.insertedCount ?? parseResult.createCount,
+        updatedCount: resData.updatedCount ?? parseResult.updateCount,
+        skippedCount: parseResult.duplicateCount + (resData.skippedCount || 0),
+        total: parseResult.totalRows,
+      });
       setImportProgress(100);
       setStep("complete");
 
@@ -184,8 +231,8 @@ export function JobTitlesImportDialog({
 
       toast.success(
         ar
-          ? `تم الاستيراد بنجاح! (+${resData.insertedCount} جديد، ${resData.updatedCount} محدث)`
-          : `Import completed! (+${resData.insertedCount} inserted, ${resData.updatedCount} updated)`
+          ? `تم الاستيراد بنجاح! تم إنشاء ${resData.insertedCount}، تحديث ${resData.updatedCount}، ومنع تكرار ${parseResult.duplicateCount} سجل`
+          : `Import complete! ${resData.insertedCount} created, ${resData.updatedCount} updated, ${parseResult.duplicateCount} duplicates safely skipped.`
       );
     } catch (err: any) {
       toast.error(err.message || (ar ? "حدث خطأ أثناء الاستيراد" : "Error during import"));
@@ -194,7 +241,7 @@ export function JobTitlesImportDialog({
   };
 
   const filteredRows = (parseResult?.rows || []).filter((r) => {
-    if (statusFilter !== "all" && r.status !== statusFilter) return false;
+    if (actionFilter !== "all" && r.action !== actionFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       const matchDept = (r.department || "").toLowerCase().includes(q);
@@ -215,13 +262,16 @@ export function JobTitlesImportDialog({
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-bold">
-                {ar ? "استيراد الأقسام والمسميات الوظيفية والدرجات" : "Import Departments, Job Titles & Levels"}
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <span>{ar ? "استيراد الأقسام والمسميات الوظيفية والدرجات" : "Import Departments, Job Titles & Levels"}</span>
+                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                  {ar ? "إنشاء وتحديث ذكي بدون تكرار" : "Smart Create & Update"}
+                </Badge>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                 {ar
-                  ? "استيراد سريع ومباشر من ملف Excel أو CSV مع تحديد القسم والوظيفة والدرجة (Level) دفعة واحدة"
-                  : "Bulk import departments, positions, and job levels from Excel or CSV in one step"}
+                  ? "إنشاء السجلات الجديدة، تحديث درجات المسميات القائمة، ومنع نزول أي سجل مكرر"
+                  : "Creates new records, updates levels for existing titles, and completely prevents duplicates"}
               </DialogDescription>
             </div>
           </div>
@@ -241,7 +291,7 @@ export function JobTitlesImportDialog({
                   </h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {ar
-                      ? "يحتوي النموذج على الأعمدة المطلوبة (القسم، المسمى الوظيفي، والدرجة Level) مع أمثلة جاهزة تناسب معايير الفنادق والسكن."
+                      ? "يحتوي النموذج على الأعمدة الثلاثة المطلوبة (القسم، المسمى الوظيفي، والدرجة Level) مع أمثلة جاهزة تناسب معايير الفنادق والسكن."
                       : "The template contains the required columns (Department, Job Title, and Level) with sample hospitality positions."}
                   </p>
                 </div>
@@ -289,7 +339,7 @@ export function JobTitlesImportDialog({
                 </div>
                 <h3 className="text-base font-bold text-foreground">
                   {isProcessingFile
-                    ? (ar ? "جاري قراءة وتحليل الملف..." : "Reading and analyzing file...")
+                    ? (ar ? "جاري قراءة وتحليل الملف ومقارنته بالنظام..." : "Reading and cross-referencing with database...")
                     : (ar ? "اضغط لاختيار ملف Excel أو CSV أو اسحبه هنا" : "Click to select Excel or CSV file or drag & drop")}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1.5">
@@ -299,41 +349,41 @@ export function JobTitlesImportDialog({
                 </p>
               </div>
 
-              {/* Info Column Guide */}
+              {/* Feature Highlights */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                <div className="p-3.5 rounded-xl border bg-card/60 shadow-2xs space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                    <Building2 className="w-4 h-4" />
-                    <span>{ar ? "1. القسم (Department)" : "1. Department"}</span>
+                <div className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-1">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                    <PlusCircle className="w-4 h-4 text-emerald-600" />
+                    <span>{ar ? "إنشاء جديد (Create)" : "Create New"}</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {ar
-                      ? "اسم القسم التابع له المسمى. إذا لم يكن القسم موجوداً، سيتم إنشاؤه تلقائياً."
-                      : "Department name. Missing departments will be automatically created."}
+                      ? "أي قسم أو مسمى وظيفي غير مسجل مسبقاً يتم إنشاؤه تلقائياً."
+                      : "Any department or job title not yet in the system will be created."}
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl border bg-card/60 shadow-2xs space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                    <Briefcase className="w-4 h-4" />
-                    <span>{ar ? "2. المسمى الوظيفي (Job Title)" : "2. Job Title"}</span>
+                <div className="p-3.5 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-1">
+                  <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300">
+                    <RefreshCw className="w-4 h-4 text-blue-600" />
+                    <span>{ar ? "تحديث تلقائي (Update Level)" : "Update Level"}</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {ar
-                      ? "اسم الوظيفة أو المنصب المراد إضافته وربطه بالقسم."
-                      : "The position or title to be linked to the department."}
+                      ? "إذا كان المسمى موجوداً في النظام وتم تغيير درجته (Level) في الملف، يتم تحديثها فوراً دون تكرار."
+                      : "Existing titles with new or modified levels will be safely updated in place."}
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl border bg-card/60 shadow-2xs space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400">
-                    <Layers className="w-4 h-4" />
-                    <span>{ar ? "3. الدرجة / المستوى (Level)" : "3. Level / Grade"}</span>
+                <div className="p-3.5 rounded-xl border border-muted-foreground/20 bg-muted/40 space-y-1">
+                  <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                    <span>{ar ? "حظر التكرار (Zero Duplicates)" : "Zero Duplicates"}</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {ar
-                      ? "المستوى أو الدرجة الوظيفية (مثل Level 1، Level 2، الإشرافي، التنفيذي) لتسهيل توزيع السكن."
-                      : "Job level or grade (e.g. Level 1, Level 2, Executive) for housing eligibility."}
+                      ? "أي سجل متطابق بالكامل يتم تخطيه تلقائياً ولن ينزل مجدداً أبداً."
+                      : "Any identical record will be automatically skipped and never re-added."}
                   </p>
                 </div>
               </div>
@@ -343,42 +393,70 @@ export function JobTitlesImportDialog({
           {/* STEP 2: PREVIEW */}
           {step === "preview" && parseResult && (
             <div className="space-y-4">
-              {/* Stats Strip */}
+              {/* 4 Smart Metrics Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-xl border bg-card/70 shadow-2xs">
-                  <span className="text-[11px] text-muted-foreground font-semibold">
-                    {ar ? "إجمالي الصفوف" : "Total Rows"}
-                  </span>
-                  <p className="text-xl font-black text-foreground mt-0.5">{parseResult.totalRows}</p>
-                </div>
-
-                <div className="p-3 rounded-xl border bg-card/70 shadow-2xs">
-                  <span className="text-[11px] text-muted-foreground font-semibold">
-                    {ar ? "الأقسام المكتشفة" : "Departments"}
-                  </span>
-                  <p className="text-xl font-black text-primary mt-0.5">{parseResult.departments.length}</p>
-                </div>
-
-                <div className="p-3 rounded-xl border bg-card/70 shadow-2xs">
-                  <span className="text-[11px] text-muted-foreground font-semibold">
-                    {ar ? "المسميات الوظيفية" : "Job Titles"}
-                  </span>
-                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
-                    {parseResult.jobTitlesCount}
+                <div className="p-3.5 rounded-xl border bg-emerald-500/10 border-emerald-500/20 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold">
+                      {ar ? "إنشاء جديد" : "To Create"}
+                    </span>
+                    <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
+                  <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                    {parseResult.createCount}
                   </p>
+                  <span className="text-[10px] text-muted-foreground">
+                    {parseResult.newDepartmentsCount > 0
+                      ? (ar ? `يتضمن ${parseResult.newDepartmentsCount} قسم جديد` : `Includes ${parseResult.newDepartmentsCount} new depts`)
+                      : (ar ? "سجلات غير مسجلة مسبقاً" : "New items to be added")}
+                  </span>
                 </div>
 
-                <div className="p-3 rounded-xl border bg-emerald-500/10 border-emerald-500/20 shadow-2xs">
-                  <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold">
-                    {ar ? "السجلات الصالحة" : "Valid Records"}
-                  </span>
-                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                    {parseResult.validCount}
+                <div className="p-3.5 rounded-xl border bg-blue-500/10 border-blue-500/20 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-blue-800 dark:text-blue-300 font-bold">
+                      {ar ? "تحديث الدرجة" : "To Update"}
+                    </span>
+                    <RefreshCw className="w-3.5 h-3.5 text-blue-600" />
+                  </div>
+                  <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
+                    {parseResult.updateCount}
                   </p>
+                  <span className="text-[10px] text-muted-foreground">
+                    {ar ? "مسميات موجودة مع تعديل الـ Level" : "Existing titles with new level"}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl border bg-muted/60 border-border/80 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground font-bold">
+                      {ar ? "مكرر (لن ينزل)" : "Duplicates (Skip)"}
+                    </span>
+                    <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
+                  <p className="text-2xl font-black text-muted-foreground mt-1">
+                    {parseResult.duplicateCount}
+                  </p>
+                  <span className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 font-semibold">
+                    {ar ? "محمية وممنوعة من التكرار" : "Protected from duplicate entry"}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl border bg-card shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground font-semibold">
+                      {ar ? "إجمالي بالملف" : "Total in File"}
+                    </span>
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
+                  <p className="text-2xl font-black text-foreground mt-1">{parseResult.totalRows}</p>
+                  <span className="text-[10px] text-muted-foreground">
+                    {ar ? `${parseResult.departments.length} قسم مختلف` : `${parseResult.departments.length} distinct depts`}
+                  </span>
                 </div>
               </div>
 
-              {/* Table Toolbar */}
+              {/* Table Filter Toolbar */}
               <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between pt-1">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground rtl:left-auto rtl:right-2.5" />
@@ -391,21 +469,42 @@ export function JobTitlesImportDialog({
                 </div>
 
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {(["all", "valid", "warning", "invalid"] as const).map((filterKey) => (
-                    <Button
-                      key={filterKey}
-                      type="button"
-                      variant={statusFilter === filterKey ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setStatusFilter(filterKey)}
-                      className="h-7 text-xs px-2.5 font-semibold"
-                    >
-                      {filterKey === "all" && (ar ? "الكل" : "All")}
-                      {filterKey === "valid" && (ar ? "سليم" : "Valid")}
-                      {filterKey === "warning" && (ar ? "تنبيه" : "Warning")}
-                      {filterKey === "invalid" && (ar ? "غير صالح" : "Invalid")}
-                    </Button>
-                  ))}
+                  <Button
+                    type="button"
+                    variant={actionFilter === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActionFilter("all")}
+                    className="h-7 text-xs px-2.5 font-semibold"
+                  >
+                    {ar ? "الكل" : "All"} ({parseResult.totalRows})
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={actionFilter === "create" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActionFilter("create")}
+                    className="h-7 text-xs px-2.5 font-semibold text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                  >
+                    {ar ? "جديد" : "New"} ({parseResult.createCount})
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={actionFilter === "update" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActionFilter("update")}
+                    className="h-7 text-xs px-2.5 font-semibold text-blue-700 dark:text-blue-300 border-blue-500/30"
+                  >
+                    {ar ? "تحديث" : "Update"} ({parseResult.updateCount})
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={actionFilter === "duplicate_skip" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActionFilter("duplicate_skip")}
+                    className="h-7 text-xs px-2.5 font-semibold text-muted-foreground"
+                  >
+                    {ar ? "مكرر (تخطي)" : "Duplicates"} ({parseResult.duplicateCount})
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -431,7 +530,7 @@ export function JobTitlesImportDialog({
                       <TableHead className="text-xs font-bold">{ar ? "القسم" : "Department"}</TableHead>
                       <TableHead className="text-xs font-bold">{ar ? "المسمى الوظيفي" : "Job Title"}</TableHead>
                       <TableHead className="text-xs font-bold">{ar ? "الدرجة (Level)" : "Level"}</TableHead>
-                      <TableHead className="text-xs font-bold w-28 text-center">{ar ? "الحالة" : "Status"}</TableHead>
+                      <TableHead className="text-xs font-bold w-44 text-center">{ar ? "الإجراء المتوقع" : "Action"}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -443,7 +542,16 @@ export function JobTitlesImportDialog({
                       </TableRow>
                     ) : (
                       filteredRows.slice(0, 100).map((r) => (
-                        <TableRow key={r.index} className="text-xs">
+                        <TableRow
+                          key={r.index}
+                          className={`text-xs ${
+                            r.action === "duplicate_skip"
+                              ? "bg-muted/20 opacity-65"
+                              : r.action === "update"
+                              ? "bg-blue-500/5"
+                              : ""
+                          }`}
+                        >
                           <TableCell className="text-center text-muted-foreground font-mono">
                             {r.index}
                           </TableCell>
@@ -471,23 +579,30 @@ export function JobTitlesImportDialog({
                             )}
                           </TableCell>
                           <TableCell className="text-center">
-                            {r.status === "valid" && (
+                            {r.action === "create" && (
                               <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[10px] gap-1 font-semibold border-0">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                {ar ? "صالح" : "Valid"}
+                                <PlusCircle className="w-3 h-3 text-emerald-600" />
+                                {ar ? "إنشاء جديد" : "Create New"}
                               </Badge>
                             )}
-                            {r.status === "warning" && (
+                            {r.action === "update" && (
+                              <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[10px] gap-1 font-semibold border-0" title={r.issues.join(", ")}>
+                                <RefreshCw className="w-3 h-3 text-blue-600" />
+                                {ar ? "تحديث الدرجة" : "Update Level"}
+                                {r.existingLevel ? ` (${r.existingLevel} ➔ ${r.level})` : ""}
+                              </Badge>
+                            )}
+                            {r.action === "duplicate_skip" && (
                               <Badge
                                 variant="outline"
-                                className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 text-[10px] gap-1 font-semibold"
+                                className="bg-muted text-muted-foreground border-border text-[10px] gap-1 font-medium"
                                 title={r.issues.join(", ")}
                               >
-                                <AlertTriangle className="w-3 h-3 text-amber-600" />
-                                {ar ? "تنبيه" : "Warning"}
+                                <ShieldCheck className="w-3 h-3 text-muted-foreground" />
+                                {ar ? "مكرر (لن ينزل)" : "Duplicate (Skip)"}
                               </Badge>
                             )}
-                            {r.status === "invalid" && (
+                            {r.action === "invalid" && (
                               <Badge
                                 variant="destructive"
                                 className="text-[10px] gap-1 font-semibold"
@@ -522,12 +637,12 @@ export function JobTitlesImportDialog({
               </div>
               <div className="space-y-1.5">
                 <h3 className="text-lg font-bold text-foreground">
-                  {ar ? "جاري استيراد وحفظ الأقسام والمسميات الوظيفية..." : "Importing departments and job titles..."}
+                  {ar ? "جاري إنشاء وتحديث السجلات وحظر المكررات..." : "Creating, updating records and preventing duplicates..."}
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                   {ar
-                    ? "يتم الآن التحقق من قاعدة البيانات وإنشاء السجلات وتحديث الدرجات مع منع التكرار."
-                    : "Verifying database records, creating lookups and updating levels..."}
+                    ? "يتم الآن إدخال المسميات الجديدة، وتحديث الدرجات للموجود، وتخطي أي تكرار بالكامل."
+                    : "Inserting new items, updating levels, and safely skipping identical records."}
                 </p>
               </div>
               <div className="max-w-md mx-auto space-y-1">
@@ -545,20 +660,20 @@ export function JobTitlesImportDialog({
               </div>
               <div className="space-y-1">
                 <h3 className="text-xl font-bold text-foreground">
-                  {ar ? "اكتمل الاستيراد بنجاح!" : "Import Completed Successfully!"}
+                  {ar ? "اكتمل الاستيراد والتحديث بنجاح!" : "Import & Update Completed Successfully!"}
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {ar
-                    ? "تم تحديث قوائم الأقسام والمسميات الوظيفية في النظام بنجاح"
-                    : "Departments and job titles lookup lists have been updated"}
+                    ? "تم تحديث قواعد بيانات الأقسام والمسميات الوظيفية بأمان مع منع تام للتكرار."
+                    : "Lookups database has been updated safely with zero duplicates created."}
                 </p>
               </div>
 
               {/* Summary Cards */}
               <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
                 <div className="p-3.5 rounded-xl border bg-emerald-500/10 border-emerald-500/20">
-                  <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
-                    {ar ? "سجلات جديدة" : "Inserted"}
+                  <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+                    {ar ? "تم إنشاؤها (جديدة)" : "Created New"}
                   </span>
                   <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
                     {importStats.insertedCount}
@@ -566,8 +681,8 @@ export function JobTitlesImportDialog({
                 </div>
 
                 <div className="p-3.5 rounded-xl border bg-blue-500/10 border-blue-500/20">
-                  <span className="text-[11px] font-semibold text-blue-800 dark:text-blue-300">
-                    {ar ? "سجلات تم تحديثها" : "Updated"}
+                  <span className="text-[11px] font-bold text-blue-800 dark:text-blue-300">
+                    {ar ? "تم تحديثها" : "Updated"}
                   </span>
                   <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
                     {importStats.updatedCount}
@@ -575,8 +690,8 @@ export function JobTitlesImportDialog({
                 </div>
 
                 <div className="p-3.5 rounded-xl border bg-muted/40">
-                  <span className="text-[11px] font-semibold text-muted-foreground">
-                    {ar ? "تم تخطيها (موجودة)" : "Skipped"}
+                  <span className="text-[11px] font-bold text-muted-foreground">
+                    {ar ? "مكررة (لم تنزل)" : "Skipped Duplicates"}
                   </span>
                   <p className="text-2xl font-black text-muted-foreground mt-1">
                     {importStats.skippedCount}
@@ -604,13 +719,15 @@ export function JobTitlesImportDialog({
             <Button
               type="button"
               onClick={handleExecuteImport}
-              disabled={parseResult.validCount === 0}
+              disabled={parseResult.createCount === 0 && parseResult.updateCount === 0}
               className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-white shadow-md text-xs h-9 px-5"
             >
               <FileSpreadsheet className="w-4 h-4" />
-              {ar
-                ? `استيراد ${parseResult.validCount} سجلاً الآن`
-                : `Import ${parseResult.validCount} Records Now`}
+              {parseResult.createCount === 0 && parseResult.updateCount === 0
+                ? (ar ? "لا توجد سجلات جديدة (الكل مكرر)" : "All records are duplicates")
+                : (ar
+                  ? `بدء الاستيراد (${parseResult.createCount} إنشاء + ${parseResult.updateCount} تحديث)`
+                  : `Start Import (${parseResult.createCount} Create + ${parseResult.updateCount} Update)`)}
             </Button>
           )}
 
