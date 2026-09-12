@@ -17,6 +17,7 @@ description: >-
 - **Database:** PostgreSQL 18 with Multi-Tenant Schema Isolation (`public` for global tables, `taal_housing`, `el_waha_new`, `elwaha_old` for hotel properties).
 - **Mobile/Portal (`artifacts/employee-portal`):** Capacitor Android & Web Portal.
 - **Lock Management:** Hotek PMS Lock TCP Socket Bridge (Port 10006).
+- **CLI Navigation:** `node scripts/code-lookup.mjs <query>` (e.g. `node scripts/code-lookup.mjs reservations` or `"تسكين"`).
 
 ---
 
@@ -64,6 +65,14 @@ description: >-
   - Maintenance: `out_of_service` or `out_of_order`.
 - Entire Room Booking: Checked via `assignments.is_entire_room`. When true, room is considered fully occupied regardless of remaining bed capacity.
 
+### Rule 6: Cross-Property Profile Transfers
+- When transferring/booking an employee from a different property:
+  1. Prompt user with confirmation modal for profile fate:
+     - `archiveSourceProfile: true` -> Move to new property and archive/hide from old property.
+     - `archiveSourceProfile: false` -> Keep profile active in old property as well.
+  2. Terminate prior active accommodation via `checkoutPreviousAssignment: true`.
+  3. Backend logic lives in `artifacts/api-server/src/routes/assignments.ts` (lines 418-472) & `artifacts/api-server/src/lib/cross-property-service.ts`.
+
 ---
 
 ## 3. Standard Verification & Deployment Procedure
@@ -94,18 +103,32 @@ git push origin main
 
 ---
 
-## 4. Key Directory & File Map
-- `artifacts/housing/src/pages/`:
-  - `housing/`: Room, building, floor, availability, and housekeeping tabs.
-  - `profiles/`: Employee directory, vacation management, ID images.
-  - `accommodation/`: `in-house.tsx`, `reservations/`, `guest-hosting/`, `history.tsx`.
-  - `maintenance.tsx`: Work order tickets and technician assignment.
-  - `settings/`: LookupSection, password policy, Hotek encoders, HR sync.
-- `artifacts/api-server/src/`:
-  - `routes/`: Express endpoint definitions.
-  - `lib/migrations.ts`: Automatic startup migration runner.
-  - `lib/pms-server.ts`: Hotek PMS TCP socket listener and card encoders.
-- `lib/db/`:
-  - `src/schema/`: Drizzle ORM table models.
-  - `src/migrations/`: Master SQL migration script (`20260904_complete_schema_and_constraints.sql`).
-- `SYSTEM_DOCUMENTATION.md`: Full architectural and historical documentation.
+## 4. Instant Feature-to-File Fast Navigation Matrix
+
+Always consult this direct map before editing code (or run `node scripts/code-lookup.mjs <feature>`):
+
+| Feature / Module | Frontend File(s) & Components | Backend Route(s) | Database Tables |
+|---|---|---|---|
+| **Reservations Wizard (حجوزات وتسكين)** | `artifacts/housing/src/pages/accommodation/reservations/ReservationsPage.tsx` | `artifacts/api-server/src/routes/reservations.ts`<br>`artifacts/api-server/src/routes/assignments.ts` (L418-472)<br>`artifacts/api-server/src/lib/cross-property-service.ts` | `reservations`<br>`assignments`<br>`profiles` |
+| **In-House & Bed Transfer (مقيمون ونقل أسرة)** | `artifacts/housing/src/pages/accommodation/in-house.tsx` *(Checkout, Transfer, Keys)* | `artifacts/api-server/src/routes/assignments.ts`<br>`artifacts/api-server/src/routes/rooms.ts` | `assignments`<br>`rooms` |
+| **Smart Room Assignment (تسكين ذكي)** | `artifacts/housing/src/pages/accommodation/room-assignment.tsx` | `artifacts/api-server/src/routes/assignments.ts`<br>`artifacts/api-server/src/routes/rooms.ts` | `assignments`<br>`rooms` |
+| **History & Archive (سجل التسكين)** | `artifacts/housing/src/pages/accommodation/history.tsx` | `artifacts/api-server/src/routes/assignments.ts` (`GET /history`) | `assignments` |
+| **Guest Hosting (استضافة وزيارات)** | `artifacts/housing/src/pages/accommodation/guest-hosting/GuestHostingPage.tsx`<br>`artifacts/housing/src/pages/hosting-requests/*` | `artifacts/api-server/src/routes/hostings.ts`<br>`artifacts/api-server/src/routes/hosting-requests.ts` | `hostings`<br>`hosting_companions`<br>`family_visit` |
+| **Housing: Rooms & Buildings (مباني وغرف)** | `artifacts/housing/src/pages/housing/HousingPage.tsx`<br>`components/buildings/*`<br>`components/floors/*`<br>`components/rooms/*`<br>`RoomDetailsDialog.tsx`<br>`RoomSpaceViewTab.tsx` | `artifacts/api-server/src/routes/buildings.ts`<br>`artifacts/api-server/src/routes/floors.ts`<br>`artifacts/api-server/src/routes/rooms.ts`<br>`artifacts/api-server/src/routes/room-import.ts` | `buildings`<br>`floors`<br>`rooms` |
+| **Room Amenities Inventory (جرد العهد)** | `artifacts/housing/src/pages/housing/components/RoomDetailsDialog.tsx`<br>`artifacts/housing/src/pages/reports/components/AmenitiesInventoryTab.tsx` | `artifacts/api-server/src/routes/room-inventory.ts` | `room_inventory` |
+| **Housekeeping (نظافة الغرف)** | `artifacts/housing/src/pages/housekeeping/index.tsx`<br>`artifacts/housing/src/pages/housing/components/HousekeepingTab.tsx` | `artifacts/api-server/src/routes/rooms.ts` (`clean-status`, `batch-clean`) | `rooms` (`cleanliness_status`) |
+| **Profiles & Employees (دليل الموظفين)** | `artifacts/housing/src/pages/profiles/ProfilesPage.tsx`<br>`artifacts/housing/src/pages/profiles/detail.tsx`<br>`components/ProfileDialog.tsx`<br>`components/EditProfileDialog.tsx`<br>`components/ExcelImportDialog.tsx` | `artifacts/api-server/src/routes/profiles.ts`<br>`artifacts/api-server/src/routes/hr-sync.ts` | `profiles`<br>`documents`<br>`profile_portal` |
+| **Maintenance Tickets (صيانة وأعطال)** | `artifacts/housing/src/pages/maintenance.tsx`<br>`artifacts/housing/src/pages/maintenance-details.tsx` | `artifacts/api-server/src/routes/maintenance.ts` | `maintenance_tickets` |
+| **Users & RBAC (مستخدمين وصلاحيات)** | `artifacts/housing/src/pages/users/index.tsx`<br>`artifacts/housing/src/pages/users/detail.tsx`<br>`components/PermissionMatrixCenter.tsx`<br>`components/PermissionMatrixDialog.tsx`<br>`components/CreateUserDialog.tsx`<br>`components/EditUserDialog.tsx`<br>`components/EditPropertiesDialog.tsx` | `artifacts/api-server/src/routes/users.ts`<br>`artifacts/api-server/src/routes/auth.ts`<br>`artifacts/api-server/src/middlewares/permissions.js`<br>`artifacts/api-server/src/routes/user-signature.ts` | `users`<br>`user_signatures`<br>`password_history` |
+| **Settings & Integrations (إعدادات النظام)** | `artifacts/housing/src/pages/settings/index.tsx`<br>`components/LookupSection.tsx`<br>`components/DoorLocksSection.tsx`<br>`components/HrSyncSection.tsx`<br>`components/SecuritySettings.tsx` | `artifacts/api-server/src/routes/settings.ts`<br>`artifacts/api-server/src/routes/lookup_values.ts`<br>`artifacts/api-server/src/routes/hotek-config.ts`<br>`artifacts/api-server/src/routes/smart-lock.ts`<br>`artifacts/api-server/src/lib/pms-server.ts` | `settings`<br>`lookup_values`<br>`hotek_encoders`<br>`hotek_settings` |
+| **Properties Isolation (فنادق وسكيما)** | `artifacts/housing/src/context/PropertyContext.tsx`<br>`artifacts/housing/src/pages/properties.tsx` | `artifacts/api-server/src/routes/properties.ts`<br>`artifacts/api-server/src/lib/db.ts` (`withTenant`) | `public.properties`<br>Tenant schemas |
+| **Dashboard & Operations (لوحة التحكم)** | `artifacts/housing/src/pages/dashboard.tsx`<br>`DailyOperationsHub.tsx`<br>`BuildingCapacityMatrix.tsx`<br>`HousekeepingPriorityQueue.tsx` | `artifacts/api-server/src/routes/dashboard.ts` | Aggregates from `rooms`, `assignments`, `maintenance` |
+| **Activity Log (سجل النشاط)** | `artifacts/housing/src/pages/activity-log.tsx` | `artifacts/api-server/src/routes/activity_logs.ts` | `activity_logs` |
+| **Resident Portal (بوابة الموظفين PWA)** | `artifacts/employee-portal/src/pages/dashboard.tsx`<br>`src/pages/login.tsx`<br>`src/pages/forgot-password.tsx`<br>`src/pages/request-details.tsx`<br>`components/TabOverview.tsx`<br>`components/TabRequests.tsx`<br>`components/chat/ChatContainer.tsx`<br>`components/TabActivities.tsx` | `artifacts/api-server/src/routes/portal-auth.ts`<br>`artifacts/api-server/src/routes/portal-data.ts`<br>`artifacts/api-server/src/routes/portal-chat.ts`<br>`artifacts/api-server/src/routes/activities.ts`<br>`artifacts/api-server/src/routes/push-notifications.ts` | `profile_portal`<br>`portal_chat`<br>`portal_notifications`<br>`activities` |
+
+---
+
+## 5. Key Directory Map
+- `CODEBASE_MAP.md`: Master architectural and component registry.
+- `scripts/code-lookup.mjs`: CLI instant lookup command.
+- `SYSTEM_DOCUMENTATION.md`: Full system documentation.
