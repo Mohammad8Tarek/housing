@@ -21,6 +21,7 @@ interface PropertyContextType {
   isSuperAdmin: boolean;
   canSeeAllProperties?: boolean;
   setActivePropertyId: (id: number | "all") => void;
+  buildNavHref: (baseHref: string) => string;
 }
 
 const PropertyContext = createContext<PropertyContextType | undefined>(
@@ -241,6 +242,12 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [allProperties, canSeeAllProperties, userPropertyIds]);
 
+  const buildNavHref = (baseHref: string) => {
+    const slug = propertySlug || "all";
+    const cleanPath = baseHref.startsWith("/") ? baseHref : `/${baseHref}`;
+    return `/${slug}${cleanPath}`;
+  };
+
   return (
     <PropertyContext.Provider
       value={{
@@ -251,6 +258,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         isSuperAdmin,
         canSeeAllProperties,
         setActivePropertyId,
+        buildNavHref,
       }}
     >
       {children}

@@ -5,6 +5,7 @@ export const SYSTEM_ROLES = [
   { value: "receptionist", label: "Receptionist", labelAr: "موظف استقبال" },
   { value: "maintenance_staff", label: "Maintenance Staff", labelAr: "موظف صيانة فنية" },
   { value: "housekeeping_staff", label: "Housekeeping Staff", labelAr: "موظف خدمات ونظافة" },
+  { value: "user", label: "Standard User", labelAr: "مستخدم عادي" },
 ];
 
 export const WORKFLOW_ROLES = [

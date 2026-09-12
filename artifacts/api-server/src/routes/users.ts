@@ -298,6 +298,7 @@ router.get(
         lockedUntil: usersTable.lockedUntil,
         jobTitle: usersTable.jobTitle,
         hasSignature: userSignaturesTable.id,
+        signatureImageUrl: userSignaturesTable.signatureImageUrl,
       })
       .from(usersTable)
       .leftJoin(
@@ -323,8 +324,10 @@ router.get(
       roles: user.roles ?? [],
       permissions: user.permissions ?? [],
       hasSignature: !!user.hasSignature,
+      signatureImageUrl: user.signatureImageUrl ?? null,
       status: user.status || "active",
       createdAt: user.createdAt,
+      failedLoginAttempts: user.failedLoginAttempts ?? 0,
       lockedUntil: user.lockedUntil,
     });
   },

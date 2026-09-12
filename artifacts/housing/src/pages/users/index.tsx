@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useLocation } from "wouter";
 import { useDebounce } from "@/hooks/use-debounce";
 import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
@@ -90,24 +91,18 @@ import {
   TableSkeleton,
 } from "@/components/ui/page-states";
 
-// Import extracted components
-import { PermissionMatrixDialog } from "./components/PermissionMatrixDialog";
+// Import active components
 import { PermissionMatrixCenter } from "./components/PermissionMatrixCenter";
-import { EditUserDialog } from "./components/EditUserDialog";
-import { EditPropertiesDialog } from "./components/EditPropertiesDialog";
 import { CreateUserDialog } from "./components/CreateUserDialog";
-import { ResetPasswordDialog } from "./components/ResetPasswordDialog";
 import { DeleteUserDialog } from "./components/DeleteUserDialog";
-import { UnlockUserDialog } from "./components/UnlockUserDialog";
-import { UploadSignatureDialog } from "./components/UploadSignatureDialog";
-import { UserManagementSheet } from "./components/UserManagementSheet";
 
 import { SYSTEM_ROLES, WORKFLOW_ROLES, roleColor } from "./utils";
 const ALL_ROLES = [...SYSTEM_ROLES, ...WORKFLOW_ROLES];
 
 export default function UsersPage() {
+  const [, setLocation] = useLocation();
   const { user: currentUser } = useAuth();
-  const { isSuperAdmin, properties: ctxProperties, canSeeAllProperties } = useProperty();
+  const { isSuperAdmin, properties: ctxProperties, canSeeAllProperties, buildNavHref } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
@@ -115,11 +110,9 @@ export default function UsersPage() {
   const showPropertyCol = isSuperAdmin || Boolean(canSeeAllProperties) || (ctxProperties && ctxProperties.length > 1) || can("users", "view");
 
   const [deleteUser, setDeleteUser] = useState<any | null>(null);
-  const [matrixUser, setMatrixUser] = useState<any | null>(null);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const [resetUser, setResetUser] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -133,20 +126,12 @@ export default function UsersPage() {
   const [selectedBulkRole, setSelectedBulkRole] = useState("manager");
   const [selectedBulkProps, setSelectedBulkProps] = useState<number[]>([]);
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
-  const [editUser, setEditUser] = useState<any | null>(null);
-  const [unlockUser, setUnlockUser] = useState<any | null>(null);
-  const [editPropsUser, setEditPropsUser] = useState<any | null>(null);
-  const [signatureUser, setSignatureUser] = useState<any | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"users" | "matrix">("users");
   const [matrixTargetUserId, setMatrixTargetUserId] = useState<number | null>(null);
 
-  // Modern Unified User Management Drawer
-  const [sheetUser, setSheetUser] = useState<any | null>(null);
-  const [sheetTab, setSheetTab] = useState<"profile" | "properties" | "permissions" | "signature">("profile");
-
-  const openUserSheet = (u: any, tab: "profile" | "properties" | "permissions" | "signature" = "profile") => {
-    setSheetUser(u);
-    setSheetTab(tab);
+  // Direct navigation to Dedicated User Details & Governance Hub (/users/:id)
+  const openUserSheet = (u: any, tab: "profile" | "properties" | "permissions" | "signature" | "audit" = "profile") => {
+    setLocation(buildNavHref(`/users/${u.id}?tab=${tab}`));
   };
 
   const debouncedSearch = useDebounce(searchQuery, 500);
@@ -483,61 +468,11 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6" dir={ar ? "rtl" : "ltr"}>
-      {/* Modern Unified Slide-Over Sheet Drawer */}
-      {sheetUser && (
-        <UserManagementSheet
-          user={sheetUser}
-          initialTab={sheetTab}
-          properties={properties ?? []}
-          allUsers={allUsers ?? []}
-          onClose={() => setSheetUser(null)}
-        />
-      )}
-
       {/* Dynamic Dialogs */}
-      {matrixUser && (
-        <PermissionMatrixDialog
-          user={matrixUser}
-          onClose={() => setMatrixUser(null)}
-        />
-      )}
-      {editUser && (
-        <EditUserDialog
-          user={editUser}
-          properties={properties ?? []}
-          onClose={() => setEditUser(null)}
-        />
-      )}
-      {editPropsUser && (
-        <EditPropertiesDialog
-          user={editPropsUser}
-          properties={properties ?? []}
-          onClose={() => setEditPropsUser(null)}
-          onSuccess={invalidate}
-        />
-      )}
-      {resetUser && (
-        <ResetPasswordDialog
-          user={resetUser}
-          onClose={() => setResetUser(null)}
-        />
-      )}
       {deleteUser && (
         <DeleteUserDialog
           user={deleteUser}
           onClose={() => setDeleteUser(null)}
-        />
-      )}
-      {unlockUser && (
-        <UnlockUserDialog
-          user={unlockUser}
-          onClose={() => setUnlockUser(null)}
-        />
-      )}
-      {signatureUser && (
-        <UploadSignatureDialog
-          user={signatureUser}
-          onClose={() => setSignatureUser(null)}
         />
       )}
 
@@ -1097,9 +1032,14 @@ export default function UsersPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 8 }}
                       transition={{ duration: 0.15, ease: "easeOut" }}
-                      className={
-                        isUserSelected ? "bg-primary/5" : "hover:bg-muted/20"
-                      }
+                      className={`cursor-pointer transition-colors ${
+                        isUserSelected ? "bg-primary/5" : "hover:bg-muted/30"
+                      }`}
+                      onClick={(e: React.MouseEvent) => {
+                        const target = e.target as HTMLElement;
+                        if (target.closest('button, input, a, [role="checkbox"], [role="menuitem"]')) return;
+                        openUserSheet(u, "profile");
+                      }}
                     >
                       <TableCell className="px-3">
                         <Checkbox

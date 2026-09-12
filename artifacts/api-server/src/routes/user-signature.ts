@@ -236,4 +236,49 @@ router.post("/users/:id/signature", async (req, res): Promise<void> => {
   }
 });
 
+router.delete("/users/me/signature", async (req, res): Promise<void> => {
+  const user = su(req);
+  try {
+    await pool.query("DELETE FROM public.user_signatures WHERE user_id = $1", [user.userId]);
+    res.json({ success: true, message: "Signature deleted" });
+  } catch {
+    res.status(500).json({ success: false, message: "Failed to delete signature" });
+  }
+});
+
+router.delete("/users/:id/signature", async (req, res): Promise<void> => {
+  const admin = su(req);
+  const targetUserId = parseInt(String(req.params.id));
+  if (!Number.isFinite(targetUserId)) {
+    res.status(400).json({ success: false, message: "Invalid id" });
+    return;
+  }
+  const isSelf = targetUserId === admin.userId;
+  if (!admin.isSystemAdmin && !isSelf) {
+    res.status(403).json({
+      success: false,
+      message: "Only system admins can delete signatures for other users",
+    });
+    return;
+  }
+  try {
+    await pool.query("DELETE FROM public.user_signatures WHERE user_id = $1", [targetUserId]);
+    await logActivity({
+      req,
+      propertyId: admin.propertyId ?? 0,
+      username: admin.username,
+      userId: admin.userId,
+      userRole: admin.userRole,
+      action: "SIGNATURE_DELETED_BY_ADMIN",
+      actionType: "DELETE",
+      module: "users",
+      severity: "info",
+      details: `Signature deleted for user ${targetUserId}`,
+    });
+    res.json({ success: true, message: "Signature deleted" });
+  } catch {
+    res.status(500).json({ success: false, message: "Failed to delete signature" });
+  }
+});
+
 export default router;

@@ -43,6 +43,7 @@ const Maintenance = lazy(() => import("@/pages/maintenance"));
 const MaintenanceDetails = lazy(() => import("@/pages/maintenance-details"));
 const Reports = lazy(() => import("@/pages/reports"));
 const Users = lazy(() => import("@/pages/users"));
+const UserDetail = lazy(() => import("@/pages/users/detail"));
 const ActivityLog = lazy(() => import("@/pages/activity-log"));
 const Settings = lazy(() => import("@/pages/settings"));
 const EditHostingRequest = lazy(
@@ -201,6 +202,7 @@ const APP_ROUTES: AppRouteDef[] = [
   { path: "/maintenance/:id", modules: ["maintenance", "housekeeping"], component: MaintenanceDetails },
   { path: "/maintenance", modules: ["maintenance", "housekeeping"], component: Maintenance },
   { path: "/reports", module: "reports", component: Reports },
+  { path: "/users/:id", module: "users", component: UserDetail },
   { path: "/users", module: "users", component: Users },
   { path: "/properties", module: "properties", component: Properties },
   { path: "/portal", module: "portal_content", component: Portal },
