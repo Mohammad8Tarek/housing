@@ -4,6 +4,8 @@ export type Tab =
   | "manager_flash"
   | "arrivals_manifest"
   | "departures_manifest"
+  | "housekeeping_sheet"
+  | "room_discrepancy"
   | "analytics"
   | "assignments"
   | "vacant_rooms"

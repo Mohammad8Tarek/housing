@@ -154,6 +154,36 @@ export function ReportTable({
               </>
             )}
 
+            {/* OPERA PMS: HOUSEKEEPING ATTENDANT TASK SHEET HEADERS */}
+            {activeTab === "housekeeping_sheet" && (
+              <>
+                {H("roomNumber", ar ? "الغرفة" : "Room")}
+                {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
+                {H("foStatus", ar ? "حالة الإشغال (FO)" : "FO Status", "text-center")}
+                {H("hkStatus", ar ? "حالة النظافة (HK)" : "HK Status")}
+                {H("taskType", ar ? "نوع المهمة المطلوبة" : "Task Assignment")}
+                {H("occupantNames", ar ? "النزلاء الحاليون" : "Current Occupants")}
+                {H("estimatedMins", ar ? "الوقت التقديري" : "Est. Time", "text-center")}
+                <TableHead className="text-center w-28 text-white">{ar ? "فحص المفروشات" : "Linen"}</TableHead>
+                <TableHead className="text-center w-28 text-white">{ar ? "فحص العهد" : "Amenities"}</TableHead>
+                <TableHead className="text-center w-32 text-white">{ar ? "التوقيع والوقت" : "Attendant Sign"}</TableHead>
+              </>
+            )}
+
+            {/* OPERA PMS: ROOM DISCREPANCY HEADERS */}
+            {activeTab === "room_discrepancy" && (
+              <>
+                {H("severity", ar ? "الخطورة" : "Severity", "text-center")}
+                {H("type", ar ? "نوع التباين (PMS Discrepancy)" : "Discrepancy Type")}
+                {H("roomNumber", ar ? "الغرفة" : "Room")}
+                {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
+                {H("foStatus", ar ? "حالة الاستقبال (Front Office)" : "Front Office")}
+                {H("hkStatus", ar ? "حالة النظافة الميدانية (HK)" : "Housekeeping")}
+                {H("impactedResidents", ar ? "النزلاء المعنيون / الملاحظات" : "Impacted Residents / Details")}
+                {H("recommendedAction", ar ? "الإجراء الفندقي الموصى به" : "Recommended Action")}
+              </>
+            )}
+
             {/* 1. ASSIGNMENTS HEADERS */}
             {activeTab === "assignments" && (
               <>
@@ -447,6 +477,132 @@ export function ReportTable({
                       <Badge variant="outline" className="text-xs">
                         {row.roomStatusAfter}
                       </Badge>
+                    </TableCell>
+                  </>
+                )}
+
+                {/* OPERA PMS: HOUSEKEEPING ATTENDANT TASK SHEET ROW */}
+                {activeTab === "housekeeping_sheet" && (
+                  <>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-base font-mono text-foreground">{row.roomNumber}</span>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
+                          {row.roomType}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
+                      <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant="outline"
+                        className={
+                          row.foStatus === "مشغول" || row.foStatus === "Occupied"
+                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        }
+                      >
+                        {row.foStatus} ({row.activeCount}/{row.capacity})
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          row.hkStatus === "dirty" || row.hkStatus === "occupied_dirty"
+                            ? "bg-rose-100 text-rose-800 border-rose-200"
+                            : row.hkStatus === "clean" || row.hkStatus === "inspected"
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                            : "bg-amber-100 text-amber-800 border-amber-200"
+                        }
+                      >
+                        {getRoomStatusLabel(row.hkStatus, ar)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          row.taskPriority === 1
+                            ? "bg-red-50 text-red-700 border-red-300 font-semibold"
+                            : row.taskPriority === 2
+                            ? "bg-blue-50 text-blue-700 border-blue-300"
+                            : "bg-slate-50 text-slate-600 border-slate-200"
+                        }
+                      >
+                        {row.taskType}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[240px] truncate text-xs text-foreground" title={row.occupantNames}>
+                      {row.occupantNames}
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                      {row.estimatedMins}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="inline-flex items-center justify-center w-5 h-5 rounded border border-muted-foreground/40 bg-white" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="inline-flex items-center justify-center w-5 h-5 rounded border border-muted-foreground/40 bg-white" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="text-xs text-muted-foreground font-mono">___________</span>
+                    </TableCell>
+                  </>
+                )}
+
+                {/* OPERA PMS: ROOM DISCREPANCY ROW */}
+                {activeTab === "room_discrepancy" && (
+                  <>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant="default"
+                        className={
+                          row.severity === "CRITICAL"
+                            ? "bg-rose-600 hover:bg-rose-600 text-white font-bold"
+                            : row.severity === "WARNING"
+                            ? "bg-amber-500 hover:bg-amber-500 text-white font-semibold"
+                            : "bg-sky-500 hover:bg-sky-500 text-white"
+                        }
+                      >
+                        {row.severityLabel}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <AlertTriangle className={
+                          row.severity === "CRITICAL" ? "w-4 h-4 text-rose-600 shrink-0" : "w-4 h-4 text-amber-500 shrink-0"
+                        } />
+                        <span className="font-bold text-sm text-foreground">{row.typeLabel}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-bold text-base font-mono text-foreground">{row.roomNumber}</span>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
+                      <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                        {row.foStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                        {row.hkStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate text-xs text-foreground" title={row.impactedResidents}>
+                      {row.impactedResidents}
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800/50">
+                        {row.recommendedAction}
+                      </p>
                     </TableCell>
                   </>
                 )}

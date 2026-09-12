@@ -141,7 +141,27 @@ export const exportPDF = async (
   const propName =
     properties.find((p: any) => p.id === (propId ?? activePropertyId))?.name ??
     "";
-  const title = `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report${propName ? ` — ${propName}` : ""}`;
+
+  const TAB_TITLES: Record<string, string> = {
+    manager_flash: "Manager Flash Report",
+    arrivals_manifest: "Expected Arrivals Manifest",
+    departures_manifest: "Due Out & Departures Manifest",
+    housekeeping_sheet: "Housekeeping Room Attendant Daily Task Sheet",
+    room_discrepancy: "Room Status Discrepancy & Audit Report",
+    assignments: "In-House Resident Occupancy Report",
+    vacant_rooms: "Vacant Rooms & Available Beds Report",
+    housing: "Housing Room Inventory & Status Report",
+    profiles: "Staff & Resident Profiles Directory",
+    expiring_contracts: "Contract Expiration Audit Report",
+    reservations: "Reservations & Booking Manifest",
+    hostings: "Guest & Visitor Hostings Report",
+    maintenance: "Engineering Maintenance Work Orders",
+    housekeeping: "Housekeeping Status & Cleaning Log",
+    equipment_inventory: "Room Amenities & Equipment Inventory",
+  };
+
+  const cleanTitle = TAB_TITLES[activeTab] || `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report`;
+  const title = `${cleanTitle}${propName ? ` — ${propName}` : ""}`;
   const subtitle = [
     `Generated: ${new Date().toLocaleString()}`,
     `Records: ${rows.length}`,
@@ -177,6 +197,20 @@ export const exportPDF = async (
       fontStyle: "bold",
     },
   });
+
+  // Housekeeping task sheet attendant sign-off block
+  if (activeTab === "housekeeping_sheet") {
+    const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 12 : pageW - 20;
+    if (finalY < doc.internal.pageSize.getHeight() - 25) {
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      doc.text("Attendant Name: _________________________________", 14, finalY);
+      doc.text("Supervisor Name: _________________________________", 110, finalY);
+      doc.text("Supervisor Signature: ______________________", 200, finalY);
+    }
+  }
+
   doc.save(getExportFileName(`${activeTab}_Report`, "pdf"));
 };
 

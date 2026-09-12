@@ -57,6 +57,25 @@ export function ReportFilters({
 }: any) {
   const getStatusOptions = (): { value: string; label: string; labelAr: string }[] => {
     switch (activeTab) {
+      case "housekeeping_sheet":
+        return [
+          { value: "dirty",         label: "Dirty (Needs Service)", labelAr: "متسخة (تحتاج خدمة)" },
+          { value: "occupied_dirty",label: "Occupied — Dirty",      labelAr: "مشغولة ومتسخة" },
+          { value: "clean",         label: "Clean & Ready",         labelAr: "نظيفة وجاهزة" },
+          { value: "available",     label: "Available",             labelAr: "شاغرة" },
+          { value: "occupied",      label: "Occupied",              labelAr: "مشغولة" },
+          { value: "out_of_order",  label: "Out of Order (OOO)",    labelAr: "خارج الخدمة (OOO)" },
+        ];
+      case "room_discrepancy":
+        return [
+          { value: "CRITICAL",      label: "Critical Only",         labelAr: "حالات حرجة فقط" },
+          { value: "WARNING",       label: "Warnings Only",         labelAr: "تحذيرات فقط" },
+          { value: "SLEEP",         label: "Sleep Discrepancies",   labelAr: "نائم غير مسجل (Sleep)" },
+          { value: "SKIP",          label: "Skip Discrepancies",    labelAr: "غادر دون تسجيل (Skip)" },
+          { value: "OVERCROWDED",   label: "Overcrowded Rooms",     labelAr: "تجاوز السعة (تكدس)" },
+          { value: "OOO_OCCUPIED",  label: "OOO With Occupants",    labelAr: "صيانة وبها نزيل" },
+          { value: "STALE_DIRTY",   label: "Vacant Dirty Turnover", labelAr: "شاغرة متسخة معلقة" },
+        ];
       case "housekeeping":
         return [
           { value: "dirty",         label: "Dirty — Needs Cleaning",  labelAr: "متسخة — تحتاج تنظيف" },

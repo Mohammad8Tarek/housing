@@ -77,6 +77,35 @@ export function useReportExport({
           [ar ? "حالة الغرفة" : "Room Status"]: d.roomStatusAfter,
         }));
 
+      case "housekeeping_sheet":
+        return data.map((h: any) => ({
+          [ar ? "رقم الغرفة" : "Room No"]: h.roomNumber,
+          [ar ? "المبنى" : "Building"]: h.buildingName,
+          [ar ? "الطابق" : "Floor"]: h.floorName,
+          [ar ? "نوع الغرفة" : "Room Type"]: h.roomType,
+          [ar ? "حالة الإشغال (FO)" : "FO Status"]: h.foStatus,
+          [ar ? "حالة النظافة (HK)" : "HK Status"]: getRoomStatusLabel(h.hkStatus, ar),
+          [ar ? "المهمة المطلوبة" : "Task Type"]: h.taskType,
+          [ar ? "الوقت التقديري" : "Est Time"]: h.estimatedMins,
+          [ar ? "النزلاء الحاليون" : "Current Occupants"]: h.occupantNames,
+          [ar ? "فحص المفروشات" : "Linen Check"]: "[  ]",
+          [ar ? "فحص العهد" : "Amenities Check"]: "[  ]",
+          [ar ? "توقيع المنفذ" : "Attendant Signature"]: "",
+        }));
+
+      case "room_discrepancy":
+        return data.map((d: any) => ({
+          [ar ? "مستوى الخطورة" : "Severity"]: d.severityLabel,
+          [ar ? "نوع التباين" : "Discrepancy Type"]: d.typeLabel,
+          [ar ? "رقم الغرفة" : "Room No"]: d.roomNumber,
+          [ar ? "المبنى" : "Building"]: d.buildingName,
+          [ar ? "الطابق" : "Floor"]: d.floorName,
+          [ar ? "حالة الاستقبال (FO)" : "FO Status"]: d.foStatus,
+          [ar ? "حالة الهاوس كيبنج (HK)" : "HK Status"]: d.hkStatus,
+          [ar ? "النزلاء المتأثرون" : "Impacted Residents"]: d.impactedResidents,
+          [ar ? "الإجراء الموصى به" : "Recommended Action"]: d.recommendedAction,
+        }));
+
       case "assignments":
         return data.map((a: any) => ({
           [ar ? "كود الموظف" : "Employee Code"]: a.profileCode,

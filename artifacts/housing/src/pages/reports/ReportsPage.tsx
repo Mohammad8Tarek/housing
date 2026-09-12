@@ -13,6 +13,7 @@ import { useReportAnalytics } from "./hooks/useReportAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
 import { sortReportRows, useReportSort } from "./hooks/useReportSort";
 
+import { ClipboardCheck, AlertOctagon } from "lucide-react";
 import { ExportToolbar } from "./components/ExportToolbar";
 import { StatsCards } from "./components/StatsCards";
 import { TabsNav } from "./components/TabsNav";
@@ -167,6 +168,8 @@ export default function Reports() {
         ar={ar}
         activeTab={filters.activeTab}
         equipmentInventory={data.equipmentInventory}
+        rooms={data.rooms}
+        assignments={data.assignments}
       />
 
       {/* Tabs Navigation */}
@@ -254,6 +257,65 @@ export default function Reports() {
             inventoryViewMode={filters.inventoryViewMode}
             setInventoryViewMode={filters.setInventoryViewMode}
           />
+
+          {filters.activeTab === "housekeeping_sheet" && (
+            <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-sky-900 dark:text-sky-200">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 shrink-0">
+                  <ClipboardCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm">
+                    {ar ? "كشف مهام وتوزيع أعمال الهاوس كيبنج الميداني" : "Room Attendant Daily Task Assignment Sheet"}
+                  </h4>
+                  <p className="text-muted-foreground mt-0.5">
+                    {ar
+                      ? "كشف توزيع المهام الميداني مع خانات الفحص الفعلي (المفروشات والعهد والتوقيع) مصمم للطباعة والحوافظ اليدوية."
+                      : "Daily operational task sheet with physical inspection checkpoints (linen, amenities, and signatures) formatted for clipboards."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap shrink-0 text-xs font-semibold">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-100 text-red-800 border border-red-200">
+                  <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                  {ar ? "أولوية 1: مغادرة شاملة" : "Priority 1: Turnover"}
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 border border-blue-200">
+                  <span className="w-2 h-2 rounded-full bg-blue-600" />
+                  {ar ? "أولوية 2: نظافة مقيم" : "Priority 2: Stayover"}
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
+                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  {ar ? "أولوية 3: تفتيش شاغر" : "Priority 3: Refresh"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {filters.activeTab === "room_discrepancy" && (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 shrink-0">
+                  <AlertOctagon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm">
+                    {ar ? "مركز تدقيق ومطابقة حالات الغرف (PMS Discrepancy Hub)" : "Room Status Discrepancy & Audit Center"}
+                  </h4>
+                  <p className="text-muted-foreground mt-0.5">
+                    {ar
+                      ? "يكتشف التناقضات بين سجلات التسكين (Front Desk) والحالة الميدانية (Housekeeping): نائم غير مسجل (Sleep)، غادر دون تسجيل (Skip)، تكدس."
+                      : "Flags mismatches between front desk records and physical housekeeping status: Sleep (unrecorded), Skip (unreported departure), Overcrowded."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-2.5 py-1 rounded-md bg-rose-600 text-white font-bold text-xs">
+                  {ar ? "فحص فوري للمشرف" : "Immediate Inspection Required"}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
             <ReportTable

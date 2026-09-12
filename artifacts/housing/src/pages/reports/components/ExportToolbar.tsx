@@ -46,6 +46,56 @@ export function ExportToolbar({
     );
   }
 
+  if (activeTab === "housekeeping_sheet") {
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportExcel}
+          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          {ar ? "تصدير المهام Excel" : "Task Sheet Excel"}
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleExportPDF}
+          className="gap-2 bg-sky-600 hover:bg-sky-700 text-white text-xs shadow-xs"
+        >
+          <FileText className="w-4 h-4" />
+          {ar ? "طباعة كشف المهام الميداني PDF" : "Print Task Sheet PDF"}
+        </Button>
+      </div>
+    );
+  }
+
+  if (activeTab === "room_discrepancy") {
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportExcel}
+          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          {ar ? "تصدير تدقيق الغرف Excel" : "Discrepancy Excel"}
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleExportPDF}
+          className="gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs shadow-xs"
+        >
+          <FileText className="w-4 h-4" />
+          {ar ? "تقرير التدقيق والمطابقة PDF" : "Discrepancy Audit PDF"}
+        </Button>
+      </div>
+    );
+  }
+
   if (activeTab === "analytics") {
     return (
       <Button

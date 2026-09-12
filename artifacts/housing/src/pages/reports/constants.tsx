@@ -13,6 +13,8 @@ import {
   FileBarChart2,
   UserCheck,
   LogOut,
+  ClipboardCheck,
+  AlertOctagon,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
@@ -34,6 +36,18 @@ export const TABS: TabConfig[] = [
     label: "Due Out & Departures",
     labelAr: "كشف المغادرات والتصفيات",
     icon: <LogOut className="w-4 h-4 text-rose-500" />,
+  },
+  {
+    id: "housekeeping_sheet",
+    label: "Attendant Task Sheet",
+    labelAr: "كشف مهام الهاوس كيبنج",
+    icon: <ClipboardCheck className="w-4 h-4 text-sky-500" />,
+  },
+  {
+    id: "room_discrepancy",
+    label: "Room Discrepancy & Audit",
+    labelAr: "تدقيق ومطابقة الغرف",
+    icon: <AlertOctagon className="w-4 h-4 text-red-500" />,
   },
   {
     id: "analytics",

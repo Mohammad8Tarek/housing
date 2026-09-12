@@ -276,6 +276,270 @@ export function useReportDataProcessor({
         ]);
       }
 
+      // OPERA PMS: HOUSEKEEPING ATTENDANT TASK SHEET (كشف مهام الهاوس كيبنج اليومي)
+      case "housekeeping_sheet": {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const rowsList = rooms
+          .filter((room: any) => {
+            if (filterBuilding !== "all" && !filteredBuildingIds.has(room.buildingId)) return false;
+            if (filterFloor !== "all" && !filteredFloorIds.has(room.floorId)) return false;
+            if (filterRoomType !== "all" && room.roomType?.toLowerCase() !== filterRoomType.toLowerCase()) return false;
+            if (filterStatus !== "all" && room.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
+            return true;
+          })
+          .map((room: any) => {
+            const bName = buildingMap[room.buildingId] || "—";
+            const fName = floorMap[room.floorId] || "—";
+            
+            // Find active assignments in this room
+            const roomAssignments = assignments.filter(
+              (a: any) => a.roomId === room.id && (a.status === "ACTIVE" || a.status === "VACATION")
+            );
+            const activeCount = roomAssignments.length;
+            const occupantNames = roomAssignments
+              .map((a: any) => {
+                const emp = empMap[a.profileId];
+                if (!emp) return `#${a.profileId}`;
+                const name = `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || emp.name;
+                const dept = emp.department ? ` (${emp.department})` : "";
+                return `${name}${dept}`;
+              })
+              .join("، ");
+
+            // Front office status:
+            const foStatus = activeCount > 0 ? (ar ? "مشغول" : "Occupied") : (ar ? "شاغر" : "Vacant");
+
+            // Check if any resident is checking out today or due out
+            const hasDueOut = roomAssignments.some((a: any) => {
+              const exp = a.checkOutDate;
+              return exp && comparableDate(exp) <= todayStr;
+            });
+
+            // Housekeeping status and task priority
+            const rStatus = (room.status || "clean").toLowerCase();
+            let taskType = ar ? "نظافة يومية" : "Stayover Clean";
+            let taskPriority = 2; // 1 = High, 2 = Medium, 3 = Low
+            let estimatedMins = 20;
+
+            if (rStatus === "dirty" && activeCount === 0) {
+              taskType = ar ? "تجهيز مغادرة (شامل)" : "Departure Turnover";
+              taskPriority = 1;
+              estimatedMins = 35;
+            } else if (hasDueOut) {
+              taskType = ar ? "مغادرة اليوم (Turnover)" : "Due Out Turnover";
+              taskPriority = 1;
+              estimatedMins = 35;
+            } else if (activeCount > 0) {
+              taskType = rStatus === "dirty" || rStatus === "occupied_dirty"
+                ? (ar ? "نظافة مقيم عاجلة" : "Occupied Dirty Service")
+                : (ar ? "نظافة يومية وتغيير ملايات" : "Daily Stayover");
+              taskPriority = rStatus === "dirty" || rStatus === "occupied_dirty" ? 1 : 2;
+              estimatedMins = 20;
+            } else if (["out_of_service", "out_of_order", "maintenance"].includes(rStatus)) {
+              taskType = ar ? "غرفة صيانة (معطلة)" : "Out of Order";
+              taskPriority = 3;
+              estimatedMins = 0;
+            } else {
+              taskType = ar ? "تفتيش وتجهيز شاغر" : "Vacant Refresh & Inspect";
+              taskPriority = 3;
+              estimatedMins = 10;
+            }
+
+            return {
+              id: room.id,
+              roomNumber: room.roomNumber,
+              buildingName: bName,
+              floorName: fName,
+              roomType: room.roomType || "Standard",
+              capacity: room.capacity || 1,
+              activeCount,
+              foStatus,
+              hkStatus: room.status || "clean",
+              taskType,
+              taskPriority,
+              estimatedMins: estimatedMins > 0 ? `${estimatedMins} ${ar ? "دقيقة" : "min"}` : "—",
+              occupantNames: occupantNames || (ar ? "لا يوجد نزلاء" : "None"),
+              linenCheck: "Pending",
+              bathroomCheck: "Pending",
+              acCheck: "Pending",
+              supervisorSign: "—",
+            };
+          })
+          .sort((a: any, b: any) => {
+            if (a.taskPriority !== b.taskPriority) return a.taskPriority - b.taskPriority;
+            return a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true });
+          });
+
+        return applySearchAndDate(rowsList, undefined, (r) => [
+          r.roomNumber,
+          r.buildingName,
+          r.floorName,
+          r.foStatus,
+          r.hkStatus,
+          r.taskType,
+          r.occupantNames,
+        ]);
+      }
+
+      // OPERA PMS: ROOM STATUS DISCREPANCY & AUDIT REPORT (تدقيق ومطابقة الغرف والتباينات)
+      case "room_discrepancy": {
+        const discrepancies: any[] = [];
+        let idSeq = 1;
+
+        rooms.forEach((room: any) => {
+          if (filterBuilding !== "all" && !filteredBuildingIds.has(room.buildingId)) return;
+          if (filterFloor !== "all" && !filteredFloorIds.has(room.floorId)) return;
+
+          const bName = buildingMap[room.buildingId] || "—";
+          const fName = floorMap[room.floorId] || "—";
+          const rStatus = (room.status || "clean").toLowerCase();
+
+          // Active assignments in this room
+          const roomAssignments = assignments.filter(
+            (a: any) => a.roomId === room.id && (a.status === "ACTIVE" || a.status === "VACATION")
+          );
+          const activeCount = roomAssignments.length;
+          const capacity = room.capacity || 1;
+
+          // 1. Sleep Discrepancy: FO says Vacant (0 occupants), but Room status is Occupied or Occupied Dirty
+          if (activeCount === 0 && (rStatus === "occupied" || rStatus === "occupied_dirty")) {
+            discrepancies.push({
+              id: idSeq++,
+              roomId: room.id,
+              roomNumber: room.roomNumber,
+              buildingName: bName,
+              floorName: fName,
+              type: "SLEEP",
+              typeLabel: ar ? "نائم غير مسجل (Sleep)" : "Sleep Discrepancy",
+              severity: "CRITICAL",
+              severityLabel: ar ? "حرج" : "Critical",
+              foStatus: ar ? "شاغر (0 نزلاء)" : "Vacant (0 In-House)",
+              hkStatus: ar ? "مشغول ميدانياً" : "Occupied in HK",
+              impactedResidents: ar ? "نزيل غير مسجل بالنظام" : "Unrecorded sleeper / Luggage present",
+              recommendedAction: ar
+                ? "تفتيش فوري وتسجيل التسكين أو تعديل حالة الغرفة"
+                : "Inspect immediately, assign profile or set to vacant",
+            });
+          }
+
+          // 2. Skip Discrepancy: FO says Occupied (>0), but room status is Available/Clean (vacant)
+          if (activeCount > 0 && (rStatus === "available" || rStatus === "clean")) {
+            discrepancies.push({
+              id: idSeq++,
+              roomId: room.id,
+              roomNumber: room.roomNumber,
+              buildingName: bName,
+              floorName: fName,
+              type: "SKIP",
+              typeLabel: ar ? "غادر دون تسجيل (Skip)" : "Skip Discrepancy",
+              severity: "CRITICAL",
+              severityLabel: ar ? "حرج" : "Critical",
+              foStatus: ar ? `مشغول (${activeCount} نزلاء)` : `Occupied (${activeCount})`,
+              hkStatus: ar ? "شاغر / نظيف" : "Vacant / Clean",
+              impactedResidents: roomAssignments
+                .map((a: any) => {
+                  const emp = empMap[a.profileId];
+                  return emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : `#${a.profileId}`;
+                })
+                .join("، "),
+              recommendedAction: ar
+                ? "مراجعة المقيم وتسجيل المغادرة واستلام المفاتيح"
+                : "Check resident whereabouts & execute checkout",
+            });
+          }
+
+          // 3. Overcrowded / Capacity Exceeded
+          if (activeCount > capacity) {
+            discrepancies.push({
+              id: idSeq++,
+              roomId: room.id,
+              roomNumber: room.roomNumber,
+              buildingName: bName,
+              floorName: fName,
+              type: "OVERCROWDED",
+              typeLabel: ar ? "تجاوز السعة الاستيعابية" : "Overcrowded / Bed Overflow",
+              severity: "WARNING",
+              severityLabel: ar ? "تحذير" : "Warning",
+              foStatus: ar ? `${activeCount} نزيل مسكن` : `${activeCount} Assigned`,
+              hkStatus: ar ? `سعة الغرفة ${capacity} أسرة` : `Capacity: ${capacity} Beds`,
+              impactedResidents: roomAssignments
+                .map((a: any) => {
+                  const emp = empMap[a.profileId];
+                  return emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : `#${a.profileId}`;
+                })
+                .join("، "),
+              recommendedAction: ar
+                ? "نقل المقيمين الزائدين لغرف أخرى شاغرة"
+                : "Transfer extra resident(s) to vacant room",
+            });
+          }
+
+          // 4. Out of Order / Out of Service with Active Inmates
+          if (activeCount > 0 && ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(rStatus)) {
+            discrepancies.push({
+              id: idSeq++,
+              roomId: room.id,
+              roomNumber: room.roomNumber,
+              buildingName: bName,
+              floorName: fName,
+              type: "OOO_OCCUPIED",
+              typeLabel: ar ? "غرفة صيانة وبها مقيمون" : "OOO Room With Occupants",
+              severity: "CRITICAL",
+              severityLabel: ar ? "حرج" : "Critical",
+              foStatus: ar ? `${activeCount} نزيل مسكن` : `${activeCount} Assigned`,
+              hkStatus: ar ? "معطلة / خارج الخدمة" : "OOO / Out of Service",
+              impactedResidents: roomAssignments
+                .map((a: any) => {
+                  const emp = empMap[a.profileId];
+                  return emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : `#${a.profileId}`;
+                })
+                .join("، "),
+              recommendedAction: ar
+                ? "نقل النزلاء فوراً أو إلغاء الصيانة"
+                : "Relocate occupants immediately or restore room",
+            });
+          }
+
+          // 5. Stale Dirty Room (غرفة متسخة بدون تنظيف)
+          if (rStatus === "dirty" && activeCount === 0) {
+            discrepancies.push({
+              id: idSeq++,
+              roomId: room.id,
+              roomNumber: room.roomNumber,
+              buildingName: bName,
+              floorName: fName,
+              type: "STALE_DIRTY",
+              typeLabel: ar ? "شاغرة متسخة بانتظار التجهيز" : "Vacant Dirty Turnover Pending",
+              severity: "INFO",
+              severityLabel: ar ? "تنبيه" : "Info",
+              foStatus: ar ? "شاغر (0)" : "Vacant (0)",
+              hkStatus: ar ? "متسخ (Dirty)" : "Dirty",
+              impactedResidents: ar ? "لا يوجد (بانتظار تسكين جديد)" : "None (Pending Turnover)",
+              recommendedAction: ar
+                ? "توجيه فريق النظافة لتجهيز الغرفة للإشغال"
+                : "Prioritize room turnover for incoming arrivals",
+            });
+          }
+        });
+
+        // Filter by status/severity if set
+        const filteredDiscrepancies = discrepancies.filter((d: any) => {
+          if (filterStatus !== "all" && d.severity !== filterStatus && d.type !== filterStatus) return false;
+          return true;
+        });
+
+        return applySearchAndDate(filteredDiscrepancies, undefined, (d) => [
+          d.roomNumber,
+          d.buildingName,
+          d.typeLabel,
+          d.severityLabel,
+          d.foStatus,
+          d.hkStatus,
+          d.impactedResidents,
+          d.recommendedAction,
+        ]);
+      }
+
       // 1. IN-HOUSE & ASSIGNMENTS REPORT (المقيمين والتسكين)
       case "assignments": {
         const list = assignments
