@@ -346,6 +346,16 @@ async function start(): Promise<void> {
     startAllPmsServers(app).catch((err) => {
       logger.error({ err }, "Failed to start PMS Servers (async caught)");
     });
+
+    // 3. Auto-restore WhatsApp linked sessions
+    try {
+      const { autoRestoreAllWhatsAppSessions } = await import("./lib/whatsapp-engine.js");
+      autoRestoreAllWhatsAppSessions().catch((err) => {
+        logger.error({ err }, "Failed to auto-restore WhatsApp sessions (async)");
+      });
+    } catch (err) {
+      logger.error({ err }, "Failed to import WhatsApp engine for boot restore");
+    }
   });
 }
 

@@ -104,6 +104,17 @@ export async function getWhatsAppSession(propertyId: number): Promise<SessionSta
     };
     activeSessions.set(propertyId, session);
   }
+
+  // If session folder has creds.json and sock is null, automatically restore connection
+  if (!session.sock && !session.isInitializing) {
+    const sessionFolder = path.join(SESSIONS_DIR, `property_${propertyId}`);
+    if (fs.existsSync(path.join(sessionFolder, "creds.json"))) {
+      connectPropertyWhatsApp(propertyId).catch((err) => {
+        console.warn(`[WhatsApp] Auto-restore connection warning for property ${propertyId}:`, err?.message);
+      });
+    }
+  }
+
   return session;
 }
 
@@ -272,6 +283,31 @@ export async function disconnectPropertyWhatsApp(propertyId: number): Promise<vo
 }
 
 /**
+ * Auto-restore all active properties with stored WhatsApp credentials on server startup
+ */
+export async function autoRestoreAllWhatsAppSessions(): Promise<void> {
+  try {
+    if (!fs.existsSync(SESSIONS_DIR)) return;
+    const entries = fs.readdirSync(SESSIONS_DIR);
+    for (const entry of entries) {
+      if (entry.startsWith("property_")) {
+        const propIdStr = entry.replace("property_", "");
+        const propertyId = parseInt(propIdStr, 10);
+        const credsPath = path.join(SESSIONS_DIR, entry, "creds.json");
+        if (!isNaN(propertyId) && fs.existsSync(credsPath)) {
+          console.log(`[WhatsApp] Auto-restoring existing session on boot for property ${propertyId}...`);
+          connectPropertyWhatsApp(propertyId).catch((err) => {
+            console.warn(`[WhatsApp] Boot auto-restore failed for property ${propertyId}:`, err?.message);
+          });
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn("[WhatsApp] autoRestoreAllWhatsAppSessions error:", err?.message);
+  }
+}
+
+/**
  * Actual execution of sending message with anti-ban human behavior
  */
 async function executeSendHumanLike(
@@ -281,7 +317,16 @@ async function executeSendHumanLike(
   messageType: string = "CHECKIN_WELCOME",
   recipientName?: string
 ): Promise<{ success: boolean; reason?: string }> {
-  const session = await getWhatsAppSession(propertyId);
+  let session = await getWhatsAppSession(propertyId);
+
+  // If session is currently restoring or pairing, wait up to 10s for open connection
+  if ((session.isInitializing || session.status === "pairing") && !session.sock) {
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      if (session.status === "connected" && session.sock) break;
+    }
+  }
+
   if (session.status !== "connected" || !session.sock) {
     await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "FAILED", "WhatsApp not connected");
     return { success: false, reason: "NOT_CONNECTED" };
@@ -407,58 +452,97 @@ export async function sendCheckInWhatsAppNotification(params: {
     const { propertyId, profileId, roomId, bedId, startDate } = params;
 
     // 1. Check if WhatsApp is configured & auto-send is enabled
+    const session = await getWhatsAppSession(propertyId);
     const configRes = await pool.query(
       `SELECT * FROM public.property_whatsapp_configs WHERE property_id = $1`,
       [propertyId]
     );
     const config = configRes.rows[0];
-    if (!config || !config.is_auto_send_enabled || config.status !== "connected") {
+    
+    // If auto send explicitly disabled, skip
+    if (config && config.is_auto_send_enabled === false) {
+      console.log(`[WhatsApp Auto-Send] Auto send is disabled for property ${propertyId}, skipping.`);
       return;
     }
 
-    // 2. Fetch profile info
-    const profileRes = await pool.query(
-      `SELECT first_name, last_name, phone FROM public.profiles WHERE id = $1`,
-      [profileId]
+    // Must be connected either in active session or DB
+    const isConnected = session.status === "connected" || config?.status === "connected";
+    if (!isConnected) {
+      console.log(`[WhatsApp Auto-Send] WhatsApp is not connected for property ${propertyId} (session: ${session.status}, db: ${config?.status}), skipping.`);
+      return;
+    }
+
+    // Resolve property & tenant schema name
+    const propRes = await pool.query(
+      `SELECT name, display_name, schema_name FROM public.properties WHERE id = $1`,
+      [propertyId]
     );
+    const prop = propRes.rows[0] || {};
+    const schemaName = (prop.schema_name || "public").trim();
+    const propertyName = prop.display_name || prop.name || "Sunrise Housing";
+
+    // 2. Fetch profile info from tenant schema (fallback to public if not found)
+    let profileRes = await pool.query(
+      `SELECT first_name, last_name, phone FROM ${schemaName}.profiles WHERE id = $1`,
+      [profileId]
+    ).catch(() => ({ rows: [] as any[] }));
+
+    if (!profileRes.rows[0]) {
+      profileRes = await pool.query(
+        `SELECT first_name, last_name, phone FROM public.profiles WHERE id = $1`,
+        [profileId]
+      ).catch(() => ({ rows: [] as any[] }));
+    }
+
     const profile = profileRes.rows[0];
     if (!profile || !profile.phone || !profile.phone.trim()) {
       console.log(`[WhatsApp Auto-Send] Profile ${profileId} has no phone number, skipping.`);
       return;
     }
 
-    // 3. Fetch room, floor, building info
-    const roomRes = await pool.query(
+    // 3. Fetch room, floor, building info from tenant schema
+    let roomRes = await pool.query(
       `SELECT r.room_number, f.name as floor_name, b.name as building_name
-       FROM public.rooms r
-       LEFT JOIN public.floors f ON r.floor_id = f.id
-       LEFT JOIN public.buildings b ON r.building_id = b.id
+       FROM ${schemaName}.rooms r
+       LEFT JOIN ${schemaName}.floors f ON r.floor_id = f.id
+       LEFT JOIN ${schemaName}.buildings b ON r.building_id = b.id
        WHERE r.id = $1`,
       [roomId]
-    );
+    ).catch(() => ({ rows: [] as any[] }));
+
+    if (!roomRes.rows[0]) {
+      roomRes = await pool.query(
+        `SELECT r.room_number, f.name as floor_name, b.name as building_name
+         FROM public.rooms r
+         LEFT JOIN public.floors f ON r.floor_id = f.id
+         LEFT JOIN public.buildings b ON r.building_id = b.id
+         WHERE r.id = $1`,
+        [roomId]
+      ).catch(() => ({ rows: [] as any[] }));
+    }
     const room = roomRes.rows[0] || {};
 
     // 4. Fetch bed info if any
     let bedLabel = "سرير مخصص / Assigned Bed";
     if (bedId) {
-      const bedRes = await pool.query(
-        `SELECT bed_number, bed_label FROM public.room_beds WHERE id = $1`,
+      let bedRes = await pool.query(
+        `SELECT bed_number, bed_label FROM ${schemaName}.room_beds WHERE id = $1`,
         [bedId]
-      );
+      ).catch(() => ({ rows: [] as any[] }));
+
+      if (!bedRes.rows[0]) {
+        bedRes = await pool.query(
+          `SELECT bed_number, bed_label FROM public.room_beds WHERE id = $1`,
+          [bedId]
+        ).catch(() => ({ rows: [] as any[] }));
+      }
+
       if (bedRes.rows[0]) {
         bedLabel = bedRes.rows[0].bed_label || `Bed ${bedRes.rows[0].bed_number}`;
       }
     }
 
-    // 5. Fetch property info
-    const propRes = await pool.query(
-      `SELECT name, display_name FROM public.properties WHERE id = $1`,
-      [propertyId]
-    );
-    const prop = propRes.rows[0] || {};
-    const propertyName = prop.display_name || prop.name || "Sunrise Housing";
-
-    // 6. Compile template
+    // 5. Compile template
     const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
     const portalUrl = process.env.PORTAL_URL || "https://portal.sunrise-housing.com";
 
@@ -471,13 +555,16 @@ export async function sendCheckInWhatsAppNotification(params: {
       bed_label: bedLabel,
       checkin_date: startDate || new Date().toISOString().split("T")[0],
       portal_url: portalUrl,
-      supervisor_contact: config.supervisor_contact || "",
+      supervisor_contact: config?.supervisor_contact || "",
     };
 
-    const template = config.welcome_template_ar || config.welcome_template_en;
+    const template =
+      config?.welcome_template_ar ||
+      config?.welcome_template_en ||
+      DEFAULT_WELCOME_AR;
     const compiledMessage = compileWhatsAppTemplate(template, vars);
 
-    // 7. Dispatch through safe queue
+    // 6. Dispatch through safe queue
     console.log(`[WhatsApp Auto-Send] Queuing welcome notification for ${fullName} (${profile.phone})`);
     sendWhatsAppMessageSafe(
       propertyId,
