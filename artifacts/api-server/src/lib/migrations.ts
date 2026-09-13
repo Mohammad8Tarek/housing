@@ -928,6 +928,38 @@ const MIGRATIONS = [
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`,
   },
+  {
+    name: "public.property_whatsapp_configs",
+    q: `CREATE TABLE IF NOT EXISTS public.property_whatsapp_configs (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER NOT NULL UNIQUE REFERENCES public.properties(id) ON DELETE CASCADE,
+      phone_number TEXT,
+      status TEXT NOT NULL DEFAULT 'disconnected',
+      qr_code TEXT,
+      is_auto_send_enabled BOOLEAN NOT NULL DEFAULT true,
+      welcome_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨\n\nيسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:\n🏢 المبنى: {building_name} ({floor_name})\n🚪 رقم الغرفة: {room_number}\n🛏️ السرير: {bed_label}\n📅 تاريخ التسكين: {checkin_date}\n\n📱 للدخول إلى بوابة الموظفين وطلب الخدمات:\n{portal_url}\n\nنتمنى لك إقامة هانئة ومريحة! ✨',
+      welcome_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n📱 Access Resident Portal:\n{portal_url}\n\nWe wish you a pleasant and comfortable stay! ✨',
+      supervisor_contact TEXT DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_prop_whatsapp_property_id ON public.property_whatsapp_configs (property_id);`,
+  },
+  {
+    name: "public.whatsapp_delivery_logs",
+    q: `CREATE TABLE IF NOT EXISTS public.whatsapp_delivery_logs (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER NOT NULL,
+      recipient_phone TEXT NOT NULL,
+      recipient_name TEXT,
+      message_type TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+      message_content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'SENT',
+      error_message TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_wa_delivery_logs_property_id ON public.whatsapp_delivery_logs (property_id);
+    CREATE INDEX IF NOT EXISTS idx_wa_delivery_logs_created_at ON public.whatsapp_delivery_logs (created_at);`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1643,6 +1675,38 @@ const TENANT_MIGRATIONS = [
        CREATE INDEX IF NOT EXISTS idx_room_inventory_condition ON room_inventory (condition);
        CREATE INDEX IF NOT EXISTS idx_room_inventory_category ON room_inventory (category);
        CREATE INDEX IF NOT EXISTS idx_room_inventory_room_category ON room_inventory (room_id, category);`,
+  },
+  {
+    name: "property_whatsapp_configs.tenant_table",
+    q: `CREATE TABLE IF NOT EXISTS property_whatsapp_configs (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER NOT NULL,
+      phone_number TEXT,
+      status TEXT NOT NULL DEFAULT 'disconnected',
+      qr_code TEXT,
+      is_auto_send_enabled BOOLEAN NOT NULL DEFAULT true,
+      welcome_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨\n\nيسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:\n🏢 المبنى: {building_name} ({floor_name})\n🚪 رقم الغرفة: {room_number}\n🛏️ السرير: {bed_label}\n📅 تاريخ التسكين: {checkin_date}\n\n📱 للدخول إلى بوابة الموظفين وطلب الخدمات:\n{portal_url}\n\nنتمنى لك إقامة هانئة ومريحة! ✨',
+      welcome_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n📱 Access Resident Portal:\n{portal_url}\n\nWe wish you a pleasant and comfortable stay! ✨',
+      supervisor_contact TEXT DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_prop_whatsapp_property_id ON property_whatsapp_configs (property_id);`,
+  },
+  {
+    name: "whatsapp_delivery_logs.tenant_table",
+    q: `CREATE TABLE IF NOT EXISTS whatsapp_delivery_logs (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER NOT NULL,
+      recipient_phone TEXT NOT NULL,
+      recipient_name TEXT,
+      message_type TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+      message_content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'SENT',
+      error_message TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_wa_delivery_logs_property_id ON whatsapp_delivery_logs (property_id);
+    CREATE INDEX IF NOT EXISTS idx_tenant_wa_delivery_logs_created_at ON whatsapp_delivery_logs (created_at);`,
   },
   {
     name: "allow_transferred_and_departed_in_chk_profiles_status",

@@ -32,6 +32,7 @@ import jobsRouter from "./jobs.js";
 import reportsRouter from "./reports.js";
 import roomImportRouter from "./room-import.js";
 import roomInventoryRouter from "./room-inventory.js";
+import whatsappRouter from "./whatsapp.js";
 
 // ✅ Portal Imports
 import portalAuthRouter from "./portal-auth.js";
@@ -110,5 +111,6 @@ router.use("/jobs", jobsRouter);
 router.use("/reports", reportsRouter);
 router.use(roomImportRouter);
 router.use("/room-inventory", roomInventoryRouter);
+router.use("/whatsapp", whatsappRouter);
 
 export default router;

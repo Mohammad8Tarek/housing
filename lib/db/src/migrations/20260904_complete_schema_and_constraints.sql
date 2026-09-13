@@ -1977,5 +1977,57 @@ BEGIN
     ALTER TABLE public.hosting_requests ADD CONSTRAINT hosting_requests_requester_user_id_fkey FOREIGN KEY (requester_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
   END IF;
 
+  
+  -- WhatsApp Integration & Delivery Logs (Public & Tenants)
+  CREATE TABLE IF NOT EXISTS public.property_whatsapp_configs (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL UNIQUE REFERENCES public.properties(id) ON DELETE CASCADE,
+    phone_number TEXT,
+    status TEXT NOT NULL DEFAULT 'disconnected',
+    qr_code TEXT,
+    is_auto_send_enabled BOOLEAN NOT NULL DEFAULT true,
+    welcome_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨
+
+يسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:
+🏢 المبنى: {building_name} ({floor_name})
+🚪 رقم الغرفة: {room_number}
+🛏️ السرير: {bed_label}
+📅 تاريخ التسكين: {checkin_date}
+
+📱 للدخول إلى بوابة الموظفين وطلب الخدمات:
+{portal_url}
+
+نتمنى لك إقامة هانئة ومريحة! ✨',
+    welcome_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨
+
+Your accommodation has been successfully confirmed:
+🏢 Building: {building_name} ({floor_name})
+🚪 Room: {room_number}
+🛏️ Bed: {bed_label}
+📅 Check-in Date: {checkin_date}
+
+📱 Access Resident Portal:
+{portal_url}
+
+We wish you a pleasant and comfortable stay! ✨',
+    supervisor_contact TEXT DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_prop_whatsapp_property_id ON public.property_whatsapp_configs (property_id);
+
+  CREATE TABLE IF NOT EXISTS public.whatsapp_delivery_logs (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL,
+    recipient_phone TEXT NOT NULL,
+    recipient_name TEXT,
+    message_type TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+    message_content TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'SENT',
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_wa_delivery_logs_property_id ON public.whatsapp_delivery_logs (property_id);
+  CREATE INDEX IF NOT EXISTS idx_wa_delivery_logs_created_at ON public.whatsapp_delivery_logs (created_at);
+
   RAISE NOTICE '>>> All schemas, tables, and constraints migrated successfully!';
 END $$;

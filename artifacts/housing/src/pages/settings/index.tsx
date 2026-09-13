@@ -23,6 +23,7 @@ import {
   Image,
   Pen,
   Sparkles,
+  MessageSquare,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
@@ -32,6 +33,7 @@ import { SecuritySettings } from "./components/SecuritySettings";
 import { LookupSection } from "./components/LookupSection";
 import { HrSyncSection } from "./components/HrSyncSection";
 import { DoorLocksSection } from "./components/DoorLocksSection";
+import { WhatsAppSettingsSection } from "./components/WhatsAppSettingsSection";
 
 export default function Settings() {
   const {
@@ -110,7 +112,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 mb-6">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 mb-6">
             <TabsTrigger value="general">
               <Image className="w-3.5 h-3.5 mr-1.5" />
               {ar ? "عام" : "General"}
@@ -138,6 +140,10 @@ export default function Settings() {
             <TabsTrigger value="door-locks">
               <KeyRound className="w-3.5 h-3.5 mr-1.5" />
               {ar ? "الأقفال" : "Locks"}
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp">
+              <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+              {ar ? "الواتساب" : "WhatsApp"}
             </TabsTrigger>
           </TabsList>
 
@@ -275,6 +281,13 @@ export default function Settings() {
 
           <TabsContent value="door-locks" className="space-y-4">
             <DoorLocksSection
+              propertyId={selectedPropertyId}
+              language={language}
+            />
+          </TabsContent>
+
+          <TabsContent value="whatsapp" className="space-y-4">
+            <WhatsAppSettingsSection
               propertyId={selectedPropertyId}
               language={language}
             />

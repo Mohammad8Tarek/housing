@@ -107,6 +107,8 @@ async function buildAll() {
       "connect-pg-simple",
       "ioredis",
       "bullmq",
+      "@whiskeysockets/baileys",
+      "qrcode",
     ],
     sourcemap: "linked",
     plugins: [

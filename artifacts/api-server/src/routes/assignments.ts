@@ -28,6 +28,7 @@ import {
   findProfileAcrossAllProperties,
   deleteSourceProfileOnTransfer,
 } from "../lib/cross-property-service.js";
+import { sendCheckInWhatsAppNotification } from "../lib/whatsapp-engine.js";
 
 const router: Router = Router();
 
@@ -804,6 +805,17 @@ router.post(
         console.warn("[assignments] deleteSourceProfileOnTransfer in POST /assignments warning:", delErr?.message);
       });
     }
+
+    // ── WhatsApp Welcome & Check-in Notification ─────────────────────────
+    sendCheckInWhatsAppNotification({
+      propertyId,
+      profileId: result.assignment!.profileId,
+      roomId: result.assignment!.roomId,
+      bedId: (result.assignment as any)?.bedId || null,
+      startDate: result.assignment!.startDate,
+    }).catch((err) => {
+      console.error("[WhatsApp Hook] Error sending check-in notification:", err);
+    });
 
     res.status(201).json(
       GetAssignmentResponse.parse({
