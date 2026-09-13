@@ -48,7 +48,8 @@ export type WsAction =
   | "sync"
   | "new_message"
   | "read_receipt"
-  | "typing_start";
+  | "typing_start"
+  | "presence";
 
 export interface WsPayload {
   type: "SYNC_DATA" | "data_updated" | "notification" | "connected" | "pong";
@@ -102,6 +103,74 @@ function unregisterClient(key: string, client: Client): void {
     propSet.delete(client);
     if (propSet.size === 0) {
       clientsByProperty.delete(client.propertyId);
+    }
+  }
+}
+
+// ─── Real-Time Presence Registry ──────────────────────────────────────────
+export const employeeLastSeen = new Map<number, string>();
+
+export function getOnlineEmployeeIds(propertyId?: number): number[] {
+  const result: number[] = [];
+  const targetClients = propertyId
+    ? clientsByProperty.get(propertyId)
+    : clients.values();
+  if (!targetClients) return result;
+  for (const client of targetClients) {
+    if (typeof client.userId === "string" && client.userId.startsWith("emp_")) {
+      const id = parseInt(client.userId.slice(4), 10);
+      if (!Number.isNaN(id) && !result.includes(id)) {
+        result.push(id);
+      }
+    }
+  }
+  return result;
+}
+
+export function isEmployeeOnline(profileDbId: number, propertyId?: number): boolean {
+  if (propertyId) {
+    const key = makeKey(`emp_${profileDbId}`, propertyId);
+    const client = clients.get(key);
+    return Boolean(client && client.ws.readyState === WebSocket.OPEN);
+  }
+  for (const client of clients.values()) {
+    if (client.userId === `emp_${profileDbId}` && client.ws.readyState === WebSocket.OPEN) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function getEmployeeLastSeen(profileDbId: number): string | null {
+  return employeeLastSeen.get(profileDbId) || null;
+}
+
+export function getAllEmployeeLastSeen(): Record<number, string> {
+  const res: Record<number, string> = {};
+  for (const [id, ts] of employeeLastSeen.entries()) {
+    res[id] = ts;
+  }
+  return res;
+}
+
+function handleClientDisconnect(userId: number | string, propertyId: number): void {
+  if (typeof userId === "string" && userId.startsWith("emp_")) {
+    const empId = parseInt(userId.slice(4), 10);
+    if (!Number.isNaN(empId)) {
+      if (!isEmployeeOnline(empId, propertyId)) {
+        const lastSeenIso = new Date().toISOString();
+        employeeLastSeen.set(empId, lastSeenIso);
+        broadcastToProperty(propertyId, {
+          module: "chat",
+          action: "presence",
+          data: {
+            employeeId: empId,
+            isOnline: false,
+            lastSeen: lastSeenIso,
+            timestamp: lastSeenIso,
+          },
+        });
+      }
     }
   }
 }
@@ -399,6 +468,23 @@ export function initWebSocket(server: Server): WebSocketServer {
     };
     registerClient(key, client);
 
+    // Broadcast online presence for portal employees
+    if (typeof userId === "string" && userId.startsWith("emp_")) {
+      const empId = parseInt(userId.slice(4), 10);
+      if (!Number.isNaN(empId)) {
+        employeeLastSeen.set(empId, new Date().toISOString());
+        broadcastToProperty(propertyId, {
+          module: "chat",
+          action: "presence",
+          data: {
+            employeeId: empId,
+            isOnline: true,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    }
+
     // Confirm connection immediately
     fastSend(
       ws,
@@ -444,6 +530,7 @@ export function initWebSocket(server: Server): WebSocketServer {
     // Clean disconnect
     ws.on("close", () => {
       unregisterClient(key, client);
+      handleClientDisconnect(userId, propertyId);
       logger.info(
         { userId, propertyId, total: clients.size },
         "[WS] Client disconnected",
@@ -456,6 +543,7 @@ export function initWebSocket(server: Server): WebSocketServer {
         "[WS] Client error",
       );
       unregisterClient(key, client);
+      handleClientDisconnect(userId, propertyId);
       try {
         ws.close();
       } catch {}
@@ -471,6 +559,7 @@ export function initWebSocket(server: Server): WebSocketServer {
           client.ws.terminate();
         } catch {}
         unregisterClient(key, client);
+        handleClientDisconnect(client.userId, client.propertyId);
         continue;
       }
       if (client.ws.readyState === WebSocket.OPEN) {
@@ -478,6 +567,7 @@ export function initWebSocket(server: Server): WebSocketServer {
         client.ws.ping();
       } else {
         unregisterClient(key, client);
+        handleClientDisconnect(client.userId, client.propertyId);
       }
     }
   }, 25_000);

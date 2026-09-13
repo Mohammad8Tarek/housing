@@ -569,6 +569,58 @@ function formatDate(dateStr: string, isRtl: boolean) {
   });
 }
 
+function formatLastSeen(dateStr: string | undefined, isRtl: boolean): string {
+  if (!dateStr) return isRtl ? "غير متصل" : "offline";
+  try {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return isRtl ? "غير متصل" : "offline";
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60_000);
+
+    if (diffMins < 1) {
+      return isRtl ? "آخر ظهور الآن" : "last seen just now";
+    }
+    if (diffMins < 60) {
+      return isRtl ? `آخر ظهور منذ ${diffMins} د` : `last seen ${diffMins}m ago`;
+    }
+
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+
+    const timeStr = date.toLocaleTimeString(isRtl ? "ar-EG" : "en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    if (isToday) {
+      return isRtl ? `آخر ظهور اليوم في ${timeStr}` : `last seen today at ${timeStr}`;
+    }
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday =
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
+    if (isYesterday) {
+      return isRtl ? `آخر ظهور أمس في ${timeStr}` : `last seen yesterday at ${timeStr}`;
+    }
+
+    const dateFormatted = date.toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
+      month: "numeric",
+      day: "numeric",
+    });
+    return isRtl ? `آخر ظهور ${dateFormatted} في ${timeStr}` : `last seen ${dateFormatted} at ${timeStr}`;
+  } catch {
+    return isRtl ? "غير متصل" : "offline";
+  }
+}
+
 /* ─── Notification helper ────────────────────────────────────────── */
 function requestNotificationPermission() {
   if ("Notification" in window && Notification.permission === "default") {
@@ -816,6 +868,33 @@ export function TabChat({
     {},
   );
   const typingTimeoutRef = useRef<Record<string, any>>({});
+
+  /* ── Live Real-Time Presence States ── */
+  const [onlineEmployees, setOnlineEmployees] = useState<Set<number>>(new Set());
+  const [lastSeenMap, setLastSeenMap] = useState<Record<number, string>>({});
+
+  const fetchPresence = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/portal-chat/presence", { credentials: "include" });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.success && Array.isArray(d.onlineEmployeeIds)) {
+          setOnlineEmployees(new Set(d.onlineEmployeeIds));
+        }
+        if (d.lastSeen && typeof d.lastSeen === "object") {
+          setLastSeenMap((prev) => ({ ...prev, ...d.lastSeen }));
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPresence();
+    const timer = setInterval(fetchPresence, 20_000);
+    return () => clearInterval(timer);
+  }, [fetchPresence]);
 
   /* ── Rich Features States ── */
   const [activeCall, setActiveCall] = useState<{
@@ -1081,6 +1160,24 @@ export function TabChat({
                       return { ...prev, [convId]: current };
                     });
                   }, 3000);
+                }
+              } else if (parsed.action === "presence") {
+                const empId = Number(parsed.data?.employeeId);
+                const isOnline = Boolean(parsed.data?.isOnline);
+                const lastSeen = parsed.data?.lastSeen as string | undefined;
+                if (empId) {
+                  setOnlineEmployees((prev) => {
+                    const next = new Set(prev);
+                    if (isOnline) {
+                      next.add(empId);
+                    } else {
+                      next.delete(empId);
+                    }
+                    return next;
+                  });
+                  if (lastSeen) {
+                    setLastSeenMap((prev) => ({ ...prev, [empId]: lastSeen }));
+                  }
                 }
               }
             }
@@ -1838,6 +1935,17 @@ export function TabChat({
     const photo = getConvPhoto(activeConv);
     const BackIcon = isRtl ? ArrowRight : ArrowLeft;
     const isTyping = (typingUsers[activeConv.id]?.size || 0) > 0;
+    const otherParticipantId = activeConv.isGroup
+      ? null
+      : activeConv.participantIds.find((id) => id !== effectiveMyId);
+    const isOtherOnline = otherParticipantId
+      ? onlineEmployees.has(otherParticipantId)
+      : false;
+    const groupOnlineCount = activeConv.isGroup
+      ? activeConv.participantIds.filter(
+          (id) => id !== effectiveMyId && onlineEmployees.has(id)
+        ).length
+      : 0;
 
     const filteredMessages = chatSearch.trim()
       ? messages.filter((m) =>
@@ -1881,36 +1989,79 @@ export function TabChat({
               <BackIcon className="w-5 h-5" />
             </button>
 
-            {/* Avatar with WhatsApp online badge */}
-            <div className="relative flex-shrink-0">
-              {photo ? (
-                <img
-                  src={photo}
-                  alt={title}
-                  className="w-10 h-10 rounded-full object-cover border border-white/20"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center text-white font-bold text-base border border-white/20">
-                  {title.charAt(0).toUpperCase()}
-                </div>
-              )}
-              {/* Green online dot */}
-              <span className="absolute bottom-0 end-0 w-3 h-3 bg-[#25d366] border-2 border-white rounded-full"></span>
-            </div>
-
-            {/* Title & Status */}
-            <div className="min-w-0 flex-1 leading-tight">
-              <div className="font-semibold text-[15px] truncate text-white">
-                {title}
-              </div>
-              <div className="text-[12px] text-white/80 font-normal truncate">
-                {isTyping ? (
-                  <span className="text-[#a7f3d0] font-medium animate-pulse">
-                    {isRtl ? "يكتب الآن..." : "typing..."}
-                  </span>
+            {/* Header info click opens contact profile modal */}
+            <div
+              className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
+              onClick={() => {
+                if (!activeConv.isGroup && otherParticipantId) {
+                  const pData =
+                    activeConv.participantsData?.find((p) => p.id === otherParticipantId) ||
+                    contacts.find((c: any) => c.id === otherParticipantId) ||
+                    senders[otherParticipantId];
+                  setSelectedContactInfo({
+                    id: otherParticipantId,
+                    firstName: pData?.firstName || title,
+                    lastName: pData?.lastName || "",
+                    photoUrl: photo,
+                    jobTitle: (pData as any)?.jobTitle,
+                    department: (pData as any)?.department,
+                  });
+                }
+              }}
+            >
+              {/* Avatar with WhatsApp online badge */}
+              <div className="relative flex-shrink-0">
+                {photo ? (
+                  <img
+                    src={photo}
+                    alt={title}
+                    className="w-10 h-10 rounded-full object-cover border border-white/20"
+                  />
                 ) : (
-                  <span>{isRtl ? "متصل الآن" : "online"}</span>
+                  <div className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center text-white font-bold text-base border border-white/20">
+                    {title.charAt(0).toUpperCase()}
+                  </div>
                 )}
+                {/* Green online dot - only when truly online */}
+                {!activeConv.isGroup && isOtherOnline && (
+                  <span className="absolute bottom-0 end-0 w-3 h-3 bg-[#25d366] border-2 border-white rounded-full shadow-xs"></span>
+                )}
+              </div>
+
+              {/* Title & Status */}
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="font-semibold text-[15px] truncate text-white">
+                  {title}
+                </div>
+                <div className="text-[12px] text-white/80 font-normal truncate">
+                  {isTyping ? (
+                    <span className="text-[#a7f3d0] font-medium animate-pulse">
+                      {isRtl ? "يكتب الآن..." : "typing..."}
+                    </span>
+                  ) : activeConv.isGroup ? (
+                    <span>
+                      {groupOnlineCount > 0
+                        ? isRtl
+                          ? `${groupOnlineCount} متصل الآن`
+                          : `${groupOnlineCount} online`
+                        : isRtl
+                        ? `${activeConv.participantIds.length} أعضاء`
+                        : `${activeConv.participantIds.length} members`}
+                    </span>
+                  ) : isOtherOnline ? (
+                    <span className="text-[#a7f3d0] font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#25d366] inline-block"></span>
+                      {isRtl ? "متصل الآن" : "online"}
+                    </span>
+                  ) : (
+                    <span className="text-white/70">
+                      {formatLastSeen(
+                        otherParticipantId ? lastSeenMap[otherParticipantId] : undefined,
+                        isRtl
+                      )}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -2828,26 +2979,46 @@ export function TabChat({
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="w-24 h-24 mx-auto rounded-full overflow-hidden mb-3 border-4 border-[#00a884]/30 shadow-lg">
-                {selectedContactInfo.photoUrl ? (
-                  <img
-                    src={selectedContactInfo.photoUrl}
-                    alt={selectedContactInfo.firstName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#00a884] text-white flex items-center justify-center text-3xl font-bold">
-                    {(selectedContactInfo.firstName || "U").charAt(0).toUpperCase()}
-                  </div>
+              <div className="relative w-24 h-24 mx-auto mb-3">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#00a884]/30 shadow-lg">
+                  {selectedContactInfo.photoUrl ? (
+                    <img
+                      src={selectedContactInfo.photoUrl}
+                      alt={selectedContactInfo.firstName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#00a884] text-white flex items-center justify-center text-3xl font-bold">
+                      {(selectedContactInfo.firstName || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                {onlineEmployees.has(selectedContactInfo.id) && (
+                  <span className="absolute bottom-0 end-0 w-5 h-5 bg-[#25d366] border-2 border-white dark:border-[#202c33] rounded-full shadow-md" />
                 )}
               </div>
 
               <h3 className="text-xl font-bold mb-1">
                 {selectedContactInfo.firstName} {selectedContactInfo.lastName || ""}
               </h3>
-              <p className="text-sm text-[#00a884] font-medium mb-3">
+              <p className="text-sm text-[#00a884] font-medium mb-2">
                 {selectedContactInfo.jobTitle || (isRtl ? "موظف" : "Staff")}
               </p>
+
+              {/* Dynamic Presence Status Badge */}
+              <div className="flex items-center justify-center gap-1.5 mb-3">
+                {onlineEmployees.has(selectedContactInfo.id) ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-[#00a884]">
+                    <span className="w-2 h-2 rounded-full bg-[#25d366] animate-pulse"></span>
+                    {isRtl ? "متصل الآن" : "Online now"}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-500/10 text-gray-500 dark:text-gray-400">
+                    <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                    {formatLastSeen(lastSeenMap[selectedContactInfo.id], isRtl)}
+                  </span>
+                )}
+              </div>
 
               <div
                 className="rounded-2xl p-3 mb-4 text-start text-xs space-y-2"
@@ -3035,16 +3206,26 @@ export function TabChat({
                         {emp.lastName?.[0] || ""}
                       </div>
                     )}
-                    <span className="absolute bottom-0 end-0 w-3 h-3 bg-[#25d366] border-2 border-white dark:border-[#111b21] rounded-full" />
+                    {onlineEmployees.has(emp.id) && (
+                      <span className="absolute bottom-0 end-0 w-3 h-3 bg-[#25d366] border-2 border-white dark:border-[#111b21] rounded-full" />
+                    )}
                   </div>
 
                   {/* Details */}
                   <div className="flex-1 min-w-0">
-                    <div
-                      className="font-semibold text-[15px] truncate"
-                      style={{ color: isDark ? "#e9edef" : "#111b21" }}
-                    >
-                      {emp.firstName} {emp.lastName}
+                    <div className="flex items-center justify-between gap-1">
+                      <div
+                        className="font-semibold text-[15px] truncate"
+                        style={{ color: isDark ? "#e9edef" : "#111b21" }}
+                      >
+                        {emp.firstName} {emp.lastName}
+                      </div>
+                      {onlineEmployees.has(emp.id) && (
+                        <span className="text-[11px] font-semibold text-[#00a884] flex items-center gap-1 flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#25d366] animate-pulse"></span>
+                          {isRtl ? "متصل الآن" : "Online"}
+                        </span>
+                      )}
                     </div>
                     {(emp.jobTitle || emp.department) && (
                       <div
@@ -3306,6 +3487,10 @@ export function TabChat({
             const hasUnread = conv.unreadCount > 0;
             const isLastMsgMine =
               conv.lastMessage?.senderId === (effectiveMyId ?? myEmployeeId);
+            const otherId = conv.isGroup
+              ? null
+              : conv.participantIds.find((id) => id !== effectiveMyId);
+            const isOnline = otherId ? onlineEmployees.has(otherId) : false;
 
             return (
               <button
@@ -3334,8 +3519,10 @@ export function TabChat({
                       {title.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  {/* Subtle online green dot */}
-                  <span className="absolute bottom-0 end-0 w-3.5 h-3.5 bg-[#25d366] border-2 border-white dark:border-[#111b21] rounded-full shadow-xs" />
+                  {/* Subtle online green dot - only when contact is actually online */}
+                  {!conv.isGroup && isOnline && (
+                    <span className="absolute bottom-0 end-0 w-3.5 h-3.5 bg-[#25d366] border-2 border-white dark:border-[#111b21] rounded-full shadow-xs animate-in zoom-in-50 duration-200" />
+                  )}
                 </div>
 
                 {/* Conversation Details */}

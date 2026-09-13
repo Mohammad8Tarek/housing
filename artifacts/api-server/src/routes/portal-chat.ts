@@ -11,11 +11,37 @@ import { eq, and, desc, asc, inArray, sql, not, or, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth } from "../middlewares/permissions.js";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
-import { broadcastToProperty } from "../lib/websocket.js";
+import {
+  broadcastToProperty,
+  getOnlineEmployeeIds,
+  getAllEmployeeLastSeen,
+} from "../lib/websocket.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 
 const router: Router = Router();
+
+// ─── PRESENCE ───────────────────────────────────────────────────
+
+// GET /portal-chat/presence — قائمة الموظفين المتصلين الآن وأوقات آخر ظهور
+// @ts-ignore
+router.get("/presence", async (req, res, next) => {
+  try {
+    const sess = portalSession(req);
+    const adminPropId = (req as any).session?.propertyId;
+    const propertyId = sess?.propertyId ?? adminPropId ?? 1;
+
+    const onlineEmployeeIds = getOnlineEmployeeIds(propertyId);
+    const lastSeen = getAllEmployeeLastSeen();
+    res.json({
+      success: true,
+      onlineEmployeeIds,
+      lastSeen,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // ─── CONVERSATIONS ──────────────────────────────────────────────
 
