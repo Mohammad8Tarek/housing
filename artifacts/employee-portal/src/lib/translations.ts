@@ -33,6 +33,9 @@ const t = {
     ar: "مرحباً {name}، لأمان حسابك، يرجى تحديث كلمة المرور المؤقتة.",
     en: "Welcome, {name}. For your security, please update your temporary password.",
   },
+  "changepw.current": { ar: "كلمة المرور الحالية", en: "Current Password" },
+  "changepw.new": { ar: "كلمة المرور الجديدة", en: "New Password" },
+  "changepw.confirm": { ar: "تأكيد كلمة المرور", en: "Confirm Password" },
   "changepw.newPassword": { ar: "كلمة المرور الجديدة", en: "New Password" },
   "changepw.confirmPassword": {
     ar: "تأكيد كلمة المرور",

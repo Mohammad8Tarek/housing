@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   useListInHouseAssignments,
   useListProfiles,
@@ -238,12 +238,6 @@ export default function InHouse() {
   // Broadcast WhatsApp state
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastTargetMode, setBroadcastTargetMode] = useState<"all" | "selected">("all");
-  const selectedProfileIds = useMemo(() => {
-    return Array.from(selectedRows).map((id) => {
-      const a = allAssignments.find((x: any) => x.id === id);
-      return a?.profileId ? Number(a.profileId) : null;
-    }).filter((id): id is number => id !== null);
-  }, [selectedRows, allAssignments]);
 
   const handleOpenWhatsAppDialog = (a: any, empData: any) => {
     const p = empData || {
@@ -321,6 +315,13 @@ export default function InHouse() {
   );
   const assignments = assignmentsRes?.data || [];
   const total = assignmentsRes?.pagination?.total || 0;
+
+  const selectedProfileIds = useMemo(() => {
+    return Array.from(selectedRows).map((id) => {
+      const a = (assignments || []).find((x: any) => x.id === id);
+      return a?.profileId ? Number(a.profileId) : null;
+    }).filter((id): id is number => id !== null);
+  }, [selectedRows, assignments]);
 
   const { data: _eDataWrapper } = useListProfiles(
     { propertyId: activePropertyId ?? undefined, limit: 1000 },
