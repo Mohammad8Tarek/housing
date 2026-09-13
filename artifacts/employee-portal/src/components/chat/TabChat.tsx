@@ -57,7 +57,12 @@ interface Conversation {
   id: number;
   subject: string | null;
   isGroup: boolean;
-  lastMessage: { content: string; createdAt: string; senderId: number } | null;
+  lastMessage: {
+    content: string;
+    createdAt: string;
+    senderId: number;
+    contentType?: string;
+  } | null;
   unreadCount: number;
   participantIds: number[];
   participantsData?: any[];
@@ -731,6 +736,129 @@ async function showNotification(title: string, body: string, icon?: string) {
   }
 }
 
+/* ─── Message Preview Helpers ───────────────────────────────────── */
+function getNotificationMessagePreview(
+  content: string,
+  contentType?: string,
+  isRtl: boolean = true
+): string {
+  if (!content) return isRtl ? "رسالة جديدة" : "New message";
+  if (
+    contentType === "image" ||
+    content.startsWith("data:image/") ||
+    (content.startsWith("http") && /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
+    (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) && content.length > 50) ||
+    content === "📷 صورة" ||
+    content === "📷 Photo"
+  ) {
+    return isRtl ? "📷 صورة" : "📷 Photo";
+  }
+  if (contentType === "audio" || content.startsWith("[AUDIO]:")) {
+    return isRtl ? "🎤 رسالة صوتية" : "🎤 Voice message";
+  }
+  if (contentType === "file" || content.startsWith("[FILE]:")) {
+    const raw = content.replace("[FILE]:", "");
+    const fileName = raw.split("|")[0] || "";
+    return `📄 ${fileName || (isRtl ? "مستند" : "Document")}`;
+  }
+  if (contentType === "location" || content.startsWith("[LOCATION]:")) {
+    return isRtl ? "📍 موقع جغرافي" : "📍 Location";
+  }
+  if (contentType === "call" || content.startsWith("[CALL]:")) {
+    return isRtl ? "📞 مكالمة" : "📞 Call";
+  }
+  return content.slice(0, 80);
+}
+
+function renderLastMessagePreview(
+  lastMsg: { content: string; contentType?: string; senderId?: number } | null | undefined,
+  isRtl: boolean,
+  isDark: boolean,
+  hasUnread: boolean
+) {
+  if (!lastMsg || !lastMsg.content) {
+    return (
+      <span className={hasUnread ? "font-semibold" : ""}>
+        {isRtl ? "ابدأ المحادثة الآن" : "Start chatting"}
+      </span>
+    );
+  }
+
+  const content = lastMsg.content;
+  const contentType = lastMsg.contentType;
+
+  // 1. Photo / Image message
+  if (
+    contentType === "image" ||
+    content.startsWith("data:image/") ||
+    (content.startsWith("http") && /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
+    (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) && content.length > 50) ||
+    content === "📷 صورة" ||
+    content === "📷 Photo"
+  ) {
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <Camera
+          className="w-3.5 h-3.5 flex-shrink-0"
+          style={{ color: hasUnread ? "#25d366" : isDark ? "#8696a0" : "#667781" }}
+        />
+        <span>{isRtl ? "صورة" : "Photo"}</span>
+      </span>
+    );
+  }
+
+  // 2. Audio / Voice Note
+  if (contentType === "audio" || content.startsWith("[AUDIO]:")) {
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <Mic
+          className="w-3.5 h-3.5 flex-shrink-0"
+          style={{ color: hasUnread ? "#25d366" : "#00a884" }}
+        />
+        <span>{isRtl ? "رسالة صوتية" : "Voice message"}</span>
+      </span>
+    );
+  }
+
+  // 3. Document attachment
+  if (contentType === "file" || content.startsWith("[FILE]:")) {
+    const raw = content.replace("[FILE]:", "");
+    const fileName = raw.split("|")[0] || "";
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <FileText
+          className="w-3.5 h-3.5 flex-shrink-0"
+          style={{ color: hasUnread ? "#25d366" : "#3b82f6" }}
+        />
+        <span className="truncate">{fileName || (isRtl ? "مستند" : "Document")}</span>
+      </span>
+    );
+  }
+
+  // 4. Location
+  if (contentType === "location" || content.startsWith("[LOCATION]:")) {
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
+        <span>{isRtl ? "موقع جغرافي" : "Location"}</span>
+      </span>
+    );
+  }
+
+  // 5. Call
+  if (contentType === "call" || content.startsWith("[CALL]:")) {
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <Phone className="w-3.5 h-3.5 flex-shrink-0 text-teal-500" />
+        <span>{isRtl ? "مكالمة" : "Call"}</span>
+      </span>
+    );
+  }
+
+  // 6. Regular text
+  return <span className="truncate">{content}</span>;
+}
+
 /* ─── Double / Single tick SVG ──────────────────────────────────── */
 function TickIcon({ read, color }: { read: boolean; color: string }) {
   return (
@@ -1131,7 +1259,10 @@ export function TabChat({
                         : isRtl
                           ? "رسالة جديدة"
                           : "New message";
-                  showNotification(senderName, newMsg.content?.slice(0, 80) || "");
+                  showNotification(
+                    senderName,
+                    getNotificationMessagePreview(newMsg.content, newMsg.contentType, isRtl)
+                  );
                 }
 
                 // Reload conversations list to update last message & unread
@@ -1408,6 +1539,7 @@ export function TabChat({
       conversationId: activeConv.id,
       senderId: effectiveMyId || 0,
       content: contentToSend,
+      contentType,
       createdAt: new Date().toISOString(),
       isEdited: false,
       reads: [],
@@ -2299,19 +2431,27 @@ export function TabChat({
                     {/* Rich Message Content */}
                     {(() => {
                       // 1. Photo / Image message
-                      if (
+                      const isImg =
                         msg.contentType === "image" ||
                         msg.content.startsWith("data:image/") ||
                         (msg.content.startsWith("http") &&
-                          /\.(jpeg|jpg|gif|png|webp)/i.test(msg.content))
-                      ) {
+                          /\.(jpeg|jpg|gif|png|webp)/i.test(msg.content)) ||
+                        (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(msg.content) &&
+                          msg.content.length > 50);
+
+                      if (isImg) {
+                        const resolvedImgSrc =
+                          msg.content.startsWith("data:") || msg.content.startsWith("http")
+                            ? msg.content
+                            : `data:image/jpeg;base64,${msg.content}`;
+
                         return (
                           <div
                             className="relative overflow-hidden rounded-xl cursor-pointer group mb-1"
-                            onClick={() => setActiveLightboxImage(msg.content)}
+                            onClick={() => setActiveLightboxImage(resolvedImgSrc)}
                           >
                             <img
-                              src={msg.content}
+                              src={resolvedImgSrc}
                               alt="Photo"
                               className="w-full max-w-xs max-h-72 object-cover rounded-xl transition-transform group-hover:scale-[1.01]"
                             />
@@ -3562,8 +3702,8 @@ export function TabChat({
                       {isLastMsgMine && !isTyping && (
                         <CheckCheck className="w-4 h-4 text-[#53bdeb] flex-shrink-0" />
                       )}
-                      <p
-                        className={`text-[13.5px] truncate m-0 ${
+                      <div
+                        className={`text-[13.5px] truncate m-0 flex items-center min-w-0 ${
                           isTyping
                             ? "text-[#00a884] font-semibold animate-pulse"
                             : hasUnread
@@ -3586,9 +3726,8 @@ export function TabChat({
                           ? isRtl
                             ? "يكتب الآن..."
                             : "Typing..."
-                          : conv.lastMessage?.content ||
-                            (isRtl ? "ابدأ المحادثة الآن" : "Start chatting")}
-                      </p>
+                          : renderLastMessagePreview(conv.lastMessage, isRtl, isDark, hasUnread)}
+                      </div>
                     </div>
 
                     {/* Circular WhatsApp Green Badge */}

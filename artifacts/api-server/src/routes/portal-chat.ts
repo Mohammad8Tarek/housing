@@ -132,9 +132,28 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
               .where(inArray(profilesTable.id, participantIds));
           }
 
+          let safeLastMsg: any = lastMsg ? { ...lastMsg } : null;
+          if (safeLastMsg) {
+            if (
+              safeLastMsg.contentType !== "image" &&
+              (safeLastMsg.content.startsWith("data:image/") ||
+                (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(safeLastMsg.content) &&
+                  safeLastMsg.content.length > 50))
+            ) {
+              safeLastMsg.contentType = "image";
+            }
+            if (
+              (safeLastMsg.contentType === "image" ||
+                safeLastMsg.content.startsWith("data:image/")) &&
+              safeLastMsg.content.length > 200
+            ) {
+              safeLastMsg.content = "📷 صورة";
+            }
+          }
+
           result.push({
             ...conv,
-            lastMessage: lastMsg || null,
+            lastMessage: safeLastMsg,
             unreadCount: Number(unreadResult?.count || 0),
             participantIds,
             participantsData,
@@ -347,13 +366,31 @@ router.post(
           .set({ updatedAt: new Date() })
           .where(eq(portalConversationsTable.id, convId));
         // Insert message
+        const trimmedContent = content.trim();
+        const detectedType =
+          contentType === "image" ||
+          trimmedContent.startsWith("data:image/") ||
+          (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(trimmedContent) &&
+            trimmedContent.length > 50)
+            ? "image"
+            : contentType === "audio" || trimmedContent.startsWith("[AUDIO]:")
+            ? "audio"
+            : contentType === "file" || trimmedContent.startsWith("[FILE]:")
+            ? "file"
+            : contentType === "location" ||
+              trimmedContent.startsWith("[LOCATION]:")
+            ? "location"
+            : contentType === "call" || trimmedContent.startsWith("[CALL]:")
+            ? "call"
+            : "text";
+
         return await tenantDb
           .insert(portalMessagesTable)
           .values({
             conversationId: convId,
             senderId: sess.profileDbId,
-            content: content.trim(),
-            contentType: contentType === "image" ? "image" : "text",
+            content: trimmedContent,
+            contentType: detectedType,
           })
           .returning();
       });

@@ -1,5 +1,6 @@
 import React from "react";
 import { useTheme } from "../../lib/theme";
+import { Camera, Mic, FileText, MapPin, Phone } from "lucide-react";
 
 export interface ConversationItem {
   id: number;
@@ -11,6 +12,7 @@ export interface ConversationItem {
     content: string;
     createdAt: string;
     senderId: number;
+    contentType?: string;
   } | null;
 }
 
@@ -32,6 +34,74 @@ function timeAgo(dateStr: string, isRtl: boolean) {
   if (hrs < 24) return isRtl ? `منذ ${hrs} س` : `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   return isRtl ? `منذ ${days} ي` : `${days}d ago`;
+}
+
+function renderChatListLastMessage(
+  lastMsg: { content: string; contentType?: string } | null | undefined,
+  isRtl: boolean
+) {
+  if (!lastMsg || !lastMsg.content) {
+    return isRtl ? "بدأت المحادثة" : "Conversation started";
+  }
+
+  const content = lastMsg.content;
+  const contentType = lastMsg.contentType;
+
+  if (
+    contentType === "image" ||
+    content.startsWith("data:image/") ||
+    (content.startsWith("http") && /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
+    (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) && content.length > 50) ||
+    content === "📷 صورة" ||
+    content === "📷 Photo"
+  ) {
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <Camera className="w-3.5 h-3.5 flex-shrink-0 opacity-70" />
+        <span>{isRtl ? "صورة" : "Photo"}</span>
+      </span>
+    );
+  }
+
+  if (contentType === "audio" || content.startsWith("[AUDIO]:")) {
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <Mic className="w-3.5 h-3.5 flex-shrink-0 text-[#00a884]" />
+        <span>{isRtl ? "رسالة صوتية" : "Voice message"}</span>
+      </span>
+    );
+  }
+
+  if (contentType === "file" || content.startsWith("[FILE]:")) {
+    const raw = content.replace("[FILE]:", "");
+    const fileName = raw.split("|")[0] || "";
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <FileText className="w-3.5 h-3.5 flex-shrink-0 text-blue-500" />
+        <span className="truncate">{fileName || (isRtl ? "مستند" : "Document")}</span>
+      </span>
+    );
+  }
+
+  if (contentType === "location" || content.startsWith("[LOCATION]:")) {
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
+        <span>{isRtl ? "موقع جغرافي" : "Location"}</span>
+      </span>
+    );
+  }
+
+  if (contentType === "call" || content.startsWith("[CALL]:")) {
+    return (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <Phone className="w-3.5 h-3.5 flex-shrink-0 text-teal-500" />
+        <span>{isRtl ? "مكالمة" : "Call"}</span>
+      </span>
+    );
+  }
+
+  return <span className="truncate">{content}</span>;
 }
 
 export function ChatList({
@@ -148,16 +218,15 @@ export function ChatList({
                   </span>
                 )}
               </div>
-              <p
-                className={`text-[14px] truncate ${
+              <div
+                className={`text-[14px] truncate flex items-center min-w-0 ${
                   conv.unreadCount > 0
                     ? "font-semibold text-[hsl(var(--foreground))]"
                     : "text-[hsl(var(--muted2))]"
                 }`}
               >
-                {conv.lastMessage?.content ||
-                  (isRtl ? "بدأت المحادثة" : "Conversation started")}
-              </p>
+                {renderChatListLastMessage(conv.lastMessage, isRtl)}
+              </div>
             </div>
           </div>
         );
