@@ -112,6 +112,11 @@ router.get("/config", requirePermission("settings", "view"), async (req, res) =>
     }
 
     const row = dbRes.rows[0];
+    const rawWelcomeAr = row.welcome_template_ar || "";
+    const cleanWelcomeAr = (rawWelcomeAr && !rawWelcomeAr.includes("???")) ? rawWelcomeAr : DEFAULT_WELCOME_AR;
+    const rawResAr = row.reservation_template_ar || "";
+    const cleanResAr = (rawResAr && !rawResAr.includes("???")) ? rawResAr : DEFAULT_RESERVATION_AR;
+
     res.json({
       success: true,
       config: {
@@ -119,10 +124,10 @@ router.get("/config", requirePermission("settings", "view"), async (req, res) =>
         status: row.status,
         phoneNumber: row.phone_number,
         isAutoSendEnabled: row.is_auto_send_enabled,
-        welcomeTemplateAr: row.welcome_template_ar || DEFAULT_WELCOME_AR,
+        welcomeTemplateAr: cleanWelcomeAr,
         welcomeTemplateEn: row.welcome_template_en || DEFAULT_WELCOME_EN,
         isReservationSendEnabled: row.is_reservation_send_enabled ?? true,
-        reservationTemplateAr: row.reservation_template_ar || DEFAULT_RESERVATION_AR,
+        reservationTemplateAr: cleanResAr,
         reservationTemplateEn: row.reservation_template_en || DEFAULT_RESERVATION_EN,
         supervisorContact: row.supervisor_contact || "",
       },

@@ -175,9 +175,16 @@ export function WhatsAppSettingsSection({
         if (cData.config) {
           setIsAutoSendEnabled(cData.config.isAutoSendEnabled ?? true);
           setIsReservationSendEnabled(cData.config.isReservationSendEnabled ?? true);
-          setWelcomeTemplateAr(cData.config.welcomeTemplateAr || DEFAULT_TEMPLATE_AR);
+          const rawWelcomeAr = cData.config.welcomeTemplateAr || "";
+          setWelcomeTemplateAr(
+            rawWelcomeAr && !rawWelcomeAr.includes("???") ? rawWelcomeAr : DEFAULT_TEMPLATE_AR
+          );
           setWelcomeTemplateEn(cData.config.welcomeTemplateEn || DEFAULT_TEMPLATE_EN);
-          setReservationTemplateAr(cData.config.reservationTemplateAr || DEFAULT_RES_TEMPLATE_AR);
+
+          const rawResAr = cData.config.reservationTemplateAr || "";
+          setReservationTemplateAr(
+            rawResAr && !rawResAr.includes("???") ? rawResAr : DEFAULT_RES_TEMPLATE_AR
+          );
           setReservationTemplateEn(cData.config.reservationTemplateEn || DEFAULT_RES_TEMPLATE_EN);
           setSupervisorContact(cData.config.supervisorContact || "");
         }
@@ -915,7 +922,13 @@ export function WhatsAppSettingsSection({
                   </div>
                 </div>
                 <span className="text-[11px] text-muted-foreground mt-2">
-                  {ar ? "📱 معاينة حية لشاشة هاتف الموظف فور التسكين" : "📱 Live mobile preview upon check-in"}
+                  {ar
+                    ? templateCategory === "checkin"
+                      ? "📱 معاينة حية لشاشة هاتف الموظف فور التسكين"
+                      : "📱 معاينة حية لرسالة تأكيد الحجز المسبق"
+                    : templateCategory === "checkin"
+                    ? "📱 Live mobile preview upon check-in"
+                    : "📱 Live mobile preview upon reservation confirmation"}
                 </span>
               </div>
             </div>
