@@ -19,7 +19,7 @@ import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { sendCheckInWhatsAppNotification } from "../lib/whatsapp-engine.js";
+import { sendCheckInWhatsAppNotification, sendReservationConfirmationWhatsApp } from "../lib/whatsapp-engine.js";
 
 const router: Router = Router();
 
@@ -397,6 +397,16 @@ router.post(
         entityId: result.id,
       });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+
+      // ── إرسال تأكيد الحجز عبر الواتساب تلقائياً ──────────────
+      sendReservationConfirmationWhatsApp({
+        propertyId,
+        reservationId: result.id,
+        phoneOverride: body.guestPhone,
+      }).catch((err) => {
+        console.warn("[POST /reservations] WhatsApp confirmation dispatch warning:", err?.message);
+      });
+
       res.status(201).json({ ...result, propertyId });
     } catch (err: any) {
       console.error("[POST /reservations] error:", err?.message ?? err);
@@ -1064,5 +1074,44 @@ const handleCancelReservation = async (req: any, res: any): Promise<void> => {
 
 router.patch("/reservations/:id/cancel", requirePermission("reservations", "edit"), handleCancelReservation);
 router.post("/reservations/:id/cancel", requirePermission("reservations", "edit"), handleCancelReservation);
+
+// ── إرسال / إعادة إرسال تأكيد الحجز يدوياً عبر الواتساب ──────────────
+router.post(
+  "/reservations/:id/send-whatsapp",
+  requirePermission("reservations", "view"),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+
+      const reservationId = parseInt(req.params.id, 10);
+      if (isNaN(reservationId)) {
+        res.status(400).json({ error: "Invalid reservation ID" });
+        return;
+      }
+
+      const phoneOverride = req.body?.phone ? String(req.body.phone).trim() : undefined;
+
+      const result = await sendReservationConfirmationWhatsApp({
+        propertyId,
+        reservationId,
+        phoneOverride,
+      });
+
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+
+      res.json(result);
+    } catch (err: any) {
+      console.error("[POST /reservations/:id/send-whatsapp] error:", err?.message ?? err);
+      res.status(500).json({ error: "Failed to dispatch WhatsApp confirmation" });
+    }
+  }
+);
 
 export default router;

@@ -66,6 +66,7 @@ import {
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
   Building, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
   Phone, CreditCard, AlertCircle, Lock, AlertTriangle, Ban, Check, ArrowRightLeft,
+  MessageSquare, Send, Loader2,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
@@ -154,6 +155,57 @@ export default function ReservationsPage() {
   const [keyPromptOpen, setKeyPromptOpen] = useState(false);
   const [lastAssignment, setLastAssignment] = useState<any>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+
+  // WhatsApp reservation confirmation dialog state
+  const [whatsAppDialog, setWhatsAppDialog] = useState<{
+    open: boolean;
+    reservation: any | null;
+  }>({ open: false, reservation: null });
+  const [whatsAppPhone, setWhatsAppPhone] = useState("");
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+
+  const handleOpenWhatsAppDialog = (res: any) => {
+    setWhatsAppPhone(res.guestPhone || "");
+    setWhatsAppDialog({
+      open: true,
+      reservation: res,
+    });
+  };
+
+  const handleSendWhatsAppConfirmation = async () => {
+    if (!whatsAppDialog.reservation?.id) return;
+    if (!whatsAppPhone.trim()) {
+      toast.error(ar ? "يرجى إدخال رقم هاتف الواتساب للنزيل" : "Please enter a valid WhatsApp phone number");
+      return;
+    }
+    setIsSendingWhatsApp(true);
+    try {
+      const res = await fetch(`/api/reservations/${whatsAppDialog.reservation.id}/send-whatsapp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          propertyId: activePropertyId,
+          phone: whatsAppPhone.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || (ar ? "فشل إرسال رسالة الواتساب" : "Failed to send WhatsApp message"));
+      }
+      toast.success(
+        ar
+          ? `تم إرسال تأكيد الحجز عبر الواتساب بنجاح إلى الرقم (${whatsAppPhone.trim()})`
+          : `Reservation confirmation sent successfully to (${whatsAppPhone.trim()})`
+      );
+      setWhatsAppDialog({ open: false, reservation: null });
+      queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+    } catch (err: any) {
+      toast.error(err.message || (ar ? "حدث خطأ أثناء الإرسال" : "Error sending message"));
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
+  };
 
   // Step 1: Mode, Step 2: Details, Step 3: Room & Dates
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -1508,10 +1560,19 @@ export default function ReservationsPage() {
                               {ar ? "إجراءات" : "Actions"} <ChevronDown className="w-3 h-3 opacity-60" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 shadow-lg">
+                          <DropdownMenuContent align="end" className="w-56 shadow-lg">
                             {res.status === "UPCOMING" && (
                               <DropdownMenuItem onClick={() => handleStartCheckin(res)} className="cursor-pointer font-medium text-emerald-600">
                                 <CheckCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />{ar ? "تسكين" : "Check-In"}
+                              </DropdownMenuItem>
+                            )}
+                            {res.status === "UPCOMING" && (
+                              <DropdownMenuItem
+                                onClick={() => handleOpenWhatsAppDialog(res)}
+                                className="cursor-pointer font-medium text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50"
+                              >
+                                <MessageSquare className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />
+                                {ar ? "إرسال تأكيد الحجز (واتساب)" : "Send WhatsApp Confirmation"}
                               </DropdownMenuItem>
                             )}
                             <PermissionGate module="accommodation" action="edit">
@@ -2548,6 +2609,105 @@ export default function ReservationsPage() {
               <Button onClick={handleCheckin} disabled={!checkinRoomId || checkinMutation.isPending}>{checkinMutation.isPending ? (ar ? "جاري التسكين..." : "...") : (ar ? "تسكين" : "Check-In")}</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* WHATSAPP RESERVATION CONFIRMATION DIALOG */}
+      <Dialog
+        open={whatsAppDialog.open}
+        onOpenChange={(o) => !o && setWhatsAppDialog({ open: false, reservation: null })}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-500/20">
+                <MessageSquare className="w-4 h-4 text-emerald-600" />
+              </div>
+              {ar ? "إرسال تأكيد الحجز (واتساب)" : "Send WhatsApp Confirmation"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {whatsAppDialog.reservation && (
+            <div className="space-y-4 py-2 text-sm">
+              <div className="p-3 bg-muted/40 rounded-lg border space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{ar ? "اسم النزيل:" : "Guest Name:"}</span>
+                  <span className="font-semibold text-foreground">
+                    {whatsAppDialog.reservation.firstName} {whatsAppDialog.reservation.lastName}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{ar ? "رقم الحجز:" : "Booking Ref:"}</span>
+                  <span className="font-mono font-bold text-foreground">#{whatsAppDialog.reservation.id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{ar ? "تاريخ الوصول:" : "Check-in:"}</span>
+                  <span className="font-medium text-foreground">{formatDate(whatsAppDialog.reservation.checkInDate)}</span>
+                </div>
+                {whatsAppDialog.reservation.roomNumber && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{ar ? "الغرفة المحجوزة:" : "Reserved Room:"}</span>
+                    <span className="font-semibold text-foreground">
+                      غرفة {whatsAppDialog.reservation.roomNumber}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {!whatsAppPhone.trim() && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+                  <span>{ar ? "تنبيه: لا يوجد رقم هاتف مسجل لهذا الحجز. يرجى إدخال الرقم أدناه:" : "Notice: No phone recorded. Enter WhatsApp phone below:"}</span>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">{ar ? "رقم هاتف الواتساب للمستلم:" : "Recipient WhatsApp Phone:"}</Label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="tel"
+                    placeholder="01xxxxxxxxx أو 201xxxxxxxxx"
+                    value={whatsAppPhone}
+                    onChange={(e) => setWhatsAppPhone(e.target.value)}
+                    className="pl-9 font-mono text-sm"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {ar
+                    ? "سيتم إرسال رسالة تأكيد الحجز الرسمية، مع حفظ الرقم تلقائياً في بيانات الحجز والملف الشخصي."
+                    : "Official booking confirmation will be dispatched and phone will be updated."}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setWhatsAppDialog({ open: false, reservation: null })}
+                  disabled={isSendingWhatsApp}
+                >
+                  {ar ? "إلغاء" : "Cancel"}
+                </Button>
+                <Button
+                  onClick={handleSendWhatsAppConfirmation}
+                  disabled={isSendingWhatsApp || !whatsAppPhone.trim()}
+                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                >
+                  {isSendingWhatsApp ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {ar ? "جاري الإرسال..." : "Sending..."}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      {ar ? "إرسال الآن" : "Send Now"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

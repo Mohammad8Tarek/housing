@@ -30,6 +30,17 @@ export const propertyWhatsappConfigsTable = pgTable(
         "Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n📱 Access Resident Portal:\n{portal_url}\n\nWe wish you a pleasant and comfortable stay! ✨"
       ),
     supervisorContact: text("supervisor_contact").default(""),
+    isReservationSendEnabled: boolean("is_reservation_send_enabled").notNull().default(true),
+    reservationTemplateAr: text("reservation_template_ar")
+      .notNull()
+      .default(
+        "مرحباً بك أ/ {guest_name} في {property_name} 🌴✨\n\nيسعدنا تأكيد حجز إقامتك المسبق لدينا:\n🔖 رقم الحجز: #{reservation_id}\n🏢 المبنى / الغرفة: {room_info}\n🛏️ تفاصيل السرير: {bed_info}\n📅 تاريخ الوصول المتوقع: {checkin_date}\n📅 تاريخ المغادرة المتوقع: {checkout_date}\n\nℹ️ تنويه: يُرجى التوجه لمكتب الإسكان فور وصولك لاستلام المفتاح وإتمام إجراءات التسكين.\n\nنتمنى لك رحلة موفقة وإقامة سعيدة! ✨"
+      ),
+    reservationTemplateEn: text("reservation_template_en")
+      .notNull()
+      .default(
+        "Welcome Mr/Ms {guest_name} to {property_name}! 🌴✨\n\nWe are pleased to confirm your upcoming reservation:\n🔖 Booking Ref: #{reservation_id}\n🏢 Building / Room: {room_info}\n🛏️ Bed Info: {bed_info}\n📅 Expected Check-in: {checkin_date}\n📅 Expected Check-out: {checkout_date}\n\nℹ️ Note: Please visit the Housing Office upon your arrival to complete check-in and collect your keys.\n\nWe wish you a safe trip and a pleasant stay! ✨"
+      ),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

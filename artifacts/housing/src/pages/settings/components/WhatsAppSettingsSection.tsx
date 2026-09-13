@@ -28,8 +28,11 @@ import {
   Loader2,
   CheckCheck,
   Globe,
+  Radio,
+  BookmarkCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
 
 interface WhatsAppSettingsSectionProps {
   propertyId: number | null;
@@ -62,6 +65,32 @@ Your accommodation has been successfully confirmed:
 
 We wish you a pleasant and comfortable stay! ✨`;
 
+const DEFAULT_RES_TEMPLATE_AR = `مرحباً بك أ/ {guest_name} في {property_name} 🌴✨
+
+يسعدنا تأكيد حجز إقامتك المسبق لدينا:
+🔖 رقم الحجز: #{reservation_id}
+🏢 المبنى / الغرفة: {room_info}
+🛏️ تفاصيل السرير: {bed_info}
+📅 تاريخ الوصول المتوقع: {checkin_date}
+📅 تاريخ المغادرة المتوقع: {checkout_date}
+
+ℹ️ تنويه: يُرجى التوجه لمكتب الإسكان فور وصولك لاستلام المفتاح وإتمام إجراءات التسكين.
+
+نتمنى لك رحلة موفقة وإقامة سعيدة! ✨`;
+
+const DEFAULT_RES_TEMPLATE_EN = `Welcome Mr/Ms {guest_name} to {property_name}! 🌴✨
+
+We are pleased to confirm your upcoming reservation:
+🔖 Booking Ref: #{reservation_id}
+🏢 Building / Room: {room_info}
+🛏️ Bed Info: {bed_info}
+📅 Expected Check-in: {checkin_date}
+📅 Expected Check-out: {checkout_date}
+
+ℹ️ Note: Please visit the Housing Office upon your arrival to complete check-in and collect your keys.
+
+We wish you a safe trip and a pleasant stay! ✨`;
+
 const VARIABLE_TAGS = [
   { tag: "{employee_name}", labelAr: "اسم الموظف", labelEn: "Employee Name" },
   { tag: "{property_name}", labelAr: "اسم السكن/الفندق", labelEn: "Property Name" },
@@ -71,6 +100,17 @@ const VARIABLE_TAGS = [
   { tag: "{bed_label}", labelAr: "السرير", labelEn: "Bed" },
   { tag: "{checkin_date}", labelAr: "تاريخ التسكين", labelEn: "Check-in Date" },
   { tag: "{portal_url}", labelAr: "رابط البوابة", labelEn: "Portal Link" },
+  { tag: "{supervisor_contact}", labelAr: "هاتف المشرف", labelEn: "Supervisor Phone" },
+];
+
+const RESERVATION_TAGS = [
+  { tag: "{guest_name}", labelAr: "اسم النزيل", labelEn: "Guest Name" },
+  { tag: "{property_name}", labelAr: "اسم السكن/الفندق", labelEn: "Property Name" },
+  { tag: "{reservation_id}", labelAr: "رقم الحجز", labelEn: "Booking Ref" },
+  { tag: "{room_info}", labelAr: "المبنى والغرفة", labelEn: "Building & Room" },
+  { tag: "{bed_info}", labelAr: "السرير", labelEn: "Bed" },
+  { tag: "{checkin_date}", labelAr: "تاريخ الوصول", labelEn: "Check-in Date" },
+  { tag: "{checkout_date}", labelAr: "تاريخ المغادرة", labelEn: "Check-out Date" },
   { tag: "{supervisor_contact}", labelAr: "هاتف المشرف", labelEn: "Supervisor Phone" },
 ];
 
@@ -91,10 +131,15 @@ export function WhatsAppSettingsSection({
 
   // Config Form
   const [isAutoSendEnabled, setIsAutoSendEnabled] = useState(true);
+  const [isReservationSendEnabled, setIsReservationSendEnabled] = useState(true);
   const [welcomeTemplateAr, setWelcomeTemplateAr] = useState(DEFAULT_TEMPLATE_AR);
   const [welcomeTemplateEn, setWelcomeTemplateEn] = useState(DEFAULT_TEMPLATE_EN);
+  const [reservationTemplateAr, setReservationTemplateAr] = useState(DEFAULT_RES_TEMPLATE_AR);
+  const [reservationTemplateEn, setReservationTemplateEn] = useState(DEFAULT_RES_TEMPLATE_EN);
   const [supervisorContact, setSupervisorContact] = useState("");
+  const [templateCategory, setTemplateCategory] = useState<"checkin" | "reservation">("checkin");
   const [activeTemplateTab, setActiveTemplateTab] = useState<"ar" | "en">("ar");
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
 
   // Test Message
   const [testPhone, setTestPhone] = useState("");
@@ -129,8 +174,11 @@ export function WhatsAppSettingsSection({
         const cData = await configRes.json();
         if (cData.config) {
           setIsAutoSendEnabled(cData.config.isAutoSendEnabled ?? true);
+          setIsReservationSendEnabled(cData.config.isReservationSendEnabled ?? true);
           setWelcomeTemplateAr(cData.config.welcomeTemplateAr || DEFAULT_TEMPLATE_AR);
           setWelcomeTemplateEn(cData.config.welcomeTemplateEn || DEFAULT_TEMPLATE_EN);
+          setReservationTemplateAr(cData.config.reservationTemplateAr || DEFAULT_RES_TEMPLATE_AR);
+          setReservationTemplateEn(cData.config.reservationTemplateEn || DEFAULT_RES_TEMPLATE_EN);
           setSupervisorContact(cData.config.supervisorContact || "");
         }
       }
@@ -216,8 +264,11 @@ export function WhatsAppSettingsSection({
         credentials: "include",
         body: JSON.stringify({
           isAutoSendEnabled,
+          isReservationSendEnabled,
           welcomeTemplateAr,
           welcomeTemplateEn,
+          reservationTemplateAr,
+          reservationTemplateEn,
           supervisorContact,
         }),
       });
@@ -280,13 +331,17 @@ export function WhatsAppSettingsSection({
 
     const start = ref.selectionStart;
     const end = ref.selectionEnd;
-    const text = isAr ? welcomeTemplateAr : welcomeTemplateEn;
-    const newText = text.substring(0, start) + tag + text.substring(end);
 
-    if (isAr) {
-      setWelcomeTemplateAr(newText);
+    if (templateCategory === "checkin") {
+      const text = isAr ? welcomeTemplateAr : welcomeTemplateEn;
+      const newText = text.substring(0, start) + tag + text.substring(end);
+      if (isAr) setWelcomeTemplateAr(newText);
+      else setWelcomeTemplateEn(newText);
     } else {
-      setWelcomeTemplateEn(newText);
+      const text = isAr ? reservationTemplateAr : reservationTemplateEn;
+      const newText = text.substring(0, start) + tag + text.substring(end);
+      if (isAr) setReservationTemplateAr(newText);
+      else setReservationTemplateEn(newText);
     }
 
     setTimeout(() => {
@@ -296,18 +351,38 @@ export function WhatsAppSettingsSection({
   };
 
   // Compile preview with realistic mock data
-  const currentTemplate = activeTemplateTab === "ar" ? welcomeTemplateAr : welcomeTemplateEn;
-  const mockVars = {
-    employee_name: activeTemplateTab === "ar" ? "أحمد مصطفى كامل" : "Ahmed Mostafa Kamel",
-    property_name: activeTemplateTab === "ar" ? "سكن منتجع صن رايز" : "Sunrise Resort Housing",
-    building_name: activeTemplateTab === "ar" ? "المبنى ب (Building B)" : "Building B",
-    floor_name: activeTemplateTab === "ar" ? "الدور الثاني" : "2nd Floor",
-    room_number: "204",
-    bed_label: activeTemplateTab === "ar" ? "سرير A (يمين النافذة)" : "Bed A (Right Window)",
-    checkin_date: new Date().toLocaleDateString(activeTemplateTab === "ar" ? "ar-EG" : "en-US"),
-    portal_url: "https://portal.sunrise-housing.com",
-    supervisor_contact: supervisorContact || "+201012345678",
-  };
+  const currentTemplate =
+    templateCategory === "checkin"
+      ? activeTemplateTab === "ar"
+        ? welcomeTemplateAr
+        : welcomeTemplateEn
+      : activeTemplateTab === "ar"
+      ? reservationTemplateAr
+      : reservationTemplateEn;
+
+  const mockVars =
+    templateCategory === "checkin"
+      ? {
+          employee_name: activeTemplateTab === "ar" ? "أحمد مصطفى كامل" : "Ahmed Mostafa Kamel",
+          property_name: activeTemplateTab === "ar" ? "سكن منتجع صن رايز" : "Sunrise Resort Housing",
+          building_name: activeTemplateTab === "ar" ? "المبنى ب (Building B)" : "Building B",
+          floor_name: activeTemplateTab === "ar" ? "الدور الثاني" : "2nd Floor",
+          room_number: "204",
+          bed_label: activeTemplateTab === "ar" ? "سرير A (يمين النافذة)" : "Bed A (Right Window)",
+          checkin_date: new Date().toLocaleDateString(activeTemplateTab === "ar" ? "ar-EG" : "en-US"),
+          portal_url: "https://portal.sunrise-housing.com",
+          supervisor_contact: supervisorContact || "+201012345678",
+        }
+      : {
+          guest_name: activeTemplateTab === "ar" ? "محمود عبد العزيز" : "Mahmoud Abdelaziz",
+          property_name: activeTemplateTab === "ar" ? "سكن منتجع صن رايز" : "Sunrise Resort Housing",
+          reservation_id: "8421",
+          room_info: activeTemplateTab === "ar" ? "مبنى الفيروز - الغرفة 302" : "Al Fayrouz - Room 302",
+          bed_info: activeTemplateTab === "ar" ? "سرير B (مفرد)" : "Bed B (Single)",
+          checkin_date: "2026/09/20",
+          checkout_date: "2026/09/30",
+          supervisor_contact: supervisorContact || "+201012345678",
+        };
 
   let previewText = currentTemplate;
   for (const [k, v] of Object.entries(mockVars)) {
@@ -514,15 +589,16 @@ export function WhatsAppSettingsSection({
       <Card className="border-border/60 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-bold">
-            {ar ? "إعدادات الإرسال التلقائي" : "Auto-Dispatch Configuration"}
+            {ar ? "إعدادات الإرسال التلقائي والبث الجماعي" : "Auto-Dispatch & Broadcast Configuration"}
           </CardTitle>
           <CardDescription>
             {ar
-              ? "التحكم في تفعيل أو إيقاف إرسال رسائل الواتساب الفورية عند تسكين الموظف"
-              : "Toggle automated check-in WhatsApp messaging and contact options"}
+              ? "التحكم في تفعيل أو إيقاف إرسال رسائل الواتساب الفورية عند التسكين أو الحجز، وإطلاق البث الجماعي"
+              : "Toggle automated check-in and reservation WhatsApp messaging, and launch targeted broadcasts"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Check-In Auto-Send Toggle */}
           <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border">
             <div className="space-y-0.5">
               <div className="font-semibold text-sm">
@@ -540,6 +616,53 @@ export function WhatsAppSettingsSection({
               checked={isAutoSendEnabled}
               onCheckedChange={setIsAutoSendEnabled}
             />
+          </div>
+
+          {/* Reservation Confirmation Auto-Send Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border">
+            <div className="space-y-0.5">
+              <div className="font-semibold text-sm">
+                {ar
+                  ? "إرسال رسالة تأكيد الحجز المسبق تلقائياً عند إنشاء حجز جديد"
+                  : "Automatically send reservation confirmation WhatsApp upon booking"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {ar
+                  ? "بمجرد حفظ حجز جديد لنزيل يملك رقم هاتف، تصله فوراً تفاصيل الحجز وموعد الوصول ورقم التأكيد"
+                  : "Dispatches booking details and expected arrival date directly to guest upon reservation"}
+              </div>
+            </div>
+            <Switch
+              checked={isReservationSendEnabled}
+              onCheckedChange={setIsReservationSendEnabled}
+            />
+          </div>
+
+          {/* Broadcast Launch Banner */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/20">
+            <div className="space-y-0.5">
+              <div className="font-semibold text-sm flex items-center gap-2 text-foreground">
+                <Radio className="w-4 h-4 text-emerald-600 animate-pulse" />
+                <span>{ar ? "خدمة البث والإرسال الجماعي (Broadcast Messages)" : "Targeted WhatsApp Broadcast Messaging"}</span>
+                <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-0 text-[10px]">
+                  {ar ? "جديد" : "New"}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {ar
+                  ? "إرسال تنبيهات جماعية موجهة لجميع المقيمين، أو لمبنى محدد، أو لدور، أو لغرف معينة، أو لمقيمين محددين مع حماية مكافحة الحظر"
+                  : "Send targeted broadcasts to all in-house, specific building, floor, rooms, or selected guests with anti-ban pacing"}
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setBroadcastOpen(true)}
+              className="text-white gap-2 font-semibold text-xs shadow-sm flex-shrink-0"
+              style={{ backgroundColor: "#00a884" }}
+            >
+              <Radio className="w-4 h-4" />
+              {ar ? "فتح نافذة البث الجماعي" : "Launch Broadcast"}
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
@@ -584,12 +707,12 @@ export function WhatsAppSettingsSection({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <CardTitle className="text-lg font-bold">
-                {ar ? "محرر قوالب رسائل التسكين" : "Check-in Message Template Editor"}
+                {ar ? "محرر قوالب رسائل الواتساب" : "WhatsApp Message Template Editor"}
               </CardTitle>
               <CardDescription>
                 {ar
-                  ? "قم بتخصيص نص الرسالة التي ستصل للنزيل مع دعم كامل للرموز التعبيرية والمتغيرات الفورية"
-                  : "Customize the message sent to residents with emojis and dynamic variables"}
+                  ? "قم بتخصيص نص الرسائل التلقائية للتسكين أو تأكيد الحجز مع دعم كامل للرموز التعبيرية والمتغيرات"
+                  : "Customize automated messages for check-in or reservations with emojis and dynamic variables"}
               </CardDescription>
               <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20 font-medium">
                 <Globe className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
@@ -605,10 +728,12 @@ export function WhatsAppSettingsSection({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (activeTemplateTab === "ar") {
-                    setWelcomeTemplateAr(DEFAULT_TEMPLATE_AR);
+                  if (templateCategory === "checkin") {
+                    if (activeTemplateTab === "ar") setWelcomeTemplateAr(DEFAULT_TEMPLATE_AR);
+                    else setWelcomeTemplateEn(DEFAULT_TEMPLATE_EN);
                   } else {
-                    setWelcomeTemplateEn(DEFAULT_TEMPLATE_EN);
+                    if (activeTemplateTab === "ar") setReservationTemplateAr(DEFAULT_RES_TEMPLATE_AR);
+                    else setReservationTemplateEn(DEFAULT_RES_TEMPLATE_EN);
                   }
                   toast.info(ar ? "تم استعادة القالب الافتراضي" : "Reset to default template");
                 }}
@@ -628,6 +753,30 @@ export function WhatsAppSettingsSection({
               </Button>
             </div>
           </div>
+
+          {/* Template Category Switcher */}
+          <div className="flex items-center gap-2 pt-3 border-t mt-2">
+            <Button
+              type="button"
+              variant={templateCategory === "checkin" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTemplateCategory("checkin")}
+              className="gap-2 text-xs font-semibold"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              {ar ? "رسائل التسكين المباشر (Check-In)" : "Check-in Messages"}
+            </Button>
+            <Button
+              type="button"
+              variant={templateCategory === "reservation" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTemplateCategory("reservation")}
+              className="gap-2 text-xs font-semibold"
+            >
+              <BookmarkCheck className="w-3.5 h-3.5" />
+              {ar ? "رسائل تأكيد الحجوزات المسبقة (Reservations)" : "Reservation Confirmation"}
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -635,10 +784,14 @@ export function WhatsAppSettingsSection({
           <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border">
             <div className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>{ar ? "انقر على أي متغير لإدراجه في موضع المؤشر:" : "Click any variable to insert at cursor:"}</span>
+              <span>
+                {ar
+                  ? `انقر على أي متغير لإدراجه في موضع المؤشر (${templateCategory === "checkin" ? "قالب التسكين" : "قالب الحجز"}):`
+                  : `Click any variable to insert at cursor (${templateCategory === "checkin" ? "Check-in" : "Reservation"}):`}
+              </span>
             </div>
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {VARIABLE_TAGS.map((v) => (
+              {(templateCategory === "checkin" ? VARIABLE_TAGS : RESERVATION_TAGS).map((v) => (
                 <button
                   key={v.tag}
                   type="button"
@@ -676,13 +829,20 @@ export function WhatsAppSettingsSection({
                     ref={textareaArRef}
                     rows={12}
                     dir="rtl"
-                    value={welcomeTemplateAr}
-                    onChange={(e) => setWelcomeTemplateAr(e.target.value)}
+                    value={templateCategory === "checkin" ? welcomeTemplateAr : reservationTemplateAr}
+                    onChange={(e) =>
+                      templateCategory === "checkin"
+                        ? setWelcomeTemplateAr(e.target.value)
+                        : setReservationTemplateAr(e.target.value)
+                    }
                     className="font-sans leading-relaxed text-sm p-3.5 resize-y shadow-inner"
                     placeholder="اكتب نص القالب هنا..."
                   />
                   <div className="text-xs text-muted-foreground flex justify-between px-1">
-                    <span>{ar ? "عدد الأحرف:" : "Characters:"} {welcomeTemplateAr.length}</span>
+                    <span>
+                      {ar ? "عدد الأحرف:" : "Characters:"}{" "}
+                      {(templateCategory === "checkin" ? welcomeTemplateAr : reservationTemplateAr).length}
+                    </span>
                     <span>{ar ? "اللغة: العربية (RTL)" : "Language: Arabic (RTL)"}</span>
                   </div>
                 </TabsContent>
@@ -692,13 +852,20 @@ export function WhatsAppSettingsSection({
                     ref={textareaEnRef}
                     rows={12}
                     dir="ltr"
-                    value={welcomeTemplateEn}
-                    onChange={(e) => setWelcomeTemplateEn(e.target.value)}
+                    value={templateCategory === "checkin" ? welcomeTemplateEn : reservationTemplateEn}
+                    onChange={(e) =>
+                      templateCategory === "checkin"
+                        ? setWelcomeTemplateEn(e.target.value)
+                        : setReservationTemplateEn(e.target.value)
+                    }
                     className="font-sans leading-relaxed text-sm p-3.5 resize-y shadow-inner"
                     placeholder="Type template text here..."
                   />
                   <div className="text-xs text-muted-foreground flex justify-between px-1">
-                    <span>{ar ? "عدد الأحرف:" : "Characters:"} {welcomeTemplateEn.length}</span>
+                    <span>
+                      {ar ? "عدد الأحرف:" : "Characters:"}{" "}
+                      {(templateCategory === "checkin" ? welcomeTemplateEn : reservationTemplateEn).length}
+                    </span>
                     <span>{ar ? "Language: English (LTR)" : "Language: English (LTR)"}</span>
                   </div>
                 </TabsContent>
@@ -866,6 +1033,14 @@ export function WhatsAppSettingsSection({
           </CardContent>
         </Card>
       </div>
+
+      {/* Broadcast WhatsApp Dialog */}
+      <BroadcastWhatsAppDialog
+        open={broadcastOpen}
+        onOpenChange={setBroadcastOpen}
+        propertyId={propertyId}
+        language={language}
+      />
     </div>
   );
 }

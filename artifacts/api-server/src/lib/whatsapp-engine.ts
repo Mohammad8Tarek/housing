@@ -28,6 +28,58 @@ interface SessionState {
 
 const activeSessions = new Map<number, SessionState>();
 
+export const DEFAULT_WELCOME_AR = `مرحباً بك أ/ {employee_name} في {property_name} 🌴✨
+
+يسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:
+🏢 المبنى: {building_name} ({floor_name})
+🚪 رقم الغرفة: {room_number}
+🛏️ السرير: {bed_label}
+📅 تاريخ التسكين: {checkin_date}
+
+📱 للدخول إلى بوابة الموظفين وطلب الخدمات:
+{portal_url}
+
+نتمنى لك إقامة هانئة ومريحة! ✨`;
+
+export const DEFAULT_WELCOME_EN = `Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨
+
+Your accommodation has been successfully confirmed:
+🏢 Building: {building_name} ({floor_name})
+🚪 Room: {room_number}
+🛏️ Bed: {bed_label}
+📅 Check-in Date: {checkin_date}
+
+📱 Access Resident Portal:
+{portal_url}
+
+We wish you a pleasant and comfortable stay! ✨`;
+
+export const DEFAULT_RESERVATION_AR = `مرحباً بك أ/ {guest_name} في {property_name} 🌴✨
+
+يسعدنا تأكيد حجز إقامتك المسبق لدينا:
+🔖 رقم الحجز: #{reservation_id}
+🏢 المبنى / الغرفة: {room_info}
+🛏️ تفاصيل السرير: {bed_info}
+📅 تاريخ الوصول المتوقع: {checkin_date}
+📅 تاريخ المغادرة المتوقع: {checkout_date}
+
+ℹ️ تنويه: يُرجى التوجه لمكتب الإسكان فور وصولك لاستلام المفتاح وإتمام إجراءات التسكين.
+
+نتمنى لك رحلة موفقة وإقامة سعيدة! ✨`;
+
+export const DEFAULT_RESERVATION_EN = `Welcome Mr/Ms {guest_name} to {property_name}! 🌴✨
+
+We are pleased to confirm your upcoming reservation:
+🔖 Booking Ref: #{reservation_id}
+🏢 Building / Room: {room_info}
+🛏️ Bed Info: {bed_info}
+📅 Expected Check-in: {checkin_date}
+📅 Expected Check-out: {checkout_date}
+
+ℹ️ Note: Please visit the Housing Office upon your arrival to complete check-in and collect your keys.
+
+We wish you a safe trip and a pleasant stay! ✨`;
+
 // Message queue for rate-limiting and anti-ban delay jitter
 interface QueuedMessage {
   propertyId: number;
@@ -739,3 +791,264 @@ export async function sendWelcomeWhatsAppForAssignment(params: {
     message: "تم جدولة إرسال رسالة التسكين عبر الواتساب بنجاح",
   };
 }
+
+/**
+ * Reservation Confirmation WhatsApp Notification
+ */
+export async function sendReservationConfirmationWhatsApp(params: {
+  propertyId: number;
+  reservationId: number;
+  phoneOverride?: string;
+}): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    const { propertyId, reservationId, phoneOverride } = params;
+
+    // 1. Check session & property configs
+    const session = await getWhatsAppSession(propertyId);
+    const configRes = await pool.query(
+      `SELECT * FROM public.property_whatsapp_configs WHERE property_id = $1`,
+      [propertyId]
+    );
+    const config = configRes.rows[0];
+
+    if (config && config.is_reservation_send_enabled === false) {
+      console.log(`[WhatsApp Reservation] Auto send is disabled for property ${propertyId}, skipping.`);
+      return { success: false, error: "تم تعطيل إرسال تأكيد الحجز في إعدادات الواتساب" };
+    }
+
+    const isConnected = session.status === "connected" || config?.status === "connected";
+    if (!isConnected) {
+      console.log(`[WhatsApp Reservation] WhatsApp is not connected for property ${propertyId}, skipping.`);
+      return { success: false, error: "خدمة الواتساب غير متصلة حالياً" };
+    }
+
+    // Resolve property & tenant schema name
+    const propRes = await pool.query(
+      `SELECT name, display_name, schema_name FROM public.properties WHERE id = $1`,
+      [propertyId]
+    );
+    const prop = propRes.rows[0] || {};
+    const schemaName = (prop.schema_name || "public").trim();
+    const propertyName = prop.display_name || prop.name || "Sunrise Staff Housing";
+
+    // 2. Fetch reservation details
+    let resQuery = await pool.query(
+      `SELECT * FROM ${schemaName}.reservations WHERE id = $1`,
+      [reservationId]
+    ).catch(() => ({ rows: [] as any[] }));
+
+    if (!resQuery.rows[0]) {
+      resQuery = await pool.query(
+        `SELECT * FROM public.reservations WHERE id = $1`,
+        [reservationId]
+      ).catch(() => ({ rows: [] as any[] }));
+    }
+
+    const reservation = resQuery.rows[0];
+    if (!reservation) {
+      return { success: false, error: "سجل الحجز غير موجود" };
+    }
+
+    // If phone override provided, update reservation and matching profile
+    let effectivePhone = (phoneOverride || reservation.guest_phone || "").trim();
+    if (phoneOverride && phoneOverride.trim()) {
+      await pool.query(
+        `UPDATE ${schemaName}.reservations SET guest_phone = $1 WHERE id = $2`,
+        [phoneOverride.trim(), reservationId]
+      ).catch(() => {});
+      await pool.query(
+        `UPDATE public.reservations SET guest_phone = $1 WHERE id = $2`,
+        [phoneOverride.trim(), reservationId]
+      ).catch(() => {});
+
+      if (reservation.profile_code || reservation.guest_id_card_number) {
+        await pool.query(
+          `UPDATE ${schemaName}.profiles SET phone = $1 
+           WHERE (profile_id = $2 OR national_id = $3) AND (phone IS NULL OR phone = '')`,
+          [phoneOverride.trim(), reservation.profile_code || "", reservation.guest_id_card_number || ""]
+        ).catch(() => {});
+        await pool.query(
+          `UPDATE public.profiles SET phone = $1 
+           WHERE (profile_id = $2 OR national_id = $3) AND (phone IS NULL OR phone = '')`,
+          [phoneOverride.trim(), reservation.profile_code || "", reservation.guest_id_card_number || ""]
+        ).catch(() => {});
+      }
+    }
+
+    const fullName = `${reservation.first_name || ""} ${reservation.last_name || ""}`.trim() || "Guest";
+
+    if (!effectivePhone) {
+      console.log(`[WhatsApp Reservation] Reservation #${reservationId} (${fullName}) has no phone number, skipping.`);
+      await logDelivery(
+        propertyId,
+        "N/A",
+        fullName,
+        "RESERVATION_CONFIRMATION",
+        `تم تخطي الإرسال لعدم وجود رقم هاتف مسجل في بيانات الحجز (${fullName}).`,
+        "FAILED",
+        "رقم هاتف النزيل غير مسجل في بيانات الحجز (No phone number in reservation)"
+      ).catch(() => {});
+      return { success: false, error: "رقم هاتف النزيل غير مسجل في بيانات الحجز" };
+    }
+
+    // 3. Determine language
+    const isArabic = isArabicProfile(reservation.nationality, reservation.first_name, reservation.last_name);
+
+    // 4. Room & Bed info
+    let roomInfo = isArabic ? "غرفة قياسية (تُحدد عند الوصول)" : "Standard Room (Assigned upon arrival)";
+    let bedInfo = isArabic ? "حسب التوفر" : "Subject to availability";
+
+    if (reservation.room_id) {
+      let rRes = await pool.query(
+        `SELECT r.room_number, f.floor_number as floor_name, b.name as building_name
+         FROM ${schemaName}.rooms r
+         LEFT JOIN ${schemaName}.floors f ON r.floor_id = f.id
+         LEFT JOIN ${schemaName}.buildings b ON r.building_id = b.id
+         WHERE r.id = $1`,
+        [reservation.room_id]
+      ).catch(() => ({ rows: [] as any[] }));
+
+      if (!rRes.rows[0]) {
+        rRes = await pool.query(
+          `SELECT r.room_number, f.floor_number as floor_name, b.name as building_name
+           FROM public.rooms r
+           LEFT JOIN public.floors f ON r.floor_id = f.id
+           LEFT JOIN public.buildings b ON r.building_id = b.id
+           WHERE r.id = $1`,
+          [reservation.room_id]
+        ).catch(() => ({ rows: [] as any[] }));
+      }
+
+      const rData = rRes.rows[0];
+      if (rData) {
+        const bName = rData.building_name || "";
+        const fLabel = rData.floor_name ? (isArabic ? `الدور ${rData.floor_name}` : `Floor ${rData.floor_name}`) : "";
+        roomInfo = `${isArabic ? "غرفة" : "Room"} ${rData.room_number} ${bName ? `- ${bName}` : ""} ${fLabel ? `(${fLabel})` : ""}`.trim();
+      }
+    } else if (reservation.room_type) {
+      roomInfo = reservation.room_type;
+    }
+
+    if (reservation.bed_number) {
+      if (reservation.bed_number === "ALL") {
+        bedInfo = isArabic ? "الغرفة بالكامل (حجز خاص)" : "Entire Room (Full Lock)";
+      } else {
+        bedInfo = isArabic ? `سرير رقم ${reservation.bed_number}` : `Bed #${reservation.bed_number}`;
+      }
+    }
+
+    const checkInDate = (String(reservation.check_in_date || "").split("T")[0]) || "N/A";
+    const checkOutDate = (String(reservation.check_out_date || "").split("T")[0]) || (isArabic ? "غير محدد" : "N/A");
+
+    // 5. Compile template
+    const vars = {
+      guest_name: fullName,
+      property_name: propertyName,
+      reservation_id: String(reservation.id),
+      room_info: roomInfo,
+      bed_info: bedInfo,
+      checkin_date: checkInDate,
+      checkout_date: checkOutDate,
+      supervisor_contact: config?.supervisor_contact || "",
+    };
+
+    const template = isArabic
+      ? (config?.reservation_template_ar || DEFAULT_RESERVATION_AR)
+      : (config?.reservation_template_en || DEFAULT_RESERVATION_EN);
+
+    const compiledMessage = compileWhatsAppTemplate(template, vars);
+
+    console.log(`[WhatsApp Reservation] Queuing confirmation for ${fullName} (${effectivePhone}) in ${isArabic ? "Arabic" : "English"}`);
+    sendWhatsAppMessageSafe(
+      propertyId,
+      effectivePhone,
+      compiledMessage,
+      "RESERVATION_CONFIRMATION",
+      fullName
+    ).catch((err) => {
+      console.error("[WhatsApp Reservation] Failed to queue message:", err);
+    });
+
+    return {
+      success: true,
+      message: isArabic ? "تم جدولة إرسال تأكيد الحجز بنجاح" : "Reservation confirmation queued successfully",
+    };
+  } catch (err: any) {
+    console.error("[WhatsApp Reservation] Error in confirmation handler:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export interface BroadcastRecipient {
+  profileId: number;
+  name: string;
+  phone: string;
+  roomNumber?: string;
+  buildingName?: string;
+  floorName?: string;
+}
+
+/**
+ * Broadcast Bulk Messaging with anti-ban safe queuing
+ */
+export async function sendWhatsAppBroadcast(params: {
+  propertyId: number;
+  recipients: BroadcastRecipient[];
+  messageText: string;
+}): Promise<{ total: number; queued: number; skippedNoPhone: number }> {
+  const { propertyId, recipients, messageText } = params;
+
+  // Resolve property name
+  const propRes = await pool.query(
+    `SELECT name, display_name FROM public.properties WHERE id = $1`,
+    [propertyId]
+  );
+  const prop = propRes.rows[0] || {};
+  const propertyName = prop.display_name || prop.name || "Sunrise Staff Housing";
+
+  let queued = 0;
+  let skippedNoPhone = 0;
+
+  for (const r of recipients) {
+    const rawPhone = (r.phone || "").trim();
+    if (!rawPhone) {
+      skippedNoPhone++;
+      continue;
+    }
+
+    // Compile dynamic variables
+    const vars: Record<string, string> = {
+      name: r.name || "",
+      employee_name: r.name || "",
+      room: r.roomNumber || "",
+      room_number: r.roomNumber || "",
+      building: r.buildingName || "",
+      building_name: r.buildingName || "",
+      floor: r.floorName || "",
+      floor_name: r.floorName || "",
+      property: propertyName,
+      property_name: propertyName,
+    };
+
+    const textToSend = compileWhatsAppTemplate(messageText, vars);
+
+    sendWhatsAppMessageSafe(
+      propertyId,
+      rawPhone,
+      textToSend,
+      "BROADCAST",
+      r.name
+    ).catch((err) => {
+      console.error(`[WhatsApp Broadcast] Error queuing for ${r.name}:`, err);
+    });
+
+    queued++;
+  }
+
+  return {
+    total: recipients.length,
+    queued,
+    skippedNoPhone,
+  };
+}
+

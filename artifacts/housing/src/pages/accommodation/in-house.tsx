@@ -71,7 +71,9 @@ import {
   Layers,
   MessageSquare,
   Send,
+  Radio,
 } from "lucide-react";
+import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
 import {
   ColumnChooser,
   useColumnVisibility,
@@ -232,6 +234,16 @@ export default function InHouse() {
   });
   const [whatsAppPhone, setWhatsAppPhone] = useState("");
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+
+  // Broadcast WhatsApp state
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastTargetMode, setBroadcastTargetMode] = useState<"all" | "selected">("all");
+  const selectedProfileIds = useMemo(() => {
+    return Array.from(selectedRows).map((id) => {
+      const a = allAssignments.find((x: any) => x.id === id);
+      return a?.profileId ? Number(a.profileId) : null;
+    }).filter((id): id is number => id !== null);
+  }, [selectedRows, allAssignments]);
 
   const handleOpenWhatsAppDialog = (a: any, empData: any) => {
     const p = empData || {
@@ -915,6 +927,20 @@ export default function InHouse() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <PermissionGate module="accommodation" action="edit">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setBroadcastTargetMode("all");
+                setBroadcastOpen(true);
+              }}
+              className="gap-1.5 font-semibold text-xs h-9 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 bg-background shadow-xs"
+            >
+              <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+              {ar ? "إرسال جماعي (واتساب)" : "Broadcast WhatsApp"}
+            </Button>
+          </PermissionGate>
           <ColumnChooser
             cols={IH_COLS}
             visible={ihVisible}
@@ -946,6 +972,20 @@ export default function InHouse() {
         onExportExcel={exportSelectedExcel}
         extraActions={
           <div className="flex items-center gap-2">
+            <PermissionGate module="accommodation" action="edit">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setBroadcastTargetMode("selected");
+                  setBroadcastOpen(true);
+                }}
+                className="gap-1.5 font-semibold text-xs h-8 text-emerald-600 border-emerald-500/40 hover:bg-emerald-50 bg-background"
+              >
+                <Radio className="w-3.5 h-3.5 text-emerald-500" />
+                {ar ? "واتساب للمحددين" : "WhatsApp Selected"}
+              </Button>
+            </PermissionGate>
             <PermissionGate module="accommodation" action="edit">
               <Button
                 variant="outline"
@@ -2541,6 +2581,16 @@ export default function InHouse() {
         open={langDialogOpen}
         onSelect={handleSelect}
         onCancel={handleCancel}
+      />
+
+      {/* Broadcast WhatsApp Dialog */}
+      <BroadcastWhatsAppDialog
+        open={broadcastOpen}
+        onOpenChange={setBroadcastOpen}
+        propertyId={activePropertyId}
+        initialTargetMode={broadcastTargetMode}
+        selectedProfileIds={selectedProfileIds}
+        language={language}
       />
     </div>
   );

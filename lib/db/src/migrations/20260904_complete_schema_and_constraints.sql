@@ -2011,6 +2011,9 @@ Your accommodation has been successfully confirmed:
 
 We wish you a pleasant and comfortable stay! ✨',
     supervisor_contact TEXT DEFAULT '',
+    is_reservation_send_enabled BOOLEAN NOT NULL DEFAULT true,
+    reservation_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {guest_name} في {property_name} 🌴✨\n\nيسعدنا تأكيد حجز إقامتك المسبق لدينا:\n🔖 رقم الحجز: #{reservation_id}\n🏢 المبنى / الغرفة: {room_info}\n🛏️ تفاصيل السرير: {bed_info}\n📅 تاريخ الوصول المتوقع: {checkin_date}\n📅 تاريخ المغادرة المتوقع: {checkout_date}\n\nℹ️ تنويه: يُرجى التوجه لمكتب الإسكان فور وصولك لاستلام المفتاح وإتمام إجراءات التسكين.\n\nنتمنى لك رحلة موفقة وإقامة سعيدة! ✨',
+    reservation_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {guest_name} to {property_name}! 🌴✨\n\nWe are pleased to confirm your upcoming reservation:\n🔖 Booking Ref: #{reservation_id}\n🏢 Building / Room: {room_info}\n🛏️ Bed Info: {bed_info}\n📅 Expected Check-in: {checkin_date}\n📅 Expected Check-out: {checkout_date}\n\nℹ️ Note: Please visit the Housing Office upon your arrival to complete check-in and collect your keys.\n\nWe wish you a safe trip and a pleasant stay! ✨',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
   CREATE INDEX IF NOT EXISTS idx_prop_whatsapp_property_id ON public.property_whatsapp_configs (property_id);
