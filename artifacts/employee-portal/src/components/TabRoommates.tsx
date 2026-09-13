@@ -1,4 +1,4 @@
-import { Users, Mail, Phone, Briefcase, MapPin, Info } from "lucide-react";
+import { Users, Mail, Phone, Briefcase, MapPin, Info, MessageSquare, MessageCircle } from "lucide-react";
 import { useTheme } from "../lib/theme";
 
 interface Roommate {
@@ -24,180 +24,146 @@ export default function TabRoommates({ roommates, room }: Props) {
 
   if (!roommates || roommates.length === 0) {
     return (
-      <div className="max-w-3xl mx-auto p-4">
-        <div className="mb-5">
-          <h2 className="text-2xl font-bold text-foreground">
-            {isRtl ? "زملاء الغرفة" : "My Roommates"}
-          </h2>
-          <p className="text-muted2 text-sm mt-1">
-            {isRtl
-              ? "اتصل بزملائك في نفس الغرفة"
-              : "Connect with your roommates"}
-          </p>
+      <div className="max-w-xl mx-auto p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              {isRtl ? "زملاء الغرفة" : "My Roommates"}
+            </h2>
+            <p className="text-muted-foreground text-xs mt-0.5">
+              {isRtl ? "التواصل والتعاون مع زملاء السكن" : "Connect with your room members"}
+            </p>
+          </div>
         </div>
-        <div className="flex items-start gap-3 p-6 bg-accent2/5 border border-accent2/20 rounded-2xl">
-          <Info className="w-5 h-5 text-accent2 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-muted2">
-            {isRtl
-              ? "أنت تعيش بمفردك في هذه الغرفة حالياً"
-              : "You are alone in this room currently"}
-          </p>
+        <div className="flex items-start gap-3 p-5 bg-card/75 border border-border/60 rounded-2xl text-start shadow-xs">
+          <Info className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="text-sm font-bold text-foreground">
+              {isRtl ? "أنت بمفردك في هذه الغرفة حالياً" : "Single Occupancy Room"}
+            </h4>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              {isRtl
+                ? "لا يوجد زملاء سكن مسكنون معك في نفس الغرفة في الوقت الحالي."
+                : "No other roommates are currently assigned to this room."}
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Users className="w-6 h-6" />
-          {isRtl ? "زملاء الغرفة" : "My Roommates"}
-        </h2>
-        <p className="text-muted2 text-sm mt-1">
-          {isRtl
-            ? `${roommates.length} زميل/زميلة يعيشون معك في الغرفة`
-            : `${roommates.length} roommate${roommates.length !== 1 ? "s" : ""} in your room`}
-        </p>
+    <div className="max-w-xl mx-auto p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <Users className="w-5 h-5 text-purple-500" />
+            <span>{isRtl ? "زملاء الغرفة" : "Roommates Hub"}</span>
+          </h2>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            {isRtl
+              ? `${roommates.length} زميل/زميلة يتشاركون معك الغرفة`
+              : `${roommates.length} resident${roommates.length !== 1 ? "s" : ""} sharing this room`}
+          </p>
+        </div>
+
+        {room && (
+          <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold font-mono">
+            {isRtl ? "غرفة " : "Room "} {String(room.roomNumber || "")}
+          </div>
+        )}
       </div>
 
-      {room && (
-        <div className="mb-6 p-4 bg-accent2/5 border border-accent2/20 rounded-2xl flex items-start gap-3">
-          <MapPin className="w-5 h-5 text-accent2 mt-0.5 flex-shrink-0" />
-          <div>
-            <div className="text-sm font-bold text-foreground">
-              {isRtl ? "غرفتك" : "Your Room"}
-            </div>
-            <div className="text-sm text-muted2 mt-0.5">
-              {(room.buildingName as string) &&
-                `${room.buildingName as string} · `}
-              {isRtl ? "رقم الغرفة " : "Room #"} {room.roomNumber as string}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Roommate Cards */}
+      <div className="space-y-3">
+        {roommates.map((roommate) => {
+          const cleanPhone = roommate.phone ? roommate.phone.replace(/[^0-9]/g, "") : "";
+          const waPhone = cleanPhone.startsWith("01") ? `20${cleanPhone.slice(1)}` : cleanPhone;
 
-      <div className="grid md:grid-cols-2 gap-4">
-        {roommates.map((roommate) => (
-          <div
-            key={roommate.id}
-            className="bg-card border border-border2 rounded-2xl p-5 hover:border-accent2/40 transition-colors group"
-          >
-            <div className="flex items-start gap-4 mb-4">
-              {roommate.photoUrl ? (
-                <img
-                  src={roommate.photoUrl}
-                  alt={roommate.firstName}
-                  className="w-16 h-16 rounded-2xl object-cover border border-border2 flex-shrink-0 group-hover:scale-105 transition-transform"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent2 to-accent2/60 flex items-center justify-center text-lg font-bold text-accent2-foreground flex-shrink-0 group-hover:scale-105 transition-transform">
-                  {roommate.firstName[0]}
-                  {roommate.lastName[0]}
-                </div>
-              )}
+          return (
+            <div
+              key={roommate.id}
+              className="bg-card/85 backdrop-blur-md border border-border/60 rounded-2xl p-4 shadow-xs hover:border-purple-500/40 hover:shadow-md transition-all duration-200"
+            >
+              <div className="flex items-start gap-3.5 mb-3">
+                {roommate.photoUrl ? (
+                  <img
+                    src={roommate.photoUrl}
+                    alt={roommate.firstName}
+                    className="w-13 h-13 rounded-2xl object-cover border border-border flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-purple-500/20 via-primary/20 to-purple-500/10 text-purple-600 dark:text-purple-300 flex items-center justify-center text-base font-black border border-purple-500/30 flex-shrink-0">
+                    {roommate.firstName?.[0] || "U"}
+                    {roommate.lastName?.[0] || ""}
+                  </div>
+                )}
 
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-foreground truncate">
-                  {roommate.firstName} {roommate.lastName}
-                </h3>
-                <div className="flex items-center gap-1 text-xs text-muted2 mt-0.5">
-                  <span className="px-2 py-0.5 rounded-full bg-surface">
-                    {roommate.employeeCode}
-                  </span>
-                </div>
-                {roommate.jobTitle && (
-                  <p className="text-xs text-muted2 mt-1">
-                    {roommate.jobTitle}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <h3 className="text-sm font-bold text-foreground truncate">
+                      {roommate.firstName} {roommate.lastName}
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
+                      {roommate.employeeCode}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {roommate.jobTitle || roommate.department || "Staff Member"}
                   </p>
+
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      {isRtl ? "مُقيم نشط" : "In Residence"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
+                {/* WhatsApp */}
+                {waPhone ? (
+                  <a
+                    href={`https://wa.me/${waPhone}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold transition-colors cursor-pointer border border-emerald-500/20"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
+                ) : (
+                  <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-muted/40 text-muted-foreground/60 text-xs font-semibold">
+                    <span>{isRtl ? "لا يوجد واتساب" : "No WhatsApp"}</span>
+                  </div>
+                )}
+
+                {/* Direct Call */}
+                {roommate.phone ? (
+                  <a
+                    href={`tel:${roommate.phone}`}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors cursor-pointer border border-blue-500/20"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>{isRtl ? "اتصال" : "Call"}</span>
+                  </a>
+                ) : (
+                  <a
+                    href={`mailto:${roommate.email || ""}`}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>{isRtl ? "بريد" : "Email"}</span>
+                  </a>
                 )}
               </div>
             </div>
-
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-surface rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Briefcase className="w-4 h-4 text-accent2" />
-                </div>
-                <div className="text-sm text-foreground">
-                  <div className="text-[10px] text-muted2 uppercase tracking-widest">
-                    {isRtl ? "القسم" : "Department"}
-                  </div>
-                  <div className="font-medium">{roommate.department}</div>
-                </div>
-              </div>
-
-              {roommate.email && (
-                <a
-                  href={`mailto:${roommate.email}`}
-                  className="flex items-center gap-3 p-2.5 rounded-lg bg-surface/50 hover:bg-surface transition-colors group/email"
-                >
-                  <div className="w-8 h-8 bg-accent2/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover/email:bg-accent2/20 transition-colors">
-                    <Mail className="w-4 h-4 text-accent2" />
-                  </div>
-                  <div className="text-sm text-foreground truncate group-hover/email:underline">
-                    {roommate.email}
-                  </div>
-                </a>
-              )}
-
-              {roommate.phone && (
-                <a
-                  href={`tel:${roommate.phone}`}
-                  className="flex items-center gap-3 p-2.5 rounded-lg bg-surface/50 hover:bg-surface transition-colors group/phone"
-                >
-                  <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover/phone:bg-green-500/20 transition-colors">
-                    <Phone className="w-4 h-4 text-green-400" />
-                  </div>
-                  <div className="text-sm text-foreground group-hover/phone:underline">
-                    {roommate.phone}
-                  </div>
-                </a>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-8 p-5 bg-card border border-border2 rounded-2xl">
-        <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-          <Info className="w-4 h-4 text-accent2" />
-          {isRtl ? "نصائح التواصل" : "Communication Tips"}
-        </h3>
-        <ul className="space-y-2 text-sm text-muted2">
-          <li className="flex gap-2">
-            <span className="text-accent2 font-bold">•</span>
-            <span>
-              {isRtl
-                ? "احترم خصوصية زملائك في الغرفة"
-                : "Respect your roommates' privacy"}
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="text-accent2 font-bold">•</span>
-            <span>
-              {isRtl
-                ? "تواصل بشأن أوقات العمل والراحة"
-                : "Communicate about work and rest schedules"}
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="text-accent2 font-bold">•</span>
-            <span>
-              {isRtl
-                ? "الحفاظ على نظافة الغرفة المشتركة"
-                : "Keep shared spaces clean and organized"}
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="text-accent2 font-bold">•</span>
-            <span>
-              {isRtl
-                ? "التعامل بأدب مع الضيوف"
-                : "Be respectful when guests visit"}
-            </span>
-          </li>
-        </ul>
+          );
+        })}
       </div>
     </div>
   );

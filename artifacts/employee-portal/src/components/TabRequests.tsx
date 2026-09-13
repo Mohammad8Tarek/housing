@@ -596,6 +596,59 @@ export default function TabRequests() {
                       <p className="text-xs text-muted2 truncate">
                         {req.description}
                       </p>
+                      {/* Mini Stepper Progress Bar */}
+                      <div className="mt-2.5 pt-2 border-t border-border2/40 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1 flex-1">
+                          <div
+                            className="h-1 flex-1 rounded-full bg-accent2"
+                            title={isRtl ? "تم الإبلاغ" : "Reported"}
+                          />
+                          <div
+                            className={`h-1 flex-1 rounded-full ${
+                              req.status === "open" ||
+                              req.status === "in_progress" ||
+                              req.status === "resolved" ||
+                              req.status === "closed"
+                                ? "bg-accent2"
+                                : "bg-muted"
+                            }`}
+                            title={isRtl ? "تمت الجدولة" : "Scheduled"}
+                          />
+                          <div
+                            className={`h-1 flex-1 rounded-full ${
+                              req.status === "in_progress"
+                                ? "bg-accent2 animate-pulse"
+                                : req.status === "resolved" ||
+                                    req.status === "closed"
+                                  ? "bg-accent2"
+                                  : "bg-muted"
+                            }`}
+                            title={isRtl ? "جاري الإصلاح" : "In Progress"}
+                          />
+                          <div
+                            className={`h-1 flex-1 rounded-full ${
+                              req.status === "resolved" ||
+                              req.status === "closed"
+                                ? "bg-emerald-500"
+                                : "bg-muted"
+                            }`}
+                            title={isRtl ? "مكتمل" : "Resolved"}
+                          />
+                        </div>
+                        <span className="text-[10px] font-semibold text-muted2 shrink-0">
+                          {req.status === "resolved" || req.status === "closed"
+                            ? isRtl
+                              ? "مكتمل"
+                              : "Resolved"
+                            : req.status === "in_progress"
+                              ? isRtl
+                                ? "جاري الإصلاح"
+                                : "In Progress"
+                              : isRtl
+                                ? "تمت الجدولة"
+                                : "Scheduled"}
+                        </span>
+                      </div>
                     </div>
                   </MotionButton>
                 </StaggerItem>

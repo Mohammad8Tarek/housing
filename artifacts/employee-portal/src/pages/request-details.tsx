@@ -176,6 +176,102 @@ export default function RequestDetails() {
         </span>
       </div>
 
+      {/* Interactive Request Status Stepper */}
+      <div className="bg-card border border-border2 rounded-3xl p-5 shadow-xs">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted2 mb-5">
+          {isRtl ? "مراحل تنفيذ وتتبع الطلب" : "Request Progress Timeline"}
+        </h3>
+        <div className="relative flex items-center justify-between px-2">
+          {/* Base Track */}
+          <div className="absolute top-4 start-6 end-6 h-1 bg-muted rounded-full" />
+          
+          {/* Active Fill Track */}
+          <div
+            className="absolute top-4 start-6 h-1 bg-accent2 rounded-full transition-all duration-500"
+            style={{
+              width:
+                request.status === "open"
+                  ? "25%"
+                  : request.status === "in_progress"
+                    ? "60%"
+                    : request.status === "resolved" || request.status === "closed"
+                      ? "calc(100% - 48px)"
+                      : "0%",
+            }}
+          />
+
+          {/* Step 1: Reported */}
+          <div className="relative z-10 flex flex-col items-center text-center gap-1.5">
+            <div className="w-8 h-8 rounded-full bg-accent2 text-accent2-foreground flex items-center justify-center font-bold text-xs shadow-sm">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <span className="text-[11px] font-bold text-foreground">
+              {isRtl ? "تم الإبلاغ" : "Reported"}
+            </span>
+            <span className="text-[9px] text-muted2 font-mono">
+              {new Date(request.reportedAt).toLocaleDateString(isRtl ? "ar-EG" : "en-US", { month: "numeric", day: "numeric" })}
+            </span>
+          </div>
+
+          {/* Step 2: Under Review / Scheduled */}
+          <div className="relative z-10 flex flex-col items-center text-center gap-1.5">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors shadow-sm ${
+                request.status !== "open" || true
+                  ? "bg-accent2 text-accent2-foreground"
+                  : "bg-muted text-muted2"
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+            </div>
+            <span className="text-[11px] font-bold text-foreground">
+              {isRtl ? "تمت الجدولة" : "Scheduled"}
+            </span>
+            <span className="text-[9px] text-muted2">
+              {isRtl ? "فريق المرافق" : "Facilities"}
+            </span>
+          </div>
+
+          {/* Step 3: In Progress */}
+          <div className="relative z-10 flex flex-col items-center text-center gap-1.5">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors shadow-sm ${
+                request.status === "in_progress" || request.status === "resolved" || request.status === "closed"
+                  ? "bg-accent2 text-accent2-foreground animate-pulse"
+                  : "bg-muted text-muted2"
+              }`}
+            >
+              <Loader2 className={`w-4 h-4 ${request.status === "in_progress" ? "animate-spin" : ""}`} />
+            </div>
+            <span className="text-[11px] font-bold text-foreground">
+              {isRtl ? "جاري الإصلاح" : "In Progress"}
+            </span>
+            <span className="text-[9px] text-muted2">
+              {request.status === "in_progress" ? (isRtl ? "الآن" : "Active") : (isRtl ? "ميداني" : "Field")}
+            </span>
+          </div>
+
+          {/* Step 4: Resolved */}
+          <div className="relative z-10 flex flex-col items-center text-center gap-1.5">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors shadow-sm ${
+                request.status === "resolved" || request.status === "closed"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-muted text-muted2"
+              }`}
+            >
+              <CheckCheck className="w-4 h-4" />
+            </div>
+            <span className="text-[11px] font-bold text-foreground">
+              {isRtl ? "تم الإنجاز" : "Resolved"}
+            </span>
+            <span className="text-[9px] text-muted2">
+              {request.resolvedAt ? (isRtl ? "مكتمل" : "Done") : (isRtl ? "معلق" : "Pending")}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {request.photoUrl && (

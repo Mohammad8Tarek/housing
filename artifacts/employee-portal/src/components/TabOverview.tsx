@@ -1,25 +1,28 @@
+import { useState, useEffect } from "react";
 import {
   ShieldCheck,
-  User,
-  MapPin,
-  Clock,
-  ListTodo,
-  Info,
-  Smartphone,
-  ChevronRight,
-  ChevronLeft,
   Building2,
-  TrendingUp,
-  CheckCircle,
   Users,
   Calendar,
-  Star,
   Home,
+  QrCode,
+  UtensilsCrossed,
+  Bus,
+  Clock,
+  Sparkles,
+  FileText,
+  Wrench,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle2,
+  AlertCircle,
+  MessageCircle,
+  Key,
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
-import { useState, useEffect } from "react";
 import { apiFetch } from "../lib/api";
-import MaterialIcon from "./MaterialIcon";
+import { ResidentQRCode } from "./ResidentQRCode";
+import { cn } from "../lib/utils";
 
 interface Props {
   employee: any;
@@ -49,23 +52,26 @@ export default function TabOverview({
   portalData,
   onRequestTab,
   onActivitiesTab,
-  onEvaluationsTab,
   onDocTab,
   onProfileTab,
   onRoommatesTab,
   onHR,
 }: Props) {
-  const { t, lang } = useTheme();
+  const { lang } = useTheme();
   const isRtl = lang === "ar";
   const Chevron = isRtl ? ChevronLeft : ChevronRight;
+
   const room = portalData?.room as
-    | { roomNumber?: string; building?: string }
+    | { roomNumber?: string; building?: string; bedLabel?: string }
     | undefined;
   const assignments = portalData?.assignments || [];
-  const firstName = employee?.fullName?.split(" ")[0] || employee?.firstName || (isRtl ? "موظف" : "Employee");
-  const empAddress = (employee?.address as string | undefined) || "";
+  const firstName =
+    employee?.fullName?.split(" ")[0] ||
+    employee?.firstName ||
+    (isRtl ? "موظف" : "Employee");
 
   const [greeting, setGreeting] = useState(() => getTimeGreeting(isRtl));
+  const [showQrModal, setShowQrModal] = useState(false);
 
   useEffect(() => {
     setGreeting(getTimeGreeting(isRtl));
@@ -78,19 +84,15 @@ export default function TabOverview({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [docCount, setDocCount] = useState(0);
   const [eventCount, setEventCount] = useState(0);
-  const [loadingState, setLoadingState] = useState<
-    "loading" | "ready" | "error"
-  >("loading");
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [roommates, setRoommates] = useState<any[]>([]);
 
   useEffect(() => {
     const loadOverviewData = async () => {
-      setLoadingState("loading");
-      setStatusMessage(null);
       try {
-        const [notifRes, docRes] = await Promise.all([
+        const [notifRes, docRes, roomRes] = await Promise.all([
           apiFetch("/api/portal-notifications/my", { credentials: "include" }),
           apiFetch("/api/portal-data/documents", { credentials: "include" }),
+          apiFetch("/api/portal-data/roommates", { credentials: "include" }),
         ]);
 
         if (notifRes.ok) {
@@ -107,381 +109,369 @@ export default function TabOverview({
           }
         }
 
+        if (roomRes.ok) {
+          const roomData = await roomRes.json().catch(() => null);
+          if (roomData?.roommates) {
+            setRoommates(roomData.roommates);
+          }
+        }
+
         const upcomingEvents =
           portalData?.events?.length ?? portalData?.upcomingEvents?.length ?? 0;
         setEventCount(typeof upcomingEvents === "number" ? upcomingEvents : 0);
-        setLoadingState("ready");
-      } catch {
-        setLoadingState("error");
-        setStatusMessage(
-          isRtl
-            ? "تعذر تحميل بعض المحتويات مؤقتًا."
-            : "Some content could not be loaded right now.",
-        );
-      }
+      } catch {}
     };
 
     loadOverviewData();
-  }, [portalData?.events, portalData?.upcomingEvents, isRtl]);
+  }, [portalData?.events, portalData?.upcomingEvents]);
 
-  const pendingCount =
+  const pendingRequestsCount =
     assignments.filter(
       (a: any) => a.status === "ACTIVE" || a.status === "PENDING",
     ).length || 0;
 
+  const isAssigned = Boolean(room?.roomNumber);
+  const staffCode = employee?.employeeId || employee?.profileId || "EMP-203";
+
   return (
-    <div className="px-4 pt-4 pb-4 space-y-5">
-      {/* Welcome Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1A2B4C] to-[#243856] p-5 shadow-xl">
-        <div className="absolute -end-8 -top-8 w-40 h-40 bg-[#C9A24D] opacity-[0.06] blur-[80px] rounded-full pointer-events-none" />
-        <div className="absolute -start-4 -bottom-4 w-32 h-32 bg-white opacity-[0.03] blur-[60px] rounded-full pointer-events-none" />
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/70 text-[10px] font-bold uppercase tracking-[0.12em] mb-3">
-            <ShieldCheck className="w-3 h-3" />
-            {isRtl ? "البوابة الداخلية" : "Internal Portal"}
+    <div className="px-4 pt-3 pb-6 space-y-4">
+      {/* ── 1. DIGITAL RESIDENT WALLET PASS (Apple Wallet / Luxury Fintech Style) ── */}
+      <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#121E36] via-[#1A2B4C] to-[#20365D] text-white p-5 shadow-2xl border border-white/10">
+        {/* Ambient background glows */}
+        <div className="absolute -end-10 -top-10 w-44 h-44 bg-[#C9A24D] opacity-[0.12] blur-[80px] rounded-full pointer-events-none" />
+        <div className="absolute -start-10 -bottom-10 w-36 h-36 bg-blue-500 opacity-[0.08] blur-[70px] rounded-full pointer-events-none" />
+
+        {/* Pass Top Bar */}
+        <div className="relative z-10 flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center backdrop-blur-md">
+              <ShieldCheck className="w-4 h-4 text-[#E0C070]" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-[0.15em] text-[#E0C070]">
+                SUNRISE RESIDENT PASS
+              </span>
+              <div className="text-[11px] font-mono text-white/60">
+                ID: {staffCode}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowQrModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white backdrop-blur-md transition-all cursor-pointer shadow-xs active:scale-95"
+            title={isRtl ? "إظهار رمز QR السكني" : "Show Resident QR"}
+          >
+            <QrCode className="w-3.5 h-3.5 text-[#E0C070]" />
+            <span>{isRtl ? "رمز الدخول" : "Gate QR"}</span>
+          </button>
+        </div>
+
+        {/* Resident Identity */}
+        <div className="relative z-10 mb-4">
+          <div className="text-xs text-white/70 font-medium">
+            {greeting},{" "}
+            <span className="text-white font-semibold">
+              {employee?.department || "Hospitality"}
+            </span>
           </div>
           <h2
-            className="text-xl font-bold text-white mb-1 leading-tight"
+            className="text-2xl font-black text-white tracking-tight mt-0.5"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
-            {greeting},{" "}
-            <span className="text-[#E0C070]">{firstName}</span>
+            {employee?.fullName || firstName}
           </h2>
-          <p className="text-white/60 text-[12px] max-w-xs leading-relaxed">
-            {isRtl
-              ? "مرحباً بك في بوابة الإدارة الفندقية. كل ما تحتاجه بين يديك."
-              : "Welcome to your luxury concierge for workplace management. Everything you need is at your fingertips."}
-          </p>
+          {employee?.jobTitle && (
+            <p className="text-xs text-[#E0C070]/90 font-medium mt-0.5">
+              {employee.jobTitle}
+            </p>
+          )}
+        </div>
+
+        {/* Room & Bed Allocation Pill Card */}
+        <div className="relative z-10 rounded-2xl bg-black/25 border border-white/10 p-3.5 backdrop-blur-md flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-inner",
+                isAssigned
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : "bg-amber-500/20 text-amber-400 border border-amber-500/30",
+              )}
+            >
+              <Home className="w-5 h-5" />
+            </div>
+
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-white/60">
+                {isRtl ? "مقر السكن المخصص" : "Assigned Housing"}
+              </div>
+              <div className="text-sm font-bold text-white truncate">
+                {isAssigned && room ? (
+                  <>
+                    <span>{isRtl ? "غرفة " : "Room "}</span>
+                    <span className="text-[#E0C070] font-mono">
+                      {room.roomNumber}
+                    </span>
+                    {room.building && (
+                      <span className="text-white/75 font-normal text-xs">
+                        {" "}
+                        · {room.building}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-amber-300 font-medium">
+                    {isRtl ? "قيد التسكين والاعتماد" : "Pending Bed Allocation"}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="shrink-0 text-end">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono",
+                isAssigned
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  : "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+              )}
+            >
+              <span
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  isAssigned ? "bg-emerald-400 animate-pulse" : "bg-amber-400",
+                )}
+              />
+              {isAssigned
+                ? isRtl
+                  ? "مُسكّن نشط"
+                  : "Active"
+                : isRtl
+                  ? "قيد الانتظار"
+                  : "Pending"}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Room Info Card */}
-      {room && (
-        <div className="rounded-2xl bg-card border border-border2 p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent2/10 flex items-center justify-center flex-shrink-0">
-              <Home className="w-5 h-5 text-accent2" />
+      {/* ── 2. DAILY PULSE WIDGET (Today's Meal, Shuttle Bus & Roommates) ── */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {/* Dining Card */}
+        <div className="bg-card/75 backdrop-blur-md border border-border/60 rounded-2xl p-3.5 flex flex-col justify-between gap-2 shadow-2xs hover:border-amber-500/30 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <UtensilsCrossed className="w-4 h-4" />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[11px] text-muted2 font-medium uppercase tracking-wide">
-                {isRtl ? "السكن" : "Accommodation"}
-              </div>
-              <div className="text-[15px] font-bold text-foreground mt-0.5 leading-tight">
-                {isRtl ? "غرفة رقم" : "Room"}{" "}
-                <span className="text-accent2">{room.roomNumber}</span>
-              </div>
-              {room.building && (
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-muted2" />
-                  <span className="text-[12px] text-muted2">
-                    {room.building}
-                  </span>
-                </div>
-              )}
-              {empAddress && (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <MapPin className="w-3.5 h-3.5 text-muted2" />
-                  <span className="text-[12px] text-muted2">{empAddress}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Resident Dashboard Stat Cards - Executive Tremor Style */}
-      <div className="grid grid-cols-3 gap-2.5">
-        <div
-          onClick={onDocTab}
-          className="bg-card/85 backdrop-blur-md border border-border2/80 rounded-2xl p-3 card-hover cursor-pointer relative overflow-hidden group shadow-xs hover:border-blue-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
-              <MaterialIcon
-                icon="description"
-                size={18}
-                className="text-blue-500 dark:text-blue-400"
-              />
-            </div>
-            {/* Mini SVG sparkline */}
-            <svg width="36" height="14" className="overflow-visible opacity-60 group-hover:opacity-100 transition-opacity">
-              <polyline
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points="0,12 8,10 16,11 24,6 36,3"
-              />
-            </svg>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              {isRtl ? "مطعم السكن" : "Dining"}
+            </span>
           </div>
           <div>
-            <div className="text-[20px] font-extrabold text-foreground leading-none tracking-tight">
+            <h4 className="text-xs font-bold text-foreground">
+              {isRtl ? "وجبة اليوم القادمة" : "Upcoming Meal"}
+            </h4>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {isRtl ? "بوفيه العاملين مفتوح الآن" : "Staff buffet active"}
+            </p>
+          </div>
+        </div>
+
+        {/* Shuttle Bus Card */}
+        <div className="bg-card/75 backdrop-blur-md border border-border/60 rounded-2xl p-3.5 flex flex-col justify-between gap-2 shadow-2xs hover:border-blue-500/30 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <Bus className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400">
+              {isRtl ? "باص الفندق" : "Shuttle"}
+            </span>
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-foreground">
+              {isRtl ? "مواعيد الأتوبيس" : "Next Departure"}
+            </h4>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {isRtl ? "كل 30 دقيقة للفنادق" : "Every 30 mins to resort"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. EXECUTIVE STAT CARDS ── */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {/* Documents */}
+        <button
+          type="button"
+          onClick={onDocTab}
+          className="bg-card/75 backdrop-blur-md border border-border/60 rounded-2xl p-3 text-start hover:border-cyan-500/40 hover:shadow-sm transition-all duration-200 cursor-pointer select-none flex flex-col justify-between"
+        >
+          <div className="w-8 h-8 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-xl flex items-center justify-center mb-2">
+            <FileText className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-lg font-extrabold text-foreground font-mono leading-none">
               {docCount}
             </div>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                +{Math.min(docCount, 2)} {isRtl ? "جديد" : "new"}
-              </span>
-            </div>
-            <div className="text-[10px] text-muted2 mt-1 truncate font-medium">
+            <div className="text-[10px] text-muted-foreground font-semibold mt-1">
               {isRtl ? "المستندات" : "Documents"}
             </div>
           </div>
-        </div>
+        </button>
 
-        <div
+        {/* Requests */}
+        <button
+          type="button"
           onClick={onRequestTab}
-          className="bg-card/85 backdrop-blur-md border border-border2/80 rounded-2xl p-3 card-hover cursor-pointer relative overflow-hidden group shadow-xs hover:border-amber-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+          className="bg-card/75 backdrop-blur-md border border-border/60 rounded-2xl p-3 text-start hover:border-amber-500/40 hover:shadow-sm transition-all duration-200 cursor-pointer select-none flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
-              <MaterialIcon
-                icon="pending_actions"
-                size={18}
-                className="text-amber-500 dark:text-amber-400"
-              />
-            </div>
-            {/* Mini SVG sparkline */}
-            <svg width="36" height="14" className="overflow-visible opacity-60 group-hover:opacity-100 transition-opacity">
-              <polyline
-                fill="none"
-                stroke="#f59e0b"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points="0,6 10,8 18,5 26,10 36,7"
-              />
-            </svg>
+          <div className="w-8 h-8 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center mb-2">
+            <Wrench className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[20px] font-extrabold text-foreground leading-none tracking-tight">
-              {pendingCount}
+            <div className="text-lg font-extrabold text-foreground font-mono leading-none">
+              {pendingRequestsCount}
             </div>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                {isRtl ? "قيد المتابعة" : "Active"}
-              </span>
-            </div>
-            <div className="text-[10px] text-muted2 mt-1 truncate font-medium">
+            <div className="text-[10px] text-muted-foreground font-semibold mt-1">
               {isRtl ? "الطلبات" : "Requests"}
             </div>
           </div>
-        </div>
+        </button>
 
-        <div
-          onClick={onActivitiesTab}
-          className="bg-card/85 backdrop-blur-md border border-border2/80 rounded-2xl p-3 card-hover cursor-pointer relative overflow-hidden group shadow-xs hover:border-emerald-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+        {/* Roommates / Community */}
+        <button
+          type="button"
+          onClick={onRoommatesTab}
+          className="bg-card/75 backdrop-blur-md border border-border/60 rounded-2xl p-3 text-start hover:border-purple-500/40 hover:shadow-sm transition-all duration-200 cursor-pointer select-none flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center shrink-0">
-              <MaterialIcon
-                icon="event_available"
-                size={18}
-                className="text-emerald-500 dark:text-emerald-400"
-              />
-            </div>
-            {/* Mini SVG sparkline */}
-            <svg width="36" height="14" className="overflow-visible opacity-60 group-hover:opacity-100 transition-opacity">
-              <polyline
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points="0,11 10,9 18,10 26,4 36,2"
-              />
-            </svg>
+          <div className="w-8 h-8 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center mb-2">
+            <Users className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[20px] font-extrabold text-foreground leading-none tracking-tight">
-              {eventCount}
+            <div className="text-lg font-extrabold text-foreground font-mono leading-none">
+              {roommates.length}
             </div>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                {isRtl ? "متاح" : "Open"}
-              </span>
-            </div>
-            <div className="text-[10px] text-muted2 mt-1 truncate font-medium">
-              {isRtl ? "الفعاليات" : "Activities"}
+            <div className="text-[10px] text-muted-foreground font-semibold mt-1">
+              {isRtl ? "زملاء السكن" : "Roommates"}
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
-      {/* Contact HR */}
+      {/* ── 4. HR SUPPORT CHAT BANNER ── */}
       <button
+        type="button"
         onClick={onHR}
-        className="relative overflow-hidden w-full rounded-2xl bg-gradient-to-br from-[#C9A24D] to-[#B8922E] p-[1px] group"
+        className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/15 via-primary/10 to-amber-500/5 border border-amber-500/30 p-4 flex items-center justify-between gap-3 text-start transition-all hover:border-amber-500/50 hover:shadow-sm cursor-pointer"
       >
-        <div className="rounded-2xl bg-card p-4 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#C9A24D]/10 flex items-center justify-center flex-shrink-0">
-            <MaterialIcon
-              icon="support_agent"
-              size={24}
-              className="text-[#C9A24D]"
-            />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-2xs">
+            <MessageCircle className="w-5 h-5" />
           </div>
-          <div className="flex-1 text-start">
-            <div className="text-sm font-bold text-foreground">
-              {isRtl ? "محادثة الموارد البشرية" : "Chat with HR"}
-            </div>
-            <div className="text-[11px] text-muted2 mt-0.5">
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-foreground truncate">
+              {isRtl ? "محادثة الموارد البشرية وإدارة السكن" : "HR & Housing Support Chat"}
+            </h4>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
               {isRtl
-                ? "تواصل مباشر مع فريق الدعم والموارد البشرية"
-                : "Direct line to HR support & personnel team"}
-            </div>
+                ? "تواصل مباشر وفوري مع فريق الإشراف والمتابعة"
+                : "Instant direct assistance from the housing coordinators"}
+            </p>
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-[#C9A24D]">
-            {isRtl ? "تواصل" : "Contact"}{" "}
-            <MaterialIcon
-              icon={isRtl ? "chevron_left" : "chevron_right"}
-              size={16}
-            />
-          </div>
+        </div>
+
+        <div className="shrink-0 flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+          <span>{isRtl ? "تواصل" : "Connect"}</span>
+          <Chevron className="w-3.5 h-3.5" />
         </div>
       </button>
 
-      {/* Quick Actions - Stitch exact */}
+      {/* ── 5. RECENT NOTIFICATIONS & ANNOUNCEMENTS ── */}
       <div>
-        <h3 className="text-sm font-bold text-foreground mb-3">
-          {isRtl ? "إجراءات سريعة" : "Quick Actions"}
-        </h3>
-        <div className="grid grid-cols-3 gap-2.5">
-          <button
-            onClick={onDocTab}
-            className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl bg-card border border-border2 hover:border-accent2/30 hover:bg-accent2/5 transition-all active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 rounded-xl bg-accent2/10 flex items-center justify-center">
-              <MaterialIcon
-                icon="folder_open"
-                size={22}
-                className="text-accent2"
-              />
-            </div>
-            <span className="text-[11px] font-semibold text-muted2 text-center leading-tight">
-              {isRtl ? "عرض المستندات" : "View Docs"}
-            </span>
-          </button>
-          <button
-            onClick={onRequestTab}
-            className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl bg-card border border-border2 hover:border-accent2/30 hover:bg-accent2/5 transition-all active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 rounded-xl bg-accent2/10 flex items-center justify-center">
-              <MaterialIcon icon="add_box" size={22} className="text-accent2" />
-            </div>
-            <span className="text-[11px] font-semibold text-muted2 text-center leading-tight">
-              {isRtl ? "تقديم طلب" : "Submit Request"}
-            </span>
-          </button>
-          <button
-            onClick={onProfileTab}
-            className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl bg-card border border-border2 hover:border-accent2/30 hover:bg-accent2/5 transition-all active:scale-[0.97]"
-          >
-            <div className="w-10 h-10 rounded-xl bg-accent2/10 flex items-center justify-center">
-              <MaterialIcon
-                icon="account_circle"
-                size={22}
-                className="text-accent2"
-              />
-            </div>
-            <span className="text-[11px] font-semibold text-muted2 text-center leading-tight">
-              {isRtl ? "الملف الشخصي" : "Profile"}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {statusMessage && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-          {statusMessage}
-        </div>
-      )}
-
-      {/* Latest Alerts - Stitch exact */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-foreground">
-            {isRtl ? "أحدث التنبيهات" : "Latest Alerts"}
+        <div className="flex items-center justify-between mb-2 px-1">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+            {isRtl ? "أحدث التنبيهات والفعاليات" : "Recent Alerts & Events"}
           </h3>
         </div>
-        <div className="space-y-2.5">
-          {loadingState === "loading" ? (
-            <div className="rounded-xl border border-border2 bg-card px-3 py-4 text-[12px] text-muted2">
-              {isRtl ? "جاري التحميل..." : "Loading alerts..."}
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border2 bg-card px-3 py-5 text-center text-[12px] text-muted2">
-              {isRtl ? "لا توجد تنبيهات." : "No alerts yet."}
-            </div>
-          ) : (
-            notifications.map((item: any, i: number) => {
-              const alertIcon =
-                i === 0 ? "check_circle" : i === 1 ? "upload_file" : "groups";
-              const alertColor =
-                i === 0
-                  ? "text-green-400"
-                  : i === 1
-                    ? "text-blue-400"
-                    : "text-purple-400";
-              return (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 p-3.5 rounded-xl bg-card border border-border2"
-                >
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${alertColor.replace("text", "bg")}/10`}
-                  >
-                    <MaterialIcon
-                      icon={alertIcon}
-                      size={16}
-                      className={alertColor}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-semibold text-foreground leading-snug">
-                      {item.title}
-                    </div>
-                    <div className="text-[11px] text-muted2 mt-0.5 line-clamp-1">
-                      {item.message}
-                    </div>
-                    <div className="text-[9px] text-muted2 mt-1">
-                      {(() => {
-                        try {
-                          const diff = Math.floor(
-                            (Date.now() - new Date(item.createdAt).getTime()) /
-                              1000,
-                          );
-                          if (diff < 3600)
-                            return isRtl
-                              ? `${Math.floor(diff / 60)} د`
-                              : `${Math.floor(diff / 60)}m ago`;
-                          if (diff < 86400)
-                            return isRtl
-                              ? `${Math.floor(diff / 3600)} س`
-                              : `${Math.floor(diff / 3600)}h ago`;
-                          return new Date(item.createdAt).toLocaleDateString(
-                            isRtl ? "ar-SA" : "en-US",
-                            { month: "short", day: "numeric" },
-                          );
-                        } catch {
-                          return "";
-                        }
-                      })()}
-                    </div>
-                  </div>
+
+        <div className="space-y-2">
+          {notifications.length > 0 ? (
+            notifications.map((notif, idx) => (
+              <div
+                key={notif.id || idx}
+                className="p-3 rounded-2xl bg-card/75 border border-border/60 flex items-start gap-3 shadow-2xs"
+              >
+                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
                 </div>
-              );
-            })
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-foreground truncate">
+                    {notif.title || (isRtl ? "إشعار جديد" : "New Notice")}
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">
+                    {notif.message || notif.body}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 rounded-2xl bg-card/50 border border-dashed border-border/60 text-center text-xs text-muted-foreground">
+              {isRtl
+                ? "لا توجد تنبيهات جديدة اليوم. يومك سعيد!"
+                : "No new notifications today. Have a great day!"}
+            </div>
           )}
         </div>
-        <button
-          onClick={onDocTab}
-          className="w-full mt-3 py-2.5 text-center text-[11px] font-bold text-accent2 hover:text-accent2/80 transition-colors bg-accent2/5 rounded-xl border border-accent2/10"
-        >
-          {isRtl ? "عرض جميع الإشعارات" : "View All Notifications"}
-        </button>
       </div>
+
+      {/* ── QR CODE FULL MODAL DIALOG ── */}
+      {showQrModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          onClick={() => setShowQrModal(false)}
+        >
+          <div
+            className="w-full max-w-xs bg-card border border-border rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-[#1A2B4C] text-[#E0C070] flex items-center justify-center border border-white/10 shadow-md">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-foreground">
+                {employee?.fullName || firstName}
+              </h3>
+              <p className="text-xs font-mono text-muted-foreground mt-0.5">
+                {staffCode} · {isAssigned ? `Room ${room?.roomNumber}` : "Staff Pass"}
+              </p>
+            </div>
+
+            {/* Crisp QR Code */}
+            <ResidentQRCode
+              data={`SUNRISE_RESIDENT:${staffCode}:${room?.roomNumber || "NONE"}:${employee?.fullName || "STAFF"}`}
+              size={180}
+              className="border-4 border-muted"
+            />
+
+            <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[220px]">
+              {isRtl
+                ? "استخدم هذا الرمز للمرور عبر بوابات السكن ودخول مطعم العاملين"
+                : "Scan this pass for security gate entry and cafeteria meals"}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowQrModal(false)}
+              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-colors cursor-pointer"
+            >
+              {isRtl ? "إغلاق" : "Done"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
