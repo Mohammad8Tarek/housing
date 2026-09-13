@@ -31,6 +31,16 @@ function beNormalize(value) {
   let val = String(value ?? "").trim().toLowerCase();
   if (val.startsWith("employees.")) val = val.replace("employees.", "profiles.");
   if (val.startsWith("employees:")) val = val.replace("employees:", "profiles:");
+  if (val.startsWith("communications.")) val = val.replace("communications.", "whatsapp.");
+  if (val.startsWith("communications:")) val = val.replace("communications:", "whatsapp:");
+  if (val.startsWith("surveys.")) val = val.replace("surveys.", "evaluations.");
+  if (val.startsWith("surveys:")) val = val.replace("surveys:", "evaluations:");
+  if (val.endsWith(".bulk_export")) val = val.replace(".bulk_export", ".export");
+  if (val.endsWith(":bulk_export")) val = val.replace(":bulk_export", ":export");
+  if (val.endsWith(".bulk_delete")) val = val.replace(".bulk_delete", ".delete");
+  if (val.endsWith(":bulk_delete")) val = val.replace(":bulk_delete", ":delete");
+  if (val.endsWith(".archive")) val = val.replace(".archive", ".checkout");
+  if (val.endsWith(":archive")) val = val.replace(":archive", ":checkout");
   return val;
 }
 
@@ -47,23 +57,21 @@ function beResolveInheritedRoles(roles) {
 
 const BE_PERMISSION_MODULES = [
   "dashboard", "housing", "housekeeping", "profiles", "accommodation",
-  "reservations", "maintenance", "reports", "users", "settings",
-  "activity_log", "properties", "documents", "billing", "communications",
-  "evaluations", "surveys", "portal_content", "activities", "smart_locks",
-  "hosting_requests", "guest_hosting"
+  "reservations", "hosting_requests", "guest_hosting", "maintenance", "reports",
+  "users", "settings", "activity_log", "properties", "documents",
+  "evaluations", "portal_content", "activities", "smart_locks",
+  "whatsapp", "inventory"
 ];
 
 const BE_PERMISSION_ACTIONS = [
-  "view", "create", "edit", "delete", "export", "bulk_delete", "bulk_export",
-  "assign", "checkin", "checkout", "approve", "transfer", "reset_password",
-  "manage_permissions", "view_sensitive", "audit", "publish", "archive",
-  "unlock", "override_single_occupancy"
+  "view", "create", "edit", "delete", "export", "checkin", "checkout",
+  "approve", "transfer", "reset_password", "manage_permissions",
+  "view_sensitive", "audit", "publish", "unlock", "override_single_occupancy"
 ];
 
-const beAllModulePerms = (mod) => BE_PERMISSION_ACTIONS.map((act) => `${mod}.${act}`);
-const beCrud = (mod) => ["view", "create", "edit", "delete"].map((act) => `${mod}.${act}`);
+const beAllModulePerms = (mod) => (MODULE_ACTIONS[mod] ?? []).map((act) => `${mod}.${act}`);
 
-// Verbatim from artifacts/api-server/src/middlewares/permissions.ts lines 108-258:
+// Verbatim from artifacts/api-server/src/middlewares/permissions.ts:
 const BE_ROLE_DEFAULT_PERMISSIONS = {
   super_admin: BE_PERMISSION_MODULES.flatMap((module) => beAllModulePerms(module)),
   system_admin: BE_PERMISSION_MODULES.flatMap((module) => beAllModulePerms(module)),
@@ -74,89 +82,60 @@ const BE_ROLE_DEFAULT_PERMISSIONS = {
     "users.unlock",
   ],
   manager: [
-    "dashboard.export",
-    "housing.create",
-    "housing.edit",
-    "housing.delete",
-    "housing.bulk_export",
-    "housekeeping.view",
-    "housekeeping.edit",
-    "housekeeping.assign",
-    "housekeeping.approve",
-    "housekeeping.bulk_export",
-    "profiles.create",
-    "profiles.edit",
-    "profiles.delete",
-    "profiles.export",
-    "accommodation.delete",
-    "accommodation.transfer",
-    "accommodation.bulk_delete",
-    "accommodation.bulk_export",
-    "accommodation.archive",
-    "accommodation.override_single_occupancy",
-    "reservations.override_single_occupancy",
-    "guest_hosting.view",
-    "guest_hosting.create",
-    "guest_hosting.edit",
-    "guest_hosting.delete",
-    "guest_hosting.checkin",
-    "guest_hosting.checkout",
-    "guest_hosting.approve",
-    "guest_hosting.transfer",
-    "guest_hosting.bulk_delete",
-    "guest_hosting.bulk_export",
-    "reservations.delete",
-    "reservations.bulk_export",
-    "reservations.archive",
-    "maintenance.delete",
-    "maintenance.assign",
-    "maintenance.approve",
-    "maintenance.bulk_export",
-    "maintenance.archive",
-    "reports.audit",
+    "dashboard.view",
+    ...beAllModulePerms("housing"),
+    ...beAllModulePerms("housekeeping"),
+    ...beAllModulePerms("profiles"),
+    ...beAllModulePerms("accommodation"),
+    ...beAllModulePerms("reservations"),
+    ...beAllModulePerms("hosting_requests"),
+    ...beAllModulePerms("guest_hosting"),
+    ...beAllModulePerms("maintenance"),
+    ...beAllModulePerms("reports"),
     "users.view",
     "users.edit",
+    "users.export",
     "users.manage_permissions",
     "users.unlock",
-    "settings.view",
-    "settings.edit",
-    "activity_log.export",
-    "activity_log.audit",
-    "documents.create",
-    "documents.edit",
-    "documents.delete",
-    "documents.publish",
-    "documents.archive",
-    "billing.view",
-    "billing.export",
-    "communications.create",
+    ...beAllModulePerms("settings"),
+    ...beAllModulePerms("activity_log"),
+    ...beAllModulePerms("documents"),
+    ...beAllModulePerms("evaluations"),
+    ...beAllModulePerms("portal_content"),
+    ...beAllModulePerms("activities"),
+    ...beAllModulePerms("smart_locks"),
+    ...beAllModulePerms("whatsapp"),
+    ...beAllModulePerms("inventory"),
   ],
   receptionist: [
     "dashboard.view",
     "housing.view",
     "housing.export",
     "housekeeping.view",
+    "housekeeping.edit",
+    "housekeeping.export",
     "profiles.view",
     "accommodation.view",
     "accommodation.create",
     "accommodation.edit",
-    "accommodation.assign",
-    "accommodation.checkin",
     "accommodation.checkout",
-    "accommodation.approve",
+    "accommodation.transfer",
+    "accommodation.export",
+    "reservations.view",
+    "reservations.create",
+    "reservations.edit",
+    "reservations.checkin",
+    "reservations.delete",
+    "reservations.export",
+    "hosting_requests.view",
+    "hosting_requests.create",
+    "hosting_requests.edit",
     "guest_hosting.view",
     "guest_hosting.create",
     "guest_hosting.edit",
     "guest_hosting.checkin",
     "guest_hosting.checkout",
-    "guest_hosting.approve",
     "guest_hosting.export",
-    "reservations.view",
-    "reservations.create",
-    "reservations.edit",
-    "reservations.checkin",
-    "reservations.checkout",
-    "reservations.approve",
     "maintenance.view",
     "maintenance.create",
     "maintenance.edit",
@@ -164,53 +143,63 @@ const BE_ROLE_DEFAULT_PERMISSIONS = {
     "reports.export",
     "activity_log.view",
     "documents.view",
-    "communications.view",
-    "communications.create",
+    "whatsapp.view",
+    "whatsapp.create",
+    "inventory.view",
+    "inventory.export",
   ],
   maintenance_staff: [
     "dashboard.view",
     "housing.view",
-    "housekeeping.view",
-    "housekeeping.edit",
     "maintenance.view",
     "maintenance.create",
     "maintenance.edit",
-    "maintenance.assign",
-    "maintenance.approve",
+    "maintenance.delete",
+    "maintenance.export",
+    "inventory.view",
+    "inventory.edit",
     "profiles.view",
+    "activity_log.view",
+    "documents.view",
+  ],
+  housekeeping_staff: [
+    "dashboard.view",
+    "housing.view",
+    "housekeeping.view",
+    "housekeeping.edit",
+    "housekeeping.export",
+    "inventory.view",
+    "inventory.edit",
     "activity_log.view",
     "documents.view",
   ],
   hr_admin: [
     "dashboard.view",
-    "dashboard.export",
-    ...beCrud("profiles"),
-    "profiles.export",
-    ...beCrud("evaluations"),
-    "evaluations.export",
-    ...beCrud("surveys"),
-    ...beCrud("activities"),
-    "activities.publish",
-    ...beCrud("documents"),
-    ...beCrud("portal_content"),
-    ...beCrud("communications"),
+    ...beAllModulePerms("profiles"),
+    ...beAllModulePerms("evaluations"),
+    ...beAllModulePerms("activities"),
+    ...beAllModulePerms("documents"),
+    ...beAllModulePerms("hosting_requests"),
+    ...beAllModulePerms("guest_hosting"),
+    "whatsapp.view",
+    "whatsapp.create",
+    "whatsapp.export",
     "reports.view",
     "reports.export",
   ],
   portal_admin: [
     "dashboard.view",
-    ...beCrud("activities"),
-    "activities.publish",
-    ...beCrud("documents"),
-    ...beCrud("portal_content"),
-    ...beCrud("communications"),
+    ...beAllModulePerms("portal_content"),
+    ...beAllModulePerms("activities"),
+    ...beAllModulePerms("evaluations"),
+    ...beAllModulePerms("documents"),
     "reports.view",
   ],
   security_staff: [
     "dashboard.view",
     "housing.view",
     "accommodation.view",
-    ...beCrud("smart_locks"),
+    ...beAllModulePerms("smart_locks"),
     "activities.view",
   ],
 };
@@ -430,7 +419,7 @@ console.log("===================================================================
 // ----------------------------------------------------------------------------
 console.log("▶ SUITE 1: Action Dependency Cascading & Invariant Stress Harness");
 
-check("1.1: Disabling 'view' on any of all 22 modules completely strips ALL operational sub-actions", () => {
+check("1.1: Disabling 'view' on any of all 21 modules completely strips ALL operational sub-actions", () => {
   for (const m of MODULES) {
     const actions = MODULE_ACTIONS[m] ?? [];
     if (!actions.includes("view")) continue;
@@ -450,7 +439,7 @@ check("1.1: Disabling 'view' on any of all 22 modules completely strips ALL oper
   }
 });
 
-check("1.2: Enabling any sub-action auto-forces 'view' ON across all 22 modules", () => {
+check("1.2: Enabling any sub-action auto-forces 'view' ON across all 21 modules", () => {
   for (const m of MODULES) {
     const actions = MODULE_ACTIONS[m] ?? [];
     if (!actions.includes("view")) continue;
@@ -605,12 +594,12 @@ check("2.3: 'Revert to Role Defaults' sends [] and restores dynamic role inherit
 
   // Backend should now inherit dynamic receptionist permissions
   assert.equal(beHasPermission(testUser, "housing", "view"), true);
-  assert.equal(beHasPermission(testUser, "accommodation", "checkin"), true);
+  assert.equal(beHasPermission(testUser, "accommodation", "checkout"), true);
   assert.equal(beHasPermission(testUser, "housing", "create"), false); // Receptionist doesn't have housing.create
 
   // Frontend should also inherit receptionist defaults
   assert.equal(feCan(testUser, "housing", "view"), true);
-  assert.equal(feCan(testUser, "accommodation", "checkin"), true);
+  assert.equal(feCan(testUser, "accommodation", "checkout"), true);
   assert.equal(feCan(testUser, "housing", "create"), false);
 });
 
@@ -751,7 +740,7 @@ check("3.3: Profile update for uncustomized user (empty permissions array) appli
   const preserved = computeEditUserPermissionsPayload(targetUser, ["receptionist"], getPermissionsForRoles);
 
   assert.ok(preserved.length > 0, "Uncustomized user should receive role defaults");
-  assert.ok(preserved.includes("accommodation.checkin"));
+  assert.ok(preserved.includes("accommodation.checkout"));
 });
 
 check("3.4: Profile update for user with null/undefined permissions falls back to role defaults safely", () => {

@@ -22,6 +22,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getListRoomsQueryKey } from "@workspace/api-client-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/date-utils";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import { roomStatusBadge, getRoomStatusLabel, statusNorm } from "../utils";
 
 type Props = {
@@ -513,26 +514,28 @@ export function RoomDetailsDialog({
               </Badge>
             </div>
             <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-6 px-2 text-[11px] gap-1 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800"
-                onClick={handleSyncFromFeatures}
-                disabled={isSyncing}
-                title={ar ? "توليد تلقائي من مميزات الغرفة" : "Sync from room features"}
-              >
-                <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
-                {ar ? "توليد تلقائي" : "Sync"}
-              </Button>
-              <Button
-                variant={showAddInventory ? "secondary" : "default"}
-                size="sm"
-                className="h-6 px-2 text-[11px] gap-1"
-                onClick={() => setShowAddInventory(!showAddInventory)}
-              >
-                <Plus className="w-3 h-3" />
-                {ar ? "إضافة عهدة" : "Add Asset"}
-              </Button>
+              <PermissionGate anyPermission={[["inventory", "create"], ["housing", "edit"]]}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] gap-1 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800"
+                  onClick={handleSyncFromFeatures}
+                  disabled={isSyncing}
+                  title={ar ? "توليد تلقائي من مميزات الغرفة" : "Sync from room features"}
+                >
+                  <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
+                  {ar ? "توليد تلقائي" : "Sync"}
+                </Button>
+                <Button
+                  variant={showAddInventory ? "secondary" : "default"}
+                  size="sm"
+                  className="h-6 px-2 text-[11px] gap-1"
+                  onClick={() => setShowAddInventory(!showAddInventory)}
+                >
+                  <Plus className="w-3 h-3" />
+                  {ar ? "إضافة عهدة" : "Add Asset"}
+                </Button>
+              </PermissionGate>
             </div>
           </div>
 

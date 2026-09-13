@@ -33,231 +33,24 @@ const test = testRunner.test || testRunner.default;
 //  - artifacts/housing/src/lib/permissions.ts
 // ============================================================================
 
-export const MODULES = [
-  "dashboard",
-  "housing",
-  "housekeeping",
-  "profiles",
-  "accommodation",
-  "reservations",
-  "maintenance",
-  "reports",
-  "users",
-  "settings",
-  "activity_log",
-  "properties",
-  "documents",
-  "billing",
-  "communications",
-  "evaluations",
-  "surveys",
-  "portal_content",
-  "activities",
-  "smart_locks",
-  "hosting_requests",
-  "guest_hosting",
-];
+import {
+  MODULES,
+  ACTIONS,
+  MODULE_ACTIONS,
+  PERMISSION_GROUPS,
+  MODULE_LABELS,
+  ACTION_LABELS,
+  ROLE_DEFAULT_PERMISSIONS,
+} from "../artifacts/housing/src/lib/permissions.ts";
 
-export const ACTIONS = [
-  "view",
-  "create",
-  "edit",
-  "delete",
-  "export",
-  "bulk_delete",
-  "bulk_export",
-  "assign",
-  "checkin",
-  "checkout",
-  "approve",
-  "transfer",
-  "reset_password",
-  "manage_permissions",
-  "view_sensitive",
-  "audit",
-  "publish",
-  "archive",
-  "unlock",
-  "override_single_occupancy",
-];
-
-export const MODULE_ACTIONS = {
-  dashboard: ["view", "export", "audit"],
-  housing: ["view", "create", "edit", "delete", "export", "bulk_export"],
-  housekeeping: ["view", "edit", "assign", "approve", "bulk_export"],
-  profiles: [
-    "view",
-    "create",
-    "edit",
-    "delete",
-    "export",
-    "reset_password",
-    "manage_permissions",
-    "view_sensitive",
-  ],
-  accommodation: [
-    "view",
-    "create",
-    "edit",
-    "delete",
-    "assign",
-    "checkin",
-    "checkout",
-    "approve",
-    "transfer",
-    "bulk_delete",
-    "bulk_export",
-    "archive",
-    "override_single_occupancy",
-  ],
-  reservations: [
-    "view",
-    "create",
-    "edit",
-    "delete",
-    "checkin",
-    "checkout",
-    "approve",
-    "bulk_export",
-    "archive",
-    "override_single_occupancy",
-  ],
-  maintenance: [
-    "view",
-    "create",
-    "edit",
-    "delete",
-    "assign",
-    "approve",
-    "bulk_export",
-    "archive",
-  ],
-  reports: ["view", "export", "audit"],
-  users: [
-    "view",
-    "create",
-    "edit",
-    "delete",
-    "manage_permissions",
-    "reset_password",
-    "unlock",
-  ],
-  settings: ["view", "edit", "create", "delete"],
-  activity_log: ["view", "export", "audit"],
-  properties: ["view", "create", "edit", "delete"],
-  documents: ["view", "create", "edit", "delete", "publish", "archive"],
-  billing: ["view", "export"],
-  communications: ["view", "create"],
-  evaluations: ["view", "create", "edit", "delete", "export"],
-  surveys: ["view", "create", "edit", "delete"],
-  portal_content: ["view", "create", "edit", "delete"],
-  activities: ["view", "create", "edit", "delete", "publish"],
-  smart_locks: ["view", "create", "edit", "delete"],
-  hosting_requests: ["view", "create", "edit", "delete", "approve"],
-  guest_hosting: [
-    "view",
-    "create",
-    "edit",
-    "delete",
-    "checkin",
-    "checkout",
-    "approve",
-    "transfer",
-    "export",
-    "bulk_export",
-    "bulk_delete",
-  ],
-};
-
-export const PERMISSION_GROUPS = [
-  {
-    id: "daily_operations",
-    label: { en: "Daily Operations", ar: "التشغيل اليومي" },
-    modules: ["dashboard", "housing", "housekeeping", "maintenance"],
-  },
-  {
-    id: "accommodation_flow",
-    label: { en: "Accommodation Flow", ar: "مسار التسكين" },
-    modules: [
-      "profiles",
-      "accommodation",
-      "reservations",
-      "guest_hosting",
-      "hosting_requests",
-    ],
-  },
-  {
-    id: "employee_portal",
-    label: { en: "Employee Portal", ar: "بوابة الموظف" },
-    modules: [
-      "portal_content",
-      "activities",
-      "documents",
-      "surveys",
-      "communications",
-    ],
-  },
-  {
-    id: "management",
-    label: { en: "Management", ar: "الإدارة" },
-    modules: ["reports", "evaluations", "billing", "settings", "properties"],
-  },
-  {
-    id: "security",
-    label: { en: "Security & Audit", ar: "الأمان والتدقيق" },
-    modules: ["users", "activity_log", "smart_locks"],
-  },
-];
-
-export const MODULE_LABELS = {
-  dashboard: { en: "Dashboard", ar: "لوحة القيادة" },
-  housing: { en: "Housing & Rooms", ar: "الإسكان والغرف" },
-  housekeeping: { en: "Housekeeping", ar: "خدمات النظافة والترتيب" },
-  profiles: { en: "Profiles & Employees", ar: "الملفات الشخصية والموظفون" },
-  accommodation: { en: "In-House Accommodation", ar: "التسكين والمقيمون حالياً" },
-  reservations: { en: "Reservations", ar: "الحجوزات" },
-  maintenance: { en: "Tickets & Maintenance", ar: "التذاكر وبلاغات الصيانة" },
-  reports: { en: "Reports & Stats", ar: "التقارير والإحصائيات" },
-  users: { en: "Users & Permissions", ar: "المستخدمين والصلاحيات" },
-  settings: { en: "System Settings", ar: "إعدادات النظام" },
-  activity_log: { en: "Activity Log & Audit", ar: "سجل النشاط والعمليات" },
-  properties: { en: "Properties & Hotels", ar: "العقارات والفروع" },
-  documents: { en: "Documents", ar: "المستندات" },
-  billing: { en: "Billing", ar: "الفواتير" },
-  communications: { en: "Communications", ar: "الاتصالات" },
-  evaluations: { en: "Evaluations", ar: "التقييمات" },
-  surveys: { en: "Surveys", ar: "الاستبيانات" },
-  portal_content: { en: "Employee Portal", ar: "بوابة الموظف" },
-  activities: { en: "Portal Activities", ar: "أنشطة البوابة" },
-  smart_locks: { en: "Smart Locks", ar: "الأقفال الذكية" },
-  hosting_requests: { en: "Hosting Requests", ar: "طلبات الاستضافة" },
-  guest_hosting: { en: "Guest Housing", ar: "تسكين الاستضافات" },
-};
-
-export const ACTION_LABELS = {
-  view: { en: "View", ar: "عرض" },
-  create: { en: "Create", ar: "إنشاء" },
-  edit: { en: "Edit", ar: "تعديل" },
-  delete: { en: "Delete", ar: "حذف" },
-  export: { en: "Export", ar: "تصدير" },
-  bulk_delete: { en: "Bulk Delete", ar: "حذف جماعي" },
-  bulk_export: { en: "Bulk Export", ar: "تصدير جماعي" },
-  assign: { en: "Assign", ar: "تعيين" },
-  checkin: { en: "Check-in", ar: "تسجيل دخول" },
-  checkout: { en: "Check-out", ar: "تسجيل خروج" },
-  approve: { en: "Approve", ar: "اعتماد" },
-  transfer: { en: "Transfer", ar: "نقل" },
-  reset_password: { en: "Reset Password", ar: "إعادة كلمة المرور" },
-  manage_permissions: { en: "Manage Permissions", ar: "إدارة الصلاحيات" },
-  view_sensitive: { en: "View Sensitive", ar: "عرض بيانات حساسة" },
-  audit: { en: "Audit", ar: "تدقيق" },
-  publish: { en: "Publish", ar: "نشر" },
-  archive: { en: "Archive", ar: "أرشفة" },
-  unlock: { en: "Unlock", ar: "فتح القفل" },
-  override_single_occupancy: {
-    en: "Assign Room with Single Occupant / Full Room",
-    ar: "تسكين غرفة بها نزيل بمفرده / حجز غرفة كاملة",
-  },
+export {
+  MODULES,
+  ACTIONS,
+  MODULE_ACTIONS,
+  PERMISSION_GROUPS,
+  MODULE_LABELS,
+  ACTION_LABELS,
+  ROLE_DEFAULT_PERMISSIONS,
 };
 
 export const DEFAULT_PASSWORD_POLICY = {
@@ -316,6 +109,16 @@ export function normalizePermissionKey(p) {
   let s = p.trim().toLowerCase();
   if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
   if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+  if (s.startsWith("communications.")) s = s.replace("communications.", "whatsapp.");
+  if (s.startsWith("communications:")) s = s.replace("communications:", "whatsapp:");
+  if (s.startsWith("surveys.")) s = s.replace("surveys.", "evaluations.");
+  if (s.startsWith("surveys:")) s = s.replace("surveys:", "evaluations:");
+  if (s.endsWith(".bulk_export")) s = s.replace(".bulk_export", ".export");
+  if (s.endsWith(":bulk_export")) s = s.replace(":bulk_export", ":export");
+  if (s.endsWith(".bulk_delete")) s = s.replace(".bulk_delete", ".delete");
+  if (s.endsWith(":bulk_delete")) s = s.replace(":bulk_delete", ":delete");
+  if (s.endsWith(".archive")) s = s.replace(".archive", ".checkout");
+  if (s.endsWith(":archive")) s = s.replace(":archive", ":checkout");
   if (s.includes(":")) s = s.replace(":", ".");
   return s;
 }
@@ -334,201 +137,7 @@ export const ROLE_INHERITANCE = {
   security_staff: [],
   receptionist: [],
   maintenance_staff: [],
-};
-
-export const ROLE_DEFAULT_PERMISSIONS = {
-  super_admin: MODULES.flatMap((m) => getAllModulePermissions(m)),
-  system_admin: MODULES.flatMap((m) => getAllModulePermissions(m)),
-  admin: MODULES.filter((m) => m !== "properties")
-    .flatMap((m) => getAllModulePermissions(m))
-    .concat(["users.unlock"]),
-  manager: [
-    "dashboard.view",
-    "dashboard.export",
-    "dashboard.audit",
-    "housing.view",
-    "housing.create",
-    "housing.edit",
-    "housing.delete",
-    "housing.export",
-    "housing.bulk_export",
-    "housekeeping.view",
-    "housekeeping.edit",
-    "housekeeping.assign",
-    "housekeeping.approve",
-    "housekeeping.bulk_export",
-    "profiles.view",
-    "profiles.create",
-    "profiles.edit",
-    "profiles.delete",
-    "profiles.export",
-    "accommodation.view",
-    "accommodation.create",
-    "accommodation.edit",
-    "accommodation.delete",
-    "accommodation.assign",
-    "accommodation.checkin",
-    "accommodation.checkout",
-    "accommodation.approve",
-    "accommodation.transfer",
-    "accommodation.bulk_delete",
-    "accommodation.bulk_export",
-    "accommodation.archive",
-    "accommodation.override_single_occupancy",
-    "reservations.view",
-    "reservations.create",
-    "reservations.edit",
-    "reservations.delete",
-    "reservations.checkin",
-    "reservations.checkout",
-    "reservations.approve",
-    "reservations.bulk_export",
-    "reservations.archive",
-    "reservations.override_single_occupancy",
-    "maintenance.view",
-    "maintenance.create",
-    "maintenance.edit",
-    "maintenance.delete",
-    "maintenance.assign",
-    "maintenance.approve",
-    "maintenance.bulk_export",
-    "maintenance.archive",
-    "reports.view",
-    "reports.export",
-    "reports.audit",
-    "users.view",
-    "settings.view",
-    "activity_log.view",
-    "hosting_requests.view",
-    "hosting_requests.create",
-    "hosting_requests.edit",
-    "hosting_requests.delete",
-    "hosting_requests.approve",
-    "guest_hosting.view",
-    "guest_hosting.create",
-    "guest_hosting.edit",
-    "guest_hosting.delete",
-    "guest_hosting.checkin",
-    "guest_hosting.checkout",
-    "guest_hosting.approve",
-    "guest_hosting.transfer",
-    "guest_hosting.bulk_delete",
-    "guest_hosting.bulk_export",
-  ],
-  receptionist: [
-    "dashboard.view",
-    "housing.view",
-    "housekeeping.view",
-    "profiles.view",
-    "accommodation.view",
-    "accommodation.checkin",
-    "accommodation.checkout",
-    "accommodation.assign",
-    "accommodation.transfer",
-    "reservations.view",
-    "reservations.create",
-    "reservations.edit",
-    "reservations.checkin",
-    "reservations.checkout",
-    "guest_hosting.view",
-    "guest_hosting.create",
-    "guest_hosting.edit",
-    "guest_hosting.checkin",
-    "guest_hosting.checkout",
-    "guest_hosting.transfer",
-    "hosting_requests.view",
-    "hosting_requests.create",
-    "maintenance.view",
-    "maintenance.create",
-    "portal_content.view",
-    "activities.view",
-    "documents.view",
-    "surveys.view",
-    "communications.view",
-    "reports.view",
-    "smart_locks.view",
-    "activity_log.view",
-    "evaluations.view",
-    "billing.view",
-  ],
-  maintenance_staff: [
-    "dashboard.view",
-    "housing.view",
-    "housekeeping.view",
-    "housekeeping.edit",
-    "maintenance.view",
-    "maintenance.create",
-    "maintenance.edit",
-    "maintenance.assign",
-    "maintenance.approve",
-    "documents.view",
-    "communications.view",
-    "portal_content.view",
-    "activities.view",
-  ],
-  hr_admin: [
-    "dashboard.view",
-    "profiles.view",
-    "profiles.create",
-    "profiles.edit",
-    "profiles.delete",
-    "profiles.export",
-    "evaluations.view",
-    "evaluations.create",
-    "evaluations.edit",
-    "evaluations.delete",
-    "evaluations.export",
-    "surveys.view",
-    "surveys.create",
-    "surveys.edit",
-    "surveys.delete",
-    "activities.view",
-    "activities.create",
-    "activities.edit",
-    "activities.delete",
-    "activities.publish",
-    "communications.view",
-    "communications.create",
-    "documents.view",
-    "documents.create",
-    "documents.edit",
-    "documents.publish",
-    "reports.view",
-    "reports.export",
-    "portal_content.view",
-    "portal_content.create",
-    "portal_content.edit",
-    "activity_log.view",
-  ],
-  portal_admin: [
-    "dashboard.view",
-    "portal_content.view",
-    "portal_content.create",
-    "portal_content.edit",
-    "portal_content.delete",
-    "activities.view",
-    "activities.create",
-    "activities.edit",
-    "activities.delete",
-    "activities.publish",
-    "communications.view",
-    "communications.create",
-    "documents.view",
-    "documents.publish",
-    "reports.view",
-    "activity_log.view",
-  ],
-  security_staff: [
-    "dashboard.view",
-    "housing.view",
-    "accommodation.view",
-    "smart_locks.view",
-    "smart_locks.create",
-    "smart_locks.edit",
-    "smart_locks.delete",
-    "activity_log.view",
-    "activity_log.export",
-  ],
+  housekeeping_staff: [],
 };
 
 export function resolveInheritedRoles(roles = []) {
@@ -949,14 +558,14 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
     });
 
     describe("1.4 Permission Matrix Structure & Canonical Notation", () => {
-      it("T1.4.1: Exactly 22 modules organized across 5 operational groups", () => {
-        assert.equal(MODULES.length, 22);
+      it("T1.4.1: Exactly 21 modules organized across 5 operational groups", () => {
+        assert.equal(MODULES.length, 21);
         assert.equal(PERMISSION_GROUPS.length, 5);
         const groupedCount = PERMISSION_GROUPS.reduce(
           (acc, g) => acc + g.modules.length,
           0,
         );
-        assert.equal(groupedCount, 22);
+        assert.equal(groupedCount, 21);
         recordPass("tier1");
       });
 
@@ -969,7 +578,7 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
 
       it("T1.4.3: Legacy colon notation module:action bidirectional normalization", () => {
         assert.equal(normalizePermissionKey("housing:edit"), "housing.edit");
-        assert.equal(normalizePermissionKey("accommodation:checkin"), "accommodation.checkin");
+        assert.equal(normalizePermissionKey("accommodation:checkout"), "accommodation.checkout");
         recordPass("tier1");
       });
 
@@ -980,7 +589,7 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
       });
 
       it("T1.4.5: Total system actions count and inventory synchronization", () => {
-        assert.ok(MODULE_ACTIONS.dashboard.includes("audit"));
+        assert.ok(MODULE_ACTIONS.dashboard.includes("view"));
         assert.ok(MODULE_ACTIONS.reservations.includes("delete"));
         assert.ok(MODULE_ACTIONS.maintenance.includes("delete"));
         recordPass("tier1");
@@ -990,7 +599,7 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         for (const m of MODULES) {
           const actions = MODULE_ACTIONS[m];
           assert.ok(Array.isArray(actions));
-          assert.ok(actions.length >= 2);
+          assert.ok(actions.length >= 1);
           assert.ok(actions.includes("view"), `Module ${m} must have view action`);
         }
         recordPass("tier1");
@@ -1019,7 +628,6 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         for (const r of res) {
           assert.ok(
             r.matchingActions.includes("export") ||
-              r.matchingActions.includes("bulk_export") ||
               r.module.includes("export"),
           );
         }
@@ -1030,7 +638,7 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         const res = filterPermissionsBilingual("حذف");
         assert.ok(res.length > 0);
         assert.ok(res.some((r) => r.module === "housing"));
-        assert.ok(res.some((r) => r.module === "accommodation"));
+        assert.ok(res.some((r) => r.module === "reservations"));
         recordPass("tier1");
       });
 
@@ -1043,54 +651,57 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
     });
 
     describe("1.6 Role Baseline Presets & Hierarchy Resolution", () => {
-      it("T1.6.1: super_admin preset grants all 119 system permissions across 22 modules", () => {
+      it("T1.6.1: super_admin preset grants all 98 system permissions across 21 modules", () => {
         const perms = getRoleBaselinePermissions(["super_admin"]);
-        assert.ok(perms.size >= 119);
+        assert.equal(perms.size, 98);
         for (const m of MODULES) {
           assert.ok(perms.has(`${m}.view`));
         }
         recordPass("tier1");
       });
 
-      it("T1.6.2: admin preset grants 115 permissions (all modules except properties + users.unlock)", () => {
+      it("T1.6.2: admin preset grants 94 permissions (all modules except properties + users.unlock)", () => {
         const perms = getRoleBaselinePermissions(["admin"]);
         assert.ok(!perms.has("properties.view"));
         assert.ok(!perms.has("properties.create"));
         assert.ok(perms.has("users.unlock"));
         assert.ok(perms.has("housing.create"));
+        assert.equal(perms.size, 94);
         recordPass("tier1");
       });
 
-      it("T1.6.3: manager preset inherits from receptionist and grants 62 operational permissions", () => {
+      it("T1.6.3: manager preset inherits from receptionist and grants 91 operational permissions", () => {
         const resolved = resolveInheritedRoles(["manager"]);
         assert.deepEqual(resolved, ["manager", "receptionist"]);
         const perms = getRoleBaselinePermissions(["manager"]);
         assert.ok(perms.has("housing.create")); // manager exclusive
-        assert.ok(perms.has("accommodation.checkin")); // receptionist inherited
+        assert.ok(perms.has("accommodation.checkout")); // receptionist inherited
+        assert.equal(perms.size, 91);
         recordPass("tier1");
       });
 
-      it("T1.6.4: receptionist preset grants 33 front desk and accommodation permissions", () => {
+      it("T1.6.4: receptionist preset grants 39 front desk and accommodation permissions", () => {
         const perms = getRoleBaselinePermissions(["receptionist"]);
-        assert.ok(perms.has("accommodation.checkin"));
+        assert.ok(perms.has("accommodation.checkout"));
         assert.ok(perms.has("reservations.create"));
         assert.ok(!perms.has("housing.create")); // Receptionist cannot create rooms
         assert.ok(!perms.has("users.manage_permissions")); // Receptionist cannot manage users
+        assert.equal(perms.size, 39);
         recordPass("tier1");
       });
 
-      it("T1.6.5: maintenance_staff preset grants 13 housing and work order permissions", () => {
+      it("T1.6.5: maintenance_staff preset grants 12 housing and work order permissions", () => {
         const perms = getRoleBaselinePermissions(["maintenance_staff"]);
         assert.ok(perms.has("maintenance.view"));
         assert.ok(perms.has("maintenance.edit"));
         assert.ok(!perms.has("users.view"));
-        assert.ok(!perms.has("billing.view"));
+        assert.equal(perms.size, 12);
         recordPass("tier1");
       });
 
-      it("T1.6.6: Read-Only All preset grants exactly view on all 22 modules (22 permissions)", () => {
+      it("T1.6.6: Read-Only All preset grants exactly view on all 21 modules (21 permissions)", () => {
         const readOnlyPreset = MODULES.map((m) => `${m}.view`);
-        assert.equal(readOnlyPreset.length, 22);
+        assert.equal(readOnlyPreset.length, 21);
         for (const p of readOnlyPreset) {
           assert.ok(p.endsWith(".view"));
         }
@@ -1307,16 +918,16 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         recordPass("tier2");
       });
 
-      it("T2.4.4: All 119 permissions explicitly granted in custom array", () => {
+      it("T2.4.4: All 98 permissions explicitly granted in custom array", () => {
         const allPerms = MODULES.flatMap((m) => getAllModulePermissions(m));
-        assert.ok(allPerms.length >= 119);
+        assert.equal(allPerms.length, 98);
         const user = {
           roles: ["receptionist"],
           permissions: allPerms,
           isSystemAdmin: false,
         };
-        assert.equal(evaluateBackendPermissions(user, "smart_locks", "delete"), true);
-        assert.equal(evaluateBackendPermissions(user, "billing", "export"), true);
+        assert.equal(evaluateBackendPermissions(user, "smart_locks", "unlock"), true);
+        assert.equal(evaluateBackendPermissions(user, "whatsapp", "export"), true);
         recordPass("tier2");
       });
 
@@ -1334,22 +945,22 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
     });
 
     describe("2.5 Search Query Edge Cases & Regex Safety", () => {
-      it("T2.5.1: Empty query string '' returns all 22 modules without filtering", () => {
+      it("T2.5.1: Empty query string '' returns all 21 modules without filtering", () => {
         const res = filterPermissionsBilingual("");
-        assert.equal(res.length, 22);
+        assert.equal(res.length, 21);
         recordPass("tier2");
       });
 
-      it("T2.5.2: Whitespace-only query '   ' is trimmed and returns all 22 modules", () => {
+      it("T2.5.2: Whitespace-only query '   ' is trimmed and returns all 21 modules", () => {
         const res = filterPermissionsBilingual("   ");
-        assert.equal(res.length, 22);
+        assert.equal(res.length, 21);
         recordPass("tier2");
       });
 
       it("T2.5.3: Single character query (e.g. 'h') filters modules safely", () => {
         const res = filterPermissionsBilingual("h");
         assert.ok(res.length > 0);
-        assert.ok(res.length <= 22);
+        assert.ok(res.length <= 21);
         recordPass("tier2");
       });
 
@@ -1402,7 +1013,7 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
           if (!entry) return mod;
           return entry[lang] || entry.en || mod;
         };
-        assert.equal(getLabel("housing", "ar"), "الإسكان والغرف");
+        assert.equal(getLabel("housing", "ar"), "الإسكان والغرف والمباني");
         assert.equal(getLabel("housing", "fr"), "Housing & Rooms"); // fallback
         recordPass("tier2");
       });
@@ -1434,18 +1045,18 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
   // --------------------------------------------------------------------------
   describe("Tier 3: Cross-Feature Combinations", () => {
     it("T3.1: Role Change + Diff Engine Recalculation", () => {
-      const activePerms = new Set(["housing.view", "maintenance.edit"]);
+      const activePerms = new Set(["housing.view", "maintenance.delete"]);
       const diffReceptionist = computePermissionDiff(
         getRoleBaselinePermissions(["receptionist"]),
         activePerms,
       );
-      assert.ok(diffReceptionist.customAdded.has("maintenance.edit"));
+      assert.ok(diffReceptionist.customAdded.has("maintenance.delete"));
 
       const diffManager = computePermissionDiff(
         getRoleBaselinePermissions(["manager"]),
         activePerms,
       );
-      assert.ok(!diffManager.customAdded.has("maintenance.edit")); // in manager baseline
+      assert.ok(!diffManager.customAdded.has("maintenance.delete")); // in manager baseline
       assert.ok(diffManager.customRevoked.size > 0);
       recordPass("tier3");
     });
@@ -1530,8 +1141,8 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
       // Revert action sets permissions to empty array []
       userPermissions = [];
       const user = { roles: ["manager"], permissions: userPermissions };
-      const canCheckin = evaluateBackendPermissions(user, "accommodation", "checkin");
-      assert.equal(canCheckin, true); // restored dynamic role default!
+      const canCheckout = evaluateBackendPermissions(user, "accommodation", "checkout");
+      assert.equal(canCheckout, true); // restored dynamic role default!
       recordPass("tier3");
     });
 
@@ -1557,7 +1168,7 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         ["housing", "create"],
         ["maintenance", "edit"],
         ["maintenance", "delete"],
-        ["accommodation", "checkin"],
+        ["accommodation", "checkout"],
         ["users", "view"],
         ["properties", "create"],
         ["reports", "view"],
@@ -1592,7 +1203,7 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         f.matchingActions.map((a) => `${f.module}.${a}`),
       );
       assert.ok(allMatchingKeys.includes("housing.export"));
-      assert.ok(allMatchingKeys.includes("housekeeping.bulk_export"));
+      assert.ok(allMatchingKeys.includes("housekeeping.export"));
       recordPass("tier3");
     });
 
@@ -1664,21 +1275,19 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
       const basePerms = getRoleBaselinePermissions(["receptionist"]);
       const customPerms = new Set([
         ...basePerms,
-        "maintenance.view",
-        "maintenance.create",
-        "maintenance.edit",
+        "maintenance.delete",
       ]);
 
       // Step 3: Compute diff
       const diff = computePermissionDiff(basePerms, customPerms);
-      assert.equal(diff.customAdded.size, 1); // maintenance.edit was added (view/create are already in receptionist)
+      assert.equal(diff.customAdded.size, 1); // maintenance.delete was added
       assert.equal(diff.customRevoked.size, 0);
       assert.equal(diff.isInheritingRole, false);
 
       // Step 4: Verify authorizations
       const user = { roles: ["receptionist"], permissions: Array.from(customPerms) };
-      assert.equal(evaluateBackendPermissions(user, "maintenance", "edit"), true);
-      assert.equal(evaluateBackendPermissions(user, "accommodation", "checkin"), true);
+      assert.equal(evaluateBackendPermissions(user, "maintenance", "delete"), true);
+      assert.equal(evaluateBackendPermissions(user, "accommodation", "checkout"), true);
       assert.equal(evaluateBackendPermissions(user, "users", "manage_permissions"), false);
       recordPass("tier4");
     });

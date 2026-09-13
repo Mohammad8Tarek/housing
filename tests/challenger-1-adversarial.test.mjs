@@ -458,8 +458,8 @@ describe("Challenger 1: Empirical Adversarial Verification", () => {
           const res = filterPermissionsBilingual(q);
           assert.equal(
             res.length,
-            22,
-            `Empty or whitespace query '${JSON.stringify(q)}' must return all 22 modules`,
+            MODULES.length,
+            `Empty or whitespace query '${JSON.stringify(q)}' must return all ${MODULES.length} modules`,
           );
         }
       });

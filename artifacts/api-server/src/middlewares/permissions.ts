@@ -9,6 +9,8 @@ export const PERMISSION_MODULES = [
   "profiles",
   "accommodation",
   "reservations",
+  "hosting_requests",
+  "guest_hosting",
   "maintenance",
   "reports",
   "users",
@@ -16,15 +18,12 @@ export const PERMISSION_MODULES = [
   "activity_log",
   "properties",
   "documents",
-  "billing",
-  "communications",
   "evaluations",
-  "surveys",
   "portal_content",
   "activities",
   "smart_locks",
-  "hosting_requests",
-  "guest_hosting",
+  "whatsapp",
+  "inventory",
 ] as const;
 
 export const PERMISSION_ACTIONS = [
@@ -33,9 +32,6 @@ export const PERMISSION_ACTIONS = [
   "edit",
   "delete",
   "export",
-  "bulk_delete",
-  "bulk_export",
-  "assign",
   "checkin",
   "checkout",
   "approve",
@@ -45,13 +41,77 @@ export const PERMISSION_ACTIONS = [
   "view_sensitive",
   "audit",
   "publish",
-  "archive",
   "unlock",
   "override_single_occupancy",
 ] as const;
 
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
 export type PermissionAction = (typeof PERMISSION_ACTIONS)[number];
+
+export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
+  dashboard: ["view"],
+  housing: ["view", "create", "edit", "delete", "export"],
+  housekeeping: ["view", "edit", "export"],
+  profiles: [
+    "view",
+    "create",
+    "edit",
+    "delete",
+    "export",
+    "reset_password",
+    "view_sensitive",
+  ],
+  accommodation: [
+    "view",
+    "create",
+    "edit",
+    "checkout",
+    "transfer",
+    "export",
+    "override_single_occupancy",
+  ],
+  reservations: [
+    "view",
+    "create",
+    "edit",
+    "checkin",
+    "delete",
+    "export",
+    "override_single_occupancy",
+  ],
+  hosting_requests: ["view", "create", "edit", "delete", "approve"],
+  guest_hosting: [
+    "view",
+    "create",
+    "edit",
+    "checkin",
+    "checkout",
+    "delete",
+    "export",
+  ],
+  maintenance: ["view", "create", "edit", "delete", "export"],
+  reports: ["view", "export", "audit"],
+  users: [
+    "view",
+    "create",
+    "edit",
+    "delete",
+    "export",
+    "manage_permissions",
+    "reset_password",
+    "unlock",
+  ],
+  settings: ["view", "create", "edit", "delete"],
+  activity_log: ["view", "export"],
+  properties: ["view", "create", "edit", "delete"],
+  documents: ["view", "create", "delete"],
+  evaluations: ["view", "create", "edit", "delete", "export"],
+  portal_content: ["view", "create", "edit", "delete"],
+  activities: ["view", "create", "edit", "delete", "publish"],
+  smart_locks: ["view", "create", "edit", "unlock"],
+  whatsapp: ["view", "create", "edit", "export"],
+  inventory: ["view", "create", "edit", "delete", "export"],
+};
 
 type AuthUser = {
   id: number;
@@ -69,17 +129,7 @@ const permissionKey = (module: PermissionModule, action: PermissionAction) =>
   `${module}.${action}`;
 
 const allModulePerms = (module: PermissionModule) =>
-  PERMISSION_ACTIONS.map((action) => permissionKey(module, action));
-
-const crud = (module: PermissionModule) =>
-  (["view", "create", "edit", "delete"] as PermissionAction[]).map((action) =>
-    permissionKey(module, action),
-  );
-
-const readExport = (module: PermissionModule) =>
-  (["view", "export"] as PermissionAction[]).map((action) =>
-    permissionKey(module, action),
-  );
+  (MODULE_ACTIONS[module] ?? []).map((action) => permissionKey(module, action));
 
 // Role hierarchy: child roles inherit all permissions from parent roles
 const ROLE_INHERITANCE: Record<string, string[]> = {
@@ -116,90 +166,80 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "users.unlock",
   ],
   manager: [
-    // Extra permissions manager has beyond receptionist:
-    "dashboard.export",
-    "housing.create",
-    "housing.edit",
-    "housing.delete",
-    "housing.bulk_export",
-    "housekeeping.view",
-    "housekeeping.edit",
-    "housekeeping.assign",
-    "housekeeping.approve",
-    "housekeeping.bulk_export",
-    "profiles.create",
-    "profiles.edit",
-    "profiles.delete",
-    "profiles.export",
-    "accommodation.delete",
-    "accommodation.transfer",
-    "accommodation.bulk_delete",
-    "accommodation.bulk_export",
-    "accommodation.archive",
-    "accommodation.override_single_occupancy",
-    "reservations.override_single_occupancy",
-    "guest_hosting.view",
-    "guest_hosting.create",
-    "guest_hosting.edit",
-    "guest_hosting.delete",
-    "guest_hosting.checkin",
-    "guest_hosting.checkout",
-    "guest_hosting.approve",
-    "guest_hosting.transfer",
-    "guest_hosting.bulk_delete",
-    "guest_hosting.bulk_export",
-    "reservations.delete",
-    "reservations.bulk_export",
-    "reservations.archive",
-    "maintenance.delete",
-    "maintenance.assign",
-    "maintenance.approve",
-    "maintenance.bulk_export",
-    "maintenance.archive",
-    "reports.audit",
+    // Dashboard
+    "dashboard.view",
+    // Housing
+    ...allModulePerms("housing"),
+    // Housekeeping
+    ...allModulePerms("housekeeping"),
+    // Profiles
+    ...allModulePerms("profiles"),
+    // Accommodation
+    ...allModulePerms("accommodation"),
+    // Reservations
+    ...allModulePerms("reservations"),
+    // Hosting Requests
+    ...allModulePerms("hosting_requests"),
+    // Guest Hosting
+    ...allModulePerms("guest_hosting"),
+    // Maintenance
+    ...allModulePerms("maintenance"),
+    // Reports
+    ...allModulePerms("reports"),
+    // Users
     "users.view",
     "users.edit",
+    "users.export",
     "users.manage_permissions",
     "users.unlock",
-    "settings.view",
-    "settings.edit",
-    "activity_log.export",
-    "activity_log.audit",
-    "documents.create",
-    "documents.edit",
-    "documents.delete",
-    "documents.publish",
-    "documents.archive",
-    "billing.view",
-    "billing.export",
-    "communications.create",
+    // Settings
+    ...allModulePerms("settings"),
+    // Activity Log
+    ...allModulePerms("activity_log"),
+    // Documents
+    ...allModulePerms("documents"),
+    // Evaluations
+    ...allModulePerms("evaluations"),
+    // Portal Content
+    ...allModulePerms("portal_content"),
+    // Activities
+    ...allModulePerms("activities"),
+    // Smart Locks
+    ...allModulePerms("smart_locks"),
+    // WhatsApp
+    ...allModulePerms("whatsapp"),
+    // Inventory
+    ...allModulePerms("inventory"),
   ],
   receptionist: [
     "dashboard.view",
     "housing.view",
     "housing.export",
     "housekeeping.view",
+    "housekeeping.edit",
+    "housekeeping.export",
     "profiles.view",
     "accommodation.view",
     "accommodation.create",
     "accommodation.edit",
-    "accommodation.assign",
-    "accommodation.checkin",
     "accommodation.checkout",
-    "accommodation.approve",
+    "accommodation.transfer",
+    "accommodation.export",
+    "reservations.view",
+    "reservations.create",
+    "reservations.edit",
+    "reservations.checkin",
+    "reservations.delete",
+    "reservations.export",
+    "hosting_requests.view",
+    "hosting_requests.create",
+    "hosting_requests.edit",
     "guest_hosting.view",
     "guest_hosting.create",
     "guest_hosting.edit",
     "guest_hosting.checkin",
     "guest_hosting.checkout",
-    "guest_hosting.approve",
     "guest_hosting.export",
-    "reservations.view",
-    "reservations.create",
-    "reservations.edit",
-    "reservations.checkin",
-    "reservations.checkout",
-    "reservations.approve",
     "maintenance.view",
     "maintenance.create",
     "maintenance.edit",
@@ -207,8 +247,10 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "reports.export",
     "activity_log.view",
     "documents.view",
-    "communications.view",
-    "communications.create",
+    "whatsapp.view",
+    "whatsapp.create",
+    "inventory.view",
+    "inventory.export",
   ],
   maintenance_staff: [
     "dashboard.view",
@@ -216,8 +258,10 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "maintenance.view",
     "maintenance.create",
     "maintenance.edit",
-    "maintenance.assign",
-    "maintenance.approve",
+    "maintenance.delete",
+    "maintenance.export",
+    "inventory.view",
+    "inventory.edit",
     "profiles.view",
     "activity_log.view",
     "documents.view",
@@ -226,43 +270,40 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "dashboard.view",
     "housing.view",
     "housekeeping.view",
-    "housekeeping.create",
     "housekeeping.edit",
-    "housekeeping.assign",
-    "housekeeping.approve",
+    "housekeeping.export",
+    "inventory.view",
+    "inventory.edit",
     "activity_log.view",
     "documents.view",
   ],
   hr_admin: [
     "dashboard.view",
-    "dashboard.export",
-    ...crud("profiles"),
-    "profiles.export",
-    ...crud("evaluations"),
-    "evaluations.export",
-    ...crud("surveys"),
-    ...crud("activities"),
-    "activities.publish",
-    ...crud("documents"),
-    ...crud("portal_content"),
-    ...crud("communications"),
+    ...allModulePerms("profiles"),
+    ...allModulePerms("evaluations"),
+    ...allModulePerms("activities"),
+    ...allModulePerms("documents"),
+    ...allModulePerms("hosting_requests"),
+    ...allModulePerms("guest_hosting"),
+    "whatsapp.view",
+    "whatsapp.create",
+    "whatsapp.export",
     "reports.view",
     "reports.export",
   ],
   portal_admin: [
     "dashboard.view",
-    ...crud("activities"),
-    "activities.publish",
-    ...crud("documents"),
-    ...crud("portal_content"),
-    ...crud("communications"),
+    ...allModulePerms("portal_content"),
+    ...allModulePerms("activities"),
+    ...allModulePerms("evaluations"),
+    ...allModulePerms("documents"),
     "reports.view",
   ],
   security_staff: [
     "dashboard.view",
     "housing.view",
     "accommodation.view",
-    ...crud("smart_locks"),
+    ...allModulePerms("smart_locks"),
     "activities.view",
   ],
 };
@@ -274,6 +315,16 @@ function normalize(value: unknown): string {
   // Legacy aliases: employees -> profiles
   if (val.startsWith("employees.")) val = val.replace("employees.", "profiles.");
   if (val.startsWith("employees:")) val = val.replace("employees:", "profiles:");
+  if (val.startsWith("communications.")) val = val.replace("communications.", "whatsapp.");
+  if (val.startsWith("communications:")) val = val.replace("communications:", "whatsapp:");
+  if (val.startsWith("surveys.")) val = val.replace("surveys.", "evaluations.");
+  if (val.startsWith("surveys:")) val = val.replace("surveys:", "evaluations:");
+  if (val.endsWith(".bulk_export")) val = val.replace(".bulk_export", ".export");
+  if (val.endsWith(":bulk_export")) val = val.replace(":bulk_export", ":export");
+  if (val.endsWith(".bulk_delete")) val = val.replace(".bulk_delete", ".delete");
+  if (val.endsWith(":bulk_delete")) val = val.replace(":bulk_delete", ":delete");
+  if (val.endsWith(".archive")) val = val.replace(".archive", ".checkout");
+  if (val.endsWith(":archive")) val = val.replace(":archive", ":checkout");
   return val;
 }
 

@@ -928,7 +928,7 @@ export default function InHouse() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <PermissionGate module="accommodation" action="edit">
+          <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
             <Button
               variant="outline"
               size="sm"
@@ -973,7 +973,7 @@ export default function InHouse() {
         onExportExcel={exportSelectedExcel}
         extraActions={
           <div className="flex items-center gap-2">
-            <PermissionGate module="accommodation" action="edit">
+            <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
               <Button
                 variant="outline"
                 size="sm"
@@ -1390,14 +1390,16 @@ export default function InHouse() {
                                 )}
                               </DropdownMenuItem>
                             </PermissionGate>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                handleOpenWhatsAppDialog(a, emp);
-                              }}
-                            >
-                              <MessageSquare className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600" />
-                              {ar ? "إرسال تفاصيل التسكين (واتساب)" : "Send WhatsApp Welcome"}
-                            </DropdownMenuItem>
+                            <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  handleOpenWhatsAppDialog(a, emp);
+                                }}
+                              >
+                                <MessageSquare className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600" />
+                                {ar ? "إرسال تفاصيل التسكين (واتساب)" : "Send WhatsApp Welcome"}
+                              </DropdownMenuItem>
+                            </PermissionGate>
                             <PermissionGate module="accommodation" action="checkout">
                               <DropdownMenuItem
                                 onClick={() => {

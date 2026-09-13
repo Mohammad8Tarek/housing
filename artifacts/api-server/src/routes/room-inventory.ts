@@ -375,7 +375,7 @@ export async function syncAllRoomsFeaturesToInventory(
 // ─── GET /api/room-inventory ──────────────────────────────────────────────
 router.get(
   "/",
-  requireAnyPermission(["housing", "view"], ["reports", "view"]),
+  requireAnyPermission(["inventory", "view"], ["housing", "view"], ["reports", "view"]),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -395,35 +395,26 @@ router.get(
       const condition = (req.query.condition as string)?.trim();
       const search = (req.query.search as string)?.trim();
 
-      const result = await withTableFallback(
+      const { data, total } = await withTableFallback(
         async () =>
           withTenant(propertyId, async (tenantDb) => {
             const conditions: SQL[] = [];
 
-            if (roomId && !isNaN(roomId)) {
-              conditions.push(eq(roomInventoryTable.roomId, roomId));
-            }
-            if (buildingId && !isNaN(buildingId)) {
-              conditions.push(eq(roomsTable.buildingId, buildingId));
-            }
-            if (floorId && !isNaN(floorId)) {
-              conditions.push(eq(roomsTable.floorId, floorId));
-            }
-            if (category && category !== "all") {
-              conditions.push(eq(roomInventoryTable.category, category.toLowerCase()));
-            }
-            if (condition && condition !== "all") {
-              conditions.push(eq(roomInventoryTable.condition, condition.toLowerCase()));
-            }
+            if (roomId) conditions.push(eq(roomInventoryTable.roomId, roomId));
+            if (category && category !== "all") conditions.push(eq(roomInventoryTable.category, category));
+            if (condition && condition !== "all") conditions.push(eq(roomInventoryTable.condition, condition));
+            if (buildingId) conditions.push(eq(roomsTable.buildingId, buildingId));
+            if (floorId) conditions.push(eq(roomsTable.floorId, floorId));
+
             if (search) {
+              const term = `%${search}%`;
               conditions.push(
                 or(
-                  ilike(roomInventoryTable.itemName, `%${search}%`),
-                  ilike(roomInventoryTable.serialNumber, `%${search}%`),
-                  ilike(roomInventoryTable.barcode, `%${search}%`),
-                  ilike(roomInventoryTable.modelNumber, `%${search}%`),
-                  ilike(roomsTable.roomNumber, `%${search}%`),
-                  ilike(buildingsTable.name, `%${search}%`)
+                  ilike(roomInventoryTable.itemName, term),
+                  ilike(roomInventoryTable.barcode, term),
+                  ilike(roomInventoryTable.serialNumber, term),
+                  ilike(roomInventoryTable.modelNumber, term),
+                  ilike(roomsTable.roomNumber, term)
                 )!
               );
             }
@@ -431,16 +422,12 @@ router.get(
             const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
             const [countRes] = await tenantDb
-              .select({ count: count() })
+              .select({ val: count() })
               .from(roomInventoryTable)
-              .innerJoin(roomsTable, eq(roomInventoryTable.roomId, roomsTable.id))
-              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
-              .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
+              .leftJoin(roomsTable, eq(roomInventoryTable.roomId, roomsTable.id))
               .where(whereClause);
 
-            const totalCount = Number(countRes?.count || 0);
-
-            const rows = await tenantDb
+            const items = await tenantDb
               .select({
                 id: roomInventoryTable.id,
                 roomId: roomInventoryTable.roomId,
@@ -451,40 +438,41 @@ router.get(
                 barcode: roomInventoryTable.barcode,
                 serialNumber: roomInventoryTable.serialNumber,
                 modelNumber: roomInventoryTable.modelNumber,
-                lastInspectedAt: roomInventoryTable.lastInspectedAt,
-                inspectedBy: roomInventoryTable.inspectedBy,
                 notes: roomInventoryTable.notes,
+                inspectedBy: roomInventoryTable.inspectedBy,
+                lastInspectedAt: roomInventoryTable.lastInspectedAt,
                 createdAt: roomInventoryTable.createdAt,
                 updatedAt: roomInventoryTable.updatedAt,
                 roomNumber: roomsTable.roomNumber,
-                roomType: roomsTable.roomType,
                 buildingId: roomsTable.buildingId,
                 buildingName: buildingsTable.name,
                 floorId: roomsTable.floorId,
-                floorName: floorsTable.floorNumber,
+                floorNumber: floorsTable.floorNumber,
               })
               .from(roomInventoryTable)
-              .innerJoin(roomsTable, eq(roomInventoryTable.roomId, roomsTable.id))
+              .leftJoin(roomsTable, eq(roomInventoryTable.roomId, roomsTable.id))
               .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
               .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
               .where(whereClause)
+              .orderBy(desc(roomInventoryTable.id))
               .limit(limit)
-              .offset(offset)
-              .orderBy(desc(roomInventoryTable.id));
+              .offset(offset);
 
-            return {
-              data: rows,
-              pagination: {
-                total: totalCount,
-                page,
-                limit,
-              },
-            };
+            return { data: items, total: Number(countRes?.val || 0) };
           }),
-        { data: [], pagination: { total: 0, page, limit } }
+        { data: [], total: 0 }
       );
 
-      res.json(result);
+      res.json({
+        success: true,
+        data,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
     } catch (err) {
       next(err);
     }
@@ -494,7 +482,7 @@ router.get(
 // ─── GET /api/room-inventory/summary ─────────────────────────────────────
 router.get(
   "/summary",
-  requireAnyPermission(["housing", "view"], ["reports", "view"]),
+  requireAnyPermission(["inventory", "view"], ["housing", "view"], ["reports", "view"]),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -623,7 +611,7 @@ router.get(
 // ─── GET /api/room-inventory/room/:roomId ─────────────────────────────────
 router.get(
   "/room/:roomId",
-  requireAnyPermission(["housing", "view"], ["reports", "view"]),
+  requireAnyPermission(["inventory", "view"], ["housing", "view"], ["reports", "view"]),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -655,7 +643,7 @@ router.get(
 // ─── POST /api/room-inventory ─────────────────────────────────────────────
 router.post(
   "/",
-  requirePermission("housing", "edit"),
+  requireAnyPermission(["inventory", "create"], ["housing", "edit"]),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -733,7 +721,7 @@ router.post(
 // ─── PUT /api/room-inventory/:id ──────────────────────────────────────────
 router.put(
   "/:id",
-  requirePermission("housing", "edit"),
+  requireAnyPermission(["inventory", "edit"], ["housing", "edit"]),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -816,7 +804,7 @@ router.put(
 // ─── DELETE /api/room-inventory/:id ───────────────────────────────────────
 router.delete(
   "/:id",
-  requirePermission("housing", "edit"),
+  requireAnyPermission(["inventory", "delete"], ["housing", "edit"]),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -868,7 +856,7 @@ router.delete(
 // Syncs amenities list from roomsTable into roomInventoryTable idempotently
 router.post(
   "/sync-from-features",
-  requirePermission("housing", "edit"),
+  requireAnyPermission(["inventory", "create"], ["housing", "edit"]),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -878,6 +866,7 @@ router.post(
       }
 
       let syncResult = { createdCount: 0, roomCount: 0 };
+      const roomId = req.body.roomId ? parseInt(String(req.body.roomId), 10) : undefined;
 
       if (roomId && !isNaN(roomId)) {
         const [targetRoom] = await withTenant(propertyId, async (tenantDb) =>
@@ -931,7 +920,7 @@ router.post(
 // Creates a maintenance ticket for a damaged/needs_repair item
 router.post(
   "/:id/create-ticket",
-  requirePermission("housing", "edit"),
+  requireAnyPermission(["inventory", "edit"], ["maintenance", "create"], ["housing", "edit"]),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
