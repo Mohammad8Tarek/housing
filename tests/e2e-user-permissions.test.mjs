@@ -288,16 +288,9 @@ export function evaluateBackendPermissions(user, module, action) {
     return true;
   }
 
-  // 3. Fallback to role defaults
-  const resolvedRoles = resolveInheritedRoles(user.roles || []);
-  const perms = new Set();
-  for (const role of resolvedRoles) {
-    for (const p of ROLE_DEFAULT_PERMISSIONS[role] || []) {
-      const norm = normalizePermissionKey(p);
-      if (norm) perms.add(norm);
-    }
-  }
-  return perms.has(normTarget);
+  // 3. Pure Fine-Grained RBAC: No automatic fallback to role defaults!
+  // Explicit permissions are the exclusive source of truth.
+  return false;
 }
 
 export function evaluateFrontendCan(user, module, action) {
@@ -890,7 +883,7 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         recordPass("tier2");
       });
 
-      it("T2.4.2: Empty permissions array [] triggers dynamic inheritance of role default permissions", () => {
+      it("T2.4.2: Empty permissions array [] yields 0 permissions (roles do not grant automatic permissions)", () => {
         const user = {
           roles: ["manager"],
           permissions: [],
@@ -898,8 +891,8 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         };
         const canViewHousing = evaluateBackendPermissions(user, "housing", "view");
         const canCreateHousing = evaluateBackendPermissions(user, "housing", "create");
-        assert.equal(canViewHousing, true);
-        assert.equal(canCreateHousing, true);
+        assert.equal(canViewHousing, false);
+        assert.equal(canCreateHousing, false);
         recordPass("tier2");
       });
 
@@ -1136,22 +1129,22 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
       recordPass("tier3");
     });
 
-    it("T3.7: Revert to Role Inheritance ([] clearing custom overrides)", () => {
+    it("T3.7: Clearing permissions to [] leaves user with 0 permissions (pure decoupled RBAC)", () => {
       let userPermissions = ["housing.view", "housing.create"]; // custom
-      // Revert action sets permissions to empty array []
+      // Clearing permissions sets to empty array []
       userPermissions = [];
       const user = { roles: ["manager"], permissions: userPermissions };
       const canCheckout = evaluateBackendPermissions(user, "accommodation", "checkout");
-      assert.equal(canCheckout, true); // restored dynamic role default!
+      assert.equal(canCheckout, false); // No dynamic fallback, 0 permissions
       recordPass("tier3");
     });
 
-    it("T3.8: Explicit Zero Permissions Sentinel (['none'] vs Role Fallback)", () => {
+    it("T3.8: Explicit Zero Permissions Sentinel (['none'] and [] both yield zero permissions)", () => {
       const userNone = { roles: ["manager"], permissions: ["none"] };
       assert.equal(evaluateBackendPermissions(userNone, "housing", "view"), false);
 
-      const userDefault = { roles: ["manager"], permissions: [] };
-      assert.equal(evaluateBackendPermissions(userDefault, "housing", "view"), true);
+      const userEmpty = { roles: ["manager"], permissions: [] };
+      assert.equal(evaluateBackendPermissions(userEmpty, "housing", "view"), false);
       recordPass("tier3");
     });
 

@@ -240,9 +240,9 @@ router.get(
         }
       }
 
-      const canAssignMnt = isSysAdmin || hasPermission(user, "maintenance", "assign");
-      const canAssignHsk = isSysAdmin || hasPermission(user, "housekeeping", "assign");
-      const hasManagerialScope = isSysAdmin || canAssignMnt || canAssignHsk || user?.roles?.includes("manager") || user?.roles?.includes("admin");
+      const canEditMnt = isSysAdmin || hasPermission(user, "maintenance", "edit");
+      const canEditHsk = isSysAdmin || hasPermission(user, "housekeeping", "edit");
+      const hasManagerialScope = isSysAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
       const isStaffOnly = !hasManagerialScope;
       const queryProfileId = req.query.assignedToProfileId ? parseInt(String(req.query.assignedToProfileId), 10) : null;
 

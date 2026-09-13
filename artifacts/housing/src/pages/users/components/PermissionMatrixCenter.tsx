@@ -194,7 +194,11 @@ export function PermissionMatrixCenter({
       });
       return new Set(normalized);
     }
-    return new Set(ROLE_DEFAULT_PERMISSIONS[primaryRole] ?? []);
+    const isSuper = (userObj.roles || []).some((r: string) => String(r).toLowerCase() === "super_admin");
+    if (isSuper) {
+      return new Set(ROLE_DEFAULT_PERMISSIONS["super_admin"] || []);
+    }
+    return new Set();
   };
 
   const [perms, setPerms] = useState<Set<string>>(() => getInitialPerms(activeUser));
@@ -205,17 +209,11 @@ export function PermissionMatrixCenter({
   const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [userSearchText, setUserSearchText] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-  const [isDynamicInheritance, setIsDynamicInheritance] = useState<boolean>(() => {
-    const explicit = (activeUser?.permissions as string[] | undefined) ?? [];
-    return explicit.length === 0;
-  });
 
   // When active user changes, reload permissions
   useEffect(() => {
     if (activeUser) {
       setPerms(getInitialPerms(activeUser));
-      const explicit = (activeUser.permissions as string[] | undefined) ?? [];
-      setIsDynamicInheritance(explicit.length === 0);
       setHasChanges(false);
     }
   }, [activeUser?.id]);
@@ -253,7 +251,6 @@ export function PermissionMatrixCenter({
   // - Disabling view disables all actions for this module.
   // - Enabling any action enables view.
   const toggleAction = (m: Module, a: Action) => {
-    setIsDynamicInheritance(false);
     const key = permKey(m, a);
     setPerms((prev) => {
       const next = new Set(prev);
@@ -277,7 +274,6 @@ export function PermissionMatrixCenter({
 
   // Master switch for an entire module
   const toggleModuleMaster = (m: Module, shouldEnable: boolean) => {
-    setIsDynamicInheritance(false);
     const modulePerms = MODULE_ACTIONS[m] ?? [];
     setPerms((prev) => {
       const next = new Set(prev);
@@ -293,7 +289,6 @@ export function PermissionMatrixCenter({
 
   // Category-level bulk action
   const toggleCategoryGroup = (groupId: string, shouldEnable: boolean) => {
-    setIsDynamicInheritance(false);
     const group = PERMISSION_GROUPS.find((g) => g.id === groupId);
     if (!group) return;
 
@@ -326,7 +321,6 @@ export function PermissionMatrixCenter({
 
   // Bulk column toggle for Spreadsheet Table View (e.g. toggle View column across all visible modules)
   const toggleColumnAction = (action: Action) => {
-    setIsDynamicInheritance(false);
     // Find all visible modules that support this action
     const candidateModules = visibleModules.filter((m) =>
       (MODULE_ACTIONS[m] ?? []).includes(action),
@@ -375,7 +369,6 @@ export function PermissionMatrixCenter({
   };
 
   const applyRoleDefaults = (roleKey: string) => {
-    setIsDynamicInheritance(false);
     const defaults = ROLE_DEFAULT_PERMISSIONS[roleKey] ?? [];
     setPerms(new Set(defaults));
     setHasChanges(true);
@@ -388,7 +381,6 @@ export function PermissionMatrixCenter({
   };
 
   const selectAll = () => {
-    setIsDynamicInheritance(false);
     setPerms(
       new Set(
         MODULES.flatMap((m) =>
@@ -400,13 +392,11 @@ export function PermissionMatrixCenter({
   };
 
   const deselectAll = () => {
-    setIsDynamicInheritance(false);
     setPerms(new Set());
     setHasChanges(true);
   };
 
   const applyReadOnlyAll = () => {
-    setIsDynamicInheritance(false);
     const readOnly = new Set<string>();
     MODULES.forEach((m) => {
       if ((MODULE_ACTIONS[m] ?? []).includes("view")) {
@@ -421,8 +411,6 @@ export function PermissionMatrixCenter({
   const resetToStored = () => {
     if (activeUser) {
       setPerms(getInitialPerms(activeUser));
-      const explicit = (activeUser.permissions as string[] | undefined) ?? [];
-      setIsDynamicInheritance(explicit.length === 0);
       setHasChanges(false);
       toast.info(ar ? "تمت استعادة الصلاحيات الأصلية المحفوظة" : "Reset to stored permissions");
     }
@@ -430,12 +418,11 @@ export function PermissionMatrixCenter({
 
   const revertToRoleDefaults = () => {
     setPerms(new Set(roleDefaults));
-    setIsDynamicInheritance(true);
     setHasChanges(true);
     toast.info(
       ar
-        ? "تمت استعادة افتراضيات الدور (سيتم الحفظ بالوراثة الديناميكية)"
-        : "Reverted to role defaults (dynamic inheritance will be saved)",
+        ? "تم تطبيق قالب صلاحيات الدور المحدد (اضغط حفظ لتأكيدها)"
+        : "Applied role preset template (click Save to confirm)",
     );
   };
 
@@ -456,7 +443,7 @@ export function PermissionMatrixCenter({
         activeCount: perms.size,
         customGranted: diffStats.customGranted,
         revoked: diffStats.revoked,
-        isDynamicInheritance: isDynamicInheritance && diffStats.isExactRoleMatch,
+        isExactRoleMatch: diffStats.isExactRoleMatch,
       },
       grantedPermissions: Array.from(perms).sort(),
     };
@@ -480,15 +467,7 @@ export function PermissionMatrixCenter({
 
   const save = () => {
     if (!activeUser) return;
-    let permissionsPayload: string[];
-
-    if (isDynamicInheritance && diffStats.isExactRoleMatch) {
-      permissionsPayload = [];
-    } else if (perms.size === 0) {
-      permissionsPayload = ["none"];
-    } else {
-      permissionsPayload = Array.from(perms);
-    }
+    const permissionsPayload = perms.size === 0 ? ["none"] : Array.from(perms);
 
     updateMutation.mutate({
       id: activeUser.id,
@@ -837,13 +816,7 @@ export function PermissionMatrixCenter({
                     {diffStats.isExactRoleMatch && (
                       <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs py-0.5 px-2 font-bold gap-1">
                         <Shield className="w-3 h-3" />
-                        {isDynamicInheritance
-                          ? ar
-                            ? "وراثة ديناميكية للدور"
-                            : "Dynamic Role Inherited"
-                          : ar
-                          ? "مطابق لافتراضيات الدور"
-                          : "Matches Role Defaults"}
+                        {ar ? "مطابق لقالب الدور" : "Matches Role Template"}
                       </Badge>
                     )}
                   </div>

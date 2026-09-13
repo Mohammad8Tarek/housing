@@ -1433,7 +1433,7 @@ export default function UsersPage() {
                                   </span>
                                 </DropdownMenuItem>
                               </PermissionGate>
-                              {(isAdmin || can("users", "edit") || u.id === currentUser?.id) && (
+                              {(isSuperAdmin || can("users", "edit") || u.id === currentUser?.id) && (
                                 <DropdownMenuItem
                                   onClick={() => openUserSheet(u, "signature")}
                                   className="cursor-pointer"

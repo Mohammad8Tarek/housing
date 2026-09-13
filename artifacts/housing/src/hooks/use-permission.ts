@@ -73,10 +73,33 @@ export function usePermission() {
 
     const explicit = (user as any).permissions as string[] | undefined;
 
-    // 1. If explicit permissions are configured for this user:
-    // STRICT MODE: We ONLY use explicit permissions. Do NOT add role defaults back!
-    if (Array.isArray(explicit) && explicit.length > 0) {
-      const combined = new Set<string>();
+    // 1. Super admin / system admin root access (emergency self-lockout prevention)
+    if (isSuperAdmin || isSystemAdmin) {
+      if (Array.isArray(explicit) && explicit.length > 0) {
+        const combined = new Set<string>();
+        for (const permission of explicit) {
+          if (permission === "none") continue;
+          const normalized = normalize(permission);
+          if (normalized) {
+            combined.add(normalized);
+            if (normalized.includes(".")) combined.add(normalized.replace(".", ":"));
+            if (normalized.includes(":")) combined.add(normalized.replace(":", "."));
+          }
+        }
+        combined.add("users.view");
+        combined.add("users:view");
+        combined.add("users.manage_permissions");
+        combined.add("users:manage_permissions");
+        return combined;
+      }
+      return new Set(["*"]);
+    }
+
+    // 2. Pure Discretionary Fine-Grained Permissions (100% Decoupled from Roles)
+    // user.permissions is the EXCLUSIVE source of truth.
+    // NO automatic fallback to ROLE_DEFAULT_PERMISSIONS. Roles are purely organizational.
+    const combined = new Set<string>();
+    if (Array.isArray(explicit)) {
       for (const permission of explicit) {
         if (permission === "none") continue;
         const normalized = normalize(permission);
@@ -86,30 +109,6 @@ export function usePermission() {
           if (normalized.includes(":")) combined.add(normalized.replace(":", "."));
         }
       }
-      // Super admin / system admin always retains access to users management so they can never lock themselves out
-      if (isSuperAdmin || isSystemAdmin) {
-        combined.add("users.view");
-        combined.add("users:view");
-        combined.add("users.manage_permissions");
-        combined.add("users:manage_permissions");
-      }
-      return combined;
-    }
-
-    // 2. Super admin / system admin without explicit customization always gets full access
-    if (isSuperAdmin || isSystemAdmin) return new Set(["*"]);
-
-    // 3. Default fallback ONLY for fresh users whose permissions were never customized:
-    const combined = new Set<string>();
-    const resolvedRoles = resolveInheritedRoles(user.roles ?? []);
-    for (const role of resolvedRoles) {
-      const defaults = ROLE_DEFAULT_PERMISSIONS[normalize(role)] ?? [];
-      defaults.forEach((p) => {
-        const norm = normalize(p);
-        combined.add(norm);
-        if (norm.includes(".")) combined.add(norm.replace(".", ":"));
-        if (norm.includes(":")) combined.add(norm.replace(":", "."));
-      });
     }
 
     return combined;

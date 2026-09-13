@@ -362,48 +362,39 @@ function permissionKeys(
 }
 
 function effectivePermissions(user: AuthUser): Set<string> {
-  // 1. If explicit permissions are configured for this user:
-  // STRICT MODE: We ONLY use explicit permissions. Do NOT add role defaults back!
-  if (Array.isArray(user.permissions) && user.permissions.length > 0) {
-    const permissions = new Set<string>();
-    for (const permission of user.permissions) {
-      if (permission === "none") continue;
-      const norm = normalize(permission);
-      if (norm) {
-        permissions.add(norm);
-        if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
-        if (norm.includes(":")) permissions.add(norm.replace(":", "."));
-      }
-    }
-    // Super admins always retain access to user permissions so they can never lock themselves out
-    if (
-      user.isSystemAdmin ||
-      user.roles.includes("super_admin") ||
-      user.roles.includes("system_admin")
-    ) {
-      permissions.add("users.view");
-      permissions.add("users:view");
-      permissions.add("users.manage_permissions");
-      permissions.add("users:manage_permissions");
-    }
-    return permissions;
-  }
-
-  // 2. System admin (super_admin / system_admin) without explicit customization gets full access
+  // 1. Super admin / system admin root access (emergency self-lockout prevention)
   if (
     user.isSystemAdmin ||
     user.roles.includes("super_admin") ||
     user.roles.includes("system_admin")
   ) {
+    if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+      const permissions = new Set<string>();
+      for (const permission of user.permissions) {
+        if (permission === "none") continue;
+        const norm = normalize(permission);
+        if (norm) {
+          permissions.add(norm);
+          if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
+          if (norm.includes(":")) permissions.add(norm.replace(":", "."));
+        }
+      }
+      permissions.add("users.view");
+      permissions.add("users:view");
+      permissions.add("users.manage_permissions");
+      permissions.add("users:manage_permissions");
+      return permissions;
+    }
     return new Set(["*"]);
   }
 
+  // 2. Pure Discretionary Fine-Grained Permissions (100% Decoupled from Roles)
+  // user.permissions is the EXCLUSIVE source of truth.
+  // NO automatic fallback to ROLE_DEFAULT_PERMISSIONS. Roles are purely organizational.
   const permissions = new Set<string>();
-
-  // 3. Otherwise, fallback to role default permissions for uncustomized users:
-  const resolvedRoles = resolveInheritedRoles(user.roles);
-  for (const role of resolvedRoles) {
-    for (const permission of ROLE_DEFAULT_PERMISSIONS[role] ?? []) {
+  if (Array.isArray(user.permissions)) {
+    for (const permission of user.permissions) {
+      if (permission === "none") continue;
       const norm = normalize(permission);
       if (norm) {
         permissions.add(norm);

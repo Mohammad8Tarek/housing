@@ -154,18 +154,24 @@ export function PermissionMatrixDialog({
 
   // Initial permission computation
   const initialPerms = (): Set<string> => {
+    if (primaryRole === "super_admin") {
+      return new Set(roleDefaults);
+    }
     const explicit = (user.permissions as string[] | undefined) ?? [];
     if (explicit.length > 0) {
       if (explicit.length === 1 && explicit[0] === "none") return new Set();
-      const normalized = explicit.map((p) => {
-        let s = String(p).trim().toLowerCase();
-        if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
-        if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
-        return s;
-      });
+      const normalized = explicit
+        .filter((p) => p && p !== "none")
+        .map((p) => {
+          let s = String(p).trim().toLowerCase();
+          if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
+          if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+          return s;
+        });
       return new Set(normalized);
     }
-    return new Set(roleDefaults);
+    // Pure RBAC: roles do not grant automatic permissions, 0 if empty
+    return new Set();
   };
 
   const [perms, setPerms] = useState<Set<string>>(initialPerms);
@@ -173,10 +179,6 @@ export function PermissionMatrixDialog({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-  const [isDynamicInheritance, setIsDynamicInheritance] = useState<boolean>(() => {
-    const explicit = (user.permissions as string[] | undefined) ?? [];
-    return explicit.length === 0;
-  });
 
   const updateMutation = useUpdateUser({
     mutation: {
@@ -279,7 +281,6 @@ export function PermissionMatrixDialog({
 
   // Apply one of the 9 role presets
   const applyRoleDefaults = (roleKey: string) => {
-    setIsDynamicInheritance(false);
     const defaults = ROLE_DEFAULT_PERMISSIONS[roleKey] ?? [];
     setPerms(new Set(defaults));
     const preset = SYSTEM_ROLE_PRESETS.find((r) => r.value === roleKey);
@@ -290,19 +291,17 @@ export function PermissionMatrixDialog({
     );
   };
 
-  // Revert to dynamic role defaults
+  // Apply default template for current role
   const revertToRoleDefaults = () => {
     setPerms(new Set(roleDefaults));
-    setIsDynamicInheritance(true);
     toast.info(
       ar
-        ? "تمت استعادة الصلاحيات الافتراضية للدور (سيتم الحفظ بالوراثة الديناميكية)"
-        : "Reverted to role defaults (will save as dynamic role inheritance)",
+        ? "تم تطبيق قالب الصلاحيات الافتراضي للدور"
+        : "Applied default role permissions template",
     );
   };
 
   const selectAll = () => {
-    setIsDynamicInheritance(false);
     setPerms(
       new Set(
         MODULES.flatMap((m) =>
@@ -313,12 +312,10 @@ export function PermissionMatrixDialog({
   };
 
   const deselectAll = () => {
-    setIsDynamicInheritance(false);
     setPerms(new Set());
   };
 
   const applyReadOnlyAll = () => {
-    setIsDynamicInheritance(false);
     const readOnly = new Set<string>();
     MODULES.forEach((m) => {
       if ((MODULE_ACTIONS[m] ?? []).includes("view")) {
@@ -329,25 +326,10 @@ export function PermissionMatrixDialog({
     toast.info(ar ? "تم تطبيق صلاحيات العرض فقط لكافة الموديولات" : "Applied Read-Only to all modules");
   };
 
-  // Save handler with zero-permission safeguard & dynamic inheritance
+  // Save handler with zero-permission safeguard (pure RBAC: permissions are explicit)
   const save = () => {
     setSaving(true);
-    let permissionsPayload: string[];
-
-    if (isDynamicInheritance && perms.size === roleDefaults.size) {
-      const allMatch = Array.from(perms).every((p) => roleDefaults.has(p));
-      if (allMatch) {
-        // Empty array means dynamic role inheritance
-        permissionsPayload = [];
-      } else {
-        permissionsPayload = Array.from(perms);
-      }
-    } else if (perms.size === 0) {
-      // Zero-permission safeguard: ["none"] ensures backend does not fall back to role defaults
-      permissionsPayload = ["none"];
-    } else {
-      permissionsPayload = Array.from(perms);
-    }
+    const permissionsPayload = perms.size === 0 ? ["none"] : Array.from(perms);
 
     updateMutation.mutate({
       id: user.id,
@@ -558,13 +540,7 @@ export function PermissionMatrixDialog({
                         {diffStats.isExactRoleMatch && (
                           <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-[10px] py-0 px-1.5 font-bold gap-1">
                             <Shield className="w-2.5 h-2.5" />
-                            {isDynamicInheritance
-                              ? ar
-                                ? "وراثة ديناميكية للدور"
-                                : "Dynamic Role Inherited"
-                              : ar
-                              ? "مطابق للدور"
-                              : "Matches Role Defaults"}
+                            {ar ? "مطابق لقالب الدور" : "Matches Role Template"}
                           </Badge>
                         )}
                       </div>

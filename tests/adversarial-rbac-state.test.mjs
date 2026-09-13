@@ -205,34 +205,39 @@ const BE_ROLE_DEFAULT_PERMISSIONS = {
 };
 
 function beEffectivePermissions(user) {
-  if (Array.isArray(user.permissions) && user.permissions.length > 0) {
-    const permissions = new Set();
-    for (const permission of user.permissions) {
-      if (permission === "none") continue;
-      const norm = beNormalize(permission);
-      if (norm) {
-        permissions.add(norm);
-        if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
-        if (norm.includes(":")) permissions.add(norm.replace(":", "."));
+  // 1. Super admin / system admin root access (emergency self-lockout prevention)
+  if (
+    user.isSystemAdmin ||
+    user.roles.includes("super_admin") ||
+    user.roles.includes("system_admin")
+  ) {
+    if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+      const permissions = new Set();
+      for (const permission of user.permissions) {
+        if (permission === "none") continue;
+        const norm = beNormalize(permission);
+        if (norm) {
+          permissions.add(norm);
+          if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
+          if (norm.includes(":")) permissions.add(norm.replace(":", "."));
+        }
       }
-    }
-    if (user.isSystemAdmin || user.roles.includes("super_admin") || user.roles.includes("system_admin")) {
       permissions.add("users.view");
       permissions.add("users:view");
       permissions.add("users.manage_permissions");
       permissions.add("users:manage_permissions");
+      return permissions;
     }
-    return permissions;
-  }
-
-  if (user.isSystemAdmin || user.roles.includes("super_admin") || user.roles.includes("system_admin")) {
     return new Set(["*"]);
   }
 
+  // 2. Pure Discretionary Fine-Grained Permissions (100% Decoupled from Roles)
+  // user.permissions is the EXCLUSIVE source of truth.
+  // NO automatic fallback to BE_ROLE_DEFAULT_PERMISSIONS. Roles are purely organizational.
   const permissions = new Set();
-  const resolvedRoles = beResolveInheritedRoles(user.roles);
-  for (const role of resolvedRoles) {
-    for (const permission of BE_ROLE_DEFAULT_PERMISSIONS[role] ?? []) {
+  if (Array.isArray(user.permissions)) {
+    for (const permission of user.permissions) {
+      if (permission === "none") continue;
       const norm = beNormalize(permission);
       if (norm) {
         permissions.add(norm);
@@ -290,10 +295,32 @@ function feEffectivePermissions(user) {
   if (!user) return new Set();
   const explicit = user.permissions;
   const isSuperAdmin = !!user.roles?.some((r) => ["super_admin"].includes(feNormalize(r)));
-  const isSystemAdmin = user.isSystemAdmin || isSuperAdmin || !!user.roles?.some((r) => ["admin", "system_admin"].includes(feNormalize(r)));
+  const isSystemAdmin = user.isSystemAdmin || isSuperAdmin || !!user.roles?.some((r) => ["system_admin"].includes(feNormalize(r)));
 
-  if (Array.isArray(explicit) && explicit.length > 0) {
-    const combined = new Set();
+  if (isSuperAdmin || isSystemAdmin) {
+    if (Array.isArray(explicit) && explicit.length > 0) {
+      const combined = new Set();
+      for (const permission of explicit) {
+        if (permission === "none") continue;
+        const normalized = feNormalize(permission);
+        if (normalized) {
+          combined.add(normalized);
+          if (normalized.includes(".")) combined.add(normalized.replace(".", ":"));
+          if (normalized.includes(":")) combined.add(normalized.replace(":", "."));
+        }
+      }
+      combined.add("users.view");
+      combined.add("users:view");
+      combined.add("users.manage_permissions");
+      combined.add("users:manage_permissions");
+      return combined;
+    }
+    return new Set(["*"]);
+  }
+
+  // Pure Discretionary Fine-Grained Permissions (100% Decoupled from Roles)
+  const combined = new Set();
+  if (Array.isArray(explicit)) {
     for (const permission of explicit) {
       if (permission === "none") continue;
       const normalized = feNormalize(permission);
@@ -303,27 +330,6 @@ function feEffectivePermissions(user) {
         if (normalized.includes(":")) combined.add(normalized.replace(":", "."));
       }
     }
-    if (isSuperAdmin || user.isSystemAdmin) {
-      combined.add("users.view");
-      combined.add("users:view");
-      combined.add("users.manage_permissions");
-      combined.add("users:manage_permissions");
-    }
-    return combined;
-  }
-
-  if (isSuperAdmin || user.isSystemAdmin) return new Set(["*"]);
-
-  const combined = new Set();
-  const resolvedRoles = feResolveInheritedRoles(user.roles ?? []);
-  for (const role of resolvedRoles) {
-    const defaults = FE_ROLE_DEFAULT_PERMISSIONS[feNormalize(role)] ?? [];
-    defaults.forEach((p) => {
-      const norm = feNormalize(p);
-      combined.add(norm);
-      if (norm.includes(".")) combined.add(norm.replace(".", ":"));
-      if (norm.includes(":")) combined.add(norm.replace(":", "."));
-    });
   }
 
   return combined;
@@ -372,11 +378,7 @@ function toggleMatrixMaster(permsSet, module, shouldEnable) {
   return next;
 }
 
-function computeMatrixSavePayload(permsSet, roleDefaultsSet, isDynamicInheritance) {
-  if (isDynamicInheritance && permsSet.size === roleDefaultsSet.size) {
-    const allMatch = Array.from(permsSet).every((p) => roleDefaultsSet.has(p));
-    if (allMatch) return [];
-  }
+function computeMatrixSavePayload(permsSet) {
   if (permsSet.size === 0) return ["none"];
   return Array.from(permsSet);
 }
@@ -540,12 +542,11 @@ check("1.6: Adversarial Stress Invariant: 1,000 randomized state transitions NEV
 // ----------------------------------------------------------------------------
 // SUITE 2: SENTINEL STATE VERIFICATION & DYNAMIC INHERITANCE
 // ----------------------------------------------------------------------------
-console.log("\n▶ SUITE 2: Sentinel State Verification & Dynamic Inheritance");
+console.log("\n▶ SUITE 2: Sentinel State Verification & Pure Fine-Grained RBAC Decoupling");
 
 check("2.1: Saving zero permissions sends [\"none\"] and prevents role default fallback in Backend", () => {
-  const roleDefaults = new Set(FE_ROLE_DEFAULT_PERMISSIONS.manager);
   const emptyPerms = new Set();
-  const payload = computeMatrixSavePayload(emptyPerms, roleDefaults, false);
+  const payload = computeMatrixSavePayload(emptyPerms);
 
   assert.deepEqual(payload, ["none"], "Zero permissions must serialize to ['none']");
 
@@ -578,69 +579,53 @@ check("2.2: Saving zero permissions sends [\"none\"] and prevents role default f
   assert.equal(feCan(testUser, "dashboard", "view"), false);
 });
 
-check("2.3: 'Revert to Role Defaults' sends [] and restores dynamic role inheritance", () => {
-  const roleDefaults = new Set(FE_ROLE_DEFAULT_PERMISSIONS.receptionist);
-  const revertedPerms = new Set(roleDefaults);
-  const payload = computeMatrixSavePayload(revertedPerms, roleDefaults, true);
-
-  assert.deepEqual(payload, [], "Reverting to role defaults must serialize to empty array []");
-
+check("2.3: Empty permissions array [] yields 0 permissions (no fallback to role defaults in BE or FE)", () => {
   const testUser = {
-    username: "reverted_user",
-    roles: ["receptionist"],
-    permissions: payload,
-    isSystemAdmin: false,
-  };
-
-  // Backend should now inherit dynamic receptionist permissions
-  assert.equal(beHasPermission(testUser, "housing", "view"), true);
-  assert.equal(beHasPermission(testUser, "accommodation", "checkout"), true);
-  assert.equal(beHasPermission(testUser, "housing", "create"), false); // Receptionist doesn't have housing.create
-
-  // Frontend should also inherit receptionist defaults
-  assert.equal(feCan(testUser, "housing", "view"), true);
-  assert.equal(feCan(testUser, "accommodation", "checkout"), true);
-  assert.equal(feCan(testUser, "housing", "create"), false);
-});
-
-check("2.4: Dynamic role inheritance ([]) allows seamless role promotion without permission resync", () => {
-  const dynamicUser = {
-    username: "promoted_emp",
+    username: "empty_perms_user",
     roles: ["receptionist"],
     permissions: [],
     isSystemAdmin: false,
   };
 
-  // Initially has receptionist permissions, no manager permissions
-  assert.equal(feCan(dynamicUser, "housing", "create"), false);
-  assert.equal(beHasPermission(dynamicUser, "housing", "create"), false);
-
-  // Promote to manager
-  dynamicUser.roles = ["manager"];
-
-  // Now dynamically acquires manager permissions in both FE and BE!
-  assert.equal(feCan(dynamicUser, "housing", "create"), true);
-  assert.equal(beHasPermission(dynamicUser, "housing", "create"), true);
+  assert.equal(beHasPermission(testUser, "housing", "view"), false);
+  assert.equal(beHasPermission(testUser, "accommodation", "checkout"), false);
+  assert.equal(feCan(testUser, "housing", "view"), false);
+  assert.equal(feCan(testUser, "accommodation", "checkout"), false);
 });
 
-check("2.5: User with [\"none\"] promoted to manager remains completely denied (strict sentinel)", () => {
-  const lockedUser = {
-    username: "strict_none_emp",
-    roles: ["receptionist"],
-    permissions: ["none"],
+check("2.4: Stripping permissions from an admin or manager takes immediate effect (pure RBAC decoupling)", () => {
+  const adminWithStrippedPerms = {
+    username: "custom_admin",
+    roles: ["admin"],
+    permissions: ["housing.view"], // maintenance.view is stripped
     isSystemAdmin: false,
   };
 
-  assert.equal(beHasPermission(lockedUser, "housing", "view"), false);
+  assert.equal(beHasPermission(adminWithStrippedPerms, "housing", "view"), true);
+  assert.equal(beHasPermission(adminWithStrippedPerms, "maintenance", "view"), false);
+  assert.equal(feCan(adminWithStrippedPerms, "housing", "view"), true);
+  assert.equal(feCan(adminWithStrippedPerms, "maintenance", "view"), false);
+});
+
+check("2.5: Role changes never alter or overwrite explicit permissions (pure RBAC decoupling)", () => {
+  const user = {
+    username: "custom_emp",
+    roles: ["receptionist"],
+    permissions: ["whatsapp.view", "whatsapp.create"],
+    isSystemAdmin: false,
+  };
+
+  assert.equal(beHasPermission(user, "whatsapp", "view"), true);
+  assert.equal(beHasPermission(user, "housing", "view"), false);
 
   // Promote to manager
-  lockedUser.roles = ["manager"];
+  user.roles = ["manager"];
 
-  // ['none'] MUST NOT be overwritten by role promotion
-  assert.equal(beHasPermission(lockedUser, "housing", "view"), false);
-  assert.equal(beHasPermission(lockedUser, "housing", "create"), false);
-  assert.equal(feCan(lockedUser, "housing", "view"), false);
-  assert.equal(feCan(lockedUser, "housing", "create"), false);
+  // Permissions remain exactly what was granted; no magical acquisition of housing/accommodation
+  assert.equal(beHasPermission(user, "whatsapp", "view"), true);
+  assert.equal(beHasPermission(user, "housing", "view"), false);
+  assert.equal(feCan(user, "whatsapp", "view"), true);
+  assert.equal(feCan(user, "housing", "view"), false);
 });
 
 check("2.6: Super Admin self-preservation with [\"none\"] retains users.view and users.manage_permissions", () => {
@@ -943,7 +928,7 @@ check("5.5: Instant unlock oracle resets failedLoginAttempts, clears lockedUntil
 });
 
 check("5.6: Backend unlock endpoint permission guard requires 'users.unlock'", () => {
-  const adminUser = { username: "admin_usr", roles: ["admin"], permissions: [], isSystemAdmin: false };
+  const adminUser = { username: "admin_usr", roles: ["admin"], permissions: ["users.unlock"], isSystemAdmin: false };
   const recUser = { username: "rec_usr", roles: ["receptionist"], permissions: [], isSystemAdmin: false };
 
   assert.equal(beHasPermission(adminUser, "users", "unlock"), true);

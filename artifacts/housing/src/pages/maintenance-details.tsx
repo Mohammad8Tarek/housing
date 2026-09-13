@@ -85,9 +85,9 @@ export default function MaintenanceDetails() {
   const [comment, setComment] = useState("");
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
-  const canEditMnt = isSuperAdmin || isAdmin || can("maintenance", "edit");
-  const canEditHsk = isSuperAdmin || isAdmin || can("housekeeping", "edit");
-  const canEditTicket = isSuperAdmin || isAdmin || (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
+  const canEditMnt = isSuperAdmin || can("maintenance", "edit");
+  const canEditHsk = isSuperAdmin || can("housekeeping", "edit");
+  const canEditTicket = isSuperAdmin || (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
 
   const { data: _allTicketsWrapper } = useListMaintenance({
     query: { enabled: !!activePropertyId },

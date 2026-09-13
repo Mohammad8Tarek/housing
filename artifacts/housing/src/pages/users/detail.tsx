@@ -216,7 +216,6 @@ export default function UserDetailPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Permissions Matrix State
-  const [isDynamicInheritance, setIsDynamicInheritance] = useState(true);
   const [perms, setPerms] = useState<Set<string>>(new Set());
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [permSearch, setPermSearch] = useState("");
@@ -268,16 +267,20 @@ export default function UserDetailPage() {
     // Permissions initialization
     const explicit = (user.permissions as string[] | undefined) ?? [];
     if (explicit.length === 0) {
-      setIsDynamicInheritance(true);
-      setPerms(new Set(ROLE_DEFAULT_PERMISSIONS[r] || []));
+      if (r === "super_admin") {
+        setPerms(new Set(ROLE_DEFAULT_PERMISSIONS["super_admin"] || []));
+      } else {
+        setPerms(new Set());
+      }
     } else {
-      setIsDynamicInheritance(false);
-      const normalized = explicit.map((p) => {
-        let s = String(p).trim().toLowerCase();
-        if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
-        if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
-        return s;
-      });
+      const normalized = explicit
+        .filter((p) => p && p !== "none")
+        .map((p) => {
+          let s = String(p).trim().toLowerCase();
+          if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
+          if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+          return s;
+        });
       setPerms(new Set(normalized));
     }
   }, [user]);
@@ -309,11 +312,8 @@ export default function UserDetailPage() {
     return new Set(ROLE_DEFAULT_PERMISSIONS[primaryRole] || []);
   }, [primaryRole]);
 
-  // Diff stats calculation
+  // Diff stats calculation (comparison against role template)
   const diffStats = useMemo(() => {
-    if (isDynamicInheritance) {
-      return { added: 0, revoked: 0, isIdentical: true, addedKeys: new Set<string>(), revokedKeys: new Set<string>() };
-    }
     const added = Array.from(perms).filter((p) => !defaultPermsForRole.has(p));
     const revoked = Array.from(defaultPermsForRole).filter((p) => !perms.has(p));
     return {
@@ -323,7 +323,7 @@ export default function UserDetailPage() {
       addedKeys: new Set(added),
       revokedKeys: new Set(revoked),
     };
-  }, [perms, defaultPermsForRole, isDynamicInheritance]);
+  }, [perms, defaultPermsForRole]);
 
   const isModuleOverridden = (mod: string) => {
     const actions = MODULE_ACTIONS[mod] || [];
@@ -372,19 +372,22 @@ export default function UserDetailPage() {
 
     const sourceExplicit = (source.permissions as string[] | undefined) ?? [];
     if (sourceExplicit.length === 0) {
-      const sourceRole = (source.roles?.[0] || "user").toLowerCase();
-      const roleDefaults = ROLE_DEFAULT_PERMISSIONS[sourceRole] || [];
-      setPerms(new Set(roleDefaults));
+      if (source.roles?.includes("super_admin")) {
+        setPerms(new Set(ROLE_DEFAULT_PERMISSIONS["super_admin"] || []));
+      } else {
+        setPerms(new Set());
+      }
     } else {
-      const normalized = sourceExplicit.map((p) => {
-        let s = String(p).trim().toLowerCase();
-        if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
-        if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
-        return s;
-      });
+      const normalized = sourceExplicit
+        .filter((p) => p && p !== "none")
+        .map((p: string) => {
+          let s = String(p).trim().toLowerCase();
+          if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
+          if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+          return s;
+        });
       setPerms(new Set(normalized));
     }
-    setIsDynamicInheritance(false);
     toast.success(
       ar
         ? `تم استنساخ كافة صلاحيات (${source.username}) بنجاح`
@@ -406,20 +409,11 @@ export default function UserDetailPage() {
     const key = permKey(simModule, simAction);
     const hasPerm = perms.has(key);
     if (hasPerm) {
-      if (isDynamicInheritance) {
-        return {
-          allowed: true,
-          reason: ar
-            ? `مسموح ✅ - موروث تلقائياً من الدور الافتراضي (${primaryRole})`
-            : `Allowed - inherited from role (${primaryRole})`,
-          type: "inherited",
-        };
-      }
       return {
         allowed: true,
         reason: ar
-          ? "مسموح ✅ - ممنوح استثنائياً عبر الصلاحيات المخصصة"
-          : "Allowed - explicitly granted via custom permissions",
+          ? "مسموح ✅ - ممنوح في صلاحيات المستخدم"
+          : "Allowed - explicitly granted in permissions",
         type: "custom",
       };
     }
@@ -430,7 +424,7 @@ export default function UserDetailPage() {
         : "Denied - user does not have this permission",
       type: "denied",
     };
-  }, [simModule, simAction, primaryRole, perms, isDynamicInheritance, ar]);
+  }, [simModule, simAction, primaryRole, perms, ar]);
 
   // Instant Unlock Handler
   const handleInstantUnlock = async () => {
@@ -567,12 +561,9 @@ export default function UserDetailPage() {
       payload.password = newPassword;
     }
 
-    // If dynamic inheritance is ON, pass empty array to clear explicit permissions in DB
-    if (isDynamicInheritance) {
-      payload.permissions = [];
-    } else {
-      payload.permissions = Array.from(perms);
-    }
+    // Pure RBAC: explicit permissions are the sole source of truth.
+    // If 0 permissions, send ["none"] to prevent fallback.
+    payload.permissions = perms.size === 0 ? ["none"] : Array.from(perms);
 
     updateMutation.mutate({
       id: user.id,
@@ -607,7 +598,6 @@ export default function UserDetailPage() {
       next.has(pKey) ? next.delete(pKey) : next.add(pKey);
       return next;
     });
-    if (isDynamicInheritance) setIsDynamicInheritance(false);
   };
 
   const toggleAllModule = (mod: string) => {
@@ -622,7 +612,6 @@ export default function UserDetailPage() {
       });
       return next;
     });
-    if (isDynamicInheritance) setIsDynamicInheritance(false);
   };
 
   const toggleAllGroup = (groupId: string) => {
@@ -642,7 +631,6 @@ export default function UserDetailPage() {
       });
       return next;
     });
-    if (isDynamicInheritance) setIsDynamicInheritance(false);
   };
 
   // Filtered Groups
@@ -906,7 +894,7 @@ export default function UserDetailPage() {
             id: "permissions",
             label: ar ? "مصفوفة الصلاحيات والحوكمة" : "Access & Permissions",
             icon: ShieldCheck,
-            badge: !isDynamicInheritance ? (ar ? "مخصص" : "Custom") : null,
+            badge: diffStats.isIdentical ? null : (ar ? "مخصص" : "Custom"),
           },
           {
             id: "properties",
@@ -1231,43 +1219,38 @@ export default function UserDetailPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "permissions" && (
         <div className="space-y-6">
-          {/* Dynamic Inheritance vs Custom Overrides Banner */}
+          {/* Pure RBAC Fine-Grained Permissions Banner */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-xl border bg-gradient-to-r from-card to-muted/30">
             <div className="flex items-center gap-3">
-              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white", isDynamicInheritance ? "bg-emerald-600" : "bg-[#C9A24D]")}>
-                {isDynamicInheritance ? <RefreshCw className="w-5 h-5" /> : <Sliders className="w-5 h-5" />}
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-primary">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="font-bold text-sm">
-                  {isDynamicInheritance
-                    ? ar ? `مزامنة تلقائية حسب الدور الافتراضي (${primaryRole})` : `Inherited Dynamically from (${primaryRole})`
-                    : ar ? "صلاحيات مخصصة واستثناءات فردية (Custom Matrix)" : "Customized Permission Matrix"}
+                  {ar ? "صلاحيات مباشرة ومستقلة (Pure Fine-Grained RBAC)" : "Direct Fine-Grained Permissions"}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {isDynamicInheritance
-                    ? ar ? "المستخدم يرث كافة صلاحيات دوره تلقائياً ويتم تحديثها مع أي تعديل على إعدادات الدور." : "Role-based automatic inheritance is active."
-                    : ar ? "تم تفعيل التخصيص اليدوي، ولن يتأثر الحساب بالتغييرات العامة على الدور." : "Account has explicit overrides disconnected from role defaults."}
+                  {ar
+                    ? "الصلاحيات منفصلة تماماً عن الدور الوظيفي. يمكنك إضافة أو سلب أي صلاحية بحرية كاملة وفورية."
+                    : "Permissions are completely decoupled from roles. Adding or revoking any permission takes immediate effect."}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-muted-foreground">
-                {isDynamicInheritance ? (ar ? "تفعيل التخصيص الفردي" : "Customize") : (ar ? "استعادة الافتراضي" : "Reset to Role")}
-              </span>
-              <Switch
-                checked={!isDynamicInheritance}
-                onCheckedChange={(checked) => {
-                  if (!checked) {
-                    setIsDynamicInheritance(true);
-                    setPerms(new Set(defaultPermsForRole));
-                    toast.info(ar ? "تمت استعادة مصفوفة الصلاحيات الافتراضية للدور" : "Restored role defaults");
-                  } else {
-                    setIsDynamicInheritance(false);
-                    toast.info(ar ? "تم تفعيل التخصيص الفردي للصلاحيات" : "Custom permissions enabled");
-                  }
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setPerms(new Set(defaultPermsForRole));
+                  toast.info(ar ? `تم تطبيق قالب صلاحيات دور (${primaryRole})` : `Applied role template (${primaryRole})`);
                 }}
-              />
+                className="text-xs h-8 px-3"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1" />
+                {ar ? "تطبيق قالب الدور الافتراضي" : "Apply Role Template"}
+              </Button>
             </div>
           </div>
 

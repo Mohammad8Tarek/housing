@@ -223,17 +223,17 @@ export default function Tickets() {
   const ar = language === "ar";
   const { can, canView, isSuperAdmin, isAdmin } = usePermission();
 
-  const canViewMnt = isSuperAdmin || isAdmin || can("maintenance", "view");
-  const canEditMnt = isSuperAdmin || isAdmin || can("maintenance", "edit");
-  const canCreateMnt = isSuperAdmin || isAdmin || can("maintenance", "create");
-  const canDeleteMnt = isSuperAdmin || isAdmin || can("maintenance", "delete");
-  const canAssignMnt = isSuperAdmin || isAdmin || can("maintenance", "assign");
+  const canViewMnt = isSuperAdmin || can("maintenance", "view");
+  const canEditMnt = isSuperAdmin || can("maintenance", "edit");
+  const canCreateMnt = isSuperAdmin || can("maintenance", "create");
+  const canDeleteMnt = isSuperAdmin || can("maintenance", "delete");
+  const canAssignMnt = isSuperAdmin || can("maintenance", "assign");
 
-  const canViewHsk = isSuperAdmin || isAdmin || can("housekeeping", "view");
-  const canEditHsk = isSuperAdmin || isAdmin || can("housekeeping", "edit");
-  const canCreateHsk = isSuperAdmin || isAdmin || can("housekeeping", "create");
-  const canDeleteHsk = isSuperAdmin || isAdmin || can("housekeeping", "delete");
-  const canAssignHsk = isSuperAdmin || isAdmin || can("housekeeping", "assign");
+  const canViewHsk = isSuperAdmin || can("housekeeping", "view");
+  const canEditHsk = isSuperAdmin || can("housekeeping", "edit");
+  const canCreateHsk = isSuperAdmin || can("housekeeping", "create");
+  const canDeleteHsk = isSuperAdmin || can("housekeeping", "delete");
+  const canAssignHsk = isSuperAdmin || can("housekeeping", "assign");
 
   const hasMaintenance = canViewMnt;
   const hasHousekeeping = canViewHsk;
@@ -241,19 +241,19 @@ export default function Tickets() {
   const isOnlyHousekeeping = !hasMaintenance && hasHousekeeping;
   const isOnlyMaintenance = hasMaintenance && !hasHousekeeping;
   const hasBoth = hasMaintenance && hasHousekeeping;
-  const hasManagerialScope = isSuperAdmin || isAdmin || canAssignMnt || canAssignHsk;
+  const hasManagerialScope = isSuperAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
 
   const [scopeFilter, setScopeFilter] = useState<"all" | "me" | "unassigned">(() => {
     return hasManagerialScope ? "all" : "me";
   });
 
-  const canCreateAny = isSuperAdmin || isAdmin || (isOnlyHousekeeping ? canCreateHsk : isOnlyMaintenance ? canCreateMnt : (canCreateMnt || canCreateHsk));
-  const canEditAny = isSuperAdmin || isAdmin || (isOnlyHousekeeping ? canEditHsk : isOnlyMaintenance ? canEditMnt : (canEditMnt || canEditHsk));
-  const canDeleteAny = isSuperAdmin || isAdmin || (isOnlyHousekeeping ? canDeleteHsk : isOnlyMaintenance ? canDeleteMnt : (canDeleteMnt || canDeleteHsk));
+  const canCreateAny = isSuperAdmin || (isOnlyHousekeeping ? canCreateHsk : isOnlyMaintenance ? canCreateMnt : (canCreateMnt || canCreateHsk));
+  const canEditAny = isSuperAdmin || (isOnlyHousekeeping ? canEditHsk : isOnlyMaintenance ? canEditMnt : (canEditMnt || canEditHsk));
+  const canDeleteAny = isSuperAdmin || (isOnlyHousekeeping ? canDeleteHsk : isOnlyMaintenance ? canDeleteMnt : (canDeleteMnt || canDeleteHsk));
 
   const defaultCreateCategory = isOnlyHousekeeping || (!canCreateMnt && canCreateHsk) ? "housekeeping" : "maintenance";
 
-  const allowedCreateCategories = isSuperAdmin || isAdmin
+  const allowedCreateCategories = isSuperAdmin
     ? CATEGORIES
     : [
         ...(canCreateMnt ? ["maintenance"] : []),
