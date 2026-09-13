@@ -815,6 +815,9 @@ export default function Dashboard() {
           flex: 1,
           overflowY: activeTab === "chat" ? "hidden" : "auto",
           overflowX: "hidden",
+          display: activeTab === "chat" ? "flex" : undefined,
+          flexDirection: activeTab === "chat" ? "column" : undefined,
+          height: activeTab === "chat" && isChatOpen ? "100dvh" : undefined,
           paddingTop:
             activeTab === "chat" && isChatOpen
               ? "0px"
@@ -828,6 +831,12 @@ export default function Dashboard() {
       >
         <div
           ref={contentRef}
+          style={{
+            flex: activeTab === "chat" ? 1 : undefined,
+            display: activeTab === "chat" ? "flex" : undefined,
+            flexDirection: activeTab === "chat" ? "column" : undefined,
+            height: activeTab === "chat" ? "100%" : undefined,
+          }}
           onTouchStart={(e) => handleTouchStart(e.nativeEvent)}
           onTouchEnd={(e) => handleTouchEnd(e.nativeEvent)}
         >
@@ -942,9 +951,13 @@ export default function Dashboard() {
           {activeTab === "transport" && <TabTransport />}
           <div
             style={{
-              display: activeTab === "chat" ? "block" : "none",
-              height: activeTab === "chat" ? "100%" : "auto",
+              display: activeTab === "chat" ? "flex" : "none",
+              flexDirection: "column",
+              height: "100%",
+              flex: 1,
+              width: "100%",
             }}
+            className="w-full h-full flex flex-col flex-1"
           >
             <TabChat
               myEmployeeId={Number(employee?.id ?? employee?.profileDbId ?? 0) || undefined}
