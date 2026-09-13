@@ -439,6 +439,81 @@ export function compileWhatsAppTemplate(
 }
 
 /**
+ * Determines whether a profile's nationality or identity is Arabic-speaking.
+ * Checks nationality text, demonyms, Arabic script, and name characters.
+ */
+export function isArabicProfile(
+  nationality?: string | null,
+  firstName?: string | null,
+  lastName?: string | null
+): boolean {
+  if (nationality && nationality.trim()) {
+    const raw = nationality.trim().toLowerCase();
+
+    // Check for any Arabic script characters (e.g. "مصر", "مصري", "سعودي")
+    if (/[\u0600-\u06FF]/.test(raw)) {
+      return true;
+    }
+
+    // 2. Exact matches for 2/3 letter country codes
+    const shortCodes = new Set([
+      "eg", "egy", "ksa", "uae", "kw", "kwt", "qa", "qat", 
+      "bh", "bhr", "om", "omn", "ye", "yem", "jo", "jor", 
+      "lb", "lbn", "sy", "syr", "iq", "irq", "ps", "pse", 
+      "sd", "sdn", "ly", "lby", "tn", "tun", "dz", "dza", 
+      "ma", "mar", "mr", "mrt", "so", "som", "dj", "dji", "km", "com"
+    ]);
+    if (shortCodes.has(raw)) {
+      return true;
+    }
+
+    // 3. Whole-word matching for Arabic country names and demonyms
+    const arabicWords = [
+      "egypt", "egyptian", "egyptians",
+      "saudi", "saudi arabia", "saudis",
+      "united arab emirates", "emirates", "emirati", "emiratis",
+      "kuwait", "kuwaiti", "kuwaitis",
+      "qatar", "qatari", "qataris",
+      "bahrain", "bahraini", "bahrainis",
+      "oman", "omani", "omanis",
+      "yemen", "yemeni", "yemenis",
+      "jordan", "jordanian", "jordanians",
+      "lebanon", "lebanese",
+      "syria", "syrian", "syrians",
+      "iraq", "iraqi", "iraqis",
+      "palestine", "palestinian", "palestinians",
+      "sudan", "sudanese",
+      "libya", "libyan", "libyans",
+      "tunisia", "tunisian", "tunisians",
+      "algeria", "algerian", "algerians",
+      "morocco", "moroccan", "moroccans",
+      "mauritania", "mauritanian", "mauritanians",
+      "somalia", "somali", "somalis",
+      "djibouti", "djiboutian", "djiboutians",
+      "comoros", "comorian", "comorians",
+      "arab", "arabic"
+    ];
+
+    const regex = new RegExp(`\\b(${arabicWords.join("|")})\\b`, "i");
+    if (regex.test(raw)) {
+      return true;
+    }
+
+    // Explicit foreign nationality (e.g. Russia, Ukraine, Italy, India, Kazakhstan, etc.)
+    return false;
+  }
+
+  // Fallback if nationality is not set: check if person's name has Arabic characters
+  const fullName = `${firstName || ""} ${lastName || ""}`.trim();
+  if (/[\u0600-\u06FF]/.test(fullName)) {
+    return true;
+  }
+
+  // Default to Arabic in local hotel context if completely unspecified
+  return true;
+}
+
+/**
  * Automatic Check-In WhatsApp Notification Handler
  */
 export async function sendCheckInWhatsAppNotification(params: {
@@ -483,13 +558,13 @@ export async function sendCheckInWhatsAppNotification(params: {
 
     // 2. Fetch profile info from tenant schema (fallback to public if not found)
     let profileRes = await pool.query(
-      `SELECT first_name, last_name, phone FROM ${schemaName}.profiles WHERE id = $1`,
+      `SELECT first_name, last_name, phone, nationality FROM ${schemaName}.profiles WHERE id = $1`,
       [profileId]
     ).catch(() => ({ rows: [] as any[] }));
 
     if (!profileRes.rows[0]) {
       profileRes = await pool.query(
-        `SELECT first_name, last_name, phone FROM public.profiles WHERE id = $1`,
+        `SELECT first_name, last_name, phone, nationality FROM public.profiles WHERE id = $1`,
         [profileId]
       ).catch(() => ({ rows: [] as any[] }));
     }
@@ -500,7 +575,13 @@ export async function sendCheckInWhatsAppNotification(params: {
       return;
     }
 
-    // 3. Fetch room, floor, building info from tenant schema
+    // 3. Determine language dynamically based on nationality
+    const isArabic = isArabicProfile(profile.nationality, profile.first_name, profile.last_name);
+    console.log(
+      `[WhatsApp Auto-Send] Profile ${profileId} nationality: "${profile.nationality || "unspecified"}" -> Selected language: ${isArabic ? "Arabic (عربي)" : "English"}`
+    );
+
+    // 4. Fetch room, floor, building info from tenant schema
     let roomRes = await pool.query(
       `SELECT r.room_number, f.name as floor_name, b.name as building_name
        FROM ${schemaName}.rooms r
@@ -522,8 +603,8 @@ export async function sendCheckInWhatsAppNotification(params: {
     }
     const room = roomRes.rows[0] || {};
 
-    // 4. Fetch bed info if any
-    let bedLabel = "سرير مخصص / Assigned Bed";
+    // 5. Fetch bed info if any
+    let bedLabel = isArabic ? "سرير مخصص" : "Assigned Bed";
     if (bedId) {
       let bedRes = await pool.query(
         `SELECT bed_number, bed_label FROM ${schemaName}.room_beds WHERE id = $1`,
@@ -538,19 +619,19 @@ export async function sendCheckInWhatsAppNotification(params: {
       }
 
       if (bedRes.rows[0]) {
-        bedLabel = bedRes.rows[0].bed_label || `Bed ${bedRes.rows[0].bed_number}`;
+        bedLabel = bedRes.rows[0].bed_label || (isArabic ? `سرير ${bedRes.rows[0].bed_number}` : `Bed ${bedRes.rows[0].bed_number}`);
       }
     }
 
-    // 5. Compile template
+    // 6. Compile template based on detected language
     const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
     const portalUrl = process.env.PORTAL_URL || "https://portal.sunrise-housing.com";
 
     const vars = {
       employee_name: fullName,
       property_name: propertyName,
-      building_name: room.building_name || "المبنى الرئيسي",
-      floor_name: room.floor_name || "الطابق الأول",
+      building_name: room.building_name || (isArabic ? "المبنى الرئيسي" : "Main Building"),
+      floor_name: room.floor_name || (isArabic ? "الطابق الأول" : "First Floor"),
       room_number: room.room_number || String(roomId),
       bed_label: bedLabel,
       checkin_date: startDate || new Date().toISOString().split("T")[0],
@@ -558,14 +639,13 @@ export async function sendCheckInWhatsAppNotification(params: {
       supervisor_contact: config?.supervisor_contact || "",
     };
 
-    const template =
-      config?.welcome_template_ar ||
-      config?.welcome_template_en ||
-      DEFAULT_WELCOME_AR;
+    const template = isArabic
+      ? (config?.welcome_template_ar || DEFAULT_WELCOME_AR)
+      : (config?.welcome_template_en || DEFAULT_WELCOME_EN);
     const compiledMessage = compileWhatsAppTemplate(template, vars);
 
-    // 6. Dispatch through safe queue
-    console.log(`[WhatsApp Auto-Send] Queuing welcome notification for ${fullName} (${profile.phone})`);
+    // 7. Dispatch through safe queue
+    console.log(`[WhatsApp Auto-Send] Queuing welcome notification for ${fullName} (${profile.phone}) in ${isArabic ? "Arabic" : "English"}`);
     sendWhatsAppMessageSafe(
       propertyId,
       profile.phone,

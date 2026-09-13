@@ -27,6 +27,7 @@ import {
   RotateCcw,
   Loader2,
   CheckCheck,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -590,6 +591,14 @@ export function WhatsAppSettingsSection({
                   ? "قم بتخصيص نص الرسالة التي ستصل للنزيل مع دعم كامل للرموز التعبيرية والمتغيرات الفورية"
                   : "Customize the message sent to residents with emojis and dynamic variables"}
               </CardDescription>
+              <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20 font-medium">
+                <Globe className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                <span>
+                  {ar
+                    ? "تحديد اللغة ذكي وتلقائي: ترسل الرسالة بالعربية للجنسيات المصرية والعربية، وبالإنجليزية للجنسيات الأجنبية"
+                    : "Auto-Language: Dispatched in Arabic for Egyptian & Arab nationalities, and in English for foreign nationalities"}
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button
