@@ -170,6 +170,7 @@ export default function RoomAssignment() {
   const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">("PERMANENT");
   const [archiveSourceProfile, setArchiveSourceProfile] = useState<boolean>(true);
   const [crossPropertyModalOpen, setCrossPropertyModalOpen] = useState<boolean>(false);
+  const [customPhone, setCustomPhone] = useState("");
   const isCrossProperty = Boolean(
     selectedProfile &&
     (
@@ -628,12 +629,14 @@ export default function RoomAssignment() {
 
   const selectProfile = (emp: ProfileResult) => {
     setSelectedProfile(emp);
+    setCustomPhone(emp.phone || "");
     setEmpSearch(`${emp.firstName} ${emp.lastName} (${emp.profileId})`);
     setShowDropdown(false);
   };
 
   const clearProfile = () => {
     setSelectedProfile(null);
+    setCustomPhone("");
     setEmpSearch("");
     setEmpResults([]);
   };
@@ -712,6 +715,7 @@ export default function RoomAssignment() {
         transferType: isCrossProperty ? finalTransferType : undefined,
         archiveSourceProfile: isCrossProperty ? finalArchive : undefined,
         checkoutPreviousAssignment: isCrossProperty && Boolean((selectedProfile as any).accommodationRoom),
+        phone: customPhone.trim() || undefined,
       } as any,
     });
     setCrossPropertyModalOpen(false);
@@ -743,6 +747,7 @@ export default function RoomAssignment() {
         transferType: isCrossProperty ? (archiveSourceProfile ? "PERMANENT" : "TASK_FORCE") : undefined,
         archiveSourceProfile: isCrossProperty ? archiveSourceProfile : undefined,
         checkoutPreviousAssignment: isCrossProperty && Boolean((selectedProfile as any).accommodationRoom),
+        phone: customPhone.trim() || undefined,
       } as any,
     });
     setVacationPromptData(null);
@@ -1061,6 +1066,27 @@ export default function RoomAssignment() {
                         <span>•</span>
                         <span className="font-mono">{selectedProfile.nationalId}</span>
                       </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {selectedProfile.phone ? (
+                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 flex items-center gap-1.5 font-mono py-0.5">
+                        <Phone className="w-3 h-3 text-emerald-600" />
+                        <span>{selectedProfile.phone}</span>
+                        <span className="text-[10px] text-muted-foreground font-sans">({ar ? "سيصل له إشعار الواتساب" : "WhatsApp active"})</span>
+                      </Badge>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-wrap text-xs bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 px-2.5 py-1.5 rounded-lg">
+                        <Info className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                        <span className="font-semibold">{ar ? "لا يوجد رقم هاتف:" : "No phone:"}</span>
+                        <Input
+                          placeholder={ar ? "أدخل رقم الواتساب لإرسال الترحيب..." : "Enter WhatsApp phone..."}
+                          value={customPhone}
+                          onChange={(e) => setCustomPhone(e.target.value)}
+                          dir="ltr"
+                          className="h-6 w-44 text-xs font-mono bg-background"
+                        />
+                      </div>
                     )}
                   </div>
                 </div>

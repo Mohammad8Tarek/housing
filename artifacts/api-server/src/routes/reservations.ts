@@ -19,6 +19,7 @@ import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
+import { sendCheckInWhatsAppNotification } from "../lib/whatsapp-engine.js";
 
 const router: Router = Router();
 
@@ -720,8 +721,12 @@ router.post(
               status: "ACTIVE",
               ...((current as any).employmentType ? { employmentType: (current as any).employmentType } : {}),
               ...((current as any).companyName ? { companyName: (current as any).companyName } : {}),
+              ...(!profile.phone && current.guestPhone ? { phone: current.guestPhone.trim() } : {}),
             })
             .where(eq(profilesTable.id, profile.id));
+          if (!profile.phone && current.guestPhone) {
+            profile.phone = current.guestPhone.trim();
+          }
         }
 
         const isEntireRoom = Boolean(
@@ -855,6 +860,17 @@ router.post(
         entityId: result.profile.id,
       });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+
+      // ── WhatsApp Welcome & Check-in Notification ─────────────────────────
+      sendCheckInWhatsAppNotification({
+        propertyId,
+        profileId: result.profile.id,
+        roomId: roomId,
+        bedId: result.assignment?.bedNumber || null,
+        startDate: updated.checkInDate,
+      }).catch((err) => {
+        console.error("[WhatsApp Hook] Error sending check-in notification from reservation:", err);
+      });
 
       res.status(201).json({
         ...updated,

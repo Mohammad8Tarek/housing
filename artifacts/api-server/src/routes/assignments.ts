@@ -28,7 +28,7 @@ import {
   findProfileAcrossAllProperties,
   deleteSourceProfileOnTransfer,
 } from "../lib/cross-property-service.js";
-import { sendCheckInWhatsAppNotification } from "../lib/whatsapp-engine.js";
+import { sendCheckInWhatsAppNotification, sendWelcomeWhatsAppForAssignment } from "../lib/whatsapp-engine.js";
 
 const router: Router = Router();
 
@@ -481,6 +481,16 @@ router.post(
       return;
     }
 
+    const inputPhone = typeof (req.body as any)?.phone === "string" ? (req.body as any).phone.trim() : "";
+    if (inputPhone) {
+      await withTenant(propertyId, async (tenantDb) => {
+        await tenantDb
+          .update(profilesTable)
+          .set({ phone: inputPhone })
+          .where(eq(profilesTable.id, resolvedProfileId));
+      }).catch((e) => console.warn("[assignments] could not update phone:", e?.message));
+    }
+
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [room] = await tenantDb
         .select()
@@ -824,6 +834,43 @@ router.post(
       }),
     );
   },
+);
+
+// ─── POST /assignments/:id/send-whatsapp ─────────────────────────────────
+router.post(
+  "/assignments/:id/send-whatsapp",
+  requirePermission("accommodation", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ error: "Invalid assignment id" });
+      return;
+    }
+    const phoneOverride = typeof req.body?.phone === "string" ? req.body.phone.trim() : undefined;
+
+    try {
+      const result = await sendWelcomeWhatsAppForAssignment({
+        propertyId,
+        assignmentId: id,
+        phoneOverride,
+      });
+
+      if (!result.success) {
+        res.status(400).json({ error: result.error });
+        return;
+      }
+
+      res.json({ success: true, message: result.message });
+    } catch (err: any) {
+      console.error("[assignments] send-whatsapp error:", err?.message || err);
+      res.status(500).json({ error: err?.message || "Failed to send WhatsApp message" });
+    }
+  }
 );
 
 // ─── POST /assignments/:id/checkout ──────────────────────────────────────

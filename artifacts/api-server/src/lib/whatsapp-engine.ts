@@ -109,6 +109,7 @@ export async function getWhatsAppSession(propertyId: number): Promise<SessionSta
   if (!session.sock && !session.isInitializing) {
     const sessionFolder = path.join(SESSIONS_DIR, `property_${propertyId}`);
     if (fs.existsSync(path.join(sessionFolder, "creds.json"))) {
+      session.isInitializing = true;
       connectPropertyWhatsApp(propertyId).catch((err) => {
         console.warn(`[WhatsApp] Auto-restore connection warning for property ${propertyId}:`, err?.message);
       });
@@ -122,11 +123,22 @@ export async function getWhatsAppSession(propertyId: number): Promise<SessionSta
  * Connect to WhatsApp for a property (generate QR code or restore existing session)
  */
 export async function connectPropertyWhatsApp(propertyId: number): Promise<SessionState> {
-  const session = await getWhatsAppSession(propertyId);
+  let session = activeSessions.get(propertyId);
+  if (!session) {
+    session = {
+      propertyId,
+      sock: null,
+      status: "disconnected",
+      reconnectAttempts: 0,
+      isInitializing: false,
+    };
+    activeSessions.set(propertyId, session);
+  }
+
   if (session.status === "connected" && session.sock) {
     return session;
   }
-  if (session.isInitializing) {
+  if (session.sock) {
     return session;
   }
 
@@ -570,8 +582,18 @@ export async function sendCheckInWhatsAppNotification(params: {
     }
 
     const profile = profileRes.rows[0];
+    const fullName = profile ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() : `Profile #${profileId}`;
     if (!profile || !profile.phone || !profile.phone.trim()) {
-      console.log(`[WhatsApp Auto-Send] Profile ${profileId} has no phone number, skipping.`);
+      console.log(`[WhatsApp Auto-Send] Profile ${profileId} (${fullName}) has no phone number, skipping.`);
+      await logDelivery(
+        propertyId,
+        "N/A",
+        fullName || `Profile #${profileId}`,
+        "CHECKIN_WELCOME",
+        `تم تخطي الإرسال لعدم وجود رقم هاتف مسجل في ملف الموظف (${fullName || profileId}).`,
+        "FAILED",
+        "رقم هاتف الموظف غير مسجل في ملفه الشخصي (No phone number in profile)"
+      ).catch(() => {});
       return;
     }
 
@@ -583,7 +605,7 @@ export async function sendCheckInWhatsAppNotification(params: {
 
     // 4. Fetch room, floor, building info from tenant schema
     let roomRes = await pool.query(
-      `SELECT r.room_number, f.name as floor_name, b.name as building_name
+      `SELECT r.room_number, f.floor_number as floor_name, b.name as building_name
        FROM ${schemaName}.rooms r
        LEFT JOIN ${schemaName}.floors f ON r.floor_id = f.id
        LEFT JOIN ${schemaName}.buildings b ON r.building_id = b.id
@@ -593,7 +615,7 @@ export async function sendCheckInWhatsAppNotification(params: {
 
     if (!roomRes.rows[0]) {
       roomRes = await pool.query(
-        `SELECT r.room_number, f.name as floor_name, b.name as building_name
+        `SELECT r.room_number, f.floor_number as floor_name, b.name as building_name
          FROM public.rooms r
          LEFT JOIN public.floors f ON r.floor_id = f.id
          LEFT JOIN public.buildings b ON r.building_id = b.id
@@ -603,38 +625,31 @@ export async function sendCheckInWhatsAppNotification(params: {
     }
     const room = roomRes.rows[0] || {};
 
-    // 5. Fetch bed info if any
+    // 5. Bed info
     let bedLabel = isArabic ? "سرير مخصص" : "Assigned Bed";
     if (bedId) {
-      let bedRes = await pool.query(
-        `SELECT bed_number, bed_label FROM ${schemaName}.room_beds WHERE id = $1`,
-        [bedId]
-      ).catch(() => ({ rows: [] as any[] }));
-
-      if (!bedRes.rows[0]) {
-        bedRes = await pool.query(
-          `SELECT bed_number, bed_label FROM public.room_beds WHERE id = $1`,
-          [bedId]
-        ).catch(() => ({ rows: [] as any[] }));
-      }
-
-      if (bedRes.rows[0]) {
-        bedLabel = bedRes.rows[0].bed_label || (isArabic ? `سرير ${bedRes.rows[0].bed_number}` : `Bed ${bedRes.rows[0].bed_number}`);
-      }
+      bedLabel = isArabic ? `سرير ${bedId}` : `Bed ${bedId}`;
     }
 
+    // Floor label
+    let floorLabel = room.floor_name
+      ? (isArabic ? `الدور ${room.floor_name}` : `Floor ${room.floor_name}`)
+      : (isArabic ? "الطابق الأول" : "First Floor");
+
+    // Clean check-in date
+    const cleanDate = (String(startDate || "").split("T")[0]) || new Date().toISOString().split("T")[0];
+
     // 6. Compile template based on detected language
-    const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
     const portalUrl = process.env.PORTAL_URL || "https://portal.sunrise-housing.com";
 
     const vars = {
       employee_name: fullName,
       property_name: propertyName,
       building_name: room.building_name || (isArabic ? "المبنى الرئيسي" : "Main Building"),
-      floor_name: room.floor_name || (isArabic ? "الطابق الأول" : "First Floor"),
+      floor_name: floorLabel,
       room_number: room.room_number || String(roomId),
       bed_label: bedLabel,
-      checkin_date: startDate || new Date().toISOString().split("T")[0],
+      checkin_date: cleanDate,
       portal_url: portalUrl,
       supervisor_contact: config?.supervisor_contact || "",
     };
@@ -658,4 +673,69 @@ export async function sendCheckInWhatsAppNotification(params: {
   } catch (err: any) {
     console.error("[WhatsApp Auto-Send] Error in notification handler:", err);
   }
+}
+
+/**
+ * Manually trigger or resend WhatsApp welcome notification for an assignment
+ */
+export async function sendWelcomeWhatsAppForAssignment(params: {
+  propertyId: number;
+  assignmentId: number;
+  phoneOverride?: string;
+}): Promise<{ success: boolean; error?: string; message?: string }> {
+  const { propertyId, assignmentId, phoneOverride } = params;
+
+  // Resolve tenant schema name
+  const propRes = await pool.query(
+    `SELECT name, display_name, schema_name FROM public.properties WHERE id = $1`,
+    [propertyId]
+  );
+  const prop = propRes.rows[0];
+  if (!prop) return { success: false, error: "Property not found" };
+  const schemaName = (prop.schema_name || "public").trim();
+
+  // Find assignment
+  let assignRes = await pool.query(
+    `SELECT * FROM ${schemaName}.assignments WHERE id = $1`,
+    [assignmentId]
+  ).catch(() => ({ rows: [] as any[] }));
+
+  if (!assignRes.rows[0]) {
+    assignRes = await pool.query(
+      `SELECT * FROM public.assignments WHERE id = $1`,
+      [assignmentId]
+    ).catch(() => ({ rows: [] as any[] }));
+  }
+
+  const assignment = assignRes.rows[0];
+  if (!assignment) {
+    return { success: false, error: "Assignment record not found" };
+  }
+
+  // If phoneOverride provided, update profile phone in tenant schema
+  if (phoneOverride && phoneOverride.trim()) {
+    const cleanPhone = phoneOverride.trim();
+    await pool.query(
+      `UPDATE ${schemaName}.profiles SET phone = $1 WHERE id = $2`,
+      [cleanPhone, assignment.profile_id]
+    ).catch(() => {});
+    await pool.query(
+      `UPDATE public.profiles SET phone = $1 WHERE id = $2`,
+      [cleanPhone, assignment.profile_id]
+    ).catch(() => {});
+  }
+
+  // Trigger checkin notification
+  await sendCheckInWhatsAppNotification({
+    propertyId,
+    profileId: assignment.profile_id,
+    roomId: assignment.room_id,
+    bedId: assignment.bed_number || assignment.bed_id || null,
+    startDate: assignment.check_in_date || assignment.start_date,
+  });
+
+  return {
+    success: true,
+    message: "تم جدولة إرسال رسالة التسكين عبر الواتساب بنجاح",
+  };
 }
