@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Loader2,
   Send,
@@ -8,11 +8,27 @@ import {
   Plus,
   Smile,
   X,
+  Phone,
+  Video,
+  MoreVertical,
+  Paperclip,
+  Camera,
+  Mic,
+  Image as ImageIcon,
+  FileText,
+  MapPin,
+  MessageSquarePlus,
+  Check,
+  CheckCheck,
+  Clock,
+  Filter,
 } from "lucide-react";
 import { useTheme } from "../../lib/theme";
 import { apiFetch } from "../../lib/api";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { WhatsAppDoodleBg } from "./WhatsAppDoodleBg";
+import { toast } from "sonner";
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface Employee {
@@ -704,8 +720,16 @@ export function TabChat({
   onUnreadChange,
   onChatOpenChange,
 }: TabChatProps) {
-  const { lang } = useTheme();
+  const { lang, theme } = useTheme();
   const isRtl = lang === "ar";
+  const isDark = theme === "dark";
+
+  const [showAttachments, setShowAttachments] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [convFilter, setConvFilter] = useState<"all" | "unread" | "groups">("all");
+  const [convSearch, setConvSearch] = useState("");
+  const [showChatSearch, setShowChatSearch] = useState(false);
+  const [chatSearch, setChatSearch] = useState("");
 
   /* ── Resolve effective myEmployeeId with fallback to storage ── */
   const [resolvedMyId, setResolvedMyId] = useState<number | undefined>(() => {
@@ -1331,6 +1355,7 @@ export function TabChat({
           lastMessage: null,
           unreadCount: 0,
         };
+        setSenders((prev) => ({ ...prev, [emp.id]: emp }));
         setConversations((prev) => [newConv, ...prev]);
         setShowNewConv(false);
         setSearch("");
@@ -1382,13 +1407,17 @@ export function TabChat({
   function getConvTitle(conv: Conversation): string {
     if (conv.isGroup) return conv.subject || (isRtl ? "مجموعة" : "Group");
     const otherId = conv.participantIds.find((id) => id !== effectiveMyId);
-    return otherId ? getParticipantName(otherId, conv) : conv.subject || "Chat";
+    const pName = otherId ? getParticipantName(otherId, conv) : null;
+    if (pName && !pName.startsWith("#")) return pName;
+    if (conv.subject && !conv.subject.startsWith("#")) return conv.subject;
+    return pName || conv.subject || (isRtl ? "محادثة" : "Chat");
   }
 
   function getConvPhoto(conv: Conversation): string | null {
     if (conv.isGroup) return null;
     const otherId = conv.participantIds.find((id) => id !== effectiveMyId);
-    return otherId ? getParticipantPhoto(otherId, conv) : null;
+    if (!otherId) return null;
+    return getParticipantPhoto(otherId, conv);
   }
 
   const insertEmoji = (emoji: string) => {
@@ -1396,265 +1425,382 @@ export function TabChat({
     inputRef.current?.focus();
   };
 
+  // Filter conversations by filter chip and search (called at top level to obey rules of hooks)
+  const filteredConversations = useMemo(() => {
+    return conversations.filter((c) => {
+      // Search filter
+      if (convSearch.trim()) {
+        const title = getConvTitle(c).toLowerCase();
+        const lastMsg = c.lastMessage?.content.toLowerCase() || "";
+        const q = convSearch.trim().toLowerCase();
+        if (!title.includes(q) && !lastMsg.includes(q)) return false;
+      }
+      // Category filter
+      if (convFilter === "unread") return c.unreadCount > 0;
+      if (convFilter === "groups") return c.isGroup;
+      return true;
+    });
+  }, [conversations, convSearch, convFilter]);
+
   /* ════════════════════════════════════════════════════════════════
-     CHAT ROOM VIEW
+     CHAT ROOM VIEW (WHATSAPP AUTHENTIC UI)
      ════════════════════════════════════════════════════════════════ */
   if (activeConv) {
     const title = getConvTitle(activeConv);
     const photo = getConvPhoto(activeConv);
     const BackIcon = isRtl ? ArrowRight : ArrowLeft;
+    const isTyping = (typingUsers[activeConv.id]?.size || 0) > 0;
+
+    const filteredMessages = chatSearch.trim()
+      ? messages.filter((m) =>
+          m.content.toLowerCase().includes(chatSearch.trim().toLowerCase())
+        )
+      : messages;
 
     return (
       <div
+        className="flex flex-col h-[calc(100dvh-125px)] relative overflow-hidden select-none"
         style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "calc(100dvh - 130px)",
-          background: "hsl(var(--background))",
+          backgroundColor: isDark ? "#0b141a" : "#efeae2",
         }}
       >
-        {/* ── Header ── */}
+        {/* ── WhatsApp Doodle Background ── */}
+        <WhatsAppDoodleBg isDark={isDark} />
+
+        {/* ── WhatsApp Top Header ── */}
         <div
+          className="relative z-20 flex items-center justify-between px-3 py-2.5 shadow-md flex-shrink-0 transition-colors"
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            padding: "10px 14px",
-            background: "hsl(var(--card))",
-            borderBottom: "0.5px solid hsl(var(--border2))",
-            flexShrink: 0,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+            backgroundColor: isDark ? "#202c33" : "#008069",
+            color: "#ffffff",
           }}
         >
-          <button
-            onClick={() => {
-              setActiveConv(null);
-              setMessages([]);
-              setShowEmoji(false);
-              loadConversations(false);
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "6px",
-              borderRadius: "50%",
-              display: "flex",
-              color: "hsl(var(--foreground))",
-            }}
-          >
-            <BackIcon style={{ width: "22px", height: "22px" }} />
-          </button>
-          {photo ? (
-            <img
-              src={photo}
-              alt={title}
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "1.5px solid hsl(var(--border2))",
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <button
+              onClick={() => {
+                setActiveConv(null);
+                setMessages([]);
+                setShowEmoji(false);
+                setShowAttachments(false);
+                setShowOptionsMenu(false);
+                setShowChatSearch(false);
+                setChatSearch("");
+                loadConversations(false);
               }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, hsl(var(--accent2)), hsl(var(--accent2)/0.65))",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontWeight: 700,
-                fontSize: "17px",
-                flexShrink: 0,
-              }}
+              className="p-1 -m-1 rounded-full hover:bg-white/10 active:scale-95 transition-all text-white flex items-center justify-center"
+              aria-label="Back"
             >
-              {title.charAt(0).toUpperCase()}
+              <BackIcon className="w-5 h-5" />
+            </button>
+
+            {/* Avatar with WhatsApp online badge */}
+            <div className="relative flex-shrink-0">
+              {photo ? (
+                <img
+                  src={photo}
+                  alt={title}
+                  className="w-10 h-10 rounded-full object-cover border border-white/20"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center text-white font-bold text-base border border-white/20">
+                  {title.charAt(0).toUpperCase()}
+                </div>
+              )}
+              {/* Green online dot */}
+              <span className="absolute bottom-0 end-0 w-3 h-3 bg-[#25d366] border-2 border-white rounded-full"></span>
             </div>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: "15px",
-                color: "hsl(var(--foreground))",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {title}
-            </div>
-            {typingUsers[activeConv.id]?.size > 0 && (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "hsl(var(--accent2))",
-                  fontWeight: 600,
-                  animation: "pulse 1.5s infinite",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {isRtl ? "يكتب الآن..." : "Typing..."}
+
+            {/* Title & Status */}
+            <div className="min-w-0 flex-1 leading-tight">
+              <div className="font-semibold text-[15px] truncate text-white">
+                {title}
               </div>
-            )}
+              <div className="text-[12px] text-white/80 font-normal truncate">
+                {isTyping ? (
+                  <span className="text-[#a7f3d0] font-medium animate-pulse">
+                    {isRtl ? "يكتب الآن..." : "typing..."}
+                  </span>
+                ) : (
+                  <span>{isRtl ? "متصل الآن" : "online"}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* WhatsApp Header Action Icons */}
+          <div className="flex items-center gap-3.5 text-white/90 pe-1">
+            <button
+              type="button"
+              onClick={() =>
+                toast.info(
+                  isRtl
+                    ? "مكالمة الفيديو ستتوفر في التحديث القادم"
+                    : "Video call available in next update"
+                )
+              }
+              className="hover:text-white active:scale-90 transition-transform p-1"
+              title={isRtl ? "مكالمة فيديو" : "Video Call"}
+            >
+              <Video className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                toast.info(
+                  isRtl
+                    ? "المكالمة الصوتية ستتوفر في التحديث القادم"
+                    : "Voice call available in next update"
+                )
+              }
+              className="hover:text-white active:scale-90 transition-transform p-1"
+              title={isRtl ? "مكالمة صوتية" : "Voice Call"}
+            >
+              <Phone className="w-4.5 h-4.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowChatSearch((prev) => !prev)}
+              className={`hover:text-white active:scale-90 transition-transform p-1 ${
+                showChatSearch ? "text-[#a7f3d0]" : ""
+              }`}
+              title={isRtl ? "بحث في المحادثة" : "Search in chat"}
+            >
+              <Search className="w-5 h-5" />
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowOptionsMenu((prev) => !prev)}
+                className="hover:text-white active:scale-90 transition-transform p-1"
+                title={isRtl ? "المزيد من الخيارات" : "More options"}
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+
+              {showOptionsMenu && (
+                <div
+                  className="absolute end-0 top-8 w-48 bg-white dark:bg-[#233138] rounded-xl shadow-xl py-1 z-50 text-gray-800 dark:text-gray-100 text-sm border border-black/5 dark:border-white/10 animate-in fade-in zoom-in-95 duration-100"
+                  onClick={() => setShowOptionsMenu(false)}
+                >
+                  <button
+                    className="w-full text-start px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors flex items-center gap-2"
+                    onClick={() =>
+                      toast.info(
+                        isRtl
+                          ? `جهة الاتصال: ${title}`
+                          : `Contact info: ${title}`
+                      )
+                    }
+                  >
+                    {isRtl ? "معلومات جهة الاتصال" : "Contact info"}
+                  </button>
+                  <button
+                    className="w-full text-start px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors flex items-center gap-2"
+                    onClick={() => {
+                      setMessages([]);
+                      toast.success(
+                        isRtl ? "تم تفريغ المحادثة محلياً" : "Chat cleared locally"
+                      );
+                    }}
+                  >
+                    {isRtl ? "مسح محتوى المحادثة" : "Clear chat"}
+                  </button>
+                  <button
+                    className="w-full text-start px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors text-red-500 flex items-center gap-2"
+                    onClick={() => {
+                      setActiveConv(null);
+                      toast.info(
+                        isRtl ? "تم إغلاق المحادثة" : "Chat closed"
+                      );
+                    }}
+                  >
+                    {isRtl ? "إغلاق المحادثة" : "Close chat"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* ── Messages ── */}
+        {/* ── Optional In-Chat Search Bar ── */}
+        {showChatSearch && (
+          <div
+            className="relative z-20 px-3 py-2 border-b flex items-center gap-2 animate-in slide-in-from-top-2 duration-150"
+            style={{
+              backgroundColor: isDark ? "#111b21" : "#f0f2f5",
+              borderColor: isDark ? "#222d34" : "#e9edef",
+            }}
+          >
+            <Search className="w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={chatSearch}
+              onChange={(e) => setChatSearch(e.target.value)}
+              placeholder={isRtl ? "بحث في الرسائل..." : "Search messages..."}
+              className="flex-1 bg-transparent border-none outline-none text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400"
+              autoFocus
+            />
+            {chatSearch && (
+              <button
+                onClick={() => setChatSearch("")}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setShowChatSearch(false);
+                setChatSearch("");
+              }}
+              className="text-xs font-semibold text-[#00a884] px-1"
+            >
+              {isRtl ? "إلغاء" : "Cancel"}
+            </button>
+          </div>
+        )}
+
+        {/* ── Messages Container ── */}
         <div
+          className="relative z-10 flex-1 overflow-y-auto px-3 py-2 space-y-1"
           style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "12px 14px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
             WebkitOverflowScrolling: "touch",
-            backgroundColor: "#efeae2",
-            backgroundImage:
-              "url('https://w0.peakpx.com/wallpaper/508/606/HD-wallpaper-whatsapp-background-thumbnail.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundBlendMode: "overlay",
           }}
         >
-          {messages.length === 0 ? (
-            <div
+          {/* WhatsApp Centered Date Pill */}
+          <div className="flex justify-center my-2">
+            <span
+              className="px-3 py-1 rounded-lg text-[11.5px] font-medium shadow-xs"
               style={{
-                textAlign: "center",
-                color: "hsl(var(--muted2))",
-                fontSize: "13px",
-                paddingTop: "50px",
+                backgroundColor: isDark ? "#182229e6" : "#ffffffd9",
+                color: isDark ? "#8696a0" : "#54656f",
               }}
             >
-              {isRtl ? "لا توجد رسائل بعد" : "No messages yet"}
+              {isRtl ? "اليوم" : "Today"}
+            </span>
+          </div>
+
+          {filteredMessages.length === 0 ? (
+            <div className="text-center py-12">
+              <span
+                className="inline-block px-4 py-2 rounded-xl text-xs shadow-xs"
+                style={{
+                  backgroundColor: isDark ? "#182229e6" : "#ffffffcc",
+                  color: isDark ? "#8696a0" : "#54656f",
+                }}
+              >
+                {chatSearch.trim()
+                  ? isRtl
+                    ? "لا توجد رسائل مطابقة للبحث"
+                    : "No matching messages"
+                  : isRtl
+                  ? "🔒 الرسائل مشفرة داخل نظام السكن. ابدأ المحادثة الآن!"
+                  : "🔒 Messages are encrypted inside housing system. Start chatting!"}
+              </span>
             </div>
           ) : (
-            messages.map((msg, idx) => {
-              const isMe = msg.senderId === myEmployeeId;
+            filteredMessages.map((msg, idx) => {
+              const isMe = msg.senderId === (effectiveMyId ?? myEmployeeId);
               const isAdmin = msg.senderId === 0;
               const isRead = (msg.reads?.length || 0) > 0;
               const isTemp = msg.id < 0;
-              // Group consecutive same-sender messages
-              const prevMsg = messages[idx - 1];
+              const prevMsg = filteredMessages[idx - 1];
               const isSameSender = prevMsg && prevMsg.senderId === msg.senderId;
 
               return (
                 <div
                   key={msg.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: isMe ? "flex-end" : "flex-start",
-                    marginBottom: isSameSender ? "2px" : "6px",
-                    direction: "ltr",
-                  }}
+                  className={`flex ${isMe ? "justify-end" : "justify-start"} ${
+                    isSameSender ? "mt-0.5" : "mt-2"
+                  }`}
+                  style={{ direction: "ltr" }}
                 >
-                  {/* Avatar for other side */}
-                  {!isMe && !isSameSender && (
+                  {/* Avatar for group chats if not me and first in chain */}
+                  {!isMe && !isSameSender && activeConv.isGroup && (
                     <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-[11px] me-1 self-end mb-1 flex-shrink-0 shadow-xs"
                       style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "50%",
-                        background: isAdmin 
+                        background: isAdmin
                           ? "linear-gradient(135deg, #2563eb, #1d4ed8)"
-                          : "linear-gradient(135deg, hsl(var(--accent2)), hsl(var(--accent2)/0.6))",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "white",
-                        fontWeight: 700,
-                        fontSize: "12px",
-                        flexShrink: 0,
-                        marginRight: "6px",
-                        alignSelf: "flex-end",
+                          : "linear-gradient(135deg, #00a884, #02906f)",
                       }}
                     >
-                      {isAdmin ? "⚙️" : getParticipantName(msg.senderId).charAt(0).toUpperCase()}
+                      {isAdmin ? "⚙️" : getParticipantName(msg.senderId, activeConv).charAt(0).toUpperCase()}
                     </div>
                   )}
-                  {!isMe && isSameSender && (
-                    <div style={{ width: "36px", flexShrink: 0 }} />
+                  {!isMe && isSameSender && activeConv.isGroup && (
+                    <div className="w-8 flex-shrink-0" />
                   )}
 
+                  {/* Speech Bubble */}
                   <div
+                    className={`relative max-w-[82%] px-3 py-1.5 shadow-xs transition-opacity ${
+                      isMe
+                        ? isRtl
+                          ? "rounded-2xl rounded-tl-xs"
+                          : "rounded-2xl rounded-tr-xs"
+                        : isRtl
+                        ? "rounded-2xl rounded-tr-xs"
+                        : "rounded-2xl rounded-tl-xs"
+                    }`}
                     style={{
-                      position: "relative",
-                      maxWidth: "78%",
-                      padding: "9px 13px",
-                      borderRadius: isMe
-                        ? "16px 16px 4px 16px"
-                        : "16px 16px 16px 4px",
-                      background: isMe ? "#dcf8c6" : (isAdmin ? "#eff6ff" : "#ffffff"),
-                      border: isAdmin ? "1px solid #bfdbfe" : "none",
-                      color: "#000000",
-                      boxShadow: "0 1px 1px rgba(0,0,0,0.1)",
+                      backgroundColor: isMe
+                        ? isDark
+                          ? "#005c4b"
+                          : "#d9fdd3"
+                        : isDark
+                        ? "#202c33"
+                        : "#ffffff",
+                      color: isDark ? "#e9edef" : "#111b21",
                       opacity: isTemp ? 0.7 : 1,
-                      transition: "opacity 0.2s ease",
                     }}
                   >
-                    {/* Sender name for groups */}
+                    {/* Sender Name in group */}
                     {!isMe && activeConv.isGroup && !isSameSender && (
                       <div
+                        className="text-[11.5px] font-bold mb-0.5"
                         style={{
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          color: isAdmin ? "#2563eb" : "hsl(var(--accent2))",
-                          marginBottom: "3px",
+                          color: isAdmin ? "#3b82f6" : "#00a884",
                         }}
                       >
-                        {getParticipantName(msg.senderId)}
+                        {getParticipantName(msg.senderId, activeConv)}
                       </div>
                     )}
+
+                    {/* Content */}
                     <div
+                      className="text-[14.2px] leading-relaxed break-words whitespace-pre-wrap select-text"
                       style={{
-                        fontSize: "14px",
-                        lineHeight: 1.5,
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
+                        direction: /[\u0600-\u06FF]/.test(msg.content) ? "rtl" : "ltr",
+                        textAlign: /[\u0600-\u06FF]/.test(msg.content) ? "right" : "left",
                       }}
                     >
                       {msg.content}
                     </div>
-                    {/* Time + ticks */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "flex-end",
-                        gap: "3px",
-                        marginTop: "2px",
-                      }}
-                    >
-                      <span style={{ fontSize: "10px", opacity: 0.7 }}>
+
+                    {/* Metadata: Time + WhatsApp checks */}
+                    <div className="flex items-center justify-end gap-1 mt-0.5 select-none">
+                      <span
+                        className="text-[10.5px]"
+                        style={{
+                          color: isDark ? "#8696a0" : "#667781",
+                        }}
+                      >
                         {formatTime(msg.createdAt)}
                       </span>
                       {isMe && !isTemp && (
                         <TickIcon
                           read={isRead}
-                          color={isRead ? "#34B7F1" : "rgba(0,0,0,0.4)"}
+                          color={isRead ? "#53bdeb" : isDark ? "#8696a0" : "#667781"}
                         />
                       )}
                       {isMe && isTemp && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="rgba(0,0,0,0.4)"
-                          strokeWidth="2"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 6v6l4 2" />
-                        </svg>
+                        <Clock
+                          className="w-3 h-3 animate-spin"
+                          style={{
+                            color: isDark ? "#8696a0" : "#667781",
+                          }}
+                        />
                       )}
                     </div>
                   </div>
@@ -1665,69 +1811,119 @@ export function TabChat({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* ── Emoji Picker ── */}
+        {/* ── WhatsApp Attachments Sheet ── */}
+        {showAttachments && (
+          <div
+            className="relative z-30 p-4 mx-3 mb-2 rounded-2xl shadow-2xl border animate-in slide-in-from-bottom-3 duration-200"
+            style={{
+              backgroundColor: isDark ? "#202c33" : "#ffffff",
+              borderColor: isDark ? "#2a3942" : "#e9edef",
+            }}
+          >
+            <div className="grid grid-cols-4 gap-3 text-center">
+              {/* Camera */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAttachments(false);
+                  toast.info(isRtl ? "تم فتح الكاميرا (محاكاة)" : "Camera opened (mock)");
+                }}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-md">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                  {isRtl ? "الكاميرا" : "Camera"}
+                </span>
+              </button>
+
+              {/* Gallery / Photos */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAttachments(false);
+                  toast.info(isRtl ? "تم فتح معرض الصور (محاكاة)" : "Gallery opened (mock)");
+                }}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white flex items-center justify-center shadow-md">
+                  <ImageIcon className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                  {isRtl ? "المعرض" : "Photos"}
+                </span>
+              </button>
+
+              {/* Document */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAttachments(false);
+                  toast.info(isRtl ? "تم اختيار مستند (محاكاة)" : "Document chosen (mock)");
+                }}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-500 text-white flex items-center justify-center shadow-md">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                  {isRtl ? "مستند" : "Document"}
+                </span>
+              </button>
+
+              {/* Location */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAttachments(false);
+                  toast.info(isRtl ? "مشاركة الموقع الحالي (محاكاة)" : "Share location (mock)");
+                }}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-md">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                  {isRtl ? "الموقع" : "Location"}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── WhatsApp Emoji Drawer ── */}
         {showEmoji && (
           <div
+            className="relative z-30 p-2 border-t flex-shrink-0 shadow-lg"
             style={{
-              background: "hsl(var(--card))",
-              borderTop: "0.5px solid hsl(var(--border2))",
-              padding: "8px",
-              flexShrink: 0,
+              backgroundColor: isDark ? "#202c33" : "#f0f2f5",
+              borderColor: isDark ? "#2a3942" : "#e9edef",
             }}
           >
             {/* Category tabs */}
-            <div
-              style={{
-                display: "flex",
-                gap: "4px",
-                marginBottom: "6px",
-                overflowX: "auto",
-              }}
-            >
+            <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-none">
               {EMOJI_CATEGORIES.map((cat, i) => (
                 <button
                   key={i}
                   onClick={() => setEmojiCategory(i)}
-                  style={{
-                    fontSize: "18px",
-                    padding: "4px 8px",
-                    borderRadius: "8px",
-                    border: "none",
-                    cursor: "pointer",
-                    background:
-                      emojiCategory === i
-                        ? "hsl(var(--accent2)/0.15)"
-                        : "transparent",
-                    flexShrink: 0,
-                  }}
+                  className={`text-lg p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+                    emojiCategory === i
+                      ? "bg-[#00a884]/20 border-b-2 border-[#00a884]"
+                      : "hover:bg-black/5 dark:hover:bg-white/5"
+                  }`}
                 >
                   {cat.label}
                 </button>
               ))}
             </div>
             {/* Emojis grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(8, 1fr)",
-                gap: "2px",
-                maxHeight: "140px",
-                overflowY: "auto",
-              }}
-            >
+            <div className="grid grid-cols-8 gap-1 max-h-[140px] overflow-y-auto">
               {EMOJI_CATEGORIES[emojiCategory].emojis.map((e) => (
                 <button
                   key={e}
                   onClick={() => insertEmoji(e)}
-                  style={{
-                    fontSize: "22px",
-                    padding: "4px",
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    borderRadius: "6px",
-                    lineHeight: 1.3,
-                  }}
+                  className="text-2xl p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 active:scale-90 transition-transform flex items-center justify-center leading-none"
                 >
                   {e}
                 </button>
@@ -1736,14 +1932,12 @@ export function TabChat({
           </div>
         )}
 
-        {/* ── Input Area ── */}
+        {/* ── WhatsApp Bottom Input Bar ── */}
         <div
+          className="relative z-20 px-2 py-2 flex-shrink-0 transition-colors"
           style={{
-            padding: "8px 10px",
+            backgroundColor: isDark ? "#111b21" : "#f0f2f5",
             paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
-            background: "hsl(var(--card))",
-            borderTop: "0.5px solid hsl(var(--border2))",
-            flexShrink: 0,
           }}
         >
           <form
@@ -1751,121 +1945,136 @@ export function TabChat({
               e.preventDefault();
               sendMessage();
             }}
-            style={{ display: "flex", alignItems: "flex-end", gap: "6px" }}
+            className="flex items-end gap-2"
           >
-            {/* Emoji button */}
-            <button
-              type="button"
-              onClick={() => setShowEmoji((v) => !v)}
+            {/* Main Rounded Input Pill */}
+            <div
+              className="flex-1 flex items-end rounded-[24px] px-2.5 py-1.5 shadow-xs transition-colors"
               style={{
-                width: "40px",
-                height: "40px",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "50%",
-                background: showEmoji
-                  ? "hsl(var(--accent2)/0.15)"
-                  : "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: showEmoji ? "hsl(var(--accent2))" : "hsl(var(--muted2))",
+                backgroundColor: isDark ? "#2a3942" : "#ffffff",
               }}
             >
-              {showEmoji ? (
-                <X style={{ width: "20px", height: "20px" }} />
-              ) : (
-                <Smile style={{ width: "20px", height: "20px" }} />
-              )}
-            </button>
+              {/* Emoji toggle button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmoji((v) => !v);
+                  if (showAttachments) setShowAttachments(false);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 mb-0.5 text-[#54656f] dark:text-[#8696a0] transition-colors"
+              >
+                {showEmoji ? (
+                  <X className="w-5 h-5 text-[#00a884]" />
+                ) : (
+                  <Smile className="w-5 h-5" />
+                )}
+              </button>
 
-            {/* Text input */}
-            <textarea
-              ref={inputRef}
-              rows={1}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height =
-                  Math.min(e.target.scrollHeight, 100) + "px";
+              {/* Textarea */}
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height =
+                    Math.min(e.target.scrollHeight, 100) + "px";
 
-                // Trigger typing event (debounced 1s)
-                if (!typingTimeoutRef.current[activeConv.id]) {
-                  apiFetch(
-                    `/api/portal-chat/conversations/${activeConv.id}/typing`,
-                    { method: "POST", credentials: "include" },
-                  ).catch(() => {});
-                  typingTimeoutRef.current[activeConv.id] = setTimeout(() => {
-                    typingTimeoutRef.current[activeConv.id] = null;
-                  }, 1000);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder={isRtl ? "اكتب رسالة..." : "Type a message..."}
-              style={{
-                flex: 1,
-                background: "hsl(var(--surface))",
-                border: "1px solid hsl(var(--border2))",
-                borderRadius: "22px",
-                padding: "10px 16px",
-                fontSize: "14px",
-                color: "hsl(var(--foreground))",
-                outline: "none",
-                resize: "none",
-                minHeight: "42px",
-                maxHeight: "100px",
-                lineHeight: 1.4,
-                direction: isRtl ? "rtl" : "ltr",
-                fontFamily: "inherit",
-              }}
-            />
+                  if (!typingTimeoutRef.current[activeConv.id]) {
+                    apiFetch(
+                      `/api/portal-chat/conversations/${activeConv.id}/typing`,
+                      { method: "POST", credentials: "include" }
+                    ).catch(() => {});
+                    typingTimeoutRef.current[activeConv.id] = setTimeout(() => {
+                      typingTimeoutRef.current[activeConv.id] = null;
+                    }, 1000);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                placeholder={isRtl ? "اكتب رسالة..." : "Type a message..."}
+                className="flex-1 bg-transparent border-none outline-none resize-none min-h-[36px] max-h-[100px] leading-relaxed text-[14.5px] px-2 py-1 placeholder-gray-400 dark:placeholder-gray-500"
+                style={{
+                  color: isDark ? "#e9edef" : "#111b21",
+                  direction: isRtl ? "rtl" : "ltr",
+                  fontFamily: "inherit",
+                }}
+              />
 
-            {/* Send button */}
-            <button
-              type="submit"
-              disabled={!input.trim() || sending}
-              style={{
-                width: "42px",
-                height: "42px",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "50%",
-                background: input.trim()
-                  ? "hsl(var(--accent2))"
-                  : "hsl(var(--border2))",
-                color: input.trim() ? "white" : "hsl(var(--muted2))",
-                border: "none",
-                cursor: input.trim() ? "pointer" : "default",
-                transition: "background 0.2s ease, transform 0.1s ease",
-              }}
-            >
-              {sending ? (
-                <Loader2
-                  style={{
-                    width: "18px",
-                    height: "18px",
-                    animation: "spin 1s linear infinite",
+              {/* Paperclip attachment button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAttachments((v) => !v);
+                  if (showEmoji) setShowEmoji(false);
+                }}
+                className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 mb-0.5 transition-colors ${
+                  showAttachments
+                    ? "text-[#00a884]"
+                    : "text-[#54656f] dark:text-[#8696a0]"
+                }`}
+                title={isRtl ? "إرفاق" : "Attach"}
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+
+              {/* Camera icon if empty input */}
+              {!input.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.info(isRtl ? "فتح الكاميرا لالتقاط صورة" : "Open camera to snap a photo");
                   }}
-                />
-              ) : (
-                <Send
-                  style={{
-                    width: "18px",
-                    height: "18px",
-                    marginInlineStart: "2px",
-                  }}
-                />
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 mb-0.5 text-[#54656f] dark:text-[#8696a0] transition-colors"
+                  title={isRtl ? "الكاميرا" : "Camera"}
+                >
+                  <Camera className="w-5 h-5" />
+                </button>
               )}
-            </button>
+            </div>
+
+            {/* Floating Action Button (Mic / Send) */}
+            {input.trim() ? (
+              <button
+                type="submit"
+                disabled={sending}
+                className="w-11 h-11 rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all flex-shrink-0"
+                style={{
+                  backgroundColor: "#00a884",
+                }}
+                title={isRtl ? "إرسال" : "Send"}
+              >
+                {sending ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className={`w-5 h-5 ${isRtl ? "rotate-180" : ""}`} />
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if ("vibrate" in navigator) navigator.vibrate(60);
+                  toast.success(
+                    isRtl
+                      ? "🎙️ تم بدء تسجيل صوتي تجريبي"
+                      : "🎙️ Voice recording simulated"
+                  );
+                }}
+                className="w-11 h-11 rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all flex-shrink-0"
+                style={{
+                  backgroundColor: "#00a884",
+                }}
+                title={isRtl ? "تسجيل صوتي" : "Record voice note"}
+              >
+                <Mic className="w-5 h-5" />
+              </button>
+            )}
           </form>
         </div>
       </div>
@@ -1873,28 +2082,26 @@ export function TabChat({
   }
 
   /* ════════════════════════════════════════════════════════════════
-     NEW CHAT VIEW
+     NEW CHAT VIEW (WHATSAPP AUTHENTIC UI)
      ════════════════════════════════════════════════════════════════ */
   if (showNewConv) {
     const BackIcon = isRtl ? ArrowRight : ArrowLeft;
+    const availableEmployees = employees.filter(
+      (e) => e.id !== (effectiveMyId ?? myEmployeeId)
+    );
+
     return (
       <div
+        className="flex flex-col h-[calc(100dvh-125px)] relative overflow-hidden select-none"
         style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "calc(100dvh - 130px)",
-          background: "hsl(var(--background))",
+          backgroundColor: isDark ? "#111b21" : "#ffffff",
         }}
       >
+        {/* ── WhatsApp Top Bar ── */}
         <div
+          className="px-3 py-2.5 shadow-sm flex items-center gap-3 text-white flex-shrink-0 transition-colors"
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            padding: "12px 14px",
-            background: "hsl(var(--card))",
-            borderBottom: "0.5px solid hsl(var(--border2))",
-            flexShrink: 0,
+            backgroundColor: isDark ? "#202c33" : "#008069",
           }}
         >
           <button
@@ -1903,183 +2110,160 @@ export function TabChat({
               setSearch("");
               setEmployees([]);
             }}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "6px",
-              borderRadius: "50%",
-              display: "flex",
-              color: "hsl(var(--foreground))",
-            }}
+            className="p-1 -m-1 rounded-full hover:bg-white/10 active:scale-95 transition-all text-white flex items-center justify-center"
+            aria-label="Back"
           >
-            <BackIcon style={{ width: "22px", height: "22px" }} />
+            <BackIcon className="w-5 h-5" />
           </button>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: "16px",
-              color: "hsl(var(--foreground))",
-            }}
-          >
-            {isRtl ? "محادثة جديدة" : "New Chat"}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-semibold m-0 leading-tight">
+              {isRtl ? "جهة اتصال جديدة" : "New Chat"}
+            </h2>
+            <p className="text-xs text-white/80 m-0 truncate">
+              {availableEmployees.length > 0
+                ? `${availableEmployees.length} ${
+                    isRtl ? "زميل متاح" : "colleagues available"
+                  }`
+                : isRtl
+                ? "دليل الزملاء"
+                : "Colleagues directory"}
+            </p>
           </div>
         </div>
 
-        <div style={{ padding: "12px 14px" }}>
-          <div style={{ position: "relative" }}>
-            <Search
-              style={{
-                position: "absolute",
-                top: "50%",
-                transform: "translateY(-50%)",
-                ...(isRtl ? { right: "12px" } : { left: "12px" }),
-                width: "18px",
-                height: "18px",
-                color: "hsl(var(--muted2))",
-              }}
-            />
+        {/* ── WhatsApp Search Bar ── */}
+        <div
+          className="px-3 py-2 border-b flex-shrink-0"
+          style={{
+            backgroundColor: isDark ? "#111b21" : "#f0f2f5",
+            borderColor: isDark ? "#202c33" : "#e9edef",
+          }}
+        >
+          <div
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg border transition-colors"
+            style={{
+              backgroundColor: isDark ? "#202c33" : "#ffffff",
+              borderColor: isDark ? "#2a3942" : "#e9edef",
+            }}
+          >
+            <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <input
               autoFocus
               value={search}
               onChange={(e) => searchEmployees(e.target.value)}
               placeholder={
-                isRtl ? "ابحث عن زميل..." : "Search for a colleague..."
+                isRtl ? "ابحث عن اسم أو وظيفة..." : "Search name or title..."
               }
-              style={{
-                width: "100%",
-                background: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border2))",
-                borderRadius: "12px",
-                padding: "12px 16px",
-                paddingInlineStart: "40px",
-                fontSize: "14px",
-                color: "hsl(var(--foreground))",
-                outline: "none",
-                direction: isRtl ? "rtl" : "ltr",
-                boxSizing: "border-box",
-              }}
+              className="flex-1 bg-transparent border-none outline-none text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400"
+              style={{ direction: isRtl ? "rtl" : "ltr" }}
             />
+            {search && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setEmployees([]);
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 16px" }}>
+        {/* ── Employees List ── */}
+        <div
+          className="flex-1 overflow-y-auto px-2 py-2 divide-y"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            borderColor: isDark ? "#202c33" : "#f0f2f5",
+          }}
+        >
           {searching ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                padding: "30px 0",
-              }}
-            >
-              <Loader2
-                style={{
-                  width: "24px",
-                  height: "24px",
-                  color: "hsl(var(--accent2))",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-7 h-7 text-[#00a884] animate-spin mb-2" />
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {isRtl ? "جاري البحث في الدليل..." : "Searching directory..."}
+              </span>
             </div>
-          ) : employees.filter((e) => e.id !== myEmployeeId).length > 0 ? (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-            >
-              {employees
-                .filter((e) => e.id !== myEmployeeId)
-                .map((emp) => (
-                  <button
-                    key={emp.id}
-                    onClick={() => startConversation(emp)}
-                    disabled={sending}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                      padding: "12px",
-                      borderRadius: "12px",
-                      background: "hsl(var(--card))",
-                      border: "0.5px solid hsl(var(--border2))",
-                      cursor: "pointer",
-                      textAlign: isRtl ? "right" : "left",
-                      direction: isRtl ? "rtl" : "ltr",
-                    }}
-                  >
+          ) : availableEmployees.length > 0 ? (
+            <div className="space-y-1">
+              {availableEmployees.map((emp) => (
+                <button
+                  key={emp.id}
+                  onClick={() => startConversation(emp)}
+                  disabled={sending}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 transition-colors text-start"
+                  style={{
+                    direction: isRtl ? "rtl" : "ltr",
+                  }}
+                >
+                  {/* Avatar */}
+                  <div className="relative flex-shrink-0">
                     {emp.photoUrl ? (
                       <img
                         src={emp.photoUrl}
                         alt=""
-                        style={{
-                          width: "44px",
-                          height: "44px",
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          flexShrink: 0,
-                        }}
+                        className="w-12 h-12 rounded-full object-cover border border-black/5 dark:border-white/10"
                       />
                     ) : (
                       <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shadow-xs"
                         style={{
-                          width: "44px",
-                          height: "44px",
-                          borderRadius: "50%",
-                          background:
-                            "linear-gradient(135deg, hsl(var(--accent2)), hsl(var(--accent2)/0.65))",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "white",
-                          fontWeight: 700,
-                          fontSize: "14px",
-                          flexShrink: 0,
+                          backgroundColor: "#00a884",
                         }}
                       >
-                        {emp.firstName[0]}
-                        {emp.lastName[0]}
+                        {emp.firstName?.[0] || "?"}
+                        {emp.lastName?.[0] || ""}
                       </div>
                     )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: "14px",
-                          color: "hsl(var(--foreground))",
-                        }}
-                      >
-                        {emp.firstName} {emp.lastName}
-                      </div>
-                      {(emp.jobTitle || emp.department) && (
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "hsl(var(--muted2))",
-                            marginTop: "2px",
-                          }}
-                        >
-                          {emp.jobTitle || emp.department}
-                        </div>
-                      )}
+                    <span className="absolute bottom-0 end-0 w-3 h-3 bg-[#25d366] border-2 border-white dark:border-[#111b21] rounded-full" />
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="font-semibold text-[15px] truncate"
+                      style={{ color: isDark ? "#e9edef" : "#111b21" }}
+                    >
+                      {emp.firstName} {emp.lastName}
                     </div>
-                  </button>
-                ))}
+                    {(emp.jobTitle || emp.department) && (
+                      <div
+                        className="text-xs truncate mt-0.5"
+                        style={{ color: isDark ? "#8696a0" : "#667781" }}
+                      >
+                        {emp.jobTitle || emp.department}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           ) : (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "30px 0",
-                color: "hsl(var(--muted2))",
-                fontSize: "13px",
-              }}
-            >
-              {search.trim()
-                ? isRtl
-                  ? "لم يتم العثور على أحد"
-                  : "No results found"
-                : isRtl
-                  ? "اكتب اسم الزميل للبحث"
-                  : "Type a name to search"}
+            <div className="text-center py-16 px-4">
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3"
+                style={{
+                  backgroundColor: isDark ? "#202c33" : "#e7f8f3",
+                }}
+              >
+                <Search className="w-6 h-6 text-[#00a884]" />
+              </div>
+              <p className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-1">
+                {search.trim()
+                  ? isRtl
+                    ? "لم يتم العثور على زملاء مطابقين"
+                    : "No matching colleagues found"
+                  : isRtl
+                  ? "اكتب اسم الزميل لبدء محادثة فورية"
+                  : "Type a colleague name to start chatting"}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {isRtl
+                  ? "يمكنك البحث بالاسم الأول، الاسم الأخير، أو المسمى الوظيفي"
+                  : "Search by first name, last name, or job title"}
+              </p>
             </div>
           )}
         </div>
@@ -2088,346 +2272,327 @@ export function TabChat({
   }
 
   /* ════════════════════════════════════════════════════════════════
-     CONVERSATION LIST VIEW
+     CONVERSATION LIST VIEW (AUTHENTIC WHATSAPP UI)
      ════════════════════════════════════════════════════════════════ */
   const totalUnread = conversations.reduce((s, c) => s + c.unreadCount, 0);
 
   return (
     <div
+      className="flex flex-col h-[calc(100dvh-125px)] relative overflow-hidden select-none"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "calc(100dvh - 130px)",
-        background: "hsl(var(--background))",
-        position: "relative",
+        backgroundColor: isDark ? "#111b21" : "#ffffff",
       }}
     >
-      {/* Header */}
+      {/* ── WhatsApp Signature Top Header ── */}
       <div
+        className="px-4 py-3 shadow-sm flex items-center justify-between text-white flex-shrink-0 transition-colors"
         style={{
-          padding: "14px 16px 10px",
-          background: "hsl(var(--card))",
-          borderBottom: "0.5px solid hsl(var(--border2))",
-          flexShrink: 0,
+          backgroundColor: isDark ? "#202c33" : "#008069",
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-wide m-0">
+            {isRtl ? "محادثات السكن" : "Sunrise Housing"}
+          </h1>
+          {totalUnread > 0 && (
+            <span className="bg-[#25d366] text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+              {totalUnread}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 text-white/90">
+          <button
+            type="button"
+            onClick={() => setShowNewConv(true)}
+            className="hover:text-white active:scale-95 transition-transform p-1"
+            title={isRtl ? "التقاط صورة" : "Camera"}
+          >
+            <Camera className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowNewConv(true)}
+            className="hover:text-white active:scale-95 transition-transform p-1"
+            title={isRtl ? "محادثة جديدة" : "New Chat"}
+          >
+            <MessageSquarePlus className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              toast.info(
+                isRtl
+                  ? "إعدادات المحادثات: الخصوصية والإشعارات قيد التفعيل"
+                  : "Chat settings: Privacy & notifications active"
+              );
+            }}
+            className="hover:text-white active:scale-95 transition-transform p-1"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── WhatsApp Search Bar ── */}
+      <div
+        className="px-3 py-2 border-b flex-shrink-0"
+        style={{
+          backgroundColor: isDark ? "#111b21" : "#f0f2f5",
+          borderColor: isDark ? "#202c33" : "#e9edef",
         }}
       >
         <div
+          className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg border transition-colors"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            backgroundColor: isDark ? "#202c33" : "#ffffff",
+            borderColor: isDark ? "#2a3942" : "#e9edef",
           }}
         >
-          <h1
-            style={{
-              fontSize: "20px",
-              fontWeight: 700,
-              color: "hsl(var(--foreground))",
-              fontFamily: "'Playfair Display', serif",
-              margin: 0,
-            }}
-          >
-            {isRtl ? "المحادثات" : "Chats"}
-            {totalUnread > 0 && (
-              <span
-                style={{
-                  marginInlineStart: "8px",
-                  fontSize: "12px",
-                  fontFamily: "inherit",
-                  background: "hsl(var(--accent2))",
-                  color: "white",
-                  borderRadius: "10px",
-                  padding: "2px 8px",
-                  verticalAlign: "middle",
-                }}
-              >
-                {totalUnread}
-              </span>
-            )}
-          </h1>
-          {/* Notification permission button */}
-          {notifPerm === "default" && (
+          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <input
+            type="text"
+            value={convSearch}
+            onChange={(e) => setConvSearch(e.target.value)}
+            placeholder={
+              isRtl
+                ? "بحث أو بدء محادثة جديدة..."
+                : "Search or start new chat..."
+            }
+            className="flex-1 bg-transparent border-none outline-none text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400"
+            style={{ direction: isRtl ? "rtl" : "ltr" }}
+          />
+          {convSearch && (
             <button
-              onClick={() =>
-                Notification.requestPermission().then((p) => setNotifPerm(p))
-              }
-              style={{
-                fontSize: "11px",
-                padding: "4px 10px",
-                borderRadius: "10px",
-                background: "hsl(var(--accent2)/0.1)",
-                color: "hsl(var(--accent2))",
-                border: "1px solid hsl(var(--accent2)/0.3)",
-                cursor: "pointer",
-              }}
+              onClick={() => setConvSearch("")}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >
-              {isRtl ? "🔔 تفعيل الإشعارات" : "🔔 Enable notifications"}
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
       </div>
 
-      {/* List */}
+      {/* ── Filter Pills Bar ── */}
       <div
+        className="flex items-center gap-2 px-3 py-2 border-b overflow-x-auto scrollbar-none flex-shrink-0"
         style={{
-          flex: 1,
-          overflowY: "auto",
+          backgroundColor: isDark ? "#111b21" : "#ffffff",
+          borderColor: isDark ? "#202c33" : "#f0f2f5",
+        }}
+      >
+        <button
+          onClick={() => setConvFilter("all")}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+            convFilter === "all"
+              ? "bg-[#00a884]/20 text-[#00a884] dark:bg-[#00a884]/30 border border-[#00a884]/40"
+              : "bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-black/10"
+          }`}
+        >
+          {isRtl ? "الكل" : "All"}
+        </button>
+        <button
+          onClick={() => setConvFilter("unread")}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            convFilter === "unread"
+              ? "bg-[#00a884]/20 text-[#00a884] dark:bg-[#00a884]/30 border border-[#00a884]/40"
+              : "bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-black/10"
+          }`}
+        >
+          <span>{isRtl ? "غير مقروءة" : "Unread"}</span>
+          {totalUnread > 0 && (
+            <span className="bg-[#25d366] text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+              {totalUnread}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setConvFilter("groups")}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+            convFilter === "groups"
+              ? "bg-[#00a884]/20 text-[#00a884] dark:bg-[#00a884]/30 border border-[#00a884]/40"
+              : "bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-black/10"
+          }`}
+        >
+          {isRtl ? "المجموعات" : "Groups"}
+        </button>
+      </div>
+
+      {/* ── Conversation Items List ── */}
+      <div
+        className="flex-1 overflow-y-auto pb-24 divide-y"
+        style={{
           WebkitOverflowScrolling: "touch",
-          paddingBottom: "80px",
+          borderColor: isDark ? "#202c33" : "#f0f2f5",
         }}
       >
         {loading ? (
-          <div
-            style={{
-              padding: "16px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-            }}
-          >
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "12px",
-                }}
-              >
+          <div className="p-4 space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 animate-pulse">
                 <div
-                  style={{
-                    width: "52px",
-                    height: "52px",
-                    borderRadius: "50%",
-                    background: "hsl(var(--border2))",
-                    flexShrink: 0,
-                  }}
+                  className="w-[52px] h-[52px] rounded-full flex-shrink-0"
+                  style={{ backgroundColor: isDark ? "#202c33" : "#e9edef" }}
                 />
-                <div style={{ flex: 1 }}>
+                <div className="flex-1 space-y-2">
                   <div
-                    style={{
-                      height: "14px",
-                      width: "55%",
-                      background: "hsl(var(--border2))",
-                      borderRadius: "6px",
-                      marginBottom: "8px",
-                    }}
+                    className="h-4 w-2/5 rounded"
+                    style={{ backgroundColor: isDark ? "#202c33" : "#e9edef" }}
                   />
                   <div
-                    style={{
-                      height: "12px",
-                      width: "80%",
-                      background: "hsl(var(--border2))",
-                      borderRadius: "6px",
-                    }}
+                    className="h-3 w-4/5 rounded"
+                    style={{ backgroundColor: isDark ? "#202c33" : "#e9edef" }}
                   />
                 </div>
               </div>
             ))}
           </div>
-        ) : conversations.length === 0 ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "60px 20px",
-              textAlign: "center",
-            }}
-          >
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
             <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
               style={{
-                width: "64px",
-                height: "64px",
-                borderRadius: "50%",
-                background: "hsl(var(--accent2)/0.1)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: "16px",
+                backgroundColor: isDark ? "#202c33" : "#e7f8f3",
               }}
             >
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="hsl(var(--accent2))"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ opacity: 0.6 }}
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
+              <MessageSquarePlus className="w-8 h-8 text-[#00a884]" />
             </div>
-            <p
-              style={{
-                fontWeight: 600,
-                fontSize: "15px",
-                color: "hsl(var(--foreground))",
-                margin: "0 0 4px",
-              }}
-            >
-              {isRtl ? "لا توجد محادثات" : "No conversations"}
+            <p className="font-semibold text-base text-gray-800 dark:text-gray-100 mb-1">
+              {convSearch.trim()
+                ? isRtl
+                  ? "لا توجد نتائج بحث"
+                  : "No search results"
+                : convFilter === "unread"
+                ? isRtl
+                  ? "لا توجد رسائل غير مقروءة"
+                  : "No unread messages"
+                : convFilter === "groups"
+                ? isRtl
+                  ? "لا توجد مجموعات"
+                  : "No groups found"
+                : isRtl
+                ? "لا توجد محادثات حتى الآن"
+                : "No conversations yet"}
             </p>
-            <p
-              style={{
-                fontSize: "13px",
-                color: "hsl(var(--muted2))",
-                margin: 0,
-              }}
-            >
-              {isRtl ? "اضغط + لبدء محادثة" : "Tap + to start chatting"}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {isRtl
+                ? "اضغط على الزر الأخضر لبدء محادثة فورية"
+                : "Tap the green button to start a chat"}
             </p>
           </div>
         ) : (
-          conversations.map((conv) => {
+          filteredConversations.map((conv) => {
             const title = getConvTitle(conv);
             const photo = getConvPhoto(conv);
+            const isTyping = (typingUsers[conv.id]?.size || 0) > 0;
+            const hasUnread = conv.unreadCount > 0;
+            const isLastMsgMine =
+              conv.lastMessage?.senderId === (effectiveMyId ?? myEmployeeId);
+
             return (
               <button
                 key={conv.id}
                 onClick={() => openConversation(conv)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-start hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 transition-colors"
                 style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "13px 16px",
-                  background: "none",
-                  border: "none",
-                  borderBottom: "0.5px solid hsl(var(--border2)/0.5)",
-                  cursor: "pointer",
-                  textAlign: isRtl ? "right" : "left",
                   direction: isRtl ? "rtl" : "ltr",
                 }}
               >
-                {/* Avatar */}
-                <div style={{ position: "relative", flexShrink: 0 }}>
+                {/* 52px Avatar with Online Badge */}
+                <div className="relative flex-shrink-0">
                   {photo ? (
                     <img
                       src={photo}
                       alt={title}
-                      style={{
-                        width: "52px",
-                        height: "52px",
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                        border: "1.5px solid hsl(var(--border2))",
-                      }}
+                      className="w-[52px] h-[52px] rounded-full object-cover border border-black/5 dark:border-white/10"
                     />
                   ) : (
                     <div
+                      className="w-[52px] h-[52px] rounded-full flex items-center justify-center text-white font-bold text-lg shadow-xs"
                       style={{
-                        width: "52px",
-                        height: "52px",
-                        borderRadius: "50%",
-                        background:
-                          "linear-gradient(135deg, hsl(var(--accent2)), hsl(var(--accent2)/0.65))",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "white",
-                        fontWeight: 700,
-                        fontSize: "18px",
+                        backgroundColor: conv.isGroup ? "#008069" : "#00a884",
                       }}
                     >
                       {title.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  {conv.unreadCount > 0 && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: "-2px",
-                        ...(isRtl ? { left: "-2px" } : { right: "-2px" }),
-                        minWidth: "20px",
-                        height: "20px",
-                        borderRadius: "10px",
-                        background: "hsl(var(--accent2))",
-                        color: "white",
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "0 4px",
-                        border: "2px solid hsl(var(--background))",
-                      }}
-                    >
-                      {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
-                    </div>
-                  )}
+                  {/* Subtle online green dot */}
+                  <span className="absolute bottom-0 end-0 w-3.5 h-3.5 bg-[#25d366] border-2 border-white dark:border-[#111b21] rounded-full shadow-xs" />
                 </div>
 
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      justifyContent: "space-between",
-                      marginBottom: "3px",
-                    }}
-                  >
+                {/* Conversation Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
                     <span
+                      className={`text-[15.5px] truncate ${
+                        hasUnread ? "font-bold" : "font-medium"
+                      }`}
                       style={{
-                        fontWeight: conv.unreadCount > 0 ? 700 : 600,
-                        fontSize: "15px",
-                        color: "hsl(var(--foreground))",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        flex: 1,
+                        color: hasUnread
+                          ? isDark
+                            ? "#ffffff"
+                            : "#111b21"
+                          : isDark
+                          ? "#e9edef"
+                          : "#111b21",
                       }}
                     >
                       {title}
                     </span>
                     {conv.lastMessage && (
                       <span
-                        style={{
-                          fontSize: "11px",
-                          color:
-                            conv.unreadCount > 0
-                              ? "hsl(var(--accent2))"
-                              : "hsl(var(--muted2))",
-                          flexShrink: 0,
-                          marginInlineStart: "8px",
-                        }}
+                        className={`text-[11.5px] flex-shrink-0 ${
+                          hasUnread
+                            ? "font-bold text-[#25d366]"
+                            : "text-gray-500 dark:text-gray-400"
+                        }`}
                       >
                         {formatDate(conv.lastMessage.createdAt, isRtl)}
                       </span>
                     )}
                   </div>
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      color:
-                        typingUsers[conv.id]?.size > 0
-                          ? "hsl(var(--accent2))"
-                          : conv.unreadCount > 0
-                            ? "hsl(var(--foreground))"
-                            : "hsl(var(--muted2))",
-                      fontWeight:
-                        conv.unreadCount > 0 || typingUsers[conv.id]?.size > 0
-                          ? 600
-                          : 400,
-                      margin: 0,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {typingUsers[conv.id]?.size > 0
-                      ? isRtl
-                        ? "يكتب الآن..."
-                        : "Typing..."
-                      : conv.lastMessage?.content ||
-                        (isRtl ? "ابدأ المحادثة" : "Start the conversation")}
-                  </p>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 min-w-0 flex-1">
+                      {isLastMsgMine && !isTyping && (
+                        <CheckCheck className="w-4 h-4 text-[#53bdeb] flex-shrink-0" />
+                      )}
+                      <p
+                        className={`text-[13.5px] truncate m-0 ${
+                          isTyping
+                            ? "text-[#00a884] font-semibold animate-pulse"
+                            : hasUnread
+                            ? "font-semibold"
+                            : ""
+                        }`}
+                        style={{
+                          color: isTyping
+                            ? "#00a884"
+                            : hasUnread
+                            ? isDark
+                              ? "#ffffff"
+                              : "#111b21"
+                            : isDark
+                            ? "#8696a0"
+                            : "#667781",
+                        }}
+                      >
+                        {isTyping
+                          ? isRtl
+                            ? "يكتب الآن..."
+                            : "Typing..."
+                          : conv.lastMessage?.content ||
+                            (isRtl ? "ابدأ المحادثة الآن" : "Start chatting")}
+                      </p>
+                    </div>
+
+                    {/* Circular WhatsApp Green Badge */}
+                    {hasUnread && (
+                      <span className="bg-[#25d366] text-white text-[11px] font-bold min-w-[20px] h-[20px] rounded-full flex items-center justify-center px-1 flex-shrink-0 shadow-xs">
+                        {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
             );
@@ -2435,27 +2600,17 @@ export function TabChat({
         )}
       </div>
 
-      {/* FAB */}
+      {/* ── WhatsApp Green Floating Action Button (FAB) ── */}
       <button
+        type="button"
         onClick={() => setShowNewConv(true)}
+        className="absolute bottom-6 end-5 w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all z-20"
         style={{
-          position: "absolute",
-          bottom: "24px",
-          ...(isRtl ? { left: "20px" } : { right: "20px" }),
-          width: "56px",
-          height: "56px",
-          borderRadius: "16px",
-          background: "hsl(var(--accent2))",
-          color: "white",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+          backgroundColor: "#00a884",
         }}
+        title={isRtl ? "محادثة جديدة" : "New Chat"}
       >
-        <Plus style={{ width: "24px", height: "24px" }} />
+        <MessageSquarePlus className="w-6 h-6" />
       </button>
     </div>
   );
