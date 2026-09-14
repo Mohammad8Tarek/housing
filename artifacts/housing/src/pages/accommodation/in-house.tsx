@@ -924,7 +924,7 @@ export default function InHouse() {
   };
 
   const printHousingLetter = async (assignment: any, emp: any) => {
-    const chosenAr = await openDialog();
+    const chosenAr = ar;
     const room = roomMap[assignment.roomId];
     const building = room ? buildingMap[room.buildingId] : null;
     const floorNum = room ? floorMap[room.floorId]?.number : null;

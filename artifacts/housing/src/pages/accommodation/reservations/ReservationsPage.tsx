@@ -1244,7 +1244,7 @@ export default function ReservationsPage() {
   };
 
   const printHousingLetter = async (profile: any, assignment: any) => {
-    const chosenAr = await openDialog();
+    const chosenAr = ar;
     const room = rooms.find((r: any) => r.id === (assignment.roomId || assignment.data?.roomId));
     const building = room ? buildingMap[room.buildingId] : null;
     const floorNum = room ? floorMap[room.floorId]?.number : null;

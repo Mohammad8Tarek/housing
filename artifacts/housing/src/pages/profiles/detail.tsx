@@ -453,7 +453,7 @@ export default function ProfileDetail() {
   );
 
   const printHousingLetter = async () => {
-    const chosenAr = await openDialog();
+    const chosenAr = ar;
     const emp = profile as any;
     const assignment = currentAssignment;
     if (!emp || !assignment) return;

@@ -129,6 +129,342 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
 };
 
 // ----------------------------------------------------------------------------
+// 1.5 Bilingual Column Header Dictionary & Translation Engine
+// Ensures 100% Arabic Table Headers in Arabic Mode & Zero English Leakage
+// ----------------------------------------------------------------------------
+export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = {
+  // Identification & Personal
+  id: { ar: "الهوية / الرقم", en: "ID" },
+  code: { ar: "الكود", en: "Code" },
+  name: { ar: "الاسم", en: "Name" },
+  profileid: { ar: "رقم الموظف / الهوية", en: "Profile ID" },
+  profile_id: { ar: "رقم الموظف / الهوية", en: "Profile ID" },
+  "profile / id": { ar: "رقم الموظف / الهوية", en: "Profile / ID" },
+  "profile id": { ar: "كود الموظف", en: "Profile ID" },
+  profilecode: { ar: "كود الموظف", en: "Employee Code" },
+  profile_code: { ar: "كود الموظف", en: "Employee Code" },
+  "employee code": { ar: "كود الموظف", en: "Employee Code" },
+  profilename: { ar: "اسم الموظف / النزيل", en: "Employee Name" },
+  profile_name: { ar: "اسم الموظف / النزيل", en: "Employee Name" },
+  "employee name": { ar: "اسم الموظف", en: "Employee Name" },
+  "guest name": { ar: "اسم الضيف", en: "Guest Name" },
+  "occupant / profile": { ar: "الموظف / المقيم", en: "Resident / Profile" },
+  "resident / profile": { ar: "الموظف / النزيل", en: "Resident / Profile" },
+  "code & name": { ar: "كود واسم الموظف", en: "Code & Name" },
+  fullname: { ar: "الاسم الكامل", en: "Full Name" },
+  full_name: { ar: "الاسم الكامل", en: "Full Name" },
+  "full name": { ar: "الاسم الكامل", en: "Full Name" },
+  firstname: { ar: "الاسم الأول", en: "First Name" },
+  first_name: { ar: "الاسم الأول", en: "First Name" },
+  "first name": { ar: "الاسم الأول", en: "First Name" },
+  lastname: { ar: "الاسم الأخير", en: "Last Name" },
+  last_name: { ar: "الاسم الأخير", en: "Last Name" },
+  "last name": { ar: "الاسم الأخير", en: "Last Name" },
+  nationalid: { ar: "الرقم القومي", en: "National ID" },
+  national_id: { ar: "الرقم القومي", en: "National ID" },
+  "national id": { ar: "الرقم القومي", en: "National ID" },
+  "id & phone": { ar: "الرقم القومي والهاتف", en: "ID & Phone" },
+  phone: { ar: "الهاتف", en: "Phone" },
+  mobile: { ar: "المحمول", en: "Mobile" },
+  telephone: { ar: "الهاتف", en: "Telephone" },
+  nationality: { ar: "الجنسية", en: "Nationality" },
+  gender: { ar: "الجنس", en: "Gender" },
+  genderpolicy: { ar: "سياسة الجنس", en: "Gender Policy" },
+  gender_policy: { ar: "سياسة الجنس", en: "Gender Policy" },
+  "gender policy": { ar: "سياسة الجنس", en: "Gender Policy" },
+  department: { ar: "القسم", en: "Department" },
+  dept: { ar: "القسم", en: "Department" },
+  "dept & title": { ar: "القسم والوظيفة", en: "Dept & Job Title" },
+  jobtitle: { ar: "المسمى الوظيفي", en: "Job Title" },
+  job_title: { ar: "المسمى الوظيفي", en: "Job Title" },
+  "job title": { ar: "المسمى الوظيفي", en: "Job Title" },
+  level: { ar: "الدرجة الوظيفية", en: "Level" },
+  employmenttype: { ar: "نوع التوظيف", en: "Employment Type" },
+  employment_type: { ar: "نوع التوظيف", en: "Employment Type" },
+  "employment type": { ar: "نوع التوظيف", en: "Employment Type" },
+  employment: { ar: "نوع التوظيف", en: "Employment" },
+  companyname: { ar: "الشركة", en: "Company" },
+  company_name: { ar: "الشركة", en: "Company" },
+  company: { ar: "الشركة", en: "Company" },
+  "employment & company": { ar: "النوع والشركة", en: "Employment & Company" },
+  hiredate: { ar: "تاريخ التعيين", en: "Hire Date" },
+  hire_date: { ar: "تاريخ التعيين", en: "Hire Date" },
+  "hire date": { ar: "تاريخ التعيين", en: "Hire Date" },
+  contractenddate: { ar: "تاريخ انتهاء العقد", en: "Contract End Date" },
+  contract_end_date: { ar: "تاريخ انتهاء العقد", en: "Contract End Date" },
+  "contract end": { ar: "تاريخ انتهاء العقد", en: "Contract End" },
+  "contract end date": { ar: "تاريخ انتهاء العقد", en: "Contract End Date" },
+  daysremaining: { ar: "الأيام المتبقية", en: "Days Remaining" },
+  days_remaining: { ar: "الأيام المتبقية", en: "Days Remaining" },
+  "days remaining": { ar: "الأيام المتبقية", en: "Days Remaining" },
+  expstatus: { ar: "حالة العقد", en: "Contract Status" },
+  "contract status": { ar: "حالة العقد", en: "Contract Status" },
+
+  // Rooms & Housing Details
+  roomnumber: { ar: "رقم الغرفة", en: "Room No" },
+  room_number: { ar: "رقم الغرفة", en: "Room No" },
+  roomno: { ar: "رقم الغرفة", en: "Room No" },
+  "room no": { ar: "رقم الغرفة", en: "Room No" },
+  room: { ar: "الغرفة", en: "Room" },
+  "room & bed": { ar: "الغرفة والسرير", en: "Room & Bed" },
+  "room & location": { ar: "الغرفة والموقع", en: "Room & Location" },
+  "room & building": { ar: "الغرفة والمبنى", en: "Room & Building" },
+  "reserved room": { ar: "الغرفة المحجوزة", en: "Reserved Room" },
+  assignedroom: { ar: "السكن الحالي", en: "Current Housing" },
+  assigned_room: { ar: "السكن الحالي", en: "Current Housing" },
+  "current housing": { ar: "السكن الحالي", en: "Current Housing" },
+  housing: { ar: "السكن الحالي", en: "Housing" },
+  bednumber: { ar: "رقم السرير", en: "Bed No" },
+  bed_number: { ar: "رقم السرير", en: "Bed No" },
+  bedno: { ar: "رقم السرير", en: "Bed No" },
+  "bed no": { ar: "رقم السرير", en: "Bed No" },
+  buildingname: { ar: "المبنى", en: "Building" },
+  building_name: { ar: "المبنى", en: "Building" },
+  building: { ar: "المبنى", en: "Building" },
+  "building & code": { ar: "المبنى والكود", en: "Building & Code" },
+  "building & floor": { ar: "المبنى والدور", en: "Building & Floor" },
+  floorname: { ar: "الطابق", en: "Floor" },
+  floor_name: { ar: "الطابق", en: "Floor" },
+  floor: { ar: "الطابق", en: "Floor" },
+  roomtype: { ar: "نوع الغرفة", en: "Room Type" },
+  room_type: { ar: "نوع الغرفة", en: "Room Type" },
+  "room type": { ar: "نوع الغرفة", en: "Room Type" },
+  type: { ar: "نوع الغرفة", en: "Type" },
+  capacity: { ar: "السعة", en: "Capacity" },
+  "total capacity": { ar: "إجمالي السعة", en: "Total Capacity" },
+  currentoccupancy: { ar: "الأسرة المشغولة", en: "Occupied Beds" },
+  current_occupancy: { ar: "الأسرة المشغولة", en: "Occupied Beds" },
+  occupied: { ar: "الأسرة المشغولة", en: "Occupied" },
+  "occupied beds": { ar: "الأسرة المشغولة", en: "Occupied Beds" },
+  "projected occupied": { ar: "الأسرة المشغولة (المتوقعة)", en: "Projected Occupied" },
+  vacantbeds: { ar: "الأسرة الشاغرة", en: "Vacant Beds" },
+  vacant_beds: { ar: "الأسرة الشاغرة", en: "Vacant Beds" },
+  vacant: { ar: "الأسرة الشاغرة", en: "Vacant" },
+  vacantbedscount: { ar: "عدد الأسرة الشاغرة", en: "Vacant Beds" },
+  "vacant beds": { ar: "عدد الأسرة الشاغرة", en: "Vacant Beds" },
+  "projected vacant": { ar: "الأسرة الشاغرة (المتوقعة)", en: "Projected Vacant" },
+  availablebedstext: { ar: "الأسرة المتاحة", en: "Available Beds" },
+  "available beds": { ar: "الأسرة المتاحة", en: "Available Beds" },
+  totalrooms: { ar: "إجمالي الغرف", en: "Total Rooms" },
+  total_rooms: { ar: "إجمالي الغرف", en: "Total Rooms" },
+  "total rooms": { ar: "إجمالي الغرف", en: "Total Rooms" },
+  totalbeds: { ar: "إجمالي الأسرة", en: "Total Beds" },
+  total_beds: { ar: "إجمالي الأسرة", en: "Total Beds" },
+  "total beds": { ar: "إجمالي الأسرة", en: "Total Beds" },
+  occupancyrate: { ar: "نسبة الإشغال", en: "Occupancy Rate" },
+  occupancy_rate: { ar: "نسبة الإشغال", en: "Occupancy Rate" },
+  "occupancy rate": { ar: "نسبة الإشغال", en: "Occupancy Rate" },
+  "rate %": { ar: "نسبة الإشغال", en: "Rate %" },
+
+  // Housekeeping & Operations
+  dirtyrooms: { ar: "غرف متسخة", en: "Dirty Rooms" },
+  dirty_rooms: { ar: "غرف متسخة", en: "Dirty Rooms" },
+  "dirty rooms": { ar: "غرف متسخة", en: "Dirty Rooms" },
+  dirty: { ar: "غرف متسخة", en: "Dirty" },
+  ooorooms: { ar: "غرف صيانة (OOO)", en: "OOO Rooms" },
+  ooo_rooms: { ar: "غرف صيانة (OOO)", en: "OOO Rooms" },
+  "ooo rooms": { ar: "غرف صيانة (OOO)", en: "OOO Rooms" },
+  ooo: { ar: "غرف صيانة (OOO)", en: "OOO" },
+  fostatus: { ar: "حالة الإشغال (FO)", en: "FO Status" },
+  fo_status: { ar: "حالة الإشغال (FO)", en: "FO Status" },
+  "fo status": { ar: "حالة الإشغال (FO)", en: "FO Status" },
+  "front office": { ar: "حالة الاستقبال (FO)", en: "Front Office" },
+  hkstatus: { ar: "حالة النظافة (HK)", en: "HK Status" },
+  hk_status: { ar: "حالة النظافة (HK)", en: "HK Status" },
+  "hk status": { ar: "حالة النظافة (HK)", en: "HK Status" },
+  housekeeping: { ar: "حالة النظافة (HK)", en: "Housekeeping" },
+  tasktype: { ar: "نوع المهمة المطلوبة", en: "Task Type" },
+  task_type: { ar: "نوع المهمة المطلوبة", en: "Task Type" },
+  "task type": { ar: "نوع المهمة المطلوبة", en: "Task Type" },
+  "task assignment": { ar: "نوع المهمة المطلوبة", en: "Task Assignment" },
+  estimatedmins: { ar: "الوقت التقديري", en: "Est. Time" },
+  estimated_mins: { ar: "الوقت التقديري", en: "Est. Time" },
+  "est time": { ar: "الوقت التقديري", en: "Est. Time" },
+  "est. time": { ar: "الوقت التقديري", en: "Est. Time" },
+  occupantnames: { ar: "النزلاء الحاليون", en: "Current Occupants" },
+  occupant_names: { ar: "النزلاء الحاليون", en: "Current Occupants" },
+  "current occupants": { ar: "النزلاء الحاليون", en: "Current Occupants" },
+  "occupant names": { ar: "النزلاء الحاليون", en: "Occupants" },
+  linencheck: { ar: "فحص المفروشات", en: "Linen Check" },
+  linen_check: { ar: "فحص المفروشات", en: "Linen Check" },
+  "linen check": { ar: "فحص المفروشات", en: "Linen Check" },
+  linen: { ar: "المفروشات", en: "Linen" },
+  amenitiescheck: { ar: "فحص العهد", en: "Amenities Check" },
+  amenities_check: { ar: "فحص العهد", en: "Amenities Check" },
+  "amenities check": { ar: "فحص العهد", en: "Amenities Check" },
+  amenities: { ar: "العهد والمحتويات", en: "Amenities" },
+  signature: { ar: "توقيع المنفذ", en: "Signature" },
+  "attendant sign": { ar: "توقيع المنفذ", en: "Attendant Sign" },
+  "attendant signature": { ar: "توقيع المنفذ", en: "Attendant Signature" },
+  hkpriority: { ar: "إجراء الإشراف الداخلي", en: "HK Action" },
+  "hk action": { ar: "إجراء الإشراف الداخلي", en: "HK Action" },
+  openhktickets: { ar: "تذاكر مفتوحة", en: "Open Tickets" },
+  "open tickets": { ar: "تذاكر مفتوحة", en: "Open Tickets" },
+
+  // Discrepancy & Forecast
+  severity: { ar: "مستوى الخطورة", en: "Severity" },
+  severitylabel: { ar: "مستوى الخطورة", en: "Severity" },
+  "severity label": { ar: "مستوى الخطورة", en: "Severity" },
+  discrepancytype: { ar: "نوع التباين", en: "Discrepancy Type" },
+  typelabel: { ar: "نوع التباين", en: "Discrepancy Type" },
+  "discrepancy type": { ar: "نوع التباين", en: "Discrepancy Type" },
+  "type / details": { ar: "نوع التباين والتفاصيل", en: "Type / Details" },
+  impactedresidents: { ar: "النزلاء المتأثرون", en: "Impacted Residents" },
+  "impacted residents": { ar: "النزلاء المتأثرون", en: "Impacted Residents" },
+  "impacted residents / details": { ar: "النزلاء المعنيون / الملاحظات", en: "Impacted Residents / Details" },
+  recommendedaction: { ar: "الإجراء الموصى به", en: "Recommended Action" },
+  "recommended action": { ar: "الإجراء الموصى به", en: "Recommended Action" },
+  datedisplay: { ar: "التاريخ", en: "Date" },
+  date: { ar: "التاريخ", en: "Date" },
+  "date & day": { ar: "التاريخ واليوم", en: "Date & Day" },
+  dayname: { ar: "اليوم", en: "Day" },
+  day: { ar: "اليوم", en: "Day" },
+  dayarrivals: { ar: "الوصول المتوقع (+ Due In)", en: "Arrivals (+ Due In)" },
+  "arrivals (+ due in)": { ar: "الوصول المتوقع (+ Due In)", en: "Arrivals (+ Due In)" },
+  arrivals: { ar: "الوصول المتوقع", en: "Arrivals" },
+  daydepartures: { ar: "المغادرة المتوقعة (- Due Out)", en: "Departures (- Due Out)" },
+  "departures (- due out)": { ar: "المغادرة المتوقعة (- Due Out)", en: "Departures (- Due Out)" },
+  departures: { ar: "المغادرة المتوقعة", en: "Departures" },
+  netshift: { ar: "صافي الحركة", en: "Net Movement" },
+  "net movement": { ar: "صافي الحركة", en: "Net Movement" },
+  "net shift": { ar: "صافي الحركة", en: "Net Shift" },
+  demandlevel: { ar: "مستوى الضغط", en: "Demand Tier" },
+  "demand tier": { ar: "مستوى الضغط", en: "Demand Tier" },
+  "demand level": { ar: "مستوى الضغط", en: "Demand Level" },
+
+  // Movements & Dates
+  checkindate: { ar: "تاريخ الوصول / التسكين", en: "Check-In Date" },
+  check_in_date: { ar: "تاريخ الوصول / التسكين", en: "Check-In Date" },
+  "check-in date": { ar: "تاريخ الوصول / التسكين", en: "Check-In Date" },
+  "check-in": { ar: "تاريخ التسكين", en: "Check-In" },
+  "arrival date": { ar: "تاريخ الوصول", en: "Arrival Date" },
+  "arrival (due in)": { ar: "تاريخ الوصول (Due In)", en: "Arrival (Due In)" },
+  checkoutdate: { ar: "تاريخ المغادرة", en: "Check-Out Date" },
+  check_out_date: { ar: "تاريخ المغادرة", en: "Check-Out Date" },
+  "check-out date": { ar: "تاريخ المغادرة", en: "Check-Out Date" },
+  "check-out": { ar: "تاريخ المغادرة", en: "Check-Out" },
+  "departure date": { ar: "تاريخ المغادرة", en: "Departure Date" },
+  "due out date": { ar: "المغادرة المستحقة (Due Out)", en: "Due Out Date" },
+  "due out": { ar: "المغادرة المستحقة", en: "Due Out" },
+  departurecategory: { ar: "نوع المغادرة", en: "Departure Type" },
+  "departure type": { ar: "نوع المغادرة", en: "Departure Type" },
+  roomstatusafter: { ar: "حالة الغرفة", en: "Room Status" },
+  "room status after": { ar: "حالة الغرفة بعد المغادرة", en: "Room Status After" },
+  expectedcheckoutdate: { ar: "المغادرة المتوقعة", en: "Expected Check-Out" },
+  "expected check-out": { ar: "المغادرة المتوقعة", en: "Expected Check-Out" },
+  "expected out": { ar: "المغادرة المتوقعة", en: "Expected Out" },
+  nights: { ar: "عدد الليالي", en: "Nights" },
+  vipstatus: { ar: "الفئة", en: "Category" },
+  status: { ar: "الحالة", en: "Status" },
+  "room status": { ar: "حالة الغرفة", en: "Room Status" },
+  "reservation status": { ar: "حالة الحجز", en: "Reservation Status" },
+  "operational status": { ar: "الحالة التشغيلية", en: "Operational Status" },
+  condition: { ar: "الحالة الفنية", en: "Condition" },
+  notes: { ar: "ملاحظات", en: "Notes" },
+  reason: { ar: "السبب / ملاحظات", en: "Reason" },
+  "reason / notes": { ar: "السبب / ملاحظات HR", en: "Reason / Notes" },
+
+  // Hostings & Maintenance
+  hostemployee: { ar: "الموظف المستضيف", en: "Host Employee" },
+  "host employee": { ar: "الموظف المستضيف", en: "Host Employee" },
+  hostdept: { ar: "قسم المستضيف", en: "Host Dept" },
+  relation: { ar: "صلة القرابة", en: "Relationship" },
+  relationship: { ar: "صلة القرابة", en: "Relationship" },
+  guestid: { ar: "رقم الهوية", en: "ID Number" },
+  "id number": { ar: "رقم الهوية", en: "ID Number" },
+  "guest & relation": { ar: "اسم الضيف والصلة", en: "Guest & Relation" },
+  dailyrate: { ar: "سعر اليوم", en: "Daily Rate" },
+  "daily rate": { ar: "سعر اليوم", en: "Daily Rate" },
+  totalamount: { ar: "الإجمالي", en: "Total Fee" },
+  "total fee": { ar: "الإجمالي", en: "Total Fee" },
+  category: { ar: "التصنيف / الفئة", en: "Category" },
+  problemtype: { ar: "وصف المشكلة / العطل", en: "Problem Details" },
+  "problem details": { ar: "وصف المشكلة / العطل", en: "Problem Details" },
+  priority: { ar: "الأولوية", en: "Priority" },
+  assignedto: { ar: "الفني المعين", en: "Assigned To" },
+  "assigned to": { ar: "الفني المعين", en: "Assigned To" },
+  reportedat: { ar: "تاريخ البلاغ", en: "Reported Date" },
+  "reported at": { ar: "تاريخ البلاغ", en: "Reported At" },
+  "reported date": { ar: "تاريخ البلاغ", en: "Reported Date" },
+
+  // Inventory & Assets
+  itemname: { ar: "اسم الصنف / المعدة", en: "Item Name" },
+  "item name": { ar: "اسم الصنف / المعدة", en: "Item Name" },
+  "equipment / item": { ar: "اسم العهدة / المعدة", en: "Equipment / Item" },
+  "equipment / item name": { ar: "اسم العهدة / الصنف", en: "Equipment / Item Name" },
+  totalquantity: { ar: "إجمالي الكمية", en: "Total Quantity" },
+  "total quantity": { ar: "إجمالي الكمية بالسكن", en: "Total Quantity" },
+  "total quantity in housing": { ar: "إجمالي الكمية بالسكن", en: "Total Quantity in Housing" },
+  "total in housing": { ar: "إجمالي الكمية بالسكن", en: "Total in Housing" },
+  goodcount: { ar: "سليم / ممتاز", en: "Good / Working" },
+  "good / working": { ar: "سليم / ممتاز", en: "Good / Working" },
+  needsrepaircount: { ar: "بحاجة لصيانة", en: "Needs Repair" },
+  "needs repair": { ar: "بحاجة لصيانة", en: "Needs Repair" },
+  damagedcount: { ar: "تالف", en: "Damaged" },
+  damaged: { ar: "تالف", en: "Damaged" },
+  missingcount: { ar: "مفقود", en: "Missing" },
+  missing: { ar: "مفقود", en: "Missing" },
+  roomscount: { ar: "عدد الغرف", en: "Rooms Count" },
+  "rooms count": { ar: "عدد الغرف", en: "Rooms Count" },
+  roomssummary: { ar: "أرقام الغرف", en: "Rooms List" },
+  "rooms list": { ar: "أرقام وتوزيع الغرف", en: "Rooms List" },
+  "rooms breakdown": { ar: "تفاصيل وتوزيع الغرف", en: "Rooms Breakdown" },
+  "condition breakdown": { ar: "الحالة التشغيلية", en: "Condition Breakdown" },
+  quantity: { ar: "العدد", en: "Quantity" },
+  qty: { ar: "العدد", en: "Qty" },
+  modelnumber: { ar: "رقم الموديل", en: "Model" },
+  model: { ar: "الموديل", en: "Model" },
+  serialnumber: { ar: "الرقم التسلسلي", en: "Serial Number" },
+  "serial number": { ar: "الرقم التسلسلي", en: "Serial Number" },
+  "serial / asset tag": { ar: "الرقم التسلسلي / الكود", en: "Serial / Asset Tag" },
+  barcode: { ar: "الباركود / كود الأصل", en: "Barcode" },
+  "asset tag / barcode": { ar: "كود الأصل / الباركود", en: "Asset Tag / Barcode" },
+  lastinspectedat: { ar: "تاريخ آخر فحص", en: "Last Inspected" },
+  "last inspected": { ar: "تاريخ آخر فحص", en: "Last Inspected" },
+  inspectedby: { ar: "القائم بالفحص", en: "Inspected By" },
+  "inspected by": { ar: "القائم بالفحص", en: "Inspected By" },
+};
+
+export function translateReportHeader(header: string, isArabic: boolean): string {
+  if (!header) return "";
+  const trimmed = header.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (isArabic) {
+    // If it already has Arabic characters, keep it as is!
+    if (/[\u0600-\u06FF]/.test(trimmed)) return trimmed;
+
+    // Check direct match
+    const match = BILINGUAL_HEADER_MAP[lower] || BILINGUAL_HEADER_MAP[trimmed];
+    if (match) return match.ar;
+
+    // Try stripping non-alphanumeric
+    const cleanKey = lower.replace(/[^a-z0-9]/g, "");
+    if (BILINGUAL_HEADER_MAP[cleanKey]) return BILINGUAL_HEADER_MAP[cleanKey].ar;
+
+    // Search through all keys comparing normalized alphanumeric form
+    for (const [k, v] of Object.entries(BILINGUAL_HEADER_MAP)) {
+      if (k.toLowerCase().replace(/[^a-z0-9]/g, "") === cleanKey) {
+        return v.ar;
+      }
+    }
+
+    return trimmed;
+  } else {
+    // English mode
+    if (!/[\u0600-\u06FF]/.test(trimmed)) return trimmed;
+
+    // Find English counterpart
+    for (const entry of Object.values(BILINGUAL_HEADER_MAP)) {
+      if (entry.ar === trimmed || trimmed.includes(entry.ar)) {
+        return entry.en;
+      }
+    }
+    return trimmed;
+  }
+}
+
+// ----------------------------------------------------------------------------
 // 2. Helper: Status Badge Formatter
 // ----------------------------------------------------------------------------
 export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
@@ -533,21 +869,48 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     : now.toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   // Normalize Table Headers & Rows
-  let headers: string[] = [];
+  let rawHeaders: string[] = [];
   let tableRows: any[][] = [];
 
   if (rows.length > 0) {
     if (Array.isArray(rows[0])) {
-      headers = opts.headers || (rows[0] as string[]);
+      rawHeaders = opts.headers || (rows[0] as string[]);
       tableRows = (rows as any[][]).slice(opts.headers ? 0 : 1);
     } else {
-      headers = opts.headers || Object.keys(rows[0]);
-      tableRows = (rows as Record<string, any>[]).map((r) => headers.map((h) => r[h]));
+      rawHeaders = opts.headers || Object.keys(rows[0]);
+      tableRows = (rows as Record<string, any>[]).map((r) => rawHeaders.map((h) => r[h]));
     }
   }
 
-  // Determine Orientation: Landscape if >= 6 columns or explicitly requested
-  const orientation = opts.orientation || (headers.length >= 6 ? "landscape" : "portrait");
+  // Strictly translate all table headers to Arabic in Arabic mode or English in English mode
+  const headers = rawHeaders.map((h) => translateReportHeader(h, isArabic));
+  const colCount = headers.length + 1; // including '#' sequence column
+
+  // Determine Orientation: Automatically enforce Landscape if >= 5 columns or explicitly requested
+  const orientation = opts.orientation || (colCount >= 5 ? "landscape" : "portrait");
+
+  // Dynamic font sizing & padding to guarantee zero-overflow fit on A4
+  let baseFontSizePt = 8.5;
+  let printFontSizePt = 8.0;
+  let cellPadding = "5px 7px";
+  let printPadding = "3.5px 5px";
+
+  if (colCount >= 14) {
+    baseFontSizePt = 6.8;
+    printFontSizePt = 5.8;
+    cellPadding = "2.5px 3.5px";
+    printPadding = "2px 3px";
+  } else if (colCount >= 11) {
+    baseFontSizePt = 7.4;
+    printFontSizePt = 6.5;
+    cellPadding = "3px 4.5px";
+    printPadding = "2.5px 4px";
+  } else if (colCount >= 8) {
+    baseFontSizePt = 8.0;
+    printFontSizePt = 7.2;
+    cellPadding = "4px 6px";
+    printPadding = "3px 4.5px";
+  }
 
   // KPI Summary Cards
   const kpiCards: ReportKpiCard[] =
@@ -901,24 +1264,33 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
     /* Data Table */
     table {
-      width: 100%;
+      width: 100% !important;
+      max-width: 100% !important;
       border-collapse: collapse;
       margin-bottom: 16px;
-      font-size: 8pt;
+      font-size: ${baseFontSizePt}pt;
+      table-layout: auto !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
     }
     th, td {
       border: 1px solid #cbd5e1;
-      padding: 5px 8px;
+      padding: ${cellPadding};
       text-align: ${dir === "rtl" ? "right" : "left"};
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      vertical-align: middle;
+      line-height: 1.25;
     }
     th {
       background: var(--primary);
       color: #ffffff;
       font-weight: 800;
-      font-size: 8pt;
-      letter-spacing: 0.2px;
+      font-size: ${baseFontSizePt}pt;
+      letter-spacing: 0.1px;
       border-color: #0f2a44;
-      white-space: nowrap;
+      white-space: normal !important;
     }
     tr:nth-child(even) td {
       background: #f8fafc;
@@ -1006,26 +1378,61 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
     /* Print Specific Media Styles */
     @media print {
-      body { background: #ffffff !important; font-size: 7.5pt; }
+      @page {
+        size: A4 ${orientation};
+        margin: 4mm 6mm !important;
+      }
+      html, body {
+        width: 100% !important;
+        background: #ffffff !important;
+        font-size: ${printFontSizePt}pt !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
       .preview-actions-bar { display: none !important; }
-      .sheet-wrapper { padding: 0 !important; }
+      .sheet-wrapper { padding: 0 !important; margin: 0 !important; width: 100% !important; }
       .sheet {
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 6mm 8mm !important;
+        padding: 4mm 6mm !important;
         width: 100% !important;
+        max-width: 100% !important;
         min-height: auto !important;
         border-radius: 0 !important;
       }
-      @page {
-        size: A4 ${orientation};
-        margin: 6mm 8mm;
+      table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: auto !important;
+        font-size: ${printFontSizePt}pt !important;
+      }
+      th, td {
+        font-size: ${printFontSizePt}pt !important;
+        padding: ${printPadding} !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
       }
       th {
         background: #0f2a44 !important;
         color: #ffffff !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+      }
+      tr {
+        page-break-inside: avoid !important;
+      }
+      thead {
+        display: table-header-group !important;
+      }
+      tfoot {
+        display: table-footer-group !important;
+      }
+      .badge {
+        white-space: normal !important;
+        word-break: break-word !important;
+        font-size: calc(${printFontSizePt}pt - 0.5pt) !important;
+        padding: 1px 4px !important;
       }
       .badge-green { background: #dcfce7 !important; color: #15803d !important; -webkit-print-color-adjust: exact !important; }
       .badge-red { background: #fee2e2 !important; color: #b91c1c !important; -webkit-print-color-adjust: exact !important; }
@@ -1046,11 +1453,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         <span>👑</span>
         <span>${reportTitle}</span>
       </div>
-      <div class="bar-meta">${propName} · ${rows.length} ${isArabic ? "سجل" : "records"}</div>
+      <div class="bar-meta">${propName} · ${rows.length} ${isArabic ? "سجل" : "records"} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : (isArabic ? "رأسي (Portrait)" : "Portrait")}</span></div>
     </div>
     <div class="bar-actions">
       <button class="btn btn-primary" onclick="window.print()">🖨️ ${isArabic ? "طباعة / حفظ كـ PDF" : "Print / Save as PDF"}</button>
-      <button class="btn btn-outline" onclick="toggleOrientation()">📄 ${isArabic ? "تبديل الاتجاه (أفقي/رأسي)" : "Toggle Orientation"}</button>
+      <button class="btn btn-outline" id="orientBtn" onclick="toggleOrientation()">📄 ${isArabic ? (orientation === "landscape" ? "أفقي (انقر للرأسي)" : "رأسي (انقر للأفقي)") : (orientation === "landscape" ? "Landscape (Click for Portrait)" : "Portrait (Click for Landscape)")}</button>
       <button class="btn btn-close" onclick="window.close()">❌ ${isArabic ? "إغلاق" : "Close"}</button>
     </div>
   </div>
@@ -1144,15 +1551,24 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     let currentOrientation = "${orientation}";
     function toggleOrientation() {
       const sheet = document.getElementById("printSheet");
+      const orientBtn = document.getElementById("orientBtn");
+      const metaOrient = document.getElementById("metaOrient");
       currentOrientation = currentOrientation === "landscape" ? "portrait" : "landscape";
       if (currentOrientation === "portrait") {
         sheet.style.width = "210mm";
         sheet.style.minHeight = "297mm";
+        if (orientBtn) orientBtn.innerHTML = "📄 ${isArabic ? 'رأسي (انقر للأفقي)' : 'Portrait (Click for Landscape)'}";
+        if (metaOrient) metaOrient.innerHTML = "${isArabic ? 'رأسي (Portrait)' : 'Portrait'}";
       } else {
         sheet.style.width = "297mm";
         sheet.style.minHeight = "210mm";
+        if (orientBtn) orientBtn.innerHTML = "📄 ${isArabic ? 'أفقي (انقر للرأسي)' : 'Landscape (Click for Portrait)'}";
+        if (metaOrient) metaOrient.innerHTML = "${isArabic ? 'أفقي (Landscape)' : 'Landscape'}";
       }
+      const existingStyle = document.getElementById("dynamicPageOrientation");
+      if (existingStyle) existingStyle.remove();
       const styleEl = document.createElement("style");
+      styleEl.id = "dynamicPageOrientation";
       styleEl.innerHTML = "@page { size: A4 " + currentOrientation + " !important; }";
       document.head.appendChild(styleEl);
     }

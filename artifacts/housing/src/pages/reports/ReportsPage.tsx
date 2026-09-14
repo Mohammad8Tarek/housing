@@ -4,7 +4,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
 import { DataPagination } from "@/components/DataPagination";
 import { AnalyticsTab } from "./components/AnalyticsTab";
-import { usePrintLanguage, PrintLanguageDialog } from "@/lib/PrintLanguageDialog";
 
 import { useReportData } from "./hooks/useReportData";
 import { useReportFilters } from "./hooks/useReportFilters";
@@ -12,6 +11,7 @@ import { useReportDataProcessor } from "./hooks/useReportDataProcessor";
 import { useReportAnalytics } from "./hooks/useReportAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
 import { sortReportRows, useReportSort } from "./hooks/useReportSort";
+import { useReportColumns } from "./hooks/useReportColumns";
 
 import { ClipboardCheck, AlertOctagon } from "lucide-react";
 import { ExportToolbar } from "./components/ExportToolbar";
@@ -29,8 +29,8 @@ export default function Reports() {
   const ar = language === "ar";
   const canExportReports = can("reports", "export");
 
-  const { langDialogOpen, openDialog, handleSelect, handleCancel } = usePrintLanguage();
   const filters = useReportFilters();
+  const reportCols = useReportColumns(filters.activeTab, ar);
 
   const numericPropertyId: number | undefined =
     activePropertyId && activePropertyId !== "all"
@@ -137,8 +137,8 @@ export default function Reports() {
       buildingMap: data.buildingMap,
       empMap: data.empMap,
       roomMap: data.roomMap,
-      openPrintDialog: openDialog,
       inventoryViewMode: filters.inventoryViewMode,
+      filterRow: reportCols.filterRow,
     });
 
   return (
@@ -158,6 +158,11 @@ export default function Reports() {
             handleExportAnalyticsPDF={handleExportAnalyticsPDF}
             handleExportExcel={handleExportExcel}
             handleExportPDF={handleExportPDF}
+            cols={reportCols.cols}
+            visible={reportCols.visible}
+            onToggle={reportCols.toggle}
+            onShowAll={reportCols.showAll}
+            onHideAll={reportCols.hideAll}
           />
         </div>
       </div>
@@ -365,11 +370,6 @@ export default function Reports() {
         </>
       )}
 
-      <PrintLanguageDialog
-        open={langDialogOpen}
-        onSelect={handleSelect}
-        onCancel={handleCancel}
-      />
     </div>
   );
 }

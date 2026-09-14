@@ -1,4 +1,5 @@
 import { exportExcel, exportPDF, exportAnalyticsPDF, printArabicAnalyticsReport } from "../utils/export";
+import { translateReportHeader } from "../utils/luxury-report-engine";
 import { getRoomStatusLabel } from "@/pages/housing/utils";
 
 export function useReportExport({
@@ -23,8 +24,9 @@ export function useReportExport({
   roomMap,
   openPrintDialog,
   inventoryViewMode = "summary",
+  filterRow,
 }: any) {
-  const toExcelRows = (): Record<string, any>[] => {
+  const getRawRows = (): Record<string, any>[] => {
     const data = currentData();
     switch (activeTab) {
       case "manager_flash":
@@ -319,8 +321,25 @@ export function useReportExport({
         }));
 
       default:
+        if (ar && Array.isArray(data)) {
+          return data.map((item: any) => {
+            const trItem: Record<string, any> = {};
+            for (const [key, val] of Object.entries(item)) {
+              trItem[translateReportHeader(key, true)] = val;
+            }
+            return trItem;
+          });
+        }
         return data;
     }
+  };
+
+  const toExcelRows = (): Record<string, any>[] => {
+    const raw = getRawRows();
+    if (typeof filterRow === "function") {
+      return raw.map((r) => filterRow(r));
+    }
+    return raw;
   };
 
   const handleExportExcel = () => {
@@ -331,10 +350,7 @@ export function useReportExport({
 
   const handleExportPDF = async () => {
     if (!canExportReports) return;
-    let isArabic = ar;
-    if (typeof openPrintDialog === "function") {
-      isArabic = await openPrintDialog();
-    }
+    const isArabic = ar; // Direct language mode — zero popup prompting!
     const rows = toExcelRows();
     exportPDF(
       activeTab,
@@ -352,10 +368,7 @@ export function useReportExport({
 
   const handleExportAnalyticsPDF = async () => {
     if (!canExportReports) return;
-    let isArabic = ar;
-    if (typeof openPrintDialog === "function") {
-      isArabic = await openPrintDialog();
-    }
+    const isArabic = ar; // Direct language mode — zero popup prompting!
     if (isArabic) {
       printArabicAnalyticsReport({
         analytics,

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { Tab } from "../types";
+import { ColumnChooser, ColDef } from "@/components/ui/column-chooser";
 
 interface ExportToolbarProps {
   canExportReports: boolean;
@@ -9,6 +10,11 @@ interface ExportToolbarProps {
   handleExportAnalyticsPDF: () => void;
   handleExportExcel: () => void;
   handleExportPDF: () => void;
+  cols?: ColDef[];
+  visible?: Set<string>;
+  onToggle?: (key: string, checked: boolean) => void;
+  onShowAll?: () => void;
+  onHideAll?: () => void;
 }
 
 export function ExportToolbar({
@@ -18,12 +24,29 @@ export function ExportToolbar({
   handleExportAnalyticsPDF,
   handleExportExcel,
   handleExportPDF,
+  cols,
+  visible,
+  onToggle,
+  onShowAll,
+  onHideAll,
 }: ExportToolbarProps) {
   if (!canExportReports) return null;
+
+  const columnChooserElement = cols && cols.length > 0 && visible && onToggle ? (
+    <ColumnChooser
+      cols={cols}
+      visible={visible}
+      onToggle={onToggle}
+      onShowAll={onShowAll}
+      onHideAll={onHideAll}
+      ar={ar}
+    />
+  ) : null;
 
   if (activeTab === "manager_flash") {
     return (
       <div className="flex items-center gap-2">
+        {columnChooserElement}
         <Button
           variant="outline"
           size="sm"
@@ -49,6 +72,7 @@ export function ExportToolbar({
   if (activeTab === "housekeeping_sheet") {
     return (
       <div className="flex items-center gap-2">
+        {columnChooserElement}
         <Button
           variant="outline"
           size="sm"
@@ -74,6 +98,7 @@ export function ExportToolbar({
   if (activeTab === "room_discrepancy") {
     return (
       <div className="flex items-center gap-2">
+        {columnChooserElement}
         <Button
           variant="outline"
           size="sm"
@@ -99,6 +124,7 @@ export function ExportToolbar({
   if (activeTab === "occupancy_forecast") {
     return (
       <div className="flex items-center gap-2">
+        {columnChooserElement}
         <Button
           variant="outline"
           size="sm"
@@ -136,7 +162,8 @@ export function ExportToolbar({
   }
 
   return (
-    <>
+    <div className="flex items-center gap-2">
+      {columnChooserElement}
       <Button
         variant="outline"
         size="sm"
@@ -155,6 +182,6 @@ export function ExportToolbar({
         <FileText className="w-4 h-4" />
         PDF
       </Button>
-    </>
+    </div>
   );
 }

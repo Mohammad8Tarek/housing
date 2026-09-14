@@ -220,7 +220,7 @@ export default function RoomAssignment() {
   } | null>(null);
 
   const printHousingLetter = async () => {
-    const chosenAr = await openDialog();
+    const chosenAr = ar;
     const emp = selectedProfile;
     const assignment = lastAssignment;
     if (!emp || !assignment) return;
