@@ -1200,36 +1200,27 @@ export default function Tickets() {
         </div>
       </div>
 
-      {/* Action Bar (Between Filters and Table) */}
+      {/* Action & Search Bar */}
       <div className="px-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/30 p-2.5 rounded-xl border shadow-xs">
-          <div className="flex items-center gap-2">
-            {canCreateAny && (
-              <Button
-                onClick={() => setIsOpen(true)}
-                className="gap-2 font-bold shadow-xs"
-                size="sm"
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-2.5 rounded-xl border shadow-xs">
+          {/* Search Box */}
+          <div className="relative w-full sm:w-72">
+            <Search className="w-3.5 h-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search tickets..."}
+              className="h-8.5 text-xs ps-8 pe-7 bg-background"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                <Plus className="w-4 h-4" />
-                <span>
-                  {ar ? "إنشاء تذكرة جديدة" : "Create New Ticket"}
-                </span>
-              </Button>
+                <X className="w-3 h-3" />
+              </button>
             )}
-
-            {/* Scope Filter Quick Pill */}
-            <Select value={scopeFilter} onValueChange={(v: any) => setScopeFilter(v)}>
-              <SelectTrigger className="h-8 text-xs w-[130px] bg-background">
-                <SelectValue placeholder={ar ? "النطاق" : "Scope"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{ar ? "كل التذاكر" : "All Scope"}</SelectItem>
-                <SelectItem value="me">
-                  {ar ? `تذاكري (${myTicketsCount})` : `My Tickets (${myTicketsCount})`}
-                </SelectItem>
-                <SelectItem value="unassigned">{ar ? "غير معينة" : "Unassigned"}</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1732,52 +1723,6 @@ export default function Tickets() {
           />
 
           <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
-            {/* Table Header Controls: Show entries on left, Search on right */}
-            <div className="p-3.5 border-b bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{ar ? "عرض" : "Show"}</span>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(val) => {
-                    setPageSize(Number(val));
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-20 text-xs font-semibold bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="15">15</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span>{ar ? "سجلات" : "entries"}</span>
-              </div>
-
-              <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search..."}
-                  className="h-8 text-xs ps-8 pe-7 bg-background"
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm("")}
-                    className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
