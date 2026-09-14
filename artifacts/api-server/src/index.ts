@@ -76,6 +76,7 @@ import { logger } from "./lib/logger.js";
 import { initWebSocket, closeWebSocket } from "./lib/websocket.js";
 import { runMigrations } from "./lib/migrations.js";
 import { runAutoSeeder } from "./lib/seeder.js";
+import { backfillBilingualProfiles } from "./lib/bilingual-backfill.js";
 import { pool, healthCheck } from "@workspace/db";
 import { startAllPmsServers } from "./lib/pms-server.js";
 import { startAllWorkers, shutdownQueue } from "@workspace/queue";
@@ -312,6 +313,12 @@ async function start(): Promise<void> {
         runAutoSeeder(),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Seeder timeout")), 60000),
+        ),
+      ]);
+      await Promise.race([
+        backfillBilingualProfiles(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Bilingual backfill timeout")), 60000),
         ),
       ]);
     }

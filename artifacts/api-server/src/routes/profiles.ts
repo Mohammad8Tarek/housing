@@ -35,6 +35,7 @@ import {
 } from "../lib/portal-accounts.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { broadcastToProperty } from "../lib/websocket.js";
+import { enrichProfileBilingual } from "../lib/bilingual-translator.js";
 
 const router: Router = Router();
 const MAX_PROFILE_LIST_ROWS = Number(
@@ -543,11 +544,12 @@ router.post(
 
     // ✅ الإضافة في الـ Schema الصحيح (الحالة تبدأ بـ UNASSIGNED وتتحدد بناءً على عمليات التسكين)
     const { idDocuments, status, ...profileData } = parsed.data as any;
+    const enrichedData = enrichProfileBilingual(profileData);
     const [profile] = await withTenant(propertyId, async (tenantDb) => {
       return await tenantDb
         .insert(profilesTable)
         .values({
-          ...profileData,
+          ...enrichedData,
           status: "UNASSIGNED",
         })
         .returning();
@@ -638,8 +640,14 @@ router.post(
           lastName: profilesTable.lastName,
           thirdName: profilesTable.thirdName,
           fourthName: profilesTable.fourthName,
+          firstNameAr: profilesTable.firstNameAr,
+          lastNameAr: profilesTable.lastNameAr,
+          thirdNameAr: profilesTable.thirdNameAr,
+          fourthNameAr: profilesTable.fourthNameAr,
           department: profilesTable.department,
+          departmentAr: profilesTable.departmentAr,
           jobTitle: profilesTable.jobTitle,
+          jobTitleAr: profilesTable.jobTitleAr,
           level: profilesTable.level,
           nationality: profilesTable.nationality,
           gender: profilesTable.gender,
@@ -760,6 +768,28 @@ router.post(
           }
 
           if (Object.keys(updates).length > 0) {
+            const merged = {
+              firstName: updates.firstName ?? existingRecord.firstName,
+              lastName: updates.lastName ?? existingRecord.lastName,
+              thirdName: updates.thirdName ?? existingRecord.thirdName,
+              fourthName: updates.fourthName ?? existingRecord.fourthName,
+              department: updates.department ?? existingRecord.department,
+              jobTitle: updates.jobTitle ?? existingRecord.jobTitle,
+              firstNameAr: existingRecord.firstNameAr,
+              lastNameAr: existingRecord.lastNameAr,
+              thirdNameAr: existingRecord.thirdNameAr,
+              fourthNameAr: existingRecord.fourthNameAr,
+              departmentAr: existingRecord.departmentAr,
+              jobTitleAr: existingRecord.jobTitleAr,
+            };
+            const enrichedMerged = enrichProfileBilingual(merged);
+            if (updates.firstName || !existingRecord.firstNameAr) updates.firstNameAr = enrichedMerged.firstNameAr;
+            if (updates.lastName || !existingRecord.lastNameAr) updates.lastNameAr = enrichedMerged.lastNameAr;
+            if (updates.thirdName || !existingRecord.thirdNameAr) updates.thirdNameAr = enrichedMerged.thirdNameAr;
+            if (updates.fourthName || !existingRecord.fourthNameAr) updates.fourthNameAr = enrichedMerged.fourthNameAr;
+            if (updates.department || !existingRecord.departmentAr) updates.departmentAr = enrichedMerged.departmentAr;
+            if (updates.jobTitle || !existingRecord.jobTitleAr) updates.jobTitleAr = enrichedMerged.jobTitleAr;
+
             rowsToUpdate.push({
               id: existingRecord.id,
               profileId: existingRecord.profileId,
@@ -777,20 +807,26 @@ router.post(
             });
           }
         } else {
-          // New employee -> Insert!
-          rowsToInsert.push({
+          // New employee -> Insert with full bilingual auto-translation!
+          const rawItem = {
             profileId: pId || `EMP-${Date.now().toString().slice(-6)}${i + 1}`,
             firstName: String(p.firstName || "—").trim(),
             lastName: String(p.lastName || "—").trim(),
             thirdName: String(p.thirdName || "").trim(),
             fourthName: String(p.fourthName || "").trim(),
+            firstNameAr: String(p.firstNameAr || "").trim(),
+            lastNameAr: String(p.lastNameAr || "").trim(),
+            thirdNameAr: String(p.thirdNameAr || "").trim(),
+            fourthNameAr: String(p.fourthNameAr || "").trim(),
             nationalId: nid,
             nationality: String(p.nationality || "").trim(),
             address: String(p.address || "").trim(),
             jobTitle: String(p.jobTitle || "").trim(),
+            jobTitleAr: String(p.jobTitleAr || "").trim(),
             level: String(p.level || "—").trim(),
             phone: ph,
             department: String(p.department || "").trim(),
+            departmentAr: String(p.departmentAr || "").trim(),
             status: "UNASSIGNED",
             hireDate: p.hireDate || new Date().toISOString().split("T")[0],
             gender: p.gender === "F" ? "F" : "M",
@@ -800,7 +836,8 @@ router.post(
             dateOfBirth: p.dateOfBirth || "",
             email: String(p.email || "").trim(),
             emergencyContact: String(p.emergencyContact || "").trim(),
-          });
+          };
+          rowsToInsert.push(enrichProfileBilingual(rawItem));
         }
       }
 
@@ -1123,6 +1160,27 @@ router.patch(
             cleanProfileData[col] = (parsed.data as any)[col];
           }
         }
+
+        const enrichedPatch = enrichProfileBilingual({
+          firstName: cleanProfileData.firstName ?? existing.firstName,
+          lastName: cleanProfileData.lastName ?? existing.lastName,
+          thirdName: cleanProfileData.thirdName ?? existing.thirdName,
+          fourthName: cleanProfileData.fourthName ?? existing.fourthName,
+          firstNameAr: cleanProfileData.firstNameAr ?? existing.firstNameAr,
+          lastNameAr: cleanProfileData.lastNameAr ?? existing.lastNameAr,
+          thirdNameAr: cleanProfileData.thirdNameAr ?? existing.thirdNameAr,
+          fourthNameAr: cleanProfileData.fourthNameAr ?? existing.fourthNameAr,
+          department: cleanProfileData.department ?? existing.department,
+          departmentAr: cleanProfileData.departmentAr ?? existing.departmentAr,
+          jobTitle: cleanProfileData.jobTitle ?? existing.jobTitle,
+          jobTitleAr: cleanProfileData.jobTitleAr ?? existing.jobTitleAr,
+        });
+        if (cleanProfileData.firstName || !existing.firstNameAr) cleanProfileData.firstNameAr = enrichedPatch.firstNameAr;
+        if (cleanProfileData.lastName || !existing.lastNameAr) cleanProfileData.lastNameAr = enrichedPatch.lastNameAr;
+        if (cleanProfileData.thirdName || !existing.thirdNameAr) cleanProfileData.thirdNameAr = enrichedPatch.thirdNameAr;
+        if (cleanProfileData.fourthName || !existing.fourthNameAr) cleanProfileData.fourthNameAr = enrichedPatch.fourthNameAr;
+        if (cleanProfileData.department || !existing.departmentAr) cleanProfileData.departmentAr = enrichedPatch.departmentAr;
+        if (cleanProfileData.jobTitle || !existing.jobTitleAr) cleanProfileData.jobTitleAr = enrichedPatch.jobTitleAr;
 
         let updatedProfile = existing;
         if (Object.keys(cleanProfileData).length > 0) {

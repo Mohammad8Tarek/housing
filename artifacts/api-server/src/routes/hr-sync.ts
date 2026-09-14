@@ -17,6 +17,7 @@ import { ensureProfilePortalAccount } from "../lib/portal-accounts.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { broadcastToProperty } from "../lib/websocket.js";
+import { enrichProfileBilingual } from "../lib/bilingual-translator.js";
 
 const HrSyncConfigSchema = z.object({
   apiUrl: z.string().url().optional().nullable(),
@@ -556,6 +557,21 @@ async function processReceive(
         if (existing) {
           const previousStatus = existing.status;
 
+          const enrichedUpdate = enrichProfileBilingual({
+            firstName: emp.firstName || existing.firstName,
+            lastName: emp.lastName || existing.lastName,
+            thirdName: emp.thirdName || existing.thirdName,
+            fourthName: emp.fourthName || existing.fourthName,
+            firstNameAr: existing.firstNameAr,
+            lastNameAr: existing.lastNameAr,
+            thirdNameAr: existing.thirdNameAr,
+            fourthNameAr: existing.fourthNameAr,
+            department: emp.department || existing.department,
+            departmentAr: existing.departmentAr,
+            jobTitle: emp.jobTitle || existing.jobTitle,
+            jobTitleAr: existing.jobTitleAr,
+          });
+
           // Update profile with all fields
           await tenantDb
             .update(profilesTable)
@@ -564,10 +580,16 @@ async function processReceive(
               lastName: emp.lastName || existing.lastName,
               thirdName: emp.thirdName || existing.thirdName,
               fourthName: emp.fourthName || existing.fourthName,
+              firstNameAr: enrichedUpdate.firstNameAr,
+              lastNameAr: enrichedUpdate.lastNameAr,
+              thirdNameAr: enrichedUpdate.thirdNameAr,
+              fourthNameAr: enrichedUpdate.fourthNameAr,
               nationalId: emp.nationalId || existing.nationalId,
               nationality: emp.nationality || existing.nationality,
               jobTitle: emp.jobTitle || existing.jobTitle,
+              jobTitleAr: enrichedUpdate.jobTitleAr,
               department: emp.department || existing.department,
+              departmentAr: enrichedUpdate.departmentAr,
               phone: emp.phone || existing.phone,
               address: emp.address || existing.address,
               status: emp.status || existing.status,
@@ -616,37 +638,40 @@ async function processReceive(
           if (checkout) departedAutoCheckouts++;
           updated++;
         } else {
-          // Insert new profile with all fields
+          // Insert new profile with all fields and full bilingual auto-translation
+          const rawInsert = {
+            profileId: emp.profileId,
+            firstName: emp.firstName || "",
+            lastName: emp.lastName || "",
+            thirdName: emp.thirdName || "",
+            fourthName: emp.fourthName || "",
+            nationalId: emp.nationalId || "",
+            nationality: emp.nationality || "",
+            jobTitle: emp.jobTitle || "",
+            department: emp.department || "",
+            phone: emp.phone || "",
+            address: emp.address || "",
+            status: emp.status || "UNASSIGNED",
+            gender: emp.gender || "M",
+            level: emp.level || "",
+            hireDate: emp.hireDate || new Date().toISOString().split("T")[0],
+            dateOfBirth: emp.dateOfBirth || "",
+            email: emp.email || "",
+            emergencyContact: emp.emergencyContact || "",
+            contractEndDate: emp.contractEndDate,
+            employmentType: emp.employmentType || "INTERNAL",
+            companyName: emp.companyName || "",
+            photoUrl: emp.photoUrl,
+            idImage: emp.idImage,
+            vacationStartDate: emp.vacationStartDate,
+            vacationEndDate: emp.vacationEndDate,
+            vacationNotes: emp.vacationNotes,
+          };
+          const enrichedInsert = enrichProfileBilingual(rawInsert);
+
           const [inserted] = await tenantDb
             .insert(profilesTable)
-            .values({
-              profileId: emp.profileId,
-              firstName: emp.firstName || "",
-              lastName: emp.lastName || "",
-              thirdName: emp.thirdName || "",
-              fourthName: emp.fourthName || "",
-              nationalId: emp.nationalId || "",
-              nationality: emp.nationality || "",
-              jobTitle: emp.jobTitle || "",
-              department: emp.department || "",
-              phone: emp.phone || "",
-              address: emp.address || "",
-              status: emp.status || "UNASSIGNED",
-              gender: emp.gender || "M",
-              level: emp.level || "",
-              hireDate: emp.hireDate || new Date().toISOString().split("T")[0],
-              dateOfBirth: emp.dateOfBirth || "",
-              email: emp.email || "",
-              emergencyContact: emp.emergencyContact || "",
-              contractEndDate: emp.contractEndDate,
-              employmentType: emp.employmentType || "INTERNAL",
-              companyName: emp.companyName || "",
-              photoUrl: emp.photoUrl,
-              idImage: emp.idImage,
-              vacationStartDate: emp.vacationStartDate,
-              vacationEndDate: emp.vacationEndDate,
-              vacationNotes: emp.vacationNotes,
-            })
+            .values(enrichedInsert)
             .returning();
 
           if (
