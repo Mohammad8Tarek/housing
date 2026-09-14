@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { Loader } from "@/components/ui/loader";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ForgotPasswordModal } from "@/components/ForgotPasswordModal";
 
 export default function Login() {
   const queryClient = useQueryClient();
@@ -41,6 +42,7 @@ export default function Login() {
     count: number;
     max: number;
   } | null>(null);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const isAr = language === "ar";
 
@@ -362,16 +364,7 @@ export default function Login() {
                 </label>
                 <button
                   type="button"
-                  onClick={() =>
-                    toast.info(
-                      isAr ? "هل نسيت كلمة المرور؟" : "Forgot Password?",
-                      {
-                        description: isAr
-                          ? "يرجى التواصل مع مسؤول النظام لإعادة التعيين."
-                          : "Please contact your system administrator to reset.",
-                      },
-                    )
-                  }
+                  onClick={() => setForgotPasswordOpen(true)}
                   className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
                 >
                   {isAr ? "نسيت كلمة المرور؟" : "Forgot password?"}
@@ -412,6 +405,19 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      <ForgotPasswordModal
+        open={forgotPasswordOpen}
+        onOpenChange={setForgotPasswordOpen}
+        onSuccess={(username) => {
+          if (username) {
+            form.setValue("username", username);
+            setTimeout(() => {
+              form.setFocus("password");
+            }, 100);
+          }
+        }}
+      />
     </div>
   );
 }

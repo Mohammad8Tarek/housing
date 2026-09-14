@@ -1,8 +1,10 @@
 import { Router } from "express";
-import { db, usersTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import crypto from "node:crypto";
+import { db, usersTable, userPasswordResetOtpsTable } from "@workspace/db";
+import { eq, sql, desc, and, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { LoginBody, ChangePasswordBody } from "@workspace/api-zod";
+import { sendOtpEmail } from "../lib/email-service.js";
 import { logActivity, getClientIp } from "../lib/activity-logger.js";
 import {
   loginRateLimit,
@@ -543,6 +545,404 @@ router.post("/auth/switch-property", async (req, res): Promise<void> => {
   }
 
   res.json({ success: true, propertyId: newPropertyId });
+});
+
+// ─── HELPER: Mask Email ──────────────────────────────────────────────────
+function maskEmail(email: string): string {
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const [name, domain] = parts;
+  if (name.length <= 2) {
+    return `${name[0]}*@${domain}`;
+  }
+  const first = name.slice(0, 2);
+  const last = name.slice(-1);
+  return `${first}${"*".repeat(Math.max(name.length - 3, 2))}${last}@${domain}`;
+}
+
+// ─── POST /auth/forgot-password/request-otp ──────────────────────────────
+router.post("/auth/forgot-password/request-otp", async (req, res): Promise<void> => {
+  const identifier = String(req.body?.identifier || "").trim();
+  if (!identifier) {
+    res.status(400).json({
+      error: "يرجى إدخال اسم المستخدم أو البريد الإلكتروني / Username or email is required",
+    });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(
+      or(
+        sql`lower(${usersTable.username}) = lower(${identifier})`,
+        sql`lower(${usersTable.email}) = lower(${identifier})`,
+      ),
+    )
+    .limit(1);
+
+  if (!user) {
+    res.status(404).json({
+      error: "اسم المستخدم أو البريد الإلكتروني غير مسجل في النظام / User account not found",
+    });
+    return;
+  }
+
+  if (user.status && user.status.toLowerCase() !== "active") {
+    res.status(403).json({
+      error: "هذا الحساب غير نشط أو تم تعطيله / This account is inactive or disabled",
+    });
+    return;
+  }
+
+  if (!user.email || !user.email.includes("@")) {
+    res.status(400).json({
+      error:
+        "هذا الحساب ليس لديه بريد إلكتروني مسجل. يرجى التواصل مع مسؤول النظام لتحديث بياناتك / No email address registered for this account. Please contact system administrator.",
+    });
+    return;
+  }
+
+  // Rate Limiting & Progressive Cooldown
+  const [latestOtp] = await db
+    .select()
+    .from(userPasswordResetOtpsTable)
+    .where(eq(userPasswordResetOtpsTable.userId, user.id))
+    .orderBy(desc(userPasswordResetOtpsTable.createdAt))
+    .limit(1);
+
+  let resendCount = 0;
+  if (latestOtp) {
+    const lastActionTime = latestOtp.lastResendAt || latestOtp.createdAt;
+    const secondsSinceLast = Math.floor(
+      (Date.now() - new Date(lastActionTime).getTime()) / 1000,
+    );
+
+    // Cooldown progression:
+    // 0 resends -> 60s
+    // 1 resend  -> 120s
+    // 2+ resends -> 300s (5 minutes)
+    const requiredCooldown =
+      latestOtp.resendCount === 0
+        ? 60
+        : latestOtp.resendCount === 1
+          ? 120
+          : 300;
+
+    if (secondsSinceLast < requiredCooldown && secondsSinceLast < 1800) {
+      const remainingCooldown = requiredCooldown - secondsSinceLast;
+      res.status(429).json({
+        error: `يرجى الانتظار ${remainingCooldown} ثانية قبل إعادة إرسال رمز جديد / Please wait ${remainingCooldown}s before requesting a new code`,
+        cooldownSeconds: remainingCooldown,
+        retryAfterSeconds: remainingCooldown,
+      });
+      return;
+    }
+
+    resendCount = secondsSinceLast > 1800 ? 0 : latestOtp.resendCount + 1;
+  }
+
+  // Generate 6-digit cryptographically secure OTP
+  const otpCode = crypto.randomInt(100000, 999999).toString();
+  const otpHash = await bcrypt.hash(otpCode, 10);
+  const TTL_SECONDS = 120; // Exactly 2 minutes per requirements
+  const expiresAt = new Date(Date.now() + TTL_SECONDS * 1000);
+
+  // Invalidate older OTP records for this user
+  await db
+    .delete(userPasswordResetOtpsTable)
+    .where(eq(userPasswordResetOtpsTable.userId, user.id));
+
+  // Insert fresh OTP record
+  await db.insert(userPasswordResetOtpsTable).values({
+    userId: user.id,
+    identifier: user.username,
+    otpHash,
+    attempts: 0,
+    maxAttempts: 5,
+    isVerified: false,
+    resendCount,
+    lastResendAt: new Date(),
+    expiresAt,
+  });
+
+  const nextCooldownSeconds =
+    resendCount === 0 ? 60 : resendCount === 1 ? 120 : 300;
+
+  // Send Email (SMTP with console fallback)
+  await sendOtpEmail({
+    toEmail: user.email,
+    recipientName: user.username,
+    otpCode,
+    expiresInSeconds: TTL_SECONDS,
+  });
+
+  await logActivity({
+    req,
+    propertyId: user.propertyId ?? 0,
+    username: user.username,
+    userId: user.id,
+    userRole: user.roles?.[0],
+    action: "PASSWORD_RESET_OTP_REQUESTED",
+    actionType: "SECURITY",
+    module: "auth",
+    severity: "info",
+    details: `Password reset OTP generated for ${user.username} (sent to ${maskEmail(user.email)})`,
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({
+    success: true,
+    message:
+      "تم إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح / Verification code sent to your email",
+    maskedEmail: maskEmail(user.email),
+    expiresInSeconds: TTL_SECONDS,
+    cooldownSeconds: nextCooldownSeconds,
+    resendCount,
+    debugOtp: process.env.NODE_ENV !== "production" ? otpCode : undefined,
+  });
+});
+
+// ─── POST /auth/forgot-password/verify-otp ───────────────────────────────
+router.post("/auth/forgot-password/verify-otp", async (req, res): Promise<void> => {
+  const identifier = String(req.body?.identifier || "").trim();
+  const otp = String(req.body?.otp || "").trim();
+
+  if (!identifier || !otp) {
+    res.status(400).json({
+      error:
+        "اسم المستخدم ورمز التحقق مطلوبان / Username and OTP code are required",
+    });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(
+      or(
+        sql`lower(${usersTable.username}) = lower(${identifier})`,
+        sql`lower(${usersTable.email}) = lower(${identifier})`,
+      ),
+    )
+    .limit(1);
+
+  if (!user) {
+    res.status(404).json({
+      error: "الحساب غير موجود / User account not found",
+    });
+    return;
+  }
+
+  const [otpRecord] = await db
+    .select()
+    .from(userPasswordResetOtpsTable)
+    .where(
+      and(
+        eq(userPasswordResetOtpsTable.userId, user.id),
+        eq(userPasswordResetOtpsTable.isVerified, false),
+      ),
+    )
+    .orderBy(desc(userPasswordResetOtpsTable.createdAt))
+    .limit(1);
+
+  if (!otpRecord) {
+    res.status(400).json({
+      error:
+        "لم يتم العثور على طلب استعادة نشط. يرجى طلب رمز جديد / No active reset request found. Please request a new code.",
+    });
+    return;
+  }
+
+  // Check expiration (Strict 120s / 2 mins)
+  if (new Date() > new Date(otpRecord.expiresAt)) {
+    res.status(400).json({
+      error:
+        "انتهت صلاحية رمز التحقق (أكثر من دقيقتين). يرجى طلب رمز جديد / Verification code has expired. Please request a new code.",
+      code: "OTP_EXPIRED",
+    });
+    return;
+  }
+
+  // Check attempt limit
+  if (otpRecord.attempts >= otpRecord.maxAttempts) {
+    res.status(400).json({
+      error:
+        "تم استنفاد الحد الأقصى لمحاولات إدخال الرمز (5 محاولات). يرجى طلب رمز جديد / Maximum attempts reached. Please request a new code.",
+      code: "MAX_ATTEMPTS_EXCEEDED",
+    });
+    return;
+  }
+
+  // Verify OTP code hash
+  const isValid = await bcrypt.compare(otp, otpRecord.otpHash);
+  if (!isValid) {
+    const newAttempts = otpRecord.attempts + 1;
+    await db
+      .update(userPasswordResetOtpsTable)
+      .set({ attempts: newAttempts })
+      .where(eq(userPasswordResetOtpsTable.id, otpRecord.id));
+
+    const remaining = Math.max(0, otpRecord.maxAttempts - newAttempts);
+    res.status(400).json({
+      error: `رمز التحقق غير صحيح. المحاولات المتبقية: ${remaining} / Invalid verification code. Remaining attempts: ${remaining}`,
+      remainingAttempts: remaining,
+    });
+    return;
+  }
+
+  // OTP is verified! Generate secure reset token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = await bcrypt.hash(resetToken, 10);
+
+  // Mark record as verified, grant 10 minutes to submit new password
+  await db
+    .update(userPasswordResetOtpsTable)
+    .set({
+      isVerified: true,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 600 * 1000),
+    })
+    .where(eq(userPasswordResetOtpsTable.id, otpRecord.id));
+
+  res.json({
+    success: true,
+    message: "تم التحقق من الرمز بنجاح / Verification successful",
+    resetToken,
+  });
+});
+
+// ─── POST /auth/forgot-password/reset-password ───────────────────────────
+router.post("/auth/forgot-password/reset-password", async (req, res): Promise<void> => {
+  const identifier = String(req.body?.identifier || "").trim();
+  const resetToken = String(req.body?.resetToken || "").trim();
+  const newPassword = String(req.body?.newPassword || "").trim();
+
+  if (!identifier || !resetToken || !newPassword) {
+    res.status(400).json({
+      error: "جميع الحقول مطلوبة / All fields are required",
+    });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(
+      or(
+        sql`lower(${usersTable.username}) = lower(${identifier})`,
+        sql`lower(${usersTable.email}) = lower(${identifier})`,
+      ),
+    )
+    .limit(1);
+
+  if (!user) {
+    res.status(404).json({ error: "الحساب غير موجود / User not found" });
+    return;
+  }
+
+  // Find verified OTP session
+  const [otpRecord] = await db
+    .select()
+    .from(userPasswordResetOtpsTable)
+    .where(
+      and(
+        eq(userPasswordResetOtpsTable.userId, user.id),
+        eq(userPasswordResetOtpsTable.isVerified, true),
+      ),
+    )
+    .orderBy(desc(userPasswordResetOtpsTable.createdAt))
+    .limit(1);
+
+  if (!otpRecord || !otpRecord.tokenHash) {
+    res.status(400).json({
+      error:
+        "جلسة التحقق غير صالحة. يرجى إعادة المحاولة من البداية / Invalid reset session. Please start over.",
+    });
+    return;
+  }
+
+  if (new Date() > new Date(otpRecord.expiresAt)) {
+    res.status(400).json({
+      error:
+        "انتهت مهلة جلسة تغيير كلمة المرور. يرجى إعادة طلب رمز التحقق / Reset session expired. Please request a new OTP.",
+    });
+    return;
+  }
+
+  const isTokenValid = await bcrypt.compare(resetToken, otpRecord.tokenHash);
+  if (!isTokenValid) {
+    res.status(403).json({
+      error: "رمز المصادقة غير صالح / Invalid reset token",
+    });
+    return;
+  }
+
+  // Enforce Password Policy
+  const propertyId = user.propertyId ?? 0;
+  const policy = await getPasswordPolicy(propertyId);
+  const validation = validatePassword(newPassword, policy);
+  if (!validation.valid) {
+    res.status(400).json({
+      error: validation.errors.join(". "),
+      errors: validation.errors,
+    });
+    return;
+  }
+
+  // Enforce Password History
+  const historyError = await checkPasswordHistory(
+    user.id,
+    newPassword,
+    policy.historyCount,
+  );
+  if (historyError) {
+    res.status(400).json({ error: historyError });
+    return;
+  }
+
+  // Hash new password and update user account
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+  await db
+    .update(usersTable)
+    .set({
+      passwordHash,
+      passwordChangedAt: new Date(),
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+    })
+    .where(eq(usersTable.id, user.id));
+
+  // Record into password history and cleanup
+  await recordPasswordHistory(user.id, passwordHash);
+  await cleanupOldPasswordHistory(user.id, policy.historyCount);
+
+  // Remove the consumed OTP record
+  await db
+    .delete(userPasswordResetOtpsTable)
+    .where(eq(userPasswordResetOtpsTable.id, otpRecord.id));
+
+  // Log security event
+  await logActivity({
+    req,
+    propertyId: user.propertyId ?? 0,
+    username: user.username,
+    userId: user.id,
+    userRole: user.roles?.[0],
+    action: "PASSWORD_RESET_SUCCESS",
+    actionType: "SECURITY",
+    module: "auth",
+    severity: "info",
+    details: `Password successfully reset via verified OTP for user ${user.username}`,
+    ipAddress: getClientIp(req),
+  });
+
+  res.json({
+    success: true,
+    message:
+      "تم تغيير كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة / Password reset successfully! You can now log in.",
+  });
 });
 
 export default router;

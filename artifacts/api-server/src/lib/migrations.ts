@@ -1069,6 +1069,26 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     q: `ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS worker_id INTEGER;
     CREATE INDEX IF NOT EXISTS idx_public_maintenance_worker_id ON public.maintenance (worker_id);`,
   },
+  {
+    name: "public.user_password_reset_otps",
+    q: `CREATE TABLE IF NOT EXISTS public.user_password_reset_otps (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+      identifier TEXT NOT NULL,
+      otp_hash TEXT NOT NULL,
+      token_hash TEXT,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      max_attempts INTEGER NOT NULL DEFAULT 5,
+      is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+      resend_count INTEGER NOT NULL DEFAULT 0,
+      last_resend_at TIMESTAMPTZ,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_otps_user ON public.user_password_reset_otps(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_otps_identifier ON public.user_password_reset_otps(identifier);
+    CREATE INDEX IF NOT EXISTS idx_user_otps_expires ON public.user_password_reset_otps(expires_at);`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
