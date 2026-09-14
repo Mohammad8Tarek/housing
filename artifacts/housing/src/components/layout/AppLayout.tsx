@@ -160,7 +160,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   } = useProperty();
   const { canView, can } = usePermission();
   const canSwitchOrViewProperties =
-    isSuperAdmin || Boolean(canSeeAllProperties) || canView("properties") || can("dashboard", "audit");
+    isSuperAdmin || (properties && properties.length > 1);
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { language, setLanguage, dir } = useLanguage();
@@ -415,7 +415,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const visibleNavItems = navItems.filter((n) => {
-    if (n.superAdminOnly && !isSuperAdmin && (!n.permissionModule || !canView(n.permissionModule))) return false;
+    if (n.superAdminOnly && !isSuperAdmin) return false;
     if (n.permissionModules && n.permissionModules.length > 0) {
       if (!n.permissionModules.some((m) => canView(m))) return false;
     } else if (n.permissionModule && !canView(n.permissionModule)) {
@@ -627,34 +627,47 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <ChevronsUpDown className="w-3 h-3 text-sidebar-primary/50 flex-shrink-0" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="start">
-                      <DropdownMenuLabel className="text-xs text-sidebar-foreground/70 uppercase tracking-wide">
-                        {ar ? "تبديل الفرع / المنشأة" : "Switch Property"}
-                      </DropdownMenuLabel>
+                    <DropdownMenuContent className="w-60" align="start">
+                      <div className="flex items-center justify-between px-2 py-1.5">
+                        <DropdownMenuLabel className="p-0 text-xs text-sidebar-foreground/70 uppercase tracking-wide">
+                          {ar ? "تبديل الفرع / المنشأة" : "Switch Property"}
+                        </DropdownMenuLabel>
+                        {isSuperAdmin && (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5">
+                            👑 {ar ? "إدارة عليا" : "Executive"}
+                          </span>
+                        )}
+                      </div>
                       <DropdownMenuSeparator />
-                      {canSwitchOrViewProperties && (
-                        <>
-                          <DropdownMenuItem
-                            data-testid="property-item-all"
-                            onClick={() => handleSwitchProperty("all")}
-                            className="flex items-center gap-2 cursor-pointer border-b border-border/50 mb-1"
-                          >
-                            <Check
-                              className={`w-3.5 h-3.5 ${activePropertyId === "all" ? "opacity-100 text-sidebar-primary" : "opacity-0"}`}
-                            />
-                            <LayoutGrid className="w-4 h-4 text-violet-600" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">
+                      {/* ONLY SUPER ADMIN can see and select All Properties */}
+                      {isSuperAdmin && (
+                        <DropdownMenuItem
+                          data-testid="property-item-all"
+                          onClick={() => handleSwitchProperty("all")}
+                          className="flex items-center gap-2 cursor-pointer border-b border-border/50 mb-1.5 bg-violet-500/5 hover:bg-violet-500/10 transition-colors"
+                        >
+                          <Check
+                            className={`w-3.5 h-3.5 ${activePropertyId === "all" ? "opacity-100 text-violet-600" : "opacity-0"}`}
+                          />
+                          <div className="w-6 h-6 rounded-md bg-violet-500/15 flex items-center justify-center text-violet-600 flex-shrink-0">
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-bold text-xs truncate text-violet-700 dark:text-violet-300">
                                 {ar ? "جميع الفروع" : "All Properties"}
                               </p>
-                              <p className="text-xs text-sidebar-foreground/70">
-                                {ar
-                                  ? "عرض إجمالي لكافة الفروع"
-                                  : "Aggregated overview"}
-                              </p>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30">
+                                👑 {ar ? "سوبر أدمن" : "Super Admin"}
+                              </Badge>
                             </div>
-                          </DropdownMenuItem>
-                        </>
+                            <p className="text-[10px] text-muted-foreground line-clamp-1">
+                              {ar
+                                ? "تجميع إجمالي لكافة الفنادق والسكيما"
+                                : "Aggregated multi-tenant enterprise overview"}
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
                       )}
                       {properties.map((p) => (
                         <DropdownMenuItem
@@ -934,28 +947,56 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="hidden md:flex items-center gap-2 ml-1 pl-3 border-l border-border hover:opacity-70 transition-opacity cursor-pointer">
+                  <button className="hidden md:flex items-center gap-2 ml-1 pl-3 border-l border-border hover:opacity-80 transition-opacity cursor-pointer">
                     <Avatar className="h-7 w-7">
                       <AvatarFallback className="bg-primary text-sidebar-primary-foreground text-xs font-bold">
                         {user?.username?.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium">
-                      {user?.username}
-                    </span>
+                    <div className="flex flex-col text-start">
+                      <span className="text-xs font-semibold leading-tight flex items-center gap-1">
+                        {user?.username}
+                      </span>
+                      {isSuperAdmin && (
+                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                          👑 {ar ? "مدير النظام" : "Super Admin"}
+                        </span>
+                      )}
+                    </div>
                     <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground/70" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <div>
-                      <p className="font-semibold">{user?.username}</p>
-                      <p className="text-xs text-sidebar-foreground/70 capitalize">
-                        {user?.roles?.[0]?.replace(/_/g, " ")}
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold">{user?.username}</p>
+                        {isSuperAdmin && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                            👑 {ar ? "سوبر أدمن" : "Super Admin"}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-sidebar-foreground/70 capitalize mt-0.5">
+                        {isSuperAdmin
+                          ? (ar ? "صلاحيات سيادية شاملة" : "Enterprise Root Access")
+                          : user?.roles?.[0]?.replace(/_/g, " ")}
                       </p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {isSuperAdmin && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => setLocation(buildNavHref("/properties"))}
+                        className="cursor-pointer font-medium text-violet-700 dark:text-violet-300 gap-2"
+                      >
+                        <Building2 className="w-4 h-4 text-violet-600" />
+                        <span>{ar ? "إدارة الفنادق والسكيمات" : "Properties & Schemas"}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem
                     onClick={() => setChangePasswordOpen(true)}
                     className="cursor-pointer"

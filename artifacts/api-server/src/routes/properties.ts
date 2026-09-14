@@ -79,7 +79,11 @@ router.get("/properties", requireAuth, async (req, res): Promise<void> => {
     .orderBy(propertiesTable.id);
   const canSeeAll =
     Boolean(authUser?.isSystemAdmin) ||
-    Boolean(authUser && (hasPermission(authUser, "properties", "view") || hasPermission(authUser, "dashboard", "audit")));
+    Boolean(
+      authUser?.roles?.some((r: string) =>
+        ["super_admin", "system_admin"].includes(String(r).toLowerCase()),
+      ),
+    );
   const allowed = canSeeAll
     ? properties
     : properties.filter((p) => (authUser?.propertyIds ?? []).includes(p.id));

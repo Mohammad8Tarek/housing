@@ -12,7 +12,7 @@ import {
   buildingsTable,
 } from "@workspace/db";
 import { eq, and, lte, gte, count, desc, sql, gt } from "drizzle-orm";
-import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission, requireSuperAdmin } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -45,10 +45,10 @@ function statusEq(column: any, status: string) {
   return sql`lower(${column}) = ${status.toLowerCase()}`;
 }
 
-// ─── GET /dashboard/all-stats (aggregated across all properties) ───────
+// ─── GET /dashboard/all-stats (aggregated across all properties - SUPER ADMIN ONLY) ───────
 router.get(
   "/dashboard/all-stats",
-  requirePermission("dashboard", "audit"),
+  requireSuperAdmin(),
   async (req, res): Promise<void> => {
 
     const result = await pool.query(

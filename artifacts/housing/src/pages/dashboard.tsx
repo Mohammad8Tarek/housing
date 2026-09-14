@@ -202,9 +202,10 @@ export default function Dashboard() {
             {isAll ? (
               <Badge
                 variant="outline"
-                className="text-xs px-2.5 py-0.5 border-violet-400 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 font-mono font-bold"
+                className="text-xs px-2.5 py-0.5 border-violet-400 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 font-mono font-bold flex items-center gap-1 shadow-xs"
               >
-                {ar ? "كل الفروع" : "ALL PROPERTIES"}
+                <span>👑</span>
+                <span>{ar ? "إجمالي كل الفروع (سوبر أدمن)" : "ALL PROPERTIES (SUPER ADMIN)"}</span>
               </Badge>
             ) : activeProperty ? (
               <Badge

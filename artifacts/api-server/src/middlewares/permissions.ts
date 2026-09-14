@@ -573,4 +573,30 @@ export function requireAnyPermission(
   };
 }
 
-// inferAction + requireModulePermission removed — unused (all routes call requirePermission directly)
+export function requireSuperAdmin(): RequestHandler {
+  return async (req, res, next) => {
+    try {
+      const user = await loadAuthUser(req, res);
+      if (!user) return;
+
+      const isSuper =
+        Boolean(user.isSystemAdmin) ||
+        user.roles.some((r) =>
+          ["super_admin", "system_admin"].includes(String(r).toLowerCase()),
+        );
+
+      if (!isSuper) {
+        res.status(403).json({
+          error: "This operation is strictly restricted to System Super Admin only",
+          code: "SUPER_ADMIN_REQUIRED",
+        });
+        return;
+      }
+
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+

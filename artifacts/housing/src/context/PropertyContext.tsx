@@ -20,6 +20,7 @@ interface PropertyContextType {
   properties: Property[];
   isSuperAdmin: boolean;
   canSeeAllProperties?: boolean;
+  canSelectAllProperties?: boolean;
   setActivePropertyId: (id: number | "all") => void;
   buildNavHref: (baseHref: string) => string;
 }
@@ -50,8 +51,9 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       ["super_admin", "system_admin"].includes(r.toLowerCase()),
     );
 
-  const canSeeAllProperties =
-    isSuperAdmin || canView("properties") || can("dashboard", "audit");
+  // Selecting 'all' properties or browsing all unassigned properties is strictly restricted to Super Admin
+  const canSeeAllProperties = isSuperAdmin;
+  const canSelectAllProperties = isSuperAdmin;
 
   const { data: _pData } = useListProperties({
     query: {
@@ -69,7 +71,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     return user.propertyId ? [user.propertyId] : [];
   }, [user]);
 
-  const properties: Property[] = canSeeAllProperties
+  const properties: Property[] = isSuperAdmin
     ? (allProperties as Property[])
     : (allProperties as Property[]).filter((p) =>
         userPropertyIds.includes(p.id),
@@ -81,14 +83,19 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       const pathSlug = extractPropertySlugFromPath();
       const initialFromSlug = resolveInitialPropertyId(pathSlug);
-      if (initialFromSlug !== undefined) return initialFromSlug;
+      if (initialFromSlug !== undefined) {
+        if (initialFromSlug === "all" && !isSuperAdmin) {
+          return undefined; // Rejected for non-super admin
+        }
+        return initialFromSlug;
+      }
 
       const urlProp = new URLSearchParams(window.location.search).get("property");
-      if (urlProp === "all") return "all";
+      if (urlProp === "all") return isSuperAdmin ? "all" : undefined;
       if (urlProp && !isNaN(Number(urlProp))) return Number(urlProp);
     }
     const stored = localStorage.getItem("activePropertyId");
-    if (stored === "all") return "all";
+    if (stored === "all") return isSuperAdmin ? "all" : undefined;
     if (stored) return Number(stored);
     return undefined;
   });
@@ -106,15 +113,27 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
 
     if (targetSlug) {
       const clean = targetSlug.trim().toLowerCase();
-      if (clean === "all" && canSeeAllProperties) {
-        if (activePropertyId !== "all") {
-          setActivePropertyIdState("all");
-          localStorage.setItem("activePropertyId", "all");
+      if (clean === "all") {
+        if (isSuperAdmin) {
+          if (activePropertyId !== "all") {
+            setActivePropertyIdState("all");
+            localStorage.setItem("activePropertyId", "all");
+          }
+          return;
+        } else {
+          // If non-super admin attempted to enter 'all', immediately force fallback to their authorized property
+          const fallback =
+            userPropertyIds[0] ||
+            (allProperties.length > 0 ? (allProperties[0] as Property).id : undefined);
+          if (fallback && activePropertyId !== fallback) {
+            setActivePropertyIdState(fallback);
+            localStorage.setItem("activePropertyId", String(fallback));
+          }
+          return;
         }
-        return;
       }
       const matched = findPropertyBySlug(allProperties as Property[], clean);
-      if (matched && (canSeeAllProperties || userPropertyIds.includes(matched.id))) {
+      if (matched && (isSuperAdmin || userPropertyIds.includes(matched.id))) {
         if (activePropertyId !== matched.id) {
           setActivePropertyIdState(matched.id);
           localStorage.setItem("activePropertyId", String(matched.id));
@@ -127,7 +146,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       const serverId = (user as any).lastPropertyId;
       let targetId: number | "all" | undefined;
 
-      if (canSeeAllProperties) {
+      if (isSuperAdmin) {
         if (serverId === -1) {
           targetId = "all";
         } else {
@@ -159,15 +178,11 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     } else {
       // Enforce restrictions if they have an activePropertyId
       if (
-        !canSeeAllProperties &&
+        !isSuperAdmin &&
         (activePropertyId === "all" ||
           !userPropertyIds.includes(activePropertyId as number))
       ) {
-        const serverId = (user as any).lastPropertyId;
-        const fallback =
-          serverId && serverId > 0 && userPropertyIds.includes(serverId)
-            ? serverId
-            : userPropertyIds[0];
+        const fallback = userPropertyIds[0] || (properties[0]?.id);
         if (fallback) {
           setActivePropertyIdState(fallback);
           localStorage.setItem("activePropertyId", String(fallback));
@@ -178,13 +193,13 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
 
   const setActivePropertyId = (id: number | "all") => {
     if (id === "all") {
-      if (!canSeeAllProperties) return;
+      if (!isSuperAdmin) return;
       setActivePropertyIdState("all");
       localStorage.setItem("activePropertyId", "all");
       saveLastPropertyId("all");
       return;
     }
-    if (!canSeeAllProperties && !userPropertyIds.includes(id)) return;
+    if (!isSuperAdmin && !userPropertyIds.includes(id)) return;
     setActivePropertyIdState(id);
     localStorage.setItem("activePropertyId", String(id));
     saveLastPropertyId(id);
@@ -192,7 +207,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
 
   const effectiveId =
     activePropertyId === "all"
-      ? "all"
+      ? (isSuperAdmin ? "all" : (userPropertyIds[0] || properties[0]?.id))
       : activePropertyId ||
         user?.propertyId ||
         (properties.length > 0 ? properties[0].id : undefined);
@@ -229,18 +244,23 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       const targetSlug = pathSlug || querySlug;
       if (!targetSlug || allProperties.length === 0) return;
       const clean = targetSlug.trim().toLowerCase();
-      if (clean === "all" && canSeeAllProperties) {
-        setActivePropertyIdState("all");
+      if (clean === "all") {
+        if (isSuperAdmin) {
+          setActivePropertyIdState("all");
+        } else {
+          const fallback = userPropertyIds[0];
+          if (fallback) setActivePropertyIdState(fallback);
+        }
       } else {
         const matched = findPropertyBySlug(allProperties as Property[], clean);
-        if (matched && (canSeeAllProperties || userPropertyIds.includes(matched.id))) {
+        if (matched && (isSuperAdmin || userPropertyIds.includes(matched.id))) {
           setActivePropertyIdState(matched.id);
         }
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [allProperties, canSeeAllProperties, userPropertyIds]);
+  }, [allProperties, isSuperAdmin, userPropertyIds]);
 
   const buildNavHref = (baseHref: string) => {
     const slug = propertySlug || "all";
