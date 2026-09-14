@@ -30,6 +30,8 @@ export interface LuxuryReportOptions {
   subtitleAr?: string;
   language?: "ar" | "en";
   orientation?: "landscape" | "portrait";
+  showKpis?: boolean;
+  showSignatures?: boolean;
   properties?: any[];
   propId?: number | string;
   activePropertyId?: number | string;
@@ -53,6 +55,37 @@ export interface LuxuryReportOptions {
   customSectionsHtml?: string;
   autoPrint?: boolean;
 }
+
+// ----------------------------------------------------------------------------
+// 1.1 Formal Layout Configuration: Smart Defaults per Report Tab
+// Executive & Operations -> show KPIs & Signatures
+// Formal Lists & Manifests -> formal clean style (no KPI dashboard, no signatures)
+// ----------------------------------------------------------------------------
+export const REPORT_TAB_CONFIG: Record<
+  string,
+  { showKpis: boolean; showSignatures: boolean }
+> = {
+  // Executive & Operations Audits
+  manager_flash: { showKpis: true, showSignatures: true },
+  housekeeping_sheet: { showKpis: true, showSignatures: true },
+  room_discrepancy: { showKpis: true, showSignatures: true },
+  occupancy_forecast: { showKpis: true, showSignatures: false },
+
+  // Formal Master Ledgers & Directory Manifests (Formal clean style, maximum rows per page)
+  assignments: { showKpis: false, showSignatures: false },
+  profiles: { showKpis: false, showSignatures: false },
+  vacant_rooms: { showKpis: false, showSignatures: false },
+  housing: { showKpis: false, showSignatures: false },
+  history: { showKpis: false, showSignatures: false },
+  expiring_contracts: { showKpis: false, showSignatures: false },
+  reservations: { showKpis: false, showSignatures: false },
+  hostings: { showKpis: false, showSignatures: false },
+  maintenance: { showKpis: false, showSignatures: false },
+  equipment_inventory: { showKpis: false, showSignatures: false },
+  arrivals_manifest: { showKpis: false, showSignatures: false },
+  departures_manifest: { showKpis: false, showSignatures: false },
+  housekeeping: { showKpis: false, showSignatures: false },
+};
 
 // ----------------------------------------------------------------------------
 // 1. Bilingual Titles & Hospitality Mapping
@@ -848,6 +881,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const dir = isArabic ? "rtl" : "ltr";
   const lang = isArabic ? "ar" : "en";
 
+  // Resolve showKpis & showSignatures with smart defaults from REPORT_TAB_CONFIG
+  const tabConfig = activeTab ? REPORT_TAB_CONFIG[activeTab] : undefined;
+  const initialShowKpis = opts.showKpis !== undefined ? opts.showKpis : (tabConfig ? tabConfig.showKpis : false);
+  const initialShowSigs = opts.showSignatures !== undefined ? opts.showSignatures : (tabConfig ? tabConfig.showSignatures : false);
+
   // Resolve property name & logo
   const propObj = properties.find((p: any) => p.id === (propId ?? activePropertyId));
   const propName = propObj?.name || (isArabic ? "سكن منتجعات وفنادق صن رايز" : "Sunrise Resorts Staff Housing");
@@ -920,7 +958,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Generate KPI Cards HTML
   const kpisHtml = kpiCards.length > 0
-    ? `<div class="kpi-grid" style="grid-template-columns: repeat(${Math.min(kpiCards.length, 6)}, 1fr);">
+    ? `<div class="kpi-grid" id="kpiGrid" style="grid-template-columns: repeat(${Math.min(kpiCards.length, 6)}, 1fr); ${initialShowKpis ? "" : "display: none !important;"}">
         ${kpiCards
           .map((kpi) => {
             const label = isArabic ? (kpi.labelAr || kpi.label) : kpi.label;
@@ -1458,6 +1496,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     <div class="bar-actions">
       <button class="btn btn-primary" onclick="window.print()">🖨️ ${isArabic ? "طباعة / حفظ كـ PDF" : "Print / Save as PDF"}</button>
       <button class="btn btn-outline" id="orientBtn" onclick="toggleOrientation()">📄 ${isArabic ? (orientation === "landscape" ? "أفقي (انقر للرأسي)" : "رأسي (انقر للأفقي)") : (orientation === "landscape" ? "Landscape (Click for Portrait)" : "Portrait (Click for Landscape)")}</button>
+      ${kpiCards.length > 0 ? `
+      <button class="btn btn-outline" id="kpiToggleBtn" onclick="toggleKpis()">
+        📊 ${isArabic ? (initialShowKpis ? "الإحصائيات: ظاهرة" : "الإحصائيات: مخفية") : (initialShowKpis ? "KPIs: Shown" : "KPIs: Hidden")}
+      </button>` : ""}
+      <button class="btn btn-outline" id="sigToggleBtn" onclick="toggleSignatures()">
+        ✍️ ${isArabic ? (initialShowSigs ? "التوقيعات: ظاهرة" : "التوقيعات: مخفية") : (initialShowSigs ? "Signatures: Shown" : "Signatures: Hidden")}
+      </button>
       <button class="btn btn-close" onclick="window.close()">❌ ${isArabic ? "إغلاق" : "Close"}</button>
     </div>
   </div>
@@ -1516,7 +1561,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       </table>
 
       <!-- Multi-Tier Official Signatures Block -->
-      <div class="sig-section">
+      <div class="sig-section" id="sigSection" style="${initialShowSigs ? "" : "display: none !important;"}">
         <div class="sig-grid">
           <div class="sig-card">
             <div class="sig-role">${sig1}</div>
@@ -1571,6 +1616,36 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       styleEl.id = "dynamicPageOrientation";
       styleEl.innerHTML = "@page { size: A4 " + currentOrientation + " !important; }";
       document.head.appendChild(styleEl);
+    }
+
+    let kpisVisible = ${initialShowKpis ? "true" : "false"};
+    function toggleKpis() {
+      const grid = document.getElementById("kpiGrid");
+      const btn = document.getElementById("kpiToggleBtn");
+      if (!grid) return;
+      kpisVisible = !kpisVisible;
+      if (kpisVisible) {
+        grid.style.removeProperty("display");
+        if (btn) btn.innerHTML = "📊 ${isArabic ? 'الإحصائيات: ظاهرة' : 'KPIs: Shown'}";
+      } else {
+        grid.style.setProperty("display", "none", "important");
+        if (btn) btn.innerHTML = "📊 ${isArabic ? 'الإحصائيات: مخفية' : 'KPIs: Hidden'}";
+      }
+    }
+
+    let sigsVisible = ${initialShowSigs ? "true" : "false"};
+    function toggleSignatures() {
+      const sec = document.getElementById("sigSection");
+      const btn = document.getElementById("sigToggleBtn");
+      if (!sec) return;
+      sigsVisible = !sigsVisible;
+      if (sigsVisible) {
+        sec.style.removeProperty("display");
+        if (btn) btn.innerHTML = "✍️ ${isArabic ? 'التوقيعات: ظاهرة' : 'Signatures: Shown'}";
+      } else {
+        sec.style.setProperty("display", "none", "important");
+        if (btn) btn.innerHTML = "✍️ ${isArabic ? 'التوقيعات: مخفية' : 'Signatures: Hidden'}";
+      }
     }
 
     ${autoPrint ? `
