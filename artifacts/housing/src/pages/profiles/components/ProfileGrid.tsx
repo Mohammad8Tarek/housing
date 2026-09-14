@@ -14,6 +14,11 @@ import { ProfileAvatar } from "./ProfileAvatar";
 import { StatusBadge } from "./StatusBadge";
 import { formatDate } from "@/lib/date-utils";
 import { formatNationality } from "@/lib/countries";
+import {
+  getProfileDisplayName,
+  getProfileDisplayJobTitle,
+  getProfileDisplayDepartment,
+} from "@/lib/profile-display-utils";
 
 interface ProfileGridProps {
   profiles: any[];
@@ -52,8 +57,8 @@ export function ProfileGrid({
                 photoUrl={emp.photoUrl}
                 size="md"
               />
-              <h3 className="mt-3 text-base font-semibold text-center line-clamp-2" title={`${emp.firstName} ${emp.lastName || ""} ${emp.thirdName || ""} ${emp.fourthName || ""}`.replace(/\s+/g, " ").trim()}>
-                {`${emp.firstName} ${emp.lastName || ""} ${emp.thirdName || ""} ${emp.fourthName || ""}`.replace(/\s+/g, " ").trim()}
+              <h3 className="mt-3 text-base font-semibold text-center line-clamp-2" title={getProfileDisplayName(emp, ar)}>
+                {getProfileDisplayName(emp, ar)}
               </h3>
               <div className="mt-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-mono font-medium">
                 {emp.profileId}
@@ -72,25 +77,33 @@ export function ProfileGrid({
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الاسم الأول" : "First Name"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={emp.firstName}>{emp.firstName || "—"}</span>
+                  <span className="font-medium truncate block text-xs" title={ar ? (emp.firstNameAr || emp.firstName) : emp.firstName}>
+                    {(ar ? (emp.firstNameAr || emp.firstName) : emp.firstName) || "—"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الاسم الثاني" : "Second Name"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={emp.lastName}>{emp.lastName || "—"}</span>
+                  <span className="font-medium truncate block text-xs" title={ar ? (emp.lastNameAr || emp.lastName) : emp.lastName}>
+                    {(ar ? (emp.lastNameAr || emp.lastName) : emp.lastName) || "—"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الاسم الثالث" : "Third Name"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={emp.thirdName}>{emp.thirdName || "—"}</span>
+                  <span className="font-medium truncate block text-xs" title={ar ? (emp.thirdNameAr || emp.thirdName) : emp.thirdName}>
+                    {(ar ? (emp.thirdNameAr || emp.thirdName) : emp.thirdName) || "—"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الاسم الرابع" : "Fourth Name"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={emp.fourthName}>{emp.fourthName || "—"}</span>
+                  <span className="font-medium truncate block text-xs" title={ar ? (emp.fourthNameAr || emp.fourthName) : emp.fourthName}>
+                    {(ar ? (emp.fourthNameAr || emp.fourthName) : emp.fourthName) || "—"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
@@ -140,8 +153,8 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "الوظيفة / المهنة" : "Job / Occupation"}
                     </span>
-                    <span className="font-medium truncate block text-xs" title={emp.jobTitle}>
-                      {emp.jobTitle || "—"}
+                    <span className="font-medium truncate block text-xs" title={getProfileDisplayJobTitle(emp, ar)}>
+                      {getProfileDisplayJobTitle(emp, ar) || "—"}
                     </span>
                   </div>
                   <div>
@@ -167,13 +180,17 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "المسمى الوظيفي" : "Job Title"}
                     </span>
-                    <span className="font-medium truncate block text-xs" title={emp.jobTitle}>{emp.jobTitle || "—"}</span>
+                    <span className="font-medium truncate block text-xs" title={getProfileDisplayJobTitle(emp, ar)}>
+                      {getProfileDisplayJobTitle(emp, ar) || "—"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "القسم" : "Department"}
                     </span>
-                    <span className="font-medium truncate block text-xs" title={emp.department}>{emp.department || "—"}</span>
+                    <span className="font-medium truncate block text-xs" title={getProfileDisplayDepartment(emp, ar)}>
+                      {getProfileDisplayDepartment(emp, ar) || "—"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-muted-foreground block mb-0.5">

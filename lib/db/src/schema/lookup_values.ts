@@ -14,6 +14,7 @@ export const lookupValuesTable = pgTable("lookup_values", {
   id: serial("id").primaryKey(),
   category: text("category").notNull(),
   value: text("value").notNull(),
+  valueAr: text("value_ar").default(""),
   parentValue: text("parent_value"),
   extraValue: text("extra_value"),
   sortOrder: integer("sort_order").notNull().default(0),

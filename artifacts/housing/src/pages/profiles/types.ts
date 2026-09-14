@@ -4,6 +4,10 @@ export type ProfileForm = {
   lastName: string;
   thirdName: string;
   fourthName: string;
+  firstNameAr?: string;
+  lastNameAr?: string;
+  thirdNameAr?: string;
+  fourthNameAr?: string;
   phone: string;
   address: string;
   nationalId: string;
@@ -11,7 +15,9 @@ export type ProfileForm = {
   hireDate: string;
   gender: string;
   department: string;
+  departmentAr?: string;
   jobTitle: string;
+  jobTitleAr?: string;
   level: string;
   status: string;
   dateOfBirth: string;
@@ -27,6 +33,10 @@ export const EMPTY_FORM: ProfileForm = {
   lastName: "",
   thirdName: "",
   fourthName: "",
+  firstNameAr: "",
+  lastNameAr: "",
+  thirdNameAr: "",
+  fourthNameAr: "",
   phone: "",
   address: "",
   nationalId: "",
@@ -34,7 +44,9 @@ export const EMPTY_FORM: ProfileForm = {
   hireDate: "",
   gender: "M",
   department: "",
+  departmentAr: "",
   jobTitle: "",
+  jobTitleAr: "",
   level: "",
   status: "UNASSIGNED",
   dateOfBirth: "",
@@ -49,13 +61,19 @@ export type EditEmpForm = {
   lastName: string;
   thirdName: string;
   fourthName: string;
+  firstNameAr?: string;
+  lastNameAr?: string;
+  thirdNameAr?: string;
+  fourthNameAr?: string;
   phone: string;
   address: string;
   nationalId: string;
   nationality: string;
   gender: string;
   department: string;
+  departmentAr?: string;
   jobTitle: string;
+  jobTitleAr?: string;
   level: string;
   status: string;
   dateOfBirth: string;

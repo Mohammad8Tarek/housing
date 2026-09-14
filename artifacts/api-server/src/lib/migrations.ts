@@ -60,6 +60,34 @@ const MIGRATIONS = [
     q: "ALTER TABLE profiles    ADD COLUMN IF NOT EXISTS photo_url     TEXT",
   },
   {
+    name: "profiles.first_name_ar",
+    q: "ALTER TABLE profiles    ADD COLUMN IF NOT EXISTS first_name_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.last_name_ar",
+    q: "ALTER TABLE profiles    ADD COLUMN IF NOT EXISTS last_name_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.third_name_ar",
+    q: "ALTER TABLE profiles    ADD COLUMN IF NOT EXISTS third_name_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.fourth_name_ar",
+    q: "ALTER TABLE profiles    ADD COLUMN IF NOT EXISTS fourth_name_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.job_title_ar",
+    q: "ALTER TABLE profiles    ADD COLUMN IF NOT EXISTS job_title_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.department_ar",
+    q: "ALTER TABLE profiles    ADD COLUMN IF NOT EXISTS department_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "lookup_values.value_ar",
+    q: "ALTER TABLE lookup_values ADD COLUMN IF NOT EXISTS value_ar TEXT DEFAULT ''",
+  },
+  {
     name: "maintenance.started_at",
     q: "ALTER TABLE maintenance  ADD COLUMN IF NOT EXISTS started_at   TIMESTAMPTZ",
   },
@@ -1079,6 +1107,34 @@ const TENANT_MIGRATIONS = [
     q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS fourth_name TEXT DEFAULT '' NOT NULL",
   },
   {
+    name: "profiles.first_name_ar",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS first_name_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.last_name_ar",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_name_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.third_name_ar",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS third_name_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.fourth_name_ar",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS fourth_name_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.job_title_ar",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS job_title_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "profiles.department_ar",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS department_ar TEXT DEFAULT ''",
+  },
+  {
+    name: "lookup_values.value_ar",
+    q: "ALTER TABLE lookup_values ADD COLUMN IF NOT EXISTS value_ar TEXT DEFAULT ''",
+  },
+  {
     name: "profiles.date_of_birth",
     q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS date_of_birth TEXT DEFAULT '' NOT NULL",
   },
@@ -1986,6 +2042,17 @@ export async function runMigrations(): Promise<void> {
     }
   } catch (e: any) {
     console.warn(`[migrations] healOrphanAssignments notice:`, e?.message);
+  }
+
+  // Backfill Arabic data for profiles and lookups across all schemas
+  try {
+    const { backfillBilingualProfiles } = await import("./bilingual-backfill.js");
+    const { totalUpdated } = await backfillBilingualProfiles();
+    if (totalUpdated > 0) {
+      console.info(`[migrations] Backfilled bilingual data for ${totalUpdated} profiles across schemas.`);
+    }
+  } catch (e: any) {
+    console.warn(`[migrations] backfillBilingualProfiles notice:`, e?.message);
   }
 }
 

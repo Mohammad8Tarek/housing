@@ -98,6 +98,11 @@ import {
 } from "@/lib/PrintLanguageDialog";
 import { usePermission } from "@/hooks/use-permission";
 import { PermissionGate } from "@/components/ui/permission-gate";
+import {
+  getProfileDisplayName,
+  getProfileDisplayJobTitle,
+  getProfileDisplayDepartment,
+} from "@/lib/profile-display-utils";
 
 function EmpAvatar({ emp, name, photoUrl }: { emp?: any; name?: string; photoUrl?: string }) {
   const photo = photoUrl || emp?.photoUrl;
@@ -760,12 +765,48 @@ export default function InHouse() {
       const bName = a.buildingName || (room ? buildingMap[room.buildingId] : "");
       const fNum = a.floorNumber ?? (room ? floorMap[room.floorId]?.number : "");
       const rNum = a.roomNumber || room?.roomNumber || a.roomId || "";
-      const fullName = [a.profileFirstName, a.profileLastName].filter(Boolean).join(" ")
-        || (emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : "")
-        || (a as any).profileName || "";
+
+      const profileObj = emp || {
+        id: a.profileId,
+        firstName: a.profileFirstName,
+        lastName: a.profileLastName,
+        firstNameAr: a.profileFirstNameAr,
+        lastNameAr: a.profileLastNameAr,
+        thirdNameAr: a.profileThirdNameAr,
+        fourthNameAr: a.profileFourthNameAr,
+        jobTitle: a.profileJobTitle || (a as any).jobTitle,
+        jobTitleAr: a.profileJobTitleAr,
+        department: a.profileDepartment,
+        departmentAr: a.profileDepartmentAr,
+      };
+
+      const fullName = getProfileDisplayName(profileObj, ar) || (ar ? "بدون اسم" : "Unknown");
       const code = a.profileCode || emp?.profileId || a.profileId;
-      const dept = a.profileDepartment || emp?.department || "";
-      const nat = a.profileNationality || (emp as any)?.nationality || "";
+      const dept = getProfileDisplayDepartment(profileObj, ar);
+      const job = getProfileDisplayJobTitle(profileObj, ar);
+      const nat = formatNationality(a.profileNationality || (emp as any)?.nationality, ar);
+
+      if (ar) {
+        return {
+          "كود الموظف": code,
+          "الاسم": fullName,
+          "رقم الغرفة": rNum,
+          "المبنى": bName,
+          "الطابق": fNum != null ? fNum : "",
+          "السرير": (a.bedNumber || a.isEntireRoom) ? `سرير ${a.bedNumber || 1}${a.isEntireRoom ? ' (غرفة كاملة)' : ''}` : "",
+          "تاريخ التسكين": formatDate(a.checkInDate, ""),
+          "تاريخ المغادرة المتوقع": formatDate(a.expectedCheckOutDate, ""),
+          "الجنسية": nat,
+          "الهاتف": emp?.phone || (a as any).phone || "",
+          "الوظيفة": job,
+          "القسم": dept,
+          "الحالة": (a as any).profileStatus === "VACATION" || emp?.status === "VACATION"
+            ? "في إجازة"
+            : (a as any).profileStatus === "LEFT" || emp?.status === "LEFT"
+              ? "تمت المغادرة"
+              : "مقيم بالسكن",
+        };
+      }
 
       return {
         Code: code,
@@ -778,15 +819,15 @@ export default function InHouse() {
         "Expected Check-Out": formatDate(a.expectedCheckOutDate, ""),
         Nationality: nat,
         Phone: emp?.phone || (a as any).phone || "",
-        "Job Title": emp?.jobTitle || (a as any).jobTitle || "",
+        "Job Title": job,
         Department: dept,
         Status: (a as any).profileStatus || emp?.status || a.status || "",
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "In-House");
-    XLSX.writeFile(wb, getExportFileName("InHouse_Selected", "xlsx"));
+    XLSX.utils.book_append_sheet(wb, ws, ar ? "المقيمون بالسكن" : "In-House");
+    XLSX.writeFile(wb, getExportFileName(ar ? "المقيمون_بالسكن" : "InHouse_Selected", "xlsx"));
   };
 
   const handleBulkCheckout = async () => {
@@ -1079,11 +1120,23 @@ export default function InHouse() {
                 const roomNum = a.roomNumber || room?.roomNumber || (a.roomId ? `#${a.roomId}` : "—");
                 const roomType = a.roomType || room?.roomType;
 
-                const fullName = [a.profileFirstName, a.profileLastName].filter(Boolean).join(" ")
-                  || (emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : "")
-                  || (ar ? "بدون اسم" : "Unknown");
+                const profileObj = emp || {
+                  id: a.profileId,
+                  firstName: a.profileFirstName,
+                  lastName: a.profileLastName,
+                  firstNameAr: a.profileFirstNameAr,
+                  lastNameAr: a.profileLastNameAr,
+                  thirdNameAr: a.profileThirdNameAr,
+                  fourthNameAr: a.profileFourthNameAr,
+                  jobTitle: a.profileJobTitle || (a as any).jobTitle,
+                  jobTitleAr: a.profileJobTitleAr,
+                  department: a.profileDepartment,
+                  departmentAr: a.profileDepartmentAr,
+                };
+
+                const fullName = getProfileDisplayName(profileObj, ar) || (ar ? "بدون اسم" : "Unknown");
                 const profileCode = a.profileCode || emp?.profileId || (a.profileId ? String(a.profileId) : "");
-                const department = a.profileDepartment || emp?.department;
+                const department = getProfileDisplayDepartment(profileObj, ar);
                 const nationality = a.profileNationality || (emp as any)?.nationality;
                 const photoUrl = a.profilePhotoUrl || emp?.photoUrl;
 

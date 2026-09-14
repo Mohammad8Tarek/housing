@@ -109,6 +109,11 @@ import { ProfileDialog } from "./components/ProfileDialog";
 import { EditProfileDialog } from "./components/EditProfileDialog";
 import { ExcelImportDialog } from "./components/ExcelImportDialog";
 import { ProfileGrid } from "./components/ProfileGrid";
+import {
+  getProfileDisplayName,
+  getProfileDisplayJobTitle,
+  getProfileDisplayDepartment,
+} from "@/lib/profile-display-utils";
 export function ProfilesPage() {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
@@ -412,33 +417,77 @@ export function ProfilesPage() {
       selectedRows.size > 0
         ? profiles.filter((e) => selectedRows.has(e.id))
         : profiles;
-    const rows = target.map((e) => ({
-      Code: e.profileId,
-      "First Name": e.firstName || "",
-      "Second Name": e.lastName || "",
-      "Third Name": e.thirdName || "",
-      "Fourth Name": e.fourthName || "",
-      "Employment Type": e.employmentType || "INTERNAL",
-      "Company / Workplace": e.companyName || "",
-      Department: e.department ?? "",
-      "Job Title": e.jobTitle ?? "",
-      Level: e.level ?? "",
-      Nationality: e.nationality ?? "",
-      Gender: e.gender === "M" ? "Male" : e.gender === "F" ? "Female" : "",
-      "National ID": e.nationalId ?? "",
-      Phone: e.phone ?? "",
-      Email: e.email ?? "",
-      "Emergency Contact": e.emergencyContact ?? "",
-      "Hire Date": formatDate(e.hireDate, ""),
-      "Contract End Date": formatDate(e.contractEndDate, ""),
-      "Date of Birth": formatDate(e.dateOfBirth, ""),
-      Address: e.address ?? "",
-      Status: e.status,
-    }));
+    const rows = target.map((e) => {
+      const dispName = getProfileDisplayName(e, ar);
+      const dispJob = getProfileDisplayJobTitle(e, ar);
+      const dispDept = getProfileDisplayDepartment(e, ar);
+      const nat = formatNationality(e.nationality, ar);
+
+      if (ar) {
+        return {
+          "كود الموظف": e.profileId,
+          "الاسم بالكامل": dispName,
+          "الاسم الأول": e.firstNameAr || e.firstName || "",
+          "اسم الأب": e.lastNameAr || e.lastName || "",
+          "اسم الجد": e.thirdNameAr || e.thirdName || "",
+          "العائلة": e.fourthNameAr || e.fourthName || "",
+          "نوع التوظيف": e.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "موظف داخلي",
+          "الشركة / جهة العمل": e.companyName || "",
+          "القسم": dispDept,
+          "الوظيفة": dispJob,
+          "الدرجة": e.level ?? "",
+          "الجنسية": nat,
+          "النوع": e.gender === "M" ? "ذكر" : e.gender === "F" ? "أنثى" : "",
+          "الرقم القومي": e.nationalId ?? "",
+          "الهاتف": e.phone ?? "",
+          "البريد الإلكتروني": e.email ?? "",
+          "جهة اتصال الطوارئ": e.emergencyContact ?? "",
+          "تاريخ التعيين": formatDate(e.hireDate, ""),
+          "انتهاء العقد": formatDate(e.contractEndDate, ""),
+          "تاريخ الميلاد": formatDate(e.dateOfBirth, ""),
+          "العنوان": e.address ?? "",
+          "الحالة":
+            e.status === "ACTIVE" || e.status === "ASSIGNED"
+              ? "مقيم بالسكن"
+              : e.status === "VACATION"
+                ? "في إجازة"
+                : e.status === "LEFT"
+                  ? "تمت المغادرة"
+                  : e.status === "TRANSFERRED"
+                    ? "منقول لفندق آخر"
+                    : "غير مسكّن",
+        };
+      }
+
+      return {
+        Code: e.profileId,
+        "Full Name": dispName,
+        "First Name": e.firstName || "",
+        "Second Name": e.lastName || "",
+        "Third Name": e.thirdName || "",
+        "Fourth Name": e.fourthName || "",
+        "Employment Type": e.employmentType || "INTERNAL",
+        "Company / Workplace": e.companyName || "",
+        Department: dispDept,
+        "Job Title": dispJob,
+        Level: e.level ?? "",
+        Nationality: nat,
+        Gender: e.gender === "M" ? "Male" : e.gender === "F" ? "Female" : "",
+        "National ID": e.nationalId ?? "",
+        Phone: e.phone ?? "",
+        Email: e.email ?? "",
+        "Emergency Contact": e.emergencyContact ?? "",
+        "Hire Date": formatDate(e.hireDate, ""),
+        "Contract End Date": formatDate(e.contractEndDate, ""),
+        "Date of Birth": formatDate(e.dateOfBirth, ""),
+        Address: e.address ?? "",
+        Status: e.status,
+      };
+    });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Profiles");
-    XLSX.writeFile(wb, getExportFileName("Profiles", "xlsx"));
+    XLSX.utils.book_append_sheet(wb, ws, ar ? "الملفات الشخصية" : "Profiles");
+    XLSX.writeFile(wb, getExportFileName(ar ? "الملفات_الشخصية" : "Profiles", "xlsx"));
   };
 
   return (
@@ -736,7 +785,9 @@ export function ProfilesPage() {
               <TableBody>
                 {currentPageEmps.map((emp) => {
                   const isSelected = selectedRows.has(emp.id);
-                  const fullName = [emp.firstName, emp.lastName, emp.thirdName, emp.fourthName].filter(Boolean).join(" ");
+                  const fullName = getProfileDisplayName(emp, ar);
+                  const jobTitle = getProfileDisplayJobTitle(emp, ar);
+                  const deptName = getProfileDisplayDepartment(emp, ar);
                   const isThirdParty = emp.employmentType === "THIRD_PARTY";
                   return (
                     <TableRow
@@ -810,7 +861,7 @@ export function ProfilesPage() {
                           <div className="flex flex-col gap-0.5 text-xs">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-semibold text-foreground text-sm leading-tight">
-                                {emp.jobTitle || "—"}
+                                {jobTitle || "—"}
                               </span>
                               {emp.level && (
                                 <Badge
@@ -821,9 +872,9 @@ export function ProfilesPage() {
                                 </Badge>
                               )}
                             </div>
-                            {emp.department && emp.department !== "طرف ثالث" && (
-                              <span className="text-xs font-medium text-primary/90 truncate max-w-[160px]" title={emp.department}>
-                                {emp.department}
+                            {deptName && deptName !== "طرف ثالث" && (
+                              <span className="text-xs font-medium text-primary/90 truncate max-w-[160px]" title={deptName}>
+                                {deptName}
                               </span>
                             )}
                             {emp.nationality && (
@@ -900,16 +951,16 @@ export function ProfilesPage() {
                         </TableCell>
                       )}
                       {isColVisible("firstName") && (
-                        <TableCell className="font-medium whitespace-nowrap">{emp.firstName || "—"}</TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">{ar ? (emp.firstNameAr || emp.firstName) : (emp.firstName || "—")}</TableCell>
                       )}
                       {isColVisible("secondName") && (
-                        <TableCell className="font-medium whitespace-nowrap">{emp.lastName || "—"}</TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">{ar ? (emp.lastNameAr || emp.lastName) : (emp.lastName || "—")}</TableCell>
                       )}
                       {isColVisible("thirdName") && (
-                        <TableCell className="font-medium whitespace-nowrap">{emp.thirdName || "—"}</TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">{ar ? (emp.thirdNameAr || emp.thirdName) : (emp.thirdName || "—")}</TableCell>
                       )}
                       {isColVisible("fourthName") && (
-                        <TableCell className="font-medium whitespace-nowrap">{emp.fourthName || "—"}</TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">{ar ? (emp.fourthNameAr || emp.fourthName) : (emp.fourthName || "—")}</TableCell>
                       )}
                       {isColVisible("nid") && (
                         <TableCell className="font-mono text-sm whitespace-nowrap">{emp.nationalId}</TableCell>
@@ -929,13 +980,13 @@ export function ProfilesPage() {
                         <TableCell className="whitespace-nowrap">
                           {isThirdParty ? (
                             <span className="text-muted-foreground/60 italic text-xs">—</span>
-                          ) : emp.department ? (
-                            <Badge variant="outline" className="font-normal">{emp.department}</Badge>
+                          ) : deptName ? (
+                            <Badge variant="outline" className="font-normal">{deptName}</Badge>
                           ) : "—"}
                         </TableCell>
                       )}
                       {isColVisible("title") && (
-                        <TableCell className="text-sm whitespace-nowrap">{emp.jobTitle || "—"}</TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">{jobTitle || "—"}</TableCell>
                       )}
                       {isColVisible("level") && (
                         <TableCell className="text-xs whitespace-nowrap">

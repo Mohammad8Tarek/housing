@@ -506,6 +506,7 @@ BEGIN
     ALTER TABLE "lookup_values" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "lookup_values" ADD COLUMN IF NOT EXISTS "disabled" BOOLEAN DEFAULT false;
     ALTER TABLE "lookup_values" ADD COLUMN IF NOT EXISTS "extra_value" TEXT;
+    ALTER TABLE "lookup_values" ADD COLUMN IF NOT EXISTS "value_ar" TEXT DEFAULT ''::text;
 
     -- --------------------------------------------------------
     -- Table: maintenance
@@ -1087,6 +1088,12 @@ BEGIN
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "emergency_contact" TEXT DEFAULT ''::text;
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "third_name" TEXT DEFAULT ''::text;
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "fourth_name" TEXT DEFAULT ''::text;
+    ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "first_name_ar" TEXT DEFAULT ''::text;
+    ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "last_name_ar" TEXT DEFAULT ''::text;
+    ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "third_name_ar" TEXT DEFAULT ''::text;
+    ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "fourth_name_ar" TEXT DEFAULT ''::text;
+    ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "job_title_ar" TEXT DEFAULT ''::text;
+    ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "department_ar" TEXT DEFAULT ''::text;
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "date_of_birth" TEXT DEFAULT ''::text;
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "vacation_start_date" TEXT;
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "vacation_end_date" TEXT;

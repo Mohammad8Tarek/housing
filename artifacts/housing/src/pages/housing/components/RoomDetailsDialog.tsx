@@ -24,6 +24,10 @@ import { toast } from "sonner";
 import { formatDate } from "@/lib/date-utils";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { roomStatusBadge, getRoomStatusLabel, statusNorm } from "../utils";
+import {
+  getProfileDisplayName,
+  getProfileDisplayDepartment,
+} from "@/lib/profile-display-utils";
 
 type Props = {
   room: any | null;
@@ -776,11 +780,11 @@ export function RoomDetailsDialog({
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">
                           {emp
-                            ? `${emp.firstName} ${emp.lastName}`
+                            ? getProfileDisplayName(emp, ar)
                             : `#${a.profileId}`}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {emp?.department ?? ""}{" "}
+                          {emp ? getProfileDisplayDepartment(emp, ar) : ""}{" "}
                           {a.bedNumber
                             ? `• ${ar ? "سرير" : "Bed"} ${a.bedNumber}`
                             : ""}

@@ -86,6 +86,11 @@ import {
   usePrintLanguage,
   PrintLanguageDialog,
 } from "@/lib/PrintLanguageDialog";
+import {
+  getProfileDisplayName,
+  getProfileDisplayJobTitle,
+  getProfileDisplayDepartment,
+} from "@/lib/profile-display-utils";
 
 function ProfileAvatar({
   firstName,
@@ -744,12 +749,12 @@ export default function ProfileDetail() {
     {
       icon: <Briefcase className="w-4 h-4" />,
       label: ar ? "القسم" : "Department",
-      value: emp.employmentType === "THIRD_PARTY" ? null : emp.department,
+      value: emp.employmentType === "THIRD_PARTY" ? null : getProfileDisplayDepartment(emp, ar),
     },
     {
       icon: <Briefcase className="w-4 h-4" />,
       label: emp.employmentType === "THIRD_PARTY" ? (ar ? "الوظيفة / المهنة" : "Job / Role") : (ar ? "المسمى الوظيفي" : "Job Title"),
-      value: emp.jobTitle,
+      value: getProfileDisplayJobTitle(emp, ar),
     },
     {
       icon: <Briefcase className="w-4 h-4" />,
@@ -828,8 +833,19 @@ export default function ProfileDetail() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                 <div>
                   <h1 className="text-2xl font-bold">
-                    {`${emp.firstName} ${emp.thirdName || ""} ${emp.fourthName || ""} ${emp.lastName}`.replace(/\s+/g, ' ').trim()}
+                    {getProfileDisplayName(emp, ar)}
                   </h1>
+                  {/* Alternate language name if available */}
+                  {ar && (emp.firstName || emp.lastName) && (emp.firstNameAr || emp.lastNameAr) && (
+                    <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
+                      English: {[emp.firstName, emp.thirdName, emp.fourthName, emp.lastName].filter(Boolean).join(" ")}
+                    </p>
+                  )}
+                  {!ar && (emp.firstNameAr || emp.lastNameAr) && (
+                    <p className="text-xs text-muted-foreground mt-0.5" dir="rtl">
+                      العربية: {[emp.firstNameAr, emp.thirdNameAr, emp.fourthNameAr, emp.lastNameAr].filter(Boolean).join(" ")}
+                    </p>
+                  )}
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     <span className="text-muted-foreground font-mono text-sm">
                       {emp.profileId || emp.profileCode}
@@ -844,11 +860,11 @@ export default function ProfileDetail() {
                       </Badge>
                     )}
                   </div>
-                  {emp.jobTitle && (
+                  {(emp.jobTitle || emp.jobTitleAr) && (
                     <div className="flex items-center gap-2 text-sm text-primary font-medium mt-1.5">
-                      <span>{emp.jobTitle}</span>
-                      {emp.employmentType !== "THIRD_PARTY" && emp.department && (
-                        <span className="text-muted-foreground text-xs">• {emp.department}</span>
+                      <span>{getProfileDisplayJobTitle(emp, ar)}</span>
+                      {emp.employmentType !== "THIRD_PARTY" && (emp.department || emp.departmentAr) && (
+                        <span className="text-muted-foreground text-xs">• {getProfileDisplayDepartment(emp, ar)}</span>
                       )}
                       {emp.employmentType !== "THIRD_PARTY" && emp.level && (
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/25 font-bold px-2 py-0.5 text-xs shadow-2xs">

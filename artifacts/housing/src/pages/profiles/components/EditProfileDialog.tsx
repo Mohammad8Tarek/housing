@@ -42,7 +42,11 @@ import {
   Camera,
   Eye,
   AlertCircle,
+  Sparkles,
+  Languages,
 } from "lucide-react";
+import { transliterateToken } from "@/lib/bilingual-name-engine";
+import { translateDepartment, translateJobTitle } from "@/lib/bilingual-hospitality-dict";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 import {
   DocumentPreviewModal,
@@ -71,6 +75,10 @@ export function EditProfileDialog({
     lastName: profile.lastName ?? "",
     thirdName: profile.thirdName ?? "",
     fourthName: profile.fourthName ?? "",
+    firstNameAr: profile.firstNameAr ?? profile.first_name_ar ?? "",
+    lastNameAr: profile.lastNameAr ?? profile.last_name_ar ?? "",
+    thirdNameAr: profile.thirdNameAr ?? profile.third_name_ar ?? "",
+    fourthNameAr: profile.fourthNameAr ?? profile.fourth_name_ar ?? "",
     phone: profile.phone ?? "",
     address: profile.address ?? "",
     nationalId: profile.nationalId ?? "",
@@ -78,7 +86,9 @@ export function EditProfileDialog({
     gender: profile.gender ?? "M",
     dateOfBirth: profile.dateOfBirth ?? "",
     department: profile.department ?? "",
+    departmentAr: profile.departmentAr ?? profile.department_ar ?? "",
     jobTitle: profile.jobTitle ?? "",
+    jobTitleAr: profile.jobTitleAr ?? profile.job_title_ar ?? "",
     level: profile.level ?? "",
     status: profile.status ?? "ACTIVE",
     employmentType: profile.employmentType ?? "INTERNAL",
@@ -86,6 +96,60 @@ export function EditProfileDialog({
     contractEndDate: profile.contractEndDate ?? "",
     idDocuments: profile.idDocuments || [],
   });
+
+  const handleNameChange = (
+    field: "firstName" | "lastName" | "thirdName" | "fourthName",
+    value: string,
+    lang: "en" | "ar"
+  ) => {
+    if (lang === "en") {
+      const arKey = `${field}Ar` as keyof EditEmpForm;
+      setForm((p) => {
+        const shouldTransliterate = !p[arKey];
+        return {
+          ...p,
+          [field]: value,
+          ...(shouldTransliterate ? { [arKey]: transliterateToken(value, "ar") } : {}),
+        };
+      });
+    } else {
+      const enKey = field;
+      const arKey = `${field}Ar` as keyof EditEmpForm;
+      setForm((p) => {
+        const shouldTransliterate = !p[enKey];
+        return {
+          ...p,
+          [arKey]: value,
+          ...(shouldTransliterate ? { [enKey]: transliterateToken(value, "en") } : {}),
+        };
+      });
+    }
+  };
+
+  const handleAutoTranslateNames = () => {
+    const fnAr = form.firstName ? transliterateToken(form.firstName, "ar") : form.firstNameAr;
+    const lnAr = form.lastName ? transliterateToken(form.lastName, "ar") : form.lastNameAr;
+    const tnAr = form.thirdName ? transliterateToken(form.thirdName, "ar") : form.thirdNameAr;
+    const foAr = form.fourthName ? transliterateToken(form.fourthName, "ar") : form.fourthNameAr;
+
+    const fnEn = !form.firstName && form.firstNameAr ? transliterateToken(form.firstNameAr, "en") : form.firstName;
+    const lnEn = !form.lastName && form.lastNameAr ? transliterateToken(form.lastNameAr, "en") : form.lastName;
+    const tnEn = !form.thirdName && form.thirdNameAr ? transliterateToken(form.thirdNameAr, "en") : form.thirdName;
+    const foEn = !form.fourthName && form.fourthNameAr ? transliterateToken(form.fourthNameAr, "en") : form.fourthName;
+
+    setForm((p) => ({
+      ...p,
+      firstName: fnEn || p.firstName,
+      lastName: lnEn || p.lastName,
+      thirdName: tnEn || p.thirdName,
+      fourthName: foEn || p.fourthName,
+      firstNameAr: fnAr || p.firstNameAr,
+      lastNameAr: lnAr || p.lastNameAr,
+      thirdNameAr: tnAr || p.thirdNameAr,
+      fourthNameAr: foAr || p.fourthNameAr,
+    }));
+    toast.success(ar ? "تمت الترجمة والتعريب الصوتي للأسماء تلقائياً" : "Names auto-transliterated successfully");
+  };
 
   const handleDocSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -387,34 +451,118 @@ export function EditProfileDialog({
               {ar ? "1. البيانات الشخصية الأساسية" : "1. Personal Information"}
             </p>
 
-            {/* Names */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <FormRow label={ar ? "الاسم الأول *" : "First Name *"}>
-                <Input
-                  value={form.firstName}
-                  onChange={(e) => set("firstName", e.target.value)}
-                  required
-                />
-              </FormRow>
-              <FormRow label={ar ? "الاسم الثاني *" : "Second Name *"}>
-                <Input
-                  value={form.lastName}
-                  onChange={(e) => set("lastName", e.target.value)}
-                  required
-                />
-              </FormRow>
-              <FormRow label={ar ? "الاسم الثالث" : "Third Name"}>
-                <Input
-                  value={form.thirdName}
-                  onChange={(e) => set("thirdName", e.target.value)}
-                />
-              </FormRow>
-              <FormRow label={ar ? "الاسم الرابع" : "Fourth Name"}>
-                <Input
-                  value={form.fourthName}
-                  onChange={(e) => set("fourthName", e.target.value)}
-                />
-              </FormRow>
+            {/* Bilingual Name Inputs with Realtime Auto-Translation */}
+            <div className="p-3.5 bg-background border rounded-xl space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between border-b pb-2">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Languages className="w-3.5 h-3.5 text-primary" />
+                  {ar ? "اسم الموظف باللغتين (English & العربية)" : "Employee Name (English & Arabic)"}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAutoTranslateNames}
+                  className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  {ar ? "تعريب وترجمة تلقائية" : "Auto-Transliterate"}
+                </Button>
+              </div>
+
+              {/* English Names */}
+              <div>
+                <div className="text-[11px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                  {ar ? "الاسم باللغة الإنجليزية (English Name)" : "English Name (Passport / System)"}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                  <FormRow label={ar ? "الاسم الأول *" : "First Name *"}>
+                    <Input
+                      value={form.firstName}
+                      onChange={(e) => handleNameChange("firstName", e.target.value, "en")}
+                      placeholder="e.g. Mohamed"
+                      dir="ltr"
+                      required
+                      className="h-9"
+                    />
+                  </FormRow>
+                  <FormRow label={ar ? "الاسم الثاني *" : "Second Name *"}>
+                    <Input
+                      value={form.lastName}
+                      onChange={(e) => handleNameChange("lastName", e.target.value, "en")}
+                      placeholder="e.g. Ahmed"
+                      dir="ltr"
+                      required
+                      className="h-9"
+                    />
+                  </FormRow>
+                  <FormRow label={ar ? "الاسم الثالث" : "Third Name"}>
+                    <Input
+                      value={form.thirdName}
+                      onChange={(e) => handleNameChange("thirdName", e.target.value, "en")}
+                      placeholder="e.g. Mahmoud"
+                      dir="ltr"
+                      className="h-9"
+                    />
+                  </FormRow>
+                  <FormRow label={ar ? "الاسم الرابع" : "Fourth Name"}>
+                    <Input
+                      value={form.fourthName}
+                      onChange={(e) => handleNameChange("fourthName", e.target.value, "en")}
+                      placeholder="e.g. Ali"
+                      dir="ltr"
+                      className="h-9"
+                    />
+                  </FormRow>
+                </div>
+              </div>
+
+              {/* Arabic Names */}
+              <div>
+                <div className="text-[11px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                  {ar ? "الاسم باللغة العربية (Arabic Name)" : "Arabic Name (Official ID)"}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                  <FormRow label={ar ? "الاسم الأول (عربي)" : "First Name (Ar)"}>
+                    <Input
+                      value={form.firstNameAr || ""}
+                      onChange={(e) => handleNameChange("firstName", e.target.value, "ar")}
+                      placeholder="مثال: محمد"
+                      dir="rtl"
+                      className="h-9"
+                    />
+                  </FormRow>
+                  <FormRow label={ar ? "الاسم الثاني (عربي)" : "Second Name (Ar)"}>
+                    <Input
+                      value={form.lastNameAr || ""}
+                      onChange={(e) => handleNameChange("lastName", e.target.value, "ar")}
+                      placeholder="مثال: أحمد"
+                      dir="rtl"
+                      className="h-9"
+                    />
+                  </FormRow>
+                  <FormRow label={ar ? "الاسم الثالث (عربي)" : "Third Name (Ar)"}>
+                    <Input
+                      value={form.thirdNameAr || ""}
+                      onChange={(e) => handleNameChange("thirdName", e.target.value, "ar")}
+                      placeholder="مثال: محمود"
+                      dir="rtl"
+                      className="h-9"
+                    />
+                  </FormRow>
+                  <FormRow label={ar ? "الاسم الرابع (عربي)" : "Fourth Name (Ar)"}>
+                    <Input
+                      value={form.fourthNameAr || ""}
+                      onChange={(e) => handleNameChange("fourthName", e.target.value, "ar")}
+                      placeholder="مثال: علي"
+                      dir="rtl"
+                      className="h-9"
+                    />
+                  </FormRow>
+                </div>
+              </div>
             </div>
 
             {/* National ID, Nationality, Phone, Gender, DOB */}
@@ -591,7 +739,18 @@ export function EditProfileDialog({
                     {departments.length > 0 ? (
                       <Select
                         value={form.department}
-                        onValueChange={(v) => set("department", v)}
+                        onValueChange={(v) => {
+                          const matched = departments.find((d) => d.value === v);
+                          const arDept = matched?.valueAr || translateDepartment(v, "ar");
+                          setForm((p) => ({
+                            ...p,
+                            department: v,
+                            departmentAr: arDept || "",
+                            jobTitle: "",
+                            jobTitleAr: "",
+                            level: "",
+                          }));
+                        }}
                       >
                         <SelectTrigger className="h-9">
                           <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
@@ -599,7 +758,7 @@ export function EditProfileDialog({
                         <SelectContent>
                           {departments.map((d) => (
                             <SelectItem key={d.id} value={d.value}>
-                              {d.value}
+                              {ar && d.valueAr ? `${d.valueAr} (${d.value})` : d.value}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -607,7 +766,14 @@ export function EditProfileDialog({
                     ) : (
                       <Input
                         value={form.department}
-                        onChange={(e) => set("department", e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setForm((p) => ({
+                            ...p,
+                            department: v,
+                            departmentAr: translateDepartment(v, "ar"),
+                          }));
+                        }}
                         className="h-9"
                       />
                     )}
@@ -619,9 +785,11 @@ export function EditProfileDialog({
                         value={form.jobTitle}
                         onValueChange={(v) => {
                           const jt = allJobTitles.find((t) => t.value === v);
+                          const arTitle = jt?.valueAr || translateJobTitle(v, "ar");
                           setForm((p) => ({
                             ...p,
                             jobTitle: v,
+                            jobTitleAr: arTitle || "",
                             level: jt?.extraValue || p.level,
                           }));
                         }}
@@ -633,7 +801,7 @@ export function EditProfileDialog({
                         <SelectContent>
                           {filteredJobTitles.map((j) => (
                             <SelectItem key={j.id} value={j.value}>
-                              {j.value}
+                              {ar && j.valueAr ? `${j.valueAr} (${j.value})` : j.value}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -641,7 +809,14 @@ export function EditProfileDialog({
                     ) : (
                       <Input
                         value={form.jobTitle}
-                        onChange={(e) => set("jobTitle", e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setForm((p) => ({
+                            ...p,
+                            jobTitle: v,
+                            jobTitleAr: translateJobTitle(v, "ar"),
+                          }));
+                        }}
                         className="h-9"
                       />
                     )}

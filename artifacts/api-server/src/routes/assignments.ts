@@ -84,8 +84,13 @@ router.get(
         or(
           ilike(profilesTable.firstName, q),
           ilike(profilesTable.lastName, q),
+          ilike(profilesTable.firstNameAr, q),
+          ilike(profilesTable.lastNameAr, q),
           ilike(profilesTable.profileId, q),
           ilike(profilesTable.department, q),
+          ilike(profilesTable.departmentAr, q),
+          ilike(profilesTable.jobTitle, q),
+          ilike(profilesTable.jobTitleAr, q),
           ilike(profilesTable.nationality, q),
           ilike(roomsTable.roomNumber, q),
           ilike(buildingsTable.name, q)
@@ -103,9 +108,16 @@ router.get(
           vacationEndDate: profilesTable.vacationEndDate,
           profileFirstName: profilesTable.firstName,
           profileLastName: profilesTable.lastName,
+          profileFirstNameAr: profilesTable.firstNameAr,
+          profileLastNameAr: profilesTable.lastNameAr,
+          profileThirdNameAr: profilesTable.thirdNameAr,
+          profileFourthNameAr: profilesTable.fourthNameAr,
           profileCode: profilesTable.profileId,
           profileNationality: profilesTable.nationality,
           profileDepartment: profilesTable.department,
+          profileDepartmentAr: profilesTable.departmentAr,
+          profileJobTitle: profilesTable.jobTitle,
+          profileJobTitleAr: profilesTable.jobTitleAr,
           profilePhotoUrl: profilesTable.photoUrl,
           roomNumber: roomsTable.roomNumber,
           roomType: roomsTable.roomType,
@@ -145,9 +157,16 @@ router.get(
           vacationEndDate: i.vacationEndDate,
           profileFirstName: i.profileFirstName,
           profileLastName: i.profileLastName,
+          profileFirstNameAr: i.profileFirstNameAr,
+          profileLastNameAr: i.profileLastNameAr,
+          profileThirdNameAr: i.profileThirdNameAr,
+          profileFourthNameAr: i.profileFourthNameAr,
           profileCode: i.profileCode,
           profileNationality: i.profileNationality,
           profileDepartment: i.profileDepartment,
+          profileDepartmentAr: i.profileDepartmentAr,
+          profileJobTitle: i.profileJobTitle,
+          profileJobTitleAr: i.profileJobTitleAr,
           profilePhotoUrl: i.profilePhotoUrl,
           roomNumber: i.roomNumber,
           roomType: i.roomType,
@@ -166,9 +185,16 @@ router.get(
         if (found?.profile) {
           item.profileFirstName = found.profile.firstName;
           item.profileLastName = found.profile.lastName;
+          item.profileFirstNameAr = found.profile.firstNameAr;
+          item.profileLastNameAr = found.profile.lastNameAr;
+          item.profileThirdNameAr = found.profile.thirdNameAr;
+          item.profileFourthNameAr = found.profile.fourthNameAr;
           item.profileCode = found.profile.profileId;
           item.profileNationality = found.profile.nationality;
           item.profileDepartment = found.profile.department;
+          item.profileDepartmentAr = found.profile.departmentAr;
+          item.profileJobTitle = found.profile.jobTitle;
+          item.profileJobTitleAr = found.profile.jobTitleAr;
           item.profilePhotoUrl = found.profile.photoUrl;
           item.profileStatus = found.profile.status;
         }
@@ -224,10 +250,14 @@ router.get(
         or(
           ilike(profilesTable.firstName, q),
           ilike(profilesTable.lastName, q),
+          ilike(profilesTable.firstNameAr, q),
+          ilike(profilesTable.lastNameAr, q),
           ilike(profilesTable.profileId, q),
           ilike(profilesTable.nationalId, q),
           ilike(profilesTable.department, q),
+          ilike(profilesTable.departmentAr, q),
           ilike(profilesTable.jobTitle, q),
+          ilike(profilesTable.jobTitleAr, q),
           ilike(roomsTable.roomNumber, q),
           ilike(buildingsTable.name, q),
         )!,
@@ -241,11 +271,17 @@ router.get(
           assignment: assignmentsTable,
           profileFirstName: profilesTable.firstName,
           profileLastName: profilesTable.lastName,
+          profileFirstNameAr: profilesTable.firstNameAr,
+          profileLastNameAr: profilesTable.lastNameAr,
+          profileThirdNameAr: profilesTable.thirdNameAr,
+          profileFourthNameAr: profilesTable.fourthNameAr,
           profileCode: profilesTable.profileId,
           profileNationalId: profilesTable.nationalId,
           profileNationality: profilesTable.nationality,
           profileDepartment: profilesTable.department,
+          profileDepartmentAr: profilesTable.departmentAr,
           profileJobTitle: profilesTable.jobTitle,
+          profileJobTitleAr: profilesTable.jobTitleAr,
           profilePhotoUrl: profilesTable.photoUrl,
           roomNumber: roomsTable.roomNumber,
           roomType: roomsTable.roomType,
@@ -283,11 +319,17 @@ router.get(
           ...i.assignment,
           profileFirstName: i.profileFirstName,
           profileLastName: i.profileLastName,
+          profileFirstNameAr: i.profileFirstNameAr,
+          profileLastNameAr: i.profileLastNameAr,
+          profileThirdNameAr: i.profileThirdNameAr,
+          profileFourthNameAr: i.profileFourthNameAr,
           profileCode: i.profileCode,
           profileNationalId: i.profileNationalId,
           profileNationality: i.profileNationality,
           profileDepartment: i.profileDepartment,
+          profileDepartmentAr: i.profileDepartmentAr,
           profileJobTitle: i.profileJobTitle,
+          profileJobTitleAr: i.profileJobTitleAr,
           profilePhotoUrl: i.profilePhotoUrl,
           roomNumber: i.roomNumber,
           roomType: i.roomType,
@@ -306,11 +348,17 @@ router.get(
         if (found?.profile) {
           item.profileFirstName = found.profile.firstName;
           item.profileLastName = found.profile.lastName;
+          item.profileFirstNameAr = found.profile.firstNameAr;
+          item.profileLastNameAr = found.profile.lastNameAr;
+          item.profileThirdNameAr = found.profile.thirdNameAr;
+          item.profileFourthNameAr = found.profile.fourthNameAr;
           item.profileCode = found.profile.profileId;
           item.profileNationalId = found.profile.nationalId;
           item.profileNationality = found.profile.nationality;
           item.profileDepartment = found.profile.department;
+          item.profileDepartmentAr = found.profile.departmentAr;
           item.profileJobTitle = found.profile.jobTitle;
+          item.profileJobTitleAr = found.profile.jobTitleAr;
           item.profilePhotoUrl = found.profile.photoUrl;
         }
       }

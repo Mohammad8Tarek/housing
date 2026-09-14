@@ -1,6 +1,11 @@
 import { useMemo } from "react";
 import { Tab } from "../types";
 import { formatDate, parseDMY } from "@/lib/date-utils";
+import {
+  getProfileDisplayName,
+  getProfileDisplayJobTitle,
+  getProfileDisplayDepartment,
+} from "@/lib/profile-display-utils";
 
 // Normalizes either "YYYY-MM-DD" or display "DD/MM/YYYY" (or "—"/"-")
 // to a comparable "YYYY-MM-DD" string for range filtering.
@@ -238,12 +243,12 @@ export function useReportDataProcessor({
 
             return {
               id: a.id,
-              profileName: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || `#${a.profileId}`,
+              profileName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
               profileId: emp.profileId || "—",
               nationalId: emp.nationalId || "—",
               phone: emp.phone || "—",
-              department: emp.department || "—",
-              jobTitle: emp.jobTitle || "—",
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              jobTitle: getProfileDisplayJobTitle(emp, ar) || "—",
               roomNumber: room.roomNumber || "—",
               buildingName: bName,
               floorName: fName,
@@ -300,8 +305,9 @@ export function useReportDataProcessor({
               .map((a: any) => {
                 const emp = empMap[a.profileId];
                 if (!emp) return `#${a.profileId}`;
-                const name = `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || emp.name;
-                const dept = emp.department ? ` (${emp.department})` : "";
+                const name = getProfileDisplayName(emp, ar);
+                const deptVal = getProfileDisplayDepartment(emp, ar);
+                const dept = deptVal ? ` (${deptVal})` : "";
                 return `${name}${dept}`;
               })
               .join("، ");
@@ -676,14 +682,14 @@ export function useReportDataProcessor({
               id: a.id,
               profileId: emp.id,
               profileCode: emp.profileId || `EMP-${a.profileId}`,
-              firstName: emp.firstName || "—",
-              lastName: emp.lastName || "",
-              fullName: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || `#${a.profileId}`,
+              firstName: ar ? (emp.firstNameAr || emp.firstName || "—") : (emp.firstName || "—"),
+              lastName: ar ? (emp.lastNameAr || emp.lastName || "") : (emp.lastName || ""),
+              fullName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
               nationalId: emp.nationalId || "—",
               nationality: emp.nationality || "—",
               phone: emp.phone || "—",
-              department: emp.department || "—",
-              jobTitle: emp.jobTitle || "—",
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              jobTitle: getProfileDisplayJobTitle(emp, ar) || "—",
               level: emp.level || "—",
               employmentType: emp.employmentType || "INTERNAL",
               companyName: emp.companyName || (emp.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "الفندق" : "Hotel")),
@@ -892,16 +898,16 @@ export function useReportDataProcessor({
             return {
               id: e.id,
               profileCode: e.profileId || `EMP-${e.id}`,
-              firstName: e.firstName,
-              lastName: e.lastName,
-              fullName: `${e.firstName || ""} ${e.lastName || ""}`.trim(),
+              firstName: ar ? (e.firstNameAr || e.firstName) : e.firstName,
+              lastName: ar ? (e.lastNameAr || e.lastName) : e.lastName,
+              fullName: getProfileDisplayName(e, ar),
               nationalId: e.nationalId || "—",
               nationality: e.nationality || "—",
               phone: e.phone || "—",
               gender: e.gender || "M",
               dateOfBirth: formatDate(e.dateOfBirth, "—"),
-              department: e.department || "—",
-              jobTitle: e.jobTitle || "—",
+              department: getProfileDisplayDepartment(e, ar) || "—",
+              jobTitle: getProfileDisplayJobTitle(e, ar) || "—",
               level: e.level || "—",
               employmentType: e.employmentType || "INTERNAL",
               companyName: e.companyName || (e.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "الفندق" : "Hotel")),
