@@ -24,8 +24,10 @@ import {
   Pen,
   Sparkles,
   MessageSquare,
+  HardHat,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
+import { useProperty } from "@/context/PropertyContext";
 
 import { useSettingsForm } from "./hooks/useSettingsForm";
 import { GeneralSettings } from "./components/GeneralSettings";
@@ -34,8 +36,10 @@ import { LookupSection } from "./components/LookupSection";
 import { HrSyncSection } from "./components/HrSyncSection";
 import { DoorLocksSection } from "./components/DoorLocksSection";
 import { WhatsAppSettingsSection } from "./components/WhatsAppSettingsSection";
+import { WorkersTab } from "@/pages/maintenance/components/WorkersTab";
 
 export default function Settings() {
+  const { properties } = useProperty();
   const {
     settings,
     isLoading,
@@ -112,7 +116,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 mb-6">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-9 mb-6">
             <TabsTrigger value="general">
               <Image className="w-3.5 h-3.5 mr-1.5" />
               {ar ? "عام" : "General"}
@@ -128,6 +132,10 @@ export default function Settings() {
             <TabsTrigger value="room-types">
               <BedDouble className="w-3.5 h-3.5 mr-1.5" />
               {ar ? "الغرف والتصنيفات" : "Rooms & Class"}
+            </TabsTrigger>
+            <TabsTrigger value="workers">
+              <HardHat className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+              {ar ? "الفنيين والعمال" : "Workers"}
             </TabsTrigger>
             <TabsTrigger value="security">
               <Shield className="w-3.5 h-3.5 mr-1.5" />
@@ -255,6 +263,22 @@ export default function Settings() {
                 </TabsContent>
               </Tabs>
             </div>
+          </TabsContent>
+
+          <TabsContent value="workers" className="space-y-4">
+            {selectedPropertyId ? (
+              <WorkersTab
+                propertyId={selectedPropertyId}
+                propertyName={
+                  properties?.find((p: any) => p.id === selectedPropertyId)?.displayName ||
+                  properties?.find((p: any) => p.id === selectedPropertyId)?.name
+                }
+              />
+            ) : (
+              <div className="text-center py-12 text-muted-foreground text-sm bg-card border rounded-xl p-8">
+                {ar ? "يرجى اختيار الفندق / العقار أولاً لعرض وإدارة الفنيين" : "Please select a hotel/property first to manage workers"}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="security">

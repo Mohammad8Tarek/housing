@@ -56,6 +56,11 @@ import {
   ChevronDown,
   HardHat,
   Users,
+  Search,
+  RotateCcw,
+  MoreVertical,
+  Calendar,
+  Filter,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -68,7 +73,6 @@ import {
   ColumnChooser,
   useColumnVisibility,
 } from "@/components/ui/column-chooser";
-import MaintenanceFilterBar from "@/components/ui/maintenance-filter-bar";
 import TicketDetailModal from "@/components/ui/ticket-detail-modal";
 import * as XLSX from "xlsx";
 import { format, differenceInMinutes } from "date-fns";
@@ -99,9 +103,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DataPagination } from "@/components/DataPagination";
 import { TicketsKanbanBoard } from "./maintenance/components/TicketsKanbanBoard";
-import { WorkersTab } from "./maintenance/components/WorkersTab";
 
 const CATEGORIES = ["maintenance", "housekeeping", "general"];
 const CATEGORIES_AR = {
@@ -330,9 +335,6 @@ export default function Tickets() {
     if (properties && properties.length > 0) return String(properties[0].id);
     return "";
   });
-
-  // Module Main Tab: "tickets" vs "workers"
-  const [activeModuleTab, setActiveModuleTab] = useState<"tickets" | "workers">("tickets");
 
   const [form, setForm] = useState({
     roomId: "",
@@ -841,24 +843,43 @@ export default function Tickets() {
     }
   };
 
+  const hasActiveFilters = Boolean(
+    searchTerm ||
+    (categoryFilter !== (isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all")) ||
+    statusFilter !== "all" ||
+    priorityFilter ||
+    (scopeFilter !== (hasManagerialScope ? "all" : "me")) ||
+    (propertyFilter && propertyFilter !== "all") ||
+    fromDate ||
+    toDate
+  );
+
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setCategoryFilter(isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all");
+    setStatusFilter("all");
+    setPriorityFilter("");
+    setScopeFilter(hasManagerialScope ? "all" : "me");
+    setPropertyFilter("all");
+    setFromDate("");
+    setToDate("");
+    setCurrentPage(1);
+  };
+
   return (
-    <div className="min-h-screen bg-background space-y-5">
-      {/* Header & Module Tab Switcher */}
+    <div className="min-h-screen bg-background space-y-4">
+      {/* Executive Header (Linear Style) */}
       <div className="px-4 sm:px-6 pt-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={`p-2.5 rounded-xl shadow-xs ${
-              activeModuleTab === "workers"
-                ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
-                : isOnlyHousekeeping
-                  ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
-                  : isOnlyMaintenance
-                    ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
-                    : "bg-primary/10 text-primary"
+              isOnlyHousekeeping
+                ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
+                : isOnlyMaintenance
+                  ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+                  : "bg-primary/10 text-primary"
             }`}>
-              {activeModuleTab === "workers" ? (
-                <HardHat className="w-6 h-6" />
-              ) : isOnlyHousekeeping ? (
+              {isOnlyHousekeeping ? (
                 <Sparkles className="w-6 h-6" />
               ) : isOnlyMaintenance ? (
                 <Wrench className="w-6 h-6" />
@@ -868,253 +889,352 @@ export default function Tickets() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {activeModuleTab === "workers"
-                  ? (ar ? "فريق العمل والفنيين" : "Property Workers & Technicians")
-                  : isOnlyHousekeeping
-                    ? (ar ? "طلبات وأوامر الهاوس كيبنج" : "Housekeeping Orders Hub")
-                    : isOnlyMaintenance
-                      ? (ar ? "بلاغات وأوامر الصيانة الفنية" : "Maintenance Work Orders")
-                      : (ar ? "مركز التذاكر والعمليات الموحد" : "Operations & Tickets Hub")}
+                {isOnlyHousekeeping
+                  ? (ar ? "طلبات وأوامر الهاوس كيبنج" : "Housekeeping Orders")
+                  : isOnlyMaintenance
+                    ? (ar ? "بلاغات وأوامر الصيانة الفنية" : "Maintenance Work Orders")
+                    : (ar ? "مركز التذاكر وأوامر العمل" : "Operations & Tickets Hub")}
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {activeModuleTab === "workers"
-                  ? (ar ? "إدارة فنيي الصيانة والعمالة والمقاولين المخصصين لهذا الفندق" : "Manage technicians, maintenance workers, and contractors dedicated to this property")
-                  : (ar ? "متابعة وإسناد أوامر العمل وبلاغات الصيانة والنظافة" : "Track and assign work orders, maintenance, and housekeeping")}
+                {isOnlyHousekeeping
+                  ? (ar ? "متابعة وإسناد طلبات النظافة وتجهيز الغرف والمستلزمات" : "Track and assign room cleaning, linens, and housekeeping orders")
+                  : isOnlyMaintenance
+                    ? (ar ? "متابعة وإسناد بلاغات الأعطال والصيانة الوقائية والطارئة" : "Track and dispatch engineering and repair work orders")
+                    : (ar ? "متابعة وإسناد أوامر العمل وبلاغات الصيانة والنظافة" : "Track and assign work orders, maintenance, and housekeeping")}
               </p>
             </div>
           </div>
 
-          {/* Module Tab Switcher */}
-          <div className="flex items-center gap-1.5 p-1 bg-muted/80 dark:bg-muted/40 rounded-xl border shadow-xs self-start md:self-auto">
-            <button
-              type="button"
-              onClick={() => setActiveModuleTab("tickets")}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
-                activeModuleTab === "tickets"
-                  ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-              }`}
-            >
-              <Wrench className="w-4 h-4" />
-              <span>{ar ? "أوامر العمل والتذاكر" : "Work Orders"}</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono">
-                {totalCount}
-              </Badge>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveModuleTab("workers")}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
-                activeModuleTab === "workers"
-                  ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-              }`}
-            >
-              <HardHat className="w-4 h-4 text-primary" />
-              <span>{ar ? "فريق العمل والفنيين" : "Property Workers"}</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono">
-                {propertyWorkers.length}
-              </Badge>
-            </button>
+          {/* Action Bar: Create Ticket */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {canCreateAny && (
+              <Button
+                onClick={() => setIsOpen(true)}
+                className="gap-2 shadow-xs font-semibold"
+                size="sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>
+                  {isOnlyHousekeeping
+                    ? (ar ? "طلب هاوس كيبنج جديد" : "New Housekeeping Order")
+                    : isOnlyMaintenance
+                      ? (ar ? "بلاغ صيانة جديد" : "New Maintenance Ticket")
+                      : (ar ? "إنشاء تذكرة جديدة" : "New Ticket")}
+                </span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {activeModuleTab === "workers" ? (
-        <div className="px-4 sm:px-6 pb-8">
-          <WorkersTab
-            propertyId={targetPropertyId}
-            propertyName={
-              properties?.find((p: any) => p.id === targetPropertyId)?.displayName ||
-              properties?.find((p: any) => p.id === targetPropertyId)?.name
-            }
-            onFilterByWorker={() => {
-              setActiveModuleTab("tickets");
-            }}
-          />
-        </div>
-      ) : (
-        <>
-
-      {/* Analytics KPI Cards (Tremor / Shadcn Style) */}
-      <div className="px-4 sm:px-6 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-card border rounded-xl p-4 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-medium text-muted-foreground">
-              {ar ? "إجمالي التذاكر" : "Total Tickets"}
-            </span>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-foreground">
-              {totalCount}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
-              <span>{paged.length} {ar ? "في هذا العرض" : "in this view"}</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-muted-foreground">
-            <Layers className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-card border border-blue-200/60 dark:border-blue-900/40 rounded-xl p-4 shadow-xs flex items-center justify-between bg-gradient-to-br from-blue-50/40 to-transparent dark:from-blue-950/20">
-          <div>
-            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-              {ar ? "مفتوحة وجديدة" : "Open Tickets"}
-            </span>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-blue-700 dark:text-blue-300">
-              {openCount}
-            </div>
-            <div className="text-[11px] text-blue-600/80 dark:text-blue-400/80 mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
-              <span>{ar ? "تحتاج اتخاذ إجراء" : "Requires action"}</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-            <AlertCircle className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-card border border-amber-200/60 dark:border-amber-900/40 rounded-xl p-4 shadow-xs flex items-center justify-between bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
-          <div>
-            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-              {ar ? "قيد التنفيذ" : "In Progress"}
-            </span>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-amber-700 dark:text-amber-300">
-              {inProgressCount}
-            </div>
-            <div className="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-              <span>{ar ? "العمل جاري عليها" : "Currently active"}</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
-            <Play className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-card border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl p-4 shadow-xs flex items-center justify-between bg-gradient-to-br from-emerald-50/40 to-transparent dark:from-emerald-950/20">
-          <div>
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              {ar ? "مكتملة ومغلقة" : "Resolved / Closed"}
-            </span>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-emerald-700 dark:text-emerald-300">
-              {resolvedCount + closedCount}
-            </div>
-            <div className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              <span>{ar ? "تم إنجازها بنجاح" : "Completed successfully"}</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* FilterBar & Toolbar */}
+      {/* Status Metric Tabs Strip (Linear / GitHub Issues Style) */}
       <div className="px-4 sm:px-6">
-        <MaintenanceFilterBar
-          ar={ar}
-          properties={properties || []}
-          departments={["Front Office", "Engineering", "House Keeping"]}
-          profiles={profiles}
-          allowedCategories={
-            isOnlyHousekeeping
-              ? ["housekeeping"]
-              : isOnlyMaintenance
-                ? ["maintenance"]
-                : ["maintenance", "housekeeping", "general"]
-          }
-          initialPropertyId={propertyFilter}
-          initialType={categoryFilter === "all" ? "" : categoryFilter}
-          categoryFilter={categoryFilter}
-          onCategoryChange={(cat) => {
-            setCategoryFilter(cat);
-            setCurrentPage(1);
-          }}
-          scopeFilter={scopeFilter}
-          onScopeChange={(scope) => {
-            setScopeFilter(scope);
-            setCurrentPage(1);
-          }}
-          hasBoth={hasBoth}
-          hasManagerialScope={hasManagerialScope}
-          totalCount={totalCount}
-          maintenanceCount={maintenanceCount}
-          housekeepingCount={housekeepingCount}
-          generalCount={generalCount}
-          myTicketsCount={myTicketsCount}
-          onCreateNew={canCreateAny ? () => setIsOpen(true) : undefined}
-          onFiltersChange={(filters) => {
-            setFilterBarFilters(filters);
-            setFromDate(filters.fromDate ?? "");
-            setToDate(filters.toDate ?? "");
-            setStatusFilter(filters.status || "all");
-            setPriorityFilter(filters.priority ?? "");
-            setPropertyFilter(filters.propertyId || "all");
-            setCurrentPage(1);
-          }}
-        />
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
+              statusFilter === "all"
+                ? "bg-primary/10 text-primary border-b-2 border-primary shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+            }`}
+          >
+            <span>{ar ? "كل التذاكر" : "All Tickets"}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold">
+              {totalCount}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("open")}
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
+              statusFilter === "open"
+                ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-b-2 border-blue-500 shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span>{ar ? "مفتوحة" : "Open"}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+              {openCount}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("in_progress")}
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
+              statusFilter === "in_progress"
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-b-2 border-amber-500 shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span>{ar ? "قيد التنفيذ" : "In Progress"}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+              {inProgressCount}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("resolved")}
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
+              statusFilter === "resolved"
+                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-b-2 border-emerald-500 shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>{ar ? "تم الحل" : "Resolved"}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+              {resolvedCount}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("closed")}
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
+              statusFilter === "closed"
+                ? "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-b-2 border-slate-500 shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-slate-400" />
+            <span>{ar ? "مغلقة" : "Closed"}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold">
+              {closedCount}
+            </Badge>
+          </button>
+        </div>
       </div>
 
-      {/* View Switcher, Column Chooser & Quick Actions */}
-      <div className="px-4 sm:px-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {/* Dual View Switcher: List vs Kanban */}
-          <div className="flex items-center gap-1 p-1 bg-muted/80 dark:bg-muted/40 rounded-xl border shadow-xs">
-            <button
-              type="button"
-              onClick={() => handleSetViewMode("list")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                viewMode === "list"
-                  ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-              }`}
-              title={ar ? "عرض جدول البيانات" : "Table List View"}
-            >
-              <List className="w-3.5 h-3.5" />
-              <span>{ar ? "جدول البيانات" : "Table View"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSetViewMode("kanban")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                viewMode === "kanban"
-                  ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-              }`}
-              title={ar ? "لوحة كانبان التفاعلية" : "Interactive Kanban Board"}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>{ar ? "لوحة كانبان" : "Kanban Board"}</span>
-            </button>
+      {/* Sleek Faceted Filter Toolbar */}
+      <div className="px-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-card p-2.5 rounded-xl border shadow-xs">
+          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[170px] max-w-xs">
+              <Search className="w-3.5 h-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search room, description, worker..."}
+                className="h-8 text-xs ps-8 pe-7 bg-background"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Scope Filter */}
+            <Select value={scopeFilter} onValueChange={(v: any) => setScopeFilter(v)}>
+              <SelectTrigger className="h-8 text-xs w-[130px] bg-background">
+                <SelectValue placeholder={ar ? "النطاق" : "Scope"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{ar ? "كل التذاكر" : "All Scope"}</SelectItem>
+                <SelectItem value="me">
+                  {ar ? `تذاكري (${myTicketsCount})` : `My Tickets (${myTicketsCount})`}
+                </SelectItem>
+                <SelectItem value="unassigned">{ar ? "غير معينة" : "Unassigned"}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Category Filter (if user has access to both) */}
+            {hasBoth && (
+              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+                <SelectTrigger className="h-8 text-xs w-[125px] bg-background">
+                  <SelectValue placeholder={ar ? "القسم" : "Category"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? "كل الأقسام" : "All Types"}</SelectItem>
+                  <SelectItem value="maintenance">{ar ? "صيانة فنية" : "Maintenance"}</SelectItem>
+                  <SelectItem value="housekeeping">{ar ? "هاوس كيبنج" : "Housekeeping"}</SelectItem>
+                  <SelectItem value="general">{ar ? "عام" : "General"}</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Priority Filter */}
+            <Select value={priorityFilter || "all"} onValueChange={(v) => setPriorityFilter(v === "all" ? "" : v)}>
+              <SelectTrigger className="h-8 text-xs w-[115px] bg-background">
+                <SelectValue placeholder={ar ? "الأولوية" : "Priority"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{ar ? "كل الأولويات" : "All Priorities"}</SelectItem>
+                {PRIORITIES.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        p === "URGENT" ? "bg-red-500" :
+                        p === "HIGH" ? "bg-orange-500" :
+                        p === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
+                      }`} />
+                      <span>{ar ? PRIORITY_AR[p] : p}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Property Filter */}
+            {properties && properties.length > 1 && (
+              <Select value={propertyFilter} onValueChange={(v) => setPropertyFilter(v)}>
+                <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
+                  <SelectValue placeholder={ar ? "كل الفنادق" : "All Properties"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? "كل الفنادق" : "All Properties"}</SelectItem>
+                  {properties.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.displayName || p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Date Range Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-8 text-xs gap-1.5 bg-background font-normal ${
+                    fromDate || toDate ? "border-primary text-primary font-medium" : "text-muted-foreground"
+                  }`}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>
+                    {fromDate || toDate
+                      ? `${fromDate || "..."} → ${toDate || "..."}`
+                      : (ar ? "التاريخ" : "Date")}
+                  </span>
+                  {(fromDate || toDate) && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFromDate("");
+                        setToDate("");
+                      }}
+                      className="hover:text-foreground ms-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-3 space-y-2 text-xs" align="start">
+                <div className="font-semibold text-foreground text-xs">{ar ? "تصفية حسب التاريخ" : "Filter by Date"}</div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">{ar ? "من تاريخ" : "From Date"}</Label>
+                  <Input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">{ar ? "إلى تاريخ" : "To Date"}</Label>
+                  <Input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                {(fromDate || toDate) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFromDate("");
+                      setToDate("");
+                    }}
+                    className="w-full h-7 text-xs text-muted-foreground"
+                  >
+                    {ar ? "مسح التواريخ" : "Clear Dates"}
+                  </Button>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            {/* Reset Filters */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                title={ar ? "إعادة ضبط جميع الفلاتر" : "Reset all filters"}
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>{ar ? "إعادة ضبط" : "Reset"}</span>
+              </Button>
+            )}
           </div>
 
-          <div className="text-xs text-muted-foreground font-medium hidden sm:block">
-            {ar ? `عرض ${paged.length} من أصل ${totalCount} تذكرة` : `Showing ${paged.length} of ${totalCount} tickets`}
-          </div>
-        </div>
+          {/* Right Toolbar: View Switcher, Excel, ColumnChooser */}
+          <div className="flex items-center gap-1.5 self-end sm:self-auto">
+            <div className="flex items-center p-0.5 bg-muted rounded-lg border">
+              <button
+                type="button"
+                onClick={() => handleSetViewMode("list")}
+                className={`p-1.5 rounded-md text-xs transition-colors ${
+                  viewMode === "list"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title={ar ? "عرض الجدول" : "Table View"}
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetViewMode("kanban")}
+                className={`p-1.5 rounded-md text-xs transition-colors ${
+                  viewMode === "kanban"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title={ar ? "لوحة كانبان" : "Kanban Board"}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportExcel}
-            className="text-xs gap-1.5 h-8 font-medium"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>{ar ? "تصدير Excel" : "Export Excel"}</span>
-          </Button>
-          {viewMode === "list" && (
-            <ColumnChooser
-              cols={COLS}
-              visible={visible}
-              onToggle={toggle}
-              onShowAll={showAll}
-              onHideAll={hideAll}
-              ar={ar}
-            />
-          )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportExcel}
+              className="h-8 text-xs gap-1.5 font-medium bg-background"
+              title={ar ? "تصدير إلى Excel" : "Export Excel"}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{ar ? "تصدير" : "Export"}</span>
+            </Button>
+
+            {viewMode === "list" && (
+              <ColumnChooser
+                cols={COLS}
+                visible={visible}
+                onToggle={toggle}
+                onShowAll={showAll}
+                onHideAll={hideAll}
+                ar={ar}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -1361,15 +1481,6 @@ export default function Tickets() {
                     {propertyWorkers.map((w: any) => (
                       <SelectItem key={w.id} value={String(w.id)}>
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`w-2 h-2 rounded-full shrink-0 ${
-                              w.status === "available"
-                                ? "bg-emerald-500"
-                                : w.status === "busy"
-                                  ? "bg-amber-500"
-                                  : "bg-slate-400"
-                            }`}
-                          />
                           <span className="font-semibold">{w.name}</span>
                           <span className="text-muted-foreground text-[10px]">
                             ({w.specialty})
@@ -1655,8 +1766,12 @@ export default function Tickets() {
               </TableHeader>
               <TableBody>
                 {paged.map((req: any) => (
-                  <TableRow key={req.id} className="hover:bg-muted/20 transition-colors">
-                    <TableCell className="w-10 px-3">
+                  <TableRow
+                    key={req.id}
+                    onClick={() => handleSelectTicket(req.id)}
+                    className="cursor-pointer hover:bg-muted/40 transition-colors group"
+                  >
+                    <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedTicketIds.has(req.id)}
                         onCheckedChange={(checked) => {
@@ -1780,7 +1895,7 @@ export default function Tickets() {
                     )}
 
                     {isVisible("status") && (
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         {canEditAny ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -1880,30 +1995,70 @@ export default function Tickets() {
                     )}
 
                     {isVisible("actions") && (
-                      <TableCell className="text-end">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2.5 text-xs gap-1"
-                            onClick={() => handleSelectTicket(req.id)}
-                            title={ar ? "عرض التفاصيل" : "View Details"}
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">{ar ? "تفاصيل" : "View"}</span>
-                          </Button>
-                          {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
+                      <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-red-600"
-                              onClick={() => setDeleteId(req.id)}
-                              title={ar ? "حذف" : "Delete"}
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
                             >
-                              <Trash className="w-3.5 h-3.5" />
+                              <MoreVertical className="w-4 h-4" />
                             </Button>
-                          )}
-                        </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44 text-xs">
+                            <DropdownMenuItem
+                              onClick={() => handleSelectTicket(req.id)}
+                              className="gap-2 cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-primary" />
+                              <span>{ar ? "عرض التفاصيل" : "View Details"}</span>
+                            </DropdownMenuItem>
+
+                            {canEditAny && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => updateMutation.mutate({ id: req.id, data: { status: "in_progress" } })}
+                                  disabled={req.status === "in_progress"}
+                                  className="gap-2 cursor-pointer"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                  <span>{ar ? "بدء التنفيذ" : "Mark In Progress"}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => updateMutation.mutate({ id: req.id, data: { status: "resolved" } })}
+                                  disabled={req.status === "resolved"}
+                                  className="gap-2 cursor-pointer"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                  <span>{ar ? "تم الحل والإنجاز" : "Mark Resolved"}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => updateMutation.mutate({ id: req.id, data: { status: "closed" } })}
+                                  disabled={req.status === "closed"}
+                                  className="gap-2 cursor-pointer"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                                  <span>{ar ? "إغلاق الطلب" : "Mark Closed"}</span>
+                                </DropdownMenuItem>
+                              </>
+                            )}
+
+                            {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteId(req.id)}
+                                  className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                                >
+                                  <Trash className="w-3.5 h-3.5" />
+                                  <span>{ar ? "حذف التذكرة" : "Delete Ticket"}</span>
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     )}
                   </TableRow>
@@ -1971,8 +2126,6 @@ export default function Tickets() {
             )}
           </div>
         </div>
-      )}
-        </>
       )}
 
       {/* Lightbox */}

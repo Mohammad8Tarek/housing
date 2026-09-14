@@ -94,7 +94,6 @@ export function WorkersTab({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [workerTypeFilter, setWorkerTypeFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
@@ -110,7 +109,6 @@ export function WorkersTab({
       propertyId,
       debouncedSearch,
       specialtyFilter,
-      statusFilter,
       workerTypeFilter,
     ],
     queryFn: async () => {
@@ -119,13 +117,10 @@ export function WorkersTab({
       });
       if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
       if (specialtyFilter !== "all") params.append("specialty", specialtyFilter);
-      if (statusFilter !== "all") params.append("status", statusFilter);
       if (workerTypeFilter !== "all") params.append("workerType", workerTypeFilter);
 
       const res = await fetch(`/api/workers?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error(ar ? "فشل جلب قائمة الفنيين" : "Failed to load workers");
-      }
+      if (!res.ok) throw new Error("Failed to fetch workers");
       return res.json();
     },
     enabled: !!propertyId,
@@ -134,13 +129,13 @@ export function WorkersTab({
   const workers: Worker[] = data?.data || [];
 
   // إحصائيات سريعة للفنيين
+  const totalWorkers = workers.length;
   const stats = useMemo(() => {
-    const total = workers.length;
     const available = workers.filter((w) => w.status === "available").length;
     const busy = workers.filter((w) => w.status === "busy").length;
     const onLeave = workers.filter((w) => w.status === "on_leave" || w.status === "inactive").length;
     const activeTasks = workers.reduce((sum, w) => sum + (w.activeTasksCount || 0), 0);
-    return { total, available, busy, onLeave, activeTasks };
+    return { available, busy, onLeave, activeTasks };
   }, [workers]);
 
   // خريطة أيقونات وتسميات التخصص
@@ -165,56 +160,6 @@ export function WorkersTab({
         <span>{ar ? item.labelAr : item.labelEn}</span>
       </span>
     );
-  };
-
-  const getStatusBadge = (stKey: string) => {
-    switch (stKey) {
-      case "available":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{ar ? "متاح للعمل" : "Available"}</span>
-          </span>
-        );
-      case "busy":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            <span>{ar ? "مشغول في مهمة" : "Busy"}</span>
-          </span>
-        );
-      case "on_leave":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            <span>{ar ? "في إجازة" : "On Leave"}</span>
-          </span>
-        );
-      case "inactive":
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-            <span>{ar ? "غير نشط" : "Inactive"}</span>
-          </span>
-        );
-    }
-  };
-
-  // معالجة تغيير الحالة سريعاً
-  const handleQuickStatusChange = async (workerId: number, newStatus: string) => {
-    try {
-      const res = await fetch(`/api/workers/${workerId}?propertyId=${propertyId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!res.ok) throw new Error("Failed to update status");
-      toast.success(ar ? "تم تحديث حالة الفني" : "Worker status updated");
-      queryClient.invalidateQueries({ queryKey: ["/api/workers"] });
-    } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل التحديث" : "Failed to update"));
-    }
   };
 
   // معالجة الحذف
@@ -242,77 +187,39 @@ export function WorkersTab({
 
   return (
     <div className="space-y-6">
-      {/* Top KPI Metrics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-card border rounded-xl p-4 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-medium text-muted-foreground">
-              {ar ? "إجمالي الفنيين والعمال" : "Total Technicians"}
-            </span>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-foreground">
-              {stats.total}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
-              <span>{propertyName || (ar ? "الفندق النشط" : "Active Property")}</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+      {/* Header & Summary */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card border rounded-xl p-4 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
             <HardHat className="w-5 h-5" />
           </div>
-        </div>
-
-        <div className="bg-card border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl p-4 shadow-xs flex items-center justify-between bg-gradient-to-br from-emerald-50/40 to-transparent dark:from-emerald-950/20">
           <div>
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              {ar ? "متاحون للعمل فوراً" : "Available Workers"}
-            </span>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-emerald-700 dark:text-emerald-300">
-              {stats.available}
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground">
+                {ar ? "سجل فريق الصيانة والفنيين" : "Technicians & Maintenance Team"}
+              </h2>
+              <Badge variant="secondary" className="font-mono text-xs">
+                {totalWorkers} {ar ? "فني" : "workers"}
+              </Badge>
             </div>
-            <div className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              <span>{ar ? "جاهزون لاستلام بلاغات" : "Ready for tasks"}</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="w-5 h-5" />
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {propertyName ? `${ar ? "الفندق / العقار:" : "Property:"} ${propertyName}` : (ar ? "إدارة وتوزيع فنيي الصيانة والعمالة والمقاولين" : "Manage technicians, trade workers, and contractors")}
+            </p>
           </div>
         </div>
 
-        <div className="bg-card border border-amber-200/60 dark:border-amber-900/40 rounded-xl p-4 shadow-xs flex items-center justify-between bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
-          <div>
-            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-              {ar ? "في مهام نشطة حالياً" : "Busy on Tasks"}
-            </span>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-amber-700 dark:text-amber-300">
-              {stats.busy}
-            </div>
-            <div className="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-              <span>{ar ? `${stats.activeTasks} مهمة قيد الإصلاح` : `${stats.activeTasks} active tasks`}</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-card border rounded-xl p-4 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-medium text-muted-foreground">
-              {ar ? "إجازة / غير نشط" : "On Leave / Inactive"}
-            </span>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight mt-1 text-foreground">
-              {stats.onLeave}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-              <span>{ar ? "خارج جدول العمل" : "Off schedule"}</span>
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-muted-foreground">
-            <Briefcase className="w-5 h-5" />
-          </div>
-        </div>
+        <PermissionGate module="settings" action="edit">
+          <Button
+            onClick={() => {
+              setSelectedWorker(null);
+              setDialogOpen(true);
+            }}
+            className="gap-2 text-xs font-semibold self-start sm:self-auto"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>{ar ? "إضافة فني جديد" : "Add Technician"}</span>
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Toolbar & Filters Bar */}
@@ -372,20 +279,6 @@ export function WorkersTab({
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin" : ""}`} />
             </Button>
-
-            <PermissionGate module="maintenance" action="create">
-              <Button
-                size="sm"
-                onClick={() => {
-                  setSelectedWorker(null);
-                  setDialogOpen(true);
-                }}
-                className="h-9 px-3 text-xs gap-1.5 font-semibold"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>{ar ? "إضافة فني جديد" : "Add Worker"}</span>
-              </Button>
-            </PermissionGate>
           </div>
         </div>
 
@@ -411,21 +304,6 @@ export function WorkersTab({
             </SelectContent>
           </Select>
 
-          {/* Status Filter */}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-8 text-xs w-[130px]">
-              <SelectValue placeholder={ar ? "الحالة" : "Status"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
-              {WORKER_STATUSES.map((st) => (
-                <SelectItem key={st.key} value={st.key}>
-                  {ar ? st.labelAr : st.labelEn}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           {/* Worker Type Filter */}
           <Select value={workerTypeFilter} onValueChange={setWorkerTypeFilter}>
             <SelectTrigger className="h-8 text-xs w-[130px]">
@@ -438,19 +316,18 @@ export function WorkersTab({
             </SelectContent>
           </Select>
 
-          {(specialtyFilter !== "all" || statusFilter !== "all" || workerTypeFilter !== "all" || search) && (
+          {(specialtyFilter !== "all" || workerTypeFilter !== "all" || search) && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 setSpecialtyFilter("all");
-                setStatusFilter("all");
                 setWorkerTypeFilter("all");
                 setSearch("");
               }}
               className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              {ar ? "مسح الفلاتر" : "Reset"}
+              {ar ? "مسح التصفية" : "Clear Filters"}
             </Button>
           )}
 
@@ -516,13 +393,11 @@ export function WorkersTab({
                 className="bg-card border rounded-xl p-4 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all flex flex-col justify-between relative group"
               >
                 <div>
-                  {/* Top Bar: Specialty Badge, Status, and Actions Dropdown */}
+                  {/* Top Bar: Specialty Badge and Actions Dropdown */}
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div>{getSpecialtyBadge(w.specialty)}</div>
 
                     <div className="flex items-center gap-1">
-                      {getStatusBadge(w.status)}
-
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -534,7 +409,7 @@ export function WorkersTab({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="text-xs">
-                          <PermissionGate module="maintenance" action="edit">
+                          <PermissionGate module="settings" action="edit">
                             <DropdownMenuItem
                               onClick={() => {
                                 setSelectedWorker(w);
@@ -547,28 +422,7 @@ export function WorkersTab({
                           </PermissionGate>
 
                           <DropdownMenuSeparator />
-                          {/* Quick Status Submenu */}
-                          <DropdownMenuItem
-                            onClick={() => handleQuickStatusChange(w.id!, "available")}
-                          >
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 rtl:ml-2" />
-                            <span>{ar ? "تعيين: متاح للعمل" : "Set Available"}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleQuickStatusChange(w.id!, "busy")}
-                          >
-                            <span className="w-2 h-2 rounded-full bg-amber-500 mr-2 rtl:ml-2" />
-                            <span>{ar ? "تعيين: مشغول في مهمة" : "Set Busy"}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleQuickStatusChange(w.id!, "on_leave")}
-                          >
-                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2 rtl:ml-2" />
-                            <span>{ar ? "تعيين: في إجازة" : "Set On Leave"}</span>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuSeparator />
-                          <PermissionGate module="maintenance" action="delete">
+                          <PermissionGate module="settings" action="edit">
                             <DropdownMenuItem
                               onClick={() => setDeleteTarget(w)}
                               className="text-red-600 focus:text-red-600"
@@ -715,9 +569,6 @@ export function WorkersTab({
                 <TableHead className="w-36 font-semibold">
                   {ar ? "التخصص" : "Specialty"}
                 </TableHead>
-                <TableHead className="w-32 font-semibold">
-                  {ar ? "الحالة" : "Status"}
-                </TableHead>
                 <TableHead className="w-48 font-semibold">
                   {ar ? "الهاتف والتواصل" : "Phone & Contact"}
                 </TableHead>
@@ -753,8 +604,6 @@ export function WorkersTab({
                     </TableCell>
 
                     <TableCell>{getSpecialtyBadge(w.specialty)}</TableCell>
-
-                    <TableCell>{getStatusBadge(w.status)}</TableCell>
 
                     <TableCell>
                       {w.phone ? (

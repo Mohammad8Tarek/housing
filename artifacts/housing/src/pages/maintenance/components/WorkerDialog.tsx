@@ -283,33 +283,7 @@ export function WorkerDialog({
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">
-                {ar ? "الحالة التشغيلية" : "Operational Status"}
-              </Label>
-              <Select
-                value={formData.status}
-                onValueChange={(val: any) => setFormData({ ...formData, status: val })}
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder={ar ? "اختر الحالة" : "Select status"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {WORKER_STATUSES.map((st) => (
-                    <SelectItem key={st.key} value={st.key}>
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${st.color} shrink-0`} />
-                        <span>{ar ? st.labelAr : st.labelEn}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                {ar ? "نوع الفني" : "Worker Type"}
+                {ar ? "نوع التوظيف" : "Employment Type"}
               </Label>
               <Select
                 value={formData.workerType}
@@ -328,7 +302,9 @@ export function WorkerDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />

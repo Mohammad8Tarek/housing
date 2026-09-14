@@ -427,15 +427,6 @@ export default function TicketDetailModal({
                                 {workers.map((w: any) => (
                                   <SelectItem key={w.id} value={String(w.id)}>
                                     <div className="flex items-center gap-2">
-                                      <span
-                                        className={`w-2 h-2 rounded-full shrink-0 ${
-                                          w.status === "available"
-                                            ? "bg-emerald-500"
-                                            : w.status === "busy"
-                                              ? "bg-amber-500"
-                                              : "bg-slate-400"
-                                        }`}
-                                      />
                                       <span className="font-medium">{w.name}</span>
                                       <span className="text-muted-foreground text-[10px]">
                                         ({w.specialty})
