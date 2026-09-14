@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { formatDate } from "./date-utils";
+import { printLuxuryReport, REPORT_TAB_TITLES } from "@/pages/reports/utils/luxury-report-engine";
+export { printLuxuryReport, REPORT_TAB_TITLES };
 /** Shared PDF utility functions for jsPDF exports */
 
 /** Detect Arabic/RTL characters */

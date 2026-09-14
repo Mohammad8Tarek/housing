@@ -329,8 +329,12 @@ export function useReportExport({
     exportExcel(activeTab, rows);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!canExportReports) return;
+    let isArabic = ar;
+    if (typeof openPrintDialog === "function") {
+      isArabic = await openPrintDialog();
+    }
     const rows = toExcelRows();
     exportPDF(
       activeTab,
@@ -342,6 +346,7 @@ export function useReportExport({
       dateTo,
       search,
       settings,
+      isArabic ? "ar" : "en",
     );
   };
 

@@ -1,5 +1,24 @@
 import * as XLSX from "xlsx";
 import { getExportFileName, formatDate } from "@/lib/date-utils";
+import {
+  printLuxuryReport,
+  REPORT_TAB_TITLES,
+  generateAutoKpis,
+  formatStatusBadgeHtml,
+  type LuxuryReportOptions,
+  type ReportKpiCard,
+  type ReportColumn,
+} from "./luxury-report-engine";
+
+export {
+  printLuxuryReport,
+  REPORT_TAB_TITLES,
+  generateAutoKpis,
+  formatStatusBadgeHtml,
+  type LuxuryReportOptions,
+  type ReportKpiCard,
+  type ReportColumn,
+};
 
 export const exportExcel = (activeTab: string, rows: Record<string, any>[]) => {
   if (!rows.length) return;
@@ -127,92 +146,23 @@ export const exportPDF = async (
   dateTo: string,
   search: string,
   settings: any,
+  language: "ar" | "en" = "ar",
 ) => {
-  if (!rows.length) return;
-  const { default: jsPDF } = await import("jspdf");
-  const { default: autoTable } = await import("jspdf-autotable");
-  const doc = new jsPDF({ orientation: "landscape" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const headers = Object.keys(rows[0]);
-  const body = rows.map((r) =>
-    headers.map((h) => pdfTextSafe(String(r[h] ?? "—"))),
-  );
+  if (!rows || !rows.length) return;
 
-  const propName =
-    properties.find((p: any) => p.id === (propId ?? activePropertyId))?.name ??
-    "";
-
-  const TAB_TITLES: Record<string, string> = {
-    manager_flash: "Daily Operations & Occupancy Morning Report",
-    arrivals_manifest: "Expected Arrivals Manifest",
-    departures_manifest: "Due Out & Departures Manifest",
-    housekeeping_sheet: "Housekeeping Room Attendant Daily Task Sheet",
-    room_discrepancy: "Room Status Discrepancy & Audit Report",
-    occupancy_forecast: "Occupancy & Bed Availability Forecast",
-    assignments: "In-House Resident Occupancy Report",
-    vacant_rooms: "Vacant Rooms & Available Beds Report",
-    housing: "Housing Room Inventory & Status Report",
-    profiles: "Staff & Resident Profiles Directory",
-    expiring_contracts: "Contract Expiration Audit Report",
-    reservations: "Reservations & Booking Manifest",
-    hostings: "Guest & Visitor Hostings Report",
-    maintenance: "Engineering Maintenance Work Orders",
-    housekeeping: "Housekeeping Status & Cleaning Log",
-    equipment_inventory: "Room Amenities & Equipment Inventory",
-  };
-
-  const cleanTitle = TAB_TITLES[activeTab] || `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report`;
-  const title = `${cleanTitle}${propName ? ` — ${propName}` : ""}`;
-  const subtitle = [
-    `Generated: ${new Date().toLocaleString()}`,
-    `Records: ${rows.length}`,
-    dateFrom ? `From: ${dateFrom}` : "",
-    dateTo ? `To: ${dateTo}` : "",
-    search ? `Search: "${search}"` : "",
-  ]
-    .filter(Boolean)
-    .join("  |  ");
-
-  const startY = await drawPdfHeader(
-    doc,
-    pageW,
-    title,
-    subtitle,
-    settings,
+  await printLuxuryReport({
+    activeTab,
+    rows,
     properties,
     propId,
     activePropertyId,
-  );
-
-  autoTable(doc, {
-    head: [headers],
-    body,
-    startY,
-    styles: { fontSize: 8, cellPadding: 2 },
-    headStyles: { fillColor: [15, 42, 68], textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [245, 247, 250] },
-    foot: [headers.map((h, i) => (i === 0 ? `Total: ${rows.length}` : ""))],
-    footStyles: {
-      fillColor: [15, 42, 68],
-      textColor: [201, 162, 77],
-      fontStyle: "bold",
-    },
+    dateFrom,
+    dateTo,
+    search,
+    settings,
+    language,
+    title: "", // Auto-resolved by activeTab in luxury engine
   });
-
-  // Housekeeping task sheet attendant sign-off block
-  if (activeTab === "housekeeping_sheet") {
-    const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 12 : pageW - 20;
-    if (finalY < doc.internal.pageSize.getHeight() - 25) {
-      doc.setFontSize(8.5);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
-      doc.text("Attendant Name: _________________________________", 14, finalY);
-      doc.text("Supervisor Name: _________________________________", 110, finalY);
-      doc.text("Supervisor Signature: ______________________", 200, finalY);
-    }
-  }
-
-  doc.save(getExportFileName(`${activeTab}_Report`, "pdf"));
 };
 
 const COMMON_ARABIC_TRANSLATIONS: Record<string, string> = {

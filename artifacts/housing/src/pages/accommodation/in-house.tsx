@@ -91,7 +91,7 @@ import { formatNationality } from "@/lib/countries";
 import { useQueryClient } from "@tanstack/react-query";
 import { DataPagination } from "@/components/DataPagination";
 import KeyManagementPanel from "@/components/KeyManagementPanel";
-import { generateHousingLetterPdf } from "@/lib/pdf-utils";
+import { generateHousingLetterPdf, printLuxuryReport } from "@/lib/pdf-utils";
 import {
   usePrintLanguage,
   PrintLanguageDialog,
@@ -830,6 +830,69 @@ export default function InHouse() {
     XLSX.writeFile(wb, getExportFileName(ar ? "المقيمون_بالسكن" : "InHouse_Selected", "xlsx"));
   };
 
+  const exportSelectedPdf = async () => {
+    const target = assignments.filter((a) => selectedRows.has(a.id));
+    if (target.length === 0) return;
+    const rows = target.map((a: any) => {
+      const emp = empMap[a.profileId];
+      const room = roomMap[a.roomId];
+      const bName = a.buildingName || (room ? buildingMap[room.buildingId] : "");
+      const fNum = a.floorNumber ?? (room ? floorMap[room.floorId]?.number : "");
+      const rNum = a.roomNumber || room?.roomNumber || a.roomId || "";
+
+      const profileObj = emp || {
+        id: a.profileId,
+        firstName: a.profileFirstName,
+        lastName: a.profileLastName,
+        firstNameAr: a.profileFirstNameAr,
+        lastNameAr: a.profileLastNameAr,
+        thirdNameAr: a.profileThirdNameAr,
+        fourthNameAr: a.profileFourthNameAr,
+        jobTitle: a.profileJobTitle || (a as any).jobTitle,
+        jobTitleAr: a.profileJobTitleAr,
+        department: a.profileDepartment,
+        departmentAr: a.profileDepartmentAr,
+      };
+
+      const fullName = getProfileDisplayName(profileObj, ar) || (ar ? "بدون اسم" : "Unknown");
+      const code = a.profileCode || emp?.profileId || a.profileId;
+      const dept = getProfileDisplayDepartment(profileObj, ar);
+      const job = getProfileDisplayJobTitle(profileObj, ar);
+      const nat = formatNationality(a.profileNationality || (emp as any)?.nationality, ar);
+
+      return {
+        [ar ? "كود الموظف" : "Code"]: code,
+        [ar ? "الاسم" : "Name"]: fullName,
+        [ar ? "رقم الغرفة" : "Room"]: rNum,
+        [ar ? "المبنى" : "Building"]: bName,
+        [ar ? "الطابق" : "Floor"]: fNum != null ? fNum : "",
+        [ar ? "السرير" : "Bed"]: (a.bedNumber || a.isEntireRoom) ? `${ar ? "سرير " : "Bed "}${a.bedNumber || 1}${a.isEntireRoom ? (ar ? " (غرفة كاملة)" : " (Full)") : ""}` : "—",
+        [ar ? "تاريخ التسكين" : "Check-in"]: formatDate(a.checkInDate, ""),
+        [ar ? "المغادرة المتوقعة" : "Expected Out"]: formatDate(a.expectedCheckOutDate, ""),
+        [ar ? "الجنسية" : "Nationality"]: nat,
+        [ar ? "الهاتف" : "Phone"]: emp?.phone || (a as any).phone || "—",
+        [ar ? "الوظيفة" : "Job Title"]: job,
+        [ar ? "القسم" : "Department"]: dept,
+        [ar ? "الحالة" : "Status"]: (a as any).profileStatus === "VACATION" || emp?.status === "VACATION"
+          ? (ar ? "في إجازة" : "Vacation")
+          : (a as any).profileStatus === "LEFT" || emp?.status === "LEFT"
+            ? (ar ? "تمت المغادرة" : "Checked Out")
+            : (ar ? "مقيم بالسكن" : "In-House"),
+      };
+    });
+
+    await printLuxuryReport({
+      activeTab: "assignments",
+      title: ar ? "كشف المقيمين بالسكن — الموظفون المحددون" : "In-House Selected Residents Report",
+      language: ar ? "ar" : "en",
+      properties,
+      activePropertyId,
+      settings,
+      rows,
+      orientation: "landscape",
+    });
+  };
+
   const handleBulkCheckout = async () => {
     if (selectedRows.size === 0) return;
     setBulkCheckoutLoading(true);
@@ -1012,6 +1075,7 @@ export default function InHouse() {
         count={selectedRows.size}
         onClear={() => setSelectedRows(new Set())}
         onExportExcel={exportSelectedExcel}
+        onExportPDF={exportSelectedPdf}
         extraActions={
           <div className="flex items-center gap-2">
             <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>

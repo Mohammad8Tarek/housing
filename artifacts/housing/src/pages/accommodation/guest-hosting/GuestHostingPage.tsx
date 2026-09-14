@@ -70,7 +70,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { drawPdfHeader, pdfTextSafe, loadImgDataUrl } from "@/lib/pdf-utils";
+import { drawPdfHeader, pdfTextSafe, loadImgDataUrl, printLuxuryReport } from "@/lib/pdf-utils";
 import KeyManagementPanel from "@/components/KeyManagementPanel";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -929,192 +929,95 @@ export default function GuestHosting() {
     room: any,
     companions: any[],
   ) => {
-    const { default: jsPDF } = await import("jspdf");
-    const { default: autoTable } = await import("jspdf-autotable");
-    const doc = new jsPDF({ orientation: "portrait" });
-    const pageW = doc.internal.pageSize.getWidth();
-
     const activeProp = properties.find((p) => p.id === activePropertyId);
     const propName = activeProp?.name ?? "";
 
-    const startY = await drawPdfHeader(doc, {
-      systemLogoUrl: (settings as any)?.systemLogo,
-      propLogoUrl: (activeProp as any)?.logo,
-      title: ar ? "بيانات الضيوف الكاملة" : "Complete Guest Details",
-      subtitle: `${propName}  |  Generated: ${new Date().toLocaleString()}`,
-      pageW,
+    const empName = ar
+      ? (hostProfile ? `${hostProfile.firstNameAr || hostProfile.firstName} ${hostProfile.lastNameAr || hostProfile.lastName}` : "—")
+      : (hostProfile ? `${hostProfile.firstName} ${hostProfile.lastName}` : "—");
+
+    const hostDept = ar
+      ? (hostProfile?.departmentAr || hostProfile?.department || "—")
+      : (hostProfile?.department || "—");
+
+    const hostJob = ar
+      ? (hostProfile?.jobTitleAr || hostProfile?.jobTitle || "—")
+      : (hostProfile?.jobTitle || "—");
+
+    const roomText = [
+      room?.buildingName,
+      room?.floorNumber != null ? (ar ? `الطابق ${room.floorNumber}` : `Floor ${room.floorNumber}`) : "",
+    ].filter(Boolean).join(" — ");
+
+    const infoGridHtml = `
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
+        <div>
+          <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "الموظف المستضيف" : "Host Employee"}</div>
+          <div style="font-size: 9pt; font-weight: 800; color: #0f2a44;">${empName} (${hostProfile?.profileId || "—"})</div>
+        </div>
+        <div>
+          <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "القسم / الوظيفة" : "Department / Job"}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${hostDept} / ${hostJob}</div>
+        </div>
+        <div>
+          <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "الغرفة المخصصة" : "Assigned Room"}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${room?.roomNumber || "—"} (${roomText || "—"})</div>
+        </div>
+        <div>
+          <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "نوع الاستضافة" : "Hosting Type"}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${hosting.hostingType || (ar ? "زيارة عائلية" : "Family Visit")}</div>
+        </div>
+        <div>
+          <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "تاريخ الدخول" : "Check-In"}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${formatDate(hosting.expectedFrom)}</div>
+        </div>
+        <div>
+          <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "تاريخ المغادرة" : "Check-Out"}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${formatDate(hosting.expectedTo)}</div>
+        </div>
+      </div>
+      ${hosting.notes ? `
+        <div style="margin-bottom: 14px; padding: 10px 14px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; font-size: 8pt;">
+          <strong style="color: #b45309;">${ar ? "ملاحظات الاستضافة:" : "Hosting Notes:"}</strong> ${hosting.notes}
+        </div>
+      ` : ""}
+    `;
+
+    const compRows = (companions || []).map((c, i) => ({
+      "#": i + 1,
+      [ar ? "الاسم" : "Name"]: c.name || "—",
+      [ar ? "الفئة" : "Type"]: c.isChild === 1 ? (ar ? "طفل" : "Child") : (ar ? "بالغ" : "Adult"),
+      [ar ? "صلة القرابة" : "Relationship"]: c.relation || "—",
+      [ar ? "رقم الهوية / الجواز" : "ID / Passport"]: c.idNumber || "—",
+      [ar ? "نوع الوثيقة" : "Doc Type"]: c.documentType || "—",
+      [ar ? "العمر" : "Age"]: c.isChild === 1 && c.age ? String(c.age) : "—",
+    }));
+
+    await printLuxuryReport({
+      activeTab: "hostings",
+      title: ar ? "ملف استضافة الضيوف والمرافقين المعتمد" : "Certified Guest & Companion Hosting Dossier",
+      language: ar ? "ar" : "en",
+      properties,
+      activePropertyId,
+      settings,
+      customSectionsHtml: infoGridHtml,
+      rows: compRows.length > 0 ? compRows : [{
+        "#": 1,
+        [ar ? "الاسم" : "Name"]: hosting.guestName || "—",
+        [ar ? "الفئة" : "Type"]: ar ? "الضيف الرئيسي" : "Primary Guest",
+        [ar ? "صلة القرابة" : "Relationship"]: hosting.relation || "—",
+        [ar ? "رقم الهوية / الجواز" : "ID / Passport"]: hosting.guestId || "—",
+        [ar ? "نوع الوثيقة" : "Doc Type"]: hosting.idType || "—",
+        [ar ? "العمر" : "Age"]: "—",
+      }],
+      kpiCards: [
+        { label: "Total Guests", labelAr: "إجمالي الضيوف", value: hosting.guestsCount || (companions?.length || 0) + 1, color: "gold" },
+        { label: "Daily Rate", labelAr: "سعر الليلة", value: `${hosting.dailyRate || 0} EGP`, color: "blue" },
+        { label: "Total Fee", labelAr: "الإجمالي المستحق", value: `${hosting.totalAmount || 0} EGP`, color: "green" },
+        { label: "Status", labelAr: "حالة الطلب", value: hosting.status || (ar ? "معتمد" : "Approved"), color: "purple" },
+      ],
+      orientation: "portrait",
     });
-
-    let currentY = startY;
-
-    // Guest details
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(ar ? "معلومات الاستضافة" : "Hosting Information", 14, currentY);
-    currentY += 6;
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    const empName = pdfTextSafe(
-      hostProfile ? `${hostProfile.firstName} ${hostProfile.lastName}` : "—",
-    );
-    doc.text(
-      `Host Profile: ${empName} (${hostProfile?.profileId || "—"})`,
-      14,
-      currentY,
-    );
-    currentY += 5;
-    doc.text(
-      `Department / Job: ${pdfTextSafe(hostProfile?.department || "—")} / ${pdfTextSafe(hostProfile?.jobTitle || "—")}`,
-      14,
-      currentY,
-    );
-    currentY += 5;
-    const roomText = pdfTextSafe(
-      [
-        room?.buildingName,
-        room?.floorNumber != null ? `Floor ${room.floorNumber}` : "",
-      ]
-        .filter(Boolean)
-        .join(" - ") || "—",
-    );
-    doc.text(`Room: ${room?.roomNumber || "—"} (${roomText})`, 14, currentY);
-    currentY += 5;
-    const typeText = (hosting.hostingType || "").replace("_", " ");
-    doc.text(
-      `Profile: ${typeText} | Guests: ${hosting.guestsCount || 0}`,
-      14,
-      currentY,
-    );
-    currentY += 5;
-    doc.text(
-      `From: ${formatDate(hosting.expectedFrom)}`,
-      14,
-      currentY,
-    );
-    doc.text(
-      `To: ${formatDate(hosting.expectedTo)}`,
-      100,
-      currentY,
-    );
-    currentY += 8;
-
-    if (companions && companions.length > 0) {
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text(ar ? "المرافقون" : "Companions", 14, currentY);
-      currentY += 4;
-
-      const rows = companions.map((c, i) => [
-        String(i + 1),
-        pdfTextSafe(c.name || "—"),
-        c.isChild === 1 ? "Child" : "Adult",
-        pdfTextSafe(c.relation || "—"),
-        c.idNumber || "—",
-        c.documentType || "—",
-        c.isChild === 1 && c.age ? String(c.age) : "—",
-      ]);
-
-      autoTable(doc, {
-        head: [
-          ["#", "Name", "Type", "Relation", "ID/Passport", "Doc Type", "Age"],
-        ],
-        body: rows,
-        startY: currentY,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: {
-          fillColor: [15, 42, 68],
-          textColor: 255,
-          fontStyle: "bold",
-        },
-        alternateRowStyles: { fillColor: [245, 247, 250] },
-      });
-      currentY = (doc as any).lastAutoTable?.finalY ?? currentY + 10;
-    } else {
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "italic");
-      doc.text("No companions detailed for this record.", 14, currentY);
-      currentY += 8;
-    }
-
-    if (hosting.notes) {
-      currentY += 5;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text("Notes", 14, currentY);
-      currentY += 5;
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-
-      const splitNotes = doc.splitTextToSize(
-        pdfTextSafe(hosting.notes),
-        pageW - 28,
-      );
-      doc.text(splitNotes, 14, currentY);
-      currentY += splitNotes.length * 5 + 5;
-    }
-
-    // Attached Documents
-    const docs = companions.filter((c) => c.documentImage);
-    if (docs.length > 0) {
-      if (currentY > doc.internal.pageSize.getHeight() - 40) {
-        doc.addPage();
-        currentY = 20;
-      } else {
-        currentY += 10;
-      }
-
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text(ar ? "المستندات المرفقة" : "Attached Documents", 14, currentY);
-      currentY += 10;
-
-      for (let i = 0; i < docs.length; i++) {
-        const c = docs[i];
-        try {
-          const img = await loadImgDataUrl(c.documentImage);
-          if (img) {
-            const maxWidth = pageW - 28;
-            const maxHeight = 100;
-            let finalW = img.w;
-            let finalH = img.h;
-            if (finalW > maxWidth) {
-              const ratio = maxWidth / finalW;
-              finalW = maxWidth;
-              finalH = finalH * ratio;
-            }
-            if (finalH > maxHeight) {
-              const ratio = maxHeight / finalH;
-              finalH = maxHeight;
-              finalW = finalW * ratio;
-            }
-
-            if (
-              currentY + finalH + 15 >
-              doc.internal.pageSize.getHeight() - 20
-            ) {
-              doc.addPage();
-              currentY = 20;
-            }
-
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            doc.text(
-              `${ar ? "المرافق" : "Companion"}: ${pdfTextSafe(c.name)} - ${c.documentType === "PASSPORT" ? (ar ? "جواز سفر" : "Passport") : ar ? "بطاقة هوية" : "ID Card"}`,
-              14,
-              currentY,
-            );
-            currentY += 5;
-
-            doc.addImage(img.dataUrl, "PNG", 14, currentY, finalW, finalH);
-            currentY += finalH + 15;
-          }
-        } catch (e) {
-          console.error("Failed to load companion document image", e);
-        }
-      }
-    }
-
-    doc.save(getExportFileName(`Guest_Profile_${hosting.id}`, "pdf"));
   };
 
   return (

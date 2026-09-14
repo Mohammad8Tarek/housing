@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { X, FileSpreadsheet } from "lucide-react";
+import { X, FileSpreadsheet, FileText } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface BulkActionItem {
@@ -15,6 +15,7 @@ interface BulkActionBarProps {
   selectedCount?: number;
   onClear: () => void;
   onExportExcel?: () => void;
+  onExportPDF?: () => void;
   extraActions?: React.ReactNode;
   actions?: BulkActionItem[];
   ar?: boolean;
@@ -25,6 +26,7 @@ export function BulkActionBar({
   selectedCount,
   onClear,
   onExportExcel,
+  onExportPDF,
   extraActions,
   actions,
   ar: propAr,
@@ -56,6 +58,17 @@ export function BulkActionBar({
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             {ar ? "تصدير Excel" : "Export Excel"}
+          </Button>
+        )}
+        {onExportPDF && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExportPDF}
+            className="gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-950/40 font-medium"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            {ar ? "تصدير PDF فاخر" : "Luxury PDF"}
           </Button>
         )}
         {actions && actions.map((act, idx) => (

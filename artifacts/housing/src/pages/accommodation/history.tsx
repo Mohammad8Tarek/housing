@@ -61,7 +61,7 @@ import {
   useColumnVisibility,
 } from "@/components/ui/column-chooser";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
-import { drawPdfHeader, pdfTextSafe } from "@/lib/pdf-utils";
+import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 import * as XLSX from "xlsx";
 
 const statusBadge = (status: string) => {
@@ -369,34 +369,29 @@ export default function HistoryPage() {
   };
 
   const exportPDF = async () => {
-    const { default: jsPDF } = await import("jspdf");
-    const { default: autoTable } = await import("jspdf-autotable");
-    const doc = new jsPDF({ orientation: "landscape" });
-    const pageW = doc.internal.pageSize.getWidth();
+    const rawRows = exportTarget();
+    if (!rawRows.length) {
+      toast.error(ar ? "لا توجد سجلات لتصديرها" : "No records to export");
+      return;
+    }
 
-    const activeProp = properties.find((p) => p.id === activePropertyId);
-    const propName = activeProp?.name ?? "";
-
-    const startY = await drawPdfHeader(doc, {
-      systemLogoUrl: (settings as any)?.systemLogo,
-      propLogoUrl: (activeProp as any)?.logo,
-      title: `Housing History Report${propName ? ` — ${propName}` : ""}`,
-      subtitle: `Generated: ${new Date().toLocaleString()}  |  Records: ${exportTarget().length}`,
-      pageW,
-    });
-
-    const rows = exportTarget().map((a) => {
+    const rows = rawRows.map((a) => {
       const emp = empMap[a.profileId];
       const room = roomMap[a.roomId];
       const building = a.buildingName || (room ? buildingMap[room.buildingId] : null);
       const floorNum = a.floorNumber ?? (room && floorMap[room.floorId] ? String(floorMap[room.floorId].number) : "—");
       const roomNum = a.roomNumber || room?.roomNumber || String(a.roomId);
-      const empName = (a.profileFirstName && a.profileLastName)
-        ? `${a.profileFirstName} ${a.profileLastName}`
-        : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`);
+
+      const empName = ar
+        ? (a.profileFirstNameAr && a.profileLastNameAr ? `${a.profileFirstNameAr} ${a.profileLastNameAr}` : (emp?.firstNameAr ? `${emp.firstNameAr} ${emp.lastNameAr || ""}`.trim() : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`)))
+        : (a.profileFirstName && a.profileLastName ? `${a.profileFirstName} ${a.profileLastName}` : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`));
+
       const empCode = a.profileCode || emp?.profileId || "";
       const nationalId = a.profileNationalId || emp?.nationalId || "";
-      const department = a.profileDepartment || emp?.department || "";
+      const department = ar
+        ? (a.profileDepartmentAr || emp?.departmentAr || a.profileDepartment || emp?.department || "—")
+        : (a.profileDepartment || emp?.department || "—");
+
       const checkOutDate = a.checkOutDate || (a as any).actualCheckOutDate;
       const daysStayed =
         a.checkInDate && checkOutDate
@@ -409,70 +404,34 @@ export default function HistoryPage() {
               ),
             )
           : null;
-      return [
-        empName,
-        empCode,
-        nationalId,
-        department,
-        pdfTextSafe(building ?? "") || "—",
-        floorNum,
-        roomNum,
-        a.bedNumber ? String(a.bedNumber) : "—",
-        formatDate(a.checkInDate),
-        formatDate(checkOutDate),
-        daysStayed !== null ? String(daysStayed) : "—",
-        formatStatus(a.status, ar),
-      ];
+
+      return {
+        [ar ? "اسم الموظف" : "Employee Name"]: empName,
+        [ar ? "كود الموظف" : "Code"]: empCode,
+        [ar ? "الرقم القومي" : "National ID"]: nationalId,
+        [ar ? "القسم" : "Department"]: department,
+        [ar ? "المبنى" : "Building"]: building || "—",
+        [ar ? "الطابق" : "Floor"]: floorNum,
+        [ar ? "الغرفة" : "Room"]: roomNum,
+        [ar ? "السرير" : "Bed"]: a.bedNumber ? String(a.bedNumber) : "—",
+        [ar ? "تاريخ التسكين" : "Check-in"]: formatDate(a.checkInDate),
+        [ar ? "تاريخ المغادرة" : "Check-out"]: formatDate(checkOutDate),
+        [ar ? "مدة الإقامة (أيام)" : "Days"]: daysStayed !== null ? String(daysStayed) : "—",
+        [ar ? "حالة السجل" : "Status"]: formatStatus(a.status, ar),
+      };
     });
 
-    autoTable(doc, {
-      head: [
-        [
-          "Profile",
-          "Code",
-          "National ID",
-          "Department",
-          "Building",
-          "Floor",
-          "Room",
-          "Bed",
-          "Check-in",
-          "Check-out",
-          "Days",
-          "Status",
-        ],
-      ],
-      body: rows,
-      startY,
-      styles: { fontSize: 7.5, cellPadding: 2 },
-      headStyles: {
-        fillColor: [15, 42, 68],
-        textColor: 255,
-        fontStyle: "bold",
-      },
-      alternateRowStyles: { fillColor: [245, 247, 250] },
-      foot: [
-        ["", "", "", "", "", "", "", "", "", `Total: ${rows.length}`, "", ""],
-      ],
-      footStyles: {
-        fillColor: [15, 42, 68],
-        textColor: [201, 162, 77],
-        fontStyle: "bold",
-      },
+    await printLuxuryReport({
+      activeTab: "history",
+      title: ar ? "سجل التسكين وحركات الإقامة التاريخية" : "Housing Historical Stays & Movements Archive",
+      language: ar ? "ar" : "en",
+      properties,
+      activePropertyId,
+      settings,
+      rows,
+      orientation: "landscape",
+      search: debouncedSearch,
     });
-
-    const finalY = (doc as any).lastAutoTable?.finalY ?? startY + 10;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(150, 150, 150);
-    doc.text(
-      "Sunrise Staff Housing Management  ·  Confidential",
-      pageW / 2,
-      finalY + 8,
-      { align: "center" },
-    );
-
-    doc.save(getExportFileName("Housing_History", "pdf"));
   };
 
   const HIST_COLS = [
