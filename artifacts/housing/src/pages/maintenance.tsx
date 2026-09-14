@@ -62,6 +62,7 @@ import {
   Calendar,
   Filter,
   Building2,
+  DoorClosed,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -621,7 +622,7 @@ export default function Tickets() {
 
     if (!targetPropId) {
       toast.error(
-        ar ? "يرجى اختيار الفندق / العقار أولاً" : "Please select a hotel/property first",
+        ar ? "يرجى اختيار الـ Resident أولاً" : "Please select a Resident first",
       );
       return;
     }
@@ -690,8 +691,9 @@ export default function Tickets() {
 
   const COLS = [
     { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
-    { key: "name", label: "NAME", labelAr: "الاسم والغرفة", defaultVisible: true },
-    { key: "hotel", label: "HOTEL", labelAr: "الفندق", defaultVisible: true },
+    { key: "room_person", label: "ROOM & RESIDENT", labelAr: "الغرفة والنزيل", defaultVisible: true },
+    { key: "problem", label: "PROBLEM", labelAr: "المشكلة", defaultVisible: true },
+    { key: "resident", label: "RESIDENT", labelAr: "Resident", defaultVisible: true },
     { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: true },
     { key: "status", label: "STATUS", labelAr: "الحالة", defaultVisible: true },
     { key: "priority", label: "PRIORITY", labelAr: "الأولوية", defaultVisible: true },
@@ -733,7 +735,7 @@ export default function Tickets() {
   const exportExcel = () => {
     const rows = filtered.map((req: any) => ({
       [ar ? "رقم الطلب" : "ID"]: req.id,
-      [ar ? "الفندق / العقار" : "Hotel / Property"]:
+      [ar ? "Resident" : "Resident"]:
         req.propertyName ||
         properties?.find((p: any) => p.id === req.propertyId)?.name ||
         "—",
@@ -775,7 +777,7 @@ export default function Tickets() {
     if (target.length === 0) return;
     const rows = target.map((req: any) => ({
       [ar ? "رقم الطلب" : "Ticket #"]: req.id,
-      [ar ? "الفندق / العقار" : "Hotel / Property"]:
+      [ar ? "Resident" : "Resident"]:
         req.propertyName ||
         properties?.find((p: any) => p.id === req.propertyId)?.name ||
         "—",
@@ -1026,18 +1028,18 @@ export default function Tickets() {
         <div className="bg-card p-4 rounded-xl border shadow-xs space-y-3.5">
           {/* Row 1: Hotels, From Date, To Date, Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Hotels Filter */}
+            {/* Resident Filter */}
             <div className="space-y-1">
               <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "الفنادق" : "Hotels"}</span>
+                <span>{ar ? "Resident" : "Resident"}</span>
               </Label>
               <Select value={propertyFilter} onValueChange={(v) => setPropertyFilter(v)}>
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "كل الفنادق" : "All Hotels"} />
+                  <SelectValue placeholder={ar ? "كل الـ Resident" : "All Residents"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{ar ? "كل الفنادق" : "All Hotels"}</SelectItem>
+                  <SelectItem value="all">{ar ? "كل الـ Resident" : "All Residents"}</SelectItem>
                   {properties.map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       {p.displayName || p.name}
@@ -1310,7 +1312,7 @@ export default function Tickets() {
             {properties.length > 1 && (
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">
-                  {ar ? "الفندق / العقار" : "Hotel / Property"} <span className="text-red-500">*</span>
+                  {ar ? "الـ Resident" : "Resident"} <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formPropertyId}
@@ -1320,7 +1322,7 @@ export default function Tickets() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={ar ? "اختر الفندق" : "Select hotel"} />
+                    <SelectValue placeholder={ar ? "اختر الـ Resident" : "Select Resident"} />
                   </SelectTrigger>
                   <SelectContent>
                     {properties.map((p) => (
@@ -1806,14 +1808,19 @@ export default function Tickets() {
                       {ar ? "رقم" : "ID"}
                     </TableHead>
                   )}
-                  {isVisible("name") && (
-                    <TableHead className="font-semibold min-w-[200px]">
-                      {ar ? "الاسم والغرفة" : "NAME"}
+                  {(isVisible("room_person") || isVisible("name")) && (
+                    <TableHead className="font-semibold min-w-[170px]">
+                      {ar ? "الغرفة والنزيل" : "ROOM & RESIDENT"}
                     </TableHead>
                   )}
-                  {isVisible("hotel") && (
-                    <TableHead className="font-semibold">
-                      {ar ? "الفندق" : "HOTEL"}
+                  {isVisible("problem") && (
+                    <TableHead className="font-semibold min-w-[200px]">
+                      {ar ? "المشكلة" : "PROBLEM"}
+                    </TableHead>
+                  )}
+                  {(isVisible("resident") || isVisible("hotel")) && (
+                    <TableHead className="font-semibold min-w-[130px]">
+                      {ar ? "Resident" : "RESIDENT"}
                     </TableHead>
                   )}
                   {isVisible("department") && (
@@ -1875,15 +1882,35 @@ export default function Tickets() {
                       </TableCell>
                     )}
 
-                    {isVisible("name") && (
+                    {(isVisible("room_person") || isVisible("name")) && (
                       <TableCell className="text-xs font-medium">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-foreground">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                            <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
                             {ar ? "الغرفة" : "Room"} {req.roomNumber || roomMap[req.roomId] || req.roomId}
-                            {roomOccupantMap[req.roomId] ? (ar ? ` - النزيل: ${roomOccupantMap[req.roomId]}` : ` - Guest: ${roomOccupantMap[req.roomId]}`) : ""}
+                          </span>
+                          {roomOccupantMap[req.roomId] ? (
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                              <User className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span className="truncate max-w-[150px]">{roomOccupantMap[req.roomId]}</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">
+                              {ar ? "شاغرة (بدون نزيل)" : "Vacant (No resident)"}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+
+                    {isVisible("problem") && (
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col gap-0.5 max-w-[220px]">
+                          <span className="font-semibold text-foreground text-xs line-clamp-1" title={req.title || req.description}>
+                            {req.title || (ar ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType) : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType)) || (ar ? "طلب صيانة" : "Maintenance Ticket")}
                           </span>
                           {req.description && (
-                            <span className="text-[11px] text-muted-foreground line-clamp-1 max-w-[220px]">
+                            <span className="text-[11px] text-muted-foreground line-clamp-2" title={req.description}>
                               {req.description}
                             </span>
                           )}
@@ -1891,14 +1918,17 @@ export default function Tickets() {
                       </TableCell>
                     )}
 
-                    {isVisible("hotel") && (
+                    {(isVisible("resident") || isVisible("hotel")) && (
                       <TableCell className="text-xs">
-                        <span className="font-medium text-foreground">
-                          {req.propertyName ||
-                            properties.find((p: any) => p.id === req.propertyId)?.displayName ||
-                            properties.find((p: any) => p.id === req.propertyId)?.name ||
-                            (ar ? "سكن شروق" : "Sunrise Housing")}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="font-medium text-foreground">
+                            {req.propertyName ||
+                              properties.find((p: any) => p.id === req.propertyId)?.displayName ||
+                              properties.find((p: any) => p.id === req.propertyId)?.name ||
+                              (ar ? "Resident شروق" : "Sunrise Resident")}
+                          </span>
+                        </div>
                       </TableCell>
                     )}
 

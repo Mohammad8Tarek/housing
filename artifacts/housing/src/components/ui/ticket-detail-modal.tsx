@@ -249,7 +249,7 @@ export default function TicketDetailModal({
     ticket.problemType ||
     (ticket.category === "housekeeping" ? "نظافة الغرفة" : "خدمة صيانة");
 
-  const hotelName = ticket.propertyName || (ar ? "سكن شروق" : "Sunrise Housing");
+  const residentName = ticket.propertyName || (ar ? "Resident شروق" : "Sunrise Resident");
 
   const displayName = `Room - ${ticket.roomNumber || ticket.roomId || "—"} - ${
     occupantName || ticket.residentName ? (ar ? `النزيل: ${occupantName || ticket.residentName}` : `Guest: ${occupantName || ticket.residentName}`) : (ar ? "شاغرة" : "Vacant")
@@ -454,11 +454,11 @@ export default function TicketDetailModal({
 
                         <div>
                           <p className="text-xs text-muted-foreground mb-0.5">
-                            {ar ? "الفندق / المنشأة" : "Hotel"}
+                            {ar ? "Resident" : "Resident"}
                           </p>
                           <p className="font-semibold text-foreground text-sm flex items-center gap-1.5">
                             <Building2 className="w-3.5 h-3.5 text-primary" />
-                            <span>{hotelName}</span>
+                            <span>{residentName}</span>
                           </p>
                         </div>
 
