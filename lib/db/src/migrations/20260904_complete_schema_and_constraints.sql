@@ -1955,6 +1955,49 @@ BEGIN
       CREATE INDEX IF NOT EXISTS idx_room_inventory_room_category ON room_inventory(room_id, category);
     END IF;
 
+    -- --------------------------------------------------------
+    -- Table: workers
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "workers" (
+      "id" SERIAL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "phone" TEXT NOT NULL DEFAULT '',
+      "national_id" TEXT DEFAULT '',
+      "specialty" TEXT NOT NULL DEFAULT 'general',
+      "status" TEXT NOT NULL DEFAULT 'available',
+      "worker_type" TEXT NOT NULL DEFAULT 'internal',
+      "company_name" TEXT DEFAULT '',
+      "daily_rate" INTEGER DEFAULT 0,
+      "notes" TEXT DEFAULT '',
+      "profile_id" INTEGER,
+      "created_at" TIMESTAMPTZ DEFAULT now(),
+      "updated_at" TIMESTAMPTZ DEFAULT now()
+    );
+
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "name" TEXT;
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "phone" TEXT DEFAULT '';
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "national_id" TEXT DEFAULT '';
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "specialty" TEXT DEFAULT 'general';
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'available';
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "worker_type" TEXT DEFAULT 'internal';
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "company_name" TEXT DEFAULT '';
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "daily_rate" INTEGER DEFAULT 0;
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "notes" TEXT DEFAULT '';
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "profile_id" INTEGER;
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
+
+    CREATE INDEX IF NOT EXISTS idx_workers_specialty ON workers(specialty);
+    CREATE INDEX IF NOT EXISTS idx_workers_status ON workers(status);
+    CREATE INDEX IF NOT EXISTS idx_workers_type ON workers(worker_type);
+    CREATE INDEX IF NOT EXISTS idx_workers_profile_id ON workers(profile_id);
+
+    -- Ensure maintenance has worker_id
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'maintenance') THEN
+      ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS "worker_id" INTEGER;
+      CREATE INDEX IF NOT EXISTS idx_maintenance_worker_id ON maintenance(worker_id);
+    END IF;
+
   END LOOP;
 
   -- Reset search path back to public

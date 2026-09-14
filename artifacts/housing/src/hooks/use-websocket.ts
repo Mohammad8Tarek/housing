@@ -24,6 +24,7 @@ const MODULE_QUERY_KEYS: Record<string, string[]> = {
   rooms: ["/api/rooms"],
   housekeeping: ["/api/rooms", "/api/maintenance"],
   maintenance: ["/api/maintenance"],
+  workers: ["/api/workers"],
   reservations: ["/api/reservations"],
   hostings: ["/api/hostings"],
   "hosting-requests": ["/api/hosting-requests"],

@@ -5,6 +5,7 @@ import {
   roomsTable,
   propertiesTable,
   profilesTable,
+  workersTable,
   withTenant,
 } from "@workspace/db";
 import { eq, and, or, ilike, sql, SQL, desc, inArray } from "drizzle-orm";
@@ -120,6 +121,18 @@ function buildConditions(
     }
   }
 
+  // 4b. فلترة الفني المعين (Worker)
+  if (query.workerId) {
+    if (query.workerId === "unassigned") {
+      conditions.push(sql`${maintenanceTable.workerId} IS NULL`);
+    } else if (query.workerId !== "all") {
+      const wId = parseInt(String(query.workerId), 10);
+      if (!isNaN(wId)) {
+        conditions.push(eq(maintenanceTable.workerId, wId));
+      }
+    }
+  }
+
   // 5. فلترة التذاكر الفرعية أو التذاكر الرئيسية فقط (Sub-tickets & Parent hierarchy)
   if (query.parentId) {
     const pId = parseInt(String(query.parentId), 10);
@@ -156,7 +169,8 @@ function buildConditions(
       or(
         ilike(maintenanceTable.description, `%${s}%`),
         ilike(maintenanceTable.problemType, `%${s}%`),
-        ilike(roomsTable.roomNumber, `%${s}%`)
+        ilike(roomsTable.roomNumber, `%${s}%`),
+        ilike(workersTable.name, `%${s}%`)
       )!
     );
   }
@@ -287,6 +301,7 @@ router.get(
                 .select({ count: sql<number>`count(*)` })
                 .from(maintenanceTable)
                 .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+                .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
                 .where(whereClause);
 
               const propTotal = Number(countRes?.count || 0);
@@ -307,6 +322,10 @@ router.get(
                     priority: maintenanceTable.priority,
                     reportedBy: maintenanceTable.reportedBy,
                     assignedTo: maintenanceTable.assignedTo,
+                    workerId: maintenanceTable.workerId,
+                    workerName: workersTable.name,
+                    workerPhone: workersTable.phone,
+                    workerSpecialty: workersTable.specialty,
                     reportedAt: maintenanceTable.reportedAt,
                     startedAt: maintenanceTable.startedAt,
                     resolvedAt: maintenanceTable.resolvedAt,
@@ -317,6 +336,7 @@ router.get(
                   })
                   .from(maintenanceTable)
                   .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+                  .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
                   .where(whereClause)
                   .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
                   .limit(offset + limit);
@@ -384,6 +404,7 @@ router.get(
           .select({ count: sql<number>`count(*)` })
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+          .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
           .where(whereClause);
 
         const rows = await tenantDb
@@ -399,6 +420,10 @@ router.get(
             priority: maintenanceTable.priority,
             reportedBy: maintenanceTable.reportedBy,
             assignedTo: maintenanceTable.assignedTo,
+            workerId: maintenanceTable.workerId,
+            workerName: workersTable.name,
+            workerPhone: workersTable.phone,
+            workerSpecialty: workersTable.specialty,
             reportedAt: maintenanceTable.reportedAt,
             startedAt: maintenanceTable.startedAt,
             resolvedAt: maintenanceTable.resolvedAt,
@@ -409,6 +434,7 @@ router.get(
           })
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+          .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
           .where(whereClause)
           .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
           .limit(limit)
@@ -476,6 +502,10 @@ router.get(
                 priority: maintenanceTable.priority,
                 status: maintenanceTable.status,
                 assignedTo: maintenanceTable.assignedTo,
+                workerId: maintenanceTable.workerId,
+                workerName: workersTable.name,
+                workerPhone: workersTable.phone,
+                workerSpecialty: workersTable.specialty,
                 reportedBy: maintenanceTable.reportedBy,
                 notes: maintenanceTable.notes,
                 category: maintenanceTable.category,
@@ -488,6 +518,7 @@ router.get(
               })
               .from(maintenanceTable)
               .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+              .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
               .where(eq(maintenanceTable.id, id))
               .limit(1);
             return found;
@@ -598,6 +629,11 @@ router.post(
           .values({
             ...parsed.data,
             category,
+            workerId: req.body.workerId ? Number(req.body.workerId) : null,
+            assignedTo: req.body.assignedTo ? Number(req.body.assignedTo) : null,
+            reportedBy: req.body.reportedBy || user?.displayName || user?.username || null,
+            photoUrl: req.body.photoUrl || null,
+            notes: req.body.notes || null,
             ...(parentId ? { parentId } : {}),
             status: "open",
           } as any)
@@ -742,9 +778,15 @@ router.patch(
         }
       }
 
-      // إزالة propertyId من حقول التحديث لتجنب أخطاء الجدول
+      // إزالة propertyId من حقول التحديث لتجنب أخطاء الجدول ومعالجة معرفات الفنيين
       const updateData = { ...req.body };
       delete updateData.propertyId;
+      if ("workerId" in updateData) {
+        updateData.workerId = updateData.workerId ? Number(updateData.workerId) : null;
+      }
+      if ("assignedTo" in updateData) {
+        updateData.assignedTo = updateData.assignedTo ? Number(updateData.assignedTo) : null;
+      }
 
       const { updated, roomNumber } = await withTenant(targetPropertyId, async (tenantDb) => {
         const result = await tenantDb

@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { roomsTable } from "./rooms";
 import { profilesTable } from "./profiles";
+import { workersTable } from "./workers";
 
 export const maintenanceTable = pgTable("maintenance", {
   id: serial("id").primaryKey(),
@@ -21,6 +22,9 @@ export const maintenanceTable = pgTable("maintenance", {
   assignedTo: integer("assigned_to").references(() => profilesTable.id, {
     onDelete: "set null",
   }),
+  workerId: integer("worker_id").references(() => workersTable.id, {
+    onDelete: "set null",
+  }),
   reportedAt: timestamp("reported_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -37,6 +41,7 @@ export const maintenanceTable = pgTable("maintenance", {
   index("idx_maintenance_status").on(table.status),
   index("idx_maintenance_priority").on(table.priority),
   index("idx_maintenance_assigned_to").on(table.assignedTo),
+  index("idx_maintenance_worker_id").on(table.workerId),
   index("idx_maintenance_parent_id").on(table.parentId),
   index("idx_maintenance_status_priority").on(table.status, table.priority),
 ]);

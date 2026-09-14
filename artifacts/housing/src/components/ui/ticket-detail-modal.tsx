@@ -48,10 +48,12 @@ interface TicketDetailModalProps {
   onClose: () => void;
   ticket: any;
   profiles: any[];
+  workers?: any[];
   ar: boolean;
   canEdit?: boolean;
   onStatusChange: (id: number, data: any) => void;
   onAssignChange: (id: number, empId: number | null) => void;
+  onWorkerAssignChange?: (id: number, workerId: number | null) => void;
   onCreateSubTicket?: (parentId: number, data: any) => void;
   subTickets?: any[];
   loadingSubTickets?: boolean;
@@ -130,10 +132,12 @@ export default function TicketDetailModal({
   onClose,
   ticket,
   profiles = [],
+  workers = [],
   ar,
   canEdit = true,
   onStatusChange,
   onAssignChange,
+  onWorkerAssignChange,
   onCreateSubTicket,
   subTickets = [],
   loadingSubTickets = false,
@@ -359,6 +363,34 @@ export default function TicketDetailModal({
                         </div>
                       </div>
                     )}
+                    {(ticket.workerName || ticket.workerId) && (
+                      <div className="flex items-center gap-3">
+                        <Wrench className="w-4 h-4 text-primary" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            {ar ? "الفني المعين" : "Assigned Worker"}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground">
+                              {ticket.workerName || workers.find((w: any) => w.id === ticket.workerId)?.name}
+                            </span>
+                            {(ticket.workerSpecialty || workers.find((w: any) => w.id === ticket.workerId)?.specialty) && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                                {ticket.workerSpecialty || workers.find((w: any) => w.id === ticket.workerId)?.specialty}
+                              </span>
+                            )}
+                          </div>
+                          {(ticket.workerPhone || workers.find((w: any) => w.id === ticket.workerId)?.phone) && (
+                            <a
+                              href={`tel:${ticket.workerPhone || workers.find((w: any) => w.id === ticket.workerId)?.phone}`}
+                              className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-0.5"
+                            >
+                              <span>{ticket.workerPhone || workers.find((w: any) => w.id === ticket.workerId)?.phone}</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -371,16 +403,61 @@ export default function TicketDetailModal({
                     </h3>
                     {canEdit ? (
                       <div className="space-y-3">
+                        {onWorkerAssignChange && (
+                          <div>
+                            <Label className="text-xs font-semibold flex items-center gap-1.5">
+                              <Wrench className="w-3.5 h-3.5 text-primary" />
+                              <span>{ar ? "تعيين فني / عامل من الفندق" : "Assign Property Worker"}</span>
+                            </Label>
+                            <Select
+                              value={ticket.workerId ? String(ticket.workerId) : "unassigned"}
+                              onValueChange={(v) =>
+                                onWorkerAssignChange(ticket.id, v === "unassigned" || !v ? null : parseInt(v))
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs mt-1">
+                                <SelectValue
+                                  placeholder={ar ? "اختر الفني..." : "Select worker..."}
+                                />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-52 overflow-y-auto">
+                                <SelectItem value="unassigned">
+                                  — {ar ? "بدون فني مسند" : "No Worker"} —
+                                </SelectItem>
+                                {workers.map((w: any) => (
+                                  <SelectItem key={w.id} value={String(w.id)}>
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className={`w-2 h-2 rounded-full shrink-0 ${
+                                          w.status === "available"
+                                            ? "bg-emerald-500"
+                                            : w.status === "busy"
+                                              ? "bg-amber-500"
+                                              : "bg-slate-400"
+                                        }`}
+                                      />
+                                      <span className="font-medium">{w.name}</span>
+                                      <span className="text-muted-foreground text-[10px]">
+                                        ({w.specialty})
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
                         <div>
                           <Label className="text-xs">
-                            {ar ? "تعيين إلى" : "Assign To"}
+                            {ar ? "تعيين موظف / مشرف" : "Assign Staff / Supervisor"}
                           </Label>
                           <Select
                             value={
-                              ticket.assignedTo ? String(ticket.assignedTo) : ""
+                              ticket.assignedTo ? String(ticket.assignedTo) : "unassigned"
                             }
                             onValueChange={(v) =>
-                              onAssignChange(ticket.id, v ? parseInt(v) : null)
+                              onAssignChange(ticket.id, v === "unassigned" || !v ? null : parseInt(v))
                             }
                           >
                             <SelectTrigger className="h-8 text-xs mt-1">

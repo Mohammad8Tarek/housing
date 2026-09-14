@@ -54,6 +54,8 @@ import {
   List,
   LayoutGrid,
   ChevronDown,
+  HardHat,
+  Users,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -71,7 +73,7 @@ import TicketDetailModal from "@/components/ui/ticket-detail-modal";
 import * as XLSX from "xlsx";
 import { format, differenceInMinutes } from "date-fns";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -99,6 +101,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DataPagination } from "@/components/DataPagination";
 import { TicketsKanbanBoard } from "./maintenance/components/TicketsKanbanBoard";
+import { WorkersTab } from "./maintenance/components/WorkersTab";
 
 const CATEGORIES = ["maintenance", "housekeeping", "general"];
 const CATEGORIES_AR = {
@@ -328,6 +331,9 @@ export default function Tickets() {
     return "";
   });
 
+  // Module Main Tab: "tickets" vs "workers"
+  const [activeModuleTab, setActiveModuleTab] = useState<"tickets" | "workers">("tickets");
+
   const [form, setForm] = useState({
     roomId: "",
     category: defaultCreateCategory,
@@ -335,6 +341,7 @@ export default function Tickets() {
     description: "",
     priority: "MEDIUM",
     notes: "",
+    workerId: "",
   });
 
   // Effective propertyId for list query
@@ -344,6 +351,24 @@ export default function Tickets() {
       : activePropertyId === "all" || propertyFilter === "all"
         ? "all"
         : activePropertyId ?? "all";
+
+  const targetPropertyId =
+    activePropertyId && activePropertyId !== "all"
+      ? Number(activePropertyId)
+      : properties?.[0]?.id || 1;
+
+  // جلب فنيي وعمال الفندق النشط
+  const { data: workersData } = useQuery({
+    queryKey: ["/api/workers", targetPropertyId],
+    queryFn: async () => {
+      if (!targetPropertyId) return { data: [] };
+      const res = await fetch(`/api/workers?propertyId=${targetPropertyId}`);
+      if (!res.ok) return { data: [] };
+      return res.json();
+    },
+    enabled: !!targetPropertyId,
+  });
+  const propertyWorkers = workersData?.data || [];
 
   // Pre-load profiles for employee mapping and current user match
   const { data: _eDataWrapper } = useListProfiles(
@@ -565,6 +590,7 @@ export default function Tickets() {
       description: "",
       priority: "MEDIUM",
       notes: "",
+      workerId: "",
     });
     setFormPhotoUrl("");
     if (activePropertyId && activePropertyId !== "all") {
@@ -600,6 +626,7 @@ export default function Tickets() {
         description: form.description.trim(),
         priority: form.priority,
         photoUrl: formPhotoUrl || undefined,
+        workerId: form.workerId ? parseInt(form.workerId) : undefined,
       },
     });
   };
@@ -653,6 +680,7 @@ export default function Tickets() {
     { key: "problemType", label: "Problem", labelAr: "المشكلة / الخدمة", defaultVisible: true },
     { key: "name", label: "Occupant", labelAr: "النزيل", defaultVisible: true },
     { key: "category", label: "Type", labelAr: "القسم", defaultVisible: true },
+    { key: "worker", label: "Worker", labelAr: "الفني المعين", defaultVisible: true },
     { key: "priority", label: "Priority", labelAr: "الأولوية", defaultVisible: true },
     { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
     { key: "reported", label: "Reported", labelAr: "تاريخ الإبلاغ", defaultVisible: true },
@@ -706,6 +734,7 @@ export default function Tickets() {
       [ar ? "نوع المشكلة / الخدمة" : "Problem / Service"]: ar
         ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
         : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType),
+      [ar ? "الفني المعين" : "Assigned Worker"]: req.workerName || "—",
       [ar ? "الوصف" : "Description"]: req.description,
       [ar ? "الأولوية" : "Priority"]: ar
         ? (PRIORITY_AR[req.priority?.toUpperCase()] ?? req.priority)
@@ -745,6 +774,7 @@ export default function Tickets() {
       [ar ? "المشكلة" : "Problem Type"]: ar
         ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
         : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType),
+      [ar ? "الفني المعين" : "Assigned Worker"]: req.workerName || "—",
       [ar ? "الوصف" : "Description"]: req.description,
       [ar ? "الأولوية" : "Priority"]: ar
         ? (PRIORITY_AR[req.priority?.toUpperCase()] ?? req.priority)
@@ -813,18 +843,22 @@ export default function Tickets() {
 
   return (
     <div className="min-h-screen bg-background space-y-5">
-      {/* Header */}
+      {/* Header & Module Tab Switcher */}
       <div className="px-4 sm:px-6 pt-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={`p-2.5 rounded-xl shadow-xs ${
-              isOnlyHousekeeping
-                ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
-                : isOnlyMaintenance
-                  ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
-                  : "bg-primary/10 text-primary"
+              activeModuleTab === "workers"
+                ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
+                : isOnlyHousekeeping
+                  ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
+                  : isOnlyMaintenance
+                    ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+                    : "bg-primary/10 text-primary"
             }`}>
-              {isOnlyHousekeeping ? (
+              {activeModuleTab === "workers" ? (
+                <HardHat className="w-6 h-6" />
+              ) : isOnlyHousekeeping ? (
                 <Sparkles className="w-6 h-6" />
               ) : isOnlyMaintenance ? (
                 <Wrench className="w-6 h-6" />
@@ -834,18 +868,74 @@ export default function Tickets() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {isOnlyHousekeeping ? (
-                  ar ? "طلبات وأوامر الهاوس كيبنج" : "Housekeeping Orders Hub"
-                ) : isOnlyMaintenance ? (
-                  ar ? "بلاغات وأوامر الصيانة الفنية" : "Maintenance Work Orders"
-                ) : (
-                  ar ? "مركز التذاكر والعمليات الموحد" : "Operations & Tickets Hub"
-                )}
+                {activeModuleTab === "workers"
+                  ? (ar ? "فريق العمل والفنيين" : "Property Workers & Technicians")
+                  : isOnlyHousekeeping
+                    ? (ar ? "طلبات وأوامر الهاوس كيبنج" : "Housekeeping Orders Hub")
+                    : isOnlyMaintenance
+                      ? (ar ? "بلاغات وأوامر الصيانة الفنية" : "Maintenance Work Orders")
+                      : (ar ? "مركز التذاكر والعمليات الموحد" : "Operations & Tickets Hub")}
               </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {activeModuleTab === "workers"
+                  ? (ar ? "إدارة فنيي الصيانة والعمالة والمقاولين المخصصين لهذا الفندق" : "Manage technicians, maintenance workers, and contractors dedicated to this property")
+                  : (ar ? "متابعة وإسناد أوامر العمل وبلاغات الصيانة والنظافة" : "Track and assign work orders, maintenance, and housekeeping")}
+              </p>
             </div>
+          </div>
+
+          {/* Module Tab Switcher */}
+          <div className="flex items-center gap-1.5 p-1 bg-muted/80 dark:bg-muted/40 rounded-xl border shadow-xs self-start md:self-auto">
+            <button
+              type="button"
+              onClick={() => setActiveModuleTab("tickets")}
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                activeModuleTab === "tickets"
+                  ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+              }`}
+            >
+              <Wrench className="w-4 h-4" />
+              <span>{ar ? "أوامر العمل والتذاكر" : "Work Orders"}</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono">
+                {totalCount}
+              </Badge>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveModuleTab("workers")}
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                activeModuleTab === "workers"
+                  ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+              }`}
+            >
+              <HardHat className="w-4 h-4 text-primary" />
+              <span>{ar ? "فريق العمل والفنيين" : "Property Workers"}</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono">
+                {propertyWorkers.length}
+              </Badge>
+            </button>
           </div>
         </div>
       </div>
+
+      {activeModuleTab === "workers" ? (
+        <div className="px-4 sm:px-6 pb-8">
+          <WorkersTab
+            propertyId={targetPropertyId}
+            propertyName={
+              properties?.find((p: any) => p.id === targetPropertyId)?.displayName ||
+              properties?.find((p: any) => p.id === targetPropertyId)?.name
+            }
+            onFilterByWorker={() => {
+              setActiveModuleTab("tickets");
+            }}
+          />
+        </div>
+      ) : (
+        <>
 
       {/* Analytics KPI Cards (Tremor / Shadcn Style) */}
       <div className="px-4 sm:px-6 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -1250,6 +1340,48 @@ export default function Tickets() {
               </Select>
             </div>
 
+            {/* Assign Worker (Optional) */}
+            {propertyWorkers.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <HardHat className="w-3.5 h-3.5 text-primary" />
+                  <span>{ar ? "تعيين فني من فريق العمل (اختياري)" : "Assign Worker (Optional)"}</span>
+                </Label>
+                <Select
+                  value={form.workerId || "unassigned"}
+                  onValueChange={(v) => setForm((f) => ({ ...f, workerId: v === "unassigned" ? "" : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={ar ? "اختر الفني..." : "Select worker..."} />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4} className="max-h-56 overflow-y-auto">
+                    <SelectItem value="unassigned">
+                      — {ar ? "بدون تعيين حالياً" : "None / Unassigned"} —
+                    </SelectItem>
+                    {propertyWorkers.map((w: any) => (
+                      <SelectItem key={w.id} value={String(w.id)}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-2 h-2 rounded-full shrink-0 ${
+                              w.status === "available"
+                                ? "bg-emerald-500"
+                                : w.status === "busy"
+                                  ? "bg-amber-500"
+                                  : "bg-slate-400"
+                            }`}
+                          />
+                          <span className="font-semibold">{w.name}</span>
+                          <span className="text-muted-foreground text-[10px]">
+                            ({w.specialty})
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Description */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">
@@ -1489,6 +1621,11 @@ export default function Tickets() {
                       {ar ? "القسم" : "Category"}
                     </TableHead>
                   )}
+                  {isVisible("worker") && (
+                    <TableHead className="font-semibold">
+                      {ar ? "الفني المعين" : "Assigned Worker"}
+                    </TableHead>
+                  )}
                   {isVisible("priority") && (
                     <TableHead className="font-semibold">
                       {ar ? "الأولوية" : "Priority"}
@@ -1598,6 +1735,26 @@ export default function Tickets() {
                               : req.category}
                           </span>
                         </span>
+                      </TableCell>
+                    )}
+
+                    {isVisible("worker") && (
+                      <TableCell className="text-xs">
+                        {req.workerName ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-foreground flex items-center gap-1">
+                              <Wrench className="w-3 h-3 text-primary shrink-0" />
+                              {req.workerName}
+                            </span>
+                            {req.workerSpecialty && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {req.workerSpecialty}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
                       </TableCell>
                     )}
 
@@ -1815,6 +1972,8 @@ export default function Tickets() {
           </div>
         </div>
       )}
+        </>
+      )}
 
       {/* Lightbox */}
       <Dialog
@@ -1879,6 +2038,7 @@ export default function Tickets() {
             onClose={() => setSelectedTicketId(null)}
             ticket={selectedTicket}
             profiles={empOptions}
+            workers={propertyWorkers}
             ar={ar}
             canEdit={canEditSelectedTicket}
             onStatusChange={(id, data) => {
@@ -1899,6 +2059,17 @@ export default function Tickets() {
                 id,
                 data: {
                   assignedTo: empId,
+                  propertyId: pId,
+                },
+              });
+            }}
+            onWorkerAssignChange={(id, workerId) => {
+              const targetTicket = allTickets?.find((t: any) => t.id === id);
+              const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+              updateMutation.mutate({
+                id,
+                data: {
+                  workerId,
                   propertyId: pId,
                 },
               });

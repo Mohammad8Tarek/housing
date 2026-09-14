@@ -1014,6 +1014,33 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     CREATE INDEX IF NOT EXISTS idx_wa_delivery_logs_property_id ON public.whatsapp_delivery_logs (property_id);
     CREATE INDEX IF NOT EXISTS idx_wa_delivery_logs_created_at ON public.whatsapp_delivery_logs (created_at);`,
   },
+  {
+    name: "public.workers_table",
+    q: `CREATE TABLE IF NOT EXISTS public.workers (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL DEFAULT '',
+      national_id TEXT DEFAULT '',
+      specialty TEXT NOT NULL DEFAULT 'general',
+      status TEXT NOT NULL DEFAULT 'available',
+      worker_type TEXT NOT NULL DEFAULT 'internal',
+      company_name TEXT DEFAULT '',
+      daily_rate INTEGER DEFAULT 0,
+      notes TEXT DEFAULT '',
+      profile_id INTEGER,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_public_workers_specialty ON public.workers (specialty);
+    CREATE INDEX IF NOT EXISTS idx_public_workers_status ON public.workers (status);
+    CREATE INDEX IF NOT EXISTS idx_public_workers_type ON public.workers (worker_type);
+    CREATE INDEX IF NOT EXISTS idx_public_workers_profile_id ON public.workers (profile_id);`,
+  },
+  {
+    name: "public.maintenance.worker_id",
+    q: `ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS worker_id INTEGER;
+    CREATE INDEX IF NOT EXISTS idx_public_maintenance_worker_id ON public.maintenance (worker_id);`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1824,6 +1851,45 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         CHECK (status IN ('UNASSIGNED', 'IN_HOUSE', 'CHECKED_OUT', 'VACATION', 'ACTIVE', 'INACTIVE', 'TERMINATED', 'PENDING', 'LEFT', 'TRANSFERRED', 'DEPARTED'));
     END $$;`,
   },
+  {
+    name: "workers.tenant_table",
+    q: `CREATE TABLE IF NOT EXISTS workers (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL DEFAULT '',
+      national_id TEXT DEFAULT '',
+      specialty TEXT NOT NULL DEFAULT 'general',
+      status TEXT NOT NULL DEFAULT 'available',
+      worker_type TEXT NOT NULL DEFAULT 'internal',
+      company_name TEXT DEFAULT '',
+      daily_rate INTEGER DEFAULT 0,
+      notes TEXT DEFAULT '',
+      profile_id INTEGER,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS name TEXT;
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS national_id TEXT DEFAULT '';
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS specialty TEXT DEFAULT 'general';
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'available';
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS worker_type TEXT DEFAULT 'internal';
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS company_name TEXT DEFAULT '';
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS daily_rate INTEGER DEFAULT 0;
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS profile_id INTEGER;
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+    ALTER TABLE workers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+    CREATE INDEX IF NOT EXISTS idx_workers_specialty ON workers (specialty);
+    CREATE INDEX IF NOT EXISTS idx_workers_status ON workers (status);
+    CREATE INDEX IF NOT EXISTS idx_workers_type ON workers (worker_type);
+    CREATE INDEX IF NOT EXISTS idx_workers_profile_id ON workers (profile_id);`,
+  },
+  {
+    name: "maintenance.worker_id",
+    q: `ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS worker_id INTEGER;
+    CREATE INDEX IF NOT EXISTS idx_maintenance_worker_id ON maintenance (worker_id);`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {
@@ -1987,6 +2053,7 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "portal_feedback",
     "portal_comments",
     "portal_comment_likes",
+    "workers",
   ];
 
   const TABLES_WITH_PROPERTY_ID = new Set([
