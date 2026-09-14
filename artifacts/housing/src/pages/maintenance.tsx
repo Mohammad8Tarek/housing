@@ -61,6 +61,7 @@ import {
   MoreVertical,
   Calendar,
   Filter,
+  Building2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -113,6 +114,11 @@ const CATEGORIES_AR = {
   maintenance: "صيانة",
   housekeeping: "هاوس كيبنج",
   general: "عام",
+};
+const CATEGORIES_EN: Record<string, string> = {
+  maintenance: "Maintenance",
+  housekeeping: "Housekeeping",
+  general: "General",
 };
 const CATEGORY_ICONS = {
   maintenance: <Wrench className="w-3.5 h-3.5" />,
@@ -178,10 +184,16 @@ const PRIORITY_AR: Record<string, string> = {
   URGENT: "عاجلة",
 };
 const STATUS_AR: Record<string, string> = {
-  open: "مفتوحة",
+  open: "لم تبدأ / مفتوحة",
   in_progress: "قيد التنفيذ",
-  resolved: "تم الحل",
+  resolved: "تم الإنجاز",
   closed: "مغلقة",
+};
+const STATUS_EN: Record<string, string> = {
+  open: "Not Started",
+  in_progress: "In Progress",
+  resolved: "Order Completed",
+  closed: "Closed",
 };
 
 function getDurationMins(
@@ -678,16 +690,14 @@ export default function Tickets() {
 
   const COLS = [
     { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
-    { key: "room", label: "Room", labelAr: "الغرفة", defaultVisible: true },
-    { key: "problemType", label: "Problem", labelAr: "المشكلة / الخدمة", defaultVisible: true },
-    { key: "name", label: "Occupant", labelAr: "النزيل", defaultVisible: true },
-    { key: "category", label: "Type", labelAr: "القسم", defaultVisible: true },
-    { key: "worker", label: "Worker", labelAr: "الفني المعين", defaultVisible: true },
-    { key: "priority", label: "Priority", labelAr: "الأولوية", defaultVisible: true },
-    { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
-    { key: "reported", label: "Reported", labelAr: "تاريخ الإبلاغ", defaultVisible: true },
-    { key: "duration", label: "Duration", labelAr: "المدة", defaultVisible: true },
-    { key: "actions", label: "Actions", labelAr: "إجراءات", defaultVisible: true, fixed: true },
+    { key: "name", label: "NAME", labelAr: "الاسم والغرفة", defaultVisible: true },
+    { key: "hotel", label: "HOTEL", labelAr: "الفندق", defaultVisible: true },
+    { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: true },
+    { key: "status", label: "STATUS", labelAr: "الحالة", defaultVisible: true },
+    { key: "priority", label: "PRIORITY", labelAr: "الأولوية", defaultVisible: true },
+    { key: "at", label: "AT", labelAr: "تاريخ البدء", defaultVisible: true },
+    { key: "duration", label: "DURATION", labelAr: "المدة", defaultVisible: true },
+    { key: "actions", label: "ACTIONS", labelAr: "إجراءات", defaultVisible: true, fixed: true },
   ];
 
   const { visible, toggle, showAll, hideAll, isVisible } = useColumnVisibility(COLS);
@@ -1011,31 +1021,201 @@ export default function Tickets() {
         </div>
       </div>
 
-      {/* Sleek Faceted Filter Toolbar */}
+      {/* 2-Row Filter Grid (Opera / HotSOS Hotel Standard) */}
       <div className="px-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-card p-2.5 rounded-xl border shadow-xs">
-          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
-            {/* Search Input */}
-            <div className="relative flex-1 min-w-[170px] max-w-xs">
-              <Search className="w-3.5 h-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search room, description, worker..."}
-                className="h-8 text-xs ps-8 pe-7 bg-background"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm("")}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
+        <div className="bg-card p-4 rounded-xl border shadow-xs space-y-3.5">
+          {/* Row 1: Hotels, From Date, To Date, Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Hotels Filter */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+                <span>{ar ? "الفنادق" : "Hotels"}</span>
+              </Label>
+              <Select value={propertyFilter} onValueChange={(v) => setPropertyFilter(v)}>
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue placeholder={ar ? "كل الفنادق" : "All Hotels"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? "كل الفنادق" : "All Hotels"}</SelectItem>
+                  {properties.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.displayName || p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Scope Filter */}
+            {/* From Date */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-primary" />
+                <span>{ar ? "من تاريخ" : "From Date"}</span>
+              </Label>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="h-9 text-xs bg-background"
+              />
+            </div>
+
+            {/* To Date */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-primary" />
+                <span>{ar ? "إلى تاريخ" : "To Date"}</span>
+              </Label>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="h-9 text-xs bg-background"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-primary" />
+                <span>{ar ? "الحالة" : "Status"}</span>
+              </Label>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue placeholder={ar ? "كل الحالات" : "All Statuses"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
+                  <SelectItem value="open">{ar ? "لم تبدأ / مفتوحة" : "Not Started"}</SelectItem>
+                  <SelectItem value="in_progress">{ar ? "قيد التنفيذ" : "In Progress"}</SelectItem>
+                  <SelectItem value="resolved">{ar ? "تم الإنجاز" : "Order Completed"}</SelectItem>
+                  <SelectItem value="closed">{ar ? "مغلقة" : "Closed"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Row 2: Type, Priority, Departments, Creator Type + Reset */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end">
+            {/* Type */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-primary" />
+                <span>{ar ? "النوع" : "Type"}</span>
+              </Label>
+              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue placeholder={ar ? "كل الأنواع" : "All Types"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? "كل الأنواع" : "All Types"}</SelectItem>
+                  <SelectItem value="maintenance">{ar ? "صيانة فنية" : "Maintenance"}</SelectItem>
+                  <SelectItem value="housekeeping">{ar ? "هاوس كيبنج" : "Housekeeping"}</SelectItem>
+                  <SelectItem value="general">{ar ? "عام" : "General"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Priority */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-primary" />
+                <span>{ar ? "الأولوية" : "Priority"}</span>
+              </Label>
+              <Select value={priorityFilter || "all"} onValueChange={(v) => setPriorityFilter(v === "all" ? "" : v)}>
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue placeholder={ar ? "كل الأولويات" : "All Priorities"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? "كل الأولويات" : "All Priorities"}</SelectItem>
+                  {PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          p === "URGENT" ? "bg-red-500" :
+                          p === "HIGH" ? "bg-orange-500" :
+                          p === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
+                        }`} />
+                        <span>{ar ? PRIORITY_AR[p] : p}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Departments */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-primary" />
+                <span>{ar ? "الأقسام" : "Departments"}</span>
+              </Label>
+              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue placeholder={ar ? "كل الأقسام" : "All Departments"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? "كل الأقسام" : "All Departments"}</SelectItem>
+                  <SelectItem value="housekeeping">{ar ? "هاوس كيبنج" : "Housekeeping"}</SelectItem>
+                  <SelectItem value="maintenance">{ar ? "صيانة فنية" : "Maintenance"}</SelectItem>
+                  <SelectItem value="general">{ar ? "عام" : "General"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Creator Type & Reset */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                  <span>{ar ? "جهة البلاغ" : "Creator Type"}</span>
+                </Label>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors font-medium"
+                    title={ar ? "إعادة ضبط جميع الفلاتر" : "Reset all filters"}
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>{ar ? "إعادة ضبط" : "Reset"}</span>
+                  </button>
+                )}
+              </div>
+              <Select value={creatorTypeFilter || "all"} onValueChange={(v) => setCreatorTypeFilter(v === "all" ? "" : v)}>
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue placeholder={ar ? "كل جهات البلاغ" : "All Creators"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ar ? "الكل" : "All"}</SelectItem>
+                  <SelectItem value="staff">{ar ? "إدارة السكن / المشرف" : "Staff / Supervisor"}</SelectItem>
+                  <SelectItem value="resident">{ar ? "النزيل / بوابة الموظفين" : "Resident / Portal"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Bar (Between Filters and Table) */}
+      <div className="px-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/30 p-2.5 rounded-xl border shadow-xs">
+          <div className="flex items-center gap-2">
+            {canCreateAny && (
+              <Button
+                onClick={() => setIsOpen(true)}
+                className="gap-2 font-bold shadow-xs"
+                size="sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>
+                  {ar ? "إنشاء تذكرة جديدة" : "Create New Ticket"}
+                </span>
+              </Button>
+            )}
+
+            {/* Scope Filter Quick Pill */}
             <Select value={scopeFilter} onValueChange={(v: any) => setScopeFilter(v)}>
               <SelectTrigger className="h-8 text-xs w-[130px] bg-background">
                 <SelectValue placeholder={ar ? "النطاق" : "Scope"} />
@@ -1048,144 +1228,10 @@ export default function Tickets() {
                 <SelectItem value="unassigned">{ar ? "غير معينة" : "Unassigned"}</SelectItem>
               </SelectContent>
             </Select>
-
-            {/* Category Filter (if user has access to both) */}
-            {hasBoth && (
-              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
-                <SelectTrigger className="h-8 text-xs w-[125px] bg-background">
-                  <SelectValue placeholder={ar ? "القسم" : "Category"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? "كل الأقسام" : "All Types"}</SelectItem>
-                  <SelectItem value="maintenance">{ar ? "صيانة فنية" : "Maintenance"}</SelectItem>
-                  <SelectItem value="housekeeping">{ar ? "هاوس كيبنج" : "Housekeeping"}</SelectItem>
-                  <SelectItem value="general">{ar ? "عام" : "General"}</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-
-            {/* Priority Filter */}
-            <Select value={priorityFilter || "all"} onValueChange={(v) => setPriorityFilter(v === "all" ? "" : v)}>
-              <SelectTrigger className="h-8 text-xs w-[115px] bg-background">
-                <SelectValue placeholder={ar ? "الأولوية" : "Priority"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{ar ? "كل الأولويات" : "All Priorities"}</SelectItem>
-                {PRIORITIES.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        p === "URGENT" ? "bg-red-500" :
-                        p === "HIGH" ? "bg-orange-500" :
-                        p === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
-                      }`} />
-                      <span>{ar ? PRIORITY_AR[p] : p}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Property Filter */}
-            {properties && properties.length > 1 && (
-              <Select value={propertyFilter} onValueChange={(v) => setPropertyFilter(v)}>
-                <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
-                  <SelectValue placeholder={ar ? "كل الفنادق" : "All Properties"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? "كل الفنادق" : "All Properties"}</SelectItem>
-                  {properties.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.displayName || p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {/* Date Range Popover */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={`h-8 text-xs gap-1.5 bg-background font-normal ${
-                    fromDate || toDate ? "border-primary text-primary font-medium" : "text-muted-foreground"
-                  }`}
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>
-                    {fromDate || toDate
-                      ? `${fromDate || "..."} → ${toDate || "..."}`
-                      : (ar ? "التاريخ" : "Date")}
-                  </span>
-                  {(fromDate || toDate) && (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFromDate("");
-                        setToDate("");
-                      }}
-                      className="hover:text-foreground ms-0.5"
-                    >
-                      <X className="w-3 h-3" />
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-3 space-y-2 text-xs" align="start">
-                <div className="font-semibold text-foreground text-xs">{ar ? "تصفية حسب التاريخ" : "Filter by Date"}</div>
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">{ar ? "من تاريخ" : "From Date"}</Label>
-                  <Input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">{ar ? "إلى تاريخ" : "To Date"}</Label>
-                  <Input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                {(fromDate || toDate) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setFromDate("");
-                      setToDate("");
-                    }}
-                    className="w-full h-7 text-xs text-muted-foreground"
-                  >
-                    {ar ? "مسح التواريخ" : "Clear Dates"}
-                  </Button>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            {/* Reset Filters */}
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllFilters}
-                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-                title={ar ? "إعادة ضبط جميع الفلاتر" : "Reset all filters"}
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>{ar ? "إعادة ضبط" : "Reset"}</span>
-              </Button>
-            )}
           </div>
 
-          {/* Right Toolbar: View Switcher, Excel, ColumnChooser */}
-          <div className="flex items-center gap-1.5 self-end sm:self-auto">
+          <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
             <div className="flex items-center p-0.5 bg-muted rounded-lg border">
               <button
                 type="button"
@@ -1213,6 +1259,7 @@ export default function Tickets() {
               </button>
             </div>
 
+            {/* Export Excel */}
             <Button
               variant="outline"
               size="sm"
@@ -1224,6 +1271,7 @@ export default function Tickets() {
               <span className="hidden md:inline">{ar ? "تصدير" : "Export"}</span>
             </Button>
 
+            {/* Toggle Columns */}
             {viewMode === "list" && (
               <ColumnChooser
                 cols={COLS}
@@ -1682,6 +1730,52 @@ export default function Tickets() {
           />
 
           <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
+            {/* Table Header Controls: Show entries on left, Search on right */}
+            <div className="p-3.5 border-b bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{ar ? "عرض" : "Show"}</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(val) => {
+                    setPageSize(Number(val));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-20 text-xs font-semibold bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="15">15</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span>{ar ? "سجلات" : "entries"}</span>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search..."}
+                  className="h-8 text-xs ps-8 pe-7 bg-background"
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -1712,54 +1806,44 @@ export default function Tickets() {
                       {ar ? "رقم" : "ID"}
                     </TableHead>
                   )}
-                  {isVisible("room") && (
-                    <TableHead className="font-semibold">
-                      {ar ? "الغرفة" : "Room"}
-                    </TableHead>
-                  )}
-                  {isVisible("problemType") && (
-                    <TableHead className="font-semibold">
-                      {ar ? "المشكلة / الخدمة" : "Problem / Service"}
-                    </TableHead>
-                  )}
                   {isVisible("name") && (
-                    <TableHead className="font-semibold">
-                      {ar ? "النزيل المقيم" : "Occupant"}
+                    <TableHead className="font-semibold min-w-[200px]">
+                      {ar ? "الاسم والغرفة" : "NAME"}
                     </TableHead>
                   )}
-                  {isVisible("category") && (
+                  {isVisible("hotel") && (
                     <TableHead className="font-semibold">
-                      {ar ? "القسم" : "Category"}
+                      {ar ? "الفندق" : "HOTEL"}
                     </TableHead>
                   )}
-                  {isVisible("worker") && (
+                  {isVisible("department") && (
                     <TableHead className="font-semibold">
-                      {ar ? "الفني المعين" : "Assigned Worker"}
-                    </TableHead>
-                  )}
-                  {isVisible("priority") && (
-                    <TableHead className="font-semibold">
-                      {ar ? "الأولوية" : "Priority"}
+                      {ar ? "القسم والخدمة" : "DEPARTMENT"}
                     </TableHead>
                   )}
                   {isVisible("status") && (
                     <TableHead className="font-semibold">
-                      {ar ? "الحالة" : "Status"}
+                      {ar ? "الحالة" : "STATUS"}
                     </TableHead>
                   )}
-                  {isVisible("reported") && (
+                  {isVisible("priority") && (
                     <TableHead className="font-semibold">
-                      {ar ? "تاريخ الإبلاغ" : "Reported"}
+                      {ar ? "الأولوية" : "PRIORITY"}
+                    </TableHead>
+                  )}
+                  {isVisible("at") && (
+                    <TableHead className="font-semibold">
+                      {ar ? "تاريخ البدء" : "AT"}
                     </TableHead>
                   )}
                   {isVisible("duration") && (
                     <TableHead className="font-semibold">
-                      {ar ? "المدة" : "Duration"}
+                      {ar ? "المدة" : "DURATION"}
                     </TableHead>
                   )}
                   {isVisible("actions") && (
                     <TableHead className="font-semibold text-end">
-                      {ar ? "إجراءات" : "Actions"}
+                      {ar ? "إجراءات" : "ACTIONS"}
                     </TableHead>
                   )}
                 </TableRow>
@@ -1786,39 +1870,20 @@ export default function Tickets() {
                     </TableCell>
 
                     {isVisible("id") && (
-                      <TableCell className="font-mono text-xs font-semibold text-muted-foreground">
+                      <TableCell className="font-mono text-xs font-bold text-muted-foreground">
                         #{req.id}
                       </TableCell>
                     )}
 
-                    {isVisible("room") && (
-                      <TableCell className="font-medium whitespace-nowrap">
+                    {isVisible("name") && (
+                      <TableCell className="text-xs font-medium">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">
-                            {ar ? "الغرفة" : "Room"}{" "}
-                            {req.roomNumber || roomMap[req.roomId] || req.roomId}
-                          </span>
-                          {(req.propertyName || (properties.length > 1 && req.propertyId)) && (
-                            <span className="text-[10px] text-muted-foreground font-normal">
-                              {req.propertyName ||
-                                properties.find((p: any) => p.id === req.propertyId)?.displayName ||
-                                properties.find((p: any) => p.id === req.propertyId)?.name}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {isVisible("problemType") && (
-                      <TableCell className="text-xs">
-                        <div className="flex flex-col max-w-[200px]">
-                          <span className="font-semibold text-foreground truncate">
-                            {ar
-                              ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
-                              : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType || "—")}
+                          <span className="font-bold text-foreground">
+                            {ar ? "الغرفة" : "Room"} {req.roomNumber || roomMap[req.roomId] || req.roomId}
+                            {roomOccupantMap[req.roomId] ? (ar ? ` - النزيل: ${roomOccupantMap[req.roomId]}` : ` - Guest: ${roomOccupantMap[req.roomId]}`) : ""}
                           </span>
                           {req.description && (
-                            <span className="text-[11px] text-muted-foreground line-clamp-1">
+                            <span className="text-[11px] text-muted-foreground line-clamp-1 max-w-[220px]">
                               {req.description}
                             </span>
                           )}
@@ -1826,71 +1891,31 @@ export default function Tickets() {
                       </TableCell>
                     )}
 
-                    {isVisible("name") && (
+                    {isVisible("hotel") && (
                       <TableCell className="text-xs">
-                        {roomOccupantMap[req.roomId] ? (
-                          <span className="font-medium text-foreground">
-                            {roomOccupantMap[req.roomId]}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
-                      </TableCell>
-                    )}
-
-                    {isVisible("category") && (
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${categoryColor(req.category)}`}
-                        >
-                          {CATEGORY_ICONS[req.category] || <FileText className="w-3.5 h-3.5" />}
-                          <span>
-                            {ar
-                              ? (CATEGORIES_AR[req.category] ?? req.category)
-                              : req.category}
-                          </span>
+                        <span className="font-medium text-foreground">
+                          {req.propertyName ||
+                            properties.find((p: any) => p.id === req.propertyId)?.displayName ||
+                            properties.find((p: any) => p.id === req.propertyId)?.name ||
+                            (ar ? "سكن شروق" : "Sunrise Housing")}
                         </span>
                       </TableCell>
                     )}
 
-                    {isVisible("worker") && (
+                    {isVisible("department") && (
                       <TableCell className="text-xs">
-                        {req.workerName ? (
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-foreground flex items-center gap-1">
-                              <Wrench className="w-3 h-3 text-primary shrink-0" />
-                              {req.workerName}
-                            </span>
-                            {req.workerSpecialty && (
-                              <span className="text-[10px] text-muted-foreground">
-                                {req.workerSpecialty}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
-                      </TableCell>
-                    )}
-
-                    {isVisible("priority") && (
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityColor(req.priority)}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            (req.priority || "").toUpperCase() === "URGENT" ? "bg-red-600 animate-pulse" :
-                            (req.priority || "").toUpperCase() === "HIGH" ? "bg-orange-500" :
-                            (req.priority || "").toUpperCase() === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
-                          }`} />
-                          <span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-foreground">
                             {ar
-                              ? (PRIORITY_AR[req.priority?.toUpperCase()] ?? req.priority)
-                              : req.priority
-                                ? req.priority.charAt(0).toUpperCase() + req.priority.slice(1).toLowerCase()
-                                : req.priority}
+                              ? (CATEGORIES_AR[req.category] || req.category)
+                              : (CATEGORIES_EN[req.category] || req.category?.toUpperCase())}
                           </span>
-                        </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {ar
+                              ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
+                              : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType)}
+                          </span>
+                        </div>
                       </TableCell>
                     )}
 
@@ -1911,8 +1936,8 @@ export default function Tickets() {
                                 }`} />
                                 <span>
                                   {ar
-                                    ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
-                                    : (req.status || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                                    ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
+                                    : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
                                 </span>
                                 <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
                               </button>
@@ -1922,7 +1947,7 @@ export default function Tickets() {
                                 onClick={() => updateMutation.mutate({ id: req.id, data: { status: "open" } })}
                               >
                                 <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-                                {ar ? "مفتوحة" : "Open"}
+                                {ar ? "لم تبدأ / مفتوحة" : "Not Started"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => updateMutation.mutate({ id: req.id, data: { status: "in_progress" } })}
@@ -1934,7 +1959,7 @@ export default function Tickets() {
                                 onClick={() => updateMutation.mutate({ id: req.id, data: { status: "resolved" } })}
                               >
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
-                                {ar ? "تم الحل" : "Resolved"}
+                                {ar ? "تم الإنجاز" : "Order Completed"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => updateMutation.mutate({ id: req.id, data: { status: "closed" } })}
@@ -1955,22 +1980,41 @@ export default function Tickets() {
                             }`} />
                             <span>
                               {ar
-                                ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
-                                : (req.status || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                                ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
+                                : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
                             </span>
                           </span>
                         )}
                       </TableCell>
                     )}
 
-                    {isVisible("reported") && (
+                    {isVisible("priority") && (
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityColor(req.priority)}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            (req.priority || "").toUpperCase() === "URGENT" ? "bg-red-600 animate-pulse" :
+                            (req.priority || "").toUpperCase() === "HIGH" ? "bg-orange-500" :
+                            (req.priority || "").toUpperCase() === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
+                          }`} />
+                          <span>
+                            {ar
+                              ? (PRIORITY_AR[req.priority?.toUpperCase()] || req.priority)
+                              : req.priority}
+                          </span>
+                        </span>
+                      </TableCell>
+                    )}
+
+                    {isVisible("at") && (
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         <div className="flex flex-col">
-                          <span className="font-medium text-foreground">
-                            {formatDate(req.reportedAt)}
+                          <span className="font-semibold text-foreground">
+                            Start: {req.reportedAt ? format(new Date(req.reportedAt), "dd-MM-yyyy") : "—"}
                           </span>
-                          <span className="text-muted-foreground text-[11px]">
-                            {req.reportedAt ? format(new Date(req.reportedAt), "HH:mm") : ""}
+                          <span className="text-muted-foreground text-[10px] font-mono">
+                            {req.reportedAt ? format(new Date(req.reportedAt), "hh:mm:ss a") : ""}
                           </span>
                         </div>
                       </TableCell>
@@ -1979,15 +2023,16 @@ export default function Tickets() {
                     {isVisible("duration") && (
                       <TableCell>
                         {req.startedAt || req.reportedAt ? (
-                          <span
-                            className={`text-xs ${getDurationColor(req.startedAt, req.resolvedAt, req.reportedAt)}`}
+                          <Badge
+                            variant="secondary"
+                            className="font-mono text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
                           >
                             {formatDuration(
                               req.startedAt,
                               req.resolvedAt,
                               req.reportedAt,
                             )}
-                          </span>
+                          </Badge>
                         ) : (
                           <span className="text-muted-foreground/50 text-xs">—</span>
                         )}
@@ -1996,27 +2041,37 @@ export default function Tickets() {
 
                     {isVisible("actions") && (
                       <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44 text-xs">
-                            <DropdownMenuItem
-                              onClick={() => handleSelectTicket(req.id)}
-                              className="gap-2 cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-primary" />
-                              <span>{ar ? "عرض التفاصيل" : "View Details"}</span>
-                            </DropdownMenuItem>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Hotel PMS Blue Rounded Square Eye Action Button */}
+                          <Button
+                            size="icon"
+                            className="h-8 w-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                            onClick={() => handleSelectTicket(req.id)}
+                            title={ar ? "عرض تفاصيل التذكرة" : "View Details"}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
 
-                            {canEditAny && (
-                              <>
+                          {canEditAny && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44 text-xs">
+                                <DropdownMenuItem
+                                  onClick={() => handleSelectTicket(req.id)}
+                                  className="gap-2 cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-primary" />
+                                  <span>{ar ? "عرض التفاصيل الكاملة" : "Full Details"}</span>
+                                </DropdownMenuItem>
+
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => updateMutation.mutate({ id: req.id, data: { status: "in_progress" } })}
@@ -2042,23 +2097,23 @@ export default function Tickets() {
                                   <span className="w-2 h-2 rounded-full bg-slate-400" />
                                   <span>{ar ? "إغلاق الطلب" : "Mark Closed"}</span>
                                 </DropdownMenuItem>
-                              </>
-                            )}
 
-                            {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => setDeleteId(req.id)}
-                                  className="gap-2 text-destructive focus:text-destructive cursor-pointer"
-                                >
-                                  <Trash className="w-3.5 h-3.5" />
-                                  <span>{ar ? "حذف التذكرة" : "Delete Ticket"}</span>
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                                {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => setDeleteId(req.id)}
+                                      className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                                    >
+                                      <Trash className="w-3.5 h-3.5" />
+                                      <span>{ar ? "حذف التذكرة" : "Delete Ticket"}</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
@@ -2190,6 +2245,7 @@ export default function Tickets() {
             open={selectedTicketId !== null}
             onClose={() => setSelectedTicketId(null)}
             ticket={selectedTicket}
+            occupantName={selectedTicket ? roomOccupantMap[selectedTicket.roomId] : undefined}
             profiles={empOptions}
             workers={propertyWorkers}
             ar={ar}
