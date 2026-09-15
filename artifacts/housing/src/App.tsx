@@ -38,6 +38,7 @@ const RoomAssignment = lazy(
 );
 const GuestHosting = lazy(() => import("@/pages/accommodation/guest-hosting"));
 const History = lazy(() => import("@/pages/accommodation/history"));
+const GateScanner = lazy(() => import("@/pages/gate-scanner/index"));
 const Housekeeping = lazy(() => import("@/pages/housekeeping"));
 const Maintenance = lazy(() => import("@/pages/maintenance"));
 const MaintenanceDetails = lazy(() => import("@/pages/maintenance-details"));
@@ -195,6 +196,7 @@ const APP_ROUTES: AppRouteDef[] = [
   { path: "/profiles", module: "profiles", component: Profiles },
   { path: "/accommodation/reservations", module: "reservations", component: Reservations },
   { path: "/accommodation/in-house", module: "accommodation", component: InHouse },
+  { path: "/gate-scanner", module: "accommodation", component: GateScanner },
   { path: "/accommodation/room-assignment", module: "accommodation", component: RoomAssignment },
   { path: "/accommodation/guest-hosting", module: "guest_hosting", component: GuestHosting },
   { path: "/accommodation/history", module: "accommodation", component: History },

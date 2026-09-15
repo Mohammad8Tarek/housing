@@ -2133,7 +2133,33 @@ We wish you a safe trip and a pleasant stay! ✨',
   );
   CREATE INDEX IF NOT EXISTS idx_user_otps_user ON public.user_password_reset_otps(user_id);
   CREATE INDEX IF NOT EXISTS idx_user_otps_identifier ON public.user_password_reset_otps(identifier);
-  CREATE INDEX IF NOT EXISTS idx_user_otps_expires ON public.user_password_reset_otps(expires_at);
+  -- --------------------------------------------------------
+  -- Table: public.gate_logs
+  -- --------------------------------------------------------
+  CREATE TABLE IF NOT EXISTS public.gate_logs (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER,
+    profile_id INTEGER,
+    employee_id VARCHAR(50) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    department VARCHAR(100),
+    job_title VARCHAR(100),
+    room_number VARCHAR(50),
+    building_name VARCHAR(100),
+    direction VARCHAR(10) NOT NULL DEFAULT 'IN',
+    status VARCHAR(20) NOT NULL DEFAULT 'GRANTED',
+    reason TEXT,
+    scanned_by VARCHAR(100) NOT NULL DEFAULT 'Security Officer',
+    scan_method VARCHAR(50) NOT NULL DEFAULT 'QR_SCAN',
+    notes TEXT,
+    scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_gate_logs_property_id ON public.gate_logs (property_id);
+  CREATE INDEX IF NOT EXISTS idx_gate_logs_profile_id ON public.gate_logs (profile_id);
+  CREATE INDEX IF NOT EXISTS idx_gate_logs_employee_id ON public.gate_logs (employee_id);
+  CREATE INDEX IF NOT EXISTS idx_gate_logs_direction ON public.gate_logs (direction);
+  CREATE INDEX IF NOT EXISTS idx_gate_logs_status ON public.gate_logs (status);
+  CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON public.gate_logs (scanned_at);
 
   RAISE NOTICE '>>> All schemas, tables, and constraints migrated successfully!';
 END $$;

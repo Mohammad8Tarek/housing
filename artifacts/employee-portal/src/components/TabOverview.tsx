@@ -18,6 +18,8 @@ import {
   AlertCircle,
   MessageCircle,
   Key,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
@@ -72,6 +74,34 @@ export default function TabOverview({
 
   const [greeting, setGreeting] = useState(() => getTimeGreeting(isRtl));
   const [showQrModal, setShowQrModal] = useState(false);
+  const [gatePass, setGatePass] = useState<any>(null);
+  const [loadingPass, setLoadingPass] = useState(false);
+
+  useEffect(() => {
+    if (!showQrModal) return;
+    let isMounted = true;
+    const fetchPass = async () => {
+      setLoadingPass(true);
+      try {
+        const empCode = employee?.id || employee?.profileId;
+        const res = await apiFetch(`/api/gate/pass/${empCode || "me"}`, { credentials: "include" });
+        if (res.ok) {
+          const json = await res.json().catch(() => null);
+          if (isMounted && json?.gatePass) {
+            setGatePass(json.gatePass);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load gate pass:", err);
+      } finally {
+        if (isMounted) setLoadingPass(false);
+      }
+    };
+    fetchPass();
+    return () => {
+      isMounted = false;
+    };
+  }, [showQrModal, employee?.id, employee?.profileId]);
 
   useEffect(() => {
     setGreeting(getTimeGreeting(isRtl));
@@ -441,26 +471,58 @@ export default function TabOverview({
             </div>
 
             <div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
+                {isRtl ? "تصريح السكن المعتمد" : "OFFICIAL RESIDENT PASS"}
+              </div>
               <h3 className="text-base font-bold text-foreground">
-                {employee?.fullName || firstName}
+                {gatePass?.fullName || employee?.fullName || firstName}
               </h3>
               <p className="text-xs font-mono text-muted-foreground mt-0.5">
-                {staffCode} · {isAssigned ? `Room ${room?.roomNumber}` : "Staff Pass"}
+                ID: {gatePass?.employeeId || staffCode} · {gatePass?.roomNumber || room?.roomNumber ? `${isRtl ? "غرفة" : "Room"} ${gatePass?.roomNumber || room?.roomNumber}` : (isRtl ? "تصريح موظف" : "Staff Pass")}
               </p>
             </div>
 
-            {/* Crisp QR Code */}
-            <ResidentQRCode
-              data={`SUNRISE_RESIDENT:${staffCode}:${room?.roomNumber || "NONE"}:${employee?.fullName || "STAFF"}`}
-              size={180}
-              className="border-4 border-muted"
-            />
+            {/* Crisp Scannable QR Code */}
+            <div className="relative">
+              {loadingPass && !gatePass?.qrDataUrl ? (
+                <div className="w-[180px] h-[180px] rounded-2xl bg-muted/50 border flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="text-[11px] font-medium">{isRtl ? "جاري تجهيز الرمز..." : "Loading pass..."}</span>
+                </div>
+              ) : (
+                <ResidentQRCode
+                  data={gatePass?.qrPayload || `SUNRISE:GATE:P1:E${staffCode}:PID${employee?.id || 0}:R${room?.roomNumber || "NONE"}`}
+                  qrDataUrl={gatePass?.qrDataUrl}
+                  size={180}
+                  className="border-4 border-muted"
+                />
+              )}
+            </div>
 
-            <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[220px]">
+            <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[240px]">
               {isRtl
-                ? "استخدم هذا الرمز للمرور عبر بوابات السكن ودخول مطعم العاملين"
-                : "Scan this pass for security gate entry and cafeteria meals"}
+                ? "رمز مشفّر معتمد للمرور الفوري عبر البوابات الإلكترونية ومطاعم السكن"
+                : "Cryptographically verified QR code for electronic gate & facility access"}
             </p>
+
+            {/* Download pass button if QR image available */}
+            {gatePass?.qrDataUrl && (
+              <button
+                type="button"
+                onClick={() => {
+                  const a = document.createElement("a");
+                  a.href = gatePass.qrDataUrl;
+                  a.download = `GatePass_QR_${gatePass.employeeId || staffCode}.png`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+                className="text-xs font-semibold text-primary hover:underline flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isRtl ? "حفظ رمز الـ QR على الهاتف" : "Download Pass QR"}</span>
+              </button>
+            )}
 
             <button
               type="button"

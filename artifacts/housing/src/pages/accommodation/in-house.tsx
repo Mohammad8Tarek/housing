@@ -72,7 +72,9 @@ import {
   MessageSquare,
   Send,
   Radio,
+  QrCode,
 } from "lucide-react";
+import { GatePassModal } from "./GatePassModal";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
 import {
   ColumnChooser,
@@ -237,6 +239,10 @@ export default function InHouse() {
     assignmentId: null,
     emp: null,
   });
+
+  // Gate Pass modal state
+  const [gatePassOpen, setGatePassOpen] = useState(false);
+  const [selectedGatePassProfileId, setSelectedGatePassProfileId] = useState<number | null>(null);
   const [whatsAppPhone, setWhatsAppPhone] = useState("");
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
@@ -1477,6 +1483,16 @@ export default function InHouse() {
                                 {ar ? "طباعة خطاب السكن" : "Print Housing Letter"}
                               </DropdownMenuItem>
                             </PermissionGate>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedGatePassProfileId(a.profileId);
+                                setGatePassOpen(true);
+                              }}
+                              className="font-medium text-emerald-600 dark:text-emerald-400"
+                            >
+                              <QrCode className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600 dark:text-emerald-400" />
+                              {ar ? "تصريح السكن (Gate Pass)" : "Gate QR Pass"}
+                            </DropdownMenuItem>
                             <PermissionGate module="accommodation" action="edit">
                               <DropdownMenuItem
                                 onClick={() => {
@@ -2710,6 +2726,13 @@ export default function InHouse() {
         propertyId={activePropertyId}
         initialTargetMode={broadcastTargetMode}
         selectedProfileIds={selectedProfileIds}
+        language={language}
+      />
+
+      <GatePassModal
+        profileId={selectedGatePassProfileId}
+        isOpen={gatePassOpen}
+        onClose={() => setGatePassOpen(false)}
         language={language}
       />
     </div>

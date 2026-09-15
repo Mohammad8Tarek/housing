@@ -2,19 +2,38 @@ import React from "react";
 
 interface ResidentQRCodeProps {
   data: string;
+  qrDataUrl?: string | null;
   size?: number;
   className?: string;
 }
 
 /**
- * Deterministic pseudo-random QR pattern renderer based on input hash
- * Produces crisp, beautiful QR matrix pattern for digital cards
+ * High-resolution QR Code renderer.
+ * If server qrDataUrl is provided, renders the genuine scannable QR Code image.
+ * Otherwise, falls back to deterministic vector SVG pattern.
  */
 export function ResidentQRCode({
   data,
+  qrDataUrl,
   size = 120,
   className = "",
 }: ResidentQRCodeProps) {
+  if (qrDataUrl) {
+    return (
+      <div
+        className={`inline-flex items-center justify-center p-2 rounded-2xl bg-white shadow-md border border-border/40 ${className}`}
+        style={{ width: size, height: size }}
+        title={`Resident QR: ${data}`}
+      >
+        <img
+          src={qrDataUrl}
+          alt={`Resident QR: ${data}`}
+          className="w-full h-full object-contain rounded-xl"
+          loading="eager"
+        />
+      </div>
+    );
+  }
   // Compute deterministic hash from string
   const hash = React.useMemo(() => {
     let h = 0;

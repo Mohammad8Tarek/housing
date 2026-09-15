@@ -1108,6 +1108,33 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       END IF;
     END $$;`,
   },
+  {
+    name: "public.gate_logs",
+    q: `CREATE TABLE IF NOT EXISTS public.gate_logs (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER,
+      profile_id INTEGER,
+      employee_id VARCHAR(50) NOT NULL,
+      full_name VARCHAR(255) NOT NULL,
+      department VARCHAR(100),
+      job_title VARCHAR(100),
+      room_number VARCHAR(50),
+      building_name VARCHAR(100),
+      direction VARCHAR(10) NOT NULL DEFAULT 'IN',
+      status VARCHAR(20) NOT NULL DEFAULT 'GRANTED',
+      reason TEXT,
+      scanned_by VARCHAR(100) NOT NULL DEFAULT 'Security Officer',
+      scan_method VARCHAR(50) NOT NULL DEFAULT 'QR_SCAN',
+      notes TEXT,
+      scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_property_id ON public.gate_logs (property_id);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_profile_id ON public.gate_logs (profile_id);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_employee_id ON public.gate_logs (employee_id);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_direction ON public.gate_logs (direction);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_status ON public.gate_logs (status);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON public.gate_logs (scanned_at);`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1999,6 +2026,32 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_user TEXT;
     ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_pass TEXT;
     ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_from TEXT;`,
+  },
+  {
+    name: "tenant.gate_logs",
+    q: `CREATE TABLE IF NOT EXISTS gate_logs (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER,
+      profile_id INTEGER,
+      employee_id VARCHAR(50) NOT NULL,
+      full_name VARCHAR(255) NOT NULL,
+      department VARCHAR(100),
+      job_title VARCHAR(100),
+      room_number VARCHAR(50),
+      building_name VARCHAR(100),
+      direction VARCHAR(10) NOT NULL DEFAULT 'IN',
+      status VARCHAR(20) NOT NULL DEFAULT 'GRANTED',
+      reason TEXT,
+      scanned_by VARCHAR(100) NOT NULL DEFAULT 'Security Officer',
+      scan_method VARCHAR(50) NOT NULL DEFAULT 'QR_SCAN',
+      notes TEXT,
+      scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_gate_logs_property_id ON gate_logs (property_id);
+    CREATE INDEX IF NOT EXISTS idx_tenant_gate_logs_employee_id ON gate_logs (employee_id);
+    CREATE INDEX IF NOT EXISTS idx_tenant_gate_logs_direction ON gate_logs (direction);
+    CREATE INDEX IF NOT EXISTS idx_tenant_gate_logs_status ON gate_logs (status);
+    CREATE INDEX IF NOT EXISTS idx_tenant_gate_logs_scanned_at ON gate_logs (scanned_at);`,
   },
 ];
 

@@ -44,6 +44,7 @@ import {
   Award,
   CheckCheck,
   Laptop,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout, useGetSettings } from "@workspace/api-client-react";
@@ -340,6 +341,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       href: "/accommodation/in-house",
       label: ar ? "المقيمون حالياً" : "In-House",
       icon: BedDouble,
+      permissionModule: "accommodation",
+    },
+    {
+      href: "/gate-scanner",
+      label: ar ? "بوابة السكن" : "Gate Scanner",
+      icon: QrCode,
       permissionModule: "accommodation",
     },
     {

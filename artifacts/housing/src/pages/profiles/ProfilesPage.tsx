@@ -76,7 +76,9 @@ import {
   ChevronDown,
   Phone,
   CreditCard,
+  QrCode,
 } from "lucide-react";
+import { GatePassModal } from "@/pages/accommodation/GatePassModal";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { SortableHead } from "@/components/ui/sortable-head";
 import { useReportSort } from "@/pages/reports/hooks/useReportSort";
@@ -134,6 +136,8 @@ export function ProfilesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [view, setView] = useState<"table" | "grid">("table");
+  const [gatePassOpen, setGatePassOpen] = useState(false);
+  const [selectedGatePassProfileId, setSelectedGatePassProfileId] = useState<number | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -1075,6 +1079,16 @@ export function ProfilesPage() {
                                   {ar ? "عرض التفاصيل" : "View Details"}
                                 </Link>
                               </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedGatePassProfileId(emp.id);
+                                  setGatePassOpen(true);
+                                }}
+                                className="cursor-pointer font-medium text-emerald-600 dark:text-emerald-400"
+                              >
+                                <QrCode className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600 dark:text-emerald-400" />
+                                {ar ? "تصريح السكن (Gate Pass)" : "Gate QR Pass"}
+                              </DropdownMenuItem>
                               <PermissionGate module="profiles" action="edit">
                                 <DropdownMenuItem onClick={() => setEditingProfile(emp)} className="cursor-pointer">
                                   <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-amber-500" />
@@ -1202,6 +1216,13 @@ export function ProfilesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <GatePassModal
+        profileId={selectedGatePassProfileId}
+        isOpen={gatePassOpen}
+        onClose={() => setGatePassOpen(false)}
+        language={language}
+      />
     </div>
   );
 }
