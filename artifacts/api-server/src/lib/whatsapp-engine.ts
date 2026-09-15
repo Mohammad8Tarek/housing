@@ -2,7 +2,7 @@ import makeWASocket, {
   DisconnectReason,
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
-  makeCacheableSignalKeyStore,
+  Browsers,
 } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
 import path from "node:path";
@@ -220,23 +220,13 @@ export async function connectPropertyWhatsApp(
   const sessionFolder = path.join(SESSIONS_DIR, `property_${propertyId}`);
   if (!fs.existsSync(sessionFolder)) {
     fs.mkdirSync(sessionFolder, { recursive: true });
-  } else {
-    // If credentials exist, check if they are actually registered
-    const credsPath = path.join(sessionFolder, "creds.json");
-    if (fs.existsSync(credsPath)) {
-      try {
-        const raw = JSON.parse(fs.readFileSync(credsPath, "utf-8"));
-        // If not registered or forceRestart, clean session directory so Baileys generates a fresh pairing QR
-        if (forceRestart || !raw.registered || !raw.me) {
-          console.log(`[WhatsApp] Purging unregistered/stale session files for property ${propertyId}`);
-          fs.rmSync(sessionFolder, { recursive: true, force: true });
-          fs.mkdirSync(sessionFolder, { recursive: true });
-        }
-      } catch {
-        fs.rmSync(sessionFolder, { recursive: true, force: true });
-        fs.mkdirSync(sessionFolder, { recursive: true });
-      }
-    }
+  } else if (forceRestart) {
+    // Only purge session directory if explicitly requested (e.g. user clicked Reconnect / Connect)
+    console.log(`[WhatsApp] Force restart: purging previous session directory for property ${propertyId}`);
+    try {
+      fs.rmSync(sessionFolder, { recursive: true, force: true });
+      fs.mkdirSync(sessionFolder, { recursive: true });
+    } catch {}
   }
 
   const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
@@ -258,22 +248,33 @@ export async function connectPropertyWhatsApp(
     printQRInTerminal: false,
     auth: {
       creds: state.creds,
-      keys: makeCacheableSignalKeyStore(state.keys, logger),
+      keys: state.keys,
     },
     generateHighQualityLinkPreview: false,
-    browser: ["Sunrise Staff Housing", "Chrome", "120.0.0"],
+    browser: Browsers.windows("Desktop"),
     syncFullHistory: false,
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
-    keepAliveIntervalMs: 25000,
+    keepAliveIntervalMs: 30000,
+    retryRequestDelayMs: 250,
   });
 
   session.sock = sock;
 
-  sock.ev.on("creds.update", saveCreds);
+  sock.ev.on("creds.update", async () => {
+    try {
+      await saveCreds();
+    } catch (err) {
+      console.error(`[WhatsApp] Error saving creds for property ${propertyId}:`, err);
+    }
+  });
 
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
+
+    if (connection === "connecting") {
+      console.log(`[WhatsApp] Property ${propertyId} connecting...`);
+    }
 
     if (qr) {
       session.status = "pairing";
@@ -326,19 +327,20 @@ export async function connectPropertyWhatsApp(
     if (connection === "close") {
       session.isInitializing = false;
       session.sock = null;
-      session.qrCode = undefined;
 
       const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
       const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
+      const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
 
       console.log(
-        `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}`
+        `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}, isRestartRequired: ${isRestartRequired}`
       );
 
       if (isLoggedOut) {
         // Explicitly logged out or auth rejected
         session.status = "disconnected";
         session.phoneNumber = undefined;
+        session.qrCode = undefined;
         session.reconnectAttempts = 0;
 
         // Clean up session folder
@@ -352,24 +354,32 @@ export async function connectPropertyWhatsApp(
            WHERE property_id = $1`,
           [propertyId]
         ).catch(() => {});
+      } else if (isRestartRequired) {
+        // QR Code was scanned! WhatsApp requires immediate reconnect with the newly saved credentials
+        console.log(`[WhatsApp] Pairing handshake in progress (code 515) for property ${propertyId}. Reconnecting with saved credentials...`);
+        setTimeout(() => {
+          connectPropertyWhatsApp(propertyId, false).catch((err) => {
+            console.error(`[WhatsApp] Reconnect after restartRequired error:`, err);
+          });
+        }, 500);
       } else {
         // Temporary network drop or handshake retry
-        // Clear stale QR code from DB so users don't see expired codes
-        await pool.query(
-          `UPDATE public.property_whatsapp_configs
-           SET qr_code = NULL, updated_at = NOW()
-           WHERE property_id = $1 AND status = 'pairing'`,
-          [propertyId]
-        ).catch(() => {});
-
-        if (session.status === "connected" && session.reconnectAttempts < 5) {
+        if (session.reconnectAttempts < 5) {
           session.reconnectAttempts++;
-          const delay = Math.min(session.reconnectAttempts * 3000, 15000);
+          const delay = Math.min(session.reconnectAttempts * 2000, 10000);
+          console.log(`[WhatsApp] Reconnecting property ${propertyId} (attempt ${session.reconnectAttempts}/5) in ${delay}ms...`);
           setTimeout(() => {
             connectPropertyWhatsApp(propertyId, false).catch(() => {});
           }, delay);
         } else {
           session.status = "disconnected";
+          session.qrCode = undefined;
+          await pool.query(
+            `UPDATE public.property_whatsapp_configs
+             SET qr_code = NULL, updated_at = NOW()
+             WHERE property_id = $1 AND status = 'pairing'`,
+            [propertyId]
+          ).catch(() => {});
         }
       }
     }
