@@ -344,12 +344,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       permissionModule: "accommodation",
     },
     {
-      href: "/gate-scanner",
-      label: ar ? "بوابة السكن" : "Gate Scanner",
-      icon: QrCode,
-      permissionModule: "accommodation",
-    },
-    {
       href: "/accommodation/history",
       label: ar ? "السجل" : "History",
       icon: FileText,
@@ -386,6 +380,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       label: ar ? "التقارير" : "Reports",
       icon: FileBarChart,
       permissionModule: "reports",
+    },
+    {
+      href: "/gate-scanner",
+      label: ar ? "بوابة السكن" : "Gate Scanner",
+      icon: QrCode,
+      permissionModule: "accommodation",
     },
 
     {
