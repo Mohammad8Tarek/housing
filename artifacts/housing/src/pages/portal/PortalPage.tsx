@@ -89,7 +89,7 @@ export function PortalPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">
-          {ar ? "بوابة الموظفين" : "Profile Portal"}
+          {ar ? "بوابة المقيمين" : "Resident Portal"}
         </h1>
       </div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

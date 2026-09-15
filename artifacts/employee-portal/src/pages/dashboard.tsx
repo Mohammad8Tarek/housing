@@ -687,7 +687,7 @@ export default function Dashboard() {
                 textTransform: "uppercase",
               }}
             >
-              {isRtl ? "بوابة الموظفين" : "Employee Portal"}
+              {isRtl ? "بوابة المقيمين" : "Resident Portal"}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 {
   "id": "/",
-  "name": "Sunrise Housing - Employee Portal",
+  "name": "SUNRISE Resident Portal",
   "short_name": "Sunrise Portal",
   "description": "Manage your housing assignments, maintenance requests, documents, and evaluations",
   "start_url": "/login",

@@ -355,10 +355,10 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                       title={
                         act.isPublished
                           ? ar
-                            ? "إلغاء النشر من بوابة الموظفين"
+                            ? "إلغاء النشر من بوابة المقيمين"
                             : "Unpublish from Portal"
                           : ar
-                            ? "نشر في بوابة الموظفين"
+                            ? "نشر في بوابة المقيمين"
                             : "Publish to Portal"
                       }
                       onClick={() =>
@@ -627,8 +627,8 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
               />
               <Label htmlFor="form-isPublished" className="cursor-pointer text-xs font-semibold text-foreground">
                 {ar
-                  ? "نشر الفعالية فوراً في بوابة الموظفين (لتظهر للموظفين)"
-                  : "Publish immediately to Employee Portal (visible to staff)"}
+                  ? "نشر الفعالية فوراً في بوابة المقيمين (لتظهر للمقيمين)"
+                  : "Publish immediately to Resident Portal (visible to residents)"}
               </Label>
             </div>
           </div>
@@ -833,8 +833,8 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                 />
                 <Label htmlFor="edit-isPublished" className="cursor-pointer text-xs font-semibold text-foreground">
                   {ar
-                    ? "نشر الفعالية في بوابة الموظفين (لتكون مرئية للموظفين)"
-                    : "Published in Employee Portal (visible to staff)"}
+                    ? "نشر الفعالية في بوابة المقيمين (لتكون مرئية للمقيمين)"
+                    : "Published in Resident Portal (visible to residents)"}
                 </Label>
               </div>
               <div className="col-span-2">

@@ -151,8 +151,8 @@ export default function PWAInstallBanner() {
         <div className="flex-1 min-w-0 pr-6">
           <p className="text-sm font-bold text-foreground">
             {isRtl
-              ? "حمّل تطبيق بوابة الموظفين"
-              : "Install Employee Portal App"}
+              ? "حمّل تطبيق بوابة المقيمين"
+              : "Install Resident Portal App"}
           </p>
           <p className="text-xs text-muted2 mt-0.5">
             {isRtl

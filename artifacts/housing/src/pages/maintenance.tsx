@@ -1192,7 +1192,7 @@ export default function Tickets() {
                 <SelectContent>
                   <SelectItem value="all">{ar ? "الكل" : "All"}</SelectItem>
                   <SelectItem value="staff">{ar ? "إدارة السكن / المشرف" : "Staff / Supervisor"}</SelectItem>
-                  <SelectItem value="resident">{ar ? "النزيل / بوابة الموظفين" : "Resident / Portal"}</SelectItem>
+                  <SelectItem value="resident">{ar ? "النزيل / بوابة المقيمين" : "Resident / Portal"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

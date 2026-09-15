@@ -570,7 +570,7 @@ export default function Login() {
               <span>
                 {lang === "ar"
                   ? "بوابة آمنة ومدعومة"
-                  : "Secure Employee Portal"}
+                  : "SUNRISE Resident Portal"}
               </span>
             </div>
             <p className="text-[11px] text-white/40">

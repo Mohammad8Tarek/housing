@@ -14,7 +14,7 @@ export default defineConfig({
       filename: "sw.ts",
       strategies: "injectManifest",
       manifest: {
-        name: "Sunrise Housing - Employee Portal",
+        name: "SUNRISE Resident Portal",
         short_name: "Sunrise Portal",
         description: "Manage your housing, requests, and documents",
         id: "/",

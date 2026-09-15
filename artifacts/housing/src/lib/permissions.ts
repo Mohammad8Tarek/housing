@@ -349,7 +349,7 @@ export const MODULE_LABELS: Record<Module, { en: string; ar: string }> = {
   reports: { en: "Reports & Analytics", ar: "التقارير والإحصائيات الفندقية" },
   users: { en: "Users & Governance", ar: "المستخدمون والحوكمة والصلاحيات" },
   properties: { en: "Properties & Hotels", ar: "العقارات والفروع (سوبر أدمن)" },
-  portal_content: { en: "Employee Portal", ar: "محتوى وتغذية بوابة الموظفين" },
+  portal_content: { en: "Resident Portal", ar: "محتوى وتغذية بوابة المقيمين" },
   settings: { en: "System Settings", ar: "إعدادات النظام والقوائم" },
   activity_log: { en: "Activity Audit Log", ar: "سجل النشاط والرقابة الأمنية" },
   documents: { en: "Document Archive", ar: "أرشيف المستندات والسياسات" },
@@ -476,7 +476,7 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   manage_permissions: { en: "Manage Permission Matrix", ar: "إدارة وتخصيص مصفوفة الصلاحيات" },
   view_sensitive: { en: "View Sensitive Data", ar: "كشف البيانات الحساسة (الرقم القومي/الراتب)" },
   audit: { en: "Field Room Discrepancy Audit", ar: "تدقيق ومطابقة الغرف الميداني" },
-  publish: { en: "Publish to Portal", ar: "نشر في بوابة الموظفين" },
+  publish: { en: "Publish to Portal", ar: "نشر في بوابة المقيمين" },
   unlock: { en: "Emergency Remote Door Unlock", ar: "فتح طارئ لباب الغرفة عن بُعد" },
   override_single_occupancy: {
     en: "Single Occupant / Entire Room Booking",
@@ -516,7 +516,7 @@ export const PERMISSION_GROUPS: Array<{
   },
   {
     id: "employee_portal",
-    label: { en: "Employee Portal & Comms", ar: "بوابة الموظف والتواصل" },
+    label: { en: "Resident Portal & Comms", ar: "بوابة المقيمين والتواصل" },
     description: {
       en: "Portal content, activities, documents, evaluations, and WhatsApp engine.",
       ar: "محتوى البوابة والأنشطة والمستندات والتقييمات ومحرك الواتساب.",

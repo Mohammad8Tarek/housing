@@ -1,7 +1,7 @@
 const t = {
   // General
   "app.title": { ar: "صن رايز هاوسينج", en: "Sunrise Housing" },
-  "app.subtitle": { ar: "بوابة الموظفين", en: "Employee Portal" },
+  "app.subtitle": { ar: "بوابة المقيمين", en: "Resident Portal" },
   "app.tagline": {
     ar: "إدارة السكن والطلبات والمستندات في مكان واحد",
     en: "Manage your housing, requests, and documents all in one place",

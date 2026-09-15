@@ -47,7 +47,7 @@ const DEFAULT_TEMPLATE_AR = `مرحباً بك أ/ {employee_name} في {propert
 🛏️ السرير: {bed_label}
 📅 تاريخ التسكين: {checkin_date}
 
-📱 للدخول إلى بوابة الموظفين وطلب الخدمات:
+📱 للدخول إلى بوابة المقيمين وطلب الخدمات:
 {portal_url}
 
 نتمنى لك إقامة هانئة ومريحة! ✨`;
@@ -693,7 +693,7 @@ export function WhatsAppSettingsSection({
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">
-                {ar ? "رابط بوابة الموظفين الافتراضي:" : "Resident Portal URL:"}
+                {ar ? "رابط بوابة المقيمين الافتراضي:" : "Resident Portal URL:"}
               </label>
               <Input
                 readOnly

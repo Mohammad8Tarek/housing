@@ -1698,7 +1698,7 @@ export default function InHouse() {
               />
               <p className="text-[11px] text-muted-foreground">
                 {ar
-                  ? "سيتم إرسال رسالة ترحيبية تشمل اسم الفندق، المبنى، الدور، الغرفة، السرير، ورابط بوابة الموظفين."
+                  ? "سيتم إرسال رسالة ترحيبية تشمل اسم الفندق، المبنى، الدور، الغرفة، السرير، ورابط بوابة المقيمين."
                   : "Includes hotel name, building, room, bed, and portal link."}
               </p>
             </div>
