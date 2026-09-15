@@ -26,49 +26,6 @@ router.get("/lookup-values", requireAuth, async (req, res): Promise<void> => {
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(lookupValuesTable.sortOrder, lookupValuesTable.value);
 
-    // Auto-seed room classifications if requested category is room_classification and empty
-    if (category === "room_classification" && results.length === 0) {
-      const defaults = [
-        { category: "room_classification", value: "Deluxe room", parentValue: "Single", extraValue: "Level 1 / VIP / Executive", sortOrder: 1 },
-        { category: "room_classification", value: "Superior room", parentValue: "Single", extraValue: "Level 2 / Supervisory / Senior", sortOrder: 2 },
-        { category: "room_classification", value: "Family suite", parentValue: "Suite", extraValue: "Family / Multi-Bed / Largest Capacity", sortOrder: 3 },
-        { category: "room_classification", value: "Standard room", parentValue: "Double", extraValue: "Staff / Operations", sortOrder: 4 },
-      ];
-      try {
-        await tenantDb.insert(lookupValuesTable).values(defaults as any);
-        results = await tenantDb
-          .select()
-          .from(lookupValuesTable)
-          .where(and(...conditions))
-          .orderBy(lookupValuesTable.sortOrder, lookupValuesTable.value);
-      } catch (e) {
-        console.warn("Failed to auto-seed room classifications:", e);
-      }
-    }
-
-    // Auto-seed bed types if requested category is bed_type and empty
-    if (category === "bed_type" && results.length === 0) {
-      const bedDefaults = [
-        { category: "bed_type", value: "Single Bed", sortOrder: 1 },
-        { category: "bed_type", value: "Twin Bed", sortOrder: 2 },
-        { category: "bed_type", value: "Double Bed", sortOrder: 3 },
-        { category: "bed_type", value: "Queen Bed", sortOrder: 4 },
-        { category: "bed_type", value: "King Bed", sortOrder: 5 },
-        { category: "bed_type", value: "Bunk Bed", sortOrder: 6 },
-        { category: "bed_type", value: "Sofa Bed", sortOrder: 7 },
-      ];
-      try {
-        await tenantDb.insert(lookupValuesTable).values(bedDefaults as any);
-        results = await tenantDb
-          .select()
-          .from(lookupValuesTable)
-          .where(and(...conditions))
-          .orderBy(lookupValuesTable.sortOrder, lookupValuesTable.value);
-      } catch (e) {
-        console.warn("Failed to auto-seed bed types:", e);
-      }
-    }
-
     return results;
   });
 
