@@ -680,12 +680,36 @@ router.post("/auth/forgot-password/request-otp", async (req, res): Promise<void>
   const nextCooldownSeconds =
     resendCount === 0 ? 60 : resendCount === 1 ? 120 : 300;
 
-  // Send Email (SMTP with console fallback)
+  // Retrieve tenant SMTP config from database settings if configured
+  let smtpConfig: any = undefined;
+  if (user.propertyId && Number(user.propertyId) > 0) {
+    try {
+      const tenantSettings = await withTenant(Number(user.propertyId), async (tenantDb) => {
+        const [s] = await tenantDb.select().from(settingsTable).limit(1);
+        return s;
+      });
+      if (tenantSettings?.smtpHost && tenantSettings?.smtpUser && tenantSettings?.smtpPass) {
+        smtpConfig = {
+          smtpHost: tenantSettings.smtpHost,
+          smtpPort: tenantSettings.smtpPort,
+          smtpSecure: tenantSettings.smtpSecure,
+          smtpUser: tenantSettings.smtpUser,
+          smtpPass: tenantSettings.smtpPass,
+          smtpFrom: tenantSettings.smtpFrom,
+        };
+      }
+    } catch (e: any) {
+      console.warn("[auth/request-otp] Could not load tenant SMTP config:", e?.message);
+    }
+  }
+
+  // Send Email (SMTP from DB or environment with console fallback)
   await sendOtpEmail({
     toEmail: user.email,
     recipientName: user.username,
     otpCode,
     expiresInSeconds: TTL_SECONDS,
+    config: smtpConfig,
   });
 
   await logActivity({

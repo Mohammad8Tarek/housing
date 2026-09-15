@@ -2005,6 +2005,16 @@ BEGIN
       CREATE INDEX IF NOT EXISTS idx_maintenance_worker_id ON maintenance(worker_id);
     END IF;
 
+    -- Ensure settings has smtp configuration columns
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'settings') THEN
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtp_host" TEXT;
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtp_port" INTEGER NOT NULL DEFAULT 587;
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtp_secure" BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtp_user" TEXT;
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtp_pass" TEXT;
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtp_from" TEXT;
+    END IF;
+
   END LOOP;
 
   -- Reset search path back to public

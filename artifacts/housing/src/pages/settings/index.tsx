@@ -25,9 +25,11 @@ import {
   Sparkles,
   MessageSquare,
   HardHat,
+  Mail,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { useProperty } from "@/context/PropertyContext";
+import { useAuth } from "@/context/AuthContext";
 
 import { useSettingsForm } from "./hooks/useSettingsForm";
 import { GeneralSettings } from "./components/GeneralSettings";
@@ -36,6 +38,7 @@ import { LookupSection } from "./components/LookupSection";
 import { HrSyncSection } from "./components/HrSyncSection";
 import { DoorLocksSection } from "./components/DoorLocksSection";
 import { WhatsAppSettingsSection } from "./components/WhatsAppSettingsSection";
+import { EmailSettingsSection } from "./components/EmailSettingsSection";
 import { WorkersTab } from "@/pages/maintenance/components/WorkersTab";
 
 export default function Settings() {
@@ -50,6 +53,13 @@ export default function Settings() {
     language,
   } = useSettingsForm();
   const { setLanguage } = useLanguage();
+  const { user, isSystemAdmin } = useAuth();
+  const canManageEmail = Boolean(
+    isSystemAdmin ||
+    user?.roles?.includes("admin") ||
+    user?.roles?.includes("super_admin") ||
+    (user as any)?.isSystemAdmin
+  );
 
   const initRef = useRef(false);
   useEffect(() => {
@@ -121,13 +131,9 @@ export default function Settings() {
               <Image className="w-3.5 h-3.5 mr-1.5" />
               {ar ? "عام" : "General"}
             </TabsTrigger>
-            <TabsTrigger value="departments">
-              <Building2 className="w-3.5 h-3.5 mr-1.5" />
-              {ar ? "الأقسام" : "Depts"}
-            </TabsTrigger>
-            <TabsTrigger value="job-titles">
-              <Briefcase className="w-3.5 h-3.5 mr-1.5" />
-              {ar ? "المسميات" : "Jobs"}
+            <TabsTrigger value="organization">
+              <Building2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
+              {ar ? "الأقسام والمسميات" : "Depts & Jobs"}
             </TabsTrigger>
             <TabsTrigger value="room-types">
               <BedDouble className="w-3.5 h-3.5 mr-1.5" />
@@ -153,6 +159,12 @@ export default function Settings() {
               <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
               {ar ? "الواتساب" : "WhatsApp"}
             </TabsTrigger>
+            {canManageEmail && (
+              <TabsTrigger value="email">
+                <Mail className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
+                {ar ? "البريد الإلكتروني" : "Email"}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="general">
@@ -175,39 +187,56 @@ export default function Settings() {
             </form>
           </TabsContent>
 
-          <TabsContent value="departments">
-            <Card>
-              <CardContent className="pt-6">
-                {selectedPropertyId && (
-                  <LookupSection
-                    propertyId={selectedPropertyId}
-                    category={LOOKUP_CATEGORIES.DEPARTMENT}
-                    label="Department"
-                    description={ar ? "إدارة قائمة الأقسام" : "Manage departments list"}
-                    enablePagination={true}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <TabsContent value="organization">
+            <div className="space-y-4">
+              <Tabs defaultValue="departments" className="w-full">
+                <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-muted/60 p-1">
+                  <TabsTrigger value="departments" className="text-xs font-semibold gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-primary" />
+                    {ar ? "الأقسام والإدارات" : "Departments"}
+                  </TabsTrigger>
+                  <TabsTrigger value="job-titles" className="text-xs font-semibold gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-primary" />
+                    {ar ? "المسميات والدرجات" : "Job Titles & Levels"}
+                  </TabsTrigger>
+                </TabsList>
 
-          <TabsContent value="job-titles">
-            <Card>
-              <CardContent className="pt-6">
-                {selectedPropertyId && (
-                  <LookupSection
-                    propertyId={selectedPropertyId}
-                    category={LOOKUP_CATEGORIES.JOB_TITLE}
-                    label="Job Title"
-                    description={ar ? "إدارة المسميات الوظيفية وربطها بالدرجة" : "Manage job titles"}
-                    parentCategory={LOOKUP_CATEGORIES.DEPARTMENT}
-                    parentLabel="Department"
-                    extraLabel="Level"
-                    enablePagination={true}
-                  />
-                )}
-              </CardContent>
-            </Card>
+                <TabsContent value="departments">
+                  <Card>
+                    <CardContent className="pt-6">
+                      {selectedPropertyId && (
+                        <LookupSection
+                          propertyId={selectedPropertyId}
+                          category={LOOKUP_CATEGORIES.DEPARTMENT}
+                          label="Department"
+                          description={ar ? "إدارة قائمة الأقسام والإدارات" : "Manage departments list"}
+                          enablePagination={true}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="job-titles">
+                  <Card>
+                    <CardContent className="pt-6">
+                      {selectedPropertyId && (
+                        <LookupSection
+                          propertyId={selectedPropertyId}
+                          category={LOOKUP_CATEGORIES.JOB_TITLE}
+                          label="Job Title"
+                          description={ar ? "إدارة المسميات الوظيفية وتحديد الأقسام والدرجات" : "Manage job titles"}
+                          parentCategory={LOOKUP_CATEGORIES.DEPARTMENT}
+                          parentLabel="Department"
+                          extraLabel="Level"
+                          enablePagination={true}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
           </TabsContent>
 
           <TabsContent value="room-types">
@@ -316,6 +345,15 @@ export default function Settings() {
               language={language}
             />
           </TabsContent>
+
+          {canManageEmail && (
+            <TabsContent value="email" className="space-y-4">
+              <EmailSettingsSection
+                propertyId={selectedPropertyId}
+                language={language}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </FormProvider>

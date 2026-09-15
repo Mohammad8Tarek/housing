@@ -1095,6 +1095,19 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     CREATE INDEX IF NOT EXISTS idx_activity_logs_property_id ON public.activity_logs (property_id);
     CREATE INDEX IF NOT EXISTS idx_activity_logs_severity ON public.activity_logs (severity);`,
   },
+  {
+    name: "public.settings.smtp_columns",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'settings') THEN
+        ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS smtp_host TEXT;
+        ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS smtp_port INTEGER NOT NULL DEFAULT 587;
+        ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS smtp_secure BOOLEAN NOT NULL DEFAULT FALSE;
+        ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS smtp_user TEXT;
+        ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS smtp_pass TEXT;
+        ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS smtp_from TEXT;
+      END IF;
+    END $$;`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1977,6 +1990,15 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     q: `ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS property_id INTEGER;
     CREATE INDEX IF NOT EXISTS idx_tenant_activity_logs_property_id ON activity_logs (property_id);
     CREATE INDEX IF NOT EXISTS idx_tenant_activity_logs_severity ON activity_logs (severity);`,
+  },
+  {
+    name: "settings.smtp_columns",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_host TEXT;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_port INTEGER NOT NULL DEFAULT 587;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_secure BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_user TEXT;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_pass TEXT;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_from TEXT;`,
   },
 ];
 

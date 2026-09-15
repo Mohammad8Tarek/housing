@@ -1,10 +1,20 @@
 import nodemailer from "nodemailer";
 
+export interface SmtpConfig {
+  smtpHost?: string | null;
+  smtpPort?: number | null;
+  smtpSecure?: boolean | null;
+  smtpUser?: string | null;
+  smtpPass?: string | null;
+  smtpFrom?: string | null;
+}
+
 export interface SendOtpEmailParams {
   toEmail: string;
   recipientName: string;
   otpCode: string;
   expiresInSeconds?: number;
+  config?: SmtpConfig;
 }
 
 export interface SendEmailResult {
@@ -15,9 +25,12 @@ export interface SendEmailResult {
 }
 
 /**
- * Checks if SMTP settings are configured in environment variables.
+ * Checks if SMTP settings are configured in config or environment variables.
  */
-export function isSmtpConfigured(): boolean {
+export function isSmtpConfigured(config?: SmtpConfig): boolean {
+  if (config?.smtpHost && config?.smtpUser && config?.smtpPass) {
+    return true;
+  }
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER || process.env.SMTP_USERNAME;
   const pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
@@ -25,27 +38,31 @@ export function isSmtpConfigured(): boolean {
 }
 
 /**
- * Creates or gets a Nodemailer transporter.
+ * Creates a Nodemailer transporter from config or environment variables.
  */
-function getTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || "587", 10);
-  const secure = process.env.SMTP_SECURE === "true" || port === 465;
-  const user = process.env.SMTP_USER || process.env.SMTP_USERNAME;
-  const pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+export function createTransporter(config?: SmtpConfig) {
+  const host = config?.smtpHost || process.env.SMTP_HOST;
+  const port = Number(config?.smtpPort || process.env.SMTP_PORT || "587");
+  const secure =
+    config?.smtpSecure !== undefined
+      ? Boolean(config.smtpSecure)
+      : process.env.SMTP_SECURE === "true" || port === 465;
+  const user = config?.smtpUser || process.env.SMTP_USER || process.env.SMTP_USERNAME;
+  const pass = config?.smtpPass || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
 
   return nodemailer.createTransport({
-    host,
+    host: host || undefined,
     port,
     secure,
-    auth: {
-      user,
-      pass,
-    },
+    auth: user && pass ? { user, pass } : undefined,
     tls: {
-      rejectUnauthorized: process.env.NODE_ENV === "production",
+      rejectUnauthorized: false,
     },
   });
+}
+
+function getTransporter(config?: SmtpConfig) {
+  return createTransporter(config);
 }
 
 /**
@@ -163,12 +180,13 @@ export async function sendOtpEmail({
   recipientName,
   otpCode,
   expiresInSeconds = 120,
+  config,
 }: SendOtpEmailParams): Promise<SendEmailResult> {
-  const isConfigured = isSmtpConfigured();
+  const isConfigured = isSmtpConfigured(config);
 
   if (!isConfigured) {
     console.log("\n" + "=".repeat(65));
-    console.log("📨 [AUTH OTP SIMULATION] (SMTP not configured in environment)");
+    console.log("📨 [AUTH OTP SIMULATION] (SMTP not configured in environment or settings)");
     console.log(`👤 Recipient : ${recipientName} <${toEmail}>`);
     console.log(`🔑 OTP Code  : >>> ${otpCode} <<<`);
     console.log(`⏱️ Validity  : ${expiresInSeconds} seconds (${Math.ceil(expiresInSeconds / 60)} minutes)`);
@@ -177,11 +195,12 @@ export async function sendOtpEmail({
   }
 
   try {
-    const transporter = getTransporter();
+    const transporter = getTransporter(config);
     const fromAddress =
+      config?.smtpFrom ||
       process.env.SMTP_FROM ||
       process.env.MAIL_FROM ||
-      `"Sunrise Staff Housing" <${process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`;
+      `"Sunrise Staff Housing" <${config?.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`;
 
     const info = await transporter.sendMail({
       from: fromAddress,
@@ -201,5 +220,66 @@ export async function sendOtpEmail({
     console.log(`🔑 OTP Code  : >>> ${otpCode} <<<`);
     console.log("=".repeat(65) + "\n");
     return { success: true, mode: "console", error: err?.message };
+  }
+}
+
+/**
+ * Sends a test email to verify SMTP configuration live.
+ */
+export async function sendTestEmail({
+  toEmail,
+  config,
+}: {
+  toEmail: string;
+  config?: SmtpConfig;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    const transporter = getTransporter(config);
+    // Verify connection first
+    await transporter.verify();
+
+    const fromAddress =
+      config?.smtpFrom ||
+      process.env.SMTP_FROM ||
+      `"Sunrise Staff Housing" <${config?.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`;
+
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: toEmail,
+      subject: "اختبار إعدادات البريد الإلكتروني | Sunrise Staff Housing",
+      html: `
+        <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #0F2A44 0%, #1e3a5f 100%); padding: 24px; text-align: center; border-radius: 8px; color: #C9A24D;">
+            <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 1px;">SUNRISE</h1>
+            <p style="margin: 6px 0 0; color: #e2e8f0; font-size: 13px;">Resorts & Cruises &bull; Staff Housing Management</p>
+          </div>
+          <div style="padding: 24px 8px;">
+            <h2 style="color: #0F2A44; margin-top: 0; font-size: 19px;">تهانينا! إعدادات البريد الإلكتروني تعمل بنجاح 🎉</h2>
+            <p style="color: #475569; font-size: 14px; line-height: 1.7;">
+              تم إرسال هذه الرسالة التجريبية بنجاح لتأكيد صحة اتصال سيرفر البريد الإلكتروني (SMTP) بنظام إدارة سكن العاملين (Sunrise Staff Housing).
+            </p>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 13px; color: #334155;">
+              <div style="margin-bottom: 8px;"><strong>سيرفر البريد (Host):</strong> ${escapeHtml(config?.smtpHost || process.env.SMTP_HOST || 'Default')}</div>
+              <div style="margin-bottom: 8px;"><strong>المنفذ (Port):</strong> ${config?.smtpPort || process.env.SMTP_PORT || '587'}</div>
+              <div style="margin-bottom: 8px;"><strong>حساب الإرسال (User):</strong> ${escapeHtml(config?.smtpUser || process.env.SMTP_USER || 'Default')}</div>
+              <div><strong>تاريخ وتوقيت الاختبار:</strong> ${new Date().toLocaleString('ar-EG')}</div>
+            </div>
+            <p style="color: #64748b; font-size: 12px; line-height: 1.6;">
+              الآن يمكن للنظام إرسال رموز التحقق (OTP) لاستعادة كلمات المرور والإشعارات التلقائية بأمان.
+            </p>
+          </div>
+          <div style="text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+            &copy; ${new Date().getFullYear()} Sunrise Resorts & Cruises. All rights reserved.
+          </div>
+        </div>
+      `,
+      text: `تهانينا! إعدادات البريد الإلكتروني تعمل بنجاح في نظام Sunrise Staff Housing.\nالسيرفر: ${config?.smtpHost || process.env.SMTP_HOST || 'Default'}\nالمنفذ: ${config?.smtpPort || process.env.SMTP_PORT || '587'}\nتاريخ الاختبار: ${new Date().toLocaleString('ar-EG')}`,
+    });
+
+    console.log(`[SMTP TEST] Test email sent successfully to ${toEmail}. Message ID: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err: any) {
+    console.error(`[SMTP TEST ERROR] Failed to send test email to ${toEmail}:`, err?.message || err);
+    return { success: false, error: err?.message || String(err) };
   }
 }

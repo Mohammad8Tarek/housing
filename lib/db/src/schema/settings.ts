@@ -53,6 +53,14 @@ export const settingsTable = pgTable("settings", {
     .notNull()
     .default(15),
 
+  // ─── Email (SMTP) Configuration ──────────────────────────────────
+  smtpHost: text("smtp_host"),
+  smtpPort: integer("smtp_port").notNull().default(587),
+  smtpSecure: boolean("smtp_secure").notNull().default(false),
+  smtpUser: text("smtp_user"),
+  smtpPass: text("smtp_pass"),
+  smtpFrom: text("smtp_from"),
+
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

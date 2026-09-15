@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { sendTestEmail } from "../lib/email-service.js";
 
 const router: Router = Router();
 
@@ -24,12 +25,20 @@ router.get("/settings", requireAuth, async (req, res): Promise<void> => {
       res.status(404).json({ error: "Settings not found" });
       return;
     }
+    const hasSmtpPass = Boolean((settings as any).smtpPass);
     res.json({
       ...settings,
       propertyId,
       portalContactEmail: settings.portalContactEmail ?? null,
       portalContactPhone: settings.portalContactPhone ?? null,
       portalContactExt: settings.portalContactExt ?? null,
+      smtpHost: (settings as any).smtpHost ?? null,
+      smtpPort: (settings as any).smtpPort ?? 587,
+      smtpSecure: (settings as any).smtpSecure ?? false,
+      smtpUser: (settings as any).smtpUser ?? null,
+      smtpPass: hasSmtpPass ? "••••••••" : "",
+      hasSmtpPass,
+      smtpFrom: (settings as any).smtpFrom ?? null,
       updatedAt:
         settings.updatedAt instanceof Date &&
         typeof settings.updatedAt.toISOString === "function"
@@ -77,11 +86,29 @@ router.patch(
         // ─── Account Lockout ─────────────────────────────────────────
         "lockoutThreshold",
         "lockoutDurationMinutes",
+        // ─── Email (SMTP) Configuration ──────────────────────────────
+        "smtpHost",
+        "smtpPort",
+        "smtpSecure",
+        "smtpUser",
+        "smtpPass",
+        "smtpFrom",
       ];
 
       const updateData: Record<string, any> = {};
       for (const field of allowedFields) {
         if (req.body[field] !== undefined) updateData[field] = req.body[field];
+      }
+
+      // Safeguard SMTP password from being overwritten with placeholder or empty string
+      if (updateData.smtpPass === "••••••••" || updateData.smtpPass === "") {
+        delete updateData.smtpPass;
+      }
+      if (updateData.smtpPort !== undefined) {
+        updateData.smtpPort = Number(updateData.smtpPort) || 587;
+      }
+      if (updateData.smtpSecure !== undefined) {
+        updateData.smtpSecure = Boolean(updateData.smtpSecure);
       }
 
       if (Object.keys(updateData).length === 0) {
@@ -117,9 +144,13 @@ router.patch(
         entityType: "settings",
         entityId: updated.id,
       });
+
+      const hasSmtpPass = Boolean((updated as any).smtpPass);
       res.json({
         ...updated,
         propertyId,
+        smtpPass: hasSmtpPass ? "••••••••" : "",
+        hasSmtpPass,
         updatedAt:
           updated.updatedAt instanceof Date &&
           typeof updated.updatedAt.toISOString === "function"
@@ -129,6 +160,68 @@ router.patch(
     } catch (err: any) {
       console.error("[settings/patch] Error:", err.message);
       res.status(500).json({ error: "Failed to update settings" });
+    }
+  },
+);
+
+router.post(
+  "/settings/email/test",
+  requirePermission("settings", "edit"),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      const { toEmail, smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom } = req.body || {};
+
+      if (!toEmail || !toEmail.includes("@")) {
+        res.status(400).json({ error: "البريد الإلكتروني للمستلم مطلوب وغير صالح / Valid recipient email is required" });
+        return;
+      }
+
+      let savedSettings: any = null;
+      if (propertyId) {
+        savedSettings = await withTenant(propertyId, async (tenantDb) => {
+          const [s] = await tenantDb.select().from(settingsTable).limit(1);
+          return s;
+        });
+      }
+
+      let resolvedPass = smtpPass;
+      if (!resolvedPass || resolvedPass === "••••••••") {
+        resolvedPass = savedSettings?.smtpPass || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+      }
+
+      const config = {
+        smtpHost: smtpHost || savedSettings?.smtpHost || process.env.SMTP_HOST,
+        smtpPort: smtpPort ? Number(smtpPort) : (savedSettings?.smtpPort ? Number(savedSettings.smtpPort) : Number(process.env.SMTP_PORT || 587)),
+        smtpSecure: smtpSecure !== undefined ? Boolean(smtpSecure) : (savedSettings?.smtpSecure !== undefined ? Boolean(savedSettings.smtpSecure) : undefined),
+        smtpUser: smtpUser || savedSettings?.smtpUser || process.env.SMTP_USER,
+        smtpPass: resolvedPass,
+        smtpFrom: smtpFrom || savedSettings?.smtpFrom || process.env.SMTP_FROM,
+      };
+
+      if (!config.smtpHost || !config.smtpUser || !config.smtpPass) {
+        res.status(400).json({
+          error: "بيانات سيرفر البريد (Host / User / Password) غير مكتملة / Incomplete SMTP credentials",
+        });
+        return;
+      }
+
+      const result = await sendTestEmail({ toEmail, config });
+      if (result.success) {
+        res.json({
+          success: true,
+          message: "تم إرسال البريد الإلكتروني التجريبي بنجاح / Test email sent successfully",
+          messageId: result.messageId,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error || "فشل إرسال البريد التجريبي / Failed to send test email",
+        });
+      }
+    } catch (err: any) {
+      console.error("[settings/email/test] Error:", err?.message || err);
+      res.status(500).json({ error: err?.message || "Internal server error" });
     }
   },
 );
