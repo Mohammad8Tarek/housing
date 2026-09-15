@@ -34,9 +34,27 @@ router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "v
     );
     const dbRow = dbRes.rows[0];
 
-    const effectiveStatus = session.status !== "disconnected" ? session.status : (dbRow?.status || "disconnected");
+    // Only consider DB QR code if it was updated in the last 75 seconds (WhatsApp QR expiry)
+    let effectiveQr: string | null = session.qrCode || null;
+    if (!effectiveQr && dbRow?.status === "pairing" && dbRow?.qr_code && dbRow?.updated_at) {
+      const ageMs = Date.now() - new Date(dbRow.updated_at).getTime();
+      if (ageMs < 75000) {
+        effectiveQr = dbRow.qr_code;
+      }
+    }
+
+    let effectiveStatus = session.status;
+    if (session.status === "disconnected") {
+      if (dbRow?.status === "connected") {
+        effectiveStatus = "connected";
+      } else if (effectiveQr) {
+        effectiveStatus = "pairing";
+      } else {
+        effectiveStatus = "disconnected";
+      }
+    }
+
     const effectivePhone = session.phoneNumber || dbRow?.phone_number || null;
-    const effectiveQr = session.qrCode || dbRow?.qr_code || null;
 
     res.json({
       success: true,
@@ -56,13 +74,26 @@ router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "v
 router.post("/connect", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
-    const session = await connectPropertyWhatsApp(propertyId);
+    const session = await connectPropertyWhatsApp(propertyId, true);
+
+    // Wait up to 4.5 seconds for QR code generation so client receives QR immediately
+    let qrCode = session.qrCode;
+    if (!qrCode && session.status !== "connected") {
+      for (let i = 0; i < 9; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        const s = await getWhatsAppSession(propertyId);
+        if (s.qrCode || s.status === "connected") {
+          qrCode = s.qrCode;
+          break;
+        }
+      }
+    }
 
     res.json({
       success: true,
       status: session.status,
       phoneNumber: session.phoneNumber || null,
-      qrCode: session.qrCode || null,
+      qrCode: qrCode || session.qrCode || null,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

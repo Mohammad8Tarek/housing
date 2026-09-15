@@ -559,6 +559,20 @@ export function WhatsAppSettingsSection({
             </div>
           )}
 
+          {status === "pairing" && !qrCode && (
+            <div className="flex flex-col items-center justify-center p-8 bg-muted/40 rounded-2xl border border-border/80 text-center space-y-3 animate-pulse">
+              <Loader2 className="w-10 h-10 text-[#00a884] animate-spin" />
+              <div className="text-sm font-bold text-foreground">
+                {ar ? "جاري إنشاء وتجهيز رمز QR جديد..." : "Generating a fresh QR Code..."}
+              </div>
+              <div className="text-xs text-muted-foreground max-w-sm">
+                {ar
+                  ? "يتم الآن إنشاء جلسة ربط آمنة مع خوادم الواتساب، سيظهر رمز QR خلال لحظات..."
+                  : "Establishing secure pairing session with WhatsApp servers, QR will appear in moments..."}
+              </div>
+            </div>
+          )}
+
           {/* Anti-Ban Shield Card */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
             <div className="p-3 rounded-xl bg-card border flex items-center gap-3">

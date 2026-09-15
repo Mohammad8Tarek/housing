@@ -157,14 +157,22 @@ export async function getWhatsAppSession(propertyId: number): Promise<SessionSta
     activeSessions.set(propertyId, session);
   }
 
-  // If session folder has creds.json and sock is null, automatically restore connection
+  // If session folder has valid registered creds.json and sock is null, automatically restore connection
   if (!session.sock && !session.isInitializing) {
     const sessionFolder = path.join(SESSIONS_DIR, `property_${propertyId}`);
-    if (fs.existsSync(path.join(sessionFolder, "creds.json"))) {
-      session.isInitializing = true;
-      connectPropertyWhatsApp(propertyId).catch((err) => {
-        console.warn(`[WhatsApp] Auto-restore connection warning for property ${propertyId}:`, err?.message);
-      });
+    const credsPath = path.join(sessionFolder, "creds.json");
+    if (fs.existsSync(credsPath)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(credsPath, "utf-8"));
+        if (raw?.registered && raw?.me) {
+          session.isInitializing = true;
+          connectPropertyWhatsApp(propertyId, false).catch((err) => {
+            console.warn(`[WhatsApp] Auto-restore connection warning for property ${propertyId}:`, err?.message);
+          });
+        }
+      } catch {
+        // Corrupt creds, ignore auto-restore
+      }
     }
   }
 
@@ -174,7 +182,10 @@ export async function getWhatsAppSession(propertyId: number): Promise<SessionSta
 /**
  * Connect to WhatsApp for a property (generate QR code or restore existing session)
  */
-export async function connectPropertyWhatsApp(propertyId: number): Promise<SessionState> {
+export async function connectPropertyWhatsApp(
+  propertyId: number,
+  forceRestart: boolean = false
+): Promise<SessionState> {
   let session = activeSessions.get(propertyId);
   if (!session) {
     session = {
@@ -187,23 +198,57 @@ export async function connectPropertyWhatsApp(propertyId: number): Promise<Sessi
     activeSessions.set(propertyId, session);
   }
 
-  if (session.status === "connected" && session.sock) {
+  // If already connected and socket is active, return it unless forced
+  if (!forceRestart && session.status === "connected" && session.sock) {
     return session;
   }
+
+  // If forceRestart requested or previous socket is dead/not connected, clean up old socket
   if (session.sock) {
-    return session;
+    try {
+      session.sock.ev.removeAllListeners("connection.update");
+      session.sock.ev.removeAllListeners("creds.update");
+      session.sock.end(undefined);
+    } catch {}
+    session.sock = null;
   }
 
   session.isInitializing = true;
   session.status = "pairing";
+  session.qrCode = undefined;
 
   const sessionFolder = path.join(SESSIONS_DIR, `property_${propertyId}`);
   if (!fs.existsSync(sessionFolder)) {
     fs.mkdirSync(sessionFolder, { recursive: true });
+  } else {
+    // If credentials exist, check if they are actually registered
+    const credsPath = path.join(sessionFolder, "creds.json");
+    if (fs.existsSync(credsPath)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(credsPath, "utf-8"));
+        // If not registered or forceRestart, clean session directory so Baileys generates a fresh pairing QR
+        if (forceRestart || !raw.registered || !raw.me) {
+          console.log(`[WhatsApp] Purging unregistered/stale session files for property ${propertyId}`);
+          fs.rmSync(sessionFolder, { recursive: true, force: true });
+          fs.mkdirSync(sessionFolder, { recursive: true });
+        }
+      } catch {
+        fs.rmSync(sessionFolder, { recursive: true, force: true });
+        fs.mkdirSync(sessionFolder, { recursive: true });
+      }
+    }
   }
 
   const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
-  const { version } = await fetchLatestBaileysVersion();
+
+  // Safe fetch of version with reliable fallback
+  let version: [number, number, number] = [2, 3000, 1017531234];
+  try {
+    const v = await fetchLatestBaileysVersion();
+    if (v?.version) version = v.version;
+  } catch (err: any) {
+    console.warn("[WhatsApp] fetchLatestBaileysVersion fallback used:", err?.message);
+  }
 
   const logger = pino({ level: "silent" });
 
@@ -216,8 +261,11 @@ export async function connectPropertyWhatsApp(propertyId: number): Promise<Sessi
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     generateHighQualityLinkPreview: false,
-    browser: ["Sunrise Staff Housing", "Chrome", "1.0.0"],
+    browser: ["Sunrise Staff Housing", "Chrome", "120.0.0"],
     syncFullHistory: false,
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 25000,
   });
 
   session.sock = sock;
@@ -239,12 +287,14 @@ export async function connectPropertyWhatsApp(propertyId: number): Promise<Sessi
           },
         });
         session.qrCode = qrDataUrl;
-        // Persist QR to DB for frontend polling
+        console.log(`[WhatsApp] New QR code generated for property ${propertyId}`);
+        // Persist fresh QR to DB for frontend polling
         await pool.query(
-          `UPDATE public.property_whatsapp_configs
-           SET status = 'pairing', qr_code = $1, updated_at = NOW()
-           WHERE property_id = $2`,
-          [qrDataUrl, propertyId]
+          `INSERT INTO public.property_whatsapp_configs (property_id, status, qr_code, updated_at)
+           VALUES ($1, 'pairing', $2, NOW())
+           ON CONFLICT (property_id) DO UPDATE
+           SET status = 'pairing', qr_code = $2, updated_at = NOW()`,
+          [propertyId, qrDataUrl]
         ).catch(() => {});
       } catch (err) {
         console.error("[WhatsApp] Error generating QR Data URL:", err);
@@ -275,29 +325,21 @@ export async function connectPropertyWhatsApp(propertyId: number): Promise<Sessi
 
     if (connection === "close") {
       session.isInitializing = false;
+      session.sock = null;
+      session.qrCode = undefined;
+
       const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
 
       console.log(
-        `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), shouldReconnect: ${shouldReconnect}`
+        `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}`
       );
 
-      if (shouldReconnect) {
-        if (session.reconnectAttempts < 5) {
-          session.reconnectAttempts++;
-          const delay = Math.min(session.reconnectAttempts * 3000, 15000);
-          setTimeout(() => {
-            connectPropertyWhatsApp(propertyId).catch(() => {});
-          }, delay);
-        } else {
-          session.status = "disconnected";
-        }
-      } else {
-        // Logged out
+      if (isLoggedOut) {
+        // Explicitly logged out or auth rejected
         session.status = "disconnected";
-        session.sock = null;
         session.phoneNumber = undefined;
-        session.qrCode = undefined;
+        session.reconnectAttempts = 0;
 
         // Clean up session folder
         try {
@@ -310,6 +352,25 @@ export async function connectPropertyWhatsApp(propertyId: number): Promise<Sessi
            WHERE property_id = $1`,
           [propertyId]
         ).catch(() => {});
+      } else {
+        // Temporary network drop or handshake retry
+        // Clear stale QR code from DB so users don't see expired codes
+        await pool.query(
+          `UPDATE public.property_whatsapp_configs
+           SET qr_code = NULL, updated_at = NOW()
+           WHERE property_id = $1 AND status = 'pairing'`,
+          [propertyId]
+        ).catch(() => {});
+
+        if (session.status === "connected" && session.reconnectAttempts < 5) {
+          session.reconnectAttempts++;
+          const delay = Math.min(session.reconnectAttempts * 3000, 15000);
+          setTimeout(() => {
+            connectPropertyWhatsApp(propertyId, false).catch(() => {});
+          }, delay);
+        } else {
+          session.status = "disconnected";
+        }
       }
     }
   });
