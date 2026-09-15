@@ -77,6 +77,7 @@ const MODULES = [
   "smart_locks",
   "whatsapp",
   "inventory",
+  "workers",
   "hr_sync",
   "portal_notifications",
 ];
@@ -187,7 +188,11 @@ const formatDetails = (details: any) => {
 
 const escapeCsv = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined) return "";
-  const str = String(value);
+  let str = String(value);
+  // Protect against CSV formula injection
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
   const needsQuoting =
     str.includes(",") ||
     str.includes('"') ||
@@ -205,7 +210,8 @@ const escapeHtml = (value: string | number | null | undefined) =>
     .replace(/"/g, "&quot;");
 
 function downloadCsv(filename: string, rows: string[]) {
-  const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+  // Prepend UTF-8 BOM (\uFEFF) so Excel on Windows properly displays Arabic text
+  const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -244,6 +250,9 @@ export default function ActivityLog() {
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   const [moduleFilter, setModuleFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const [activityDateFrom, setActivityDateFrom] = useState("");
+  const [activityDateTo, setActivityDateTo] = useState("");
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
@@ -265,7 +274,7 @@ export default function ActivityLog() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: logsResponse, isLoading } = useListActivityLogs(
+  const { data: logsResponse, isLoading, refetch } = useListActivityLogs(
     { 
       propertyId: activePropertyId,
       page: currentPage,
@@ -273,8 +282,11 @@ export default function ActivityLog() {
       search: debouncedSearch || undefined,
       module: moduleFilter === "all" ? undefined : moduleFilter,
       action: actionFilter === "all" ? undefined : actionFilter,
-    } as any, // Cast as any because the types might not be regenerated yet
-    { query: { enabled: !!activePropertyId } },
+      severity: severityFilter === "all" ? undefined : severityFilter,
+      dateFrom: activityDateFrom || undefined,
+      dateTo: activityDateTo || undefined,
+    } as any,
+    { query: { enabled: true } },
   );
 
   const paginated = logsResponse?.data || [];
@@ -319,6 +331,12 @@ export default function ActivityLog() {
       labelAr: "التاريخ والوقت",
       defaultVisible: true,
     },
+    {
+      key: "property",
+      label: "Property",
+      labelAr: "المنشأة",
+      defaultVisible: true,
+    },
     { key: "user", label: "User", labelAr: "المستخدم", defaultVisible: true },
     {
       key: "action",
@@ -347,10 +365,12 @@ export default function ActivityLog() {
     const header = [
       "ID",
       "Timestamp",
+      "Property",
       "Username",
       "Role",
       "Action",
       "Module",
+      "Severity",
       "IP Address",
       "Details",
     ]
@@ -360,12 +380,14 @@ export default function ActivityLog() {
       [
         l.id,
         l.timestamp,
+        (l as any).propertyName || (l.propertyId ? `Property #${l.propertyId}` : "Global"),
         l.username,
         l.userRole ?? "",
         l.action,
         l.module,
+        (l as any).severity ?? "info",
         (l as any).ipAddress ?? "",
-        (l as any).details ?? "",
+        formatDetails((l as any).details),
       ]
         .map(escapeCsv)
         .join(","),
@@ -560,7 +582,7 @@ export default function ActivityLog() {
 
       {activeView === "activity" ? (
         <>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <Input
               placeholder={
                 ar
@@ -572,7 +594,7 @@ export default function ActivityLog() {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-64"
+              className="w-56"
             />
             <Select
               value={moduleFilter}
@@ -581,7 +603,7 @@ export default function ActivityLog() {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-36">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -614,6 +636,60 @@ export default function ActivityLog() {
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={severityFilter}
+              onValueChange={(v) => {
+                setSeverityFilter(v);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{ar ? "كل المستويات" : "All Severity"}</SelectItem>
+                <SelectItem value="info">{ar ? "معلومات (Info)" : "Info"}</SelectItem>
+                <SelectItem value="warning">{ar ? "تحذير (Warning)" : "Warning"}</SelectItem>
+                <SelectItem value="high">{ar ? "مرتفع (High)" : "High"}</SelectItem>
+                <SelectItem value="error">{ar ? "خطأ (Error)" : "Error"}</SelectItem>
+              </SelectContent>
+            </Select>
+            <DateInput
+              value={activityDateFrom}
+              onChange={(iso) => {
+                setActivityDateFrom(iso);
+                setCurrentPage(1);
+              }}
+              className="w-36"
+              placeholder={ar ? "من تاريخ..." : "From date..."}
+            />
+            <DateInput
+              value={activityDateTo}
+              onChange={(iso) => {
+                setActivityDateTo(iso);
+                setCurrentPage(1);
+              }}
+              className="w-36"
+              placeholder={ar ? "إلى تاريخ..." : "To date..."}
+            />
+            {(search || moduleFilter !== "all" || actionFilter !== "all" || severityFilter !== "all" || activityDateFrom || activityDateTo) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch("");
+                  setModuleFilter("all");
+                  setActionFilter("all");
+                  setSeverityFilter("all");
+                  setActivityDateFrom("");
+                  setActivityDateTo("");
+                  setCurrentPage(1);
+                }}
+                className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                {ar ? "إعادة ضبط" : "Reset"}
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -670,6 +746,11 @@ export default function ActivityLog() {
                         {ar ? "التاريخ والوقت" : "Date & Time"}
                       </TableHead>
                     )}
+                    {isVisible("property") && (
+                      <TableHead className="font-semibold whitespace-nowrap">
+                        {ar ? "المنشأة" : "Property"}
+                      </TableHead>
+                    )}
                     {isVisible("user") && (
                       <TableHead className="font-semibold">
                         {ar ? "المستخدم" : "User"}
@@ -713,6 +794,16 @@ export default function ActivityLog() {
                               ? format(new Date(log.timestamp), "HH:mm:ss")
                               : ""}
                           </div>
+                        </TableCell>
+                      )}
+                      {isVisible("property") && (
+                        <TableCell className="text-xs whitespace-nowrap">
+                          <Badge
+                            variant="outline"
+                            className="font-medium text-[11px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                          >
+                            {(log as any).propertyName || (log.propertyId ? `Hotel #${log.propertyId}` : (ar ? "النظام العام" : "Global"))}
+                          </Badge>
                         </TableCell>
                       )}
                       {isVisible("user") && (
@@ -863,13 +954,26 @@ export default function ActivityLog() {
                         <div className="space-y-4">
                           <DialogHeader>
                             <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${actionColor(selectedLog.action)}`}>
                                   {selectedLog.action}
                                 </span>
                                 {selectedLog.module && (
                                   <Badge variant="outline" className="text-xs uppercase">
                                     {selectedLog.module}
+                                  </Badge>
+                                )}
+                                {(selectedLog as any).severity && (
+                                  <Badge
+                                    variant={(selectedLog as any).severity === "warning" || (selectedLog as any).severity === "high" || (selectedLog as any).severity === "error" ? "destructive" : "secondary"}
+                                    className="text-xs uppercase"
+                                  >
+                                    {(selectedLog as any).severity}
+                                  </Badge>
+                                )}
+                                {(selectedLog as any).propertyName && (
+                                  <Badge variant="outline" className="text-xs bg-muted/40 font-medium">
+                                    🏨 {(selectedLog as any).propertyName}
                                   </Badge>
                                 )}
                               </div>
@@ -896,7 +1000,7 @@ export default function ActivityLog() {
                             </div>
                           )}
 
-                          <div className={`grid grid-cols-2 ${detailsParsed.roomNumber ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-2.5 text-xs`}>
+                          <div className={`grid grid-cols-2 ${detailsParsed.roomNumber ? "sm:grid-cols-4" : "sm:grid-cols-4"} gap-2.5 text-xs`}>
                             <div className="p-3 rounded-lg bg-muted/40 border">
                               <p className="text-muted-foreground font-medium mb-1">{ar ? "المستخدم:" : "User:"}</p>
                               <p className="font-semibold text-foreground">{selectedLog.username || "-"}</p>
@@ -904,21 +1008,26 @@ export default function ActivityLog() {
                                 <p className="text-[10px] text-muted-foreground capitalize mt-0.5">{selectedLog.userRole}</p>
                               )}
                             </div>
-                            {detailsParsed.roomNumber && (
+                            <div className="p-3 rounded-lg bg-muted/40 border">
+                              <p className="text-muted-foreground font-medium mb-1">{ar ? "المنشأة:" : "Property:"}</p>
+                              <p className="font-semibold text-foreground">{(selectedLog as any).propertyName || (selectedLog.propertyId ? `Hotel #${selectedLog.propertyId}` : (ar ? "النظام العام" : "Global"))}</p>
+                            </div>
+                            {detailsParsed.roomNumber ? (
                               <div className="p-3 rounded-lg bg-blue-50/80 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800">
                                 <p className="text-blue-700 dark:text-blue-300 font-semibold mb-1">{ar ? "رقم الغرفة:" : "Room Number:"}</p>
                                 <p className="font-mono font-bold text-blue-950 dark:text-blue-100 text-sm">
                                   🚪 {detailsParsed.roomNumber}
                                 </p>
                               </div>
+                            ) : (
+                              <div className="p-3 rounded-lg bg-muted/40 border">
+                                <p className="text-muted-foreground font-medium mb-1">{ar ? "العنصر المرتبط:" : "Entity:"}</p>
+                                <p className="font-semibold text-foreground">
+                                  {selectedLog.entityType ? `${selectedLog.entityType} #${selectedLog.entityId || ""}` : "-"}
+                                </p>
+                              </div>
                             )}
                             <div className="p-3 rounded-lg bg-muted/40 border">
-                              <p className="text-muted-foreground font-medium mb-1">{ar ? "العنصر المرتبط:" : "Entity:"}</p>
-                              <p className="font-semibold text-foreground">
-                                {selectedLog.entityType ? `${selectedLog.entityType} #${selectedLog.entityId || ""}` : "-"}
-                              </p>
-                            </div>
-                            <div className="p-3 rounded-lg bg-muted/40 border col-span-2 sm:col-span-1">
                               <p className="text-muted-foreground font-medium mb-1">{ar ? "عنوان IP:" : "IP Address:"}</p>
                               <p className="font-mono text-foreground">{(selectedLog as any).ipAddress || "-"}</p>
                             </div>

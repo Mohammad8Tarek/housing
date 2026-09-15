@@ -54,6 +54,17 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     .limit(1);
 
   if (!user) {
+    await logActivity({
+      req,
+      propertyId: null,
+      username: username.trim(),
+      action: "LOGIN_FAILED_UNKNOWN_USER",
+      actionType: "SECURITY",
+      module: "auth",
+      severity: "warning",
+      details: `Failed login attempt with non-existent username "${username.trim()}" from ${ip}`,
+      ipAddress: ip,
+    });
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }

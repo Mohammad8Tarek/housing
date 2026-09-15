@@ -189,12 +189,15 @@ router.post(
       });
 
       // Log Activity
+      const currentUser = su(req);
       await logActivity({
+        req,
         propertyId,
-        username: su(req),
-        userRole: (req as any).user?.roles?.[0] || "admin",
+        username: currentUser.username,
+        userId: currentUser.userId,
+        userRole: currentUser.userRole || "admin",
         action: "CREATE",
-        module: "maintenance",
+        module: "workers",
         severity: "info",
         entityType: "worker",
         entityId: created.id,
@@ -320,12 +323,15 @@ router.put(
       }
 
       // Log Activity
+      const currentUser = su(req);
       await logActivity({
+        req,
         propertyId,
-        username: su(req),
-        userRole: (req as any).user?.roles?.[0] || "admin",
+        username: currentUser.username,
+        userId: currentUser.userId,
+        userRole: currentUser.userRole || "admin",
         action: "UPDATE",
-        module: "maintenance",
+        module: "workers",
         severity: "info",
         entityType: "worker",
         entityId: updated.id,
@@ -389,12 +395,15 @@ router.delete(
       }
 
       // Log Activity
+      const currentUser = su(req);
       await logActivity({
+        req,
         propertyId,
-        username: su(req),
-        userRole: (req as any).user?.roles?.[0] || "admin",
+        username: currentUser.username,
+        userId: currentUser.userId,
+        userRole: currentUser.userRole || "admin",
         action: "DELETE",
-        module: "maintenance",
+        module: "workers",
         severity: "warning",
         entityType: "worker",
         entityId: deleted.id,

@@ -22,6 +22,9 @@ export const MODULES = [
   "smart_locks",
   "whatsapp",
   "inventory",
+  "workers",
+  "hr_sync",
+  "portal_notifications",
 ] as const;
 
 export type Module = (typeof MODULES)[number];
@@ -126,6 +129,9 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
   smart_locks: ["view", "create", "edit", "unlock"],
   whatsapp: ["view", "create", "edit", "export"],
   inventory: ["view", "create", "edit", "delete", "export"],
+  workers: ["view", "create", "edit", "delete", "export"],
+  hr_sync: ["view", "edit", "export"],
+  portal_notifications: ["view", "create", "delete"],
 };
 
 export const moduleActions = (module: Module): Action[] =>
@@ -219,6 +225,12 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ...allModulePerms("whatsapp"),
     // Inventory
     ...allModulePerms("inventory"),
+    // Workers
+    ...allModulePerms("workers"),
+    // HR Sync
+    ...allModulePerms("hr_sync"),
+    // Portal Notifications
+    ...allModulePerms("portal_notifications"),
   ],
   receptionist: [
     "dashboard.view",
@@ -260,6 +272,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "whatsapp.create",
     "inventory.view",
     "inventory.export",
+    "workers.view",
   ],
   maintenance_staff: [
     "dashboard.view",
@@ -271,6 +284,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "maintenance.export",
     "inventory.view",
     "inventory.edit",
+    "workers.view",
+    "workers.edit",
     "profiles.view",
     "activity_log.view",
     "documents.view",
@@ -283,6 +298,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "housekeeping.export",
     "inventory.view",
     "inventory.edit",
+    "workers.view",
     "activity_log.view",
     "documents.view",
   ],
@@ -294,6 +310,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ...allModulePerms("documents"),
     ...allModulePerms("hosting_requests"),
     ...allModulePerms("guest_hosting"),
+    ...allModulePerms("hr_sync"),
+    ...allModulePerms("portal_notifications"),
     "whatsapp.view",
     "whatsapp.create",
     "whatsapp.export",
@@ -306,6 +324,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ...allModulePerms("activities"),
     ...allModulePerms("evaluations"),
     ...allModulePerms("documents"),
+    ...allModulePerms("portal_notifications"),
     "reports.view",
   ],
   security_staff: [
@@ -339,6 +358,9 @@ export const MODULE_LABELS: Record<Module, { en: string; ar: string }> = {
   smart_locks: { en: "Smart Locks & Encoders", ar: "الأقفال ومشفرات الكروت الذكية" },
   whatsapp: { en: "WhatsApp & Broadcasts", ar: "محرك الواتساب والبث الجماعي" },
   inventory: { en: "Room Amenities & Inventory", ar: "جرد العهد ومحتويات الغرف" },
+  workers: { en: "Technicians & Workers", ar: "الفنيون وعمال الصيانة والنظافة" },
+  hr_sync: { en: "HR Auto-Synchronization", ar: "الربط الآلي مع الموارد البشرية" },
+  portal_notifications: { en: "Portal Push Notifications", ar: "إشعارات وتنبيهات البوابة" },
 };
 
 export const MODULE_DESCRIPTIONS: Record<Module, { en: string; ar: string }> = {
@@ -425,6 +447,18 @@ export const MODULE_DESCRIPTIONS: Record<Module, { en: string; ar: string }> = {
   inventory: {
     en: "Room amenities, equipment conditions, asset barcode tracking, and sync.",
     ar: "جرد أجهزة وأثاث الغرف، فحص الحالة (ممتازة/صيانة/تالف)، والتوليد الذكي.",
+  },
+  workers: {
+    en: "Technicians, contractors, external labor directory, and task dispatching.",
+    ar: "دليل الفنيين والعمال والمقاولين، تسجيل التخصصات، وتكليف المهام.",
+  },
+  hr_sync: {
+    en: "Webhook endpoints, API integration, and automated employee data imports.",
+    ar: "إعدادات الربط مع نظام HR، استيراد بيانات الموظفين، ومزامنة الإجازات والمغادرات.",
+  },
+  portal_notifications: {
+    en: "Broadcast alerts and mobile push notifications to residents.",
+    ar: "إرسال التنبيهات العامة وإشعارات الهاتف الفورية لمستخدمي البوابة.",
   },
 };
 

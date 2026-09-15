@@ -12,6 +12,7 @@ import { z } from "zod/v4";
 
 export const activityLogsTable = pgTable("activity_logs", {
   id: serial("id").primaryKey(),
+  propertyId: integer("property_id"),
   username: text("username").notNull(),
   userId: integer("user_id"),
   userRole: text("user_role"),
@@ -29,7 +30,9 @@ export const activityLogsTable = pgTable("activity_logs", {
     .defaultNow(),
 }, (table) => [
   index("idx_activity_logs_user_id").on(table.userId),
+  index("idx_activity_logs_property_id").on(table.propertyId),
   index("idx_activity_logs_module").on(table.module),
+  index("idx_activity_logs_severity").on(table.severity),
   index("idx_activity_logs_timestamp").on(table.timestamp),
   index("idx_activity_logs_action_type").on(table.actionType),
   index("idx_activity_logs_module_timestamp").on(table.module, table.timestamp),

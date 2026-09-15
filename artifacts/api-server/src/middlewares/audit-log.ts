@@ -44,7 +44,7 @@ function sanitize(obj: any, depth = 0): any {
   return clean;
 }
 
-function extractPropertyId(req: Request, resBody: any): number {
+function extractPropertyId(req: Request, resBody: any): number | null {
   const candidates = [
     req.query?.propertyId,
     req.headers["x-property-id"],
@@ -55,10 +55,11 @@ function extractPropertyId(req: Request, resBody: any): number {
     req.body?.propertyId,
   ];
   for (const c of candidates) {
+    if (c === "all" || c === -1 || c === "-1") return null;
     const num = Number(c);
     if (Number.isFinite(num) && num > 0) return num;
   }
-  return 1;
+  return null;
 }
 
 function inferModule(path: string): string {
@@ -72,15 +73,20 @@ function inferModule(path: string): string {
   if (p.includes("floors")) return "housing";
   if (p.includes("housekeeping")) return "housekeeping";
   if (p.includes("maintenance")) return "maintenance";
+  if (p.includes("workers")) return "workers";
   if (p.includes("users")) return "users";
   if (p.includes("settings") || p.includes("lookup-values")) return "settings";
   if (p.includes("properties")) return "properties";
   if (p.includes("documents")) return "documents";
   if (p.includes("evaluations")) return "evaluations";
-  if (p.includes("surveys")) return "surveys";
+  if (p.includes("surveys")) return "evaluations";
   if (p.includes("smart-locks") || p.includes("keys") || p.includes("room-keys")) return "smart_locks";
   if (p.includes("auth")) return "auth";
   if (p.includes("hr-sync")) return "hr_sync";
+  if (p.includes("inventory")) return "inventory";
+  if (p.includes("whatsapp")) return "whatsapp";
+  if (p.includes("activities")) return "activities";
+  if (p.includes("portal-notifications") || p.includes("push-notifications")) return "portal_notifications";
   return "system";
 }
 
@@ -246,7 +252,7 @@ export function auditLogMiddleware(
         const userId = authUser?.id ?? portal?.profileDbId ?? session?.userId ?? undefined;
         const username = authUser?.username ?? (portal ? `الموظف: ${portal.fullName}` : session?.username) ?? "system";
         const userRole = (authUser?.roles && authUser.roles[0]) ?? (portal ? "portal_employee" : session?.userRole) ?? undefined;
-        const propertyId = extractPropertyId(req, body) || portal?.propertyId || 1;
+        const propertyId = extractPropertyId(req, body) ?? portal?.propertyId ?? null;
 
         const analysis = analyzeMutation(
           req.method,

@@ -1089,6 +1089,12 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     CREATE INDEX IF NOT EXISTS idx_user_otps_identifier ON public.user_password_reset_otps(identifier);
     CREATE INDEX IF NOT EXISTS idx_user_otps_expires ON public.user_password_reset_otps(expires_at);`,
   },
+  {
+    name: "public.activity_logs.property_id_and_indexes",
+    q: `ALTER TABLE public.activity_logs ADD COLUMN IF NOT EXISTS property_id INTEGER;
+    CREATE INDEX IF NOT EXISTS idx_activity_logs_property_id ON public.activity_logs (property_id);
+    CREATE INDEX IF NOT EXISTS idx_activity_logs_severity ON public.activity_logs (severity);`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1965,6 +1971,12 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     name: "maintenance.worker_id",
     q: `ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS worker_id INTEGER;
     CREATE INDEX IF NOT EXISTS idx_maintenance_worker_id ON maintenance (worker_id);`,
+  },
+  {
+    name: "activity_logs.property_id_and_indexes",
+    q: `ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS property_id INTEGER;
+    CREATE INDEX IF NOT EXISTS idx_tenant_activity_logs_property_id ON activity_logs (property_id);
+    CREATE INDEX IF NOT EXISTS idx_tenant_activity_logs_severity ON activity_logs (severity);`,
   },
 ];
 

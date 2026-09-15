@@ -24,6 +24,9 @@ export const PERMISSION_MODULES = [
   "smart_locks",
   "whatsapp",
   "inventory",
+  "workers",
+  "hr_sync",
+  "portal_notifications",
 ] as const;
 
 export const PERMISSION_ACTIONS = [
@@ -111,6 +114,9 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
   smart_locks: ["view", "create", "edit", "unlock"],
   whatsapp: ["view", "create", "edit", "export"],
   inventory: ["view", "create", "edit", "delete", "export"],
+  workers: ["view", "create", "edit", "delete", "export"],
+  hr_sync: ["view", "edit", "export"],
+  portal_notifications: ["view", "create", "delete"],
 };
 
 type AuthUser = {
@@ -210,6 +216,12 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ...allModulePerms("whatsapp"),
     // Inventory
     ...allModulePerms("inventory"),
+    // Workers
+    ...allModulePerms("workers"),
+    // HR Sync
+    ...allModulePerms("hr_sync"),
+    // Portal Notifications
+    ...allModulePerms("portal_notifications"),
   ],
   receptionist: [
     "dashboard.view",
@@ -251,6 +263,7 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "whatsapp.create",
     "inventory.view",
     "inventory.export",
+    "workers.view",
   ],
   maintenance_staff: [
     "dashboard.view",
@@ -262,6 +275,8 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "maintenance.export",
     "inventory.view",
     "inventory.edit",
+    "workers.view",
+    "workers.edit",
     "profiles.view",
     "activity_log.view",
     "documents.view",
@@ -274,6 +289,7 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "housekeeping.export",
     "inventory.view",
     "inventory.edit",
+    "workers.view",
     "activity_log.view",
     "documents.view",
   ],
@@ -285,6 +301,8 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ...allModulePerms("documents"),
     ...allModulePerms("hosting_requests"),
     ...allModulePerms("guest_hosting"),
+    ...allModulePerms("hr_sync"),
+    ...allModulePerms("portal_notifications"),
     "whatsapp.view",
     "whatsapp.create",
     "whatsapp.export",
@@ -297,6 +315,7 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ...allModulePerms("activities"),
     ...allModulePerms("evaluations"),
     ...allModulePerms("documents"),
+    ...allModulePerms("portal_notifications"),
     "reports.view",
   ],
   security_staff: [
