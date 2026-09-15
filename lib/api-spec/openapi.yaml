@@ -1560,6 +1560,8 @@ components:
       properties:
         name:
           type: string
+        code:
+          type: string
         displayName:
           type: ["string", "null"]
         logo:

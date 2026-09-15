@@ -80,6 +80,7 @@ export interface CreatePropertyBody {
 
 export interface UpdatePropertyBody {
   name?: string;
+  code?: string;
   /** @nullable */
   displayName?: string | null;
   /** @nullable */

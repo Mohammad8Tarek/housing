@@ -299,9 +299,11 @@ router.patch(
 
     const { adminUsername, adminPassword, ...propData } = parsed.data as any;
 
+    const rawCode = propData.code !== undefined ? propData.code : (req.body as any)?.code;
+
     // Same duplicate-code guard as create (excluding this property itself).
-    if (propData.code !== undefined) {
-      const normalizedCode = String(propData.code ?? "").trim().toUpperCase();
+    if (rawCode !== undefined) {
+      const normalizedCode = String(rawCode ?? "").trim().toUpperCase();
       if (!normalizedCode) {
         res.status(400).json({ error: "Property code is required" });
         return;

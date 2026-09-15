@@ -133,6 +133,7 @@ export const UpdatePropertyParams = zod.object({
 
 export const UpdatePropertyBody = zod.object({
   "name": zod.string().optional(),
+  "code": zod.string().optional(),
   "displayName": zod.string().nullish(),
   "logo": zod.string().nullish(),
   "primaryColor": zod.string().optional(),
