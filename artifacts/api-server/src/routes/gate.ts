@@ -524,7 +524,7 @@ router.post("/gate/log", requireAuth, async (req, res): Promise<void> => {
 router.get("/gate/logs", requireAuth, async (req, res): Promise<void> => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const limit = Math.min(2000, Math.max(1, Number(req.query.limit) || 20));
     const offset = (page - 1) * limit;
 
     const propertyId = req.query.propertyId && req.query.propertyId !== "all"

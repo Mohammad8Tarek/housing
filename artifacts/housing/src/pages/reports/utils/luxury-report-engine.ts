@@ -85,6 +85,9 @@ export const REPORT_TAB_CONFIG: Record<
   arrivals_manifest: { showKpis: false, showSignatures: false },
   departures_manifest: { showKpis: false, showSignatures: false },
   housekeeping: { showKpis: false, showSignatures: false },
+  daily_movement: { showKpis: false, showSignatures: false },
+  department_occupancy: { showKpis: false, showSignatures: false },
+  gate_logs: { showKpis: false, showSignatures: false },
 };
 
 // ----------------------------------------------------------------------------
@@ -158,6 +161,18 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
   history: {
     ar: "سجل التسكين التاريخي وحركات الإقامة السابقة",
     en: "Housing Historical Stays & Movements Archive",
+  },
+  daily_movement: {
+    ar: "تقرير الحركة اليومية (تسكين، مغادرة، نقل سرير، وصول)",
+    en: "Daily Housing Movements & Turnovers Report",
+  },
+  department_occupancy: {
+    ar: "تقرير إشغال وتوزيع الأقسام بالسكن",
+    en: "Department Occupancy & Bed Distribution Report",
+  },
+  gate_logs: {
+    ar: "تقرير سجل البوابة وتصاريح الدخول والخروج",
+    en: "Gate Access Security & Turnstile Manifest",
   },
 };
 

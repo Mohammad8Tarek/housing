@@ -352,6 +352,46 @@ export function ReportTable({
                 </>
               )
             )}
+
+            {/* 11. DAILY MOVEMENT HEADERS */}
+            {activeTab === "daily_movement" && (
+              <>
+                {H("movementType", ar ? "نوع الحركة" : "Movement Type")}
+                {H("date", ar ? "التاريخ والوقت" : "Date & Time")}
+                {H("profileName", ar ? "المقيم / النزيل" : "Resident / Profile")}
+                {H("department", ar ? "القسم" : "Department")}
+                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
+                {H("buildingName", ar ? "المبنى" : "Building")}
+                {H("notes", ar ? "التفاصيل والملاحظات" : "Details & Notes")}
+              </>
+            )}
+
+            {/* 12. DEPARTMENT OCCUPANCY HEADERS */}
+            {activeTab === "department_occupancy" && (
+              <>
+                {H("department", ar ? "القسم الإداري" : "Department")}
+                {H("residentCount", ar ? "إجمالي المقيمين" : "Total Residents", "text-center")}
+                {H("maleCount", ar ? "ذكور" : "Males", "text-center")}
+                {H("femaleCount", ar ? "إناث" : "Females", "text-center")}
+                {H("roomsCount", ar ? "الغرف المشغولة" : "Rooms Occupied", "text-center")}
+                {H("shareOfHousing", ar ? "نسبة الإشغال بالسكن" : "Share of Housing", "text-center")}
+                {H("buildingsList", ar ? "المباني المسكن بها" : "Assigned Buildings")}
+              </>
+            )}
+
+            {/* 13. GATE SECURITY LOGS HEADERS */}
+            {activeTab === "gate_logs" && (
+              <>
+                {H("scannedAt", ar ? "وقت المسح" : "Scan Time")}
+                {H("action", ar ? "الحركة" : "Action / Direction", "text-center")}
+                {H("profileName", ar ? "الموظف / النزيل" : "Name & ID")}
+                {H("department", ar ? "القسم" : "Department")}
+                {H("roomNumber", ar ? "الغرفة والمبنى" : "Room & Building")}
+                {H("guardName", ar ? "مسؤول الأمن" : "Security Officer")}
+                {H("status", ar ? "حالة التصريح" : "Pass Status", "text-center")}
+                {H("notes", ar ? "ملاحظات" : "Notes")}
+              </>
+            )}
           </TableRow>
         </TableHeader>
 
@@ -1223,6 +1263,125 @@ export function ReportTable({
                       </TableCell>
                     </>
                   )
+                )}
+
+                {/* 11. DAILY MOVEMENT ROW */}
+                {activeTab === "daily_movement" && (
+                  <>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          row.typeKey === "check_in"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold"
+                            : row.typeKey === "check_out"
+                            ? "bg-rose-50 text-rose-700 border-rose-200 text-xs font-semibold"
+                            : row.typeKey === "transfer"
+                            ? "bg-blue-50 text-blue-700 border-blue-200 text-xs font-semibold"
+                            : "bg-purple-50 text-purple-700 border-purple-200 text-xs font-semibold"
+                        }
+                      >
+                        {row.movementType}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      {row.date}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-foreground">{row.profileName}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono">{row.profileCode}</div>
+                    </TableCell>
+                    <TableCell className="text-xs">{row.department}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-mono text-xs">
+                        {ar ? "غرفة" : "Room"} {row.roomNumber}
+                      </Badge>
+                      {row.bedNumber && row.bedNumber !== "—" && (
+                        <span className="text-[11px] text-muted-foreground ms-1">
+                          ({ar ? "سرير" : "Bed"} {row.bedNumber})
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{row.buildingName}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={row.notes}>
+                      {row.notes}
+                    </TableCell>
+                  </>
+                )}
+
+                {/* 12. DEPARTMENT OCCUPANCY ROW */}
+                {activeTab === "department_occupancy" && (
+                  <>
+                    <TableCell className="font-bold text-foreground">{row.department}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="text-xs font-bold px-2.5 py-0.5">
+                        {row.residentCount}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-xs text-blue-600 font-semibold">
+                      {row.maleCount}
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-xs text-pink-600 font-semibold">
+                      {row.femaleCount}
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-xs font-semibold">
+                      {row.roomsCount}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">
+                        {row.shareOfHousing}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[250px] truncate" title={row.buildingsList}>
+                      {row.buildingsList}
+                    </TableCell>
+                  </>
+                )}
+
+                {/* 13. GATE SECURITY LOGS ROW */}
+                {activeTab === "gate_logs" && (
+                  <>
+                    <TableCell className="font-mono text-xs whitespace-nowrap text-muted-foreground">
+                      {row.scannedAt}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant="outline"
+                        className={
+                          row.direction === "exit" || row.direction === "OUT"
+                            ? "bg-amber-50 text-amber-700 border-amber-200 text-xs font-bold"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-bold"
+                        }
+                      >
+                        {row.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-foreground">{row.profileName}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono">{row.profileCode}</div>
+                    </TableCell>
+                    <TableCell className="text-xs">{row.department}</TableCell>
+                    <TableCell>
+                      <span className="font-semibold text-xs">{row.roomNumber}</span>
+                      <span className="text-[11px] text-muted-foreground ms-1">({row.buildingName})</span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{row.guardName}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant="outline"
+                        className={
+                          row.isValid
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
+                            : "bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold"
+                        }
+                      >
+                        {row.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate" title={row.notes}>
+                      {row.notes}
+                    </TableCell>
+                  </>
                 )}
               </TableRow>
             );

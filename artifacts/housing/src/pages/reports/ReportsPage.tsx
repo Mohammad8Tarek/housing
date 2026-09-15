@@ -92,6 +92,7 @@ export default function Reports() {
     maintenance: data.maintenance,
     hostings: data.hostings,
     equipmentInventory: data.equipmentInventory,
+    gateLogs: data.gateLogs,
     buildingMap: data.buildingMap,
     floorMap: data.floorMap,
     roomMap: data.roomMap,

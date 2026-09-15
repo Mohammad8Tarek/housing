@@ -320,6 +320,44 @@ export function useReportExport({
           [ar ? "ملاحظات" : "Notes"]: it.notes || "—",
         }));
 
+      case "daily_movement":
+        return data.map((m: any) => ({
+          [ar ? "نوع الحركة" : "Movement Type"]: m.movementType,
+          [ar ? "التاريخ والوقت" : "Date / Time"]: m.date,
+          [ar ? "المقيم / النزيل" : "Resident / Profile"]: m.profileName,
+          [ar ? "كود الموظف" : "Code"]: m.profileCode,
+          [ar ? "القسم" : "Department"]: m.department,
+          [ar ? "الغرفة" : "Room No"]: m.roomNumber,
+          [ar ? "السرير" : "Bed No"]: m.bedNumber,
+          [ar ? "المبنى" : "Building"]: m.buildingName,
+          [ar ? "التفاصيل والملاحظات" : "Details / Reason"]: m.notes,
+        }));
+
+      case "department_occupancy":
+        return data.map((d: any) => ({
+          [ar ? "القسم" : "Department"]: d.department,
+          [ar ? "إجمالي المقيمين" : "Total Residents"]: d.residentCount,
+          [ar ? "ذكور" : "Males"]: d.maleCount,
+          [ar ? "إناث" : "Females"]: d.femaleCount,
+          [ar ? "الغرف المشغولة" : "Rooms Occupied"]: d.roomsCount,
+          [ar ? "نسبة الإشغال الكلية" : "Share of Occupancy (%)"]: d.shareOfHousing,
+          [ar ? "المباني المسكن بها" : "Assigned Buildings"]: d.buildingsList,
+        }));
+
+      case "gate_logs":
+        return data.map((g: any) => ({
+          [ar ? "وقت المسح" : "Scan Time"]: g.scannedAt,
+          [ar ? "الحركة (دخول/خروج)" : "Direction / Action"]: g.action,
+          [ar ? "الاسم" : "Person Name"]: g.profileName,
+          [ar ? "كود الموظف" : "ID / Code"]: g.profileCode,
+          [ar ? "القسم" : "Department"]: g.department,
+          [ar ? "الغرفة" : "Room No"]: g.roomNumber,
+          [ar ? "المبنى" : "Building"]: g.buildingName,
+          [ar ? "مسؤول الأمن" : "Security Officer"]: g.guardName,
+          [ar ? "حالة التصريح" : "Access Status"]: g.status,
+          [ar ? "ملاحظات" : "Notes"]: g.notes,
+        }));
+
       default:
         if (ar && Array.isArray(data)) {
           return data.map((item: any) => {

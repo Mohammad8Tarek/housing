@@ -52,6 +52,7 @@ export function useReportDataProcessor({
   maintenance,
   hostings,
   equipmentInventory = [],
+  gateLogs = [],
   buildingMap,
   floorMap,
   roomMap,
@@ -1334,6 +1335,249 @@ export function useReportDataProcessor({
           item.barcode,
           item.modelNumber,
           item.inspectedBy,
+          item.notes,
+        ]);
+      }
+
+      // 11. DAILY MOVEMENT REPORT (تقرير الحركة اليومية)
+      case "daily_movement": {
+        const movements: any[] = [];
+        let counter = 1;
+
+        // A. Check-Ins from assignments
+        assignments.forEach((a: any) => {
+          const emp = empMap[a.profileId] || {};
+          const room = roomMap[a.roomId] || {};
+          if (filterBuilding !== "all" && (!room || !filteredBuildingIds.has(room.buildingId))) return;
+          if (filterDepartment !== "all" && emp?.department !== filterDepartment) return;
+
+          if (a.checkInDate) {
+            movements.push({
+              id: counter++,
+              typeKey: "check_in",
+              movementType: ar ? "تسكين جديد" : "New Check-In",
+              date: formatDate(a.checkInDate, "—"),
+              rawDate: a.checkInDate,
+              profileName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
+              profileCode: emp.profileId || `EMP-${a.profileId}`,
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              roomNumber: room.roomNumber || `#${a.roomId}`,
+              bedNumber: a.bedNumber ? String(a.bedNumber) : "1",
+              buildingName: buildingMap[room.buildingId] || "—",
+              notes: a.notes || (ar ? "تسكين جديد بالسكن" : "New housing check-in"),
+            });
+          }
+
+          // B. Check-Outs
+          if (a.checkOutDate || a.status === "CHECKED_OUT" || a.status === "LEFT") {
+            const outDate = a.checkOutDate || a.updatedAt || a.checkInDate;
+            movements.push({
+              id: counter++,
+              typeKey: "check_out",
+              movementType: ar ? "مغادرة / تصفية" : "Check-Out",
+              date: formatDate(outDate, "—"),
+              rawDate: outDate,
+              profileName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
+              profileCode: emp.profileId || `EMP-${a.profileId}`,
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              roomNumber: room.roomNumber || `#${a.roomId}`,
+              bedNumber: a.bedNumber ? String(a.bedNumber) : "1",
+              buildingName: buildingMap[room.buildingId] || "—",
+              notes: a.reason || (ar ? "إنهاء تسكين ومغادرة" : "Check-out departure"),
+            });
+          }
+
+          // C. Transfers
+          if (a.status === "TRANSFERRED") {
+            const transDate = a.updatedAt || a.checkInDate;
+            movements.push({
+              id: counter++,
+              typeKey: "transfer",
+              movementType: ar ? "نقل سرير / غرفة" : "Bed Transfer",
+              date: formatDate(transDate, "—"),
+              rawDate: transDate,
+              profileName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
+              profileCode: emp.profileId || `EMP-${a.profileId}`,
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              roomNumber: room.roomNumber || `#${a.roomId}`,
+              bedNumber: a.bedNumber ? String(a.bedNumber) : "—",
+              buildingName: buildingMap[room.buildingId] || "—",
+              notes: a.notes || (ar ? "تم نقل الموظف إلى غرفة أو سرير آخر" : "Transferred to another room/bed"),
+            });
+          }
+        });
+
+        // D. Expected Arrivals from reservations
+        reservations.forEach((r: any) => {
+          if (filterDepartment !== "all" && r.department !== filterDepartment) return;
+          if (filterBuilding !== "all" && r.buildingId && !filteredBuildingIds.has(r.buildingId)) return;
+
+          if (r.checkInDate) {
+            movements.push({
+              id: counter++,
+              typeKey: "arrival_expected",
+              movementType: ar ? "حجز وصول متوقع" : "Expected Arrival",
+              date: formatDate(r.checkInDate, "—"),
+              rawDate: r.checkInDate,
+              profileName: r.guestName || "—",
+              profileCode: r.nationalId || `RES-${r.id}`,
+              department: r.department || "—",
+              roomNumber: r.roomNumber || (r.roomId ? roomMap[r.roomId]?.roomNumber : "—") || "—",
+              bedNumber: "—",
+              buildingName: buildingMap[r.buildingId] || "—",
+              notes: r.specialRequests || r.notes || (ar ? "حجز مؤكد بانتظار الوصول" : "Confirmed reservation"),
+            });
+          }
+        });
+
+        // Sort descending by rawDate
+        movements.sort((a, b) => {
+          const da = comparableDate(a.rawDate);
+          const db = comparableDate(b.rawDate);
+          return db.localeCompare(da);
+        });
+
+        return applySearchAndDate(movements, "rawDate", (item) => [
+          item.movementType,
+          item.profileName,
+          item.profileCode,
+          item.department,
+          item.roomNumber,
+          item.buildingName,
+          item.notes,
+        ]);
+      }
+
+      // 12. DEPARTMENT OCCUPANCY REPORT (إشغال الأقسام)
+      case "department_occupancy": {
+        const deptMap: Record<string, {
+          department: string;
+          residentCount: number;
+          maleCount: number;
+          femaleCount: number;
+          roomsSet: Set<string>;
+          buildingsSet: Set<string>;
+        }> = {};
+
+        let totalActiveResidents = 0;
+
+        assignments.forEach((a: any) => {
+          const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT";
+          if (isCheckedOut) return;
+
+          const emp = empMap[a.profileId] || {};
+          const room = roomMap[a.roomId] || {};
+
+          if (filterBuilding !== "all" && (!room || !filteredBuildingIds.has(room.buildingId))) return;
+          if (filterFloor !== "all" && (!room || !filteredFloorIds.has(room.floorId))) return;
+          if (filterDepartment !== "all" && emp?.department !== filterDepartment) return;
+
+          const deptName = getProfileDisplayDepartment(emp, ar) || (ar ? "غير محدد" : "Unspecified");
+
+          if (!deptMap[deptName]) {
+            deptMap[deptName] = {
+              department: deptName,
+              residentCount: 0,
+              maleCount: 0,
+              femaleCount: 0,
+              roomsSet: new Set(),
+              buildingsSet: new Set(),
+            };
+          }
+
+          deptMap[deptName].residentCount += 1;
+          totalActiveResidents += 1;
+
+          const genderStr = (emp.gender || "").toLowerCase();
+          if (genderStr === "female" || emp.gender === "أنثى") {
+            deptMap[deptName].femaleCount += 1;
+          } else {
+            deptMap[deptName].maleCount += 1;
+          }
+
+          if (room.roomNumber) {
+            deptMap[deptName].roomsSet.add(room.roomNumber);
+          }
+          const bName = buildingMap[room.buildingId];
+          if (bName) {
+            deptMap[deptName].buildingsSet.add(bName);
+          }
+        });
+
+        const list = Object.values(deptMap).map((d, idx) => ({
+          id: idx + 1,
+          department: d.department,
+          residentCount: d.residentCount,
+          maleCount: d.maleCount,
+          femaleCount: d.femaleCount,
+          roomsCount: d.roomsSet.size,
+          shareOfHousing:
+            totalActiveResidents > 0
+              ? `${((d.residentCount / totalActiveResidents) * 100).toFixed(1)}%`
+              : "0.0%",
+          buildingsList: Array.from(d.buildingsSet).join(ar ? "، " : ", ") || "—",
+        }));
+
+        list.sort((a, b) => b.residentCount - a.residentCount);
+
+        return applySearchAndDate(list, undefined, (item) => [
+          item.department,
+          item.buildingsList,
+          item.residentCount,
+          item.roomsCount,
+        ]);
+      }
+
+      // 13. GATE LOGS REPORT (سجل البوابة والأمن)
+      case "gate_logs": {
+        const list = gateLogs
+          .filter((g: any) => {
+            if (filterDepartment !== "all" && g.department !== filterDepartment) return false;
+            return true;
+          })
+          .map((g: any) => {
+            const rawDate = g.scannedAt ? String(g.scannedAt).slice(0, 10) : "";
+            const isExit = g.direction === "exit" || g.direction === "OUT";
+            const isValid = g.status === "valid" || g.status === "APPROVED" || g.status === "success";
+
+            return {
+              id: g.id,
+              scannedAt: g.scannedAt
+                ? new Date(g.scannedAt).toLocaleString(ar ? "ar-EG" : "en-US", {
+                    hour12: true,
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "—",
+              rawDate,
+              action: isExit ? (ar ? "خروج" : "Exit") : (ar ? "دخول" : "Entry"),
+              direction: g.direction,
+              profileName: g.fullName || "—",
+              profileCode: g.employeeId || "—",
+              department: g.department || "—",
+              jobTitle: g.jobTitle || "—",
+              roomNumber: g.roomNumber || "—",
+              buildingName: g.buildingName || "—",
+              guardName: g.scannedBy || (ar ? "مسؤول الأمن" : "Security Officer"),
+              status: isValid
+                ? (ar ? "تصريح ساري ومطابق" : "Valid & Approved")
+                : (ar ? "مرفوض / غير صالح" : "Invalid / Denied"),
+              isValid,
+              notes: g.notes || g.reason || "—",
+            };
+          });
+
+        return applySearchAndDate(list, "rawDate", (item) => [
+          item.profileName,
+          item.profileCode,
+          item.department,
+          item.roomNumber,
+          item.buildingName,
+          item.guardName,
+          item.action,
+          item.status,
           item.notes,
         ]);
       }

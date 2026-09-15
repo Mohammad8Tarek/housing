@@ -16,6 +16,9 @@ import {
   ClipboardCheck,
   AlertOctagon,
   CalendarRange,
+  ArrowLeftRight,
+  Briefcase,
+  ShieldCheck,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
@@ -121,5 +124,23 @@ export const TABS: TabConfig[] = [
     label: "Housekeeping",
     labelAr: "هاوس كيبنج",
     icon: <Sparkles className="w-4 h-4 text-pink-500" />,
+  },
+  {
+    id: "daily_movement",
+    label: "Daily Movement",
+    labelAr: "الحركة اليومية",
+    icon: <ArrowLeftRight className="w-4 h-4 text-blue-600" />,
+  },
+  {
+    id: "department_occupancy",
+    label: "Department Occupancy",
+    labelAr: "إشغال الأقسام",
+    icon: <Briefcase className="w-4 h-4 text-emerald-600" />,
+  },
+  {
+    id: "gate_logs",
+    label: "Gate Security Logs",
+    labelAr: "سجل البوابة والأمن",
+    icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
   },
 ];

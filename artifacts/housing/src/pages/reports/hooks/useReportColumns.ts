@@ -202,6 +202,37 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
     { key: "roomsCount", label: "Rooms Count", labelAr: "عدد الغرف" },
     { key: "roomsSummary", label: "Rooms List", labelAr: "أرقام الغرف" },
   ],
+  daily_movement: [
+    { key: "movementType", label: "Movement Type", labelAr: "نوع الحركة", fixed: true },
+    { key: "date", label: "Date / Time", labelAr: "التاريخ والوقت", fixed: true },
+    { key: "profileName", label: "Resident / Profile", labelAr: "المقيم / النزيل" },
+    { key: "profileCode", label: "Code", labelAr: "كود الموظف" },
+    { key: "department", label: "Department", labelAr: "القسم" },
+    { key: "roomNumber", label: "Room No", labelAr: "الغرفة" },
+    { key: "bedNumber", label: "Bed No", labelAr: "السرير" },
+    { key: "buildingName", label: "Building", labelAr: "المبنى" },
+    { key: "notes", label: "Details / Reason", labelAr: "التفاصيل والملاحظات" },
+  ],
+  department_occupancy: [
+    { key: "department", label: "Department", labelAr: "القسم", fixed: true },
+    { key: "residentCount", label: "Total Residents", labelAr: "إجمالي المقيمين", fixed: true },
+    { key: "maleCount", label: "Males", labelAr: "ذكور" },
+    { key: "femaleCount", label: "Females", labelAr: "إناث" },
+    { key: "roomsCount", label: "Rooms Occupied", labelAr: "الغرف المشغولة" },
+    { key: "shareOfHousing", label: "Share of Occupancy (%)", labelAr: "نسبة الإشغال الكلية" },
+    { key: "buildingsList", label: "Assigned Buildings", labelAr: "المباني المسكن بها" },
+  ],
+  gate_logs: [
+    { key: "scannedAt", label: "Scan Time", labelAr: "وقت المسح", fixed: true },
+    { key: "action", label: "Direction / Action", labelAr: "الحركة (دخول/خروج)", fixed: true },
+    { key: "profileName", label: "Person Name", labelAr: "الاسم" },
+    { key: "profileCode", label: "ID / Code", labelAr: "كود الموظف" },
+    { key: "department", label: "Department", labelAr: "القسم" },
+    { key: "roomNumber", label: "Room No", labelAr: "الغرفة" },
+    { key: "buildingName", label: "Building", labelAr: "المبنى" },
+    { key: "guardName", label: "Security Officer", labelAr: "مسؤول الأمن" },
+    { key: "status", label: "Access Status", labelAr: "حالة التصريح" },
+  ],
 };
 
 export function useReportColumns(activeTab: string, ar: boolean) {
