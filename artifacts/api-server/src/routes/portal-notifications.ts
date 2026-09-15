@@ -10,7 +10,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, or, isNull, gt, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
 import { logActivity } from "../lib/activity-logger.js";
@@ -165,7 +165,7 @@ router.put("/read-all", requirePortalAuth, async (req, res, next) => {
 
 // GET / — قائمة الإشعارات للأدمن
 // @ts-ignore
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", requirePermission("portal_notifications", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -189,7 +189,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 
 // POST / — إنشاء إشعار جديد (أدمن)
 // @ts-ignore
-router.post("/", requireAuth, async (req, res, next) => {
+router.post("/", requirePermission("portal_notifications", "create"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -245,7 +245,7 @@ router.post("/", requireAuth, async (req, res, next) => {
 
 // DELETE /:id — حذف إشعار
 // @ts-ignore
-router.delete("/:id", requireAuth, async (req, res, next) => {
+router.delete("/:id", requirePermission("portal_notifications", "delete"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -279,7 +279,7 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
 
 // GET /stats — إحصائيات الإشعارات
 // @ts-ignore
-router.get("/stats", requireAuth, async (req, res, next) => {
+router.get("/stats", requirePermission("portal_notifications", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)

@@ -14,7 +14,7 @@ import { eq, and, inArray, desc } from "drizzle-orm";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { ensureProfilePortalAccount } from "../lib/portal-accounts.js";
-import { requirePermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { enrichProfileBilingual } from "../lib/bilingual-translator.js";
@@ -738,7 +738,7 @@ async function processReceive(
 // ============================================================================
 router.get(
   "/config",
-  requirePermission("settings", "view"),
+  requireAnyPermission(["hr_sync", "view"], ["settings", "view"]),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -789,7 +789,7 @@ router.get(
 // ============================================================================
 router.put(
   "/config",
-  requirePermission("settings", "edit"),
+  requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"]),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -933,7 +933,7 @@ router.post("/receive", async (req, res): Promise<void> => {
 // ============================================================================
 router.post(
   "/sync",
-  requirePermission("settings", "edit"),
+  requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"]),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -1299,7 +1299,7 @@ router.post("/notify-departure", async (req, res): Promise<void> => {
 // ============================================================================
 router.get(
   "/logs",
-  requirePermission("settings", "view"),
+  requireAnyPermission(["hr_sync", "view"], ["settings", "view"]),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

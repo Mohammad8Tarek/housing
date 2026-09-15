@@ -19,6 +19,7 @@ const router: Router = Router();
 router.get(
   "/workers",
   requireAnyPermission(
+    ["workers", "view"],
     ["maintenance", "view"],
     ["housekeeping", "view"]
   ),
@@ -139,6 +140,7 @@ router.get(
 router.post(
   "/workers",
   requireAnyPermission(
+    ["workers", "create"],
     ["maintenance", "create"],
     ["housekeeping", "create"],
     ["maintenance", "edit"]
@@ -220,6 +222,7 @@ router.post(
 router.get(
   "/workers/:id",
   requireAnyPermission(
+    ["workers", "view"],
     ["maintenance", "view"],
     ["housekeeping", "view"]
   ),
@@ -270,6 +273,7 @@ router.get(
 router.put(
   "/workers/:id",
   requireAnyPermission(
+    ["workers", "edit"],
     ["maintenance", "edit"],
     ["housekeeping", "edit"]
   ),
@@ -354,6 +358,7 @@ router.put(
 router.delete(
   "/workers/:id",
   requireAnyPermission(
+    ["workers", "delete"],
     ["maintenance", "delete"],
     ["housekeeping", "delete"]
   ),

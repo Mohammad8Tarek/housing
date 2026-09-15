@@ -8,11 +8,14 @@ import {
 } from "@workspace/db";
 import { desc, sql, and, gte, isNull, isNotNull } from "drizzle-orm";
 import { getCategoryLabel } from "../lib/portal-catalog.js";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 import { getTenantId } from "../lib/request-utils.js";
 
 const router: Router = Router();
+
+// All portal analytics require portal_content.view
+router.use(requirePermission("portal_content", "view"));
 
 // GET / - لوحة تحليلات البورتال
 // @ts-ignore

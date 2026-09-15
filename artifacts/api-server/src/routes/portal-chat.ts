@@ -9,7 +9,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, asc, inArray, sql, not, or, ilike } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
 import {
   broadcastToProperty,
@@ -506,7 +506,7 @@ router.post(
 
 // GET /portal-chat/admin/conversations — قائمة المحادثات (أدمن)
 // @ts-ignore
-router.get("/admin/conversations", requireAuth, async (req, res, next) => {
+router.get("/admin/conversations", requirePermission("portal_content", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -530,7 +530,7 @@ router.get("/admin/conversations", requireAuth, async (req, res, next) => {
 // @ts-ignore
 router.get(
   "/admin/conversations/:id/messages",
-  requireAuth,
+  requirePermission("portal_content", "view"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -587,7 +587,7 @@ router.get(
 // @ts-ignore
 router.post(
   "/admin/conversations/:id/messages",
-  requireAuth,
+  requirePermission("portal_content", "create"),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -601,15 +601,6 @@ router.post(
         return;
       }
 
-      // To send as admin, we can use a special senderId or just -1
-      // But portalMessagesTable requires senderId. We can use a system user ID or -1 if the foreign key allows.
-      // Wait, senderId is integer and usually references profiles.
-      // If we don't have a specific admin profile, we can just use 0 or a dedicated system ID.
-      // Let's check the schema for portalMessagesTable.
-      // For now we will insert senderId = 0 (assuming it doesn't violate foreign key, or if we have to, we will bypass it).
-      // Wait, we can't assume 0 works if there is a foreign key to profilesTable.
-      // Let's look up a valid profile or skip.
-      
       const [message] = await withTenant(propertyId, async (tenantDb) => {
         // Update conversation updatedAt
         await tenantDb
@@ -643,7 +634,7 @@ router.post(
 
 // DELETE /portal-chat/admin/messages/:id — حذف رسالة (moderation)
 // @ts-ignore
-router.delete("/admin/messages/:id", requireAuth, async (req, res, next) => {
+router.delete("/admin/messages/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -661,7 +652,7 @@ router.delete("/admin/messages/:id", requireAuth, async (req, res, next) => {
 
 // GET /portal-chat/admin/stats — إحصائيات
 // @ts-ignore
-router.get("/admin/stats", requireAuth, async (req, res, next) => {
+router.get("/admin/stats", requirePermission("portal_content", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)

@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 import { pool } from "@workspace/db";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { getHotekStatus } from "../lib/pms-server.js";
 import { isIpReachable } from "../utils/ping.js";
 
@@ -63,7 +63,7 @@ async function loadServers(propertyId: number) {
 
 router.get(
   "/config",
-  requirePermission("settings", "view"),
+  requireAnyPermission(["smart_locks", "view"], ["settings", "view"]),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -83,7 +83,7 @@ router.get(
 
 router.post(
   "/servers",
-  requirePermission("settings", "edit"),
+  requireAnyPermission(["smart_locks", "create"], ["smart_locks", "edit"], ["settings", "edit"]),
   async (req, res): Promise<void> => {
     const parsed = HotekServerBody.safeParse(req.body);
     if (!parsed.success) {
@@ -150,7 +150,7 @@ router.post(
 
 router.patch(
   "/servers/:id",
-  requirePermission("settings", "edit"),
+  requireAnyPermission(["smart_locks", "edit"], ["settings", "edit"]),
   async (req, res): Promise<void> => {
     const parsed = HotekServerPatchBody.safeParse(req.body);
     if (!parsed.success) {
@@ -229,7 +229,7 @@ router.patch(
 
 router.post(
   "/servers/:id/test",
-  requirePermission("settings", "view"),
+  requireAnyPermission(["smart_locks", "view"], ["settings", "view"]),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -281,7 +281,7 @@ router.post(
 
 router.delete(
   "/servers/:id",
-  requirePermission("settings", "edit"),
+  requireAnyPermission(["smart_locks", "delete"], ["smart_locks", "edit"], ["settings", "edit"]),
   async (req, res): Promise<void> => {
     const id = Number(req.params.id);
     const propertyId = Number(req.body?.propertyId ?? req.query.propertyId);

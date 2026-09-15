@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, withTenant, portalContactsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { sanitizeFields } from "../lib/sanitize.js";
 
 const router = Router();
@@ -29,7 +29,7 @@ function getTenantId(req: any): number {
 }
 
 // GET all contacts for a property
-router.get("/portal-contacts", requireAuth, async (req, res): Promise<void> => {
+router.get("/portal-contacts", requirePermission("portal_content", "view"), async (req, res): Promise<void> => {
   const propertyId = getTenantId(req);
   if (!propertyId) {
     res.status(400).json({ success: false, message: "propertyId required" });
@@ -49,7 +49,7 @@ router.get("/portal-contacts", requireAuth, async (req, res): Promise<void> => {
 // POST create a new contact
 router.post(
   "/portal-contacts",
-  requireAuth,
+  requirePermission("portal_content", "create"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -99,7 +99,7 @@ router.post(
 // PUT update a contact
 router.put(
   "/portal-contacts/:id",
-  requireAuth,
+  requirePermission("portal_content", "edit"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -155,7 +155,7 @@ router.put(
 // DELETE a contact
 router.delete(
   "/portal-contacts/:id",
-  requireAuth,
+  requirePermission("portal_content", "delete"),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

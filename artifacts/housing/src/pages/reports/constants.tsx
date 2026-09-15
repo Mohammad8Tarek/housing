@@ -31,8 +31,8 @@ export const TABS: TabConfig[] = [
   },
   {
     id: "arrivals_manifest",
-    label: "Expected Arrivals",
-    labelAr: "كشف المتوقع وصولهم",
+    label: "Reservations & Arrivals",
+    labelAr: "الحجوزات والمتوقع وصولهم",
     icon: <UserCheck className="w-4 h-4 text-emerald-500" />,
   },
   {
@@ -43,8 +43,8 @@ export const TABS: TabConfig[] = [
   },
   {
     id: "housekeeping_sheet",
-    label: "Attendant Task Sheet",
-    labelAr: "كشف مهام الهاوس كيبنج",
+    label: "Housekeeping & Cleanliness",
+    labelAr: "كشف مهام ونظافة الغرف",
     icon: <ClipboardCheck className="w-4 h-4 text-sky-500" />,
   },
   {
@@ -67,21 +67,39 @@ export const TABS: TabConfig[] = [
   },
   {
     id: "assignments",
-    label: "In-House Occupants",
-    labelAr: "المقيمين والتسكين",
+    label: "In-House Occupants & Rooms",
+    labelAr: "المقيمين والتسكين (بالغرف والنزلاء)",
     icon: <Users className="w-4 h-4 text-blue-500" />,
   },
   {
     id: "vacant_rooms",
-    label: "Vacant Rooms & Beds",
-    labelAr: "الغرف والأسرة الشاغرة",
+    label: "Vacant Beds & Operational Capacity",
+    labelAr: "مصفوفة السعة والأسرة الشاغرة",
     icon: <BedDouble className="w-4 h-4 text-emerald-500" />,
   },
   {
     id: "housing",
-    label: "Room Occupancy",
-    labelAr: "حالة وإشغال الغرف",
+    label: "Complete Room Inventory",
+    labelAr: "سجل وحالة كافة الغرف",
     icon: <Building2 className="w-4 h-4 text-sky-500" />,
+  },
+  {
+    id: "daily_movement",
+    label: "Daily Movement",
+    labelAr: "الحركة اليومية",
+    icon: <ArrowLeftRight className="w-4 h-4 text-blue-600" />,
+  },
+  {
+    id: "department_occupancy",
+    label: "Department Occupancy",
+    labelAr: "إشغال الأقسام",
+    icon: <Briefcase className="w-4 h-4 text-emerald-600" />,
+  },
+  {
+    id: "gate_logs",
+    label: "Gate Security Logs",
+    labelAr: "سجل البوابة والأمن",
+    icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
   },
   {
     id: "equipment_inventory",
@@ -102,12 +120,6 @@ export const TABS: TabConfig[] = [
     icon: <Clock className="w-4 h-4 text-amber-500" />,
   },
   {
-    id: "reservations",
-    label: "Arrivals & Reservations",
-    labelAr: "الحجوزات والوصول",
-    icon: <CalendarDays className="w-4 h-4 text-indigo-500" />,
-  },
-  {
     id: "hostings",
     label: "Guest Hostings",
     labelAr: "الاستضافات والزوار",
@@ -118,29 +130,5 @@ export const TABS: TabConfig[] = [
     label: "Maintenance",
     labelAr: "طلبات الصيانة",
     icon: <Wrench className="w-4 h-4 text-rose-500" />,
-  },
-  {
-    id: "housekeeping",
-    label: "Housekeeping",
-    labelAr: "هاوس كيبنج",
-    icon: <Sparkles className="w-4 h-4 text-pink-500" />,
-  },
-  {
-    id: "daily_movement",
-    label: "Daily Movement",
-    labelAr: "الحركة اليومية",
-    icon: <ArrowLeftRight className="w-4 h-4 text-blue-600" />,
-  },
-  {
-    id: "department_occupancy",
-    label: "Department Occupancy",
-    labelAr: "إشغال الأقسام",
-    icon: <Briefcase className="w-4 h-4 text-emerald-600" />,
-  },
-  {
-    id: "gate_logs",
-    label: "Gate Security Logs",
-    labelAr: "سجل البوابة والأمن",
-    icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
   },
 ];

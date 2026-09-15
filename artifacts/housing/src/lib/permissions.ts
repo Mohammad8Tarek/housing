@@ -25,6 +25,7 @@ export const MODULES = [
   "workers",
   "hr_sync",
   "portal_notifications",
+  "gate",
 ] as const;
 
 export type Module = (typeof MODULES)[number];
@@ -132,6 +133,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
   workers: ["view", "create", "edit", "delete", "export"],
   hr_sync: ["view", "edit", "export"],
   portal_notifications: ["view", "create", "delete"],
+  gate: ["view", "create", "export"],
 };
 
 export const moduleActions = (module: Module): Action[] =>
@@ -231,6 +233,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ...allModulePerms("hr_sync"),
     // Portal Notifications
     ...allModulePerms("portal_notifications"),
+    // Gate Scanner
+    ...allModulePerms("gate"),
   ],
   receptionist: [
     "dashboard.view",
@@ -273,6 +277,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "inventory.view",
     "inventory.export",
     "workers.view",
+    "gate.view",
+    "gate.create",
   ],
   maintenance_staff: [
     "dashboard.view",
@@ -332,6 +338,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "housing.view",
     "accommodation.view",
     ...allModulePerms("smart_locks"),
+    ...allModulePerms("gate"),
     "activities.view",
   ],
 };
@@ -361,6 +368,7 @@ export const MODULE_LABELS: Record<Module, { en: string; ar: string }> = {
   workers: { en: "Technicians & Workers", ar: "الفنيون وعمال الصيانة والنظافة" },
   hr_sync: { en: "HR Auto-Synchronization", ar: "الربط الآلي مع الموارد البشرية" },
   portal_notifications: { en: "Portal Push Notifications", ar: "إشعارات وتنبيهات البوابة" },
+  gate: { en: "Gate & Security Scanner", ar: "بوابة السكن والتحقق الأمني" },
 };
 
 export const MODULE_DESCRIPTIONS: Record<Module, { en: string; ar: string }> = {
@@ -460,6 +468,10 @@ export const MODULE_DESCRIPTIONS: Record<Module, { en: string; ar: string }> = {
     en: "Broadcast alerts and mobile push notifications to residents.",
     ar: "إرسال التنبيهات العامة وإشعارات الهاتف الفورية لمستخدمي البوابة.",
   },
+  gate: {
+    en: "Resident digital QR pass scanner, gate entry/exit logging, and security statistics.",
+    ar: "مسح تصاريح الدخول الرقمية QR، تسجيل حركة الدخول والخروج، وإحصائيات البوابة.",
+  },
 };
 
 export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
@@ -487,24 +499,30 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
 export const PERMISSION_GROUPS: Array<{
   id: string;
   label: { en: string; ar: string };
+  labelEn: string;
+  labelAr: string;
   description: { en: string; ar: string };
   modules: Module[];
 }> = [
   {
     id: "daily_operations",
     label: { en: "Daily Operations", ar: "التشغيل اليومي" },
+    labelEn: "Daily Operations",
+    labelAr: "التشغيل اليومي",
     description: {
-      en: "Dashboard, housing setup, rooms, housekeeping, maintenance, and inventory.",
-      ar: "لوحة المتابعة والسكن والغرف والنظافة والصيانة وجرد العهد.",
+      en: "Dashboard, housing setup, rooms, housekeeping, maintenance, inventory, and technicians.",
+      ar: "لوحة المتابعة والسكن والغرف والنظافة والصيانة وجرد العهد والفنيين.",
     },
-    modules: ["dashboard", "housing", "housekeeping", "maintenance", "inventory"],
+    modules: ["dashboard", "housing", "housekeeping", "maintenance", "inventory", "workers"],
   },
   {
     id: "accommodation_flow",
     label: { en: "Accommodation Flow", ar: "مسار التسكين والإقامة" },
+    labelEn: "Accommodation Flow",
+    labelAr: "مسار التسكين والإقامة",
     description: {
-      en: "Profiles, in-house assignments, reservations, hosting, and sign-offs.",
-      ar: "الموظفون والتسكين والمقيمون والحجوزات وطلبات الاستضافة.",
+      en: "Profiles, in-house assignments, reservations, hosting, sign-offs, and gate scanner.",
+      ar: "الموظفون والتسكين والمقيمون والحجوزات وطلبات الاستضافة وأمن البوابة.",
     },
     modules: [
       "profiles",
@@ -512,14 +530,17 @@ export const PERMISSION_GROUPS: Array<{
       "reservations",
       "hosting_requests",
       "guest_hosting",
+      "gate",
     ],
   },
   {
     id: "employee_portal",
     label: { en: "Resident Portal & Comms", ar: "بوابة المقيمين والتواصل" },
+    labelEn: "Resident Portal & Comms",
+    labelAr: "بوابة المقيمين والتواصل",
     description: {
-      en: "Portal content, activities, documents, evaluations, and WhatsApp engine.",
-      ar: "محتوى البوابة والأنشطة والمستندات والتقييمات ومحرك الواتساب.",
+      en: "Portal content, activities, documents, evaluations, WhatsApp engine, and push notifications.",
+      ar: "محتوى البوابة والأنشطة والمستندات والتقييمات ومحرك الواتساب وإشعارات الهاتف.",
     },
     modules: [
       "portal_content",
@@ -527,20 +548,25 @@ export const PERMISSION_GROUPS: Array<{
       "documents",
       "evaluations",
       "whatsapp",
+      "portal_notifications",
     ],
   },
   {
     id: "management",
     label: { en: "Management & Analytics", ar: "الإدارة والتحليلات" },
+    labelEn: "Management & Analytics",
+    labelAr: "الإدارة والتحليلات",
     description: {
-      en: "Comprehensive reports, PMS audits, system settings, and properties.",
-      ar: "التقارير الشاملة، تدقيق Opera Cloud، إعدادات النظام، والفروع.",
+      en: "Comprehensive reports, PMS audits, system settings, properties, and HR auto-synchronization.",
+      ar: "التقارير الشاملة، تدقيق Opera Cloud، إعدادات النظام، الفروع، ومزامنة HR.",
     },
-    modules: ["reports", "settings", "properties"],
+    modules: ["reports", "settings", "properties", "hr_sync"],
   },
   {
     id: "security",
     label: { en: "Security & Governance", ar: "الأمان والحوكمة والرقابة" },
+    labelEn: "Security & Governance",
+    labelAr: "الأمان والحوكمة والرقابة",
     description: {
       en: "User accounts, permission matrix, activity audit log, and smart locks.",
       ar: "المستخدمون ومصفوفة الصلاحيات وسجل النشاط الرقابي والأقفال الذكية.",

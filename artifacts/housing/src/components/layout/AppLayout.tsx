@@ -385,7 +385,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       href: "/gate-scanner",
       label: ar ? "بوابة السكن" : "Gate Scanner",
       icon: QrCode,
-      permissionModule: "accommodation",
+      permissionModule: "gate",
     },
 
     {

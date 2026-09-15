@@ -196,7 +196,7 @@ const APP_ROUTES: AppRouteDef[] = [
   { path: "/profiles", module: "profiles", component: Profiles },
   { path: "/accommodation/reservations", module: "reservations", component: Reservations },
   { path: "/accommodation/in-house", module: "accommodation", component: InHouse },
-  { path: "/gate-scanner", module: "accommodation", component: GateScanner },
+  { path: "/gate-scanner", module: "gate", component: GateScanner },
   { path: "/accommodation/room-assignment", module: "accommodation", component: RoomAssignment },
   { path: "/accommodation/guest-hosting", module: "guest_hosting", component: GuestHosting },
   { path: "/accommodation/history", module: "accommodation", component: History },

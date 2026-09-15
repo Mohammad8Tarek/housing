@@ -58,6 +58,8 @@ export function ReportFilters({
   selectedRowsSize,
   inventoryViewMode = "summary",
   setInventoryViewMode,
+  inHouseViewMode = "grouped",
+  setInHouseViewMode,
   rooms = [],
   roomTypes = [],
 }: any) {
@@ -227,6 +229,31 @@ export function ReportFilters({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {activeTab === "assignments" && setInHouseViewMode && (
+            <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border">
+              <Button
+                type="button"
+                size="sm"
+                variant={inHouseViewMode === "grouped" ? "default" : "ghost"}
+                className="h-8 px-3 text-xs font-semibold gap-1.5"
+                onClick={() => setInHouseViewMode("grouped")}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                {ar ? "مجمّع حسب الغرف" : "By Room"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={inHouseViewMode === "flat" ? "default" : "ghost"}
+                className="h-8 px-3 text-xs font-semibold gap-1.5"
+                onClick={() => setInHouseViewMode("flat")}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                {ar ? "جدول تفصيلي بالنزلاء" : "Flat Table"}
+              </Button>
+            </div>
+          )}
+
           {activeTab === "equipment_inventory" && setInventoryViewMode && (
             <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border">
               <Button

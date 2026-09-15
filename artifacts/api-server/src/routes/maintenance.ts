@@ -8,7 +8,7 @@ import {
   workersTable,
   withTenant,
 } from "@workspace/db";
-import { eq, and, or, ilike, sql, SQL, desc, inArray } from "drizzle-orm";
+import { eq, ne, and, or, ilike, sql, SQL, desc, inArray } from "drizzle-orm";
 import {
   CreateMaintenanceBody,
   GetMaintenanceParams,
@@ -77,19 +77,25 @@ async function getAccessibleProperties(user: any): Promise<{ id: number; name: s
 }
 
 /**
- * بناء شروط الفلترة لبلاغات الصيانة / النظافة مع دعم الحصر للموظف
+ * بناء شروط الفلترة لبلاغات الصيانة / النظافة مع دعم الحصر للموظف وعزل الفئات
  */
 function buildConditions(
   query: any,
-  allowedCategory: string | null,
+  categoryIsolation: { onlyHousekeeping?: boolean; excludeHousekeeping?: boolean } | null,
   userProfileId?: number | null,
   isStaffOnly?: boolean,
 ): SQL[] {
   const conditions: SQL[] = [];
 
   // 1. تقييد الفئة بناءً على الصلاحيات أو الفلتر
-  if (allowedCategory) {
-    conditions.push(eq(maintenanceTable.category, allowedCategory));
+  if (categoryIsolation?.onlyHousekeeping) {
+    conditions.push(eq(maintenanceTable.category, "housekeeping"));
+  } else if (categoryIsolation?.excludeHousekeeping) {
+    // مستخدم الصيانة يرى جميع فئات الصيانة (سباكة، كهرباء، تكييف، نجارة...) ويُستثنى الهاوس كيبنج فقط
+    conditions.push(ne(maintenanceTable.category, "housekeeping"));
+    if (query.category && query.category !== "all" && query.category !== "housekeeping") {
+      conditions.push(eq(maintenanceTable.category, String(query.category)));
+    }
   } else if (query.category && query.category !== "all") {
     conditions.push(eq(maintenanceTable.category, String(query.category)));
   }
@@ -243,14 +249,14 @@ router.get(
 
       // تقييد الفئة حسب الصلاحية:
       // إذا كان المستخدم لديه فقط housekeeping يرى فقط housekeeping
-      // إذا كان لديه فقط maintenance يرى فقط maintenance
+      // إذا كان لديه فقط maintenance يرى كافة فئات الصيانة باستثناء الهاوس كيبنج
       // إذا كان لديه كلاهما يرى حسب query.category
-      let allowedCategory: string | null = null;
+      let categoryIsolation: { onlyHousekeeping?: boolean; excludeHousekeeping?: boolean } | null = null;
       if (!isSysAdmin) {
         if (userHasHousekeeping && !userHasMaintenance) {
-          allowedCategory = "housekeeping";
+          categoryIsolation = { onlyHousekeeping: true };
         } else if (userHasMaintenance && !userHasHousekeeping) {
-          allowedCategory = "maintenance";
+          categoryIsolation = { excludeHousekeeping: true };
         }
       }
 
@@ -294,7 +300,7 @@ router.get(
                 if (foundEmp) effectiveProfileId = foundEmp.id;
               }
 
-              const conditions = buildConditions(req.query, allowedCategory, effectiveProfileId, isStaffOnly);
+              const conditions = buildConditions(req.query, categoryIsolation, effectiveProfileId, isStaffOnly);
               const whereClause = conditions.length ? and(...conditions) : undefined;
 
               const [countRes] = await tenantDb
@@ -397,7 +403,7 @@ router.get(
           if (foundEmp) effectiveProfileId = foundEmp.id;
         }
 
-        const conditions = buildConditions(req.query, allowedCategory, effectiveProfileId, isStaffOnly);
+        const conditions = buildConditions(req.query, categoryIsolation, effectiveProfileId, isStaffOnly);
         const whereClause = conditions.length ? and(...conditions) : undefined;
 
         const [countResult] = await tenantDb
@@ -541,13 +547,16 @@ router.get(
       const userHasMaintenance = isSysAdmin || hasPermission(user, "maintenance", "view");
       const userHasHousekeeping = isSysAdmin || hasPermission(user, "housekeeping", "view");
       if (!isSysAdmin) {
-        if (foundRecord.category === "housekeeping" && !userHasHousekeeping) {
-          res.status(403).json({ error: "Permission denied" });
-          return;
-        }
-        if (foundRecord.category === "maintenance" && !userHasMaintenance) {
-          res.status(403).json({ error: "Permission denied" });
-          return;
+        if (foundRecord.category === "housekeeping") {
+          if (!userHasHousekeeping) {
+            res.status(403).json({ error: "Permission denied to view housekeeping orders" });
+            return;
+          }
+        } else {
+          if (!userHasMaintenance) {
+            res.status(403).json({ error: "Permission denied to view maintenance orders" });
+            return;
+          }
         }
       }
 
@@ -594,13 +603,16 @@ router.post(
 
       // التحقق من الصلاحية حسب فئة الطلب
       if (!isSysAdmin) {
-        if (category === "housekeeping" && !userHasHskCreate) {
-          res.status(403).json({ error: "Permission denied to create housekeeping orders" });
-          return;
-        }
-        if (category === "maintenance" && !userHasMntCreate) {
-          res.status(403).json({ error: "Permission denied to create maintenance orders" });
-          return;
+        if (category === "housekeeping") {
+          if (!userHasHskCreate) {
+            res.status(403).json({ error: "Permission denied to create housekeeping orders" });
+            return;
+          }
+        } else {
+          if (!userHasMntCreate) {
+            res.status(403).json({ error: "Permission denied to create maintenance orders" });
+            return;
+          }
         }
       }
 
@@ -768,13 +780,16 @@ router.patch(
         hasPermission(user, "housekeeping", "assign");
 
       if (!isSysAdmin) {
-        if (existingRecord.category === "housekeeping" && !userHasHskEdit) {
-          res.status(403).json({ error: "Permission denied to edit housekeeping orders" });
-          return;
-        }
-        if (existingRecord.category === "maintenance" && !userHasMntEdit) {
-          res.status(403).json({ error: "Permission denied to edit maintenance orders" });
-          return;
+        if (existingRecord.category === "housekeeping") {
+          if (!userHasHskEdit) {
+            res.status(403).json({ error: "Permission denied to edit housekeeping orders" });
+            return;
+          }
+        } else {
+          if (!userHasMntEdit) {
+            res.status(403).json({ error: "Permission denied to edit maintenance orders" });
+            return;
+          }
         }
       }
 
@@ -952,13 +967,16 @@ router.delete(
         hasPermission(user, "housekeeping", "edit");
 
       if (!isSysAdmin) {
-        if (existingRecord.category === "housekeeping" && !userHasHskDelete) {
-          res.status(403).json({ error: "Permission denied to delete housekeeping orders" });
-          return;
-        }
-        if (existingRecord.category === "maintenance" && !userHasMntDelete) {
-          res.status(403).json({ error: "Permission denied to delete maintenance orders" });
-          return;
+        if (existingRecord.category === "housekeeping") {
+          if (!userHasHskDelete) {
+            res.status(403).json({ error: "Permission denied to delete housekeeping orders" });
+            return;
+          }
+        } else {
+          if (!userHasMntDelete) {
+            res.status(403).json({ error: "Permission denied to delete maintenance orders" });
+            return;
+          }
         }
       }
 

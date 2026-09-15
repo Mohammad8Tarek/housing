@@ -21,6 +21,8 @@ import { ReportFilters } from "./components/ReportFilters";
 import { ReportTable } from "./components/ReportTable";
 import { ManagerFlashTab } from "./components/ManagerFlashTab";
 import { OccupancyForecastTab } from "./components/OccupancyForecastTab";
+import { VacantRoomsOperationalMatrix } from "./components/VacantRoomsOperationalMatrix";
+import { InHouseGroupedRoomsView } from "./components/InHouseGroupedRoomsView";
 
 export default function Reports() {
   const { activePropertyId } = useProperty();
@@ -106,7 +108,20 @@ export default function Reports() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allData, sort],
   );
-  const totalCount = sortedData.length;
+
+  const groupedInHouseRooms = useMemo(() => {
+    if (filters.activeTab !== "assignments") return [];
+    const map = new Map<string, any[]>();
+    sortedData.forEach((a: any) => {
+      const key = String(a.roomId || a.roomNumber || "unassigned");
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(a);
+    });
+    return Array.from(map.entries());
+  }, [filters.activeTab, sortedData]);
+
+  const isInHouseGrouped = filters.activeTab === "assignments" && filters.inHouseViewMode === "grouped";
+  const totalCount = isInHouseGrouped ? groupedInHouseRooms.length : sortedData.length;
 
   const handleSortToggle = (key: string) => {
     toggle(key);
@@ -115,7 +130,13 @@ export default function Reports() {
 
   // Real-time responsive pagination based on filtered data
   const startIndex = (filters.currentPage - 1) * filters.pageSize;
-  const paginatedData = sortedData.slice(startIndex, startIndex + filters.pageSize);
+  const paginatedData = useMemo(() => {
+    if (isInHouseGrouped) {
+      const pageRooms = groupedInHouseRooms.slice(startIndex, startIndex + filters.pageSize);
+      return pageRooms.flatMap(([_, list]) => list);
+    }
+    return sortedData.slice(startIndex, startIndex + filters.pageSize);
+  }, [isInHouseGrouped, groupedInHouseRooms, sortedData, startIndex, filters.pageSize]);
 
   const { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF } =
     useReportExport({
@@ -279,6 +300,8 @@ export default function Reports() {
             selectedRowsSize={filters.selectedRows.size}
             inventoryViewMode={filters.inventoryViewMode}
             setInventoryViewMode={filters.setInventoryViewMode}
+            inHouseViewMode={filters.inHouseViewMode}
+            setInHouseViewMode={filters.setInHouseViewMode}
             rooms={data.rooms}
             roomTypes={data.configuredRoomTypes}
           />
@@ -342,24 +365,50 @@ export default function Reports() {
             </div>
           )}
 
-          <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
-            <ReportTable
-              isLoading={data.isLoading}
-              allData={sortedData}
-              paginatedData={paginatedData}
-              selectedRows={filters.selectedRows}
-              setSelectedRows={filters.setSelectedRows}
-              activeTab={filters.activeTab}
-              inventoryViewMode={filters.inventoryViewMode}
+          {filters.activeTab === "vacant_rooms" && (
+            <VacantRoomsOperationalMatrix
               ar={ar}
-              sort={sort}
-              onSortToggle={handleSortToggle}
-              floorMap={data.floorMap}
+              rooms={data.rooms}
+              assignments={data.assignments}
+              buildings={data.buildings}
               buildingMap={data.buildingMap}
-              empMap={data.empMap}
-              roomMap={data.roomMap}
+              filterBuilding={filters.filterBuilding}
+              onFilterBuilding={filters.setFilterBuilding}
+              onFilterRoomType={filters.setFilterRoomType}
+              currentRoomTypeFilter={filters.filterRoomType}
             />
-          </div>
+          )}
+
+          {filters.activeTab === "assignments" && filters.inHouseViewMode === "grouped" ? (
+            <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
+              <InHouseGroupedRoomsView
+                assignments={paginatedData}
+                roomMap={data.roomMap}
+                buildingMap={data.buildingMap}
+                floorMap={data.floorMap}
+                ar={ar}
+              />
+            </div>
+          ) : (
+            <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
+              <ReportTable
+                isLoading={data.isLoading}
+                allData={sortedData}
+                paginatedData={paginatedData}
+                selectedRows={filters.selectedRows}
+                setSelectedRows={filters.setSelectedRows}
+                activeTab={filters.activeTab}
+                inventoryViewMode={filters.inventoryViewMode}
+                ar={ar}
+                sort={sort}
+                onSortToggle={handleSortToggle}
+                floorMap={data.floorMap}
+                buildingMap={data.buildingMap}
+                empMap={data.empMap}
+                roomMap={data.roomMap}
+              />
+            </div>
+          )}
 
           <div className="mt-2">
             <DataPagination

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import {
@@ -11,6 +11,8 @@ import {
 import { getTenantId } from "../lib/request-utils.js";
 
 const router: Router = Router();
+
+router.use(requirePermission("portal_content", "view"));
 
 const CategorySchema = z.object({
   name: z.string().min(1),
@@ -79,7 +81,7 @@ router.get("/statuses", requireAuth, async (req, res, next) => {
 
 // POST / — create custom category (in-memory until DB table exists)
 // @ts-ignore
-router.post("/", requireAuth, async (req, res, next) => {
+router.post("/", requirePermission("portal_content", "create"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -129,7 +131,7 @@ router.get("/tags", requireAuth, async (req, res, next) => {
 
 // POST /tags
 // @ts-ignore
-router.post("/tags", requireAuth, async (req, res, next) => {
+router.post("/tags", requirePermission("portal_content", "create"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)

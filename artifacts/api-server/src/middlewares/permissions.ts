@@ -27,6 +27,7 @@ export const PERMISSION_MODULES = [
   "workers",
   "hr_sync",
   "portal_notifications",
+  "gate",
 ] as const;
 
 export const PERMISSION_ACTIONS = [
@@ -117,6 +118,7 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
   workers: ["view", "create", "edit", "delete", "export"],
   hr_sync: ["view", "edit", "export"],
   portal_notifications: ["view", "create", "delete"],
+  gate: ["view", "create", "export"],
 };
 
 type AuthUser = {
@@ -222,6 +224,8 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ...allModulePerms("hr_sync"),
     // Portal Notifications
     ...allModulePerms("portal_notifications"),
+    // Gate Scanner
+    ...allModulePerms("gate"),
   ],
   receptionist: [
     "dashboard.view",
@@ -264,6 +268,8 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "inventory.view",
     "inventory.export",
     "workers.view",
+    "gate.view",
+    "gate.create",
   ],
   maintenance_staff: [
     "dashboard.view",
@@ -323,6 +329,7 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "housing.view",
     "accommodation.view",
     ...allModulePerms("smart_locks"),
+    ...allModulePerms("gate"),
     "activities.view",
   ],
 };

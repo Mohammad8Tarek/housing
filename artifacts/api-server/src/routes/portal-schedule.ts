@@ -7,7 +7,7 @@ import { Router } from "express";
 import { withTenant, activitiesTable, evaluationsTable } from "@workspace/db";
 import { desc, gte, lte, and, eq } from "drizzle-orm";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -34,7 +34,7 @@ const EVAL_COLORS: Record<string, string> = {
 
 // GET / — تقويم الفعاليات والاستبيانات (Admin)
 // @ts-ignore
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", requirePermission("portal_content", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const { month, year } = req.query;
@@ -273,7 +273,7 @@ router.get("/calendar", requirePortalAuth, async (req, res, next) => {
 
 // GET /priorities — العناصر ذات الأولوية للأدمن
 // @ts-ignore
-router.get("/priorities", requireAuth, async (req, res, next) => {
+router.get("/priorities", requirePermission("portal_content", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -427,7 +427,7 @@ router.get("/reminders", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /calendar/events — Create a calendar event (activity)
-router.post("/calendar/events", requireAuth, async (req, res, next): Promise<void> => {
+router.post("/calendar/events", requirePermission("portal_content", "create"), async (req, res, next): Promise<void> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -476,7 +476,7 @@ router.post("/calendar/events", requireAuth, async (req, res, next): Promise<voi
 });
 
 // POST /reminders/:id/snooze — Snooze reminder
-router.post("/reminders/:id/snooze", requireAuth, async (req, res, next) => {
+router.post("/reminders/:id/snooze", requirePermission("portal_content", "edit"), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { minutes } = req.body;

@@ -10,12 +10,15 @@ import {
 } from "@workspace/db";
 import { eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 
 const router: Router = Router();
+
+// All portal report endpoints require reports.view permission
+router.use(requirePermission("reports", "view"));
 
 const ReportSchema = z.object({
   type: z.enum(["evaluations", "activities", "engagement", "custom"]),

@@ -42,6 +42,7 @@ import { DoorLocksSection } from "./components/DoorLocksSection";
 import { WhatsAppSettingsSection } from "./components/WhatsAppSettingsSection";
 import { EmailSettingsSection } from "./components/EmailSettingsSection";
 import { WorkersTab } from "@/pages/maintenance/components/WorkersTab";
+import { usePermission } from "@/hooks/use-permission";
 
 export default function Settings() {
   const { properties } = useProperty();
@@ -56,6 +57,7 @@ export default function Settings() {
   } = useSettingsForm();
   const { setLanguage } = useLanguage();
   const { user, isSystemAdmin } = useAuth();
+  const { canView } = usePermission();
   const canManageEmail = Boolean(
     isSystemAdmin ||
     user?.roles?.includes("admin") ||
@@ -141,26 +143,34 @@ export default function Settings() {
               <BedDouble className="w-3.5 h-3.5 mr-1.5" />
               {ar ? "الغرف والتصنيفات" : "Rooms & Class"}
             </TabsTrigger>
-            <TabsTrigger value="workers">
-              <HardHat className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-              {ar ? "الفنيين والعمال" : "Workers"}
-            </TabsTrigger>
+            {canView("workers") && (
+              <TabsTrigger value="workers">
+                <HardHat className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+                {ar ? "الفنيين والعمال" : "Workers"}
+              </TabsTrigger>
+            )}
             <TabsTrigger value="security">
               <Shield className="w-3.5 h-3.5 mr-1.5" />
               {ar ? "الأمان" : "Security"}
             </TabsTrigger>
-            <TabsTrigger value="hr-sync">
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-              {ar ? "HR" : "HR Sync"}
-            </TabsTrigger>
-            <TabsTrigger value="door-locks">
-              <KeyRound className="w-3.5 h-3.5 mr-1.5" />
-              {ar ? "الأقفال" : "Locks"}
-            </TabsTrigger>
-            <TabsTrigger value="whatsapp">
-              <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
-              {ar ? "الواتساب" : "WhatsApp"}
-            </TabsTrigger>
+            {canView("hr_sync") && (
+              <TabsTrigger value="hr-sync">
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                {ar ? "HR" : "HR Sync"}
+              </TabsTrigger>
+            )}
+            {canView("smart_locks") && (
+              <TabsTrigger value="door-locks">
+                <KeyRound className="w-3.5 h-3.5 mr-1.5" />
+                {ar ? "الأقفال" : "Locks"}
+              </TabsTrigger>
+            )}
+            {canView("whatsapp") && (
+              <TabsTrigger value="whatsapp">
+                <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+                {ar ? "الواتساب" : "WhatsApp"}
+              </TabsTrigger>
+            )}
             {canManageEmail && (
               <TabsTrigger value="email">
                 <Mail className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
@@ -334,21 +344,23 @@ export default function Settings() {
             </div>
           </TabsContent>
 
-          <TabsContent value="workers" className="space-y-4">
-            {selectedPropertyId ? (
-              <WorkersTab
-                propertyId={selectedPropertyId}
-                propertyName={
-                  properties?.find((p: any) => p.id === selectedPropertyId)?.displayName ||
-                  properties?.find((p: any) => p.id === selectedPropertyId)?.name
-                }
-              />
-            ) : (
-              <div className="text-center py-12 text-muted-foreground text-sm bg-card border rounded-xl p-8">
-                {ar ? "يرجى اختيار الفندق / العقار أولاً لعرض وإدارة الفنيين" : "Please select a hotel/property first to manage workers"}
-              </div>
-            )}
-          </TabsContent>
+          {canView("workers") && (
+            <TabsContent value="workers" className="space-y-4">
+              {selectedPropertyId ? (
+                <WorkersTab
+                  propertyId={selectedPropertyId}
+                  propertyName={
+                    properties?.find((p: any) => p.id === selectedPropertyId)?.displayName ||
+                    properties?.find((p: any) => p.id === selectedPropertyId)?.name
+                  }
+                />
+              ) : (
+                <div className="text-center py-12 text-muted-foreground text-sm bg-card border rounded-xl p-8">
+                  {ar ? "يرجى اختيار الفندق / العقار أولاً لعرض وإدارة الفنيين" : "Please select a hotel/property first to manage workers"}
+                </div>
+              )}
+            </TabsContent>
+          )}
 
           <TabsContent value="security">
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -365,26 +377,32 @@ export default function Settings() {
             </form>
           </TabsContent>
 
-          <TabsContent value="hr-sync" className="space-y-4">
-            <HrSyncSection
-              propertyId={selectedPropertyId}
-              language={language}
-            />
-          </TabsContent>
+          {canView("hr_sync") && (
+            <TabsContent value="hr-sync" className="space-y-4">
+              <HrSyncSection
+                propertyId={selectedPropertyId}
+                language={language}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="door-locks" className="space-y-4">
-            <DoorLocksSection
-              propertyId={selectedPropertyId}
-              language={language}
-            />
-          </TabsContent>
+          {canView("smart_locks") && (
+            <TabsContent value="door-locks" className="space-y-4">
+              <DoorLocksSection
+                propertyId={selectedPropertyId}
+                language={language}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="whatsapp" className="space-y-4">
-            <WhatsAppSettingsSection
-              propertyId={selectedPropertyId}
-              language={language}
-            />
-          </TabsContent>
+          {canView("whatsapp") && (
+            <TabsContent value="whatsapp" className="space-y-4">
+              <WhatsAppSettingsSection
+                propertyId={selectedPropertyId}
+                language={language}
+              />
+            </TabsContent>
+          )}
 
           {canManageEmail && (
             <TabsContent value="email" className="space-y-4">

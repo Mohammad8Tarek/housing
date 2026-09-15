@@ -18,6 +18,7 @@ export function useReportFilters() {
   const [filterGender, setFilterGender] = useState<string>("all");
   const [filterNationality, setFilterNationality] = useState<string>("all");
   const [inventoryViewMode, setInventoryViewMode] = useState<"summary" | "detailed">("summary");
+  const [inHouseViewMode, setInHouseViewMode] = useState<"grouped" | "flat">("grouped");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -62,6 +63,8 @@ export function useReportFilters() {
     setActiveTab,
     inventoryViewMode,
     setInventoryViewMode,
+    inHouseViewMode,
+    setInHouseViewMode,
     filterProperty,
     setFilterProperty,
     filterBuilding,

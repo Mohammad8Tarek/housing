@@ -99,16 +99,16 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
     en: "Daily Operations & Occupancy Morning Report (Manager Flash)",
   },
   arrivals_manifest: {
-    ar: "كشف المتوقع وصولهم وتسكينهم (Arrivals Manifest)",
-    en: "Expected Arrivals & Check-in Manifest",
+    ar: "كشف الحجوزات والمتوقع وصولهم (Reservations & Arrivals)",
+    en: "Reservations & Expected Arrivals Manifest",
   },
   departures_manifest: {
     ar: "كشف المغادرات والتصفيات المستحقة (Due Out & Departures)",
     en: "Due Out & Departures Manifest",
   },
   housekeeping_sheet: {
-    ar: "كشف مهام الهاوس كيبنج والتفتيش الميداني اليومي",
-    en: "Housekeeping Room Attendant Daily Task Sheet",
+    ar: "كشف مهام ونظافة الغرف والتفتيش الميداني",
+    en: "Housekeeping Task Sheet & Room Cleanliness Report",
   },
   room_discrepancy: {
     ar: "تقرير تدقيق ومطابقة حالات الغرف (Discrepancy Audit)",
@@ -119,12 +119,12 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
     en: "Occupancy & Bed Availability Forecast",
   },
   assignments: {
-    ar: "كشف المقيمين الفعليين وتوزيع الأسرة بالسكن (In-House)",
-    en: "In-House Resident Occupancy & Bed Distribution Report",
+    ar: "كشف المقيمين الفعليين وتوزيع الغرف والأسرة (In-House)",
+    en: "In-House Resident Occupancy & Rooming List",
   },
   vacant_rooms: {
-    ar: "كشف الغرف الشاغرة والأسرة المتاحة للتسكين",
-    en: "Vacant Rooms & Available Beds Report",
+    ar: "مصفوفة السعة التشغيلية والأسرة الشاغرة",
+    en: "Operational Bed Capacity & Vacancy Matrix Report",
   },
   housing: {
     ar: "دليل الغرف السكنية والطاقة الاستيعابية الشاملة",

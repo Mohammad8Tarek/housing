@@ -8,7 +8,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, sql, or, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
@@ -264,7 +264,7 @@ router.put("/booking/:id/cancel", requirePortalAuth, async (req, res, next) => {
 // ─── ADMIN: Food Menu CRUD ──────────────────────────────────────
 
 // @ts-ignore
-router.get("/admin/menu", requireAuth, async (req, res, next) => {
+router.get("/admin/menu", requirePermission("portal_content", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -285,7 +285,7 @@ router.get("/admin/menu", requireAuth, async (req, res, next) => {
 });
 
 // @ts-ignore
-router.post("/admin/menu", requireAuth, async (req, res, next) => {
+router.post("/admin/menu", requirePermission("portal_content", "create"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -318,7 +318,7 @@ router.post("/admin/menu", requireAuth, async (req, res, next) => {
 });
 
 // @ts-ignore
-router.delete("/admin/menu/:id", requireAuth, async (req, res, next) => {
+router.delete("/admin/menu/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -339,7 +339,7 @@ router.delete("/admin/menu/:id", requireAuth, async (req, res, next) => {
 });
 
 // @ts-ignore
-router.put("/admin/menu/:id", requireAuth, async (req, res, next) => {
+router.put("/admin/menu/:id", requirePermission("portal_content", "edit"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -364,7 +364,7 @@ router.put("/admin/menu/:id", requireAuth, async (req, res, next) => {
 // ─── ADMIN: Transport Schedules CRUD ────────────────────────────
 
 // @ts-ignore
-router.get("/admin/schedules", requireAuth, async (req, res, next) => {
+router.get("/admin/schedules", requirePermission("portal_content", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -385,7 +385,7 @@ router.get("/admin/schedules", requireAuth, async (req, res, next) => {
 });
 
 // @ts-ignore
-router.post("/admin/schedules", requireAuth, async (req, res, next) => {
+router.post("/admin/schedules", requirePermission("portal_content", "create"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -418,7 +418,7 @@ router.post("/admin/schedules", requireAuth, async (req, res, next) => {
 });
 
 // @ts-ignore
-router.delete("/admin/schedules/:id", requireAuth, async (req, res, next) => {
+router.delete("/admin/schedules/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -439,7 +439,7 @@ router.delete("/admin/schedules/:id", requireAuth, async (req, res, next) => {
 });
 
 // @ts-ignore
-router.put("/admin/schedules/:id", requireAuth, async (req, res, next) => {
+router.put("/admin/schedules/:id", requirePermission("portal_content", "edit"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -464,7 +464,7 @@ router.put("/admin/schedules/:id", requireAuth, async (req, res, next) => {
 // ─── ADMIN: Stats ───────────────────────────────────────────────
 
 // @ts-ignore
-router.get("/admin/stats", requireAuth, async (req, res, next) => {
+router.get("/admin/stats", requirePermission("portal_content", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)

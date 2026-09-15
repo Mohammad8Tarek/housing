@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logActivity } from "../lib/activity-logger.js";
 import { z } from "zod/v4";
+import { loadAuthUser, hasPermission } from "../middlewares/permissions.js";
 
 const router: Router = Router();
 
@@ -128,10 +129,12 @@ router.get("/users/:id/signature", async (req, res): Promise<void> => {
     res.status(400).json({ success: false, message: "Invalid id" });
     return;
   }
-  if (!admin.isSystemAdmin && targetUserId !== admin.userId) {
+  const authUser = await loadAuthUser(req, res);
+  const canView = admin.isSystemAdmin || hasPermission(authUser, "users", "view") || targetUserId === admin.userId;
+  if (!canView) {
     res.status(403).json({
       success: false,
-      message: "Only system admins can view other users' signatures",
+      message: "Only system admins or authorized managers can view user signatures",
     });
     return;
   }
@@ -163,10 +166,12 @@ router.post("/users/:id/signature", async (req, res): Promise<void> => {
     return;
   }
   const isSelf = targetUserId === admin.userId;
-  if (!admin.isSystemAdmin && !isSelf) {
+  const authUser = await loadAuthUser(req, res);
+  const canEdit = admin.isSystemAdmin || hasPermission(authUser, "users", "edit") || isSelf;
+  if (!canEdit) {
     res.status(403).json({
       success: false,
-      message: "Only system admins can upload signatures for other users",
+      message: "Only system admins or authorized managers can upload signatures for users",
     });
     return;
   }
@@ -254,10 +259,12 @@ router.delete("/users/:id/signature", async (req, res): Promise<void> => {
     return;
   }
   const isSelf = targetUserId === admin.userId;
-  if (!admin.isSystemAdmin && !isSelf) {
+  const authUser = await loadAuthUser(req, res);
+  const canDelete = admin.isSystemAdmin || hasPermission(authUser, "users", "edit") || isSelf;
+  if (!canDelete) {
     res.status(403).json({
       success: false,
-      message: "Only system admins can delete signatures for other users",
+      message: "Only system admins or authorized managers can delete signatures for other users",
     });
     return;
   }

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { exportQueue } from "@workspace/queue";
-import { requireAuth } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { asyncHandler } from "../lib/async-handler.js";
 import { z } from "zod";
 import path from "node:path";
@@ -22,6 +22,7 @@ const enqueueExportSchema = z.object({
 // ─── POST /jobs/export — Enqueue an export job ────────────────
 router.post(
   "/export",
+  requirePermission("reports", "export"),
   asyncHandler(async (req, res) => {
     const body = enqueueExportSchema.parse(req.body);
     // @ts-ignore — session typings
