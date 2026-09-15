@@ -226,6 +226,8 @@ BEGIN
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "department" TEXT;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "profile_rating" REAL;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "profile_response" TEXT;
+    ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "employee_rating" REAL;
+    ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "employee_response" TEXT;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "expires_at" TIMESTAMPTZ;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'pending'::text;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "survey_template_id" INTEGER;
@@ -1275,6 +1277,7 @@ BEGIN
     ALTER TABLE "reservations" ADD COLUMN IF NOT EXISTS "bed_number" TEXT;
     ALTER TABLE "reservations" ADD COLUMN IF NOT EXISTS "employment_type" TEXT DEFAULT 'INTERNAL'::text;
     ALTER TABLE "reservations" ADD COLUMN IF NOT EXISTS "company_name" TEXT DEFAULT ''::text;
+    ALTER TABLE "reservations" ADD COLUMN IF NOT EXISTS "employee_code" TEXT NOT NULL DEFAULT ''::text;
 
     -- --------------------------------------------------------
     -- Table: room_beds
@@ -1429,6 +1432,9 @@ BEGIN
     ALTER TABLE "room_locks" ADD COLUMN IF NOT EXISTS "protocol" TEXT DEFAULT 'mifare'::text;
     ALTER TABLE "room_locks" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'active'::text;
     ALTER TABLE "room_locks" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE "room_locks" ADD COLUMN IF NOT EXISTS "lock_model" TEXT;
+    ALTER TABLE "room_locks" ADD COLUMN IF NOT EXISTS "encoder_id" INTEGER;
+    ALTER TABLE "room_locks" ADD COLUMN IF NOT EXISTS "last_seen_at" TIMESTAMPTZ;
 
     -- --------------------------------------------------------
     -- Table: rooms
@@ -2014,6 +2020,51 @@ BEGIN
       ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtp_pass" TEXT;
       ALTER TABLE settings ADD COLUMN IF NOT EXISTS "smtp_from" TEXT;
     END IF;
+
+    -- --------------------------------------------------------
+    -- Table: gate_logs
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "gate_logs" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER,
+      "profile_id" INTEGER,
+      "employee_id" VARCHAR(50) NOT NULL,
+      "full_name" VARCHAR(255) NOT NULL,
+      "department" VARCHAR(100),
+      "job_title" VARCHAR(100),
+      "room_number" VARCHAR(50),
+      "building_name" VARCHAR(100),
+      "direction" VARCHAR(10) NOT NULL DEFAULT 'IN',
+      "status" VARCHAR(20) NOT NULL DEFAULT 'GRANTED',
+      "reason" TEXT,
+      "scanned_by" VARCHAR(100) NOT NULL DEFAULT 'Security Officer',
+      "scan_method" VARCHAR(50) NOT NULL DEFAULT 'QR_SCAN',
+      "notes" TEXT,
+      "scanned_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "property_id" INTEGER;
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "profile_id" INTEGER;
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "employee_id" VARCHAR(50);
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "full_name" VARCHAR(255);
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "department" VARCHAR(100);
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "job_title" VARCHAR(100);
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "room_number" VARCHAR(50);
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "building_name" VARCHAR(100);
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "direction" VARCHAR(10) DEFAULT 'IN';
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "status" VARCHAR(20) DEFAULT 'GRANTED';
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "reason" TEXT;
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "scanned_by" VARCHAR(100) DEFAULT 'Security Officer';
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "scan_method" VARCHAR(50) DEFAULT 'QR_SCAN';
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "notes" TEXT;
+    ALTER TABLE "gate_logs" ADD COLUMN IF NOT EXISTS "scanned_at" TIMESTAMPTZ DEFAULT NOW();
+
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_property_id ON gate_logs(property_id);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_profile_id ON gate_logs(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_employee_id ON gate_logs(employee_id);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_direction ON gate_logs(direction);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_status ON gate_logs(status);
+    CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON gate_logs(scanned_at);
 
   END LOOP;
 

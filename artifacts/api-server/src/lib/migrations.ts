@@ -1135,6 +1135,71 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     CREATE INDEX IF NOT EXISTS idx_gate_logs_status ON public.gate_logs (status);
     CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON public.gate_logs (scanned_at);`,
   },
+  {
+    name: "public.profile_documents",
+    q: `CREATE TABLE IF NOT EXISTS public.profile_documents (
+      id SERIAL PRIMARY KEY,
+      profile_id INTEGER,
+      file_name TEXT,
+      file_type TEXT,
+      file_data TEXT,
+      uploaded_at TIMESTAMPTZ DEFAULT now()
+    );
+    ALTER TABLE public.profile_documents ADD COLUMN IF NOT EXISTS profile_id INTEGER;
+    ALTER TABLE public.profile_documents ADD COLUMN IF NOT EXISTS file_name TEXT;
+    ALTER TABLE public.profile_documents ADD COLUMN IF NOT EXISTS file_type TEXT;
+    ALTER TABLE public.profile_documents ADD COLUMN IF NOT EXISTS file_data TEXT;
+    ALTER TABLE public.profile_documents ADD COLUMN IF NOT EXISTS uploaded_at TIMESTAMPTZ DEFAULT now();
+    CREATE INDEX IF NOT EXISTS idx_public_profile_documents_profile_id ON public.profile_documents (profile_id);`,
+  },
+  {
+    name: "public.profile_vacations",
+    q: `CREATE TABLE IF NOT EXISTS public.profile_vacations (
+      id SERIAL PRIMARY KEY,
+      profile_id INTEGER,
+      start_date TEXT,
+      end_date TEXT,
+      actual_return_date TEXT,
+      notes TEXT DEFAULT ''::text,
+      status TEXT DEFAULT 'ACTIVE'::text,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    ALTER TABLE public.profile_vacations ADD COLUMN IF NOT EXISTS profile_id INTEGER;
+    ALTER TABLE public.profile_vacations ADD COLUMN IF NOT EXISTS start_date TEXT;
+    ALTER TABLE public.profile_vacations ADD COLUMN IF NOT EXISTS end_date TEXT;
+    ALTER TABLE public.profile_vacations ADD COLUMN IF NOT EXISTS actual_return_date TEXT;
+    ALTER TABLE public.profile_vacations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''::text;
+    ALTER TABLE public.profile_vacations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE'::text;
+    ALTER TABLE public.profile_vacations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+    CREATE INDEX IF NOT EXISTS idx_public_profile_vacations_profile_id ON public.profile_vacations (profile_id);`,
+  },
+  {
+    name: "public.room_locks_extra_columns",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'room_locks') THEN
+        ALTER TABLE public.room_locks ADD COLUMN IF NOT EXISTS lock_model TEXT;
+        ALTER TABLE public.room_locks ADD COLUMN IF NOT EXISTS encoder_id INTEGER;
+        ALTER TABLE public.room_locks ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
+      END IF;
+    END $$;`,
+  },
+  {
+    name: "public.reservations_employee_code",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'reservations') THEN
+        ALTER TABLE public.reservations ADD COLUMN IF NOT EXISTS employee_code TEXT NOT NULL DEFAULT '';
+      END IF;
+    END $$;`,
+  },
+  {
+    name: "public.evaluations_employee_fields",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'evaluations') THEN
+        ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS employee_rating REAL;
+        ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS employee_response TEXT;
+      END IF;
+    END $$;`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2057,7 +2122,7 @@ We wish you a safe trip and a pleasant stay! ✨';`,
   // ── profile_documents ──────────────────────────────────────
   {
     name: "create_profile_documents_table",
-    query: `
+    q: `
     CREATE TABLE IF NOT EXISTS "profile_documents" (
       "id" SERIAL PRIMARY KEY,
       "profile_id" INTEGER,
@@ -2077,7 +2142,7 @@ We wish you a safe trip and a pleasant stay! ✨';`,
   // ── profile_vacations ──────────────────────────────────────
   {
     name: "create_profile_vacations_table",
-    query: `
+    q: `
     CREATE TABLE IF NOT EXISTS "profile_vacations" (
       "id" SERIAL PRIMARY KEY,
       "profile_id" INTEGER,
@@ -2096,6 +2161,16 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     ALTER TABLE "profile_vacations" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'ACTIVE'::text;
     ALTER TABLE "profile_vacations" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
     CREATE INDEX IF NOT EXISTS idx_profile_vacations_profile_id ON profile_vacations (profile_id);`,
+  },
+  {
+    name: "room_locks.extra_columns",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'room_locks') THEN
+        ALTER TABLE room_locks ADD COLUMN IF NOT EXISTS lock_model TEXT;
+        ALTER TABLE room_locks ADD COLUMN IF NOT EXISTS encoder_id INTEGER;
+        ALTER TABLE room_locks ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
+      END IF;
+    END $$;`,
   },
 ];
 
@@ -2161,7 +2236,8 @@ export async function runMigrations(): Promise<void> {
   let tOk = 0;
   for (const m of TENANT_MIGRATIONS) {
     try {
-      const count = await runForAllTenants(m.q);
+      const sqlToRun = m.q || (m as any).query;
+      const count = await runForAllTenants(sqlToRun);
       tOk += count;
       console.info(`[migrations] ${m.name}: applied to ${count} tenants`);
     } catch (err: any) {
@@ -2214,7 +2290,7 @@ export async function applyTenantMigrationsToSchema(schemaName: string): Promise
     await client.query(`SET search_path TO "${schemaName}", public`);
     for (const m of TENANT_MIGRATIONS) {
       try {
-        await client.query(m.q);
+        await client.query(m.q || (m as any).query);
         count++;
       } catch (err: any) {
         if (
@@ -2242,6 +2318,8 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "rooms",
     "room_beds",
     "profiles",
+    "profile_documents",
+    "profile_vacations",
     "profile_portal_accounts",
     "assignments",
     "maintenance",
@@ -2250,6 +2328,8 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "settings",
     "hostings",
     "hosting_companions",
+    "hosting_requests",
+    "hosting_request_approval_steps",
     "lookup_values",
     "portal_documents",
     "portal_contacts",
@@ -2271,7 +2351,16 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "portal_feedback",
     "portal_comments",
     "portal_comment_likes",
+    "portal_food_menu",
+    "portal_meal_orders",
+    "portal_transport_schedules",
+    "portal_transport_bookings",
+    "portal_conversations",
+    "portal_conversation_participants",
+    "portal_messages",
+    "portal_message_reads",
     "workers",
+    "gate_logs",
   ];
 
   const TABLES_WITH_PROPERTY_ID = new Set([
@@ -2282,6 +2371,8 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "room_import_history",
     "room_import_templates",
     "password_reset_tokens",
+    "gate_logs",
+    "workers",
   ]);
 
   const client = await pool.connect();
