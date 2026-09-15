@@ -136,6 +136,8 @@ export function useReportExport({
             a.isEntireRoom
               ? `${a.bedNumber && a.bedNumber !== "—" ? a.bedNumber : 1} (${ar ? "غرفة كاملة" : "Full Lock"})`
               : a.bedNumber,
+          [ar ? "نوع الغرفة" : "Room Type"]: a.roomType || "—",
+          [ar ? "سعة الغرفة" : "Room Capacity"]: a.capacity ? `${a.capacity} ${ar ? "أسرة" : "beds"}` : "—",
           [ar ? "المبنى" : "Building"]: a.buildingName,
           [ar ? "الطابق" : "Floor"]: a.floorName,
           [ar ? "القسم" : "Department"]: a.department,

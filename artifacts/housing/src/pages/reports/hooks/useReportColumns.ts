@@ -91,6 +91,7 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
     { key: "companyName", label: "Company", labelAr: "الشركة" },
     { key: "roomNumber", label: "Room No", labelAr: "رقم الغرفة" },
     { key: "bedNumber", label: "Bed No", labelAr: "رقم السرير" },
+    { key: "roomType", label: "Room Type", labelAr: "نوع الغرفة" },
     { key: "buildingName", label: "Building", labelAr: "المبنى" },
     { key: "floorName", label: "Floor", labelAr: "الطابق" },
     { key: "department", label: "Department", labelAr: "القسم" },

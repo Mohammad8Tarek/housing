@@ -279,6 +279,7 @@ export default function Reports() {
             selectedRowsSize={filters.selectedRows.size}
             inventoryViewMode={filters.inventoryViewMode}
             setInventoryViewMode={filters.setInventoryViewMode}
+            rooms={data.rooms}
           />
 
           {filters.activeTab === "housekeeping_sheet" && (

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
 } from "@/components/ui/select";
 import { Search, RotateCcw, X, Layers, LayoutList } from "lucide-react";
 
@@ -54,7 +58,21 @@ export function ReportFilters({
   selectedRowsSize,
   inventoryViewMode = "summary",
   setInventoryViewMode,
+  rooms = [],
+  roomTypes = [],
 }: any) {
+  const dynamicRoomTypes = useMemo(() => {
+    const set = new Set<string>();
+    (rooms || []).forEach((r: any) => {
+      const t = r.roomType || r.room_type;
+      if (t && String(t).trim() && String(t).trim() !== "—") set.add(String(t).trim());
+    });
+    (roomTypes || []).forEach((t: string) => {
+      if (t && String(t).trim() && String(t).trim() !== "—") set.add(String(t).trim());
+    });
+    return Array.from(set).sort();
+  }, [rooms, roomTypes]);
+
   const getStatusOptions = (): { value: string; label: string; labelAr: string }[] => {
     switch (activeTab) {
       case "housekeeping_sheet":
@@ -168,7 +186,18 @@ export function ReportFilters({
   const statusOptions = getStatusOptions();
   const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping", "equipment_inventory"].includes(activeTab);
   const showEmploymentType = ["assignments", "profiles", "analytics"].includes(activeTab);
-  const showRoomType = ["housing", "vacant_rooms", "assignments", "reservations"].includes(activeTab);
+  const showRoomType = [
+    "housing",
+    "vacant_rooms",
+    "assignments",
+    "reservations",
+    "housekeeping_sheet",
+    "housekeeping",
+    "room_discrepancy",
+    "arrivals_manifest",
+    "departures_manifest",
+    "daily_movement",
+  ].includes(activeTab);
   const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts"].includes(activeTab);
   const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts"].includes(activeTab);
   const showNationality = ["assignments", "profiles", "expiring_contracts"].includes(activeTab);
@@ -305,18 +334,44 @@ export function ReportFilters({
           </div>
         )}
 
-        {/* Room Type Filter */}
+        {/* Room Type & Capacity Filter */}
         {showRoomType && (
           <div className="space-y-1">
-            <Label className="text-[11px] font-bold text-muted-foreground">{ar ? "نوع الغرفة" : "Room Type"}</Label>
+            <Label className="text-[11px] font-bold text-muted-foreground">{ar ? "نوع وسعة الغرفة" : "Room Type & Beds"}</Label>
             <Select value={filterRoomType} onValueChange={setFilterRoomType}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={ar ? "كل الأنواع" : "All Types"} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{ar ? "كل الأنواع" : "All Types"}</SelectItem>
-                <SelectItem value="single">{ar ? "فردي" : "Single"}</SelectItem>
-                <SelectItem value="double">{ar ? "مزدوج" : "Double"}</SelectItem>
-                <SelectItem value="triple">{ar ? "ثلاثي" : "Triple"}</SelectItem>
-                <SelectItem value="quad">{ar ? "رباعي" : "Quad"}</SelectItem>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder={ar ? "كل الأنواع والسعات" : "All Types & Beds"} />
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                <SelectItem value="all">{ar ? "كل الأنواع والسعات" : "All Types & Beds"}</SelectItem>
+                
+                <SelectGroup>
+                  <SelectLabel className="text-[11px] font-bold text-primary px-2 pt-1 pb-0.5">
+                    {ar ? "حسب عدد الأسرة (السعة):" : "By Bed Count / Capacity:"}
+                  </SelectLabel>
+                  <SelectItem value="single">{ar ? "غرفة سرير واحد (فردي)" : "1 Bed (Single)"}</SelectItem>
+                  <SelectItem value="double">{ar ? "غرفة سريرين (مزدوج)" : "2 Beds (Double)"}</SelectItem>
+                  <SelectItem value="triple">{ar ? "غرفة 3 أسرة (ثلاثي)" : "3 Beds (Triple)"}</SelectItem>
+                  <SelectItem value="quad">{ar ? "غرفة 4 أسرة (رباعي)" : "4 Beds (Quad)"}</SelectItem>
+                  <SelectItem value="5">{ar ? "غرفة 5 أسرة (خماسي)" : "5 Beds (Quint)"}</SelectItem>
+                  <SelectItem value="6+">{ar ? "غرفة 6 أسرة فأكثر" : "6+ Beds"}</SelectItem>
+                </SelectGroup>
+
+                {dynamicRoomTypes.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel className="text-[11px] font-bold text-primary px-2 pt-1 pb-0.5">
+                        {ar ? "حسب تصنيف الغرفة:" : "By Room Category:"}
+                      </SelectLabel>
+                      {dynamicRoomTypes.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

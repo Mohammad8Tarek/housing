@@ -27,6 +27,72 @@ function normalizeItemName(name: string): string {
   return s;
 }
 
+/**
+ * Intelligent room type and capacity matching for reports.
+ * Matches bed capacity (1, 2, 3, 4, 5, 6+) as well as specific room type strings (Deluxe, Suite, Single, Double, Triple, Quad, etc.)
+ */
+export function matchesRoomType(room: any, filterValue: string): boolean {
+  if (!filterValue || filterValue === "all") return true;
+  if (!room) return false;
+
+  const rType = String(room.roomType || room.room_type || "").trim().toLowerCase();
+  const cap = Number(room.capacity || room.bedCapacity || room.bedsCount || 0);
+  const fVal = String(filterValue).trim().toLowerCase();
+
+  // 1. Single / 1 Bed
+  if (fVal === "1" || fVal === "single" || fVal === "cap:1") {
+    return cap === 1 || rType.includes("single") || rType.includes("فردي");
+  }
+
+  // 2. Double / 2 Beds
+  if (fVal === "2" || fVal === "double" || fVal === "cap:2") {
+    return (
+      cap === 2 ||
+      rType.includes("double") ||
+      rType.includes("دوبل") ||
+      rType.includes("مزدوج") ||
+      rType.includes("ثنائي")
+    );
+  }
+
+  // 3. Triple / 3 Beds
+  if (fVal === "3" || fVal === "triple" || fVal === "trible" || fVal === "cap:3") {
+    return (
+      cap === 3 ||
+      rType.includes("triple") ||
+      rType.includes("trible") ||
+      rType.includes("تريبل") ||
+      rType.includes("ثلاثي")
+    );
+  }
+
+  // 4. Quad / 4 Beds
+  if (fVal === "4" || fVal === "quad" || fVal === "quadruple" || fVal === "cap:4") {
+    return (
+      cap === 4 ||
+      rType.includes("quad") ||
+      rType.includes("رباعي") ||
+      rType.includes("كوادروبل")
+    );
+  }
+
+  // 5. 5 Beds
+  if (fVal === "5" || fVal === "cap:5") {
+    return cap === 5 || rType.includes("خماسي") || rType.includes("5");
+  }
+
+  // 6. 6+ Beds
+  if (fVal === "6+" || fVal === "cap:6+" || fVal === "6") {
+    return cap >= 6 || rType.includes("سداسي");
+  }
+
+  // 7. Specific Room Type Name matching (e.g. "Deluxe Room", "Family Suite", "Superior Room")
+  if (rType === fVal) return true;
+  if (rType && fVal && (rType.includes(fVal) || fVal.includes(rType))) return true;
+
+  return false;
+}
+
 export function useReportDataProcessor({
   ar = true,
   activeTab,
@@ -154,6 +220,13 @@ export function useReportDataProcessor({
             if (filterFloor !== "all" && room && !filteredFloorIds.has(room.floorId)) return false;
             if (filterDepartment !== "all" && r.department !== filterDepartment) return false;
             if (filterStatus !== "all" && r.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
+            if (filterRoomType !== "all") {
+              const matchObj = {
+                roomType: r.roomType || room?.roomType,
+                capacity: r.bedsCount || room?.capacity,
+              };
+              if (!matchesRoomType(matchObj, filterRoomType)) return false;
+            }
             return true;
           })
           .map((r: any) => {
@@ -219,6 +292,7 @@ export function useReportDataProcessor({
             if (filterDepartment !== "all" && emp.department !== filterDepartment) return false;
             if (filterGender !== "all" && emp.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
             if (filterNationality !== "all" && emp.nationality?.toLowerCase() !== filterNationality.toLowerCase()) return false;
+            if (filterRoomType !== "all" && room && !matchesRoomType(room, filterRoomType)) return false;
 
             if (a.status === "ACTIVE" || a.status === "CHECKED_OUT") return true;
             return false;
@@ -289,7 +363,7 @@ export function useReportDataProcessor({
           .filter((room: any) => {
             if (filterBuilding !== "all" && !filteredBuildingIds.has(room.buildingId)) return false;
             if (filterFloor !== "all" && !filteredFloorIds.has(room.floorId)) return false;
-            if (filterRoomType !== "all" && room.roomType?.toLowerCase() !== filterRoomType.toLowerCase()) return false;
+            if (filterRoomType !== "all" && !matchesRoomType(room, filterRoomType)) return false;
             if (filterStatus !== "all" && room.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
             return true;
           })
@@ -396,6 +470,7 @@ export function useReportDataProcessor({
         rooms.forEach((room: any) => {
           if (filterBuilding !== "all" && !filteredBuildingIds.has(room.buildingId)) return;
           if (filterFloor !== "all" && !filteredFloorIds.has(room.floorId)) return;
+          if (filterRoomType !== "all" && !matchesRoomType(room, filterRoomType)) return;
 
           const bName = buildingMap[room.buildingId] || "—";
           const fName = floorMap[room.floorId] || "—";
@@ -658,7 +733,7 @@ export function useReportDataProcessor({
             if (filterDepartment !== "all" && emp?.department !== filterDepartment) return false;
             if (filterGender !== "all" && emp?.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
             if (filterNationality !== "all" && emp?.nationality !== filterNationality) return false;
-            if (filterRoomType !== "all" && room?.roomType?.toLowerCase() !== filterRoomType.toLowerCase()) return false;
+            if (filterRoomType !== "all" && !matchesRoomType(room, filterRoomType)) return false;
             if (filterEmploymentType !== "all") {
               const et = emp?.employmentType || "INTERNAL";
               if (et.toLowerCase() !== filterEmploymentType.toLowerCase()) return false;
@@ -697,6 +772,7 @@ export function useReportDataProcessor({
               roomId: a.roomId,
               roomNumber: room.roomNumber || `#${a.roomId}`,
               roomType: room.roomType || "—",
+              capacity: room.capacity || 1,
               bedNumber: bedNum ? String(bedNum) : "—",
               isEntireRoom: isEntire,
               buildingName: buildingMap[room.buildingId] || "—",
@@ -765,7 +841,7 @@ export function useReportDataProcessor({
 
             if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
             if (filterFloor !== "all" && !filteredFloorIds.has(r.floorId)) return false;
-            if (filterRoomType !== "all" && r.roomType?.toLowerCase() !== filterRoomType.toLowerCase()) return false;
+            if (filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
             if (filterStatus !== "all") {
               const fs = filterStatus.toLowerCase();
               if (fs === "available" && occ > 0) return false;
@@ -839,7 +915,7 @@ export function useReportDataProcessor({
             if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
             if (filterFloor !== "all" && !filteredFloorIds.has(r.floorId)) return false;
             if (filterStatus !== "all" && r.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
-            if (filterRoomType !== "all" && r.roomType?.toLowerCase() !== filterRoomType.toLowerCase()) return false;
+            if (filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
             if (filterGender !== "all" && r.genderPolicy?.toLowerCase() !== filterGender.toLowerCase()) return false;
             return true;
           })
@@ -1008,7 +1084,14 @@ export function useReportDataProcessor({
           .filter((r: any) => {
             if (filterStatus !== "all" && r.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
             if (filterDepartment !== "all" && r.department !== filterDepartment) return false;
-            if (filterRoomType !== "all" && r.roomType?.toLowerCase() !== filterRoomType.toLowerCase()) return false;
+            if (filterRoomType !== "all") {
+              const room = r.roomId ? roomMap[r.roomId] : null;
+              const matchObj = {
+                roomType: r.roomType || room?.roomType,
+                capacity: r.bedsCount || room?.capacity,
+              };
+              if (!matchesRoomType(matchObj, filterRoomType)) return false;
+            }
             return true;
           })
           .map((r: any) => {
@@ -1129,7 +1212,7 @@ export function useReportDataProcessor({
           .filter((r: any) => {
             if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
             if (filterFloor !== "all" && !filteredFloorIds.has(r.floorId)) return false;
-            if (filterRoomType !== "all" && r.roomType?.toLowerCase() !== filterRoomType.toLowerCase()) return false;
+            if (filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
             if (filterGender !== "all" && r.genderPolicy?.toLowerCase() !== filterGender.toLowerCase()) return false;
             // Status filter: map housekeeping-relevant statuses
             if (filterStatus !== "all") {
@@ -1350,6 +1433,7 @@ export function useReportDataProcessor({
           const room = roomMap[a.roomId] || {};
           if (filterBuilding !== "all" && (!room || !filteredBuildingIds.has(room.buildingId))) return;
           if (filterDepartment !== "all" && emp?.department !== filterDepartment) return;
+          if (filterRoomType !== "all" && room && !matchesRoomType(room, filterRoomType)) return;
 
           if (a.checkInDate) {
             movements.push({

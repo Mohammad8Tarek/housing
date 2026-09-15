@@ -729,8 +729,14 @@ export function ReportTable({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-bold text-primary">{row.roomNumber}</span>
                         {row.bedNumber !== "—" && (
-                          <Badge variant="secondary" className="text-[11px] h-5 px-1.5">
+                          <Badge variant="secondary" className="text-[11px] h-5 px-1.5 font-medium">
                             {ar ? `سرير ${row.bedNumber}` : `Bed ${row.bedNumber}`}
+                          </Badge>
+                        )}
+                        {row.roomType && row.roomType !== "—" && (
+                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal text-muted-foreground bg-muted/30">
+                            {row.roomType}
+                            {row.capacity ? ` (${row.capacity} ${ar ? "أسرة" : "beds"})` : ""}
                           </Badge>
                         )}
                         {row.isEntireRoom && (
