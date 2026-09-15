@@ -18,6 +18,7 @@ import {
   Briefcase,
   BedDouble,
   Bed,
+  Compass,
   Shield,
   RefreshCw,
   KeyRound,
@@ -243,7 +244,7 @@ export default function Settings() {
           <TabsContent value="room-types">
             <div className="space-y-4">
               <Tabs defaultValue="classifications" className="w-full">
-                <TabsList className="grid w-full max-w-xl grid-cols-3 mb-4 bg-muted/60 p-1">
+                <TabsList className="grid w-full max-w-3xl grid-cols-4 mb-4 bg-muted/60 p-1">
                   <TabsTrigger value="classifications" className="text-xs font-semibold gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     {ar ? "تصنيفات الغرف" : "Room Classifications"}
@@ -255,6 +256,10 @@ export default function Settings() {
                   <TabsTrigger value="beds" className="text-xs font-semibold gap-1.5">
                     <Bed className="w-3.5 h-3.5 text-indigo-500" />
                     {ar ? "أنواع الأسرة" : "Bed Types"}
+                  </TabsTrigger>
+                  <TabsTrigger value="views" className="text-xs font-semibold gap-1.5">
+                    <Compass className="w-3.5 h-3.5 text-teal-500" />
+                    {ar ? "إطلالات الغرف" : "Room Views"}
                   </TabsTrigger>
                 </TabsList>
 
@@ -288,7 +293,7 @@ export default function Settings() {
                           propertyId={selectedPropertyId}
                           category={LOOKUP_CATEGORIES.ROOM_TYPE}
                           label="Room Type"
-                          description={ar ? "إدارة أنواع الغرف وسعة استيعاب كل نوع" : "Manage room types"}
+                          description={ar ? "إدارة أنواع الغرف وسعة استيعاب كل نوع" : "Manage room types and capacity"}
                           showCapacity
                         />
                       )}
@@ -305,6 +310,21 @@ export default function Settings() {
                           category={LOOKUP_CATEGORIES.BED_TYPE}
                           label="Bed Type"
                           description={ar ? "إدارة أنواع الأسرة الفندقية (مثل سرير فردي، سرير مزدوج، سرير طابقين...)" : "Manage hotel bed types (e.g. Single Bed, Double Bed, Bunk Bed...)"}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="views">
+                  <Card>
+                    <CardContent className="pt-6">
+                      {selectedPropertyId && (
+                        <LookupSection
+                          propertyId={selectedPropertyId}
+                          category={LOOKUP_CATEGORIES.ROOM_VIEW}
+                          label="Room View"
+                          description={ar ? "إدارة إطلالات الغرف (مثل إطلالة بحرية، إطلالة على الحديقة، حمام سباحة، إطلالة خلفية...)" : "Manage room views (e.g. Sea view, Garden view, Pool view, Back view...)"}
                         />
                       )}
                     </CardContent>

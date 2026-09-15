@@ -102,6 +102,7 @@ export function LookupSection({
     if (category === "room_type") return "نوع الغرفة";
     if (category === "room_classification") return "تصنيف الغرفة";
     if (category === "bed_type") return "نوع السرير";
+    if (category === "room_view") return "إطلالة الغرفة";
     if (category === "nationality") return "الجنسية";
     return label;
   };

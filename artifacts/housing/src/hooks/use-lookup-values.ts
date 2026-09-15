@@ -18,6 +18,7 @@ const LOOKUP_CATEGORIES = {
   ROOM_TYPE: "room_type",
   ROOM_CLASSIFICATION: "room_classification",
   BED_TYPE: "bed_type",
+  ROOM_VIEW: "room_view",
   NATIONALITY: "nationality",
 } as const;
 

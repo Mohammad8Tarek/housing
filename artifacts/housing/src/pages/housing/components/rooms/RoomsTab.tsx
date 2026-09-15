@@ -153,7 +153,7 @@ export function RoomsTab({
       buildingId: r.buildingId || 0,
       floorId: r.floorId || 0,
       roomNumber: r.roomNumber || "",
-      roomType: r.roomType || r.type || "Standard",
+      roomType: r.roomType || r.type || "",
       capacity: r.capacity || 2,
       gender: r.gender || "",
       status: statusNorm(r.status) || "available",

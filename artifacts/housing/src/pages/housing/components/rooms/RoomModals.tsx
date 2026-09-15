@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,16 +35,7 @@ import {
 
 
 
-const viewOptions = [
-  "Sea view",
-  "Tal View",
-  "Garden view",
-  "Pool view",
-  "City view",
-  "Mountain view",
-  "Back view",
-  "Street view",
-];
+
 
 const SUGGESTED_FEATURES = [
   "Bedroom",
@@ -151,6 +142,28 @@ export function RoomModals({
       ...(rForm.bedType ? [rForm.bedType] : []),
     ])
   ).filter(Boolean);
+
+  const { data: lookupViews = [] } = useLookupValues(
+    propertyId || 0,
+    LOOKUP_CATEGORIES.ROOM_VIEW
+  );
+  const activeViews = lookupViews.filter((v: any) => !v.disabled);
+  const availableViews = Array.from(
+    new Set([
+      ...activeViews.map((v: any) => v.value),
+      ...(rForm.view ? [rForm.view] : []),
+    ])
+  ).filter(Boolean);
+
+  const matchedType = activeLookupTypes.find((t: any) => t.value === rForm.roomType);
+  const isCapacityLocked = !!(matchedType?.parentValue && Number(matchedType.parentValue) > 0);
+  const configuredCapacity = isCapacityLocked ? Number(matchedType.parentValue) : null;
+
+  useEffect(() => {
+    if (isCapacityLocked && configuredCapacity && rForm.capacity !== configuredCapacity) {
+      setRForm((p: any) => ({ ...p, capacity: configuredCapacity }));
+    }
+  }, [isCapacityLocked, configuredCapacity, rForm.capacity, setRForm]);
 
   const featuresList: string[] = Array.isArray(rForm.featuresList)
     ? rForm.featuresList
@@ -319,11 +332,11 @@ export function RoomModals({
                     value={rForm.roomType}
                     onValueChange={(v) => {
                       const matched = activeLookupTypes.find((t: any) => t.value === v);
-                      const defaultCap = matched?.parentValue ? Number(matched.parentValue) : null;
+                      const configuredCap = matched?.parentValue ? Number(matched.parentValue) : null;
                       setRForm((p: any) => ({
                         ...p,
                         roomType: v,
-                        ...(defaultCap && !editRoom ? { capacity: defaultCap } : {}),
+                        ...(configuredCap && configuredCap > 0 ? { capacity: configuredCap } : {}),
                       }));
                     }}
                   >
@@ -363,17 +376,29 @@ export function RoomModals({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "السعة القصوى" : "Max Capacity"}</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>{ar ? "السعة القصوى" : "Max Capacity"}</Label>
+                    {isCapacityLocked && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                        {ar ? `محددة بنوع الغرفة (${configuredCapacity} أسرة)` : `Locked by Type (${configuredCapacity} beds)`}
+                      </span>
+                    )}
+                  </div>
                   <Input
                     type="number"
                     min={1}
-                    value={rForm.capacity}
-                    onChange={(e) =>
-                      setRForm((p: any) => ({
-                        ...p,
-                        capacity: Number(e.target.value),
-                      }))
-                    }
+                    value={isCapacityLocked && configuredCapacity ? configuredCapacity : rForm.capacity}
+                    readOnly={isCapacityLocked}
+                    disabled={isCapacityLocked}
+                    className={isCapacityLocked ? "bg-muted/70 cursor-not-allowed font-bold" : ""}
+                    onChange={(e) => {
+                      if (!isCapacityLocked) {
+                        setRForm((p: any) => ({
+                          ...p,
+                          capacity: Math.max(1, Number(e.target.value)),
+                        }));
+                      }
+                    }}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -402,7 +427,7 @@ export function RoomModals({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">— {ar ? "غير محدد" : "Not specified"}</SelectItem>
-                      {viewOptions.map((v) => (
+                      {availableViews.map((v) => (
                         <SelectItem key={v} value={v}>{v}</SelectItem>
                       ))}
                     </SelectContent>
