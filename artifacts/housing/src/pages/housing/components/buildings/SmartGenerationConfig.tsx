@@ -11,22 +11,8 @@ import {
 } from "@/components/ui/select";
 import { FloorConfig } from "../../utils";
 
-const roomTypes = [
-  "Standard",
-  "Deluxe",
-  "Suite",
-  "Studio",
-  "Shared",
-  "Dormitory",
-  "Executive",
-];
-const roomTypeValues = [
-  { value: "Standard", parentValue: "2" },
-  { value: "Shared", parentValue: "4" },
-  { value: "Dormitory", parentValue: "6" },
-  { value: "Suite", parentValue: "1" },
-  { value: "Executive", parentValue: "1" },
-];
+import { useProperty } from "@/context/PropertyContext";
+import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 type Props = {
   floorConfigs: FloorConfig[];
@@ -51,6 +37,13 @@ export function SmartGenerationConfig({
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
+  const { activePropertyId } = useProperty();
+  const { data: lookupRoomTypes = [] } = useLookupValues(
+    activePropertyId && activePropertyId !== "all" ? Number(activePropertyId) : 0,
+    LOOKUP_CATEGORIES.ROOM_TYPE
+  );
+  const activeLookupTypes = lookupRoomTypes.filter((t: any) => !t.disabled);
+  const availableRoomTypes = activeLookupTypes.map((t: any) => t.value);
 
   return (
     <div className="space-y-3">
@@ -127,7 +120,7 @@ export function SmartGenerationConfig({
                   <Select
                     value={fc.roomType}
                     onValueChange={(v) => {
-                      const match = roomTypeValues.find((rt) => rt.value === v);
+                      const match = activeLookupTypes.find((rt: any) => rt.value === v);
                       const autoCap = match?.parentValue
                         ? Number(match.parentValue)
                         : undefined;
@@ -143,7 +136,7 @@ export function SmartGenerationConfig({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {roomTypes.map((t) => (
+                      {availableRoomTypes.map((t) => (
                         <SelectItem key={t} value={t}>
                           {t}
                         </SelectItem>

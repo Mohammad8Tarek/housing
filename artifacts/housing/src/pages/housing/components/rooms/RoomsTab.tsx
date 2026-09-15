@@ -52,7 +52,7 @@ const EMPTY_FORM = {
   buildingId: 0,
   floorId: 0,
   roomNumber: "",
-  roomType: "Standard",
+  roomType: "",
   capacity: 2,
   gender: "",
   status: "available",

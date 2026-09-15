@@ -67,23 +67,7 @@ import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 
 
-const roomTypes = [
-  "Standard",
-  "Deluxe",
-  "Suite",
-  "Studio",
-  "Shared",
-  "Dormitory",
-  "Executive",
-];
 
-const roomTypeValues = [
-  { value: "Standard", parentValue: "2" },
-  { value: "Shared", parentValue: "4" },
-  { value: "Dormitory", parentValue: "6" },
-  { value: "Suite", parentValue: "1" },
-  { value: "Executive", parentValue: "1" },
-];
 
 type Props = {
   propertyId: number;

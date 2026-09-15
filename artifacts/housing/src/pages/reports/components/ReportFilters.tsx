@@ -63,16 +63,12 @@ export function ReportFilters({
 }: any) {
   const dynamicRoomTypes = useMemo(() => {
     const set = new Set<string>();
-    (rooms || []).forEach((r: any) => {
-      const t = r.roomType || r.room_type;
-      if (t && String(t).trim() && String(t).trim() !== "—") set.add(String(t).trim());
-    });
     (roomTypes || []).forEach((t: any) => {
       const val = typeof t === "string" ? t : t?.value;
       if (val && String(val).trim() && String(val).trim() !== "—") set.add(String(val).trim());
     });
     return Array.from(set).sort();
-  }, [rooms, roomTypes]);
+  }, [roomTypes]);
 
   const getStatusOptions = (): { value: string; label: string; labelAr: string }[] => {
     switch (activeTab) {

@@ -33,26 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const roomTypes = [
-  "Standard",
-  "Deluxe",
-  "Superior",
-  "Suite",
-  "Studio",
-  "Shared",
-  "Dormitory",
-  "Executive",
-];
 
-const bedTypes = [
-  "Single Bed",
-  "Twin Bed",
-  "Double Bed",
-  "Queen Bed",
-  "King Bed",
-  "Bunk Bed",
-  "Sofa Bed",
-];
 
 const viewOptions = [
   "Sea view",
@@ -144,25 +125,20 @@ export function RoomModals({
   );
 
   const activeLookupTypes = lookupRoomTypes.filter((t: any) => !t.disabled);
-  const availableRoomTypes =
-    activeLookupTypes.length > 0
-      ? activeLookupTypes.map((t: any) => t.value)
-      : roomTypes;
+  const availableRoomTypes = Array.from(
+    new Set([
+      ...activeLookupTypes.map((t: any) => t.value),
+      ...(rForm.roomType ? [rForm.roomType] : []),
+    ])
+  ).filter(Boolean);
 
-  const defaultClassifications = [
-    "Deluxe room",
-    "Family suite",
-    "Superior room",
-    "Standard room",
-  ];
   const activeClassifications = lookupClassifications.filter((t: any) => !t.disabled);
   const availableClassifications = Array.from(
     new Set([
-      ...defaultClassifications,
       ...activeClassifications.map((t: any) => t.value),
       ...(rForm.classification ? [rForm.classification] : []),
     ])
-  );
+  ).filter(Boolean);
 
   const { data: lookupBedTypes = [] } = useLookupValues(
     propertyId || 0,
@@ -171,11 +147,10 @@ export function RoomModals({
   const activeBedTypes = lookupBedTypes.filter((t: any) => !t.disabled);
   const availableBedTypes = Array.from(
     new Set([
-      ...bedTypes,
       ...activeBedTypes.map((t: any) => t.value),
       ...(rForm.bedType ? [rForm.bedType] : []),
     ])
-  );
+  ).filter(Boolean);
 
   const featuresList: string[] = Array.isArray(rForm.featuresList)
     ? rForm.featuresList
