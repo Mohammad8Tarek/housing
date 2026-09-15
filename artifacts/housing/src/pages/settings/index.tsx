@@ -17,6 +17,7 @@ import {
   Building2,
   Briefcase,
   BedDouble,
+  Bed,
   Shield,
   RefreshCw,
   KeyRound,
@@ -242,7 +243,7 @@ export default function Settings() {
           <TabsContent value="room-types">
             <div className="space-y-4">
               <Tabs defaultValue="classifications" className="w-full">
-                <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-muted/60 p-1">
+                <TabsList className="grid w-full max-w-xl grid-cols-3 mb-4 bg-muted/60 p-1">
                   <TabsTrigger value="classifications" className="text-xs font-semibold gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     {ar ? "تصنيفات الغرف" : "Room Classifications"}
@@ -250,6 +251,10 @@ export default function Settings() {
                   <TabsTrigger value="types" className="text-xs font-semibold gap-1.5">
                     <BedDouble className="w-3.5 h-3.5 text-primary" />
                     {ar ? "أنواع الغرف والسعة" : "Room Types & Capacity"}
+                  </TabsTrigger>
+                  <TabsTrigger value="beds" className="text-xs font-semibold gap-1.5">
+                    <Bed className="w-3.5 h-3.5 text-indigo-500" />
+                    {ar ? "أنواع الأسرة" : "Bed Types"}
                   </TabsTrigger>
                 </TabsList>
 
@@ -285,6 +290,21 @@ export default function Settings() {
                           label="Room Type"
                           description={ar ? "إدارة أنواع الغرف وسعة استيعاب كل نوع" : "Manage room types"}
                           showCapacity
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="beds">
+                  <Card>
+                    <CardContent className="pt-6">
+                      {selectedPropertyId && (
+                        <LookupSection
+                          propertyId={selectedPropertyId}
+                          category={LOOKUP_CATEGORIES.BED_TYPE}
+                          label="Bed Type"
+                          description={ar ? "إدارة أنواع الأسرة الفندقية (مثل سرير فردي، سرير مزدوج، سرير طابقين...)" : "Manage hotel bed types (e.g. Single Bed, Double Bed, Bunk Bed...)"}
                         />
                       )}
                     </CardContent>

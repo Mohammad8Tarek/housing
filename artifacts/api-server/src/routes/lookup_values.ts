@@ -46,6 +46,29 @@ router.get("/lookup-values", requireAuth, async (req, res): Promise<void> => {
       }
     }
 
+    // Auto-seed bed types if requested category is bed_type and empty
+    if (category === "bed_type" && results.length === 0) {
+      const bedDefaults = [
+        { category: "bed_type", value: "Single Bed", sortOrder: 1 },
+        { category: "bed_type", value: "Twin Bed", sortOrder: 2 },
+        { category: "bed_type", value: "Double Bed", sortOrder: 3 },
+        { category: "bed_type", value: "Queen Bed", sortOrder: 4 },
+        { category: "bed_type", value: "King Bed", sortOrder: 5 },
+        { category: "bed_type", value: "Bunk Bed", sortOrder: 6 },
+        { category: "bed_type", value: "Sofa Bed", sortOrder: 7 },
+      ];
+      try {
+        await tenantDb.insert(lookupValuesTable).values(bedDefaults as any);
+        results = await tenantDb
+          .select()
+          .from(lookupValuesTable)
+          .where(and(...conditions))
+          .orderBy(lookupValuesTable.sortOrder, lookupValuesTable.value);
+      } catch (e) {
+        console.warn("Failed to auto-seed bed types:", e);
+      }
+    }
+
     return results;
   });
 

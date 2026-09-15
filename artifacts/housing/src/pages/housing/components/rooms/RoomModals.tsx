@@ -164,6 +164,19 @@ export function RoomModals({
     ])
   );
 
+  const { data: lookupBedTypes = [] } = useLookupValues(
+    propertyId || 0,
+    LOOKUP_CATEGORIES.BED_TYPE
+  );
+  const activeBedTypes = lookupBedTypes.filter((t: any) => !t.disabled);
+  const availableBedTypes = Array.from(
+    new Set([
+      ...bedTypes,
+      ...activeBedTypes.map((t: any) => t.value),
+      ...(rForm.bedType ? [rForm.bedType] : []),
+    ])
+  );
+
   const featuresList: string[] = Array.isArray(rForm.featuresList)
     ? rForm.featuresList
     : typeof rForm.features === "string" && rForm.features
@@ -368,7 +381,7 @@ export function RoomModals({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">— {ar ? "غير محدد" : "Not specified"}</SelectItem>
-                      {bedTypes.map((t) => (
+                      {availableBedTypes.map((t) => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>
                       ))}
                     </SelectContent>

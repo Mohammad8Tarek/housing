@@ -17,6 +17,7 @@ const LOOKUP_CATEGORIES = {
   JOB_TITLE: "job_title",
   ROOM_TYPE: "room_type",
   ROOM_CLASSIFICATION: "room_classification",
+  BED_TYPE: "bed_type",
   NATIONALITY: "nationality",
 } as const;
 
