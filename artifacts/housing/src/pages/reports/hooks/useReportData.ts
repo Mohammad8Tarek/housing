@@ -13,6 +13,7 @@ import {
   useListProperties,
   useGetSettings,
 } from "@workspace/api-client-react";
+import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 export function useReportData(
   filterProperty: string,
@@ -183,6 +184,31 @@ export function useReportData(
     return m;
   }, [profiles]);
 
+  const { data: lookupRoomTypes = [] } = useLookupValues(
+    propId,
+    LOOKUP_CATEGORIES.ROOM_TYPE,
+  );
+
+  const { data: lookupClassifications = [] } = useLookupValues(
+    propId,
+    LOOKUP_CATEGORIES.ROOM_CLASSIFICATION,
+  );
+
+  const configuredRoomTypes = useMemo(() => {
+    const list: string[] = [];
+    (lookupRoomTypes || []).forEach((item: any) => {
+      if (!item.disabled && item.value && String(item.value).trim()) {
+        list.push(String(item.value).trim());
+      }
+    });
+    (lookupClassifications || []).forEach((item: any) => {
+      if (!item.disabled && item.value && String(item.value).trim()) {
+        list.push(String(item.value).trim());
+      }
+    });
+    return Array.from(new Set(list)).sort();
+  }, [lookupRoomTypes, lookupClassifications]);
+
   return {
     properties,
     propId,
@@ -205,5 +231,8 @@ export function useReportData(
     departments,
     nationalities,
     empMap,
+    configuredRoomTypes,
+    lookupRoomTypes,
+    lookupClassifications,
   };
 }

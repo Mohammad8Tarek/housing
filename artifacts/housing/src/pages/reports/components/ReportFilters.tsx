@@ -67,8 +67,9 @@ export function ReportFilters({
       const t = r.roomType || r.room_type;
       if (t && String(t).trim() && String(t).trim() !== "—") set.add(String(t).trim());
     });
-    (roomTypes || []).forEach((t: string) => {
-      if (t && String(t).trim() && String(t).trim() !== "—") set.add(String(t).trim());
+    (roomTypes || []).forEach((t: any) => {
+      const val = typeof t === "string" ? t : t?.value;
+      if (val && String(val).trim() && String(val).trim() !== "—") set.add(String(val).trim());
     });
     return Array.from(set).sort();
   }, [rooms, roomTypes]);
