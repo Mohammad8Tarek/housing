@@ -67,6 +67,8 @@ export default function Login() {
       } else {
         const rm = localStorage.getItem("login_remember_me");
         if (rm !== null) setRememberMe(rm === "true");
+        const savedEmpId = localStorage.getItem("saved_portal_employee_id");
+        if (savedEmpId) setEmployeeId(savedEmpId);
       }
     } catch {}
   }, []);
@@ -199,6 +201,11 @@ export default function Login() {
 
       // Save remember-me state
       localStorage.setItem("login_remember_me", String(rememberMe));
+      if (rememberMe) {
+        localStorage.setItem("saved_portal_employee_id", employeeId.trim());
+      } else {
+        localStorage.removeItem("saved_portal_employee_id");
+      }
       if (isNative) {
         await Preferences.set({
           key: "login_remember_me",
@@ -476,7 +483,6 @@ export default function Login() {
 
             <form
               method="post"
-              action="#"
               autoComplete="on"
               onSubmit={handleLogin}
               className="space-y-4"

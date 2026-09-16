@@ -205,6 +205,7 @@ export default function UserDetailPage() {
   const [primaryPropertyId, setPrimaryPropertyId] = useState<number | null>(null);
 
   // Password Management State
+  const [changePassword, setChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswordText, setShowPasswordText] = useState(false);
@@ -258,6 +259,7 @@ export default function UserDetailPage() {
     setPrimaryPropertyId(user.propertyId || (pids[0] ?? null));
 
     // Reset password fields
+    setChangePassword(false);
     setNewPassword("");
     setConfirmPassword("");
 
@@ -335,6 +337,7 @@ export default function UserDetailPage() {
 
   // Password Generator
   const handleGeneratePassword = () => {
+    setChangePassword(true);
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
     let pwd = "";
     pwd += "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)];
@@ -519,6 +522,7 @@ export default function UserDetailPage() {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         toast.success(ar ? "تم حفظ كافة تعديلات المستخدم بنجاح" : "User updated successfully");
+        setChangePassword(false);
         setNewPassword("");
         setConfirmPassword("");
         refetchUser();
@@ -533,9 +537,9 @@ export default function UserDetailPage() {
   const handleSaveAll = async () => {
     if (!user) return;
 
-    // Password validation if entered
-    if (newPassword) {
-      const evalResult = evaluatePassword(newPassword);
+    // Password validation ONLY if user explicitly opted in to change password
+    if (changePassword && newPassword.trim()) {
+      const evalResult = evaluatePassword(newPassword.trim());
       if (evalResult.score < 2) {
         toast.error(ar ? "كلمة المرور ضعيفة جداً، يرجى اختيار كلمة مرور أقوى" : "Password is too weak");
         return;
@@ -557,8 +561,8 @@ export default function UserDetailPage() {
       propertyId: primaryPropertyId || selectedPropertyIds[0] || null,
     };
 
-    if (newPassword) {
-      payload.password = newPassword;
+    if (changePassword && newPassword.trim()) {
+      payload.password = newPassword.trim();
     }
 
     // Pure RBAC: explicit permissions are the sole source of truth.
@@ -1142,71 +1146,118 @@ export default function UserDetailPage() {
                     <KeyRound className="w-4 h-4 text-blue-600" />
                     {ar ? "تعيين كلمة المرور" : "Password Management"}
                   </CardTitle>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleGeneratePassword}
-                    className="text-xs text-[#C9A24D] hover:text-[#b08e40] font-bold p-0 h-auto"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 me-1" />
-                    {ar ? "توليد ذكي" : "Generate"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {ar ? "تغيير كلمة المرور" : "Change Password"}
+                    </span>
+                    <Switch
+                      checked={changePassword}
+                      onCheckedChange={(checked) => {
+                        setChangePassword(checked);
+                        if (!checked) {
+                          setNewPassword("");
+                          setConfirmPassword("");
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
                 <CardDescription>
-                  {ar ? "اترك الحقول فارغة إذا كنت لا ترغب في تغيير كلمة المرور." : "Leave blank to keep existing password."}
+                  {ar
+                    ? "كلمة المرور الحالية محفوظة ومحمية تلقائياً. فعل الخيار فقط إذا كنت ترغب بتغييرها."
+                    : "Current password is kept safe. Enable toggle only if you want to set a new password."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold">{ar ? "كلمة المرور الجديدة" : "New Password"}</Label>
-                    <button
+                {!changePassword ? (
+                  <div className="flex items-center justify-between p-3.5 rounded-lg border border-dashed border-border/80 bg-muted/20">
+                    <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                      <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>
+                        {ar
+                          ? "كلمة المرور الحالية آمنة ولن يتم تعديلها عند حفظ التغييرات"
+                          : "Current password is safe and will not be changed on save"}
+                      </span>
+                    </div>
+                    <Button
                       type="button"
-                      onClick={() => setShowPasswordText(!showPasswordText)}
-                      className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setChangePassword(true)}
+                      className="text-xs font-medium h-7 px-2.5 text-[#C9A24D] border-[#C9A24D]/30 hover:bg-[#C9A24D]/10"
                     >
-                      {showPasswordText ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      {showPasswordText ? (ar ? "إخفاء" : "Hide") : (ar ? "إظهار" : "Show")}
-                    </button>
+                      <KeyRound className="w-3.5 h-3.5 me-1" />
+                      {ar ? "تغيير كلمة المرور" : "Change Password"}
+                    </Button>
                   </div>
-                  <Input
-                    type={showPasswordText ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="font-mono text-sm"
-                  />
-                  {newPassword && <PasswordStrengthMeter password={newPassword} />}
-                </div>
+                ) : (
+                  <div className="space-y-3 animate-fade-in">
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGeneratePassword}
+                        className="text-xs text-[#C9A24D] hover:text-[#b08e40] font-bold p-0 h-auto"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 me-1" />
+                        {ar ? "توليد ذكي عشوائي" : "Generate Strong"}
+                      </Button>
+                    </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">{ar ? "تأكيد كلمة المرور" : "Confirm Password"}</Label>
-                  <Input
-                    type={showPasswordText ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="font-mono text-sm"
-                  />
-                  {confirmPassword && newPassword !== confirmPassword && (
-                    <p className="text-[11px] text-rose-500 font-medium">
-                      {ar ? "كلمتا المرور غير متطابقتين" : "Passwords do not match"}
-                    </p>
-                  )}
-                </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold">{ar ? "كلمة المرور الجديدة" : "New Password"}</Label>
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswordText(!showPasswordText)}
+                          className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                        >
+                          {showPasswordText ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          {showPasswordText ? (ar ? "إخفاء" : "Hide") : (ar ? "إظهار" : "Show")}
+                        </button>
+                      </div>
+                      <Input
+                        type={showPasswordText ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        autoComplete="new-password"
+                        className="font-mono text-sm"
+                      />
+                      {newPassword && <PasswordStrengthMeter password={newPassword} />}
+                    </div>
 
-                {newPassword && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyCredentials}
-                    className="w-full text-xs"
-                  >
-                    <Copy className="w-3.5 h-3.5 me-1.5" />
-                    {ar ? "نسخ بيانات الدخول للحافظة" : "Copy Credentials"}
-                  </Button>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">{ar ? "تأكيد كلمة المرور" : "Confirm Password"}</Label>
+                      <Input
+                        type={showPasswordText ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        autoComplete="new-password"
+                        className="font-mono text-sm"
+                      />
+                      {confirmPassword && newPassword !== confirmPassword && (
+                        <p className="text-[11px] text-rose-500 font-medium">
+                          {ar ? "كلمتا المرور غير متطابقتين" : "Passwords do not match"}
+                        </p>
+                      )}
+                    </div>
+
+                    {newPassword && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyCredentials}
+                        className="w-full text-xs"
+                      >
+                        <Copy className="w-3.5 h-3.5 me-1.5" />
+                        {ar ? "نسخ بيانات الدخول للحافظة" : "Copy Credentials"}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

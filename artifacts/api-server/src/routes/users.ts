@@ -465,17 +465,18 @@ router.patch(
       return;
     }
     let extraData: any = {};
-    if (password) {
+    if (password && typeof password === "string" && password.trim().length > 0) {
+      const cleanPassword = password.trim();
       // ─── Validate password against policy ───────────────────────────
       const policy = await getPasswordPolicy(
         updateData.propertyId ?? targetUser.propertyId ?? 0,
       );
-      const pwdValidation = validatePassword(password, policy);
+      const pwdValidation = validatePassword(cleanPassword, policy);
       if (!pwdValidation.valid) {
         res.status(400).json({ error: pwdValidation.errors.join("; ") });
         return;
       }
-      extraData.passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+      extraData.passwordHash = await bcrypt.hash(cleanPassword, BCRYPT_ROUNDS);
       extraData.passwordChangedAt = new Date();
     }
 

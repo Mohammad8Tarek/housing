@@ -86,9 +86,20 @@ export default function Login() {
     defaultValues: { username: "", password: "" },
   });
 
+  // Prefill saved username if Remember Me was previously checked
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem("saved_login_username");
+      if (savedUser) {
+        form.setValue("username", savedUser);
+        setKeepLoggedIn(true);
+      }
+    } catch {}
+  }, [form]);
+
   const loginMutation = useLogin({
     mutation: {
-      onSuccess: (data: any) => {
+      onSuccess: (data: any, variables: any) => {
         setLockoutMsg(null);
         setRemainingAttempts(null);
         const sid =
@@ -96,6 +107,37 @@ export default function Login() {
           data?.token ||
           (data?.user?.id ? String(data.user.id) : "session_active");
         storeToken(sid, keepLoggedIn);
+
+        const submittedUser = variables?.data?.username || form.getValues("username");
+        const submittedPass = variables?.data?.password || form.getValues("password");
+
+        // Save or clear remembered username
+        try {
+          if (keepLoggedIn && submittedUser) {
+            localStorage.setItem("saved_login_username", submittedUser);
+          } else {
+            localStorage.removeItem("saved_login_username");
+          }
+        } catch {}
+
+        // Prompt browser password manager / Credential Management API to store credentials upon SUCCESS
+        if (
+          typeof window !== "undefined" &&
+          "credentials" in navigator &&
+          (window as any).PasswordCredential &&
+          submittedUser &&
+          submittedPass
+        ) {
+          try {
+            const cred = new (window as any).PasswordCredential({
+              id: submittedUser,
+              password: submittedPass,
+              name: submittedUser,
+            });
+            navigator.credentials.store(cred).catch(() => {});
+          } catch {}
+        }
+
         if (data?.user) {
           queryClient.setQueryData(getGetMeQueryKey(), data.user);
         }
@@ -143,20 +185,6 @@ export default function Login() {
   });
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
-    if (
-      typeof window !== "undefined" &&
-      "credentials" in navigator &&
-      (window as any).PasswordCredential
-    ) {
-      try {
-        const cred = new (window as any).PasswordCredential({
-          id: values.username,
-          password: values.password,
-          name: values.username,
-        });
-        navigator.credentials.store(cred).catch(() => {});
-      } catch {}
-    }
     loginMutation.mutate({ data: values });
   };
 
@@ -262,7 +290,6 @@ export default function Login() {
           <Form {...form}>
             <form
               method="post"
-              action="#"
               autoComplete="on"
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-5"
