@@ -125,8 +125,7 @@ export function useReportExport({
       case "assignments":
         return data.map((a: any) => ({
           [ar ? "كود الموظف" : "Employee Code"]: a.profileCode,
-          [ar ? "الاسم بالكامل (ثلاثي)" : "Full Name"]: a.fullName,
-          [ar ? "الاسم الثالث" : "Third Name"]: a.thirdName,
+          [ar ? "الاسم بالكامل" : "Full Name"]: a.fullName,
           [ar ? "نوع التوظيف" : "Employment Type"]:
             a.employmentType === "THIRD_PARTY"
               ? (ar ? "طرف ثالث" : "Third Party")
@@ -201,11 +200,7 @@ export function useReportExport({
       case "profiles":
         return data.map((e: any) => ({
           [ar ? "كود الموظف" : "Employee Code"]: e.profileCode,
-          [ar ? "الاسم بالكامل (ثلاثي)" : "Full Name"]: e.fullName,
-          [ar ? "الاسم الأول" : "First Name"]: e.firstName,
-          [ar ? "الاسم الثاني" : "Second Name"]: e.lastName,
-          [ar ? "الاسم الثالث" : "Third Name"]: e.thirdName,
-          [ar ? "الاسم الرابع" : "Fourth Name"]: e.fourthName,
+          [ar ? "الاسم بالكامل" : "Full Name"]: e.fullName,
           [ar ? "نوع التوظيف" : "Employment Type"]:
             e.employmentType === "THIRD_PARTY"
               ? (ar ? "طرف ثالث" : "Third Party")
@@ -379,8 +374,7 @@ export function useReportExport({
       case "police_report":
         return data.map((p: any) => ({
           [ar ? "كود الموظف" : "Employee Code"]: p.profileCode,
-          [ar ? "الاسم بالكامل (ثلاثي)" : "Full Name"]: p.fullName,
-          [ar ? "الاسم الثالث" : "Third Name"]: p.thirdName,
+          [ar ? "الاسم بالكامل" : "Full Name"]: p.fullName,
           [ar ? "الرقم القومي" : "National ID"]: p.nationalId,
           [ar ? "الجنسية" : "Nationality"]: p.nationality,
           [ar ? "تاريخ الميلاد" : "Date of Birth"]: p.dateOfBirth,

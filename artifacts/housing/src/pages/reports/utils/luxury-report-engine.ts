@@ -241,10 +241,11 @@ export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = 
   "guest name": { ar: "اسم الضيف", en: "Guest Name" },
   "occupant / profile": { ar: "الموظف / المقيم", en: "Resident / Profile" },
   "resident / profile": { ar: "الموظف / النزيل", en: "Resident / Profile" },
-  "code & name": { ar: "كود واسم الموظف", en: "Code & Name" },
-  fullname: { ar: "الاسم الكامل", en: "Full Name" },
-  full_name: { ar: "الاسم الكامل", en: "Full Name" },
-  "full name": { ar: "الاسم الكامل", en: "Full Name" },
+  fullname: { ar: "الاسم بالكامل", en: "Full Name" },
+  full_name: { ar: "الاسم بالكامل", en: "Full Name" },
+  "full name": { ar: "الاسم بالكامل", en: "Full Name" },
+  "الاسم بالكامل": { ar: "الاسم بالكامل", en: "Full Name" },
+  "الاسم بالكامل (ثلاثي)": { ar: "الاسم بالكامل", en: "Full Name" },
   firstname: { ar: "الاسم الأول", en: "First Name" },
   first_name: { ar: "الاسم الأول", en: "First Name" },
   "first name": { ar: "الاسم الأول", en: "First Name" },
@@ -933,6 +934,98 @@ export function getOperaColumnAlign(
   return isArabic ? "right" : "left";
 }
 
+/**
+ * Intelligent column sizing and whitespace handling for Opera PMS tables
+ * Ensures names, national IDs, phones, and dates have sufficient width and don't cramp
+ */
+export function getOperaColumnStyle(headerName: string, isArabic: boolean): string {
+  const norm = (headerName || "").toLowerCase().trim();
+  
+  // Full Name / Occupant / Employee
+  if (
+    norm.includes("الاسم") ||
+    norm.includes("name") ||
+    norm.includes("occupant") ||
+    norm.includes("resident") ||
+    norm.includes("الموظف")
+  ) {
+    return "min-width: 140px; white-space: nowrap;";
+  }
+  
+  // National ID
+  if (norm.includes("الرقم القومي") || norm.includes("national id") || norm.includes("بطاقة")) {
+    return "min-width: 110px; white-space: nowrap; font-family: monospace;";
+  }
+  
+  // Phone numbers
+  if (norm.includes("هاتف") || norm.includes("phone") || norm.includes("موبايل") || norm.includes("طوارئ")) {
+    return "min-width: 95px; white-space: nowrap; font-family: monospace;";
+  }
+  
+  // Dates
+  if (
+    norm.includes("تاريخ") ||
+    norm.includes("date") ||
+    norm.includes("تسكين") ||
+    norm.includes("تعيين") ||
+    norm.includes("مغادرة") ||
+    norm.includes("ميلاد") ||
+    norm.includes("عقد")
+  ) {
+    return "min-width: 80px; white-space: nowrap;";
+  }
+  
+  // Room No
+  if (norm.includes("غرفة") || norm.includes("room")) {
+    return "min-width: 55px; white-space: nowrap;";
+  }
+  
+  // Bed No
+  if (norm.includes("سرير") || norm.includes("bed")) {
+    return "min-width: 45px; white-space: nowrap;";
+  }
+  
+  // Company / Employer
+  if (norm.includes("شركة") || norm.includes("company")) {
+    return "min-width: 95px;";
+  }
+  
+  // Department
+  if (norm.includes("قسم") || norm.includes("dept") || norm.includes("department")) {
+    return "min-width: 90px;";
+  }
+  
+  // Job Title
+  if (norm.includes("وظيفة") || norm.includes("title") || norm.includes("job")) {
+    return "min-width: 95px;";
+  }
+  
+  // Nationality
+  if (norm.includes("جنسية") || norm.includes("nationality")) {
+    return "min-width: 70px; white-space: nowrap;";
+  }
+  
+  // Gender
+  if (norm.includes("جنس") || norm.includes("gender")) {
+    return "min-width: 45px; white-space: nowrap;";
+  }
+  
+  // Building & Floor
+  if (norm.includes("مبنى") || norm.includes("building")) {
+    return "min-width: 75px;";
+  }
+  if (norm.includes("طابق") || norm.includes("floor")) {
+    return "min-width: 60px;";
+  }
+  
+  // Status
+  if (norm.includes("حالة") || norm.includes("status")) {
+    return "min-width: 65px; white-space: nowrap;";
+  }
+  
+  return "";
+}
+
 // ----------------------------------------------------------------------------
 // 4. Main Engine Function: printLuxuryReport (Opera PMS Edition)
 // ----------------------------------------------------------------------------
@@ -1079,11 +1172,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const theadHtml = `
     <thead>
       <tr class="opera-thead-row">
-        <th style="width: 28px; text-align: center;">#</th>
+        <th style="width: 28px; min-width: 24px; text-align: center;">#</th>
         ${headers
           .map((h, i) => {
-            const align = getOperaColumnAlign(rawHeaders[i] || h, isArabic);
-            return `<th style="text-align: ${align};">${h}</th>`;
+            const raw = rawHeaders[i] || h;
+            const align = getOperaColumnAlign(raw, isArabic);
+            const colStyle = getOperaColumnStyle(raw, isArabic);
+            return `<th style="text-align: ${align}; ${colStyle}">${h}</th>`;
           })
           .join("")}
       </tr>
@@ -1101,11 +1196,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
                   <td style="text-align: center; color: #64748b; font-size: ${printFontSizePt - 0.5}pt;">${idx + 1}</td>
                   ${row
                     .map((cell, colIdx) => {
-                      const align = getOperaColumnAlign(rawHeaders[colIdx] || "", isArabic);
+                      const raw = rawHeaders[colIdx] || "";
+                      const align = getOperaColumnAlign(raw, isArabic);
+                      const colStyle = getOperaColumnStyle(raw, isArabic);
                       const formatted = formatStatusBadgeHtml(cell, isArabic);
                       const isNum = typeof cell === "number" || (!isNaN(Number(cell)) && cell !== "" && cell !== null && !String(cell).includes("-") && !String(cell).includes("/"));
                       const displayVal = (isNum && typeof cell === "number") ? cell.toLocaleString() : formatted;
-                      return `<td style="text-align: ${align};">${displayVal}</td>`;
+                      return `<td style="text-align: ${align}; ${colStyle}">${displayVal}</td>`;
                     })
                     .join("")}
                 </tr>
@@ -1374,9 +1471,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-left: none !important;
       border-right: none !important;
       padding: ${cellPadding} !important;
-      line-height: 1.25;
+      line-height: 1.2;
       vertical-align: bottom;
-      white-space: nowrap;
     }
     table.opera-table td {
       background: #ffffff !important;
@@ -1384,11 +1480,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-top: none !important;
       border-left: none !important;
       border-right: none !important;
-      border-bottom: 0.5px solid #f1f5f9 !important;
+      border-bottom: 0.5px solid #e2e8f0 !important;
       padding: ${cellPadding} !important;
-      line-height: 1.3;
-      vertical-align: top;
-      word-break: break-word !important;
+      line-height: 1.35;
+      vertical-align: middle;
+      word-break: normal !important;
       overflow-wrap: break-word !important;
     }
     tr.opera-totals-row td {
@@ -1522,7 +1618,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     @media print {
       @page {
         size: A4 ${orientation};
-        margin: 5mm 8mm 6mm 8mm !important;
+        margin: 4mm 5mm 5mm 5mm !important;
       }
       html, body {
         width: 100% !important;
@@ -1537,7 +1633,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       .sheet {
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 4mm 6mm !important;
+        padding: 2mm 3mm !important;
         width: 100% !important;
         max-width: 100% !important;
         min-height: auto !important;
@@ -1602,15 +1698,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   <div class="sheet-wrapper">
     <div class="sheet" id="printSheet">
-      <!-- Opera Header Layout with Dual Logos -->
+      <!-- Opera Header Layout with Dual Logos (System Logo on Left, Property Logo on Right) -->
       <div class="opera-header">
-        <!-- Left: Property Logo / Brand -->
+        <!-- Left: System Logo / System Brand -->
         <div class="opera-header-left">
-          ${propLogo
-            ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
+          ${sysLogo
+            ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
             : `<div class="opera-fallback-brand">
-                <span>SUNRISE</span>
-                <span class="opera-fallback-badge">${propName.toUpperCase()}</span>
+                <span>RESORTS & CRUISES</span>
+                <span class="opera-fallback-badge">STAFF HOUSING</span>
                </div>`
           }
         </div>
@@ -1626,13 +1722,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           </div>` : ""}
         </div>
 
-        <!-- Right: System Logo & Opera Date/Time -->
+        <!-- Right: Property Logo & Opera Date/Time -->
         <div class="opera-header-right">
-          ${sysLogo
-            ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
+          ${propLogo
+            ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
             : `<div class="opera-fallback-brand right-brand">
-                <span>RESORTS & CRUISES</span>
-                <span class="opera-fallback-badge">STAFF HOUSING</span>
+                <span>SUNRISE</span>
+                <span class="opera-fallback-badge">${propName.toUpperCase()}</span>
                </div>`
           }
           <div class="opera-meta-datetime">
