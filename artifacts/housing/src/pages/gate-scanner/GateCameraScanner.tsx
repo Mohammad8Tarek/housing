@@ -1,0 +1,480 @@
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import {
+  Camera,
+  CameraOff,
+  FlipHorizontal,
+  Zap,
+  ZapOff,
+  Upload,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+  ScanLine,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+interface GateCameraScannerProps {
+  onScan: (decodedText: string) => void;
+  isVerifying: boolean;
+  isAr: boolean;
+}
+
+export function GateCameraScanner({
+  onScan,
+  isVerifying,
+  isAr,
+}: GateCameraScannerProps) {
+  const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
+  const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [hasTorch, setHasTorch] = useState<boolean>(false);
+  const [isTorchOn, setIsTorchOn] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState<boolean>(false);
+  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const cooldownTimerRef = useRef<any>(null);
+  const isCooldownRef = useRef<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerId = "gate-camera-viewport";
+
+  // Stop camera helper
+  const stopCamera = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+        scannerRef.current.clear();
+      } catch (err) {
+        console.warn("[GateCameraScanner] Error stopping camera:", err);
+      }
+    }
+    setIsTorchOn(false);
+    setHasTorch(false);
+  }, []);
+
+  // Start camera helper
+  const startCamera = useCallback(async (camId?: string, mode?: "environment" | "user") => {
+    if (!isCameraActive) return;
+    setIsStarting(true);
+    setCameraError(null);
+
+    await stopCamera();
+
+    try {
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode(containerId, {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.UPC_A,
+          ],
+          verbose: false,
+        });
+      }
+
+      // Enumerate cameras if not already done
+      try {
+        const devs = await Html5Qrcode.getCameras();
+        if (devs && devs.length > 0) {
+          setCameras(devs);
+          if (!selectedCameraId && !camId) {
+            // Pick back camera if labeled, or default to first
+            const backCam = devs.find((d) =>
+              /back|rear|environment|خلف/i.test(d.label)
+            );
+            if (backCam) {
+              camId = backCam.id;
+              setSelectedCameraId(backCam.id);
+            } else {
+              camId = devs[0].id;
+              setSelectedCameraId(devs[0].id);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[GateCameraScanner] Could not enumerate devices:", e);
+      }
+
+      const cameraConfig = camId
+        ? { deviceId: { exact: camId } }
+        : { facingMode: mode || facingMode };
+
+      await scannerRef.current.start(
+        cameraConfig,
+        {
+          fps: 15,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const edgeSize = Math.max(180, Math.floor(minEdge * 0.72));
+            return { width: edgeSize, height: edgeSize };
+          },
+          aspectRatio: 1.0,
+        },
+        (decodedText) => {
+          // Check cooldown
+          if (isCooldownRef.current || isVerifying) return;
+          isCooldownRef.current = true;
+          setLastScannedCode(decodedText);
+          setCooldownRemaining(2);
+
+          // Trigger parent scan handler
+          onScan(decodedText);
+
+          // Countdown cooldown timer
+          let remaining = 2;
+          if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+          cooldownTimerRef.current = setInterval(() => {
+            remaining -= 1;
+            setCooldownRemaining(remaining);
+            if (remaining <= 0) {
+              clearInterval(cooldownTimerRef.current);
+              isCooldownRef.current = false;
+              setCooldownRemaining(0);
+            }
+          }, 1000);
+        },
+        () => {
+          // silent frame error
+        }
+      );
+
+      // Check for torch capability
+      try {
+        const capabilities = scannerRef.current.getRunningTrackCapabilities();
+        if (capabilities && (capabilities as any).torch) {
+          setHasTorch(true);
+        } else {
+          setHasTorch(false);
+        }
+      } catch {}
+    } catch (err: any) {
+      console.error("[GateCameraScanner] Camera start error:", err);
+      let errMsg = isAr
+        ? "تعذر الوصول إلى الكاميرا. يرجى التأكد من منح الإذن للمتصفح والاتصال عبر HTTPS أو localhost."
+        : "Failed to access camera. Please allow camera permissions and ensure HTTPS or localhost.";
+      if (err?.name === "NotAllowedError" || String(err).includes("Permission")) {
+        errMsg = isAr
+          ? "تم رفض إذن الكاميرا. الرجاء السماح بالوصول للكاميرا من إعدادات المتصفح."
+          : "Camera permission denied. Please allow camera access in browser settings.";
+      } else if (err?.name === "NotFoundError" || String(err).includes("DevicesNotFoundError")) {
+        errMsg = isAr
+          ? "لم يتم العثور على أي كاميرا متصلة بالجهاز."
+          : "No camera found on this device.";
+      }
+      setCameraError(errMsg);
+    } finally {
+      setIsStarting(false);
+    }
+  }, [facingMode, isAr, isCameraActive, isVerifying, onScan, selectedCameraId, stopCamera]);
+
+  // Handle Torch Toggle
+  const toggleTorch = async () => {
+    if (!scannerRef.current || !hasTorch) return;
+    try {
+      const nextState = !isTorchOn;
+      await scannerRef.current.applyVideoConstraints({
+        advanced: [{ torch: nextState }] as any,
+      });
+      setIsTorchOn(nextState);
+    } catch (err) {
+      toast.error(isAr ? "فشل تفعيل فلاش الكاميرا" : "Failed to toggle torch");
+    }
+  };
+
+  // Flip Camera between back and front
+  const flipCamera = async () => {
+    const nextMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(nextMode);
+    setSelectedCameraId("");
+    await startCamera(undefined, nextMode);
+  };
+
+  // Handle Image File Scan
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      toast.info(isAr ? "جارٍ قراءة كود الـ QR من الصورة..." : "Scanning QR from image...");
+      let html5QrCode = scannerRef.current;
+      let tempInstance = false;
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode(containerId);
+        tempInstance = true;
+      }
+      const decodedText = await html5QrCode.scanFile(file, true);
+      if (tempInstance) {
+        html5QrCode.clear();
+      }
+      toast.success(isAr ? "تم قراءة الكود بنجاح!" : "QR Code detected successfully!");
+      onScan(decodedText);
+    } catch (err) {
+      toast.error(
+        isAr
+          ? "لم يتم العثور على كود QR واضح في الصورة المختارة"
+          : "No valid QR code found in selected image"
+      );
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Toggle Camera on/off
+  const toggleCameraActive = async () => {
+    if (isCameraActive) {
+      await stopCamera();
+      setIsCameraActive(false);
+    } else {
+      setIsCameraActive(true);
+      // will be started by useEffect
+    }
+  };
+
+  // Lifecycle
+  useEffect(() => {
+    if (isCameraActive) {
+      startCamera(selectedCameraId);
+    } else {
+      stopCamera();
+    }
+
+    return () => {
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+      stopCamera();
+    };
+  }, [isCameraActive]);
+
+  return (
+    <div className="space-y-3">
+      {/* ── Top Bar Controls ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-2xl bg-muted/40 border border-border/60">
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={isCameraActive ? "default" : "outline"}
+            size="sm"
+            onClick={toggleCameraActive}
+            className={`h-8 px-3 rounded-xl text-xs font-bold gap-1.5 transition-all ${
+              isCameraActive
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                : "border-border text-muted-foreground"
+            }`}
+          >
+            {isCameraActive ? (
+              <>
+                <Camera className="w-3.5 h-3.5 animate-pulse" />
+                <span>{isAr ? "الكاميرا تعمل" : "Camera Active"}</span>
+              </>
+            ) : (
+              <>
+                <CameraOff className="w-3.5 h-3.5" />
+                <span>{isAr ? "تشغيل الكاميرا" : "Turn On Camera"}</span>
+              </>
+            )}
+          </Button>
+
+          {cameras.length > 1 && isCameraActive && (
+            <select
+              value={selectedCameraId}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setSelectedCameraId(newId);
+                startCamera(newId);
+              }}
+              className="h-8 px-2.5 rounded-xl border border-border bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[140px] truncate"
+            >
+              {cameras.map((c, i) => (
+                <option key={c.id} value={c.id}>
+                  {c.label || `${isAr ? "كاميرا" : "Camera"} ${i + 1}`}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {/* Flip camera */}
+          {isCameraActive && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={flipCamera}
+              title={isAr ? "تبديل الكاميرا (أمامية / خلفية)" : "Flip Camera (Front / Back)"}
+              className="h-8 w-8 p-0 rounded-xl"
+            >
+              <FlipHorizontal className="w-3.5 h-3.5" />
+            </Button>
+          )}
+
+          {/* Flashlight / Torch */}
+          {isCameraActive && hasTorch && (
+            <Button
+              type="button"
+              variant={isTorchOn ? "default" : "outline"}
+              size="sm"
+              onClick={toggleTorch}
+              title={isAr ? "فلاش الكاميرا" : "Flashlight"}
+              className={`h-8 w-8 p-0 rounded-xl ${
+                isTorchOn ? "bg-amber-500 hover:bg-amber-600 text-white" : ""
+              }`}
+            >
+              {isTorchOn ? (
+                <Zap className="w-3.5 h-3.5 fill-current" />
+              ) : (
+                <ZapOff className="w-3.5 h-3.5" />
+              )}
+            </Button>
+          )}
+
+          {/* Upload image */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            title={isAr ? "فحص كود من ملف صورة" : "Scan from image file"}
+            className="h-8 px-2.5 rounded-xl text-xs gap-1 font-semibold"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{isAr ? "مسح من صورة" : "Scan Image"}</span>
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+        </div>
+      </div>
+
+      {/* ── Viewport Container ── */}
+      <div className="relative w-full aspect-square max-h-[380px] sm:max-h-[420px] rounded-3xl overflow-hidden bg-black/90 border-2 border-border/80 shadow-inner flex items-center justify-center">
+        {/* The HTML5 QR Code DOM target */}
+        <div
+          id={containerId}
+          className={`w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover [&_canvas]:hidden ${
+            !isCameraActive || cameraError ? "hidden" : ""
+          }`}
+        />
+
+        {/* Laser Scanner Line and Corner Target Overlay (when active) */}
+        {isCameraActive && !cameraError && !isStarting && (
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
+            {/* Viewfinder Target Box */}
+            <div className="relative w-[72%] h-[72%] border-2 border-primary/60 rounded-3xl overflow-hidden shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
+              {/* Corner Accents */}
+              <div className="absolute top-0 start-0 w-6 h-6 border-t-4 border-s-4 border-emerald-400 rounded-tl-xl" />
+              <div className="absolute top-0 end-0 w-6 h-6 border-t-4 border-e-4 border-emerald-400 rounded-tr-xl" />
+              <div className="absolute bottom-0 start-0 w-6 h-6 border-b-4 border-s-4 border-emerald-400 rounded-bl-xl" />
+              <div className="absolute bottom-0 end-0 w-6 h-6 border-b-4 border-e-4 border-emerald-400 rounded-br-xl" />
+
+              {/* Animated Laser Scan Bar */}
+              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] animate-[bounce_2s_infinite]" />
+            </div>
+
+            {/* Live scanning badge */}
+            <div className="absolute bottom-3 inset-x-0 flex justify-center">
+              <Badge
+                variant="secondary"
+                className="bg-black/70 backdrop-blur-md text-white border-white/20 text-[11px] px-3 py-1 font-mono flex items-center gap-1.5 shadow-lg"
+              >
+                <ScanLine className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span>
+                  {cooldownRemaining > 0
+                    ? isAr
+                      ? `تم المسح بنجاح (استئناف بعد ${cooldownRemaining}ث)`
+                      : `Scanned! Resuming in ${cooldownRemaining}s`
+                    : isAr
+                    ? "وجّه كود الـ QR داخل الإطار للمسح التلقائي"
+                    : "Align QR code inside the frame"}
+                </span>
+              </Badge>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Spinner */}
+        {isStarting && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 text-white z-10">
+            <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-xs font-semibold">
+              {isAr ? "جارٍ تشغيل الكاميرا..." : "Starting camera feed..."}
+            </p>
+          </div>
+        )}
+
+        {/* Camera Off State */}
+        {!isCameraActive && (
+          <div className="flex flex-col items-center justify-center p-6 text-center text-white/70 space-y-3">
+            <div className="w-14 h-14 rounded-3xl bg-white/10 flex items-center justify-center text-white/50 border border-white/15">
+              <CameraOff className="w-7 h-7" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-white">
+                {isAr ? "الكاميرا متوقفة" : "Camera is Paused"}
+              </h4>
+              <p className="text-xs text-white/50 max-w-[220px] mt-1">
+                {isAr
+                  ? "اضغط الزر أدناه لتشغيل الكاميرا ومسح تصاريح الـ QR مباشرة"
+                  : "Click below to activate camera and scan QR passes live"}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={toggleCameraActive}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs gap-1.5"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>{isAr ? "تشغيل الكاميرا الآن" : "Start Camera"}</span>
+            </Button>
+          </div>
+        )}
+
+        {/* Error State */}
+        {cameraError && (
+          <div className="flex flex-col items-center justify-center p-6 text-center text-rose-300 space-y-3 bg-rose-950/40 m-4 rounded-2xl border border-rose-500/30">
+            <AlertCircle className="w-8 h-8 text-rose-400" />
+            <p className="text-xs font-medium leading-relaxed max-w-[280px]">
+              {cameraError}
+            </p>
+            <div className="flex gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => startCamera(selectedCameraId)}
+                className="h-8 px-3 text-xs bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/40 text-rose-200"
+              >
+                <RefreshCw className="w-3.5 h-3.5 me-1" />
+                {isAr ? "إعادة المحاولة" : "Retry"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Cooldown / Verified Flash Indicator */}
+        {cooldownRemaining > 0 && (
+          <div className="absolute top-3 end-3 z-20 animate-in fade-in">
+            <Badge className="bg-emerald-500 text-white font-bold text-xs px-2.5 py-1 gap-1 shadow-lg">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{isAr ? "تم التقاط الكود" : "Code Captured"}</span>
+            </Badge>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

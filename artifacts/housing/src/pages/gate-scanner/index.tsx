@@ -38,9 +38,17 @@ import {
   Camera,
   Keyboard,
   Clock,
+  Maximize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { GateCameraScanner } from "./GateCameraScanner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function playChime(isSuccess: boolean) {
   try {
@@ -75,6 +83,8 @@ export default function GateScannerPage() {
 
   // State
   const [direction, setDirection] = useState<"IN" | "OUT">("IN");
+  const [scanMode, setScanMode] = useState<"CAMERA" | "MANUAL">("CAMERA");
+  const [fullscreenCameraOpen, setFullscreenCameraOpen] = useState<boolean>(false);
   const [scanInput, setScanInput] = useState("");
   const [lastVerification, setLastVerification] = useState<any | null>(null);
   const [autoLogEnabled, setAutoLogEnabled] = useState(true);
@@ -85,10 +95,12 @@ export default function GateScannerPage() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus input for barcode scanner gun
+  // Auto-focus input for barcode scanner gun when in manual mode
   useEffect(() => {
-    inputRef.current?.focus();
-  }, [direction, lastVerification]);
+    if (scanMode === "MANUAL") {
+      inputRef.current?.focus();
+    }
+  }, [direction, lastVerification, scanMode]);
 
   // Fetch gate stats
   const { data: statsData, refetch: refetchStats } = useQuery({
@@ -171,7 +183,7 @@ export default function GateScannerPage() {
   });
 
   // Verify pass function
-  const handleVerify = async (valueToVerify?: string) => {
+  const handleVerify = async (valueToVerify?: string, methodOverride?: string) => {
     const rawVal = (valueToVerify !== undefined ? valueToVerify : scanInput).trim();
     if (!rawVal) return;
 
@@ -195,6 +207,8 @@ export default function GateScannerPage() {
       const isGranted = result.verdict === "GRANTED";
       playChime(isGranted);
 
+      const effectiveScanMethod = methodOverride || (isPayload ? "QR_SCAN" : "BARCODE_GUN");
+
       if (isGranted) {
         toast.success(
           isAr
@@ -216,7 +230,7 @@ export default function GateScannerPage() {
             direction,
             status: "GRANTED",
             reason: result.reason,
-            scanMethod: isPayload ? "QR_SCAN" : "BARCODE_GUN",
+            scanMethod: effectiveScanMethod,
           });
         }
       } else {
@@ -239,14 +253,16 @@ export default function GateScannerPage() {
           direction,
           status: "DENIED",
           reason: result.reason,
-          scanMethod: isPayload ? "QR_SCAN" : "MANUAL",
+          scanMethod: effectiveScanMethod,
         });
       }
     } catch (err: any) {
       toast.error(err.message || "Verification request failed");
     } finally {
       setIsVerifying(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setTimeout(() => {
+        if (scanMode === "MANUAL") inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -420,22 +436,69 @@ export default function GateScannerPage() {
                   </CardTitle>
                   <CardDescription className="text-xs mt-1">
                     {isAr
-                      ? "وجّه قارئ الباركود أو الكاميرا لكود الـ QR الخاص بالموظف، أو أدخل رقمه الوظيفي"
-                      : "Scan QR code with barcode gun or type staff ID"}
+                      ? "فحص وتصريح فوري عبر كاميرا الجهاز أو قارئ الباركود أو الإدخال اليدوي"
+                      : "Instant verification via camera scan, barcode gun, or manual entry"}
                   </CardDescription>
                 </div>
 
-                {/* Auto Log Switch */}
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={autoLogEnabled}
-                      onChange={(e) => setAutoLogEnabled(e.target.checked)}
-                      className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                    />
-                    <span>{isAr ? "تسجيل فوري تلقائي" : "Auto-log on scan"}</span>
-                  </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Mode Selector */}
+                  <div className="flex items-center gap-1 p-1 bg-background border border-border/80 rounded-2xl shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setScanMode("CAMERA")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        scanMode === "CAMERA"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>{isAr ? "كاميرا حية" : "Camera"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScanMode("MANUAL");
+                        setTimeout(() => inputRef.current?.focus(), 100);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        scanMode === "MANUAL"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Keyboard className="w-3.5 h-3.5" />
+                      <span>{isAr ? "قارئ / يدوي" : "Barcode / Gun"}</span>
+                    </button>
+                  </div>
+
+                  {/* Fullscreen Camera trigger */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFullscreenCameraOpen(true)}
+                    title={isAr ? "فتح الكاميرا بملء الشاشة" : "Full Screen Camera"}
+                    className="h-8 px-2.5 rounded-xl text-xs gap-1 font-semibold hidden sm:flex"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>{isAr ? "شاشة كاملة" : "Full View"}</span>
+                  </Button>
+
+                  {/* Auto Log Switch */}
+                  <div className="flex items-center gap-1.5 ms-1">
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={autoLogEnabled}
+                        onChange={(e) => setAutoLogEnabled(e.target.checked)}
+                        className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <span>{isAr ? "تسجيل تلقائي" : "Auto-log"}</span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -451,7 +514,7 @@ export default function GateScannerPage() {
                     type="button"
                     onClick={() => {
                       setDirection("IN");
-                      inputRef.current?.focus();
+                      if (scanMode === "MANUAL") inputRef.current?.focus();
                     }}
                     className={`flex items-center justify-center gap-3 p-4 rounded-2xl font-bold transition-all border-2 text-sm sm:text-base cursor-pointer ${
                       direction === "IN"
@@ -475,7 +538,7 @@ export default function GateScannerPage() {
                     type="button"
                     onClick={() => {
                       setDirection("OUT");
-                      inputRef.current?.focus();
+                      if (scanMode === "MANUAL") inputRef.current?.focus();
                     }}
                     className={`flex items-center justify-center gap-3 p-4 rounded-2xl font-bold transition-all border-2 text-sm sm:text-base cursor-pointer ${
                       direction === "OUT"
@@ -497,70 +560,120 @@ export default function GateScannerPage() {
                 </div>
               </div>
 
-              {/* Barcode & QR Input Field */}
-              <div>
-                <label className="text-xs font-bold text-muted-foreground block mb-2">
-                  {isAr ? "مسح الـ QR أو إدخال كود الموظف:" : "Scan QR / Enter Staff ID:"}
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <ScanLine className="absolute start-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      ref={inputRef}
-                      type="text"
-                      value={scanInput}
-                      onChange={(e) => setScanInput(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder={
-                        isAr
-                          ? "وجّه القارئ أو اكتب رقم الموظف (مثال: 203) ثم اضغط Enter..."
-                          : "Scan QR or type Staff ID (e.g. 203) and hit Enter..."
-                      }
-                      className="ps-11 h-12 rounded-2xl text-sm font-mono"
-                      autoFocus
-                    />
+              {/* ── CONDITIONAL SCANNER VIEW: CAMERA VS BARCODE/MANUAL ── */}
+              {scanMode === "CAMERA" ? (
+                <div className="space-y-4 pt-1 animate-in fade-in">
+                  <GateCameraScanner
+                    onScan={(decodedCode) => handleVerify(decodedCode, "CAMERA_SCAN")}
+                    isVerifying={isVerifying}
+                    isAr={isAr}
+                  />
+
+                  {/* Fallback keyboard entry drawer */}
+                  <div className="pt-2 border-t border-border/60">
+                    <details className="group text-xs text-muted-foreground">
+                      <summary className="cursor-pointer hover:text-foreground font-semibold flex items-center gap-1.5 select-none py-1">
+                        <Keyboard className="w-3.5 h-3.5 text-primary" />
+                        <span>
+                          {isAr
+                            ? "أو أدخل رقم الموظف يدوياً / قارئ الباركود السلكي"
+                            : "Or enter staff ID manually / USB barcode gun"}
+                        </span>
+                      </summary>
+                      <div className="flex gap-2 pt-2.5">
+                        <Input
+                          ref={inputRef}
+                          type="text"
+                          value={scanInput}
+                          onChange={(e) => setScanInput(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          placeholder={
+                            isAr
+                              ? "اكتب رقم الموظف (مثال: 203) ثم اضغط Enter..."
+                              : "Type Staff ID (e.g. 203) and hit Enter..."
+                          }
+                          className="h-10 rounded-xl text-xs font-mono"
+                        />
+                        <Button
+                          onClick={() => handleVerify(undefined, "MANUAL")}
+                          disabled={isVerifying || !scanInput.trim()}
+                          size="sm"
+                          className="h-10 px-4 rounded-xl font-bold bg-primary text-primary-foreground"
+                        >
+                          {isAr ? "تحقق" : "Verify"}
+                        </Button>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+              ) : (
+                /* Barcode Gun & Manual Mode */
+                <div className="space-y-4 pt-1 animate-in fade-in">
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground block mb-2">
+                      {isAr ? "مسح الـ QR أو إدخال كود الموظف:" : "Scan QR / Enter Staff ID:"}
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <ScanLine className="absolute start-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <Input
+                          ref={inputRef}
+                          type="text"
+                          value={scanInput}
+                          onChange={(e) => setScanInput(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          placeholder={
+                            isAr
+                              ? "وجّه القارئ أو اكتب رقم الموظف (مثال: 203) ثم اضغط Enter..."
+                              : "Scan QR or type Staff ID (e.g. 203) and hit Enter..."
+                          }
+                          className="ps-11 h-12 rounded-2xl text-sm font-mono"
+                          autoFocus
+                        />
+                      </div>
+
+                      <Button
+                        onClick={() => handleVerify(undefined, "BARCODE_GUN")}
+                        disabled={isVerifying || !scanInput.trim()}
+                        className="h-12 px-6 rounded-2xl font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        {isVerifying ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4" />
+                        )}
+                        {isAr ? "تحقق فوري" : "Verify"}
+                      </Button>
+                    </div>
                   </div>
 
-                  <Button
-                    onClick={() => handleVerify()}
-                    disabled={isVerifying || !scanInput.trim()}
-                    className="h-12 px-6 rounded-2xl font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    {isVerifying ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4" />
-                    )}
-                    {isAr ? "تحقق فوري" : "Verify"}
-                  </Button>
+                  {/* Quick sample chips for testing */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
+                    <span className="font-semibold">{isAr ? "تجربة سريعة:" : "Quick test:"}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleVerify("203", "MANUAL")}
+                      className="px-2.5 py-1 rounded-lg bg-muted hover:bg-primary/15 hover:text-primary transition-colors font-mono font-bold cursor-pointer"
+                    >
+                      EMP #203
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleVerify("1001", "MANUAL")}
+                      className="px-2.5 py-1 rounded-lg bg-muted hover:bg-primary/15 hover:text-primary transition-colors font-mono font-bold cursor-pointer"
+                    >
+                      EMP #1001
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleVerify("99999", "MANUAL")}
+                      className="px-2.5 py-1 rounded-lg bg-muted hover:bg-red-500/15 hover:text-red-500 transition-colors font-mono font-bold cursor-pointer"
+                    >
+                      EMP #99999 (Invalid)
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Quick sample chips for testing */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
-                <span className="font-semibold">{isAr ? "تجربة سريعة:" : "Quick test:"}</span>
-                <button
-                  type="button"
-                  onClick={() => handleVerify("203")}
-                  className="px-2.5 py-1 rounded-lg bg-muted hover:bg-primary/15 hover:text-primary transition-colors font-mono font-bold"
-                >
-                  EMP #203
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleVerify("1001")}
-                  className="px-2.5 py-1 rounded-lg bg-muted hover:bg-primary/15 hover:text-primary transition-colors font-mono font-bold"
-                >
-                  EMP #1001
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleVerify("99999")}
-                  className="px-2.5 py-1 rounded-lg bg-muted hover:bg-red-500/15 hover:text-red-500 transition-colors font-mono font-bold"
-                >
-                  EMP #99999 (Invalid)
-                </button>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -800,6 +913,7 @@ export default function GateScannerPage() {
                 <TableRow className="bg-muted/40">
                   <TableHead className="w-24">{isAr ? "الوقت" : "Time"}</TableHead>
                   <TableHead className="w-28">{isAr ? "الاتجاه" : "Direction"}</TableHead>
+                  <TableHead className="w-24">{isAr ? "طريقة الفحص" : "Method"}</TableHead>
                   <TableHead>{isAr ? "المقيم" : "Resident"}</TableHead>
                   <TableHead>{isAr ? "الغرفة والمبنى" : "Room & Building"}</TableHead>
                   <TableHead className="w-28">{isAr ? "الحالة" : "Status"}</TableHead>
@@ -812,7 +926,7 @@ export default function GateScannerPage() {
                 {isLogsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={7} className="py-3">
+                      <TableCell colSpan={8} className="py-3">
                         <div className="h-5 bg-muted animate-pulse rounded-lg" />
                       </TableCell>
                     </TableRow>
@@ -820,7 +934,7 @@ export default function GateScannerPage() {
                 ) : logs.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className="text-center py-10 text-muted-foreground text-xs"
                     >
                       {isAr
@@ -861,6 +975,28 @@ export default function GateScannerPage() {
                                 <LogOut className="w-3 h-3" />
                                 {isAr ? "خروج" : "OUT"}
                               </span>
+                            )}
+                          </Badge>
+                        </TableCell>
+
+                        {/* Scan Method */}
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] font-mono gap-1 rounded-md px-1.5 py-0.5 bg-muted/40">
+                            {log.scanMethod === "CAMERA_SCAN" ? (
+                              <>
+                                <Camera className="w-3 h-3 text-emerald-500" />
+                                <span>{isAr ? "كاميرا" : "Camera"}</span>
+                              </>
+                            ) : log.scanMethod === "QR_SCAN" ? (
+                              <>
+                                <QrCode className="w-3 h-3 text-blue-500" />
+                                <span>QR</span>
+                              </>
+                            ) : (
+                              <>
+                                <Keyboard className="w-3 h-3 text-muted-foreground" />
+                                <span>{isAr ? "يدوي" : "Manual"}</span>
+                              </>
                             )}
                           </Badge>
                         </TableCell>
@@ -932,6 +1068,37 @@ export default function GateScannerPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── 5. FULL SCREEN CAMERA MODAL (TABLETS & PHONES) ── */}
+      <Dialog open={fullscreenCameraOpen} onOpenChange={setFullscreenCameraOpen}>
+        <DialogContent className="max-w-2xl w-full p-4 sm:p-6 rounded-3xl bg-background border shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-base font-bold text-foreground">
+                <Camera className="w-5 h-5 text-primary" />
+                {isAr ? "كاميرا فحص تصريح البوابة بملء الشاشة" : "Full Screen Gate Pass Camera"}
+              </span>
+              <Badge
+                className={`font-mono text-xs px-3 py-1 uppercase rounded-full ${
+                  direction === "IN" ? "bg-emerald-500 text-white" : "bg-blue-500 text-white"
+                }`}
+              >
+                {direction === "IN" ? (isAr ? "دخول (IN)" : "IN") : (isAr ? "خروج (OUT)" : "OUT")}
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <GateCameraScanner
+              onScan={(code) => {
+                handleVerify(code, "CAMERA_SCAN");
+              }}
+              isVerifying={isVerifying}
+              isAr={isAr}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
