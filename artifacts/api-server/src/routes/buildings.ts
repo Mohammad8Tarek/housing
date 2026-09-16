@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, withTenant, buildingsTable } from "@workspace/db";
-import { eq, and, ilike, sql, SQL } from "drizzle-orm";
+import { eq, and, ilike, sql, SQL, asc } from "drizzle-orm";
 import {
   CreateBuildingBody,
   UpdateBuildingBody,
@@ -87,7 +87,7 @@ router.get(
           baseQuery = baseQuery.where(and(...conditions));
         }
 
-        const rows = await baseQuery.limit(limit).offset(offset);
+        const rows = await baseQuery.orderBy(asc(buildingsTable.name)).limit(limit).offset(offset);
         return { data: rows, total: totalCount };
       });
 
@@ -290,6 +290,18 @@ router.delete(
           return { hasActiveResidents: true, count, building: b };
         }
 
+        // Check if any room in this building has active hostings
+        const activeGuests = await tenantDb.execute(sql`
+          SELECT count(*)::int as count 
+          FROM hostings h
+          JOIN rooms r ON r.id = h.room_id
+          WHERE r.building_id = ${params.data.id} AND h.status = 'ACTIVE'
+        `);
+        const guestCount = Number((activeGuests.rows?.[0] as any)?.count ?? 0);
+        if (guestCount > 0) {
+          return { hasActiveGuests: true, count: guestCount, building: b };
+        }
+
         await tenantDb
           .delete(buildingsTable)
           .where(eq(buildingsTable.id, params.data.id));
@@ -305,6 +317,14 @@ router.delete(
         res.status(400).json({
           error: `لا يمكن حذف المبنى لوجود ${result.count} موظف مسكن به حالياً. يرجى نقل أو إخلاء الموظفين أولاً.`,
           code: "BUILDING_HAS_ACTIVE_RESIDENTS",
+        });
+        return;
+      }
+
+      if (result.hasActiveGuests) {
+        res.status(400).json({
+          error: `لا يمكن حذف المبنى لوجود ${result.count} استضافة أو زائر مسكن به حالياً. يرجى إنهاء الاستضافات أولاً.`,
+          code: "BUILDING_HAS_ACTIVE_GUESTS",
         });
         return;
       }

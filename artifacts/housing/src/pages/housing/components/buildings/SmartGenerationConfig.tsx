@@ -14,6 +14,28 @@ import { FloorConfig } from "../../utils";
 import { useProperty } from "@/context/PropertyContext";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
+const DEFAULT_ROOM_TYPES = [
+  "Standard",
+  "Deluxe",
+  "Superior",
+  "Suite",
+  "Studio",
+  "Shared",
+  "Dormitory",
+  "Executive",
+];
+
+const DEFAULT_ROOM_TYPE_VALUES = [
+  { value: "Standard", parentValue: "2" },
+  { value: "Deluxe", parentValue: "2" },
+  { value: "Superior", parentValue: "2" },
+  { value: "Shared", parentValue: "4" },
+  { value: "Dormitory", parentValue: "6" },
+  { value: "Suite", parentValue: "1" },
+  { value: "Studio", parentValue: "1" },
+  { value: "Executive", parentValue: "1" },
+];
+
 type Props = {
   floorConfigs: FloorConfig[];
   expandedFloorConfigs: Set<number>;
@@ -43,7 +65,10 @@ export function SmartGenerationConfig({
     LOOKUP_CATEGORIES.ROOM_TYPE
   );
   const activeLookupTypes = lookupRoomTypes.filter((t: any) => !t.disabled);
-  const availableRoomTypes = activeLookupTypes.map((t: any) => t.value);
+  const availableRoomTypes =
+    activeLookupTypes.length > 0
+      ? activeLookupTypes.map((t: any) => t.value)
+      : DEFAULT_ROOM_TYPES;
 
   return (
     <div className="space-y-3">
@@ -120,7 +145,11 @@ export function SmartGenerationConfig({
                   <Select
                     value={fc.roomType}
                     onValueChange={(v) => {
-                      const match = activeLookupTypes.find((rt: any) => rt.value === v);
+                      const match = (
+                        activeLookupTypes.length > 0
+                          ? activeLookupTypes
+                          : DEFAULT_ROOM_TYPE_VALUES
+                      ).find((rt: any) => rt.value === v);
                       const autoCap = match?.parentValue
                         ? Number(match.parentValue)
                         : undefined;
@@ -141,6 +170,11 @@ export function SmartGenerationConfig({
                           {t}
                         </SelectItem>
                       ))}
+                      {fc.roomType && !availableRoomTypes.includes(fc.roomType) && (
+                        <SelectItem value={fc.roomType}>
+                          {fc.roomType}
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

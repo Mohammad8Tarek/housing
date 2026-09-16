@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -65,9 +65,27 @@ import {
 } from "../../utils";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
+const DEFAULT_ROOM_TYPES = [
+  "Standard",
+  "Deluxe",
+  "Superior",
+  "Suite",
+  "Studio",
+  "Shared",
+  "Dormitory",
+  "Executive",
+];
 
-
-
+const DEFAULT_ROOM_TYPE_VALUES = [
+  { value: "Standard", parentValue: "2" },
+  { value: "Deluxe", parentValue: "2" },
+  { value: "Superior", parentValue: "2" },
+  { value: "Shared", parentValue: "4" },
+  { value: "Dormitory", parentValue: "6" },
+  { value: "Suite", parentValue: "1" },
+  { value: "Studio", parentValue: "1" },
+  { value: "Executive", parentValue: "1" },
+];
 
 type Props = {
   propertyId: number;
@@ -102,12 +120,12 @@ export function BuildingsTab({
           value: t.value,
           parentValue: t.parentValue || "2",
         }))
-      : roomTypeValues;
+      : DEFAULT_ROOM_TYPE_VALUES;
 
   const activeRoomTypeNames =
     activeLookupTypes.length > 0
       ? activeLookupTypes.map((t: any) => t.value)
-      : roomTypes;
+      : DEFAULT_ROOM_TYPES;
 
   const createBuildingMut = useCreateBuilding();
   const updateBuildingMut = useUpdateBuilding();
@@ -146,13 +164,18 @@ export function BuildingsTab({
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Reset page to 1 on search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
   
   const { data: _bDataWrapper, isLoading: bLoadingQuery, isFetching: bFetching } = useListBuildings({
     propertyId,
     limit: pageSize,
     page: currentPage,
     search: debouncedSearch,
-  } as any, { query: { keepPreviousData: true } as any });
+  } as any, { query: { placeholderData: (prev: any) => prev } as any });
 
   const paginatedBuildings = (_bDataWrapper as any)?.data || [];
   const paginationMeta = (_bDataWrapper as any)?.pagination || { total: 0 };
@@ -379,22 +402,22 @@ export function BuildingsTab({
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left p-3 font-semibold text-muted-foreground">
+                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
                   {ar ? "الاسم" : "Name"}
                 </th>
-                <th className="text-left p-3 font-semibold text-muted-foreground">
+                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
                   {ar ? "الموقع" : "Location"}
                 </th>
-                <th className="text-left p-3 font-semibold text-muted-foreground">
+                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
                   {ar ? "الطوابق" : "Floors"}
                 </th>
-                <th className="text-left p-3 font-semibold text-muted-foreground">
+                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
                   {ar ? "الغرف" : "Rooms"}
                 </th>
-                <th className="text-left p-3 font-semibold text-muted-foreground">
+                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
                   {ar ? "السعة" : "Capacity"}
                 </th>
-                <th className="text-left p-3 font-semibold text-muted-foreground">
+                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
                   {ar ? "الحالة" : "Status"}
                 </th>
                 <th className="p-3" />
@@ -570,6 +593,18 @@ export function BuildingsTab({
                 />
               </div>
               <div className="space-y-1.5">
+                <Label>{ar ? "السعة الاستيعابية (الاسمية)" : "Nominal Capacity"}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={bForm.capacity || ""}
+                  onChange={(e) =>
+                    setBForm((p) => ({ ...p, capacity: Number(e.target.value) || 0 }))
+                  }
+                  placeholder={ar ? "مثال: 50" : "e.g. 50"}
+                />
+              </div>
+              <div className="col-span-2 space-y-1.5">
                 <Label>{ar ? "الحالة" : "Status"}</Label>
                 <Select
                   value={bForm.status}
