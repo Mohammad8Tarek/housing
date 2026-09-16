@@ -154,6 +154,27 @@ export const moduleActions = (module: Module): Action[] =>
 export const permKey = (module: Module, action: Action) =>
   `${module}.${action}`;
 
+export const hasPermission = (
+  user: any,
+  module: Module,
+  action: Action,
+): boolean => {
+  if (!user) return false;
+  const isSuperAdmin =
+    user?.isSystemAdmin ||
+    (user?.roles ?? []).some((r: string) =>
+      ["super_admin", "system_admin"].includes(String(r).toLowerCase()),
+    );
+  if (isSuperAdmin) return true;
+  const explicit = Array.isArray(user?.permissions) ? user.permissions : [];
+  const dotKey = `${module}.${action}`.toLowerCase();
+  const colonKey = `${module}:${action}`.toLowerCase();
+  return explicit.some((p: string) => {
+    const norm = String(p).toLowerCase();
+    return norm === "*" || norm === dotKey || norm === colonKey;
+  });
+};
+
 export const getPermissionsForRoles = (
   roles: Array<string | undefined | null>,
 ): string[] => {

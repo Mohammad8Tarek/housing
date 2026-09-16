@@ -1,6 +1,6 @@
 import { Router } from "express";
 import crypto from "node:crypto";
-import { db, usersTable, userPasswordResetOtpsTable } from "@workspace/db";
+import { db, usersTable, userPasswordResetOtpsTable, withTenant, settingsTable } from "@workspace/db";
 import { eq, sql, desc, and, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { LoginBody, ChangePasswordBody } from "@workspace/api-zod";

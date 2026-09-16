@@ -323,7 +323,7 @@ router.get(
       if (req.query.limit) limit = Math.min(5000, Math.max(1, parseInt(req.query.limit as string) || 10));
 
       const queryProp = req.query.propertyId ? String(req.query.propertyId).trim() : "";
-      const isAllProperties = queryProp === "all" || (!queryProp && (req.session?.propertyId === -1 || !req.session?.propertyId));
+      const isAllProperties = queryProp === "all" || (!queryProp && ((req.session as any)?.propertyId === -1 || !(req.session as any)?.propertyId));
 
       const accessibleProps = await getAccessibleProperties(user);
       if (accessibleProps.length === 0) {
@@ -661,7 +661,7 @@ router.post(
         return;
       }
 
-      const category = (req.body.category || parsed.data.category || "maintenance").toLowerCase();
+      const category = (req.body.category || (parsed.data as any).category || "maintenance").toLowerCase();
 
       // التحقق من الصلاحية حسب فئة الطلب
       if (!isSysAdmin) {

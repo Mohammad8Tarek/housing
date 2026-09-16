@@ -1087,7 +1087,7 @@ router.post(
         return;
       }
 
-      const reservationId = parseInt(req.params.id, 10);
+      const reservationId = parseInt(String(req.params.id), 10);
       if (isNaN(reservationId)) {
         res.status(400).json({ error: "Invalid reservation ID" });
         return;

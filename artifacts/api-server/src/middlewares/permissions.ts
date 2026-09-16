@@ -49,6 +49,7 @@ export const PERMISSION_ACTIONS = [
   "override_single_occupancy",
   "view_maintenance",
   "view_housekeeping",
+  "assign",
 ] as const;
 
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
@@ -101,6 +102,7 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
     "view_housekeeping",
     "create",
     "edit",
+    "assign",
     "delete",
     "export",
   ],

@@ -129,7 +129,7 @@ router.get("/users/:id/signature", async (req, res): Promise<void> => {
     return;
   }
   const authUser = await loadAuthUser(req, res);
-  const canView = admin.isSystemAdmin || hasPermission(authUser, "users", "view") || targetUserId === admin.userId;
+  const canView = admin.isSystemAdmin || (authUser ? hasPermission(authUser, "users", "view") : false) || targetUserId === admin.userId;
   if (!canView) {
     res.status(403).json({
       success: false,
@@ -166,7 +166,7 @@ router.post("/users/:id/signature", async (req, res): Promise<void> => {
   }
   const isSelf = targetUserId === admin.userId;
   const authUser = await loadAuthUser(req, res);
-  const canEdit = admin.isSystemAdmin || hasPermission(authUser, "users", "edit") || isSelf;
+  const canEdit = admin.isSystemAdmin || (authUser ? hasPermission(authUser, "users", "edit") : false) || isSelf;
   if (!canEdit) {
     res.status(403).json({
       success: false,
@@ -259,7 +259,7 @@ router.delete("/users/:id/signature", async (req, res): Promise<void> => {
   }
   const isSelf = targetUserId === admin.userId;
   const authUser = await loadAuthUser(req, res);
-  const canDelete = admin.isSystemAdmin || hasPermission(authUser, "users", "edit") || isSelf;
+  const canDelete = admin.isSystemAdmin || (authUser ? hasPermission(authUser, "users", "edit") : false) || isSelf;
   if (!canDelete) {
     res.status(403).json({
       success: false,

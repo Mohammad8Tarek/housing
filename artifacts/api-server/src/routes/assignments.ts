@@ -870,7 +870,7 @@ router.post(
       profileId: result.assignment!.profileId,
       roomId: result.assignment!.roomId,
       bedId: (result.assignment as any)?.bedId || null,
-      startDate: result.assignment!.startDate,
+      startDate: result.assignment!.checkInDate,
     }).catch((err) => {
       console.error("[WhatsApp Hook] Error sending check-in notification:", err);
     });
@@ -894,7 +894,7 @@ router.post(
       res.status(400).json({ error: "propertyId is required" });
       return;
     }
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid assignment id" });
       return;
@@ -1111,7 +1111,7 @@ router.post(
 
       res.json(
         TransferAssignmentResponse.parse({
-          ...fmtAssignment(crossResult.updated),
+          ...fmtAssignment((crossResult as any).updated),
           propertyId: targetPropertyId,
         })
       );

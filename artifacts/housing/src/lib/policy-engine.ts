@@ -119,13 +119,13 @@ export function defineAbilityFor(user: any): AppAbility {
       const targetModule: Module =
         category === "housekeeping" ? "housekeeping" : "maintenance";
 
-      const mappedAction = (action === "manage" ? "edit" : action) as Action;
+      const mappedAction = action as Action;
       return hasPermission(user, targetModule, mappedAction);
     }
 
     // Standard module resolution
     const module = mapSubjectToModule(subject, resource);
-    const mappedAction = (action === "manage" ? "edit" : action) as Action;
+    const mappedAction = action as Action;
     return hasPermission(user, module, mappedAction);
   };
 

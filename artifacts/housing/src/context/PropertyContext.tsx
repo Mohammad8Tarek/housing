@@ -15,6 +15,7 @@ export type Property = PropertyInfo;
 
 interface PropertyContextType {
   activePropertyId: number | "all" | undefined;
+  selectedPropertyId?: number | "all" | undefined;
   activeProperty: Property | undefined;
   propertySlug: string;
   properties: Property[];
@@ -272,6 +273,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     <PropertyContext.Provider
       value={{
         activePropertyId: effectiveId,
+        selectedPropertyId: effectiveId,
         activeProperty,
         propertySlug,
         properties,

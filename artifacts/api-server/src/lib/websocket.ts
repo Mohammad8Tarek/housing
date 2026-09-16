@@ -36,7 +36,9 @@ export type WsModule =
   | "users"
   | "settings"
   | "properties"
-  | "hosting-requests";
+  | "hosting-requests"
+  | "workers"
+  | "activities";
 
 export type WsAction =
   | "created"
@@ -49,7 +51,11 @@ export type WsAction =
   | "new_message"
   | "read_receipt"
   | "typing_start"
-  | "presence";
+  | "presence"
+  | "rate"
+  | "hr_departure_alarm"
+  | "vacation_start"
+  | "vacation_return";
 
 export interface WsPayload {
   type: "SYNC_DATA" | "data_updated" | "notification" | "connected" | "pong";

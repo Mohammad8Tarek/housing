@@ -28,7 +28,7 @@ interface OccupancyForecastTabProps {
   ar: boolean;
   isLoading: boolean;
   properties: any[];
-  activePropertyId?: string;
+  activePropertyId?: string | number | null;
   rooms: any[];
   buildings: any[];
   assignments: any[];

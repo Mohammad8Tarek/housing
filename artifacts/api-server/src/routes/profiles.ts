@@ -551,7 +551,7 @@ router.post(
         .values({
           ...enrichedData,
           status: "UNASSIGNED",
-        })
+        } as any)
         .returning();
     });
 

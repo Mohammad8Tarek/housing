@@ -326,15 +326,17 @@ async function syncEmployeeAccommodationLifecycle({
           broadcastToProperty(propertyId, {
             module: "accommodation",
             action: "hr_departure_alarm",
-            priority: "high",
-            title: "إنذار تصفية موظف من الموارد البشرية",
-            message: `تم تسجيل مغادرة/تصفية الموظف ${profile.firstName} ${profile.lastName} (${profile.profileId}) من الموارد البشرية وإخلاء غرفته رقم ${room.roomNumber} (سرير ${activeAssign.bedNumber}). يرجى فحص وتنظيف الغرفة.`,
-            profileId: profile.profileId,
-            profileName: `${profile.firstName} ${profile.lastName}`,
-            roomId: room.id,
-            roomNumber: room.roomNumber,
-            bedNumber: activeAssign.bedNumber,
-            assignmentId: activeAssign.id,
+            data: {
+              priority: "high",
+              title: "إنذار تصفية موظف من الموارد البشرية",
+              message: `تم تسجيل مغادرة/تصفية الموظف ${profile.firstName} ${profile.lastName} (${profile.profileId}) من الموارد البشرية وإخلاء غرفته رقم ${room.roomNumber} (سرير ${activeAssign.bedNumber}). يرجى فحص وتنظيف الغرفة.`,
+              profileId: profile.profileId,
+              profileName: `${profile.firstName} ${profile.lastName}`,
+              roomId: room.id,
+              roomNumber: room.roomNumber,
+              bedNumber: activeAssign.bedNumber,
+              assignmentId: activeAssign.id,
+            },
           });
 
           broadcastToProperty(propertyId, {
@@ -444,7 +446,7 @@ async function syncEmployeeAccommodationLifecycle({
             module: "accommodation",
             action: "vacation_start",
             entityId: activeAssign.id,
-            profileId: profile.profileId,
+            data: { profileId: profile.profileId },
           });
           broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
         }
@@ -497,7 +499,7 @@ async function syncEmployeeAccommodationLifecycle({
           module: "accommodation",
           action: "vacation_return",
           entityId: activeAssign.id,
-          profileId: profile.profileId,
+          data: { profileId: profile.profileId },
         });
         broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
       }
@@ -593,7 +595,7 @@ async function processReceive(
               phone: emp.phone || existing.phone,
               address: emp.address || existing.address,
               status: emp.status || existing.status,
-              gender: emp.gender || existing.gender,
+              gender: (emp as any).gender || existing.gender,
               level: emp.level || existing.level,
               hireDate: emp.hireDate || existing.hireDate,
               dateOfBirth: emp.dateOfBirth || existing.dateOfBirth,
@@ -652,7 +654,7 @@ async function processReceive(
             phone: emp.phone || "",
             address: emp.address || "",
             status: emp.status || "UNASSIGNED",
-            gender: emp.gender || "M",
+            gender: (emp as any).gender || "M",
             level: emp.level || "",
             hireDate: emp.hireDate || new Date().toISOString().split("T")[0],
             dateOfBirth: emp.dateOfBirth || "",
@@ -671,7 +673,7 @@ async function processReceive(
 
           const [inserted] = await tenantDb
             .insert(profilesTable)
-            .values(enrichedInsert)
+            .values(enrichedInsert as any)
             .returning();
 
           if (
@@ -1006,7 +1008,7 @@ router.post(
         `UPDATE public.hr_sync_log SET status = $1, records_processed = $2, records_created = $3, records_updated = $4, errors = $5, completed_at = NOW()
        WHERE id = $6`,
         [
-          receiveRes.errors?.length > 0 ? "completed_with_errors" : "completed",
+          (receiveRes.errors?.length ?? 0) > 0 ? "completed_with_errors" : "completed",
           receiveRes.stats?.received || 0,
           receiveRes.stats?.created || 0,
           receiveRes.stats?.updated || 0,

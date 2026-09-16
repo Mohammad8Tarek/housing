@@ -211,7 +211,6 @@ export function PermissionMatrixDialog({
   // - If disabling 'view', auto-disable all other actions for that module.
   // - If enabling any sub-action, auto-enable 'view'.
   const toggleAction = (m: Module, a: Action) => {
-    setIsDynamicInheritance(false);
     const key = permKey(m, a);
     setPerms((prev) => {
       const next = new Set(prev);
@@ -234,7 +233,6 @@ export function PermissionMatrixDialog({
 
   // Master switch for an entire module
   const toggleModuleMaster = (m: Module, shouldEnable: boolean) => {
-    setIsDynamicInheritance(false);
     const modulePerms = MODULE_ACTIONS[m] ?? [];
     setPerms((prev) => {
       const next = new Set(prev);
@@ -249,7 +247,6 @@ export function PermissionMatrixDialog({
 
   // Category bulk toggle
   const toggleCategoryGroup = (groupId: string, shouldEnable: boolean) => {
-    setIsDynamicInheritance(false);
     const group = PERMISSION_GROUPS.find((g) => g.id === groupId);
     if (!group) return;
 

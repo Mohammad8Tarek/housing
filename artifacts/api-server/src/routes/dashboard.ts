@@ -430,10 +430,10 @@ router.get(
             profileId: p.profileId,
             fullName:
               `${p.firstName || ""} ${p.lastName || ""}`.trim() ||
-              p.fullName ||
+              (p as any).fullName ||
               `Staff #${p.id}`,
             department: p.department || "General",
-            jobTitle: p.jobTitle || p.position || "Staff",
+            jobTitle: p.jobTitle || (p as any).position || "Staff",
             gender: p.gender || "M",
             phone: p.phone,
           });

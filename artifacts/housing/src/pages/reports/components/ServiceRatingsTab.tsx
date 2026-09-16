@@ -41,7 +41,7 @@ import { formatDateTime } from "@/lib/date-utils";
 
 interface ServiceRatingsTabProps {
   ar: boolean;
-  activePropertyId?: number | null;
+  activePropertyId?: number | string | null;
   properties?: any[];
 }
 

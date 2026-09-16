@@ -2365,7 +2365,8 @@ export async function runMigrations(): Promise<void> {
   // Backfill Arabic data for profiles and lookups across all schemas
   try {
     const { backfillBilingualProfiles } = await import("./bilingual-backfill.js");
-    const { totalUpdated } = await backfillBilingualProfiles();
+    const { totalUpdatedProfiles, totalUpdatedLookups } = await backfillBilingualProfiles();
+    const totalUpdated = (totalUpdatedProfiles || 0) + (totalUpdatedLookups || 0);
     if (totalUpdated > 0) {
       console.info(`[migrations] Backfilled bilingual data for ${totalUpdated} profiles across schemas.`);
     }

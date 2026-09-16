@@ -240,7 +240,11 @@ router.post(
         details: `Created worker "${created.name}" with specialty "${created.specialty}"`,
       });
 
-      broadcastToProperty(propertyId, "workers", "created", created);
+      broadcastToProperty(propertyId, {
+        module: "workers",
+        action: "created",
+        data: created as any,
+      });
 
       res.status(201).json({ success: true, data: created });
     } catch (err: any) {
@@ -263,7 +267,7 @@ router.get(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
-      const workerId = parseInt(req.params.id, 10);
+      const workerId = parseInt(String(req.params.id), 10);
       if (!propertyId || isNaN(workerId)) {
         res.status(400).json({ success: false, message: "Valid property ID and worker ID are required" });
         return;
@@ -331,7 +335,7 @@ router.put(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
-      const workerId = parseInt(req.params.id, 10);
+      const workerId = parseInt(String(req.params.id), 10);
       if (!propertyId || isNaN(workerId)) {
         res.status(400).json({ success: false, message: "Valid property ID and worker ID are required" });
         return;
@@ -393,7 +397,11 @@ router.put(
         details: `Updated worker "${updated.name}" (${updated.specialty}, ${updated.status})`,
       });
 
-      broadcastToProperty(propertyId, "workers", "updated", updated);
+      broadcastToProperty(propertyId, {
+        module: "workers",
+        action: "updated",
+        data: updated as any,
+      });
 
       res.json({ success: true, data: updated });
     } catch (err: any) {
@@ -416,7 +424,7 @@ router.delete(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
-      const workerId = parseInt(req.params.id, 10);
+      const workerId = parseInt(String(req.params.id), 10);
       if (!propertyId || isNaN(workerId)) {
         res.status(400).json({ success: false, message: "Valid property ID and worker ID are required" });
         return;
@@ -430,12 +438,12 @@ router.delete(
           .where(
             and(
               eq(maintenanceTable.workerId, workerId),
-              inArray(maintenanceTable.status, ["open", "in_progress"])
+              sql`${maintenanceTable.status} NOT IN ('completed', 'cancelled')`
             )
           );
 
-        if (Number(activeTasks?.count || 0) > 0) {
-          throw new Error("Cannot delete worker with active maintenance tasks. Set status to inactive instead.");
+        if (activeTasks && Number(activeTasks.count) > 0) {
+          throw new Error(`Cannot delete worker with ${activeTasks.count} active tasks`);
         }
 
         const [row] = await tenantDb
@@ -466,7 +474,11 @@ router.delete(
         details: `Deleted worker "${deleted.name}"`,
       });
 
-      broadcastToProperty(propertyId, "workers", "deleted", { id: workerId });
+      broadcastToProperty(propertyId, {
+        module: "workers",
+        action: "deleted",
+        data: { id: workerId },
+      });
 
       res.json({ success: true, message: "Worker deleted successfully" });
     } catch (err: any) {

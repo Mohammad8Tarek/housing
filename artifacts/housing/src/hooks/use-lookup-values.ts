@@ -6,6 +6,7 @@ export type LookupValue = {
   propertyId: number;
   category: string;
   value: string;
+  valueAr?: string | null;
   parentValue: string | null;
   extraValue: string | null;
   sortOrder: number;

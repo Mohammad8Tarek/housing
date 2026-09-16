@@ -212,6 +212,7 @@ export function GateCameraScanner({
       let tempInstance = false;
       if (!html5QrCode) {
         html5QrCode = new Html5Qrcode(containerId, {
+          verbose: false,
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true,
           },

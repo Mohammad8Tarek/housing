@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -283,7 +283,7 @@ export function WorkerDialog({
                   <SelectValue placeholder={ar ? "اختر التخصص" : "Select specialty"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {allowedSpecialties.map((spec) => {
+                  {allowedSpecialties.map((spec: (typeof WORKER_SPECIALTIES)[number]) => {
                     const Icon = spec.icon;
                     return (
                       <SelectItem key={spec.key} value={spec.key}>

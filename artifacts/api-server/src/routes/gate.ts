@@ -167,13 +167,14 @@ router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Pr
       const { rows: allProps } = await db.execute(sql`SELECT id FROM public.properties WHERE is_active = true`);
       for (const pr of allProps) {
         try {
-          const data = await withTenant(pr.id, (tdb) => loadProfileData(tdb, pr.id));
+          const prId = Number((pr as any).id);
+          const data: any = await withTenant(prId, (tdb) => loadProfileData(tdb, prId));
           if (data) {
             profile = data.profile;
             activeAssignment = data.assignment;
             roomInfo = data.room;
             buildingInfo = data.building;
-            propertyId = pr.id;
+            propertyId = prId;
             break;
           }
         } catch (_) {}
@@ -363,15 +364,16 @@ router.post("/gate/verify", requirePermission("gate", "create"), async (req, res
     if (!foundProfile) {
       const { rows: allProps } = await db.execute(sql`SELECT id FROM public.properties WHERE is_active = true`);
       for (const pr of allProps) {
-        if (pr.id === propertyIdUsed) continue;
+        const prId = Number((pr as any).id);
+        if (prId === propertyIdUsed) continue;
         try {
-          const data = await withTenant(pr.id, (tdb) => findResidentInTenant(tdb, pr.id));
+          const data: any = await withTenant(prId, (tdb) => findResidentInTenant(tdb, prId));
           if (data) {
             foundProfile = data.profile;
             activeAssignment = data.assignment;
             roomInfo = data.room;
             buildingInfo = data.building;
-            propertyIdUsed = pr.id;
+            propertyIdUsed = prId;
             break;
           }
         } catch (_) {}
