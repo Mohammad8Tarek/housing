@@ -18,6 +18,7 @@ import {
 } from "../lib/websocket.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import { sendPushToProfiles } from "./push-notifications.js";
 
 const router: Router = Router();
 
@@ -401,6 +402,39 @@ router.post(
         action: "new_message",
         data: { conversationId: convId, message },
       });
+
+      // Send background push notification to other participants (wakes up phone if screen off)
+      withTenant(sess.propertyId, async (tenantDb) => {
+        const otherParticipants = await tenantDb
+          .select({ profileId: portalConversationParticipantsTable.profileId })
+          .from(portalConversationParticipantsTable)
+          .where(
+            and(
+              eq(portalConversationParticipantsTable.conversationId, convId),
+              not(eq(portalConversationParticipantsTable.profileId, sess.profileDbId)),
+            ),
+          );
+        const recipientIds = otherParticipants.map((p) => p.profileId);
+        if (recipientIds.length > 0) {
+          const preview =
+            message.contentType === "image"
+              ? "📷 أرسل صورة"
+              : message.contentType === "audio"
+              ? "🎵 رسالة صوتية"
+              : message.contentType === "file"
+              ? "📎 ملف مرفق"
+              : message.content.slice(0, 80);
+
+          await sendPushToProfiles(sess.propertyId, recipientIds, {
+            title: sess.fullName || "رسالة جديدة",
+            titleAr: sess.fullName || "رسالة جديدة",
+            body: preview,
+            bodyAr: preview,
+            tag: `chat-conv-${convId}`,
+            url: "/dashboard",
+          });
+        }
+      }).catch((err) => console.error("[portal-chat] Push error:", err));
 
       return res.json({ success: true, message });
     } catch (err) {

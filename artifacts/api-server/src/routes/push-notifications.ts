@@ -5,7 +5,7 @@
 import { Router } from "express";
 import webPush from "web-push";
 import { withTenant, pushSubscriptionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
 
 const router: Router = Router();
@@ -181,6 +181,73 @@ export async function sendPushToProperty(
     });
   } catch (err) {
     console.error("[push] sendPushToProperty error:", err);
+  }
+}
+
+// ─── Helper: Send push notification to specific profile IDs ───
+export async function sendPushToProfiles(
+  propertyId: number,
+  profileIds: number[],
+  payload: {
+    title: string;
+    titleAr?: string;
+    body: string;
+    bodyAr?: string;
+    icon?: string;
+    url?: string;
+    tag?: string;
+  },
+) {
+  if (!isVapidConfigured || !profileIds || profileIds.length === 0) return;
+  try {
+    await withTenant(propertyId, async (tenantDb) => {
+      const subs = await tenantDb
+        .select()
+        .from(pushSubscriptionsTable)
+        .where(
+          and(
+            eq(pushSubscriptionsTable.propertyId, propertyId),
+            inArray(pushSubscriptionsTable.profileId, profileIds),
+          ),
+        );
+
+      if (subs.length === 0) return;
+
+      const notificationPayload = JSON.stringify({
+        title: payload.titleAr || payload.title,
+        body: payload.bodyAr || payload.body,
+        icon: payload.icon || "/icons/icon-192.svg",
+        badge: "/icons/icon-192.svg",
+        tag: payload.tag || "sunrise-notification",
+        data: { url: payload.url || "/dashboard" },
+      });
+
+      await Promise.allSettled(
+        subs.map(async (sub: any) => {
+          try {
+            await webPush.sendNotification(
+              {
+                endpoint: sub.endpoint,
+                keys: { p256dh: sub.p256dhKey, auth: sub.authKey },
+              },
+              notificationPayload,
+            );
+            await tenantDb
+              .update(pushSubscriptionsTable)
+              .set({ lastUsedAt: new Date() })
+              .where(eq(pushSubscriptionsTable.endpoint, sub.endpoint));
+          } catch (err: any) {
+            if (err.statusCode === 404 || err.statusCode === 410) {
+              await tenantDb
+                .delete(pushSubscriptionsTable)
+                .where(eq(pushSubscriptionsTable.endpoint, sub.endpoint));
+            }
+          }
+        }),
+      );
+    });
+  } catch (err) {
+    console.error("[push] sendPushToProfiles error:", err);
   }
 }
 

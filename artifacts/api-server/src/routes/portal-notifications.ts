@@ -14,6 +14,7 @@ import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
 import { logActivity } from "../lib/activity-logger.js";
+import { sendPushToProperty } from "./push-notifications.js";
 
 const router: Router = Router();
 
@@ -225,6 +226,21 @@ router.post("/", requirePermission("portal_notifications", "create"), async (req
       action: "created",
       data: { notification },
     });
+
+    // Send Web Push notification to all subscribed mobile devices (wakes up phone if screen off)
+    sendPushToProperty(
+      propertyId,
+      {
+        title: validated.title,
+        titleAr: validated.titleAr ?? validated.title,
+        body: validated.message,
+        bodyAr: validated.messageAr ?? validated.message,
+        tag: `portal-notif-${notification.id}`,
+        url: "/dashboard",
+      },
+      validated.targetAll ? undefined : (validated.department ?? undefined),
+    ).catch((err) => console.error("[portal-notifications] Push error:", err));
+
     const s = su(req);
     await logActivity({
       req,
