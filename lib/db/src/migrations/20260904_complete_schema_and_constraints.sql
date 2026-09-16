@@ -531,7 +531,11 @@ BEGIN
       "category" TEXT DEFAULT 'maintenance'::text,
       "assigned_to" INTEGER,
       "photo_url" TEXT,
-      "parent_id" INTEGER
+      "parent_id" INTEGER,
+      "rating" INTEGER,
+      "rating_comment" TEXT,
+      "rated_at" TIMESTAMPTZ,
+      "rated_by_profile_id" INTEGER
     );
 
     -- Ensure all columns exist
@@ -552,6 +556,10 @@ BEGIN
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "assigned_to" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "photo_url" TEXT;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "parent_id" INTEGER;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "rating" INTEGER;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "rating_comment" TEXT;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "rated_at" TIMESTAMPTZ;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "rated_by_profile_id" INTEGER;
 
     -- --------------------------------------------------------
     -- Table: password_history
@@ -2005,10 +2013,12 @@ BEGIN
     CREATE INDEX IF NOT EXISTS idx_workers_type ON workers(worker_type);
     CREATE INDEX IF NOT EXISTS idx_workers_profile_id ON workers(profile_id);
 
-    -- Ensure maintenance has worker_id
+    -- Ensure maintenance has worker_id and rating columns/indexes
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'maintenance') THEN
       ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS "worker_id" INTEGER;
       CREATE INDEX IF NOT EXISTS idx_maintenance_worker_id ON maintenance(worker_id);
+      CREATE INDEX IF NOT EXISTS idx_maintenance_rating ON maintenance(rating);
+      CREATE INDEX IF NOT EXISTS idx_maintenance_rated_at ON maintenance(rated_at);
     END IF;
 
     -- Ensure settings has smtp configuration columns

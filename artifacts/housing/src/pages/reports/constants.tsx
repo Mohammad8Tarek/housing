@@ -19,6 +19,7 @@ import {
   ArrowLeftRight,
   Briefcase,
   ShieldCheck,
+  Star,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
@@ -130,5 +131,11 @@ export const TABS: TabConfig[] = [
     label: "Maintenance",
     labelAr: "طلبات الصيانة",
     icon: <Wrench className="w-4 h-4 text-rose-500" />,
+  },
+  {
+    id: "service_ratings",
+    label: "Service Quality & Ratings",
+    labelAr: "تقييمات جودة الصيانة والنظافة",
+    icon: <Star className="w-4 h-4 text-amber-500" />,
   },
 ];

@@ -1200,6 +1200,19 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       END IF;
     END $$;`,
   },
+  {
+    name: "public.maintenance.rating_columns",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'maintenance') THEN
+        ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS rating INTEGER;
+        ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS rating_comment TEXT;
+        ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS rated_at TIMESTAMPTZ;
+        ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS rated_by_profile_id INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_public_maintenance_rating ON public.maintenance(rating);
+        CREATE INDEX IF NOT EXISTS idx_public_maintenance_rated_at ON public.maintenance(rated_at);
+      END IF;
+    END $$;`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2171,6 +2184,15 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ALTER TABLE room_locks ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
       END IF;
     END $$;`,
+  },
+  {
+    name: "maintenance.rating_columns",
+    q: `ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS rating INTEGER;
+    ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS rating_comment TEXT;
+    ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS rated_at TIMESTAMPTZ;
+    ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS rated_by_profile_id INTEGER;
+    CREATE INDEX IF NOT EXISTS idx_maintenance_rating ON maintenance(rating);
+    CREATE INDEX IF NOT EXISTS idx_maintenance_rated_at ON maintenance(rated_at);`,
   },
 ];
 

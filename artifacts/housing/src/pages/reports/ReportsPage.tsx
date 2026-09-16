@@ -23,6 +23,7 @@ import { ManagerFlashTab } from "./components/ManagerFlashTab";
 import { OccupancyForecastTab } from "./components/OccupancyForecastTab";
 import { VacantRoomsOperationalMatrix } from "./components/VacantRoomsOperationalMatrix";
 import { InHouseGroupedRoomsView } from "./components/InHouseGroupedRoomsView";
+import { ServiceRatingsTab } from "./components/ServiceRatingsTab";
 
 export default function Reports() {
   const { activePropertyId } = useProperty();
@@ -255,8 +256,20 @@ export default function Reports() {
         />
       )}
 
+      {/* Service Quality & Ratings Report */}
+      {filters.activeTab === "service_ratings" && (
+        <ServiceRatingsTab
+          ar={ar}
+          activePropertyId={activePropertyId}
+          properties={data.properties}
+        />
+      )}
+
       {/* Other Tabs: Data Table & Filters */}
-      {filters.activeTab !== "analytics" && filters.activeTab !== "manager_flash" && filters.activeTab !== "occupancy_forecast" && (
+      {filters.activeTab !== "analytics" &&
+        filters.activeTab !== "manager_flash" &&
+        filters.activeTab !== "occupancy_forecast" &&
+        filters.activeTab !== "service_ratings" && (
         <>
           <ReportFilters
             ar={ar}

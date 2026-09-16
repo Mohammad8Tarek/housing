@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Loader2, Camera, X } from "lucide-react";
+import { Loader2, Camera, X, Star } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
@@ -19,6 +19,9 @@ interface Request {
   resolvedAt: string | null;
   notes: string | null;
   photoUrl?: string | null;
+  rating?: number | null;
+  ratingComment?: string | null;
+  ratedAt?: string | null;
 }
 
 interface RequestForm {
@@ -234,6 +237,9 @@ export default function TabRequests() {
   const pendingCount = requests.filter(
     (r) => r.status === "open" || r.status === "in_progress",
   ).length;
+  const unratedRequests = requests.filter(
+    (r) => (r.status === "resolved" || r.status === "closed") && !r.rating,
+  );
 
   return (
     <div className="px-4 pt-4 pb-4 space-y-5">
@@ -532,6 +538,35 @@ export default function TabRequests() {
           )}
         </div>
 
+        {/* Unrated Completed Requests Attention Banner */}
+        {unratedRequests.length > 0 && !loadingHistory && (
+          <div className="mb-3 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 shadow-xs">
+                <Star className="w-5 h-5 fill-amber-500" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">
+                  {isRtl
+                    ? `لديك ${unratedRequests.length} طلب مكتمل بانتظار تقييمك`
+                    : `You have ${unratedRequests.length} completed request(s) awaiting your rating`}
+                </p>
+                <p className="text-[10px] text-muted2 mt-0.5">
+                  {isRtl
+                    ? "تقييمك مهم جداً لمراقبة جودة الصيانة وخدمة الغرف"
+                    : "Your feedback is vital to evaluate maintenance & housekeeping quality"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setLocation("/request-details?id=" + unratedRequests[0].id)}
+              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs shrink-0 transition-colors shadow-xs"
+            >
+              {isRtl ? "تقييم الآن" : "Rate"}
+            </button>
+          </div>
+        )}
+
         {loadingHistory ? (
           <div className="bg-card border border-border2 rounded-2xl p-10 flex items-center justify-center">
             <Loader2 className="w-6 h-6 text-accent2 animate-spin" />
@@ -587,11 +622,24 @@ export default function TabRequests() {
                             ? (req as any).problemTypeAr || req.problemType
                             : req.problemType}
                         </h4>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${si.cls || "text-gray-500"} bg-opacity-10 dark:bg-opacity-20`}
-                        >
-                          {sLabel}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {req.rating ? (
+                            <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                              <Star className="w-2.5 h-2.5 fill-amber-500" />
+                              {req.rating}/5
+                            </span>
+                          ) : (req.status === "resolved" || req.status === "closed") ? (
+                            <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30 animate-pulse">
+                              <Star className="w-2.5 h-2.5 fill-amber-400" />
+                              {isRtl ? "قيّم الآن" : "Rate Now"}
+                            </span>
+                          ) : null}
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${si.cls || "text-gray-500"} bg-opacity-10 dark:bg-opacity-20`}
+                          >
+                            {sLabel}
+                          </span>
+                        </div>
                       </div>
                       <p className="text-xs text-muted2 truncate">
                         {req.description}

@@ -516,6 +516,12 @@ router.get("/my-maintenance", async (req, res): Promise<void> => {
       notes: r.notes ?? null,
       assignedTo: r.assignedTo ?? null,
       photoUrl: r.photoUrl ?? null,
+      rating: r.rating ?? null,
+      ratingComment: r.ratingComment ?? null,
+      ratedAt:
+        r.ratedAt instanceof Date
+          ? r.ratedAt.toISOString()
+          : (r.ratedAt ?? null),
     })),
   });
 });
@@ -618,6 +624,128 @@ router.post("/my-maintenance", async (req, res): Promise<void> => {
         request.reportedAt instanceof Date
           ? request.reportedAt.toISOString()
           : request.reportedAt,
+    },
+  });
+});
+
+const RateMaintenanceSchema = z.object({
+  maintenanceId: z.number().int().positive(),
+  rating: z.number().int().min(1).max(5),
+  ratingComment: z.string().optional().default(""),
+});
+
+router.post("/rate-maintenance", async (req, res): Promise<void> => {
+  const sess = portalSession(req)!;
+  const parsed = RateMaintenanceSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    res.status(400).json({
+      success: false,
+      message: parsed.error.errors[0]?.message ?? "Invalid rating input",
+    });
+    return;
+  }
+
+  const { maintenanceId, rating, ratingComment } = parsed.data;
+
+  const result = await withTenant(sess.propertyId, async (tenantDb) => {
+    // Check if the ticket exists
+    const [ticket] = await tenantDb
+      .select()
+      .from(maintenanceTable)
+      .where(eq(maintenanceTable.id, maintenanceId))
+      .limit(1);
+
+    if (!ticket) {
+      return { error: "Ticket not found", status: 404 };
+    }
+
+    // Verify ticket status is resolved, closed, or completed
+    const allowedStatuses = ["resolved", "closed", "completed"];
+    if (!allowedStatuses.includes((ticket.status || "").toLowerCase())) {
+      return {
+        error: "Cannot rate a ticket that is not yet completed or closed",
+        status: 400,
+      };
+    }
+
+    // Verify authorization: resident assigned to the room or ticket was reported/rated by resident
+    const [assignment] = await tenantDb
+      .select()
+      .from(assignmentsTable)
+      .where(
+        and(
+          eq(assignmentsTable.profileId, sess.profileDbId),
+          eq(assignmentsTable.roomId, ticket.roomId),
+        ),
+      )
+      .limit(1);
+
+    const isAuthorized =
+      assignment ||
+      ticket.ratedByProfileId === sess.profileDbId ||
+      ticket.reportedBy?.includes(sess.fullName) ||
+      ticket.reportedBy?.includes(sess.profileId);
+
+    if (!isAuthorized) {
+      return {
+        error: "You are not authorized to rate this request",
+        status: 403,
+      };
+    }
+
+    const [updated] = await tenantDb
+      .update(maintenanceTable)
+      .set({
+        rating,
+        ratingComment: ratingComment || null,
+        ratedAt: new Date(),
+        ratedByProfileId: sess.profileDbId,
+      })
+      .where(eq(maintenanceTable.id, maintenanceId))
+      .returning();
+
+    return { updated };
+  });
+
+  if ("error" in result && result.error) {
+    res.status(result.status || 400).json({
+      success: false,
+      message: result.error,
+    });
+    return;
+  }
+
+  // WebSocket sync for dashboard & maintenance views
+  broadcastToProperty(sess.propertyId, {
+    module: "maintenance",
+    action: "rate",
+    data: { maintenanceId, rating, ratingComment },
+  });
+  broadcastToProperty(sess.propertyId, { module: "dashboard", action: "sync" });
+
+  // Log activity
+  await logActivity({
+    req,
+    propertyId: sess.propertyId,
+    username: sess.fullName,
+    userRole: "profile",
+    action: `تقييم طلب صيانة #${maintenanceId} (${rating} نجوم)`,
+    actionType: "UPDATE",
+    module: "profile_portal",
+    entityType: "maintenance",
+    entityId: maintenanceId,
+    details: `التقييم: ${rating} نجوم | التعليق: ${ratingComment || "لا يوجد تعليق"}`,
+  });
+
+  res.json({
+    success: true,
+    message: "Rating submitted successfully",
+    rating: {
+      maintenanceId,
+      rating,
+      ratingComment,
+      ratedAt: result.updated?.ratedAt,
     },
   });
 });

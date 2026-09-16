@@ -63,6 +63,7 @@ import {
   Filter,
   Building2,
   DoorClosed,
+  Star,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -699,6 +700,7 @@ export default function Tickets() {
     { key: "priority", label: "PRIORITY", labelAr: "الأولوية", defaultVisible: true },
     { key: "at", label: "AT", labelAr: "تاريخ البدء", defaultVisible: true },
     { key: "duration", label: "DURATION", labelAr: "المدة", defaultVisible: true },
+    { key: "rating", label: "RATING", labelAr: "التقييم", defaultVisible: true },
     { key: "actions", label: "ACTIONS", labelAr: "إجراءات", defaultVisible: true, fixed: true },
   ];
 
@@ -762,6 +764,12 @@ export default function Tickets() {
         req.resolvedAt,
         req.reportedAt,
       ),
+      [ar ? "التقييم" : "Rating"]: req.rating
+        ? `${req.rating}/5`
+        : ["resolved", "closed"].includes(req.status)
+        ? (ar ? "بانتظار التقييم" : "Pending")
+        : "—",
+      [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -802,6 +810,12 @@ export default function Tickets() {
         req.resolvedAt,
         req.reportedAt,
       ),
+      [ar ? "التقييم" : "Rating"]: req.rating
+        ? `${req.rating}/5`
+        : ["resolved", "closed"].includes(req.status)
+        ? (ar ? "بانتظار التقييم" : "Pending")
+        : "—",
+      [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -1793,6 +1807,11 @@ export default function Tickets() {
                       {ar ? "المدة" : "DURATION"}
                     </TableHead>
                   )}
+                  {isVisible("rating") && (
+                    <TableHead className="font-semibold min-w-[120px]">
+                      {ar ? "التقييم" : "RATING"}
+                    </TableHead>
+                  )}
                   {isVisible("actions") && (
                     <TableHead className="font-semibold text-end">
                       {ar ? "إجراءات" : "ACTIONS"}
@@ -2010,6 +2029,36 @@ export default function Tickets() {
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground/50 text-xs">—</span>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {isVisible("rating") && (
+                      <TableCell>
+                        {req.rating ? (
+                          <div className="flex flex-col gap-0.5">
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 w-fit shadow-2xs">
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                              <span>{req.rating}/5</span>
+                            </div>
+                            {req.ratingComment && (
+                              <span
+                                className="text-[10px] text-muted-foreground truncate max-w-[130px]"
+                                title={req.ratingComment}
+                              >
+                                {req.ratingComment}
+                              </span>
+                            )}
+                          </div>
+                        ) : ["resolved", "closed"].includes(req.status) ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 font-medium"
+                          >
+                            {ar ? "بانتظار التقييم" : "Pending Rating"}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/40 text-xs">—</span>
                         )}
                       </TableCell>
                     )}

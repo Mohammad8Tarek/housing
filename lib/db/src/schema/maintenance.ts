@@ -33,6 +33,12 @@ export const maintenanceTable = pgTable("maintenance", {
   dueDate: text("due_date"),
   notes: text("notes"),
   photoUrl: text("photo_url"),
+  rating: integer("rating"),
+  ratingComment: text("rating_comment"),
+  ratedAt: timestamp("rated_at", { withTimezone: true }),
+  ratedByProfileId: integer("rated_by_profile_id").references(() => profilesTable.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -44,6 +50,8 @@ export const maintenanceTable = pgTable("maintenance", {
   index("idx_maintenance_worker_id").on(table.workerId),
   index("idx_maintenance_parent_id").on(table.parentId),
   index("idx_maintenance_status_priority").on(table.status, table.priority),
+  index("idx_maintenance_rating").on(table.rating),
+  index("idx_maintenance_rated_at").on(table.ratedAt),
 ]);
 
 export const insertMaintenanceSchema = createInsertSchema(

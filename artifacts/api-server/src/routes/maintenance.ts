@@ -181,6 +181,20 @@ function buildConditions(
     );
   }
 
+  // 8. تقييم الخدمة
+  if (query.rating && query.rating !== "all") {
+    if (query.rating === "unrated") {
+      conditions.push(sql`${maintenanceTable.rating} IS NULL`);
+    } else if (query.rating === "rated") {
+      conditions.push(sql`${maintenanceTable.rating} IS NOT NULL`);
+    } else {
+      const rNum = parseInt(String(query.rating), 10);
+      if (!isNaN(rNum)) {
+        conditions.push(eq(maintenanceTable.rating, rNum));
+      }
+    }
+  }
+
   return conditions;
 }
 
@@ -226,6 +240,10 @@ function fmt(r: any) {
     resolvedAt: safeISO(r.resolvedAt),
     createdAt: safeISO(r.createdAt),
     dueDate: safeISO(r.dueDate),
+    ratedAt: safeISO(r.ratedAt),
+    rating: r.rating != null ? Number(r.rating) : null,
+    ratingComment: r.ratingComment ?? null,
+    ratedByProfileId: r.ratedByProfileId ?? null,
   };
 }
 
@@ -339,6 +357,10 @@ router.get(
                     notes: maintenanceTable.notes,
                     photoUrl: maintenanceTable.photoUrl,
                     createdAt: maintenanceTable.createdAt,
+                    rating: maintenanceTable.rating,
+                    ratingComment: maintenanceTable.ratingComment,
+                    ratedAt: maintenanceTable.ratedAt,
+                    ratedByProfileId: maintenanceTable.ratedByProfileId,
                   })
                   .from(maintenanceTable)
                   .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
@@ -437,6 +459,10 @@ router.get(
             notes: maintenanceTable.notes,
             photoUrl: maintenanceTable.photoUrl,
             createdAt: maintenanceTable.createdAt,
+            rating: maintenanceTable.rating,
+            ratingComment: maintenanceTable.ratingComment,
+            ratedAt: maintenanceTable.ratedAt,
+            ratedByProfileId: maintenanceTable.ratedByProfileId,
           })
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
@@ -521,6 +547,10 @@ router.get(
                 reportedAt: maintenanceTable.reportedAt,
                 createdAt: maintenanceTable.createdAt,
                 resolvedAt: maintenanceTable.resolvedAt,
+                rating: maintenanceTable.rating,
+                ratingComment: maintenanceTable.ratingComment,
+                ratedAt: maintenanceTable.ratedAt,
+                ratedByProfileId: maintenanceTable.ratedByProfileId,
               })
               .from(maintenanceTable)
               .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))

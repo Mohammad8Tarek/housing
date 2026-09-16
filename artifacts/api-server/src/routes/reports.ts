@@ -7,6 +7,7 @@ import {
   maintenanceTable,
   reservationsTable,
   hostingsTable,
+  workersTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, desc, sql, count } from "drizzle-orm";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
@@ -14,6 +15,164 @@ import { getTenantId } from "../lib/request-utils.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 
 const router: Router = Router();
+
+// @ts-ignore
+router.get("/service-ratings", requirePermission("reports", "view"), async (req, res, next) => {
+  try {
+    const propertyId = getTenantId(req);
+    if (!propertyId)
+      return res.status(400).json({ success: false, message: "propertyId required" });
+
+    const category = (req.query.category as string) || "all";
+    const fromDate = req.query.fromDate as string;
+    const toDate = req.query.toDate as string;
+
+    const result = await withTableFallback(
+      async () =>
+        withTenant(propertyId, async (tenantDb) => {
+          let conditions: any[] = [];
+          
+          if (category && category !== "all") {
+            conditions.push(eq(maintenanceTable.category, category));
+          }
+
+          if (fromDate) {
+            try {
+              const d = new Date(fromDate);
+              if (!isNaN(d.getTime())) {
+                conditions.push(sql`${maintenanceTable.reportedAt} >= ${d.toISOString()}::timestamptz`);
+              }
+            } catch {}
+          }
+
+          if (toDate) {
+            try {
+              const d = new Date(toDate);
+              if (!isNaN(d.getTime())) {
+                d.setHours(23, 59, 59, 999);
+                conditions.push(sql`${maintenanceTable.reportedAt} <= ${d.toISOString()}::timestamptz`);
+              }
+            } catch {}
+          }
+
+          const whereClause = conditions.length ? and(...conditions) : undefined;
+
+          const rows = await tenantDb
+            .select({
+              id: maintenanceTable.id,
+              roomId: maintenanceTable.roomId,
+              roomNumber: roomsTable.roomNumber,
+              category: maintenanceTable.category,
+              problemType: maintenanceTable.problemType,
+              description: maintenanceTable.description,
+              status: maintenanceTable.status,
+              priority: maintenanceTable.priority,
+              reportedBy: maintenanceTable.reportedBy,
+              assignedTo: maintenanceTable.assignedTo,
+              workerId: maintenanceTable.workerId,
+              workerName: workersTable.name,
+              workerSpecialty: workersTable.specialty,
+              reportedAt: maintenanceTable.reportedAt,
+              resolvedAt: maintenanceTable.resolvedAt,
+              rating: maintenanceTable.rating,
+              ratingComment: maintenanceTable.ratingComment,
+              ratedAt: maintenanceTable.ratedAt,
+            })
+            .from(maintenanceTable)
+            .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+            .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
+            .where(whereClause)
+            .orderBy(desc(maintenanceTable.ratedAt), desc(maintenanceTable.id));
+
+          const totalTickets = rows.length;
+          const completedTickets = rows.filter(r => ["resolved", "closed", "completed"].includes((r.status || "").toLowerCase()));
+          const ratedTickets = rows.filter(r => r.rating != null && r.rating > 0);
+          const unratedTickets = completedTickets.filter(r => !r.rating);
+
+          const sumRating = ratedTickets.reduce((acc, r) => acc + (r.rating || 0), 0);
+          const averageRating = ratedTickets.length > 0 ? Number((sumRating / ratedTickets.length).toFixed(2)) : 0;
+
+          const mntRated = ratedTickets.filter(r => r.category === "maintenance");
+          const mntAvg = mntRated.length > 0 ? Number((mntRated.reduce((a, b) => a + (b.rating || 0), 0) / mntRated.length).toFixed(2)) : 0;
+
+          const hskRated = ratedTickets.filter(r => r.category === "housekeeping");
+          const hskAvg = hskRated.length > 0 ? Number((hskRated.reduce((a, b) => a + (b.rating || 0), 0) / hskRated.length).toFixed(2)) : 0;
+
+          const satisfiedCount = ratedTickets.filter(r => (r.rating || 0) >= 4).length;
+          const satisfactionRate = ratedTickets.length > 0 ? Math.round((satisfiedCount / ratedTickets.length) * 100) : 0;
+
+          const starsBreakdown: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+          ratedTickets.forEach(r => {
+            const stars = Math.min(5, Math.max(1, Math.round(r.rating || 0)));
+            starsBreakdown[stars] = (starsBreakdown[stars] || 0) + 1;
+          });
+
+          // Worker Leaderboard
+          const workerMap = new Map<string, { workerId: number | null; workerName: string; specialty: string; totalRated: number; totalRating: number; satisfiedCount: number }>();
+          ratedTickets.forEach(r => {
+            const key = r.workerId ? String(r.workerId) : (r.workerName || "Unassigned");
+            if (!workerMap.has(key)) {
+              workerMap.set(key, {
+                workerId: r.workerId,
+                workerName: r.workerName || "غير معين",
+                specialty: r.workerSpecialty || "عام",
+                totalRated: 0,
+                totalRating: 0,
+                satisfiedCount: 0,
+              });
+            }
+            const item = workerMap.get(key)!;
+            item.totalRated += 1;
+            item.totalRating += r.rating || 0;
+            if ((r.rating || 0) >= 4) item.satisfiedCount += 1;
+          });
+
+          const workerLeaderboard = Array.from(workerMap.values())
+            .map(w => ({
+              ...w,
+              averageRating: Number((w.totalRating / w.totalRated).toFixed(2)),
+              satisfactionRate: Math.round((w.satisfiedCount / w.totalRated) * 100),
+            }))
+            .sort((a, b) => b.averageRating - a.averageRating || b.totalRated - a.totalRated);
+
+          return {
+            summary: {
+              totalTickets,
+              completedTicketsCount: completedTickets.length,
+              totalRated: ratedTickets.length,
+              unratedCount: unratedTickets.length,
+              averageRating,
+              maintenanceAvg: mntAvg,
+              housekeepingAvg: hskAvg,
+              satisfactionRate,
+              starsBreakdown,
+            },
+            workerLeaderboard,
+            ratedTickets,
+          };
+        }),
+      {
+        summary: {
+          totalTickets: 0,
+          completedTicketsCount: 0,
+          totalRated: 0,
+          unratedCount: 0,
+          averageRating: 0,
+          maintenanceAvg: 0,
+          housekeepingAvg: 0,
+          satisfactionRate: 0,
+          starsBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+        },
+        workerLeaderboard: [],
+        ratedTickets: [],
+      }
+    );
+
+    res.json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // @ts-ignore
 router.get("/", requirePermission("reports", "view"), async (req, res, next) => {

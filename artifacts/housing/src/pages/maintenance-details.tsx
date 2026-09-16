@@ -26,6 +26,7 @@ import {
   Play,
   Trash,
   Lock,
+  Star,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { differenceInMinutes, differenceInHours } from "date-fns";
@@ -304,6 +305,82 @@ export default function MaintenanceDetails() {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Service Quality Rating Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span>{ar ? "تقييم جودة الخدمة ورضا النزيل" : "Service Quality & Rating"}</span>
+              </h2>
+
+              {ticket.rating ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 bg-amber-50/60 rounded-xl border border-amber-200">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-6 h-6 ${
+                            star <= ticket.rating
+                              ? "text-amber-500 fill-amber-500"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-2xl font-bold text-amber-800">
+                      {ticket.rating} / 5
+                    </span>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                      {ticket.rating === 5
+                        ? (ar ? "ممتاز جداً" : "Excellent")
+                        : ticket.rating === 4
+                        ? (ar ? "جيد جداً" : "Very Good")
+                        : ticket.rating === 3
+                        ? (ar ? "مقبول" : "Acceptable")
+                        : ticket.rating === 2
+                        ? (ar ? "ضعيف" : "Poor")
+                        : (ar ? "غير مرضٍ تماماً" : "Very Poor")}
+                    </span>
+                  </div>
+
+                  {ticket.ratingComment && (
+                    <div className="p-3 bg-gray-50 rounded-lg border">
+                      <p className="text-xs text-gray-500 mb-1 font-semibold">
+                        {ar ? "ملاحظات وتعليق الموظف:" : "Employee Feedback / Comment:"}
+                      </p>
+                      <p className="text-sm text-gray-800 italic">
+                        "{ticket.ratingComment}"
+                      </p>
+                    </div>
+                  )}
+
+                  {ticket.ratedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      {ar ? "تاريخ إتمام التقييم:" : "Rated on:"}{" "}
+                      {formatDateTime(ticket.ratedAt)}
+                    </p>
+                  )}
+                </div>
+              ) : ["resolved", "closed"].includes(ticket.status) ? (
+                <div className="p-4 bg-amber-50/50 rounded-xl border border-dashed border-amber-300 text-center">
+                  <p className="text-sm font-semibold text-amber-800 mb-1">
+                    {ar ? "بانتظار تقييم الموظف من البوابة" : "Awaiting Employee Rating from Resident Portal"}
+                  </p>
+                  <p className="text-xs text-amber-700/80">
+                    {ar
+                      ? "تم إنجاز الطلب ويظهر للموظف تنبيه في بوابته لتقييم جودة الخدمة وسرعة الاستجابة."
+                      : "The request has been completed. The employee will see an attention banner in their portal to rate the service."}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-xl text-center text-xs text-gray-500">
+                  {ar
+                    ? "التقييم يصبح متاحاً للموظف فور إتمام الطلب وتغيير حالته إلى منجز أو مغلق."
+                    : "Rating becomes available to the resident once the order status is resolved or closed."}
+                </div>
+              )}
             </div>
 
             {/* Actions Card */}
