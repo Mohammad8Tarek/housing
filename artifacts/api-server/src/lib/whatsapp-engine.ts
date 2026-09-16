@@ -9,6 +9,7 @@ import path from "node:path";
 import fs from "node:fs";
 import pino from "pino";
 import { pool } from "@workspace/db";
+import { ensureProfilePortalAccount } from "./portal-accounts.js";
 
 // Sessions storage directory
 const SESSIONS_DIR = path.resolve(process.cwd(), "storage/whatsapp_sessions");
@@ -36,8 +37,19 @@ export const DEFAULT_WELCOME_AR = `مرحباً بك أ/ {employee_name} في {p
 🛏️ السرير: {bed_label}
 📅 تاريخ التسكين: {checkin_date}
 
-📱 للدخول إلى بوابة المقيمين وطلب الخدمات:
+🌐 رابط بوابة المقيمين:
 {portal_url}
+
+🔑 بيانات وطريقة تسجيل الدخول:
+• اسم المستخدم: {profile_id} (رقمك الوظيفي)
+• كلمة المرور الافتراضية: 1234
+*(يرجى استخدام كلمة المرور الشخصية إذا قمت بتعيينها مسبقاً، أو سيطلب منك النظام تعيين كلمة مرور جديدة فور أول تسجيل دخول)*
+
+📲 من خلال البوابة يمكنك:
+• تسجيل ومتابعة بلاغات الصيانة والأعطال
+• طلب خدمات النظافة والهاوس كيبنج
+• التقديم على تصاريح استضافة الأقارب والزيارات
+• المحادثة المباشرة مع مشرفي إدارة السكن
 
 نتمنى لك إقامة هانئة ومريحة! ✨`;
 
@@ -49,8 +61,19 @@ Your accommodation has been successfully confirmed:
 🛏️ Bed: {bed_label}
 📅 Check-in Date: {checkin_date}
 
-📱 Access Resident Portal:
+🌐 Resident Portal Link:
 {portal_url}
+
+🔑 Portal Login Instructions:
+• Username: {profile_id} (Your Employee ID)
+• Default Password: 1234
+*(Please use your personal password if already set, or you will be prompted to set a new password upon your first sign-in)*
+
+📲 Through the portal you can:
+• Submit and track maintenance tickets
+• Request housekeeping & room cleaning
+• Apply for guest and visitor hosting permits
+• Chat directly with Housing Supervisors
 
 We wish you a pleasant and comfortable stay! ✨`;
 
@@ -62,6 +85,9 @@ export const DEFAULT_RESERVATION_AR = `مرحباً بك أ/ {guest_name} في {
 🛏️ تفاصيل السرير: {bed_info}
 📅 تاريخ الوصول المتوقع: {checkin_date}
 📅 تاريخ المغادرة المتوقع: {checkout_date}
+
+🌐 رابط بوابة المقيمين:
+{portal_url}
 
 ℹ️ تنويه: يُرجى التوجه لمكتب الإسكان فور وصولك لاستلام المفتاح وإتمام إجراءات التسكين.
 
@@ -75,6 +101,9 @@ We are pleased to confirm your upcoming reservation:
 🛏️ Bed Info: {bed_info}
 📅 Expected Check-in: {checkin_date}
 📅 Expected Check-out: {checkout_date}
+
+🌐 Resident Portal Link:
+{portal_url}
 
 ℹ️ Note: Please visit the Housing Office upon your arrival to complete check-in and collect your keys.
 
@@ -693,19 +722,28 @@ export async function sendCheckInWhatsAppNotification(params: {
 
     // 2. Fetch profile info from tenant schema (fallback to public if not found)
     let profileRes = await pool.query(
-      `SELECT first_name, last_name, phone, nationality FROM ${schemaName}.profiles WHERE id = $1`,
+      `SELECT id, profile_id, first_name, last_name, phone, nationality FROM ${schemaName}.profiles WHERE id = $1`,
       [profileId]
     ).catch(() => ({ rows: [] as any[] }));
 
     if (!profileRes.rows[0]) {
       profileRes = await pool.query(
-        `SELECT first_name, last_name, phone, nationality FROM public.profiles WHERE id = $1`,
+        `SELECT id, profile_id, first_name, last_name, phone, nationality FROM public.profiles WHERE id = $1`,
         [profileId]
       ).catch(() => ({ rows: [] as any[] }));
     }
 
     const profile = profileRes.rows[0];
     const fullName = profile ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() : `Profile #${profileId}`;
+    const employeeCode = (profile?.profile_id || String(profileId)).trim();
+
+    // Auto ensure active portal account exists for this resident
+    if (profile?.profile_id) {
+      ensureProfilePortalAccount(propertyId, profile.profile_id).catch((err) => {
+        console.warn("[WhatsApp Auto-Send] ensureProfilePortalAccount notice:", err?.message || err);
+      });
+    }
+
     if (!profile || !profile.phone || !profile.phone.trim()) {
       console.log(`[WhatsApp Auto-Send] Profile ${profileId} (${fullName}) has no phone number, skipping.`);
       await logDelivery(
@@ -763,10 +801,12 @@ export async function sendCheckInWhatsAppNotification(params: {
     const cleanDate = (String(startDate || "").split("T")[0]) || new Date().toISOString().split("T")[0];
 
     // 6. Compile template based on detected language
-    const portalUrl = process.env.PORTAL_URL || "https://portal.sunrise-housing.com";
+    const portalUrl = process.env.PORTAL_URL || "https://resident.sunrise-resorts.com/portal/";
 
     const vars = {
       employee_name: fullName,
+      profile_id: employeeCode,
+      employee_id: employeeCode,
       property_name: propertyName,
       building_name: room.building_name || (isArabic ? "المبنى الرئيسي" : "Main Building"),
       floor_name: floorLabel,
@@ -1012,6 +1052,8 @@ export async function sendReservationConfirmationWhatsApp(params: {
     const checkOutDate = (String(reservation.check_out_date || "").split("T")[0]) || (isArabic ? "غير محدد" : "N/A");
 
     // 5. Compile template
+    const portalUrl = process.env.PORTAL_URL || "https://resident.sunrise-resorts.com/portal/";
+
     const vars = {
       guest_name: fullName,
       property_name: propertyName,
@@ -1020,6 +1062,7 @@ export async function sendReservationConfirmationWhatsApp(params: {
       bed_info: bedInfo,
       checkin_date: checkInDate,
       checkout_date: checkOutDate,
+      portal_url: portalUrl,
       supervisor_contact: config?.supervisor_contact || "",
     };
 
@@ -1076,6 +1119,7 @@ export async function sendWhatsAppBroadcast(params: {
   );
   const prop = propRes.rows[0] || {};
   const propertyName = prop.display_name || prop.name || "Sunrise Staff Housing";
+  const portalUrl = process.env.PORTAL_URL || "https://resident.sunrise-resorts.com/portal/";
 
   let queued = 0;
   let skippedNoPhone = 0;
@@ -1099,6 +1143,7 @@ export async function sendWhatsAppBroadcast(params: {
       floor_name: r.floorName || "",
       property: propertyName,
       property_name: propertyName,
+      portal_url: portalUrl,
     };
 
     const textToSend = compileWhatsAppTemplate(messageText, vars);

@@ -2115,8 +2115,19 @@ BEGIN
 🛏️ السرير: {bed_label}
 📅 تاريخ التسكين: {checkin_date}
 
-📱 للدخول إلى بوابة الموظفين وطلب الخدمات:
+🌐 رابط بوابة المقيمين:
 {portal_url}
+
+🔑 بيانات وطريقة تسجيل الدخول:
+• اسم المستخدم: {profile_id} (رقمك الوظيفي)
+• كلمة المرور الافتراضية: 1234
+*(يرجى استخدام كلمة المرور الشخصية إذا قمت بتعيينها مسبقاً، أو سيطلب منك النظام تعيين كلمة مرور جديدة فور أول تسجيل دخول)*
+
+📲 من خلال البوابة يمكنك:
+• تسجيل ومتابعة بلاغات الصيانة والأعطال
+• طلب خدمات النظافة والهاوس كيبنج
+• التقديم على تصاريح استضافة الأقارب والزيارات
+• المحادثة المباشرة مع مشرفي إدارة السكن
 
 نتمنى لك إقامة هانئة ومريحة! ✨',
     welcome_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨
@@ -2127,8 +2138,19 @@ Your accommodation has been successfully confirmed:
 🛏️ Bed: {bed_label}
 📅 Check-in Date: {checkin_date}
 
-📱 Access Resident Portal:
+🌐 Resident Portal Link:
 {portal_url}
+
+🔑 Portal Login Instructions:
+• Username: {profile_id} (Your Employee ID)
+• Default Password: 1234
+*(Please use your personal password if already set, or you will be prompted to set a new password upon your first sign-in)*
+
+📲 Through the portal you can:
+• Submit and track maintenance tickets
+• Request housekeeping & room cleaning
+• Apply for guest and visitor hosting permits
+• Chat directly with Housing Supervisors
 
 We wish you a pleasant and comfortable stay! ✨',
     supervisor_contact TEXT DEFAULT '',

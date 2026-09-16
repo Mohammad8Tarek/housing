@@ -965,8 +965,8 @@ const MIGRATIONS = [
       status TEXT NOT NULL DEFAULT 'disconnected',
       qr_code TEXT,
       is_auto_send_enabled BOOLEAN NOT NULL DEFAULT true,
-      welcome_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨\n\nيسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:\n🏢 المبنى: {building_name} ({floor_name})\n🚪 رقم الغرفة: {room_number}\n🛏️ السرير: {bed_label}\n📅 تاريخ التسكين: {checkin_date}\n\n📱 للدخول إلى بوابة المقيمين وطلب الخدمات:\n{portal_url}\n\nنتمنى لك إقامة هانئة ومريحة! ✨',
-      welcome_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n📱 Access Resident Portal:\n{portal_url}\n\nWe wish you a pleasant and comfortable stay! ✨',
+      welcome_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨\n\nيسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:\n🏢 المبنى: {building_name} ({floor_name})\n🚪 رقم الغرفة: {room_number}\n🛏️ السرير: {bed_label}\n📅 تاريخ التسكين: {checkin_date}\n\n🌐 رابط بوابة المقيمين:\n{portal_url}\n\n🔑 بيانات وطريقة تسجيل الدخول:\n• اسم المستخدم: {profile_id} (رقمك الوظيفي)\n• كلمة المرور الافتراضية: 1234\n*(يرجى استخدام كلمة المرور الشخصية إذا قمت بتعيينها مسبقاً، أو سيطلب منك النظام تعيين كلمة مرور جديدة فور أول تسجيل دخول)*\n\n📲 من خلال البوابة يمكنك:\n• تسجيل ومتابعة بلاغات الصيانة والأعطال\n• طلب خدمات النظافة والهاوس كيبنج\n• التقديم على تصاريح استضافة الأقارب والزيارات\n• المحادثة المباشرة مع مشرفي إدارة السكن\n\nنتمنى لك إقامة هانئة ومريحة! ✨',
+      welcome_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n🌐 Resident Portal Link:\n{portal_url}\n\n🔑 Portal Login Instructions:\n• Username: {profile_id} (Your Employee ID)\n• Default Password: 1234\n*(Please use your personal password if already set, or you will be prompted to set a new password upon your first sign-in)*\n\n📲 Through the portal you can:\n• Submit and track maintenance tickets\n• Request housekeeping & room cleaning\n• Apply for guest and visitor hosting permits\n• Chat directly with Housing Supervisors\n\nWe wish you a pleasant and comfortable stay! ✨',
       supervisor_contact TEXT DEFAULT '',
       is_reservation_send_enabled BOOLEAN NOT NULL DEFAULT true,
       reservation_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {guest_name} في {property_name} 🌴✨
@@ -1966,8 +1966,8 @@ const TENANT_MIGRATIONS = [
       status TEXT NOT NULL DEFAULT 'disconnected',
       qr_code TEXT,
       is_auto_send_enabled BOOLEAN NOT NULL DEFAULT true,
-      welcome_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨\n\nيسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:\n🏢 المبنى: {building_name} ({floor_name})\n🚪 رقم الغرفة: {room_number}\n🛏️ السرير: {bed_label}\n📅 تاريخ التسكين: {checkin_date}\n\n📱 للدخول إلى بوابة المقيمين وطلب الخدمات:\n{portal_url}\n\nنتمنى لك إقامة هانئة ومريحة! ✨',
-      welcome_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n📱 Access Resident Portal:\n{portal_url}\n\nWe wish you a pleasant and comfortable stay! ✨',
+      welcome_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨\n\nيسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:\n🏢 المبنى: {building_name} ({floor_name})\n🚪 رقم الغرفة: {room_number}\n🛏️ السرير: {bed_label}\n📅 تاريخ التسكين: {checkin_date}\n\n🌐 رابط بوابة المقيمين:\n{portal_url}\n\n🔑 بيانات وطريقة تسجيل الدخول:\n• اسم المستخدم: {profile_id} (رقمك الوظيفي)\n• كلمة المرور الافتراضية: 1234\n*(يرجى استخدام كلمة المرور الشخصية إذا قمت بتعيينها مسبقاً، أو سيطلب منك النظام تعيين كلمة مرور جديدة فور أول تسجيل دخول)*\n\n📲 من خلال البوابة يمكنك:\n• تسجيل ومتابعة بلاغات الصيانة والأعطال\n• طلب خدمات النظافة والهاوس كيبنج\n• التقديم على تصاريح استضافة الأقارب والزيارات\n• المحادثة المباشرة مع مشرفي إدارة السكن\n\nنتمنى لك إقامة هانئة ومريحة! ✨',
+      welcome_template_en TEXT NOT NULL DEFAULT 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n🌐 Resident Portal Link:\n{portal_url}\n\n🔑 Portal Login Instructions:\n• Username: {profile_id} (Your Employee ID)\n• Default Password: 1234\n*(Please use your personal password if already set, or you will be prompted to set a new password upon your first sign-in)*\n\n📲 Through the portal you can:\n• Submit and track maintenance tickets\n• Request housekeeping & room cleaning\n• Apply for guest and visitor hosting permits\n• Chat directly with Housing Supervisors\n\nWe wish you a pleasant and comfortable stay! ✨',
       supervisor_contact TEXT DEFAULT '',
       is_reservation_send_enabled BOOLEAN NOT NULL DEFAULT true,
       reservation_template_ar TEXT NOT NULL DEFAULT 'مرحباً بك أ/ {guest_name} في {property_name} 🌴✨
@@ -2193,6 +2193,39 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS rated_by_profile_id INTEGER;
     CREATE INDEX IF NOT EXISTS idx_maintenance_rating ON maintenance(rating);
     CREATE INDEX IF NOT EXISTS idx_maintenance_rated_at ON maintenance(rated_at);`,
+  },
+  {
+    name: "property_whatsapp_configs.portal_login_instructions",
+    q: `DO $$
+    DECLARE
+      schema_record RECORD;
+    BEGIN
+      -- 1. Update public schema
+      UPDATE public.property_whatsapp_configs
+      SET welcome_template_ar = 'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨\n\nيسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:\n🏢 المبنى: {building_name} ({floor_name})\n🚪 رقم الغرفة: {room_number}\n🛏️ السرير: {bed_label}\n📅 تاريخ التسكين: {checkin_date}\n\n🌐 رابط بوابة المقيمين:\n{portal_url}\n\n🔑 بيانات وطريقة تسجيل الدخول:\n• اسم المستخدم: {profile_id} (رقمك الوظيفي)\n• كلمة المرور الافتراضية: 1234\n*(يرجى استخدام كلمة المرور الشخصية إذا قمت بتعيينها مسبقاً، أو سيطلب منك النظام تعيين كلمة مرور جديدة فور أول تسجيل دخول)*\n\n📲 من خلال البوابة يمكنك:\n• تسجيل ومتابعة بلاغات الصيانة والأعطال\n• طلب خدمات النظافة والهاوس كيبنج\n• التقديم على تصاريح استضافة الأقارب والزيارات\n• المحادثة المباشرة مع مشرفي إدارة السكن\n\nنتمنى لك إقامة هانئة ومريحة! ✨',
+          welcome_template_en = 'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n🌐 Resident Portal Link:\n{portal_url}\n\n🔑 Portal Login Instructions:\n• Username: {profile_id} (Your Employee ID)\n• Default Password: 1234\n*(Please use your personal password if already set, or you will be prompted to set a new password upon your first sign-in)*\n\n📲 Through the portal you can:\n• Submit and track maintenance tickets\n• Request housekeeping & room cleaning\n• Apply for guest and visitor hosting permits\n• Chat directly with Housing Supervisors\n\nWe wish you a pleasant and comfortable stay! ✨'
+      WHERE welcome_template_ar NOT LIKE '%بيانات وطريقة تسجيل الدخول%';
+
+      -- 2. Update tenant schemas
+      FOR schema_record IN 
+        SELECT schema_name FROM public.properties WHERE schema_name IS NOT NULL
+      LOOP
+        IF EXISTS (
+          SELECT 1 FROM information_schema.tables 
+          WHERE table_schema = schema_record.schema_name AND table_name = 'property_whatsapp_configs'
+        ) THEN
+          EXECUTE format('
+            UPDATE %I.property_whatsapp_configs
+            SET welcome_template_ar = %L,
+                welcome_template_en = %L
+            WHERE welcome_template_ar NOT LIKE ''%%بيانات وطريقة تسجيل الدخول%%''',
+            schema_record.schema_name,
+            'مرحباً بك أ/ {employee_name} في {property_name} 🌴✨\n\nيسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:\n🏢 المبنى: {building_name} ({floor_name})\n🚪 رقم الغرفة: {room_number}\n🛏️ السرير: {bed_label}\n📅 تاريخ التسكين: {checkin_date}\n\n🌐 رابط بوابة المقيمين:\n{portal_url}\n\n🔑 بيانات وطريقة تسجيل الدخول:\n• اسم المستخدم: {profile_id} (رقمك الوظيفي)\n• كلمة المرور الافتراضية: 1234\n*(يرجى استخدام كلمة المرور الشخصية إذا قمت بتعيينها مسبقاً، أو سيطلب منك النظام تعيين كلمة مرور جديدة فور أول تسجيل دخول)*\n\n📲 من خلال البوابة يمكنك:\n• تسجيل ومتابعة بلاغات الصيانة والأعطال\n• طلب خدمات النظافة والهاوس كيبنج\n• التقديم على تصاريح استضافة الأقارب والزيارات\n• المحادثة المباشرة مع مشرفي إدارة السكن\n\nنتمنى لك إقامة هانئة ومريحة! ✨',
+            'Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨\n\nYour accommodation has been successfully confirmed:\n🏢 Building: {building_name} ({floor_name})\n🚪 Room: {room_number}\n🛏️ Bed: {bed_label}\n📅 Check-in Date: {checkin_date}\n\n🌐 Resident Portal Link:\n{portal_url}\n\n🔑 Portal Login Instructions:\n• Username: {profile_id} (Your Employee ID)\n• Default Password: 1234\n*(Please use your personal password if already set, or you will be prompted to set a new password upon your first sign-in)*\n\n📲 Through the portal you can:\n• Submit and track maintenance tickets\n• Request housekeeping & room cleaning\n• Apply for guest and visitor hosting permits\n• Chat directly with Housing Supervisors\n\nWe wish you a pleasant and comfortable stay! ✨'
+          );
+        END IF;
+      END LOOP;
+    END $$;`,
   },
 ];
 

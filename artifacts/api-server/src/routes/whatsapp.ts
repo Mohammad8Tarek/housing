@@ -247,13 +247,15 @@ router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "
 
       const mockVars = {
         employee_name: isEn ? "Mohamed Tarek" : "محمد طارق",
+        profile_id: "10575",
+        employee_id: "10575",
         property_name: isEn ? "Sunrise Resort Housing" : "منتجع سكن صن رايز",
         building_name: isEn ? "Building 3" : "المبنى رقم 3",
         floor_name: isEn ? "Second Floor" : "الدور الثاني",
         room_number: "204",
         bed_label: "Bed A",
         checkin_date: new Date().toISOString().split("T")[0],
-        portal_url: process.env.PORTAL_URL || "https://portal.sunrise-housing.com",
+        portal_url: process.env.PORTAL_URL || "https://resident.sunrise-resorts.com/portal/",
         supervisor_contact: row?.supervisor_contact || "+201000000000",
       };
 
