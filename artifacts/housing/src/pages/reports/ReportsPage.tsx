@@ -326,6 +326,8 @@ export default function Reports() {
             setInventoryViewMode={filters.setInventoryViewMode}
             inHouseViewMode={filters.inHouseViewMode}
             setInHouseViewMode={filters.setInHouseViewMode}
+            waterSortMode={filters.waterSortMode}
+            setWaterSortMode={filters.setWaterSortMode}
             rooms={data.rooms}
             roomTypes={data.configuredRoomTypes}
           />

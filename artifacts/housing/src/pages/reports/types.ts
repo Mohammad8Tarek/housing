@@ -23,6 +23,7 @@ export type Tab =
   | "gate_logs"
   | "service_ratings"
   | "housing_map"
+  | "water_distribution"
   | "police_report";
 
 export interface TabConfig {

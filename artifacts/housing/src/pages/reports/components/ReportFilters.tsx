@@ -60,6 +60,8 @@ export function ReportFilters({
   setInventoryViewMode,
   inHouseViewMode = "grouped",
   setInHouseViewMode,
+  waterSortMode = "room",
+  setWaterSortMode,
   rooms = [],
   roomTypes = [],
 }: any) {
@@ -275,6 +277,31 @@ export function ReportFilters({
               >
                 <LayoutList className="w-3.5 h-3.5" />
                 {ar ? "تفصيلي حسب الغرف" : "By Room"}
+              </Button>
+            </div>
+          )}
+
+          {activeTab === "water_distribution" && setWaterSortMode && (
+            <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border">
+              <Button
+                type="button"
+                size="sm"
+                variant={waterSortMode === "room" ? "default" : "ghost"}
+                className="h-8 px-3 text-xs font-semibold gap-1.5"
+                onClick={() => setWaterSortMode("room")}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                {ar ? "ترتيب حسب الغرف" : "By Room"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={waterSortMode === "department" ? "default" : "ghost"}
+                className="h-8 px-3 text-xs font-semibold gap-1.5"
+                onClick={() => setWaterSortMode("department")}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                {ar ? "ترتيب حسب الأقسام" : "By Department"}
               </Button>
             </div>
           )}

@@ -91,6 +91,7 @@ export const REPORT_TAB_CONFIG: Record<
   police_report: { showKpis: false, showSignatures: true },
   service_ratings: { showKpis: false, showSignatures: false },
   housing_map: { showKpis: false, showSignatures: false },
+  water_distribution: { showKpis: false, showSignatures: true },
 };
 
 // ----------------------------------------------------------------------------
@@ -119,6 +120,7 @@ export const REPORT_OPERA_CODES: Record<string, string> = {
   police_report: "police_manifest",
   service_ratings: "service_ratings",
   housing_map: "housing_map",
+  water_distribution: "water_dist",
 };
 
 // ----------------------------------------------------------------------------
@@ -216,6 +218,10 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
   housing_map: {
     ar: "المخطط الهيكلي المعماري وتوزيع الغرف",
     en: "Housing Structure & Architectural Map",
+  },
+  water_distribution: {
+    ar: "كشف صرف وتوزيع مياه الشرب الشهري",
+    en: "Monthly Drinking Water Distribution Sheet",
   },
 };
 
@@ -533,6 +539,16 @@ export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = 
   "last inspected": { ar: "تاريخ آخر فحص", en: "Last Inspected" },
   inspectedby: { ar: "القائم بالفحص", en: "Inspected By" },
   "inspected by": { ar: "القائم بالفحص", en: "Inspected By" },
+
+  // Water Distribution Sheet
+  waterissue1: { ar: "الصرف الأول", en: "1st Issue" },
+  "1st issue": { ar: "الصرف الأول", en: "1st Issue" },
+  "1st issue (1st half)": { ar: "الصرف الأول (النصف الأول)", en: "1st Issue (1st Half)" },
+  waterissue2: { ar: "الصرف الثاني", en: "2nd Issue" },
+  "2nd issue": { ar: "الصرف الثاني", en: "2nd Issue" },
+  "2nd issue (2nd half)": { ar: "الصرف الثاني (النصف الثاني)", en: "2nd Issue (2nd Half)" },
+  residentsignature: { ar: "توقيع المستلم", en: "Resident Signature" },
+  "resident signature": { ar: "توقيع المستلم", en: "Resident Signature" },
 };
 
 export function translateReportHeader(header: string, isArabic: boolean): string {
@@ -579,10 +595,21 @@ export function translateReportHeader(header: string, isArabic: boolean): string
 // ----------------------------------------------------------------------------
 export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
   if (val === null || val === undefined || val === "") return "—";
+  if (typeof val === "boolean") {
+    if (val) {
+      return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #059669; border-radius:2px; vertical-align:middle; background:#ecfdf5; color:#059669; text-align:center; font-size:10px; line-height:12px; font-weight:bold;">✓</span>`;
+    }
+    return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #475569; border-radius:2px; vertical-align:middle; background:#ffffff;"></span>`;
+  }
   const str = String(val).trim();
   if (str === "—" || str === "-") return "—";
+  if (str === "[  ]" || str === "[ ]" || str === "☐") {
+    return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #475569; border-radius:2px; vertical-align:middle; background:#ffffff;"></span>`;
+  }
+  if (str === "[✓]" || str === "[x]" || str === "[X]" || str === "☑") {
+    return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #059669; border-radius:2px; vertical-align:middle; background:#ecfdf5; color:#059669; text-align:center; font-size:10px; line-height:12px; font-weight:bold;">✓</span>`;
+  }
 
-  // Clean executive output without multi-color column noise
   return str;
 }
 
@@ -911,7 +938,7 @@ export function getOperaColumnAlign(
   ) {
     return isArabic ? "left" : "right";
   }
-  // Center aligned codes, rooms, beds, dates, statuses
+  // Center aligned codes, rooms, beds, dates, statuses, issues, signatures, checks
   if (
     norm.includes("room") ||
     norm.includes("bed") ||
@@ -921,13 +948,19 @@ export function getOperaColumnAlign(
     norm.includes("type") ||
     norm.includes("floor") ||
     norm.includes("gender") ||
+    norm.includes("issue") ||
+    norm.includes("check") ||
+    norm.includes("sign") ||
     headerName.includes("غرفة") ||
     headerName.includes("سرير") ||
     headerName.includes("تاريخ") ||
     headerName.includes("حالة") ||
     headerName.includes("كود") ||
     headerName.includes("طابق") ||
-    headerName.includes("جنس")
+    headerName.includes("دور") ||
+    headerName.includes("جنس") ||
+    headerName.includes("صرف") ||
+    headerName.includes("توقيع")
   ) {
     return "center";
   }
@@ -935,94 +968,84 @@ export function getOperaColumnAlign(
 }
 
 /**
- * Intelligent column sizing and whitespace handling for Opera PMS tables
- * Ensures names, national IDs, phones, and dates have sufficient width and don't cramp
+ * Intelligent column sizing and whitespace handling for Opera PMS tables.
+ * Distributes available width cleanly without hard min-widths that cause page blowout.
  */
 export function getOperaColumnStyle(headerName: string, isArabic: boolean): string {
   const norm = (headerName || "").toLowerCase().trim();
   
-  // Full Name / Occupant / Employee
+  // Sequence numbering column
+  if (norm === "#") {
+    return "width: 28px; text-align: center;";
+  }
+  
+  // Water distribution issue checks / checkboxes / signatures
   if (
-    norm.includes("الاسم") ||
-    norm.includes("name") ||
-    norm.includes("occupant") ||
-    norm.includes("resident") ||
-    norm.includes("الموظف")
+    norm.includes("صرف") ||
+    norm.includes("check") ||
+    norm.includes("issue") ||
+    norm.includes("توقيع") ||
+    norm.includes("signature")
   ) {
-    return "min-width: 140px; white-space: nowrap;";
+    return "text-align: center; white-space: nowrap;";
   }
-  
-  // National ID
-  if (norm.includes("الرقم القومي") || norm.includes("national id") || norm.includes("بطاقة")) {
-    return "min-width: 110px; white-space: nowrap; font-family: monospace;";
+
+  // Room / Bed / Floor
+  if (
+    norm.includes("غرفة") ||
+    norm.includes("room") ||
+    norm.includes("سرير") ||
+    norm.includes("bed") ||
+    norm.includes("طابق") ||
+    norm.includes("floor") ||
+    norm.includes("دور")
+  ) {
+    return "text-align: center; white-space: nowrap;";
   }
-  
-  // Phone numbers
-  if (norm.includes("هاتف") || norm.includes("phone") || norm.includes("موبايل") || norm.includes("طوارئ")) {
-    return "min-width: 95px; white-space: nowrap; font-family: monospace;";
+
+  // Codes & IDs
+  if (
+    norm.includes("كود") ||
+    norm.includes("code") ||
+    norm.includes("قومي") ||
+    norm.includes("national") ||
+    norm.includes("هاتف") ||
+    norm.includes("phone") ||
+    norm.includes("موبايل")
+  ) {
+    return "text-align: center; white-space: nowrap; font-family: monospace;";
   }
-  
+
   // Dates
+  if (norm.includes("تاريخ") || norm.includes("date")) {
+    return "text-align: center; white-space: nowrap;";
+  }
+
+  // Status & Categories
+  if (norm.includes("حالة") || norm.includes("status") || norm.includes("جنس") || norm.includes("gender")) {
+    return "text-align: center; white-space: nowrap;";
+  }
+
+  // Names, Departments, Buildings, Jobs - WRAP NATURALLY
   if (
-    norm.includes("تاريخ") ||
-    norm.includes("date") ||
-    norm.includes("تسكين") ||
-    norm.includes("تعيين") ||
-    norm.includes("مغادرة") ||
-    norm.includes("ميلاد") ||
-    norm.includes("عقد")
+    norm.includes("اسم") ||
+    norm.includes("name") ||
+    norm.includes("موظف") ||
+    norm.includes("resident") ||
+    norm.includes("نزيل") ||
+    norm.includes("قسم") ||
+    norm.includes("dept") ||
+    norm.includes("department") ||
+    norm.includes("وظيفة") ||
+    norm.includes("job") ||
+    norm.includes("مبنى") ||
+    norm.includes("building") ||
+    norm.includes("شركة") ||
+    norm.includes("company")
   ) {
-    return "min-width: 80px; white-space: nowrap;";
+    return "white-space: normal; word-break: normal;";
   }
-  
-  // Room No
-  if (norm.includes("غرفة") || norm.includes("room")) {
-    return "min-width: 55px; white-space: nowrap;";
-  }
-  
-  // Bed No
-  if (norm.includes("سرير") || norm.includes("bed")) {
-    return "min-width: 45px; white-space: nowrap;";
-  }
-  
-  // Company / Employer
-  if (norm.includes("شركة") || norm.includes("company")) {
-    return "min-width: 95px;";
-  }
-  
-  // Department
-  if (norm.includes("قسم") || norm.includes("dept") || norm.includes("department")) {
-    return "min-width: 90px;";
-  }
-  
-  // Job Title
-  if (norm.includes("وظيفة") || norm.includes("title") || norm.includes("job")) {
-    return "min-width: 95px;";
-  }
-  
-  // Nationality
-  if (norm.includes("جنسية") || norm.includes("nationality")) {
-    return "min-width: 70px; white-space: nowrap;";
-  }
-  
-  // Gender
-  if (norm.includes("جنس") || norm.includes("gender")) {
-    return "min-width: 45px; white-space: nowrap;";
-  }
-  
-  // Building & Floor
-  if (norm.includes("مبنى") || norm.includes("building")) {
-    return "min-width: 75px;";
-  }
-  if (norm.includes("طابق") || norm.includes("floor")) {
-    return "min-width: 60px;";
-  }
-  
-  // Status
-  if (norm.includes("حالة") || norm.includes("status")) {
-    return "min-width: 65px; white-space: nowrap;";
-  }
-  
+
   return "";
 }
 

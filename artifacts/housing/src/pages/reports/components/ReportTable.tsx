@@ -41,6 +41,26 @@ export function ReportTable({
 }: any) {
   const isVis = (k: string) => !visibleCols || visibleCols.has(k);
   const [selectedItemRooms, setSelectedItemRooms] = useState<any | null>(null);
+  const [waterCheckState, setWaterCheckState] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("water_distribution_checks");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleWaterCheck = (key: string, val: boolean) => {
+    setWaterCheckState((prev) => {
+      const next = { ...prev, [key]: val };
+      try {
+        localStorage.setItem("water_distribution_checks", JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
   const H = (sortKey: string, label: React.ReactNode, className?: string) => (
     <SortableHead
       label={label}
@@ -203,6 +223,7 @@ export function ReportTable({
             {/* 1. ASSIGNMENTS HEADERS */}
             {activeTab === "assignments" && (
               <>
+                {isVis("profileCode") && H("profileCode", ar ? "كود الموظف" : "Code")}
                 {isVis("fullName") && H("fullName", ar ? "الموظف / المقيم" : "Occupant / Profile")}
                 {isVis("employmentType") && H("employmentType", ar ? "نوع التوظيف" : "Employment")}
                 {isVis("roomNumber") && H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
@@ -440,6 +461,40 @@ export function ReportTable({
                 {isVis("contractEndDate") && H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
                 {isVis("emergencyContact") && H("emergencyContact", ar ? "هاتف الطوارئ" : "Emergency Contact")}
                 {isVis("status") && H("status", ar ? "الحالة بالسكن" : "Status")}
+              </>
+            )}
+
+            {/* 19. WATER DISTRIBUTION SHEET HEADERS */}
+            {activeTab === "water_distribution" && (
+              <>
+                {isVis("profileCode") && H("profileCode", ar ? "كود الموظف" : "Code")}
+                {isVis("fullName") && H("fullName", ar ? "الاسم بالكامل" : "Full Name")}
+                {isVis("department") && H("department", ar ? "القسم" : "Department")}
+                {isVis("buildingName") && H("buildingName", ar ? "المبنى" : "Building")}
+                {isVis("floorName") && H("floorName", ar ? "الدور" : "Floor")}
+                {isVis("roomNumber") && H("roomNumber", ar ? "الغرفة" : "Room No")}
+                {isVis("bedNumber") && H("bedNumber", ar ? "السرير" : "Bed No")}
+                {isVis("waterIssue1") && (
+                  <TableHead className="text-center min-w-[110px] font-bold text-xs bg-cyan-500/10 text-cyan-800 dark:text-cyan-300">
+                    <div className="flex flex-col items-center justify-center">
+                      <span>{ar ? "الصرف الأول" : "1st Issue"}</span>
+                      <span className="text-[10px] font-normal opacity-75">{ar ? "(نصف أول)" : "(1st Half)"}</span>
+                    </div>
+                  </TableHead>
+                )}
+                {isVis("waterIssue2") && (
+                  <TableHead className="text-center min-w-[110px] font-bold text-xs bg-sky-500/10 text-sky-800 dark:text-sky-300">
+                    <div className="flex flex-col items-center justify-center">
+                      <span>{ar ? "الصرف الثاني" : "2nd Issue"}</span>
+                      <span className="text-[10px] font-normal opacity-75">{ar ? "(نصف ثاني)" : "(2nd Half)"}</span>
+                    </div>
+                  </TableHead>
+                )}
+                {isVis("signature") && (
+                  <TableHead className="text-center min-w-[120px] font-semibold text-xs">
+                    {ar ? "توقيع المستلم" : "Signature"}
+                  </TableHead>
+                )}
               </>
             )}
           </TableRow>
@@ -758,12 +813,14 @@ export function ReportTable({
                 {/* 1. ASSIGNMENTS ROW */}
                 {activeTab === "assignments" && (
                   <>
+                    {isVis("profileCode") && (
+                      <TableCell className="font-mono text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                        {row.profileCode}
+                      </TableCell>
+                    )}
                     {isVis("fullName") && (
                       <TableCell>
-                        <div>
-                          <p className="font-bold text-sm text-foreground">{row.fullName}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{row.profileCode}</p>
-                        </div>
+                        <p className="font-bold text-sm text-foreground">{row.fullName}</p>
                       </TableCell>
                     )}
                     {isVis("employmentType") && (
@@ -1575,6 +1632,86 @@ export function ReportTable({
                             {ar ? "مقيم بالسكن" : "In-House"}
                           </Badge>
                         )}
+                      </TableCell>
+                    )}
+                  </>
+                )}
+
+                {/* 19. WATER DISTRIBUTION ROW */}
+                {activeTab === "water_distribution" && (
+                  <>
+                    {isVis("profileCode") && (
+                      <TableCell className="font-mono text-xs font-bold text-muted-foreground whitespace-nowrap">
+                        {row.profileCode}
+                      </TableCell>
+                    )}
+                    {isVis("fullName") && (
+                      <TableCell className="font-bold text-xs text-foreground whitespace-nowrap">
+                        {row.fullName}
+                      </TableCell>
+                    )}
+                    {isVis("department") && (
+                      <TableCell className="text-xs">
+                        <Badge variant="outline" className="text-[11px] font-medium">
+                          {row.department}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {isVis("buildingName") && (
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {row.buildingName}
+                      </TableCell>
+                    )}
+                    {isVis("floorName") && (
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {row.floorName}
+                      </TableCell>
+                    )}
+                    {isVis("roomNumber") && (
+                      <TableCell className="text-xs font-bold text-primary">
+                        {row.roomNumber}
+                      </TableCell>
+                    )}
+                    {isVis("bedNumber") && (
+                      <TableCell className="text-xs text-center">
+                        {row.bedNumber !== "—" ? (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {row.bedNumber}
+                          </Badge>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("waterIssue1") && (
+                      <TableCell className="text-center bg-cyan-50/25 dark:bg-cyan-950/10">
+                        <div className="flex items-center justify-center">
+                          <Checkbox
+                            checked={Boolean(waterCheckState[`${row.id}_1`])}
+                            onCheckedChange={(checked) =>
+                              toggleWaterCheck(`${row.id}_1`, Boolean(checked))
+                            }
+                            className="h-4 w-4 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
+                          />
+                        </div>
+                      </TableCell>
+                    )}
+                    {isVis("waterIssue2") && (
+                      <TableCell className="text-center bg-sky-50/25 dark:bg-sky-950/10">
+                        <div className="flex items-center justify-center">
+                          <Checkbox
+                            checked={Boolean(waterCheckState[`${row.id}_2`])}
+                            onCheckedChange={(checked) =>
+                              toggleWaterCheck(`${row.id}_2`, Boolean(checked))
+                            }
+                            className="h-4 w-4 data-[state=checked]:bg-sky-600 data-[state=checked]:border-sky-600"
+                          />
+                        </div>
+                      </TableCell>
+                    )}
+                    {isVis("signature") && (
+                      <TableCell className="text-center text-xs text-muted-foreground/40 font-mono">
+                        ....................
                       </TableCell>
                     )}
                   </>

@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Star,
+  Droplets,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
@@ -150,5 +151,11 @@ export const TABS: TabConfig[] = [
     label: "Housing Map & Structure",
     labelAr: "خريطة وتفصيل السكن والمباني",
     icon: <Building2 className="w-4 h-4 text-indigo-500" />,
+  },
+  {
+    id: "water_distribution",
+    label: "Water Distribution Sheet",
+    labelAr: "كشف صرف مياه الشرب الشهري",
+    icon: <Droplets className="w-4 h-4 text-cyan-500" />,
   },
 ];

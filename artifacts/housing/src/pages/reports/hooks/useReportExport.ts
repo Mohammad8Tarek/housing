@@ -408,6 +408,20 @@ export function useReportExport({
               : (ar ? "مقيم بالسكن" : "In-House"),
         }));
 
+      case "water_distribution":
+        return data.map((w: any) => ({
+          [ar ? "كود الموظف" : "Employee Code"]: w.profileCode,
+          [ar ? "الاسم بالكامل" : "Full Name"]: w.fullName,
+          [ar ? "القسم" : "Department"]: w.department,
+          [ar ? "المبنى" : "Building"]: w.buildingName,
+          [ar ? "الدور" : "Floor"]: w.floorName,
+          [ar ? "الغرفة" : "Room No"]: w.roomNumber,
+          [ar ? "السرير" : "Bed No"]: w.bedNumber,
+          [ar ? "الصرف الأول" : "1st Issue"]: "[  ]",
+          [ar ? "الصرف الثاني" : "2nd Issue"]: "[  ]",
+          [ar ? "توقيع المستلم" : "Signature"]: "",
+        }));
+
       default:
         if (ar && Array.isArray(data)) {
           return data.map((item: any) => {

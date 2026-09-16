@@ -273,6 +273,18 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
     { key: "emergencyContact", label: "Emergency Contact", labelAr: "هاتف الطوارئ" },
     { key: "status", label: "Status", labelAr: "الحالة بالسكن" },
   ],
+  water_distribution: [
+    { key: "profileCode", label: "Employee Code", labelAr: "كود الموظف", fixed: true },
+    { key: "fullName", label: "Full Name", labelAr: "الاسم بالكامل", fixed: true },
+    { key: "department", label: "Department", labelAr: "القسم" },
+    { key: "buildingName", label: "Building", labelAr: "المبنى" },
+    { key: "floorName", label: "Floor", labelAr: "الدور" },
+    { key: "roomNumber", label: "Room No", labelAr: "الغرفة" },
+    { key: "bedNumber", label: "Bed No", labelAr: "السرير" },
+    { key: "waterIssue1", label: "1st Issue (1st Half)", labelAr: "الصرف الأول (النصف الأول)", fixed: true },
+    { key: "waterIssue2", label: "2nd Issue (2nd Half)", labelAr: "الصرف الثاني (النصف الثاني)", fixed: true },
+    { key: "signature", label: "Resident Signature", labelAr: "توقيع المستلم" },
+  ],
 };
 
 export function useReportColumns(activeTab: string, ar: boolean) {

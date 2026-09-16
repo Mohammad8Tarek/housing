@@ -106,6 +106,7 @@ export function useReportDataProcessor({
   filterNationality,
   filterRoomType,
   filterEmploymentType,
+  waterSortMode = "room",
   search,
   dateFrom,
   dateTo,
@@ -1774,6 +1775,87 @@ export function useReportDataProcessor({
           i.companyName,
           i.jobTitle,
           i.address,
+        ]);
+      }
+
+      case "water_distribution": {
+        const list = assignments
+          .filter((a: any) => {
+            const room = roomMap[a.roomId];
+            const emp = empMap[a.profileId] || {};
+            const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || emp.status === "LEFT" || emp.status === "CHECKED_OUT";
+            if (isCheckedOut) return false;
+
+            if (filterBuilding !== "all" && (!room || !filteredBuildingIds.has(room.buildingId))) return false;
+            if (filterFloor !== "all" && (!room || !filteredFloorIds.has(room.floorId))) return false;
+            if (filterDepartment !== "all" && emp?.department !== filterDepartment) return false;
+            if (filterGender !== "all" && emp?.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterNationality !== "all" && emp?.nationality !== filterNationality) return false;
+            return true;
+          })
+          .map((a: any) => {
+            const emp = empMap[a.profileId] || {};
+            const room = roomMap[a.roomId] || {};
+            const floor = floors.find((f: any) => f.id === room.floorId);
+            const isEntire = Boolean(
+              a.isEntireRoom ||
+              a.is_entire_room ||
+              a.notes?.includes("[حجز الغرفة بالكامل]") ||
+              a.notes?.includes("[تسكين الغرفة بالكامل]")
+            );
+            const bedNum = a.bedNumber ?? (isEntire ? 1 : null);
+
+            return {
+              id: a.id,
+              profileId: emp.id,
+              profileCode: emp.profileId || `EMP-${a.profileId}`,
+              fullName: getProfileDisplayName(emp, ar),
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              jobTitle: getProfileDisplayJobTitle(emp, ar) || "—",
+              roomId: a.roomId,
+              roomNumber: room.roomNumber || `#${a.roomId}`,
+              bedNumber: bedNum ? String(bedNum) : "—",
+              buildingId: room.buildingId,
+              buildingName: buildingMap[room.buildingId] || "—",
+              floorId: room.floorId,
+              floorNumber: floor?.floorNumber ?? 0,
+              floorName: floorMap[room.floorId] || (floor?.floorNumber !== undefined ? `${ar ? "الدور" : "Floor"} ${floor.floorNumber}` : "—"),
+              waterIssue1: false,
+              waterIssue2: false,
+              signature: "",
+            };
+          });
+
+        const sorted = [...list].sort((x: any, y: any) => {
+          if (waterSortMode === "department") {
+            const deptDiff = (x.department || "").localeCompare(y.department || "", ar ? "ar" : "en");
+            if (deptDiff !== 0) return deptDiff;
+            const bldDiff = (x.buildingName || "").localeCompare(y.buildingName || "", ar ? "ar" : "en");
+            if (bldDiff !== 0) return bldDiff;
+            const roomDiff = String(x.roomNumber).localeCompare(String(y.roomNumber), undefined, { numeric: true });
+            if (roomDiff !== 0) return roomDiff;
+            return (x.fullName || "").localeCompare(y.fullName || "", ar ? "ar" : "en");
+          } else {
+            const bldDiff = (x.buildingName || "").localeCompare(y.buildingName || "", ar ? "ar" : "en");
+            if (bldDiff !== 0) return bldDiff;
+            const floorDiff = (Number(x.floorNumber) || 0) - (Number(y.floorNumber) || 0);
+            if (floorDiff !== 0) return floorDiff;
+            const roomDiff = String(x.roomNumber).localeCompare(String(y.roomNumber), undefined, { numeric: true });
+            if (roomDiff !== 0) return roomDiff;
+            const bedDiff = String(x.bedNumber).localeCompare(String(y.bedNumber), undefined, { numeric: true });
+            if (bedDiff !== 0) return bedDiff;
+            return (x.fullName || "").localeCompare(y.fullName || "", ar ? "ar" : "en");
+          }
+        });
+
+        return applySearchAndDate(sorted, "", (i) => [
+          i.fullName,
+          i.profileCode,
+          i.department,
+          i.roomNumber,
+          i.bedNumber,
+          i.buildingName,
+          i.floorName,
         ]);
       }
 

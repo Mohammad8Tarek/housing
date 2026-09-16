@@ -19,6 +19,7 @@ export function useReportFilters() {
   const [filterNationality, setFilterNationality] = useState<string>("all");
   const [inventoryViewMode, setInventoryViewMode] = useState<"summary" | "detailed">("summary");
   const [inHouseViewMode, setInHouseViewMode] = useState<"grouped" | "flat">("grouped");
+  const [waterSortMode, setWaterSortMode] = useState<"room" | "department">("room");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -38,6 +39,7 @@ export function useReportFilters() {
     setFilterEmploymentType("all");
     setFilterCategory("all");
     setInventoryViewMode("summary");
+    setWaterSortMode("room");
     setSelectedRows(new Set());
     setCurrentPage(1);
   };
@@ -65,6 +67,8 @@ export function useReportFilters() {
     setInventoryViewMode,
     inHouseViewMode,
     setInHouseViewMode,
+    waterSortMode,
+    setWaterSortMode,
     filterProperty,
     setFilterProperty,
     filterBuilding,
