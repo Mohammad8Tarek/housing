@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 @theme {
+  --breakpoint-xs: 375px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -67,6 +74,22 @@
     --accent2: 42 78% 56%;
     --accent2-foreground: 0 0% 100%;
     --border2: 0 0% 85%;
+
+    --space-xs: clamp(4px, 1vw, 8px);
+    --space-sm: clamp(8px, 1.5vw, 12px);
+    --space-md: clamp(12px, 2vw, 20px);
+    --space-lg: clamp(16px, 3vw, 32px);
+    --space-xl: clamp(24px, 4vw, 48px);
+
+    --text-xs: clamp(11px, 2vw, 12px);
+    --text-sm: clamp(12px, 2.5vw, 14px);
+    --text-base: clamp(14px, 3vw, 16px);
+    --text-lg: clamp(16px, 3.5vw, 20px);
+    --text-xl: clamp(18px, 4vw, 24px);
+    --text-2xl: clamp(22px, 5vw, 32px);
+    --text-3xl: clamp(26px, 6vw, 42px);
+
+    --touch-target: 44px;
   }
 
   .dark {

@@ -1037,7 +1037,7 @@ export default function InHouse() {
             {ar ? "المقيمون حالياً" : "In-House"}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
             <Button
               variant="outline"
@@ -1059,7 +1059,7 @@ export default function InHouse() {
             onShowAll={ihShowAll}
             onHideAll={ihHideAll}
           />
-          <div className="relative w-52">
+          <div className="relative flex-1 min-w-[180px] sm:w-52 sm:flex-initial">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               className="pl-9"
@@ -1134,7 +1134,7 @@ export default function InHouse() {
       {isLoading ? (
         <Skeleton className="h-64 w-full" />
       ) : (
-        <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
+        <div className="border rounded-xl bg-card overflow-hidden overflow-x-auto shadow-xs">
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-muted/40">

@@ -567,6 +567,35 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         })}
       </div>
 
+      {/* User Info & Quick Actions at bottom of sidebar */}
+      <div className="p-3 border-t border-white/10 mt-auto bg-sidebar/50">
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white/5 border border-white/5">
+          <Avatar className="h-8 w-8 flex-shrink-0">
+            <AvatarFallback className="bg-primary text-sidebar-primary-foreground text-xs font-bold">
+              {user?.username?.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold truncate text-sidebar-foreground">
+              {user?.username}
+            </p>
+            <p className="text-[10px] text-sidebar-foreground/70 truncate capitalize">
+              {isSuperAdmin
+                ? (ar ? "مدير النظام" : "Super Admin")
+                : user?.roles?.[0]?.replace(/_/g, " ")}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => logoutMutation.mutate()}
+            className="h-8 w-8 min-h-[32px] min-w-[32px] text-red-400 hover:text-red-300 hover:bg-red-500/20"
+            title={ar ? "تسجيل الخروج" : "Logout"}
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 
@@ -583,11 +612,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="hidden md:block flex-shrink-0">{renderSidebar()}</div>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-30 h-14 border-b border-border bg-card flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-sm">
-            <div className="flex items-center gap-3">
+          <header className="sticky top-0 z-50 h-14 border-b border-border bg-card flex items-center justify-between px-3 sm:px-6 shrink-0 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden">
+                  <Button variant="ghost" size="icon" className="md:hidden min-h-[44px] min-w-[44px] p-2">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>

@@ -1826,7 +1826,7 @@ export default function Tickets() {
             ar={ar}
           />
 
-          <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
+          <div className="border rounded-xl bg-card overflow-hidden overflow-x-auto shadow-xs">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">

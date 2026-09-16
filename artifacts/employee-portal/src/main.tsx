@@ -64,6 +64,13 @@ if (Capacitor.isNativePlatform()) {
   }).catch(() => {});
 }
 
+if (typeof document !== "undefined") {
+  const isNative = Capacitor.isNativePlatform();
+  const platform = Capacitor.getPlatform();
+  document.body.classList.add(isNative ? "platform-native" : "platform-web");
+  document.body.classList.add(`platform-${platform}`);
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>

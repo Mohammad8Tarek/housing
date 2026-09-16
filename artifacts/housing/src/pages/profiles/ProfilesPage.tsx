@@ -503,7 +503,7 @@ export function ProfilesPage() {
             {ar ? "الملفات الشخصية" : "Profiles"}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ColumnChooser
             cols={EMP_COLS}
             visible={colVisible}
@@ -700,7 +700,7 @@ export function ProfilesPage() {
             )}
           </>
         ) : (
-          <div className="border rounded-xl overflow-hidden bg-card shadow-xs">
+          <div className="border rounded-xl overflow-hidden overflow-x-auto bg-card shadow-xs">
             <Table className="w-full">
               <TableHeader>
                 <TableRow className="bg-muted/80 hover:bg-muted/80">

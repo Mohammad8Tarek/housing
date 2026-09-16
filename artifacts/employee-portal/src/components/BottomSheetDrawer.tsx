@@ -80,10 +80,10 @@ export function BottomSheetDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
                 aria-label="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
