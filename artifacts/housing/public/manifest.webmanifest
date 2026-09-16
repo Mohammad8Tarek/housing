@@ -1,7 +1,7 @@
 {
-  "name": "Sunrise Staff Housing",
-  "short_name": "Sunrise Housing",
-  "description": "Staff housing, reservations, maintenance, and room operations for Sunrise properties.",
+  "name": "SUNRISE Housing Admin - لوحة تحكم السكن",
+  "short_name": "Housing Admin",
+  "description": "Sunrise Staff Housing Management System Admin Dashboard",
   "id": "/",
   "start_url": "/",
   "scope": "/",

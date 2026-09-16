@@ -24,6 +24,7 @@ import {
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import { ResidentQRCode } from "./ResidentQRCode";
+import PWAInstallBanner from "./PWAInstallBanner";
 import { cn } from "../lib/utils";
 
 interface Props {
@@ -191,6 +192,9 @@ export default function TabOverview({
 
   return (
     <div className="px-4 pt-3 pb-6 space-y-4">
+      {/* PWA Install Banner for Mobile & Web */}
+      <PWAInstallBanner compact />
+
       {/* ── 1. DIGITAL RESIDENT WALLET PASS (Apple Wallet / Luxury Fintech Style) ── */}
       <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#121E36] via-[#1A2B4C] to-[#20365D] text-white p-5 shadow-2xl border border-white/10">
         {/* Ambient background glows */}

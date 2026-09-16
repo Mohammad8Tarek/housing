@@ -19,13 +19,9 @@
     <meta name="msapplication-TileColor" content="#f0a500" />
     <meta name="description" content="SUNRISE Resident Portal - Manage your housing, requests, and documents" />
 
-    <!-- Web App Manifest -->
-    <link rel="manifest" href="/manifest.json">
-
     <!-- PWA Install Early Handler -->
     <script>
       window.addEventListener('beforeinstallprompt', function(e) {
-        e.preventDefault();
         window.deferredPrompt = e;
         window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
       });

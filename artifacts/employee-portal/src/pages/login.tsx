@@ -731,6 +731,13 @@ export default function Login() {
             </div>
           </div>
 
+          {/* PWA Install Banner (Visible on Web Mobile & Desktop) */}
+          {!isNative && (
+            <div className="w-full">
+              <PWAInstallBanner />
+            </div>
+          )}
+
           {/* Secure Portal & Copyright Footer */}
           <footer className="mt-6 text-center space-y-2">
             <div className="inline-flex items-center justify-center gap-1.5 py-1 px-3 rounded-full bg-black/40 border border-white/10 backdrop-blur-md text-[11px] text-white/60">
@@ -749,13 +756,6 @@ export default function Login() {
                 : "SUNRISE Resorts & Cruises. All rights reserved."}
             </p>
           </footer>
-
-          {/* PWA Install Banner */}
-          {!isNative && (
-            <div className="mt-3 w-full">
-              <PWAInstallBanner />
-            </div>
-          )}
         </section>
       </main>
 
