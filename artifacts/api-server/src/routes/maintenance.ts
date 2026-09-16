@@ -111,7 +111,7 @@ function buildConditions(
   }
 
   // 4. تقييد التعيين للموظف (Assigned To / Scoping)
-  if (isStaffOnly && userProfileId) {
+  if (isStaffOnly && userProfileId && (!query.assignedTo || query.assignedTo === "me")) {
     // موظف / فني بدون صلاحيات إشرافية: يرى أوردراته فقط حصرًا
     conditions.push(eq(maintenanceTable.assignedTo, userProfileId));
   } else if (query.assignedTo) {
@@ -119,7 +119,7 @@ function buildConditions(
       conditions.push(sql`${maintenanceTable.assignedTo} IS NULL`);
     } else if (query.assignedTo === "me" && userProfileId) {
       conditions.push(eq(maintenanceTable.assignedTo, userProfileId));
-    } else if (query.assignedTo !== "all") {
+    } else if (query.assignedTo !== "all" && query.assignedTo !== "me") {
       const aId = parseInt(String(query.assignedTo), 10);
       if (!isNaN(aId)) {
         conditions.push(eq(maintenanceTable.assignedTo, aId));
@@ -280,8 +280,15 @@ router.get(
 
       const canEditMnt = isSysAdmin || hasPermission(user, "maintenance", "edit");
       const canEditHsk = isSysAdmin || hasPermission(user, "housekeeping", "edit");
+      const canAssignMnt = canEditMnt || hasPermission(user, "maintenance", "create");
+      const canAssignHsk = canEditHsk || hasPermission(user, "housekeeping", "create");
       const hasManagerialScope = isSysAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
-      const isStaffOnly = !hasManagerialScope;
+      const isStrictWorker = Boolean(
+        user?.roles?.includes("technician") ||
+        user?.roles?.includes("worker") ||
+        user?.roles?.includes("cleaner")
+      );
+      const isStaffOnly = !hasManagerialScope && isStrictWorker && (!req.query.assignedTo || req.query.assignedTo === "me");
       const queryProfileId = req.query.assignedToProfileId ? parseInt(String(req.query.assignedToProfileId), 10) : null;
 
       let page = 1;

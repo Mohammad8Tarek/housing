@@ -265,9 +265,7 @@ export default function Tickets() {
   const hasBoth = hasMaintenance && hasHousekeeping;
   const hasManagerialScope = isSuperAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
 
-  const [scopeFilter, setScopeFilter] = useState<"all" | "me" | "unassigned">(() => {
-    return hasManagerialScope ? "all" : "me";
-  });
+  const [scopeFilter, setScopeFilter] = useState<"all" | "me" | "unassigned">("all");
 
   const canCreateAny = isSuperAdmin || (isOnlyHousekeeping ? canCreateHsk : isOnlyMaintenance ? canCreateMnt : (canCreateMnt || canCreateHsk));
   const canEditAny = isSuperAdmin || (isOnlyHousekeeping ? canEditHsk : isOnlyMaintenance ? canEditMnt : (canEditMnt || canEditHsk));
@@ -874,7 +872,7 @@ export default function Tickets() {
     (categoryFilter !== (isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all")) ||
     statusFilter !== "all" ||
     priorityFilter ||
-    (scopeFilter !== (hasManagerialScope ? "all" : "me")) ||
+    scopeFilter !== "all" ||
     (propertyFilter && propertyFilter !== "all") ||
     fromDate ||
     toDate
@@ -885,7 +883,7 @@ export default function Tickets() {
     setCategoryFilter(isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all");
     setStatusFilter("all");
     setPriorityFilter("");
-    setScopeFilter(hasManagerialScope ? "all" : "me");
+    setScopeFilter("all");
     setPropertyFilter("all");
     setFromDate("");
     setToDate("");
@@ -1161,21 +1159,20 @@ export default function Tickets() {
               </Select>
             </div>
 
-            {/* Departments */}
+            {/* Assignment Scope */}
             <div className="space-y-1">
               <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                <Wrench className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "الأقسام" : "Departments"}</span>
+                <HardHat className="w-3.5 h-3.5 text-primary" />
+                <span>{ar ? "نطاق التعيين" : "Assignment"}</span>
               </Label>
-              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+              <Select value={scopeFilter} onValueChange={(v: "all" | "me" | "unassigned") => setScopeFilter(v)}>
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "كل الأقسام" : "All Departments"} />
+                  <SelectValue placeholder={ar ? "كل التذاكر" : "All Tickets"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{ar ? "كل الأقسام" : "All Departments"}</SelectItem>
-                  <SelectItem value="housekeeping">{ar ? "هاوس كيبنج" : "Housekeeping"}</SelectItem>
-                  <SelectItem value="maintenance">{ar ? "صيانة فنية" : "Maintenance"}</SelectItem>
-                  <SelectItem value="general">{ar ? "عام" : "General"}</SelectItem>
+                  <SelectItem value="all">{ar ? "كل التذاكر" : "All Tickets"}</SelectItem>
+                  <SelectItem value="me">{ar ? "تذاكري المسندة إليّ" : "Assigned to Me"}</SelectItem>
+                  <SelectItem value="unassigned">{ar ? "تذاكر غير مسندة" : "Unassigned"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
