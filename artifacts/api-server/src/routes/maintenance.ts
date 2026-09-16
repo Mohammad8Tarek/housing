@@ -247,11 +247,38 @@ function fmt(r: any) {
   };
 }
 
+/**
+ * دمج وفحص صلاحيات فئات الصيانة والهاوس كيبنج بدقة استناداً لمصفوفة الصلاحيات
+ */
+function resolveCategoryPermissions(user: any, isSysAdmin: boolean) {
+  const hasExplicitMntOrders = hasPermission(user, "maintenance", "view_maintenance");
+  const hasExplicitHskOrders = hasPermission(user, "maintenance", "view_housekeeping");
+  const hasExplicitFilter = hasExplicitMntOrders || hasExplicitHskOrders;
+
+  let userHasMaintenance: boolean;
+  let userHasHousekeeping: boolean;
+
+  if (isSysAdmin) {
+    userHasMaintenance = true;
+    userHasHousekeeping = true;
+  } else if (hasExplicitFilter) {
+    userHasMaintenance = hasExplicitMntOrders;
+    userHasHousekeeping = hasExplicitHskOrders || hasPermission(user, "housekeeping", "view");
+  } else {
+    userHasMaintenance = hasPermission(user, "maintenance", "view");
+    userHasHousekeeping = hasPermission(user, "housekeeping", "view");
+  }
+
+  return { userHasMaintenance, userHasHousekeeping };
+}
+
 // 1. جلب قائمة البلاغات مع الفلترة والفرز ودعم العقارات المتعددة
 router.get(
   "/maintenance",
   requireAnyPermission(
     ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
+    ["maintenance", "view_housekeeping"],
     ["housekeeping", "view"]
   ),
   async (req, res, next) => {
@@ -262,8 +289,7 @@ router.get(
         user?.roles?.includes("super_admin") ||
         user?.roles?.includes("system_admin");
 
-      const userHasMaintenance = isSysAdmin || hasPermission(user, "maintenance", "view");
-      const userHasHousekeeping = isSysAdmin || hasPermission(user, "housekeeping", "view");
+      const { userHasMaintenance, userHasHousekeeping } = resolveCategoryPermissions(user, isSysAdmin);
 
       // تقييد الفئة حسب الصلاحية:
       // إذا كان المستخدم لديه فقط housekeeping يرى فقط housekeeping
@@ -581,8 +607,7 @@ router.get(
       }
 
       // فحص الصلاحية على الفئة
-      const userHasMaintenance = isSysAdmin || hasPermission(user, "maintenance", "view");
-      const userHasHousekeeping = isSysAdmin || hasPermission(user, "housekeeping", "view");
+      const { userHasMaintenance, userHasHousekeeping } = resolveCategoryPermissions(user, isSysAdmin);
       if (!isSysAdmin) {
         if (foundRecord.category === "housekeeping") {
           if (!userHasHousekeeping) {

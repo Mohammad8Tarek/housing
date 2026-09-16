@@ -130,7 +130,16 @@ export function usePermission() {
   const canAny = (module: Module, actions: Action[]): boolean =>
     actions.some((a) => can(module, a));
 
-  const canView = (m: Module) => can(m, "view");
+  const canView = (m: Module) => {
+    if (m === "maintenance") {
+      return (
+        can(m, "view") ||
+        can(m, "view_maintenance") ||
+        can(m, "view_housekeeping")
+      );
+    }
+    return can(m, "view");
+  };
   const canCreate = (m: Module) => can(m, "create");
   const canEdit = (m: Module) => can(m, "edit");
   const canDelete = (m: Module) => can(m, "delete");

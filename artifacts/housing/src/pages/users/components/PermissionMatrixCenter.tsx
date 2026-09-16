@@ -1591,7 +1591,10 @@ export function PermissionMatrixCenter({
                                       {specialActions.map((sa) => {
                                         const key = permKey(m, sa);
                                         const isChecked = perms.has(key);
-                                        const isActionDisabled = !status.hasView;
+                                        const isActionDisabled =
+                                          !status.hasView &&
+                                          sa !== "view_maintenance" &&
+                                          sa !== "view_housekeeping";
                                         const isRoleDefault = roleDefaults.has(key);
                                         const isActionMatch = matchesActionSearch(sa, searchQuery);
 

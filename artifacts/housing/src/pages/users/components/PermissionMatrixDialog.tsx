@@ -389,6 +389,10 @@ export function PermissionMatrixDialog({
       case "export":
       case "bulk_export":
         return "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/50";
+      case "view_maintenance":
+        return "bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300 border-orange-200 dark:border-orange-800/50";
+      case "view_housekeeping":
+        return "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200 dark:border-sky-800/50";
       default:
         return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700/50";
     }
@@ -923,7 +927,10 @@ export function PermissionMatrixDialog({
                                     {modulePerms.map((a) => {
                                       const key = permKey(m, a);
                                       const isChecked = perms.has(key);
-                                      const isViewAction = a === "view";
+                                      const isViewAction =
+                                        a === "view" ||
+                                        a === "view_maintenance" ||
+                                        a === "view_housekeeping";
                                       const isActionDisabled = !isViewAction && !status.hasView;
                                       const isRoleDefault = roleDefaults.has(key);
                                       const isActionMatch = matchesActionSearch(a, searchQuery);

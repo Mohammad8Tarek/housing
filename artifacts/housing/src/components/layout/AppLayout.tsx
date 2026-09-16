@@ -398,7 +398,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       href: "/properties",
       label: ar ? "العقارات" : "Properties",
       icon: Building2,
-      superAdminOnly: true,
       permissionModule: "properties",
     },
     {
@@ -422,7 +421,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const visibleNavItems = navItems.filter((n) => {
-    if (n.superAdminOnly && !isSuperAdmin) return false;
+    if (n.superAdminOnly && !isSuperAdmin && !(n.permissionModule && canView(n.permissionModule))) return false;
     if (n.permissionModules && n.permissionModules.length > 0) {
       if (!n.permissionModules.some((m) => canView(m))) return false;
     } else if (n.permissionModule && !canView(n.permissionModule)) {

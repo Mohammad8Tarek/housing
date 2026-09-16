@@ -83,7 +83,8 @@ router.get("/properties", requireAuth, async (req, res): Promise<void> => {
       authUser?.roles?.some((r: string) =>
         ["super_admin", "system_admin"].includes(String(r).toLowerCase()),
       ),
-    );
+    ) ||
+    hasPermission(authUser, "properties", "view");
   const allowed = canSeeAll
     ? properties
     : properties.filter((p) => (authUser?.propertyIds ?? []).includes(p.id));

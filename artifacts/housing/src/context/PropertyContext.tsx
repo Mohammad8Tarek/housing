@@ -51,9 +51,9 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       ["super_admin", "system_admin"].includes(r.toLowerCase()),
     );
 
-  // Selecting 'all' properties or browsing all unassigned properties is strictly restricted to Super Admin
-  const canSeeAllProperties = isSuperAdmin;
-  const canSelectAllProperties = isSuperAdmin;
+  // Selecting 'all' properties or browsing properties is allowed for Super Admin or users with properties.view permission
+  const canSeeAllProperties = isSuperAdmin || canView("properties") || can("properties", "view");
+  const canSelectAllProperties = isSuperAdmin || canView("properties") || can("properties", "view");
 
   const { data: _pData } = useListProperties({
     query: {
@@ -71,7 +71,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     return user.propertyId ? [user.propertyId] : [];
   }, [user]);
 
-  const properties: Property[] = isSuperAdmin
+  const properties: Property[] = canSeeAllProperties
     ? (allProperties as Property[])
     : (allProperties as Property[]).filter((p) =>
         userPropertyIds.includes(p.id),

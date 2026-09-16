@@ -46,7 +46,9 @@ export type Action =
   | "audit"
   | "publish"
   | "unlock"
-  | "override_single_occupancy";
+  | "override_single_occupancy"
+  | "view_maintenance"
+  | "view_housekeeping";
 
 export const ACTIONS: Action[] = [
   "view",
@@ -65,6 +67,8 @@ export const ACTIONS: Action[] = [
   "publish",
   "unlock",
   "override_single_occupancy",
+  "view_maintenance",
+  "view_housekeeping",
 ];
 
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
@@ -108,7 +112,15 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "delete",
     "export",
   ],
-  maintenance: ["view", "create", "edit", "delete", "export"],
+  maintenance: [
+    "view",
+    "view_maintenance",
+    "view_housekeeping",
+    "create",
+    "edit",
+    "delete",
+    "export",
+  ],
   reports: ["view", "export", "audit"],
   users: [
     "view",
@@ -493,6 +505,14 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   override_single_occupancy: {
     en: "Single Occupant / Entire Room Booking",
     ar: "تسكين غرفة كاملة / نزيل بمفرده",
+  },
+  view_maintenance: {
+    en: "View Maintenance Orders Only",
+    ar: "عرض أوردرات الصيانة فقط",
+  },
+  view_housekeeping: {
+    en: "View Housekeeping Orders Only",
+    ar: "عرض أوردرات الهاوس كيبنج فقط",
   },
 };
 
