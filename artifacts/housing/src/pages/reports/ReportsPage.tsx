@@ -272,6 +272,7 @@ export default function Reports() {
           ar={ar}
           activePropertyId={activePropertyId}
           properties={data.properties}
+          settings={data.settings}
         />
       )}
 
