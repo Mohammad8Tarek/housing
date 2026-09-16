@@ -965,10 +965,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const propObj = properties.find((p: any) => p.id === (propId ?? activePropertyId));
   const propName = propObj?.name || (isArabic ? "سكن منتجعات وفنادق صن رايز" : "Sunrise Resorts Staff Housing");
 
-  // Convert logos to base64 DataURLs if available
+  // Convert both property and system logos to base64 DataURLs if available
   const sysLogo = settings?.systemLogo ? await loadImgDataUrl(settings.systemLogo) : null;
-  const propLogo = propObj?.logo && propObj.logo !== settings?.systemLogo ? await loadImgDataUrl(propObj.logo) : null;
-  const effectiveLogo = propLogo || sysLogo;
+  const propLogo = propObj?.logo ? await loadImgDataUrl(propObj.logo) : null;
 
   // Resolve Title & Opera Code
   const defaultTabInfo = activeTab ? REPORT_TAB_TITLES[activeTab] : undefined;
@@ -1261,38 +1260,31 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       position: relative;
     }
 
-    /* Opera PMS Header Layout */
+    /* Opera PMS Header Layout with Dual Logos */
     .opera-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       margin-bottom: 6px;
+      min-height: 48px;
     }
     .opera-header-left {
       width: 25%;
+      min-width: 120px;
       display: flex;
       align-items: center;
-    }
-    .opera-logo {
-      max-height: 52px;
-      max-width: 140px;
-      object-fit: contain;
-    }
-    .opera-fallback-brand {
-      font-weight: 800;
-      color: #000000;
-      font-size: 11pt;
-      letter-spacing: 0.5px;
-      line-height: 1.2;
+      justify-content: ${dir === "rtl" ? "flex-end" : "flex-start"};
     }
     .opera-header-center {
       width: 50%;
       text-align: center;
+      padding: 0 10px;
     }
     .opera-hotel-name {
-      font-size: 10pt;
+      font-size: 10.5pt;
       font-weight: 500;
       font-style: italic;
+      font-family: Georgia, "Times New Roman", serif;
       color: #000000;
       margin-bottom: 3px;
       letter-spacing: 0.2px;
@@ -1302,20 +1294,58 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       font-weight: 800;
       color: #000000;
       letter-spacing: 0.2px;
+      line-height: 1.2;
+    }
+    .opera-report-submeta {
+      font-size: 7.5pt;
+      color: #475569;
+      margin-top: 2px;
     }
     .opera-header-right {
       width: 25%;
+      min-width: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: ${dir === "rtl" ? "flex-start" : "flex-end"};
+      justify-content: center;
       text-align: ${dir === "rtl" ? "left" : "right"};
-      font-size: 8pt;
-      font-weight: 500;
-      color: #000000;
-      line-height: 1.35;
     }
-    .opera-meta-date {
+    .opera-logo {
+      max-height: 46px;
+      max-width: 140px;
+      object-fit: contain;
+    }
+    .opera-meta-datetime {
+      font-size: 7.5pt;
       font-weight: 600;
+      color: #000000;
+      font-family: monospace, sans-serif;
+      margin-top: 3px;
+      letter-spacing: 0.3px;
     }
-    .opera-meta-time {
-      font-weight: 500;
+    .opera-meta-sep {
+      margin: 0 3px;
+      color: #94a3b8;
+    }
+    .opera-fallback-brand {
+      font-weight: 900;
+      color: #000000;
+      font-size: 11pt;
+      letter-spacing: 0.5px;
+      line-height: 1.15;
+      display: flex;
+      flex-direction: column;
+      align-items: ${dir === "rtl" ? "flex-end" : "flex-start"};
+    }
+    .opera-fallback-brand.right-brand {
+      align-items: ${dir === "rtl" ? "flex-start" : "flex-end"};
+      text-align: ${dir === "rtl" ? "left" : "right"};
+    }
+    .opera-fallback-badge {
+      font-size: 6.8pt;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.8px;
     }
 
     .opera-divider {
@@ -1572,21 +1602,44 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   <div class="sheet-wrapper">
     <div class="sheet" id="printSheet">
-      <!-- Opera Header Layout -->
+      <!-- Opera Header Layout with Dual Logos -->
       <div class="opera-header">
+        <!-- Left: Property Logo / Brand -->
         <div class="opera-header-left">
-          ${effectiveLogo
-            ? `<img src="${effectiveLogo.dataUrl}" alt="Logo" class="opera-logo" />`
-            : `<div class="opera-fallback-brand">SUNRISE RESORTS<br /><small style="font-size:7pt;color:#64748b;">STAFF HOUSING</small></div>`
+          ${propLogo
+            ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
+            : `<div class="opera-fallback-brand">
+                <span>SUNRISE</span>
+                <span class="opera-fallback-badge">${propName.toUpperCase()}</span>
+               </div>`
           }
         </div>
+
+        <!-- Center: Hotel Name & Report Title -->
         <div class="opera-header-center">
           <div class="opera-hotel-name">${propName}</div>
           <div class="opera-report-title">${reportTitle}</div>
+          ${dateFrom || dateTo ? `
+          <div class="opera-report-submeta">
+            ${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}
+            ${dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : ""}
+          </div>` : ""}
         </div>
+
+        <!-- Right: System Logo & Opera Date/Time -->
         <div class="opera-header-right">
-          <div class="opera-meta-date">${operaDateStr}</div>
-          <div class="opera-meta-time">${operaTimeStr}</div>
+          ${sysLogo
+            ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
+            : `<div class="opera-fallback-brand right-brand">
+                <span>RESORTS & CRUISES</span>
+                <span class="opera-fallback-badge">STAFF HOUSING</span>
+               </div>`
+          }
+          <div class="opera-meta-datetime">
+            <span class="opera-meta-date">${operaDateStr}</span>
+            <span class="opera-meta-sep">·</span>
+            <span class="opera-meta-time">${operaTimeStr}</span>
+          </div>
         </div>
       </div>
 
