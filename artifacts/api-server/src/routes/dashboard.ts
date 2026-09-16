@@ -10,6 +10,8 @@ import {
   maintenanceTable,
   activityLogsTable,
   buildingsTable,
+  floorsTable,
+  propertiesTable,
 } from "@workspace/db";
 import { eq, and, lte, gte, count, desc, sql, gt } from "drizzle-orm";
 import { requireAuth, requirePermission, requireSuperAdmin } from "../middlewares/permissions.js";
@@ -46,17 +48,18 @@ function statusEq(column: any, status: string) {
 }
 
 // ─── GET /dashboard/all-stats (aggregated across all properties - SUPER ADMIN ONLY) ───────
+// ─── GET /dashboard/all-stats (aggregated across all properties - SUPER ADMIN ONLY) ───────
 router.get(
   "/dashboard/all-stats",
   requireSuperAdmin(),
   async (req, res): Promise<void> => {
 
     const result = await pool.query(
-      "SELECT id, name, code FROM public.properties ORDER BY id",
+      "SELECT id, name, code, display_name FROM public.properties ORDER BY id",
     );
     const allProperties = result.rows.map((r: any) => ({
       id: r.id as number,
-      name: r.name as string,
+      name: (r.display_name || r.name) as string,
       code: r.code as string,
     }));
 
@@ -65,35 +68,34 @@ router.get(
         async (p: { id: number; name: string; code: string }) => {
           try {
             const stats = await withTenant(p.id, async (tenantDb) => {
+              const allRooms = await safeSelect(() =>
+                tenantDb
+                  .select({
+                    id: roomsTable.id,
+                    capacity: roomsTable.capacity,
+                    status: roomsTable.status,
+                  })
+                  .from(roomsTable),
+              );
+
+              const activeAssigns = await safeSelect(() =>
+                tenantDb
+                  .select({
+                    id: assignmentsTable.id,
+                    roomId: assignmentsTable.roomId,
+                    isEntireRoom: assignmentsTable.isEntireRoom,
+                  })
+                  .from(assignmentsTable)
+                  .where(statusEq(assignmentsTable.status, "active")),
+              );
+
               const [
-                totalRooms,
-                occupiedRooms,
                 totalProfiles,
-                activeAssignments,
                 openMaintenance,
                 upcomingReservations,
                 totalBuildings,
               ] = await Promise.all([
-                safeCount(() =>
-                  tenantDb.select({ count: count() }).from(roomsTable),
-                ),
-                safeCount(() =>
-                  tenantDb
-                    .select({ count: sql<number>`count(distinct ${assignmentsTable.roomId})` })
-                    .from(assignmentsTable)
-                    .where(statusEq(assignmentsTable.status, "active")),
-                ),
-                safeCount(() =>
-                  tenantDb
-                    .select({ count: count() })
-                    .from(profilesTable),
-                ),
-                safeCount(() =>
-                  tenantDb
-                    .select({ count: count() })
-                    .from(assignmentsTable)
-                    .where(statusEq(assignmentsTable.status, "active")),
-                ),
+                safeCount(() => tenantDb.select({ count: count() }).from(profilesTable)),
                 safeCount(() =>
                   tenantDb
                     .select({ count: count() })
@@ -106,23 +108,55 @@ router.get(
                     .from(reservationsTable)
                     .where(statusEq(reservationsTable.status, "upcoming")),
                 ),
-                safeCount(() =>
-                  tenantDb.select({ count: count() }).from(buildingsTable),
-                ),
+                safeCount(() => tenantDb.select({ count: count() }).from(buildingsTable)),
               ]);
-              const occupancyRate =
-                totalRooms > 0
-                  ? Math.round((occupiedRooms / totalRooms) * 1000) / 10
-                  : 0;
+
+              const roomCapacityMap = new Map<number, number>();
+              let totalBeds = 0;
+              for (const r of allRooms) {
+                const cap = Number(r.capacity) || 1;
+                roomCapacityMap.set(r.id, cap);
+                totalBeds += cap;
+              }
+
+              const roomOccupantCount = new Map<number, number>();
+              let occupiedBeds = 0;
+
+              for (const a of activeAssigns) {
+                if (!a.roomId) continue;
+                roomOccupantCount.set(a.roomId, (roomOccupantCount.get(a.roomId) || 0) + 1);
+                if (a.isEntireRoom) {
+                  occupiedBeds += roomCapacityMap.get(a.roomId) || 1;
+                } else {
+                  occupiedBeds += 1;
+                }
+              }
+
+              const totalRooms = allRooms.length;
+              const occupiedRooms = roomOccupantCount.size;
+              const availableRooms = Math.max(0, totalRooms - occupiedRooms);
+              const availableBeds = Math.max(0, totalBeds - occupiedBeds);
+
+              const bedOccupancyRate =
+                totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 1000) / 10 : 0;
+              const roomOccupancyRate =
+                totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 1000) / 10 : 0;
+
               return {
                 totalRooms,
                 occupiedRooms,
+                availableRooms,
+                totalBeds,
+                occupiedBeds,
+                availableBeds,
+                bedOccupancyRate,
+                roomOccupancyRate,
+                occupancyRate: bedOccupancyRate,
                 totalProfiles,
-                activeAssignments,
+                activeAssignments: activeAssigns.length,
                 openMaintenance,
                 upcomingReservations,
                 totalBuildings,
-                occupancyRate,
               };
             });
             return { ...p, ...stats };
@@ -131,12 +165,18 @@ router.get(
               ...p,
               totalRooms: 0,
               occupiedRooms: 0,
+              availableRooms: 0,
+              totalBeds: 0,
+              occupiedBeds: 0,
+              availableBeds: 0,
+              bedOccupancyRate: 0,
+              roomOccupancyRate: 0,
+              occupancyRate: 0,
               totalProfiles: 0,
               activeAssignments: 0,
               openMaintenance: 0,
               upcomingReservations: 0,
               totalBuildings: 0,
-              occupancyRate: 0,
             };
           }
         },
@@ -146,6 +186,11 @@ router.get(
     const totals = perProperty.reduce(
       (acc: any, p: any) => ({
         totalRooms: acc.totalRooms + p.totalRooms,
+        occupiedRooms: acc.occupiedRooms + p.occupiedRooms,
+        availableRooms: acc.availableRooms + p.availableRooms,
+        totalBeds: acc.totalBeds + p.totalBeds,
+        occupiedBeds: acc.occupiedBeds + p.occupiedBeds,
+        availableBeds: acc.availableBeds + p.availableBeds,
         totalProfiles: acc.totalProfiles + p.totalProfiles,
         activeAssignments: acc.activeAssignments + p.activeAssignments,
         openMaintenance: acc.openMaintenance + p.openMaintenance,
@@ -154,6 +199,11 @@ router.get(
       }),
       {
         totalRooms: 0,
+        occupiedRooms: 0,
+        availableRooms: 0,
+        totalBeds: 0,
+        occupiedBeds: 0,
+        availableBeds: 0,
         totalProfiles: 0,
         activeAssignments: 0,
         openMaintenance: 0,
@@ -161,6 +211,19 @@ router.get(
         totalBuildings: 0,
       },
     );
+
+    const aggregateBedRate =
+      totals.totalBeds > 0
+        ? Math.round((totals.occupiedBeds / totals.totalBeds) * 1000) / 10
+        : 0;
+    const aggregateRoomRate =
+      totals.totalRooms > 0
+        ? Math.round((totals.occupiedRooms / totals.totalRooms) * 1000) / 10
+        : 0;
+
+    totals.occupancyRate = aggregateBedRate;
+    totals.bedOccupancyRate = aggregateBedRate;
+    totals.roomOccupancyRate = aggregateRoomRate;
 
     res.json({ totals, perProperty });
   },
@@ -179,44 +242,46 @@ router.get(
       return;
     }
 
-    // ✅ استخدام withTenant للاتصال بالسكيما المعزولة
-    // ✅ التنفيذ متسلسل (Sequential) للحفاظ على الـ Connection Pool
     const stats = await withTenant(propertyId, async (tenantDb) => {
+      // 1. All rooms to compute total capacity, room types, and statuses
+      const allRooms = await safeSelect(() =>
+        tenantDb
+          .select({
+            id: roomsTable.id,
+            capacity: roomsTable.capacity,
+            status: roomsTable.status,
+            buildingId: roomsTable.buildingId,
+          })
+          .from(roomsTable),
+      );
+
+      // 2. Active assignments
+      const activeAssigns = await safeSelect(() =>
+        tenantDb
+          .select({
+            id: assignmentsTable.id,
+            roomId: assignmentsTable.roomId,
+            isEntireRoom: assignmentsTable.isEntireRoom,
+          })
+          .from(assignmentsTable)
+          .where(statusEq(assignmentsTable.status, "active")),
+      );
+
       const [
-        totalRooms,
-        occupiedRooms,
         totalProfiles,
         activeProfilesCount,
-        activeAssignments,
         openMaintenance,
         inProgressMaint,
         upcomingReservations,
         totalReservations,
         totalBuildings,
       ] = await Promise.all([
-        safeCount(() => tenantDb.select({ count: count() }).from(roomsTable)),
-        safeCount(() =>
-          tenantDb
-            .select({ count: sql<number>`count(distinct ${assignmentsTable.roomId})` })
-            .from(assignmentsTable)
-            .where(statusEq(assignmentsTable.status, "active")),
-        ),
-        safeCount(() =>
-          tenantDb
-            .select({ count: count() })
-            .from(profilesTable),
-        ),
+        safeCount(() => tenantDb.select({ count: count() }).from(profilesTable)),
         safeCount(() =>
           tenantDb
             .select({ count: count() })
             .from(profilesTable)
             .where(statusEq(profilesTable.status, "active")),
-        ),
-        safeCount(() =>
-          tenantDb
-            .select({ count: count() })
-            .from(assignmentsTable)
-            .where(statusEq(assignmentsTable.status, "active")),
         ),
         safeCount(() =>
           tenantDb
@@ -236,21 +301,69 @@ router.get(
             .from(reservationsTable)
             .where(statusEq(reservationsTable.status, "upcoming")),
         ),
-        safeCount(() =>
-          tenantDb.select({ count: count() }).from(reservationsTable),
-        ),
-        safeCount(() =>
-          tenantDb.select({ count: count() }).from(buildingsTable),
-        ),
+        safeCount(() => tenantDb.select({ count: count() }).from(reservationsTable)),
+        safeCount(() => tenantDb.select({ count: count() }).from(buildingsTable)),
       ]);
-      const availableRooms = Math.max(0, totalRooms - occupiedRooms);
+
+      const roomCapacityMap = new Map<number, number>();
+      let totalBeds = 0;
+      let readyRooms = 0;
+      let dirtyRooms = 0;
+      let maintenanceRooms = 0;
+
+      for (const r of allRooms) {
+        const cap = Number(r.capacity) || 1;
+        roomCapacityMap.set(r.id, cap);
+        totalBeds += cap;
+
+        const st = (r.status || "available").toLowerCase();
+        if (st === "dirty" || st === "occupied_dirty") {
+          dirtyRooms++;
+        } else if (st === "maintenance" || st === "out_of_service" || st === "out_of_order") {
+          maintenanceRooms++;
+        }
+      }
+
+      // Compute occupied beds and rooms taking isEntireRoom into account
+      const roomOccupantCount = new Map<number, number>();
+      let occupiedBeds = 0;
+
+      for (const a of activeAssigns) {
+        if (!a.roomId) continue;
+        roomOccupantCount.set(a.roomId, (roomOccupantCount.get(a.roomId) || 0) + 1);
+        if (a.isEntireRoom) {
+          occupiedBeds += roomCapacityMap.get(a.roomId) || 1;
+        } else {
+          occupiedBeds += 1;
+        }
+      }
+
+      const totalRooms = allRooms.length;
+      const occupiedRooms = roomOccupantCount.size;
+      const availableRooms = Math.max(0, totalRooms - occupiedRooms - dirtyRooms - maintenanceRooms);
+      const availableBeds = Math.max(0, totalBeds - occupiedBeds);
+
+      // Bed-level occupancy (true capacity utilization)
+      const bedOccupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 1000) / 10 : 0;
+      // Room-level occupancy
+      const roomOccupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 1000) / 10 : 0;
+
       return {
         totalRooms,
         occupiedRooms,
         availableRooms,
+        readyRooms: availableRooms,
+        dirtyRooms,
+        maintenanceRooms,
+        totalBeds,
+        occupiedBeds,
+        availableBeds,
+        bedOccupancyRate,
+        roomOccupancyRate,
+        occupancyRate: bedOccupancyRate,
         totalProfiles,
         activeProfilesCount,
-        activeAssignments,
+        activeAssignments: activeAssigns.length,
         openMaintenance,
         inProgressMaint,
         upcomingReservations,
@@ -259,41 +372,266 @@ router.get(
       };
     });
 
-    const {
-      totalRooms,
-      occupiedRooms,
-      availableRooms,
-      totalProfiles,
-      activeProfilesCount,
-      activeAssignments,
-      openMaintenance,
-      inProgressMaint,
-      upcomingReservations,
-      totalReservations,
-      totalBuildings,
-    } = stats;
-
-    const occupancyRate =
-      totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 1000) / 10 : 0;
-    const unhousedProfiles = Math.max(0, totalProfiles - activeAssignments);
-    const pendingMaintenance = openMaintenance + inProgressMaint;
+    const unhousedProfiles = Math.max(0, stats.totalProfiles - stats.activeAssignments);
+    const pendingMaintenance = stats.openMaintenance + stats.inProgressMaint;
 
     res.json({
-      totalProfiles,
-      occupancyRate,
-      pendingMaintenance,
-      activeProfiles: activeProfilesCount,
+      ...stats,
       unhousedProfiles,
-      totalRooms,
-      occupiedRooms,
-      availableRooms,
-      totalBuildings,
-      openMaintenance,
-      overdueMaintenance: inProgressMaint,
-      upcomingReservations,
-      totalReservations,
-      activeAssignments,
+      pendingMaintenance,
+      activeProfiles: stats.activeProfilesCount,
+      overdueMaintenance: stats.inProgressMaint,
     });
+  },
+);
+
+// ─── GET /dashboard/housing-breakdown ─────────────────────────────────────
+// Hierarchical Housing -> Buildings -> Floors -> Rooms live inspection
+router.get(
+  "/dashboard/housing-breakdown",
+  requirePermission("dashboard", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ success: false, message: "propertyId is required" });
+      return;
+    }
+
+    try {
+      const data = await withTenant(propertyId, async (tenantDb) => {
+        const [propertyRow] = await db
+          .select({
+            id: propertiesTable.id,
+            name: propertiesTable.name,
+            displayName: propertiesTable.displayName,
+            code: propertiesTable.code,
+          })
+          .from(propertiesTable)
+          .where(eq(propertiesTable.id, propertyId))
+          .limit(1);
+
+        const [buildings, floors, rooms, assignments, profiles] = await Promise.all([
+          safeSelect(() => tenantDb.select().from(buildingsTable)),
+          safeSelect(() => tenantDb.select().from(floorsTable)),
+          safeSelect(() => tenantDb.select().from(roomsTable)),
+          safeSelect(() =>
+            tenantDb
+              .select()
+              .from(assignmentsTable)
+              .where(statusEq(assignmentsTable.status, "active")),
+          ),
+          safeSelect(() => tenantDb.select().from(profilesTable)),
+        ]);
+
+        const profileMap = new Map<number, any>();
+        for (const p of profiles) {
+          profileMap.set(p.id, {
+            id: p.id,
+            profileId: p.profileId,
+            fullName:
+              `${p.firstName || ""} ${p.lastName || ""}`.trim() ||
+              p.fullName ||
+              `Staff #${p.id}`,
+            department: p.department || "General",
+            jobTitle: p.jobTitle || p.position || "Staff",
+            gender: p.gender || "M",
+            phone: p.phone,
+          });
+        }
+
+        // Map active assignments by roomId
+        const assignmentsByRoom = new Map<number, any[]>();
+        for (const a of assignments) {
+          if (!a.roomId) continue;
+          const list = assignmentsByRoom.get(a.roomId) || [];
+          const prof = profileMap.get(a.profileId) || {
+            id: a.profileId,
+            fullName: "Resident",
+            department: "General",
+          };
+          list.push({
+            assignmentId: a.id,
+            bedNumber: a.bedNumber ?? (list.length + 1),
+            isEntireRoom: Boolean(a.isEntireRoom),
+            checkInDate: a.checkInDate,
+            expectedCheckOutDate: a.expectedCheckOutDate,
+            profile: prof,
+          });
+          assignmentsByRoom.set(a.roomId, list);
+        }
+
+        // Group rooms by floorId
+        const roomsByFloor = new Map<number, any[]>();
+        for (const r of rooms) {
+          const fId = r.floorId;
+          const list = roomsByFloor.get(fId) || [];
+          const roomAssigns = assignmentsByRoom.get(r.id) || [];
+          const cap = Number(r.capacity) || 1;
+          const occ = roomAssigns.length;
+          const isEntire = roomAssigns.some((a) => a.isEntireRoom);
+          const occupiedBeds = isEntire ? cap : occ;
+          const vacantBeds = Math.max(0, cap - occupiedBeds);
+
+          let displayStatus = (r.status || "available").toLowerCase();
+          if (displayStatus === "available" && occ > 0) {
+            displayStatus = occupiedBeds >= cap ? "occupied" : "partially_occupied";
+          } else if (displayStatus === "occupied" && occ < cap && !isEntire) {
+            displayStatus = occ === 0 ? "available" : "partially_occupied";
+          }
+
+          list.push({
+            id: r.id,
+            roomNumber: r.roomNumber,
+            roomType: r.roomType || "standard",
+            capacity: cap,
+            occupiedBeds,
+            vacantBeds,
+            currentOccupancy: occ,
+            status: displayStatus,
+            rawStatus: r.status,
+            gender: r.gender,
+            separatorDoor: r.separatorDoor,
+            buildingId: r.buildingId,
+            floorId: r.floorId,
+            residents: roomAssigns,
+          });
+          roomsByFloor.set(fId, list);
+        }
+
+        // Group floors by buildingId
+        const floorsByBuilding = new Map<number, any[]>();
+        for (const f of floors) {
+          const bId = f.buildingId;
+          const list = floorsByBuilding.get(bId) || [];
+          const fRooms = roomsByFloor.get(f.id) || [];
+
+          let floorCapacity = 0;
+          let floorOccupiedBeds = 0;
+          let floorOccupiedRooms = 0;
+
+          for (const rm of fRooms) {
+            floorCapacity += rm.capacity;
+            floorOccupiedBeds += rm.occupiedBeds;
+            if (rm.occupiedBeds > 0) floorOccupiedRooms++;
+          }
+
+          const floorVacantBeds = Math.max(0, floorCapacity - floorOccupiedBeds);
+          const floorOccupancyRate =
+            floorCapacity > 0
+              ? Math.round((floorOccupiedBeds / floorCapacity) * 1000) / 10
+              : 0;
+
+          list.push({
+            id: f.id,
+            floorNumber: f.floorNumber,
+            description: f.description,
+            buildingId: f.buildingId,
+            totalRooms: fRooms.length,
+            occupiedRooms: floorOccupiedRooms,
+            availableRooms: Math.max(0, fRooms.length - floorOccupiedRooms),
+            totalCapacity: floorCapacity,
+            occupiedBeds: floorOccupiedBeds,
+            vacantBeds: floorVacantBeds,
+            occupancyRate: floorOccupancyRate,
+            rooms: fRooms.sort((a, b) =>
+              a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true }),
+            ),
+          });
+          floorsByBuilding.set(bId, list);
+        }
+
+        // Build buildings array
+        let totalHousingCapacity = 0;
+        let totalHousingOccupiedBeds = 0;
+        let totalHousingOccupiedRooms = 0;
+        const totalHousingRooms = rooms.length;
+
+        const enrichedBuildings = buildings.map((b) => {
+          const bFloors = floorsByBuilding.get(b.id) || [];
+          let bTotalRooms = 0;
+          let bOccupiedRooms = 0;
+          let bCapacity = 0;
+          let bOccupiedBeds = 0;
+
+          for (const fl of bFloors) {
+            bTotalRooms += fl.totalRooms;
+            bOccupiedRooms += fl.occupiedRooms;
+            bCapacity += fl.totalCapacity;
+            bOccupiedBeds += fl.occupiedBeds;
+          }
+
+          const bVacantBeds = Math.max(0, bCapacity - bOccupiedBeds);
+          const bOccupancyRate =
+            bCapacity > 0 ? Math.round((bOccupiedBeds / bCapacity) * 1000) / 10 : 0;
+
+          totalHousingCapacity += bCapacity;
+          totalHousingOccupiedBeds += bOccupiedBeds;
+          totalHousingOccupiedRooms += bOccupiedRooms;
+
+          return {
+            id: b.id,
+            name: b.name,
+            location: b.location,
+            status: b.status,
+            totalFloors: bFloors.length,
+            totalRooms: bTotalRooms,
+            occupiedRooms: bOccupiedRooms,
+            availableRooms: Math.max(0, bTotalRooms - bOccupiedRooms),
+            totalCapacity: bCapacity,
+            occupiedBeds: bOccupiedBeds,
+            vacantBeds: bVacantBeds,
+            occupancyRate: bOccupancyRate,
+            floors: bFloors.sort((a, b) =>
+              String(a.floorNumber).localeCompare(String(b.floorNumber), undefined, {
+                numeric: true,
+              }),
+            ),
+          };
+        });
+
+        const totalHousingVacantBeds = Math.max(
+          0,
+          totalHousingCapacity - totalHousingOccupiedBeds,
+        );
+        const bedOccupancyRate =
+          totalHousingCapacity > 0
+            ? Math.round((totalHousingOccupiedBeds / totalHousingCapacity) * 1000) / 10
+            : 0;
+        const roomOccupancyRate =
+          totalHousingRooms > 0
+            ? Math.round((totalHousingOccupiedRooms / totalHousingRooms) * 1000) / 10
+            : 0;
+
+        return {
+          housing: {
+            propertyId,
+            propertyName:
+              propertyRow?.displayName || propertyRow?.name || "Sunrise Housing",
+            propertyCode: propertyRow?.code || "",
+            totalBuildings: buildings.length,
+            totalFloors: floors.length,
+            totalRooms: totalHousingRooms,
+            occupiedRooms: totalHousingOccupiedRooms,
+            availableRooms: Math.max(0, totalHousingRooms - totalHousingOccupiedRooms),
+            totalCapacity: totalHousingCapacity,
+            occupiedBeds: totalHousingOccupiedBeds,
+            vacantBeds: totalHousingVacantBeds,
+            bedOccupancyRate,
+            roomOccupancyRate,
+            totalProfiles: profiles.length,
+            activeAssignments: assignments.length,
+          },
+          buildings: enrichedBuildings.sort((a, b) => a.name.localeCompare(b.name)),
+        };
+      });
+
+      res.json({ success: true, ...data });
+    } catch (err: any) {
+      console.error("[DashboardHousingBreakdown] Error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: err.message || "Failed to load housing breakdown" });
+    }
   },
 );
 
@@ -574,18 +912,35 @@ router.get(
       const total = bRooms.length;
       const occupied = occupiedRoomIds.size;
       const capacity = bRooms.reduce((s, r) => s + (r.capacity ?? 0), 0);
-      const occupancy = bActiveAssignments.length;
+
+      let bOccupiedBeds = 0;
+      for (const a of bActiveAssignments) {
+        if (a.isEntireRoom) {
+          const roomObj = bRooms.find((r) => r.id === a.roomId);
+          bOccupiedBeds += Number(roomObj?.capacity) || 1;
+        } else {
+          bOccupiedBeds += 1;
+        }
+      }
+
+      const availableBeds = Math.max(0, capacity - bOccupiedBeds);
+      const occupancyRate =
+        capacity > 0 ? Math.round((bOccupiedBeds / capacity) * 1000) / 10 : 0;
+      const roomOccupancyRate =
+        total > 0 ? Math.round((occupied / total) * 1000) / 10 : 0;
 
       return {
         buildingId: b.id,
         buildingName: b.name,
         totalRooms: total,
         occupiedRooms: occupied,
-        availableRooms: total - occupied,
+        availableRooms: Math.max(0, total - occupied),
         totalCapacity: capacity,
-        totalOccupancy: occupancy,
-        occupancyRate:
-          capacity > 0 ? Math.round((occupancy / capacity) * 1000) / 10 : 0,
+        totalOccupancy: bOccupiedBeds,
+        occupiedBeds: bOccupiedBeds,
+        availableBeds,
+        occupancyRate,
+        roomOccupancyRate,
       };
     });
 
@@ -616,16 +971,17 @@ router.get(
           safeSelect(() => tenantDb.select().from(reservationsTable)),
         ]);
 
-        // 1. Room Status Breakdown
+        const roomCapacityMap = new Map<number, number>();
         let readyRooms = 0;
         let occupiedRooms = 0;
         let dirtyRooms = 0;
         let maintenanceRooms = 0;
         let totalBeds = 0;
-        const occupiedBeds = assignments.length;
 
         for (const r of rooms) {
-          totalBeds += (r.capacity ?? 1);
+          const cap = Number(r.capacity) || 1;
+          roomCapacityMap.set(r.id, cap);
+          totalBeds += cap;
           const st = (r.status || "available").toLowerCase();
           if (st === "occupied") {
             occupiedRooms++;
@@ -635,6 +991,15 @@ router.get(
             maintenanceRooms++;
           } else {
             readyRooms++;
+          }
+        }
+
+        let occupiedBeds = 0;
+        for (const a of assignments) {
+          if (a.isEntireRoom) {
+            occupiedBeds += roomCapacityMap.get(a.roomId) || 1;
+          } else {
+            occupiedBeds += 1;
           }
         }
 

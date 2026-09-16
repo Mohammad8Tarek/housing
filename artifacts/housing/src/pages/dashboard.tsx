@@ -34,14 +34,16 @@ import {
   Layers,
   Activity,
   BarChart3,
+  RefreshCw,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
 import { motion, useSpring, useTransform } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { usePermission } from "@/hooks/use-permission";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageLoader } from "@/components/ui/loader";
+import { Button } from "@/components/ui/button";
 import {
   BarChart,
   Bar,
@@ -71,6 +73,7 @@ import { BuildingCapacityMatrix } from "./dashboard/components/BuildingCapacityM
 import { HousekeepingPriorityQueue } from "./dashboard/components/HousekeepingPriorityQueue";
 import { DailyOperationsHub } from "./dashboard/components/DailyOperationsHub";
 import { QuickAssistBar } from "./dashboard/components/QuickAssistTab";
+import { HousingStructureExplorer } from "./dashboard/components/HousingStructureExplorer";
 
 function AnimatedNumber({ value }: { value: string | number }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -110,8 +113,23 @@ export default function Dashboard() {
   const ar = language === "ar";
   const isAll = activePropertyId === "all";
 
-  // Time horizon selector state
-  const [horizon, setHorizon] = React.useState<"today" | "7d" | "30d" | "quarter">("7d");
+  // Real-time refresh state & queryClient
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/housing-breakdown"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/analytics"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/pending"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/occupancy-by-building"] }),
+    ]);
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
   const [chartTab, setChartTab] = React.useState<"buildings" | "trends">("buildings");
 
   // Dashboard multi-view mode state (comprehensive, operations, analytics, compact)
@@ -125,7 +143,7 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading, isError: statsError } = useGetDashboardStats(
     { propertyId: isAll ? 0 : activePropertyId! },
-    { query: { enabled: !isAll && !!activePropertyId } },
+    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } },
   );
 
   const hasProfiles = canView("profiles");
@@ -135,6 +153,7 @@ export default function Dashboard() {
     {
       query: {
         enabled: !isAll && !!activePropertyId && hasProfiles,
+        refetchInterval: 15000,
       },
     },
   );
@@ -149,19 +168,21 @@ export default function Dashboard() {
       return r.json();
     },
     enabled: isAll,
+    refetchInterval: 15000,
   });
 
   // Deep executive analytics
   const { data: analytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ["/api/dashboard/analytics", isAll ? 0 : activePropertyId, horizon],
+    queryKey: ["/api/dashboard/analytics", isAll ? 0 : activePropertyId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/dashboard/analytics?propertyId=${isAll ? 0 : activePropertyId!}&horizon=${horizon}`,
+        `/api/dashboard/analytics?propertyId=${isAll ? 0 : activePropertyId!}`,
       );
       if (!res.ok) throw new Error("Failed to load executive analytics");
       return res.json();
     },
     enabled: !isAll && !!activePropertyId,
+    refetchInterval: 15000,
   });
 
   const { data: pendingData, isLoading: depLoading, isError: pendingError } = useQuery({
@@ -174,17 +195,18 @@ export default function Dashboard() {
       return res.json();
     },
     enabled: !isAll && !!activePropertyId,
+    refetchInterval: 15000,
   });
   const departureAlerts = pendingData?.checkOuts ?? [];
 
   const { data: occupancy } = useGetOccupancyByBuilding(
     { propertyId: isAll ? 0 : activePropertyId! },
-    { query: { enabled: !isAll && !!activePropertyId } },
+    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } },
   );
 
   const { data: activity } = useGetRecentActivity(
     { propertyId: isAll ? 0 : activePropertyId! },
-    { query: { enabled: !isAll && !!activePropertyId } },
+    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } },
   );
 
   const totals = allStats?.totals;
@@ -281,52 +303,26 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* Time Horizon Filter (Today / 7D / 30D / Quarter) */}
-            <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border/50 text-xs font-semibold shadow-xs">
-              <button
-                onClick={() => setHorizon("today")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all",
-                  horizon === "today"
-                    ? "bg-background text-foreground shadow-xs font-bold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
+            {/* Real-time LIVE Indicator & Refresh Button */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold shadow-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>{ar ? "مباشر لحظي (LIVE)" : "LIVE"}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-8 gap-1.5 text-xs rounded-xl shadow-xs border-border/60 hover:bg-muted"
+                title={ar ? "تحديث فوري لبيانات الداشبورد" : "Instant refresh"}
               >
-                {ar ? "اليوم" : "Today"}
-              </button>
-              <button
-                onClick={() => setHorizon("7d")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all",
-                  horizon === "7d"
-                    ? "bg-background text-foreground shadow-xs font-bold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {ar ? "7 أيام" : "7D"}
-              </button>
-              <button
-                onClick={() => setHorizon("30d")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all",
-                  horizon === "30d"
-                    ? "bg-background text-foreground shadow-xs font-bold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {ar ? "30 يوم" : "30D"}
-              </button>
-              <button
-                onClick={() => setHorizon("quarter")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all",
-                  horizon === "quarter"
-                    ? "bg-background text-foreground shadow-xs font-bold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {ar ? "فصل سنوي" : "Quarter"}
-              </button>
+                <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-primary")} />
+                <span className="hidden sm:inline">{ar ? "تحديث" : "Refresh"}</span>
+              </Button>
             </div>
           </div>
         )}
@@ -442,42 +438,42 @@ export default function Dashboard() {
             sparklineData={[105, 106, 107, 107, 108, 108, totalProfilesCount]}
           />
 
-          {/* Card 2: Occupancy Rate */}
+          {/* Card 2: Bed Occupancy Rate (Live Calculated) */}
           <DashboardKpiCard
-            title={ar ? "نسبة الإشغال" : "Occupancy Rate"}
+            title={ar ? "إشغال الأسرة" : "Bed Occupancy"}
             value={
               <AnimatedNumber
-                value={`${analytics?.roomStatusBreakdown?.occupancyRate ?? stats?.occupancyRate ?? 0}%`}
+                value={`${stats?.bedOccupancyRate ?? analytics?.bedCapacity?.utilizationPercent ?? stats?.occupancyRate ?? 0}%`}
               />
             }
-            sub={`${analytics?.roomStatusBreakdown?.occupied ?? stats?.occupiedRooms ?? 0} / ${
-              analytics?.roomStatusBreakdown?.totalRooms ?? stats?.totalRooms ?? 0
-            } ${ar ? "غرفة مشغولة" : "rooms occupied"}`}
-            icon={Building2}
-            href={buildNavHref("/housing")}
+            sub={`${stats?.occupiedBeds ?? analytics?.bedCapacity?.occupiedBeds ?? 0} / ${
+              stats?.totalBeds ?? analytics?.bedCapacity?.totalBeds ?? 0
+            } ${ar ? "سرير مأهول" : "beds occupied"}`}
+            icon={BedDouble}
+            href={buildNavHref("/accommodation/in-house")}
             color="text-amber-600 dark:text-amber-400"
             bg="bg-amber-500/10"
             delta={{ value: "+2.1%", isPositive: true }}
-            sparklineData={[70, 72, 75, 78, 80, 81, stats?.occupancyRate ?? 82]}
+            sparklineData={[70, 72, 75, 78, 80, 81, stats?.bedOccupancyRate ?? 82]}
           />
 
-          {/* Card 3: Bed Utilization */}
+          {/* Card 3: Room Occupancy Rate (Live Calculated) */}
           <DashboardKpiCard
-            title={ar ? "استغلال الأسرة" : "Bed Utilization"}
+            title={ar ? "إشغال الغرف" : "Room Occupancy"}
             value={
               <AnimatedNumber
-                value={`${analytics?.bedCapacity?.utilizationPercent ?? (stats?.totalRooms ? Math.round(((stats.occupiedRooms || 0) / stats.totalRooms) * 85) : 0)}%`}
+                value={`${stats?.roomOccupancyRate ?? analytics?.roomStatusBreakdown?.occupancyRate ?? stats?.occupancyRate ?? 0}%`}
               />
             }
-            sub={`${analytics?.bedCapacity?.occupiedBeds ?? (stats?.occupiedRooms ?? 0)} / ${
-              analytics?.bedCapacity?.totalBeds ?? (stats?.totalRooms ? stats.totalRooms * 2 : 0)
-            } ${ar ? "سرير مستخدم" : "beds active"}`}
-            icon={BedDouble}
-            href={buildNavHref("/accommodation/in-house")}
+            sub={`${stats?.occupiedRooms ?? analytics?.roomStatusBreakdown?.occupied ?? 0} / ${
+              stats?.totalRooms ?? analytics?.roomStatusBreakdown?.totalRooms ?? 0
+            } ${ar ? "غرفة مأهولة" : "rooms occupied"}`}
+            icon={Building2}
+            href={buildNavHref("/housing")}
             color="text-emerald-600 dark:text-emerald-400"
             bg="bg-emerald-500/10"
             delta={{ value: "+1.8%", isPositive: true }}
-            sparklineData={[50, 52, 55, 58, 62, 60, 65]}
+            sparklineData={[50, 52, 55, 58, 62, 60, stats?.roomOccupancyRate ?? 65]}
           />
 
           {/* Card 4: Expected Arrivals */}
@@ -665,8 +661,8 @@ export default function Dashboard() {
                         ? "نسبة استيعاب وإشغال كل مبنى سكني"
                         : "Capacity utilization per residential building"
                       : ar
-                      ? `معدل تدفق وحركة الإشغال خلال (${horizon})`
-                      : `Occupancy progression across (${horizon}) horizon`}
+                      ? "المسار الزمني لمعدل حركة الإشغال اللحظي"
+                      : "Real-time occupancy progression trajectory"}
                   </CardDescription>
                 </div>
 
@@ -913,6 +909,13 @@ export default function Dashboard() {
           </Card>
         );
 
+        const housingStructureNode = (
+          <HousingStructureExplorer
+            propertyId={activePropertyId}
+            buildNavHref={buildNavHref}
+          />
+        );
+
         return (
           <>
             {/* Mode 1: Comprehensive Full Overview */}
@@ -925,6 +928,7 @@ export default function Dashboard() {
                 </div>
                 {chartsNode}
                 {matrixNode}
+                {housingStructureNode}
                 {operationsHubNode}
                 <div className="grid gap-5 md:grid-cols-2">
                   {housekeepingNode}
@@ -937,6 +941,7 @@ export default function Dashboard() {
             {dashboardViewMode === "operations" && (
               <div className="space-y-6">
                 {operationsHubNode}
+                {housingStructureNode}
                 <div className="grid gap-5 md:grid-cols-2">
                   {housekeepingNode}
                   {donutNode}
@@ -953,6 +958,7 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {chartsNode}
                 {matrixNode}
+                {housingStructureNode}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {deptNode}
                   {donutNode}
@@ -968,6 +974,7 @@ export default function Dashboard() {
                   {chartsNode}
                   {deptNode}
                 </div>
+                {housingStructureNode}
                 <div className="grid gap-5 lg:grid-cols-2">
                   {operationsHubNode}
                   {housekeepingNode}
