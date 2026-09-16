@@ -79,6 +79,9 @@ export function GateCameraScanner({
             Html5QrcodeSupportedFormats.UPC_A,
           ],
           verbose: false,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          },
         });
       }
 
@@ -112,13 +115,12 @@ export function GateCameraScanner({
       await scannerRef.current.start(
         cameraConfig,
         {
-          fps: 15,
+          fps: 20,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const edgeSize = Math.max(180, Math.floor(minEdge * 0.72));
+            const edgeSize = Math.max(220, Math.floor(minEdge * 0.85));
             return { width: edgeSize, height: edgeSize };
           },
-          aspectRatio: 1.0,
         },
         (decodedText) => {
           // Check cooldown
@@ -209,7 +211,11 @@ export function GateCameraScanner({
       let html5QrCode = scannerRef.current;
       let tempInstance = false;
       if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode(containerId);
+        html5QrCode = new Html5Qrcode(containerId, {
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          },
+        });
         tempInstance = true;
       }
       const decodedText = await html5QrCode.scanFile(file, true);
@@ -364,16 +370,16 @@ export function GateCameraScanner({
         {/* The HTML5 QR Code DOM target */}
         <div
           id={containerId}
-          className={`w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover [&_canvas]:hidden ${
+          className={`w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-contain [&_canvas]:hidden ${
             !isCameraActive || cameraError ? "hidden" : ""
           }`}
         />
 
         {/* Laser Scanner Line and Corner Target Overlay (when active) */}
         {isCameraActive && !cameraError && !isStarting && (
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-4">
             {/* Viewfinder Target Box */}
-            <div className="relative w-[72%] h-[72%] border-2 border-primary/60 rounded-3xl overflow-hidden shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
+            <div className="relative w-[85%] h-[85%] border-2 border-primary/60 rounded-3xl overflow-hidden shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
               {/* Corner Accents */}
               <div className="absolute top-0 start-0 w-6 h-6 border-t-4 border-s-4 border-emerald-400 rounded-tl-xl" />
               <div className="absolute top-0 end-0 w-6 h-6 border-t-4 border-e-4 border-emerald-400 rounded-tr-xl" />

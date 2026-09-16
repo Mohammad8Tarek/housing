@@ -7,8 +7,7 @@ import { loadAuthUser, hasPermission } from "../middlewares/permissions.js";
 const router: Router = Router();
 
 // All signature routes require an authenticated session.
-// (Previously su() silently produced userId=undefined for anonymous callers.)
-router.use((req, res, next) => {
+router.use("/users", (req, res, next) => {
   if (!Number((req.session as any)?.userId)) {
     res.status(401).json({ success: false, message: "Not authenticated" });
     return;

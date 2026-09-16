@@ -78,7 +78,6 @@ export default function TabOverview({
   const [loadingPass, setLoadingPass] = useState(false);
 
   useEffect(() => {
-    if (!showQrModal) return;
     let isMounted = true;
     const fetchPass = async () => {
       setLoadingPass(true);
@@ -101,7 +100,34 @@ export default function TabOverview({
     return () => {
       isMounted = false;
     };
-  }, [showQrModal, employee?.id, employee?.profileId]);
+  }, [employee?.id, employee?.profileId]);
+
+  useEffect(() => {
+    if (showQrModal && !gatePass && !loadingPass) {
+      let isMounted = true;
+      const fetchPass = async () => {
+        setLoadingPass(true);
+        try {
+          const empCode = employee?.id || employee?.profileId;
+          const res = await apiFetch(`/api/gate/pass/${empCode || "me"}`, { credentials: "include" });
+          if (res.ok) {
+            const json = await res.json().catch(() => null);
+            if (isMounted && json?.gatePass) {
+              setGatePass(json.gatePass);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load gate pass on modal open:", err);
+        } finally {
+          if (isMounted) setLoadingPass(false);
+        }
+      };
+      fetchPass();
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [showQrModal, gatePass, loadingPass, employee?.id, employee?.profileId]);
 
   useEffect(() => {
     setGreeting(getTimeGreeting(isRtl));

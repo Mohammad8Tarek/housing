@@ -35,18 +35,35 @@ const allowAdminOrPortalAuth = async (req: any, res: any, next: any) => {
     return next();
   }
 
-  // 2. Admin express session
-  if (req.session?.userId || (req.session as any)?.user) {
-    return next();
+  // 1b. Native app / API fallback: restore session from X-Session-Id header
+  const xSid = req.headers["x-session-id"] as string | undefined;
+  if (xSid && req.sessionStore) {
+    return req.sessionStore.get(xSid, async (err: any, storedSess: any) => {
+      if (!err && storedSess?.portal) {
+        req.session.portal = storedSess.portal;
+        (req as any).portalUser = storedSess.portal;
+        return next();
+      }
+      await checkAdminAuth();
+    });
   }
 
-  // 3. Fallback to auth token / header
-  try {
-    const user = await loadAuthUser(req, res);
-    if (user) return next();
-  } catch {}
+  await checkAdminAuth();
 
-  res.status(401).json({ error: "Authentication required" });
+  async function checkAdminAuth() {
+    // 2. Admin express session
+    if (req.session?.userId || (req.session as any)?.user) {
+      return next();
+    }
+
+    // 3. Fallback to auth token / header
+    try {
+      const user = await loadAuthUser(req, res);
+      if (user) return next();
+    } catch {}
+
+    res.status(401).json({ error: "Authentication required" });
+  }
 };
 
 // ─── 1. GET /gate/pass/:profileId ──────────────────────────────────────────
@@ -54,9 +71,11 @@ const allowAdminOrPortalAuth = async (req: any, res: any, next: any) => {
 router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Promise<void> => {
   try {
     const rawPropertyId = req.query.propertyId ? Number(req.query.propertyId) : getTenantId(req);
-    let profileIdNum: number;
+    const rawParam = String(req.params.profileId).trim();
+    let profileIdNum: number | null = null;
+    let employeeCodeStr: string | null = null;
 
-    if (req.params.profileId === "me") {
+    if (rawParam === "me") {
       const pSess = portalSession(req) || (req as any).portalUser;
       if (!pSess?.profileDbId) {
         res.status(400).json({ error: "Profile not found in portal session" });
@@ -64,10 +83,11 @@ router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Pr
       }
       profileIdNum = pSess.profileDbId;
     } else {
-      profileIdNum = Number(req.params.profileId);
-      if (isNaN(profileIdNum)) {
-        res.status(400).json({ error: "Invalid profile ID" });
-        return;
+      const parsedNum = Number(rawParam);
+      if (!isNaN(parsedNum) && parsedNum > 0) {
+        profileIdNum = parsedNum;
+      } else {
+        employeeCodeStr = rawParam;
       }
     }
 
@@ -80,11 +100,18 @@ router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Pr
 
     // Helper to query within a tenant
     const loadProfileData = async (tenantDb: any, propId: number) => {
-      const [p] = await tenantDb
-        .select()
-        .from(profilesTable)
-        .where(eq(profilesTable.id, profileIdNum))
-        .limit(1);
+      let query = tenantDb.select().from(profilesTable);
+      if (profileIdNum) {
+        query = query.where(eq(profilesTable.id, profileIdNum));
+      } else if (employeeCodeStr) {
+        query = query.where(
+          or(
+            eq(profilesTable.profileId, employeeCodeStr),
+            eq(profilesTable.nationalId, employeeCodeStr)
+          )
+        );
+      }
+      const [p] = await query.limit(1);
 
       if (!p) return null;
 
@@ -94,7 +121,7 @@ router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Pr
         .from(assignmentsTable)
         .where(
           and(
-            eq(assignmentsTable.profileId, profileIdNum),
+            eq(assignmentsTable.profileId, p.id),
             eq(assignmentsTable.status, "ACTIVE")
           )
         )

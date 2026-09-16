@@ -72,10 +72,15 @@ router.use("/portal-schedule", portalRateLimit, portalScheduleRouter);
 router.use("/push", portalRateLimit, pushNotificationsRouter);
 router.use("/portal-food", portalRateLimit, portalFoodTransportRouter);
 router.use("/portal-chat", portalRateLimit, portalChatRouter);
+router.use(gateRouter);
 
 router.use((req, res, next) => {
   // Allow HR sync webhook endpoints that authenticate via x-api-key
   if (req.path.startsWith("/hr-sync") && req.headers["x-api-key"]) {
+    return next();
+  }
+  // Allow gate routes which handle their own dual auth (admin session / portal session)
+  if (req.path.startsWith("/gate")) {
     return next();
   }
   // @ts-ignore
@@ -115,6 +120,5 @@ router.use(roomImportRouter);
 router.use("/room-inventory", roomInventoryRouter);
 router.use("/whatsapp", whatsappRouter);
 router.use(workersRouter);
-router.use(gateRouter);
 
 export default router;

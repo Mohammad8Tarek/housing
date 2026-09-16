@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import QRCode from "qrcode";
 
 interface ResidentQRCodeProps {
   data: string;
@@ -8,129 +9,68 @@ interface ResidentQRCodeProps {
 }
 
 /**
- * High-resolution QR Code renderer.
+ * High-resolution authentic QR Code renderer.
  * If server qrDataUrl is provided, renders the genuine scannable QR Code image.
- * Otherwise, falls back to deterministic vector SVG pattern.
+ * Otherwise, generates an authentic scannable QR Code PNG on the fly using standard QRCode specs.
  */
 export function ResidentQRCode({
   data,
   qrDataUrl,
-  size = 120,
+  size = 180,
   className = "",
 }: ResidentQRCodeProps) {
-  if (qrDataUrl) {
-    return (
-      <div
-        className={`inline-flex items-center justify-center p-2 rounded-2xl bg-white shadow-md border border-border/40 ${className}`}
-        style={{ width: size, height: size }}
-        title={`Resident QR: ${data}`}
-      >
+  const [localQrUrl, setLocalQrUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (qrDataUrl) {
+      setLocalQrUrl(null);
+      return;
+    }
+    if (!data) return;
+
+    let isMounted = true;
+    QRCode.toDataURL(data, {
+      errorCorrectionLevel: "H",
+      margin: 1,
+      width: Math.max(360, size * 2),
+      color: {
+        dark: "#0F2A44",
+        light: "#FFFFFF",
+      },
+    })
+      .then((url) => {
+        if (isMounted) setLocalQrUrl(url);
+      })
+      .catch((err) => {
+        console.error("[ResidentQRCode] Failed to generate QR code:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [data, qrDataUrl, size]);
+
+  const activeUrl = qrDataUrl || localQrUrl;
+
+  return (
+    <div
+      className={`inline-flex items-center justify-center p-2 rounded-2xl bg-white shadow-md border border-border/40 ${className}`}
+      style={{ width: size, height: size }}
+      title={`Resident QR: ${data}`}
+    >
+      {activeUrl ? (
         <img
-          src={qrDataUrl}
+          src={activeUrl}
           alt={`Resident QR: ${data}`}
           className="w-full h-full object-contain rounded-xl"
           loading="eager"
         />
-      </div>
-    );
-  }
-  // Compute deterministic hash from string
-  const hash = React.useMemo(() => {
-    let h = 0;
-    for (let i = 0; i < data.length; i++) {
-      h = (Math.imul(31, h) + data.charCodeAt(i)) | 0;
-    }
-    return Math.abs(h);
-  }, [data]);
-
-  // Generate 21x21 matrix (standard QR version 1 size)
-  const matrix = React.useMemo(() => {
-    const N = 21;
-    const grid: boolean[][] = Array.from({ length: N }, () =>
-      Array(N).fill(false),
-    );
-
-    // Helper: draw finder pattern at (r, c)
-    const drawFinder = (r: number, c: number) => {
-      for (let i = 0; i < 7; i++) {
-        for (let j = 0; j < 7; j++) {
-          const isOuter = i === 0 || i === 6 || j === 0 || j === 6;
-          const isInner = i >= 2 && i <= 4 && j >= 2 && j <= 4;
-          grid[r + i][c + j] = isOuter || isInner;
-        }
-      }
-    };
-
-    // 3 Finder patterns
-    drawFinder(0, 0);
-    drawFinder(0, N - 7);
-    drawFinder(N - 7, 0);
-
-    // Timing patterns
-    for (let i = 8; i < N - 8; i++) {
-      grid[6][i] = i % 2 === 0;
-      grid[i][6] = i % 2 === 0;
-    }
-
-    // Fill data areas deterministically
-    let seed = hash;
-    for (let r = 0; r < N; r++) {
-      for (let c = 0; c < N; c++) {
-        // Skip finder areas
-        if (
-          (r < 8 && c < 8) ||
-          (r < 8 && c >= N - 8) ||
-          (r >= N - 8 && c < 8)
-        ) {
-          continue;
-        }
-        if (r === 6 || c === 6) continue;
-
-        // Linear congruential pseudo-random bit
-        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-        grid[r][c] = (seed >> 16) % 2 === 0;
-      }
-    }
-
-    return grid;
-  }, [hash]);
-
-  const N = matrix.length;
-  const cellSize = size / (N + 2); // 1 cell padding around
-
-  return (
-    <div
-      className={`inline-flex items-center justify-center p-2 rounded-xl bg-white shadow-xs ${className}`}
-      style={{ width: size, height: size }}
-      title={`Resident QR: ${data}`}
-    >
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${size} ${size}`}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <rect width={size} height={size} fill="#FFFFFF" rx="8" />
-        {matrix.map((row, r) =>
-          row.map((cell, c) => {
-            if (!cell) return null;
-            const x = (c + 1) * cellSize;
-            const y = (r + 1) * cellSize;
-            return (
-              <rect
-                key={`${r}-${c}`}
-                x={x}
-                y={y}
-                width={cellSize * 0.96}
-                height={cellSize * 0.96}
-                rx={cellSize * 0.2}
-                fill="#111827"
-              />
-            );
-          }),
-        )}
-      </svg>
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-muted/20 rounded-xl animate-pulse">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
     </div>
   );
 }
+
