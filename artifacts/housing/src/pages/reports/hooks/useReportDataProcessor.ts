@@ -1674,6 +1674,103 @@ export function useReportDataProcessor({
         ]);
       }
 
+      // 18. TOURISM POLICE & MINISTRY OF TOURISM REPORT (كشف شرطة ووزارة السياحة)
+      case "police_report": {
+        const list = assignments
+          .filter((a: any) => {
+            const room = roomMap[a.roomId];
+            const emp = empMap[a.profileId] || {};
+            const isVacation = (emp.status || a.profileStatus || "").toUpperCase() === "VACATION";
+            const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || emp.status === "LEFT" || emp.status === "CHECKED_OUT";
+            const effectiveStatus = isCheckedOut ? "CHECKED_OUT" : (isVacation ? "VACATION" : (a.status || "ACTIVE"));
+
+            if (filterBuilding !== "all" && (!room || !filteredBuildingIds.has(room.buildingId))) return false;
+            if (filterFloor !== "all" && (!room || !filteredFloorIds.has(room.floorId))) return false;
+            if (filterStatus === "all" || !filterStatus) {
+              if (isCheckedOut) return false;
+            } else if (filterStatus === "ACTIVE") {
+              if (effectiveStatus !== "ACTIVE") return false;
+            } else if (filterStatus === "VACATION") {
+              if (effectiveStatus !== "VACATION") return false;
+            } else if (filterStatus === "CHECKED_OUT") {
+              if (effectiveStatus !== "CHECKED_OUT") return false;
+            }
+
+            if (filterDepartment !== "all" && emp?.department !== filterDepartment) return false;
+            if (filterGender !== "all" && emp?.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterNationality !== "all" && emp?.nationality !== filterNationality) return false;
+            if (filterRoomType !== "all" && !matchesRoomType(room, filterRoomType)) return false;
+            if (filterEmploymentType !== "all") {
+              const et = emp?.employmentType || "INTERNAL";
+              if (et.toLowerCase() !== filterEmploymentType.toLowerCase()) return false;
+            }
+            return true;
+          })
+          .map((a: any) => {
+            const emp = empMap[a.profileId] || {};
+            const room = roomMap[a.roomId] || {};
+            const isVacation = (emp.status || a.profileStatus || "").toUpperCase() === "VACATION";
+            const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || emp.status === "LEFT" || emp.status === "CHECKED_OUT";
+            const effectiveStatus = isCheckedOut ? "CHECKED_OUT" : (isVacation ? "VACATION" : (a.status || "ACTIVE"));
+            const isEntire = Boolean(
+              a.isEntireRoom ||
+              a.is_entire_room ||
+              a.notes?.includes("[حجز الغرفة بالكامل]") ||
+              a.notes?.includes("[تسكين الغرفة بالكامل]")
+            );
+            const bedNum = a.bedNumber ?? (isEntire ? 1 : null);
+
+            return {
+              id: a.id,
+              profileId: emp.id,
+              profileCode: emp.profileId || `EMP-${a.profileId}`,
+              firstName: ar ? (emp.firstNameAr || emp.firstName || "—") : (emp.firstName || "—"),
+              lastName: ar ? (emp.lastNameAr || emp.lastName || "") : (emp.lastName || ""),
+              fullName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
+              nationalId: emp.nationalId || "—",
+              nationality: emp.nationality || "—",
+              dateOfBirth: formatDate(emp.dateOfBirth, "—"),
+              gender: emp.gender || "M",
+              jobTitle: getProfileDisplayJobTitle(emp, ar) || "—",
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              level: emp.level || "—",
+              employmentType: emp.employmentType || "INTERNAL",
+              companyName: emp.companyName || (emp.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "الفندق" : "Hotel")),
+              address: emp.address || "—",
+              phone: emp.phone || "—",
+              roomId: a.roomId,
+              roomNumber: room.roomNumber || `#${a.roomId}`,
+              bedNumber: bedNum ? String(bedNum) : "—",
+              isEntireRoom: isEntire,
+              buildingName: buildingMap[room.buildingId] || "—",
+              floorName: floorMap[room.floorId] || "—",
+              rawCheckInDate: a.checkInDate,
+              checkInDate: formatDate(a.checkInDate, "—"),
+              hireDate: formatDate(emp.hireDate, "—"),
+              contractEndDate: formatDate(emp.contractEndDate, "—"),
+              email: emp.email || "—",
+              emergencyContact: emp.emergencyContact || "—",
+              status: effectiveStatus,
+            };
+          });
+
+        return applySearchAndDate(list, "rawCheckInDate", (i) => [
+          i.fullName,
+          i.profileCode,
+          i.nationalId,
+          i.nationality,
+          i.phone,
+          i.roomNumber,
+          i.bedNumber,
+          i.buildingName,
+          i.floorName,
+          i.department,
+          i.companyName,
+          i.jobTitle,
+          i.address,
+        ]);
+      }
+
       default:
         return [];
     }

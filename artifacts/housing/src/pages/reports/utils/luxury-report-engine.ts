@@ -88,6 +88,7 @@ export const REPORT_TAB_CONFIG: Record<
   daily_movement: { showKpis: false, showSignatures: false },
   department_occupancy: { showKpis: false, showSignatures: false },
   gate_logs: { showKpis: false, showSignatures: false },
+  police_report: { showKpis: false, showSignatures: true },
   service_ratings: { showKpis: false, showSignatures: false },
   housing_map: { showKpis: false, showSignatures: false },
 };
@@ -175,6 +176,10 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
   gate_logs: {
     ar: "تقرير سجل البوابة وتصاريح الدخول والخروج",
     en: "Gate Access Security & Turnstile Manifest",
+  },
+  police_report: {
+    ar: "كشف شرطة السياحة ووزارة السياحة للعاملين المقيمين بالسكن",
+    en: "Tourism Police & Ministry of Tourism Resident Housing Manifest",
   },
 };
 

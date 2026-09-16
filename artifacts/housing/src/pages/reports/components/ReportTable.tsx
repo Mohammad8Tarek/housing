@@ -410,6 +410,34 @@ export function ReportTable({
                 {H("notes", ar ? "ملاحظات" : "Notes")}
               </>
             )}
+
+            {/* 18. TOURISM POLICE & MINISTRY OF TOURISM REPORT HEADERS */}
+            {activeTab === "police_report" && (
+              <>
+                {isVis("profileCode") && H("profileCode", ar ? "كود الموظف" : "Code")}
+                {isVis("fullName") && H("fullName", ar ? "الاسم بالكامل" : "Full Name")}
+                {isVis("nationalId") && H("nationalId", ar ? "الرقم القومي" : "National ID")}
+                {isVis("nationality") && H("nationality", ar ? "الجنسية" : "Nationality")}
+                {isVis("dateOfBirth") && H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth")}
+                {isVis("gender") && H("gender", ar ? "الجنس" : "Gender")}
+                {isVis("jobTitle") && H("jobTitle", ar ? "الوظيفة" : "Job Title")}
+                {isVis("department") && H("department", ar ? "القسم" : "Department")}
+                {isVis("level") && H("level", ar ? "الدرجة" : "Level")}
+                {isVis("employmentType") && H("employmentType", ar ? "نوع التوظيف" : "Employment")}
+                {isVis("companyName") && H("companyName", ar ? "الشركة" : "Company")}
+                {isVis("address") && H("address", ar ? "العنوان بالبطاقة" : "Address")}
+                {isVis("phone") && H("phone", ar ? "الهاتف" : "Phone")}
+                {isVis("roomNumber") && H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
+                {isVis("bedNumber") && H("bedNumber", ar ? "السرير" : "Bed No")}
+                {isVis("buildingName") && H("buildingName", ar ? "المبنى" : "Building")}
+                {isVis("floorName") && H("floorName", ar ? "الطابق" : "Floor")}
+                {isVis("checkInDate") && H("checkInDate", ar ? "تاريخ التسكين" : "Check-In")}
+                {isVis("hireDate") && H("hireDate", ar ? "تاريخ التعيين" : "Hire Date")}
+                {isVis("contractEndDate") && H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
+                {isVis("emergencyContact") && H("emergencyContact", ar ? "هاتف الطوارئ" : "Emergency Contact")}
+                {isVis("status") && H("status", ar ? "الحالة بالسكن" : "Status")}
+              </>
+            )}
           </TableRow>
         </TableHeader>
 
@@ -1463,6 +1491,84 @@ export function ReportTable({
                     <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate" title={row.notes}>
                       {row.notes}
                     </TableCell>
+                  </>
+                )}
+
+                {/* 18. TOURISM POLICE REPORT ROW */}
+                {activeTab === "police_report" && (
+                  <>
+                    {isVis("profileCode") && <TableCell className="text-xs font-mono font-semibold">{row.profileCode}</TableCell>}
+                    {isVis("fullName") && <TableCell className="text-xs font-bold text-foreground">{row.fullName}</TableCell>}
+                    {isVis("nationalId") && <TableCell className="text-xs font-mono font-medium">{row.nationalId}</TableCell>}
+                    {isVis("nationality") && <TableCell className="text-xs">{row.nationality}</TableCell>}
+                    {isVis("dateOfBirth") && <TableCell className="text-xs font-mono">{row.dateOfBirth}</TableCell>}
+                    {isVis("gender") && (
+                      <TableCell className="text-xs">
+                        {row.gender === "M" ? (ar ? "ذكر" : "Male") : row.gender === "F" ? (ar ? "أنثى" : "Female") : row.gender}
+                      </TableCell>
+                    )}
+                    {isVis("jobTitle") && <TableCell className="text-xs font-medium">{row.jobTitle}</TableCell>}
+                    {isVis("department") && <TableCell className="text-xs text-muted-foreground">{row.department}</TableCell>}
+                    {isVis("level") && <TableCell className="text-xs">{row.level}</TableCell>}
+                    {isVis("employmentType") && (
+                      <TableCell>
+                        {row.employmentType === "THIRD_PARTY" ? (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                            {ar ? "طرف ثالث" : "Third Party"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            {ar ? "داخلي" : "Internal"}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("companyName") && (
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.companyName}
+                      </TableCell>
+                    )}
+                    {isVis("address") && (
+                      <TableCell className="text-xs max-w-[180px] truncate" title={row.address}>
+                        {row.address}
+                      </TableCell>
+                    )}
+                    {isVis("phone") && <TableCell className="text-xs font-mono">{row.phone}</TableCell>}
+                    {isVis("roomNumber") && <TableCell className="text-xs font-bold text-primary">{row.roomNumber}</TableCell>}
+                    {isVis("bedNumber") && (
+                      <TableCell className="text-xs">
+                        {row.bedNumber !== "—" ? (
+                          <Badge variant="secondary" className="text-[11px] h-5 px-1.5 font-medium">
+                            {ar ? `سرير ${row.bedNumber}` : `Bed ${row.bedNumber}`}
+                          </Badge>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("buildingName") && <TableCell className="text-xs text-muted-foreground">{row.buildingName}</TableCell>}
+                    {isVis("floorName") && <TableCell className="text-xs text-muted-foreground">{row.floorName}</TableCell>}
+                    {isVis("checkInDate") && <TableCell className="text-xs font-mono">{row.checkInDate}</TableCell>}
+                    {isVis("hireDate") && <TableCell className="text-xs font-mono">{row.hireDate}</TableCell>}
+                    {isVis("contractEndDate") && <TableCell className="text-xs font-mono">{row.contractEndDate}</TableCell>}
+                    {isVis("emergencyContact") && <TableCell className="text-xs font-mono">{row.emergencyContact}</TableCell>}
+                    {isVis("status") && (
+                      <TableCell>
+                        {row.status === "VACATION" ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-semibold">
+                            {ar ? "في إجازة" : "Vacation"}
+                          </Badge>
+                        ) : row.status === "CHECKED_OUT" ? (
+                          <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 text-xs">
+                            {ar ? "مغادر" : "Checked Out"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 text-xs font-medium">
+                            {ar ? "مقيم بالسكن" : "In-House"}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    )}
                   </>
                 )}
               </TableRow>

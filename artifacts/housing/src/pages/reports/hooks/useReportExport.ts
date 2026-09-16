@@ -373,6 +373,43 @@ export function useReportExport({
           [ar ? "ملاحظات" : "Notes"]: g.notes,
         }));
 
+      case "police_report":
+        return data.map((p: any) => ({
+          [ar ? "كود الموظف" : "Employee Code"]: p.profileCode,
+          [ar ? "الاسم بالكامل" : "Full Name"]: p.fullName,
+          [ar ? "الرقم القومي" : "National ID"]: p.nationalId,
+          [ar ? "الجنسية" : "Nationality"]: p.nationality,
+          [ar ? "تاريخ الميلاد" : "Date of Birth"]: p.dateOfBirth,
+          [ar ? "الجنس" : "Gender"]: p.gender === "M" ? (ar ? "ذكر" : "Male") : p.gender === "F" ? (ar ? "أنثى" : "Female") : p.gender,
+          [ar ? "الوظيفة" : "Job Title"]: p.jobTitle,
+          [ar ? "القسم" : "Department"]: p.department,
+          [ar ? "الدرجة" : "Level"]: p.level,
+          [ar ? "نوع التوظيف" : "Employment Type"]:
+            p.employmentType === "THIRD_PARTY"
+              ? (ar ? "طرف ثالث" : "Third Party")
+              : (ar ? "داخلي (فندق)" : "Internal"),
+          [ar ? "الشركة / جهة العمل" : "Company"]: p.companyName,
+          [ar ? "العنوان بالبطاقة" : "Address"]: p.address,
+          [ar ? "الهاتف" : "Phone"]: p.phone,
+          [ar ? "رقم الغرفة" : "Room No"]: p.roomNumber,
+          [ar ? "رقم السرير" : "Bed No"]:
+            p.isEntireRoom
+              ? `${p.bedNumber && p.bedNumber !== "—" ? p.bedNumber : 1} (${ar ? "غرفة كاملة" : "Full Lock"})`
+              : p.bedNumber,
+          [ar ? "المبنى" : "Building"]: p.buildingName,
+          [ar ? "الطابق" : "Floor"]: p.floorName,
+          [ar ? "تاريخ التسكين" : "Check-In Date"]: p.checkInDate,
+          [ar ? "تاريخ التعيين" : "Hire Date"]: p.hireDate,
+          [ar ? "انتهاء العقد" : "Contract End"]: p.contractEndDate,
+          [ar ? "هاتف الطوارئ" : "Emergency Contact"]: p.emergencyContact,
+          [ar ? "الحالة بالسكن" : "Status"]:
+            p.status === "VACATION"
+              ? (ar ? "في إجازة" : "Vacation")
+              : p.status === "CHECKED_OUT"
+              ? (ar ? "مغادر" : "Checked Out")
+              : (ar ? "مقيم بالسكن" : "In-House"),
+        }));
+
       default:
         if (ar && Array.isArray(data)) {
           return data.map((item: any) => {

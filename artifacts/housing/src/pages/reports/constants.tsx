@@ -19,6 +19,7 @@ import {
   ArrowLeftRight,
   Briefcase,
   ShieldCheck,
+  ShieldAlert,
   Star,
 } from "lucide-react";
 import { TabConfig } from "./types";
@@ -101,6 +102,12 @@ export const TABS: TabConfig[] = [
     label: "Gate Security Logs",
     labelAr: "سجل البوابة والأمن",
     icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
+  },
+  {
+    id: "police_report",
+    label: "Tourism Police Manifest",
+    labelAr: "كشف شرطة ووزارة السياحة",
+    icon: <ShieldAlert className="w-4 h-4 text-blue-700" />,
   },
   {
     id: "equipment_inventory",

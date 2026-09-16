@@ -20,7 +20,10 @@ export type Tab =
   | "equipment_inventory"
   | "daily_movement"
   | "department_occupancy"
-  | "gate_logs";
+  | "gate_logs"
+  | "service_ratings"
+  | "housing_map"
+  | "police_report";
 
 export interface TabConfig {
   id: Tab;
