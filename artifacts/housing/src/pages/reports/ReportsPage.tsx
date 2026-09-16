@@ -430,6 +430,7 @@ export default function Reports() {
                 buildingMap={data.buildingMap}
                 empMap={data.empMap}
                 roomMap={data.roomMap}
+                visibleCols={reportCols.visible}
               />
             </div>
           )}

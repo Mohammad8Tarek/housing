@@ -37,7 +37,9 @@ export function ReportTable({
   buildingMap,
   empMap,
   roomMap,
+  visibleCols,
 }: any) {
+  const isVis = (k: string) => !visibleCols || visibleCols.has(k);
   const [selectedItemRooms, setSelectedItemRooms] = useState<any | null>(null);
   const H = (sortKey: string, label: React.ReactNode, className?: string) => (
     <SortableHead
@@ -201,16 +203,25 @@ export function ReportTable({
             {/* 1. ASSIGNMENTS HEADERS */}
             {activeTab === "assignments" && (
               <>
-                {H("fullName", ar ? "الموظف / المقيم" : "Occupant / Profile")}
-                {H("employmentType", ar ? "نوع التوظيف" : "Employment")}
-                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
-                {H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
-                {H("department", ar ? "القسم والمسمى" : "Dept & Title")}
-                {H("phone", ar ? "الهاتف" : "Phone")}
-                {H("checkInDate", ar ? "تاريخ التسكين" : "Check-In")}
-                {H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
-                {H("expectedCheckOutDate", ar ? "المغادرة المتوقعة" : "Expected Out")}
-                {H("status", ar ? "الحالة" : "Status")}
+                {isVis("fullName") && H("fullName", ar ? "الموظف / المقيم" : "Occupant / Profile")}
+                {isVis("employmentType") && H("employmentType", ar ? "نوع التوظيف" : "Employment")}
+                {isVis("roomNumber") && H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
+                {isVis("buildingName") && H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {isVis("department") && H("department", ar ? "القسم والمسمى" : "Dept & Title")}
+                {isVis("level") && H("level", ar ? "الدرجة" : "Level")}
+                {isVis("phone") && H("phone", ar ? "الهاتف" : "Phone")}
+                {isVis("nationalId") && H("nationalId", ar ? "الرقم القومي" : "National ID")}
+                {isVis("nationality") && H("nationality", ar ? "الجنسية" : "Nationality")}
+                {isVis("gender") && H("gender", ar ? "الجنس" : "Gender")}
+                {isVis("dateOfBirth") && H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth")}
+                {isVis("address") && H("address", ar ? "العنوان" : "Address")}
+                {isVis("hireDate") && H("hireDate", ar ? "تاريخ التعيين" : "Hire Date")}
+                {isVis("checkInDate") && H("checkInDate", ar ? "تاريخ التسكين" : "Check-In")}
+                {isVis("contractEndDate") && H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
+                {isVis("expectedCheckOutDate") && H("expectedCheckOutDate", ar ? "المغادرة المتوقعة" : "Expected Out")}
+                {isVis("email") && H("email", ar ? "البريد الإلكتروني" : "Email")}
+                {isVis("emergencyContact") && H("emergencyContact", ar ? "هاتف الطوارئ" : "Emergency Contact")}
+                {isVis("status") && H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
@@ -247,15 +258,22 @@ export function ReportTable({
             {/* 4. PROFILES HEADERS */}
             {activeTab === "profiles" && (
               <>
-                {H("fullName", ar ? "كود والاسم" : "Code & Name")}
-                {H("employmentType", ar ? "النوع والشركة" : "Employment & Company")}
-                {H("nationalId", ar ? "الرقم القومي" : "National ID")}
-                {H("phone", ar ? "الهاتف" : "Phone")}
-                {H("department", ar ? "القسم والمسمى" : "Dept & Job Title")}
-                {H("assignedRoom", ar ? "السكن الحالي" : "Housing")}
-                {H("hireDate", ar ? "تاريخ التعيين" : "Hire Date")}
-                {H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
-                {H("status", ar ? "الحالة" : "Status")}
+                {isVis("fullName") && H("fullName", ar ? "كود والاسم" : "Code & Name")}
+                {isVis("employmentType") && H("employmentType", ar ? "النوع والشركة" : "Employment & Company")}
+                {isVis("nationalId") && H("nationalId", ar ? "الرقم القومي" : "National ID")}
+                {isVis("phone") && H("phone", ar ? "الهاتف" : "Phone")}
+                {isVis("nationality") && H("nationality", ar ? "الجنسية" : "Nationality")}
+                {isVis("gender") && H("gender", ar ? "الجنس" : "Gender")}
+                {isVis("dateOfBirth") && H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth")}
+                {isVis("address") && H("address", ar ? "العنوان" : "Address")}
+                {isVis("department") && H("department", ar ? "القسم والمسمى" : "Dept & Job Title")}
+                {isVis("level") && H("level", ar ? "الدرجة" : "Level")}
+                {isVis("assignedRoom") && H("assignedRoom", ar ? "السكن الحالي" : "Housing")}
+                {isVis("hireDate") && H("hireDate", ar ? "تاريخ التعيين" : "Hire Date")}
+                {isVis("contractEndDate") && H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
+                {isVis("email") && H("email", ar ? "البريد الإلكتروني" : "Email")}
+                {isVis("emergencyContact") && H("emergencyContact", ar ? "هاتف الطوارئ" : "Emergency Contact")}
+                {isVis("status") && H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
@@ -708,96 +726,127 @@ export function ReportTable({
                 {/* 1. ASSIGNMENTS ROW */}
                 {activeTab === "assignments" && (
                   <>
-                    <TableCell>
-                      <div>
-                        <p className="font-bold text-sm text-foreground">{row.fullName}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{row.profileCode}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {row.employmentType === "THIRD_PARTY" ? (
-                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
-                          {row.companyName || "طرف ثالث"}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                          {ar ? "موظف داخلي" : "Internal"}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-primary">{row.roomNumber}</span>
-                        {row.bedNumber !== "—" && (
-                          <Badge variant="secondary" className="text-[11px] h-5 px-1.5 font-medium">
-                            {ar ? `سرير ${row.bedNumber}` : `Bed ${row.bedNumber}`}
-                          </Badge>
-                        )}
-                        {row.roomType && row.roomType !== "—" && (
-                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal text-muted-foreground bg-muted/30">
-                            {row.roomType}
-                            {row.capacity ? ` (${row.capacity} ${ar ? "أسرة" : "beds"})` : ""}
-                          </Badge>
-                        )}
-                        {row.isEntireRoom && (
-                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 text-[10px] h-5 px-1.5 font-medium">
-                            {ar ? "غرفة كاملة" : "Full Lock"}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {row.buildingName} • {row.floorName}
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-xs font-medium">{row.department}</p>
-                      <p className="text-[11px] text-muted-foreground">{row.jobTitle}</p>
-                    </TableCell>
-                    <TableCell className="text-xs font-mono">{row.phone}</TableCell>
-                    <TableCell className="text-xs">{row.checkInDate}</TableCell>
-                    <TableCell>
-                      {row.contractEndDate !== "—" ? (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-mono">
-                          {row.contractEndDate}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">{row.expectedCheckOutDate}</TableCell>
-                    <TableCell>
-                      {row.status === "VACATION" ? (
-                        <div className="flex flex-col gap-0.5 items-start">
-                          <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-semibold">
-                            {ar ? "في إجازة" : "On Vacation"}
-                          </Badge>
-                          {row.vacationEndDate && (
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              {ar ? `حتى ${row.vacationEndDate}` : `Till ${row.vacationEndDate}`}
-                            </span>
-                          )}
+                    {isVis("fullName") && (
+                      <TableCell>
+                        <div>
+                          <p className="font-bold text-sm text-foreground">{row.fullName}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{row.profileCode}</p>
                         </div>
-                      ) : row.status === "CHECKED_OUT" || row.status === "LEFT" ? (
-                        <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 text-xs font-medium">
-                          {ar ? "تمت المغادرة" : "Checked Out"}
-                        </Badge>
-                      ) : row.status === "TRANSFERRED" ? (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                          {ar ? "تم النقل" : "Transferred"}
-                        </Badge>
-                      ) : (
-                        <div className="flex flex-wrap items-center gap-1">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs font-semibold">
-                            {ar ? "مقيم بالسكن" : "In-House"}
+                      </TableCell>
+                    )}
+                    {isVis("employmentType") && (
+                      <TableCell>
+                        {row.employmentType === "THIRD_PARTY" ? (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                            {row.companyName || (ar ? "طرف ثالث" : "Third Party")}
                           </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            {ar ? "موظف داخلي" : "Internal"}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("roomNumber") && (
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-primary">{row.roomNumber}</span>
+                          {row.bedNumber !== "—" && (
+                            <Badge variant="secondary" className="text-[11px] h-5 px-1.5 font-medium">
+                              {ar ? `سرير ${row.bedNumber}` : `Bed ${row.bedNumber}`}
+                            </Badge>
+                          )}
+                          {row.roomType && row.roomType !== "—" && (
+                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal text-muted-foreground bg-muted/30">
+                              {row.roomType}
+                              {row.capacity ? ` (${row.capacity} ${ar ? "أسرة" : "beds"})` : ""}
+                            </Badge>
+                          )}
                           {row.isEntireRoom && (
-                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 text-[10px] px-1 py-0 font-medium">
-                              {ar ? "غرفة كاملة" : "Entire Room"}
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 text-[10px] h-5 px-1.5 font-medium">
+                              {ar ? "غرفة كاملة" : "Full Lock"}
                             </Badge>
                           )}
                         </div>
-                      )}
-                    </TableCell>
+                      </TableCell>
+                    )}
+                    {isVis("buildingName") && (
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.buildingName} • {row.floorName}
+                      </TableCell>
+                    )}
+                    {isVis("department") && (
+                      <TableCell>
+                        <p className="text-xs font-medium">{row.department}</p>
+                        <p className="text-[11px] text-muted-foreground">{row.jobTitle}</p>
+                      </TableCell>
+                    )}
+                    {isVis("level") && <TableCell className="text-xs">{row.level}</TableCell>}
+                    {isVis("phone") && <TableCell className="text-xs font-mono">{row.phone}</TableCell>}
+                    {isVis("nationalId") && <TableCell className="text-xs font-mono">{row.nationalId}</TableCell>}
+                    {isVis("nationality") && <TableCell className="text-xs">{row.nationality}</TableCell>}
+                    {isVis("gender") && (
+                      <TableCell className="text-xs">
+                        {row.gender === "M" ? (ar ? "ذكر" : "Male") : row.gender === "F" ? (ar ? "أنثى" : "Female") : row.gender}
+                      </TableCell>
+                    )}
+                    {isVis("dateOfBirth") && <TableCell className="text-xs">{row.dateOfBirth}</TableCell>}
+                    {isVis("address") && (
+                      <TableCell className="text-xs max-w-[180px] truncate" title={row.address}>
+                        {row.address}
+                      </TableCell>
+                    )}
+                    {isVis("hireDate") && <TableCell className="text-xs">{row.hireDate}</TableCell>}
+                    {isVis("checkInDate") && <TableCell className="text-xs">{row.checkInDate}</TableCell>}
+                    {isVis("contractEndDate") && (
+                      <TableCell>
+                        {row.contractEndDate !== "—" ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-mono">
+                            {row.contractEndDate}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("expectedCheckOutDate") && <TableCell className="text-xs">{row.expectedCheckOutDate}</TableCell>}
+                    {isVis("email") && <TableCell className="text-xs font-mono">{row.email}</TableCell>}
+                    {isVis("emergencyContact") && <TableCell className="text-xs font-mono">{row.emergencyContact}</TableCell>}
+                    {isVis("status") && (
+                      <TableCell>
+                        {row.status === "VACATION" ? (
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-semibold">
+                              {ar ? "في إجازة" : "On Vacation"}
+                            </Badge>
+                            {row.vacationEndDate && (
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                {ar ? `حتى ${row.vacationEndDate}` : `Till ${row.vacationEndDate}`}
+                              </span>
+                            )}
+                          </div>
+                        ) : row.status === "CHECKED_OUT" || row.status === "LEFT" ? (
+                          <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 text-xs font-medium">
+                            {ar ? "تمت المغادرة" : "Checked Out"}
+                          </Badge>
+                        ) : row.status === "TRANSFERRED" ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            {ar ? "تم النقل" : "Transferred"}
+                          </Badge>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs font-semibold">
+                              {ar ? "مقيم بالسكن" : "In-House"}
+                            </Badge>
+                            {row.isEntireRoom && (
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 text-[10px] px-1 py-0 font-medium">
+                                {ar ? "غرفة كاملة" : "Entire Room"}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
                   </>
                 )}
 
@@ -858,45 +907,72 @@ export function ReportTable({
                 {/* 4. PROFILES ROW */}
                 {activeTab === "profiles" && (
                   <>
-                    <TableCell>
-                      <div>
-                        <p className="font-bold text-sm text-foreground">{row.fullName}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{row.profileCode}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {row.employmentType === "THIRD_PARTY" ? (
-                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
-                          {row.companyName || "طرف ثالث"}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                          {ar ? "موظف داخلي" : "Internal"}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs font-mono">{row.nationalId}</TableCell>
-                    <TableCell className="text-xs font-mono">{row.phone}</TableCell>
-                    <TableCell>
-                      <p className="text-xs font-medium">{row.department}</p>
-                      <p className="text-[11px] text-muted-foreground">{row.jobTitle} {row.level !== "—" ? `(${row.level})` : ""}</p>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs font-semibold text-primary">{row.assignedRoom}</span>
-                    </TableCell>
-                    <TableCell className="text-xs">{row.hireDate}</TableCell>
-                    <TableCell>
-                      {row.contractEndDate !== "—" ? (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-mono">
-                          {row.contractEndDate}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs capitalize">{row.status}</Badge>
-                    </TableCell>
+                    {isVis("fullName") && (
+                      <TableCell>
+                        <div>
+                          <p className="font-bold text-sm text-foreground">{row.fullName}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{row.profileCode}</p>
+                        </div>
+                      </TableCell>
+                    )}
+                    {isVis("employmentType") && (
+                      <TableCell>
+                        {row.employmentType === "THIRD_PARTY" ? (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                            {row.companyName || (ar ? "طرف ثالث" : "Third Party")}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            {ar ? "موظف داخلي" : "Internal"}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("nationalId") && <TableCell className="text-xs font-mono">{row.nationalId}</TableCell>}
+                    {isVis("phone") && <TableCell className="text-xs font-mono">{row.phone}</TableCell>}
+                    {isVis("nationality") && <TableCell className="text-xs">{row.nationality}</TableCell>}
+                    {isVis("gender") && (
+                      <TableCell className="text-xs">
+                        {row.gender === "M" ? (ar ? "ذكر" : "Male") : row.gender === "F" ? (ar ? "أنثى" : "Female") : row.gender}
+                      </TableCell>
+                    )}
+                    {isVis("dateOfBirth") && <TableCell className="text-xs">{row.dateOfBirth}</TableCell>}
+                    {isVis("address") && (
+                      <TableCell className="text-xs max-w-[180px] truncate" title={row.address}>
+                        {row.address}
+                      </TableCell>
+                    )}
+                    {isVis("department") && (
+                      <TableCell>
+                        <p className="text-xs font-medium">{row.department}</p>
+                        <p className="text-[11px] text-muted-foreground">{row.jobTitle}</p>
+                      </TableCell>
+                    )}
+                    {isVis("level") && <TableCell className="text-xs">{row.level}</TableCell>}
+                    {isVis("assignedRoom") && (
+                      <TableCell>
+                        <span className="text-xs font-semibold text-primary">{row.assignedRoom}</span>
+                      </TableCell>
+                    )}
+                    {isVis("hireDate") && <TableCell className="text-xs">{row.hireDate}</TableCell>}
+                    {isVis("contractEndDate") && (
+                      <TableCell>
+                        {row.contractEndDate !== "—" ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-mono">
+                            {row.contractEndDate}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("email") && <TableCell className="text-xs font-mono">{row.email}</TableCell>}
+                    {isVis("emergencyContact") && <TableCell className="text-xs font-mono">{row.emergencyContact}</TableCell>}
+                    {isVis("status") && (
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs capitalize">{row.status}</Badge>
+                      </TableCell>
+                    )}
                   </>
                 )}
 

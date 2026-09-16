@@ -142,11 +142,19 @@ export function useReportExport({
           [ar ? "الطابق" : "Floor"]: a.floorName,
           [ar ? "القسم" : "Department"]: a.department,
           [ar ? "الوظيفة" : "Job Title"]: a.jobTitle,
+          [ar ? "الدرجة" : "Level"]: a.level,
           [ar ? "الهاتف" : "Phone"]: a.phone,
           [ar ? "الرقم القومي" : "National ID"]: a.nationalId,
+          [ar ? "الجنسية" : "Nationality"]: a.nationality,
+          [ar ? "الجنس" : "Gender"]: a.gender === "M" ? (ar ? "ذكر" : "Male") : a.gender === "F" ? (ar ? "أنثى" : "Female") : a.gender,
+          [ar ? "تاريخ الميلاد" : "Date of Birth"]: a.dateOfBirth,
+          [ar ? "العنوان" : "Address"]: a.address,
+          [ar ? "تاريخ التعيين" : "Hire Date"]: a.hireDate,
           [ar ? "تاريخ التسكين" : "Check-In Date"]: a.checkInDate,
           [ar ? "انتهاء العقد" : "Contract End"]: a.contractEndDate,
           [ar ? "المغادرة المتوقعة" : "Expected Check-Out"]: a.expectedCheckOutDate,
+          [ar ? "البريد الإلكتروني" : "Email"]: a.email,
+          [ar ? "هاتف الطوارئ" : "Emergency Contact"]: a.emergencyContact,
           [ar ? "الحالة" : "Status"]:
             a.status === "VACATION"
               ? (ar
@@ -192,6 +200,7 @@ export function useReportExport({
       case "profiles":
         return data.map((e: any) => ({
           [ar ? "كود الموظف" : "Employee Code"]: e.profileCode,
+          [ar ? "الاسم" : "Full Name"]: e.fullName,
           [ar ? "الاسم الأول" : "First Name"]: e.firstName,
           [ar ? "الاسم الأخير" : "Last Name"]: e.lastName,
           [ar ? "نوع التوظيف" : "Employment Type"]:
@@ -202,14 +211,17 @@ export function useReportExport({
           [ar ? "الرقم القومي" : "National ID"]: e.nationalId,
           [ar ? "الهاتف" : "Phone"]: e.phone,
           [ar ? "الجنسية" : "Nationality"]: e.nationality,
-          [ar ? "الجنس" : "Gender"]: e.gender,
+          [ar ? "الجنس" : "Gender"]: e.gender === "M" ? (ar ? "ذكر" : "Male") : e.gender === "F" ? (ar ? "أنثى" : "Female") : e.gender,
           [ar ? "تاريخ الميلاد" : "Date of Birth"]: e.dateOfBirth,
+          [ar ? "العنوان" : "Address"]: e.address,
           [ar ? "القسم" : "Department"]: e.department,
           [ar ? "الوظيفة" : "Job Title"]: e.jobTitle,
           [ar ? "الدرجة" : "Level"]: e.level,
           [ar ? "السكن الحالي" : "Current Housing"]: e.assignedRoom,
           [ar ? "تاريخ التعيين" : "Hire Date"]: e.hireDate,
           [ar ? "انتهاء العقد" : "Contract End"]: e.contractEndDate,
+          [ar ? "البريد الإلكتروني" : "Email"]: e.email,
+          [ar ? "هاتف الطوارئ" : "Emergency Contact"]: e.emergencyContact,
           [ar ? "الحالة" : "Status"]: e.status,
         }));
 

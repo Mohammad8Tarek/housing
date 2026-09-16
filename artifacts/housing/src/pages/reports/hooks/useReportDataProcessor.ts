@@ -787,6 +787,12 @@ export function useReportDataProcessor({
                   : "—",
               checkOutDate: formatDate(a.checkOutDate, "—"),
               status: effectiveStatus,
+              gender: emp.gender || "—",
+              dateOfBirth: formatDate(emp.dateOfBirth, "—"),
+              address: emp.address || "—",
+              hireDate: formatDate(emp.hireDate, "—"),
+              email: emp.email || "—",
+              emergencyContact: emp.emergencyContact || "—",
               vacationStartDate: emp.vacationStartDate || a.vacationStartDate || null,
               vacationEndDate: emp.vacationEndDate || a.vacationEndDate || null,
             };
@@ -991,6 +997,8 @@ export function useReportDataProcessor({
               hireDate: formatDate(e.hireDate, "—"),
               contractEndDate: formatDate(e.contractEndDate, "—"),
               address: e.address || "—",
+              email: e.email || "—",
+              emergencyContact: e.emergencyContact || "—",
               status: e.status || "ACTIVE",
               assignedRoom: room
                 ? `${room.roomNumber} (${asgn?.bedNumber ? (ar ? `سرير ${asgn.bedNumber}` : `Bed ${asgn.bedNumber}`) : ""})`
