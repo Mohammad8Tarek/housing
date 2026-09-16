@@ -65,11 +65,11 @@ export const REPORT_TAB_CONFIG: Record<
   string,
   { showKpis: boolean; showSignatures: boolean }
 > = {
-  // Executive & Operations Audits
-  manager_flash: { showKpis: true, showSignatures: true },
-  housekeeping_sheet: { showKpis: true, showSignatures: true },
-  room_discrepancy: { showKpis: true, showSignatures: true },
-  occupancy_forecast: { showKpis: true, showSignatures: false },
+  // Executive & Operations Audits (Clean formal report view - no bulky KPI dashboard)
+  manager_flash: { showKpis: false, showSignatures: true },
+  housekeeping_sheet: { showKpis: false, showSignatures: true },
+  room_discrepancy: { showKpis: false, showSignatures: true },
+  occupancy_forecast: { showKpis: false, showSignatures: false },
 
   // Formal Master Ledgers & Directory Manifests (Formal clean style, maximum rows per page)
   assignments: { showKpis: false, showSignatures: false },
@@ -88,6 +88,8 @@ export const REPORT_TAB_CONFIG: Record<
   daily_movement: { showKpis: false, showSignatures: false },
   department_occupancy: { showKpis: false, showSignatures: false },
   gate_logs: { showKpis: false, showSignatures: false },
+  service_ratings: { showKpis: false, showSignatures: false },
+  housing_map: { showKpis: false, showSignatures: false },
 };
 
 // ----------------------------------------------------------------------------
@@ -215,6 +217,13 @@ export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = 
   phone: { ar: "الهاتف", en: "Phone" },
   mobile: { ar: "المحمول", en: "Mobile" },
   telephone: { ar: "الهاتف", en: "Telephone" },
+  dateofbirth: { ar: "تاريخ الميلاد", en: "Date of Birth" },
+  date_of_birth: { ar: "تاريخ الميلاد", en: "Date of Birth" },
+  birthdate: { ar: "تاريخ الميلاد", en: "Date of Birth" },
+  birth_date: { ar: "تاريخ الميلاد", en: "Date of Birth" },
+  "date of birth": { ar: "تاريخ الميلاد", en: "Date of Birth" },
+  "birth date": { ar: "تاريخ الميلاد", en: "Date of Birth" },
+  "تاريخ الميلاد": { ar: "تاريخ الميلاد", en: "Date of Birth" },
   nationality: { ar: "الجنسية", en: "Nationality" },
   gender: { ar: "الجنس", en: "Gender" },
   genderpolicy: { ar: "سياسة الجنس", en: "Gender Policy" },
@@ -513,73 +522,15 @@ export function translateReportHeader(header: string, isArabic: boolean): string
 }
 
 // ----------------------------------------------------------------------------
-// 2. Helper: Status Badge Formatter
+// 2. Helper: Status Badge Formatter (Clean, minimal executive presentation)
 // ----------------------------------------------------------------------------
 export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
   if (val === null || val === undefined || val === "") return "—";
   const str = String(val).trim();
+  if (str === "—" || str === "-") return "—";
 
-  // Pattern matching for status badges
-  const greenPatterns = [
-    "متاح", "شاغر", "سليم", "ممتاز", "ممتازة", "نظيفة", "جاهز", "معتمد", "مكتمل",
-    "نشط", "good", "clean", "available", "ready", "approved", "resolved", "active",
-    "completed", "confirmed", "مؤكد", "عادي", "low", "منخفض",
-  ];
-
-  const redPatterns = [
-    "متسخ", "تالف", "معطل", "مفقود", "حرج", "صيانة", "مرفوض", "خارج الخدمة",
-    "غير مطابق", "dirty", "damaged", "missing", "critical", "ooo", "out of order",
-    "rejected", "urgent", "high", "طارئ", "عاجل", "مرتفع", "skip", "غادر دون تسجيل",
-  ];
-
-  const bluePatterns = [
-    "مشغول", "داخلي", "فندق", "مقيم", "مقيم بالسكن", "occupied", "internal",
-    "checked-in", "in-house", "قيد التنفيذ", "in progress", "sleeper", "نائم غير مسجل",
-  ];
-
-  const orangePatterns = [
-    "إجازة", "طرف ثالث", "بحاجة لصيانة", "قيد الانتظار", "معلق", "تحذير", "متوسط",
-    "vacation", "third party", "needs repair", "needs_repair", "pending", "warning",
-    "medium", "fair", "مقبول", "مستحق اليوم", "due out",
-  ];
-
-  const slatePatterns = [
-    "منتهي", "مغادر", "ملغي", "تمت المغادرة", "منقول", "expired", "left",
-    "checked-out", "checked_out", "transferred", "cancelled",
-  ];
-
-  const lower = str.toLowerCase();
-
-  const isGreen = greenPatterns.some((p) => lower.includes(p));
-  const isRed = redPatterns.some((p) => lower.includes(p));
-  const isBlue = bluePatterns.some((p) => lower.includes(p));
-  const isOrange = orangePatterns.some((p) => lower.includes(p));
-  const isSlate = slatePatterns.some((p) => lower.includes(p));
-
-  let colorClass = "badge-slate";
-  let dotColor = "#64748b";
-
-  if (isRed) {
-    colorClass = "badge-red";
-    dotColor = "#ef4444";
-  } else if (isGreen) {
-    colorClass = "badge-green";
-    dotColor = "#10b981";
-  } else if (isBlue) {
-    colorClass = "badge-blue";
-    dotColor = "#3b82f6";
-  } else if (isOrange) {
-    colorClass = "badge-orange";
-    dotColor = "#f59e0b";
-  } else if (isSlate) {
-    colorClass = "badge-slate";
-    dotColor = "#94a3b8";
-  } else {
-    // Regular cell value without badge wrapper
-    return str;
-  }
-
-  return `<span class="badge ${colorClass}"><span class="badge-dot" style="background:${dotColor};"></span>${str}</span>`;
+  // Clean executive output without multi-color column noise
+  return str;
 }
 
 // ----------------------------------------------------------------------------
@@ -965,15 +916,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     printPadding = "3px 4.5px";
   }
 
-  // KPI Summary Cards
+  // KPI Summary Cards - Only rendered if explicitly requested (never by default)
   const kpiCards: ReportKpiCard[] =
-    opts.kpiCards && opts.kpiCards.length > 0
+    initialShowKpis && opts.kpiCards && opts.kpiCards.length > 0
       ? opts.kpiCards
-      : generateAutoKpis(activeTab, rows as Record<string, any>[], isArabic);
+      : (initialShowKpis ? generateAutoKpis(activeTab, rows as Record<string, any>[], isArabic) : []);
 
   // Generate KPI Cards HTML
-  const kpisHtml = kpiCards.length > 0
-    ? `<div class="kpi-grid" id="kpiGrid" style="grid-template-columns: repeat(${Math.min(kpiCards.length, 6)}, 1fr); ${initialShowKpis ? "" : "display: none !important;"}">
+  const kpisHtml = initialShowKpis && kpiCards.length > 0
+    ? `<div class="kpi-grid" id="kpiGrid" style="grid-template-columns: repeat(${Math.min(kpiCards.length, 6)}, 1fr);">
         ${kpiCards
           .map((kpi) => {
             const label = isArabic ? (kpi.labelAr || kpi.label) : kpi.label;
@@ -1337,12 +1288,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       line-height: 1.25;
     }
     th {
-      background: var(--primary);
+      background: #1e293b;
       color: #ffffff;
       font-weight: 800;
       font-size: ${baseFontSizePt}pt;
       letter-spacing: 0.1px;
-      border-color: #0f2a44;
+      border: 1px solid #334155;
       white-space: normal !important;
     }
     tr:nth-child(even) td {
@@ -1352,29 +1303,22 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       background: #f1f5f9;
     }
 
-    /* Badges */
+    /* Clean, minimal cell badges (Zero noisy multi-color backgrounds) */
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 7px;
-      border-radius: 12px;
-      font-size: 7.2pt;
-      font-weight: 700;
-      line-height: 1.2;
-      white-space: nowrap;
-    }
-    .badge-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
       display: inline-block;
+      font-size: inherit;
+      font-weight: 600;
+      color: #0f172a;
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
     }
-    .badge-green { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    .badge-red { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-    .badge-blue { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
-    .badge-orange { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
-    .badge-slate { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .badge-dot { display: none !important; }
+    .badge-green, .badge-red, .badge-blue, .badge-orange, .badge-slate {
+      background: transparent !important;
+      color: #0f172a !important;
+      border: none !important;
+    }
 
     /* Signatures Block */
     .sig-section {
@@ -1467,8 +1411,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         white-space: normal !important;
       }
       th {
-        background: #0f2a44 !important;
+        background: #1e293b !important;
         color: #ffffff !important;
+        border-color: #334155 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -1481,16 +1426,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       tfoot {
         display: table-footer-group !important;
       }
-      .badge {
-        white-space: normal !important;
-        word-break: break-word !important;
-        font-size: calc(${printFontSizePt}pt - 0.5pt) !important;
-        padding: 1px 4px !important;
+      .badge, .badge-green, .badge-red, .badge-blue, .badge-orange, .badge-slate {
+        background: transparent !important;
+        color: #000000 !important;
+        border: none !important;
+        padding: 0 !important;
       }
-      .badge-green { background: #dcfce7 !important; color: #15803d !important; -webkit-print-color-adjust: exact !important; }
-      .badge-red { background: #fee2e2 !important; color: #b91c1c !important; -webkit-print-color-adjust: exact !important; }
-      .badge-blue { background: #dbeafe !important; color: #1d4ed8 !important; -webkit-print-color-adjust: exact !important; }
-      .badge-orange { background: #fef3c7 !important; color: #b45309 !important; -webkit-print-color-adjust: exact !important; }
+      .badge-dot { display: none !important; }
       .kpi-card { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       tr:nth-child(even) td { background: #f8fafc !important; -webkit-print-color-adjust: exact !important; }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -1674,8 +1616,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 </body>
 </html>`;
 
-  // Open Preview Window
-  const printWindow = window.open("", "_blank", "width=1200,height=900,menubar=no,toolbar=no,status=no");
+  // Open in a real standalone browser tab (zero constrained popup dimensions)
+  const printWindow = window.open("", "_blank");
   if (!printWindow) {
     // Fallback if popups are blocked: Trigger download of standalone HTML report
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });

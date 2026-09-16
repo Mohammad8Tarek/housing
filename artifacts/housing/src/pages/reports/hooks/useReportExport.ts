@@ -203,6 +203,7 @@ export function useReportExport({
           [ar ? "الهاتف" : "Phone"]: e.phone,
           [ar ? "الجنسية" : "Nationality"]: e.nationality,
           [ar ? "الجنس" : "Gender"]: e.gender,
+          [ar ? "تاريخ الميلاد" : "Date of Birth"]: e.dateOfBirth,
           [ar ? "القسم" : "Department"]: e.department,
           [ar ? "الوظيفة" : "Job Title"]: e.jobTitle,
           [ar ? "الدرجة" : "Level"]: e.level,

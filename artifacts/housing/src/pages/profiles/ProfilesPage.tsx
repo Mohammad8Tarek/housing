@@ -376,7 +376,7 @@ export function ProfilesPage() {
     { key: "title", label: "Job Title only", labelAr: "المسمى الوظيفي فقط", defaultVisible: false },
     { key: "level", label: "Level only", labelAr: "الدرجة فقط", defaultVisible: false },
     { key: "companyName", label: "Company only", labelAr: "الشركة فقط", defaultVisible: false },
-    { key: "dateOfBirth", label: "Date of Birth", labelAr: "تاريخ الميلاد", defaultVisible: false },
+    { key: "dateOfBirth", label: "Date of Birth", labelAr: "تاريخ الميلاد", defaultVisible: true },
     { key: "address", label: "Address", labelAr: "العنوان", defaultVisible: false },
     { key: "hiredate", label: "Hire Date only", labelAr: "تاريخ التعيين فقط", defaultVisible: false },
     { key: "contractEndDate", label: "Contract End only", labelAr: "انتهاء العقد فقط", defaultVisible: false },
@@ -919,6 +919,12 @@ export function ProfilesPage() {
                             <span className="text-muted-foreground/60 text-xs">—</span>
                           ) : (
                             <div className="flex flex-col gap-0.5">
+                              {emp.dateOfBirth && (
+                                <span className="text-muted-foreground text-[11px]">
+                                  <span>{ar ? "الميلاد: " : "DOB: "}</span>
+                                  <span className="text-foreground">{formatDate(emp.dateOfBirth)}</span>
+                                </span>
+                              )}
                               {emp.hireDate && (
                                 <span className="text-foreground">
                                   <span className="text-muted-foreground text-[11px]">{ar ? "التعيين: " : "Hire: "}</span>

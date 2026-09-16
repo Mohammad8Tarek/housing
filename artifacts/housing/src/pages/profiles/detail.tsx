@@ -747,6 +747,11 @@ export default function ProfileDetail() {
             : emp.gender,
     },
     {
+      icon: <Calendar className="w-4 h-4 text-purple-500" />,
+      label: ar ? "تاريخ الميلاد" : "Date of Birth",
+      value: emp.dateOfBirth ? formatDate(emp.dateOfBirth) : null,
+    },
+    {
       icon: <Briefcase className="w-4 h-4" />,
       label: ar ? "القسم" : "Department",
       value: emp.employmentType === "THIRD_PARTY" ? null : getProfileDisplayDepartment(emp, ar),

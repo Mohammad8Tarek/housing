@@ -137,6 +137,7 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
     { key: "phone", label: "Phone", labelAr: "الهاتف" },
     { key: "nationality", label: "Nationality", labelAr: "الجنسية" },
     { key: "gender", label: "Gender", labelAr: "الجنس" },
+    { key: "dateOfBirth", label: "Date of Birth", labelAr: "تاريخ الميلاد" },
     { key: "department", label: "Department", labelAr: "القسم" },
     { key: "jobTitle", label: "Job Title", labelAr: "الوظيفة" },
     { key: "level", label: "Level", labelAr: "الدرجة" },
