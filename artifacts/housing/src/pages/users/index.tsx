@@ -158,9 +158,44 @@ export default function UsersPage() {
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
 
-  const isUserLocked = (u: any) => u.status === "LOCKED";
+  const [unlockingUserId, setUnlockingUserId] = useState<number | null>(null);
 
+  const isUserLocked = (u: any) => {
+    const st = String(u.status || "").toUpperCase();
+    return st === "LOCKED" || Boolean(u.lockedUntil && new Date(u.lockedUntil) > new Date());
+  };
 
+  const isUserActive = (u: any) => {
+    if (isUserLocked(u)) return false;
+    const st = String(u.status || "").toUpperCase();
+    return st === "ACTIVE" || st === "";
+  };
+
+  const handleUnlockUser = async (u: any) => {
+    if (!u?.id) return;
+    setUnlockingUserId(u.id);
+    try {
+      const res = await fetch(`/api/users/${u.id}/unlock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || (ar ? "فشل فتح قفل الحساب" : "Failed to unlock user"));
+      }
+      toast.success(
+        ar
+          ? `تم فتح قفل حساب ${u.username} بنجاح وإعادة تفعيله`
+          : `User ${u.username} unlocked and reactivated successfully`
+      );
+      invalidate();
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || (ar ? "فشل فتح قفل الحساب" : "Failed to unlock user"));
+    } finally {
+      setUnlockingUserId(null);
+    }
+  };
 
   // ── Optimized Stats (Single Pass across all accounts) ──
   const stats = useMemo(() => {
@@ -182,9 +217,13 @@ export default function UsersPage() {
       customPermissionTotal: 0,
     };
     for (const u of all) {
-      if (u.status === "ACTIVE") s.active++;
-      if (u.status === "LOCKED") s.locked++;
-      if (u.status === "INACTIVE") s.inactive++;
+      if (isUserLocked(u)) {
+        s.locked++;
+      } else if (isUserActive(u)) {
+        s.active++;
+      } else {
+        s.inactive++;
+      }
       if (u.jobTitle && u.jobTitle !== "none") s.workflowUsers++;
       if (u.jobTitle && u.jobTitle !== "none" && u.hasSignature) s.signedWorkflowUsers++;
       if ((u.permissions || []).length > 0) {
@@ -1323,30 +1362,27 @@ export default function UsersPage() {
                       )}
                       {isUVisible("status") && (
                         <TableCell>
-                          <div className="space-y-1">
+                          <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
-                              {u.status === "LOCKED" ? (
+                              {isUserLocked(u) ? (
                                 <>
                                   <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                                   <span className="text-xs font-semibold text-red-600 dark:text-red-400">
                                     {ar ? "مقفول" : "Locked"}
                                   </span>
                                 </>
+                              ) : isUserActive(u) ? (
+                                <>
+                                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                  <span className="text-xs font-semibold text-green-700 dark:text-green-400">
+                                    {ar ? "نشط" : "Active"}
+                                  </span>
+                                </>
                               ) : (
                                 <>
-                                  <div
-                                    className={`w-2 h-2 rounded-full ${u.status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
-                                  />
-                                  <span
-                                    className={`text-xs font-semibold ${u.status === "ACTIVE" ? "text-green-700 dark:text-green-400" : "text-gray-500"}`}
-                                  >
-                                    {u.status === "ACTIVE"
-                                      ? ar
-                                        ? "نشط"
-                                        : "Active"
-                                      : ar
-                                        ? "غير نشط"
-                                        : "Inactive"}
+                                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                                  <span className="text-xs font-semibold text-gray-500">
+                                    {ar ? "غير نشط" : "Inactive"}
                                   </span>
                                 </>
                               )}
@@ -1371,19 +1407,64 @@ export default function UsersPage() {
                                 {new Date(u.lockedUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </span>
                             )}
+
+                            {/* Quick 1-Click Unlock button right in status cell */}
+                            {isUserLocked(u) && (
+                              <PermissionGate module="users" action="unlock">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={unlockingUserId === u.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUnlockUser(u);
+                                  }}
+                                  className="h-6 px-2 text-[11px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 rounded-md gap-1 shadow-none"
+                                  title={ar ? "فك قفل الحساب فوراً" : "Unlock account now"}
+                                >
+                                  {unlockingUserId === u.id ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin text-amber-600" />
+                                  ) : (
+                                    <Unlock className="w-3 h-3 text-amber-600" />
+                                  )}
+                                  <span>{ar ? "فك القفل" : "Unlock"}</span>
+                                </Button>
+                              </PermissionGate>
+                            )}
                           </div>
                         </TableCell>
                       )}
                       {isUVisible("actions") && (
                         <TableCell>
                           <div className="flex items-center gap-1">
+                            {/* Standalone Quick Unlock for Locked Users */}
+                            {isUserLocked(u) && (
+                              <PermissionGate module="users" action="unlock">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 rounded-lg gap-1.5 transition-all shadow-sm"
+                                  onClick={() => handleUnlockUser(u)}
+                                  disabled={unlockingUserId === u.id}
+                                  title={ar ? "فك قفل الحساب وإعادة تفعيله" : "Unlock Account and Reactivate"}
+                                >
+                                  {unlockingUserId === u.id ? (
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Unlock className="w-3.5 h-3.5" />
+                                  )}
+                                  <span className="hidden md:inline">{ar ? "فك القفل" : "Unlock"}</span>
+                                </Button>
+                              </PermissionGate>
+                            )}
+
                             <PermissionGate module="users" action="manage_permissions">
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-[#C9A24D] hover:bg-[#C9A24D]/10 rounded-lg transition-colors"
                                 onClick={() => openUserSheet(u, "permissions")}
-                                title={ar ? "إدارة الصلاحيات" : "Manage Permissions"}
+                                title={ar ? "صلاحيات المستخدم" : "Manage Permissions"}
                               >
                                 <Shield className="w-4 h-4 text-[#C9A24D]" />
                               </Button>
@@ -1398,7 +1479,8 @@ export default function UsersPage() {
                                   <MoreVertical className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuContent align="end" className="w-56">
+                              {/* 1. Edit Profile & Security */}
                               <PermissionGate module="users" action="edit">
                                 <DropdownMenuItem
                                   onClick={() => openUserSheet(u, "profile")}
@@ -1410,6 +1492,8 @@ export default function UsersPage() {
                                   </span>
                                 </DropdownMenuItem>
                               </PermissionGate>
+
+                              {/* 2. User Permissions */}
                               <PermissionGate module="users" action="manage_permissions">
                                 <DropdownMenuItem
                                   onClick={() => openUserSheet(u, "permissions")}
@@ -1417,33 +1501,12 @@ export default function UsersPage() {
                                 >
                                   <Shield className="w-4 h-4 me-2 text-[#C9A24D]" />
                                   <span>
-                                    {ar ? "صلاحيات المستخدم الذكية" : "Smart Capabilities Drawer"}
-                                  </span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setMatrixTargetUserId(u.id);
-                                    setActiveMainTab("matrix");
-                                  }}
-                                  className="cursor-pointer text-[#C9A24D] font-medium"
-                                >
-                                  <ShieldCheck className="w-4 h-4 me-2 text-[#C9A24D]" />
-                                  <span>
-                                    {ar ? "مركز الصلاحيات الشامل" : "Full Permissions Center"}
+                                    {ar ? "صلاحيات المستخدم" : "User Permissions"}
                                   </span>
                                 </DropdownMenuItem>
                               </PermissionGate>
-                              {(isSuperAdmin || can("users", "edit") || u.id === currentUser?.id) && (
-                                <DropdownMenuItem
-                                  onClick={() => openUserSheet(u, "signature")}
-                                  className="cursor-pointer"
-                                >
-                                  <Upload className="w-4 h-4 me-2 text-slate-600" />
-                                  <span>
-                                    {ar ? "رفع / تعديل التوقيع" : "Manage Signature"}
-                                  </span>
-                                </DropdownMenuItem>
-                              )}
+
+                              {/* 3. Authorized Properties */}
                               {(isSuperAdmin || can("users", "edit") || can("users", "manage_permissions")) &&
                                 u.roles?.[0] !== "super_admin" && (
                                   <DropdownMenuItem
@@ -1452,44 +1515,70 @@ export default function UsersPage() {
                                   >
                                     <Building2 className="w-4 h-4 me-2 text-green-600" />
                                     <span>
-                                      {ar ? "تعديل الفروع المصرحة" : "Authorized Properties"}
+                                      {ar ? "الفنادق المصرح بها" : "Authorized Properties"}
                                     </span>
                                   </DropdownMenuItem>
                                 )}
-                              <PermissionGate module="users" action="reset_password">
+
+                              {/* 4. Digital Signature */}
+                              {(isSuperAdmin || can("users", "edit") || u.id === currentUser?.id) && (
                                 <DropdownMenuItem
-                                  onClick={() => openUserSheet(u, "profile")}
+                                  onClick={() => openUserSheet(u, "signature")}
                                   className="cursor-pointer"
                                 >
-                                  <KeyRound className="w-4 h-4 me-2 text-blue-500" />
+                                  <Upload className="w-4 h-4 me-2 text-slate-600" />
                                   <span>
-                                    {ar
-                                      ? "إعادة تعيين كلمة المرور"
-                                      : "Reset Password"}
+                                    {ar ? "التوقيع الإلكتروني" : "Digital Signature"}
+                                  </span>
+                                </DropdownMenuItem>
+                              )}
+
+                              {/* 5. View in Full Matrix */}
+                              <PermissionGate module="users" action="manage_permissions">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setMatrixTargetUserId(u.id);
+                                    setActiveMainTab("matrix");
+                                  }}
+                                  className="cursor-pointer text-muted-foreground hover:text-foreground"
+                                >
+                                  <ShieldCheck className="w-4 h-4 me-2 text-[#C9A24D]" />
+                                  <span>
+                                    {ar ? "عرض في مصفوفة الصلاحيات" : "View in Full Matrix"}
                                   </span>
                                 </DropdownMenuItem>
                               </PermissionGate>
+
+                              {/* 6. Instant Unlock Account (when locked) */}
                               {isUserLocked(u) && (
                                 <PermissionGate module="users" action="unlock">
+                                  <DropdownMenuSeparator />
                                   <DropdownMenuItem
-                                    onClick={() => openUserSheet(u, "profile")}
-                                    className="cursor-pointer font-medium text-amber-600 dark:text-amber-400"
+                                    onClick={() => handleUnlockUser(u)}
+                                    disabled={unlockingUserId === u.id}
+                                    className="cursor-pointer font-medium text-amber-600 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-950/20"
                                   >
-                                    <Unlock className="w-4 h-4 me-2" />
+                                    {unlockingUserId === u.id ? (
+                                      <RefreshCw className="w-4 h-4 me-2 animate-spin" />
+                                    ) : (
+                                      <Unlock className="w-4 h-4 me-2" />
+                                    )}
                                     <span>
-                                      {ar ? "فتح قفل الحساب فوراً" : "Instant Unlock Account"}
+                                      {ar ? "فك قفل الحساب فوراً" : "Instant Unlock Account"}
                                     </span>
                                   </DropdownMenuItem>
                                 </PermissionGate>
                               )}
+
                               <DropdownMenuSeparator />
+                              {/* 7. Delete User */}
                               <PermissionGate module="users" action="delete">
                                 <DropdownMenuItem
                                   onClick={() => setDeleteUser(u)}
                                   disabled={
                                     u.username === currentUser?.username
                                   }
-                                  className="cursor-pointer text-red-600 dark:text-red-400"
+                                  className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-700"
                                 >
                                   <Trash className="w-4 h-4 me-2" />
                                   <span>

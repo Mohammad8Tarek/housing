@@ -40,6 +40,18 @@ function isSystemAdminRoles(roles: string[]): boolean {
   );
 }
 
+/** Standardizes user status to uppercase enum: 'ACTIVE' | 'INACTIVE' | 'LOCKED' */
+function normalizeUserStatus(
+  rawStatus: any,
+  lockedUntil: any,
+): "ACTIVE" | "INACTIVE" | "LOCKED" {
+  if (lockedUntil && new Date(lockedUntil) > new Date()) return "LOCKED";
+  const upper = rawStatus ? String(rawStatus).trim().toUpperCase() : "ACTIVE";
+  if (upper === "LOCKED") return "LOCKED";
+  if (upper === "INACTIVE") return "INACTIVE";
+  return "ACTIVE";
+}
+
 function requireUserUpdatePermission(req: any, res: any, next: any): void {
   const guards: any[] = [];
   if (
@@ -128,17 +140,29 @@ router.get(
     }
 
     if (status && status !== "all") {
-      if (status === "LOCKED") {
-        filters.push(sql`${usersTable.lockedUntil} > NOW()`);
-      } else if (status === "ACTIVE") {
+      const normStatus = String(status).toUpperCase();
+      if (normStatus === "LOCKED") {
         filters.push(
           or(
-            eq(usersTable.status, "ACTIVE"),
-            sql`${usersTable.status} IS NULL`
+            sql`${usersTable.lockedUntil} > NOW()`,
+            sql`UPPER(${usersTable.status}) = 'LOCKED'`
+          )
+        );
+      } else if (normStatus === "ACTIVE") {
+        filters.push(
+          and(
+            or(
+              sql`UPPER(${usersTable.status}) = 'ACTIVE'`,
+              sql`${usersTable.status} IS NULL`
+            ),
+            or(
+              sql`${usersTable.lockedUntil} IS NULL`,
+              sql`${usersTable.lockedUntil} <= NOW()`
+            )
           )
         );
       } else {
-        filters.push(eq(usersTable.status, status));
+        filters.push(sql`UPPER(${usersTable.status}) = ${normStatus}`);
       }
     }
 
@@ -167,10 +191,7 @@ router.get(
 
     const summary = summaryRows.reduce(
       (acc, u: any) => {
-        const status =
-          u.locked_until && new Date(u.locked_until) > new Date()
-            ? "LOCKED"
-            : u.status || "ACTIVE";
+        const status = normalizeUserStatus(u.status, u.locked_until);
         const roles = u.roles ?? [];
         const permissions = u.permissions ?? [];
 
@@ -247,10 +268,7 @@ router.get(
       roles: u.roles ?? [],
       permissions: u.permissions ?? [],
       hasSignature: !!u.has_signature,
-      status:
-        u.locked_until && new Date(u.locked_until) > new Date()
-          ? "LOCKED"
-          : u.status || "ACTIVE",
+      status: normalizeUserStatus(u.status, u.locked_until),
       failedLoginAttempts: u.failed_login_attempts ?? 0,
       lockedUntil: u.locked_until ?? null,
       createdAt: u.created_at,
@@ -325,7 +343,7 @@ router.get(
       permissions: user.permissions ?? [],
       hasSignature: !!user.hasSignature,
       signatureImageUrl: user.signatureImageUrl ?? null,
-      status: user.status || "active",
+      status: normalizeUserStatus(user.status, user.lockedUntil),
       createdAt: user.createdAt,
       failedLoginAttempts: user.failedLoginAttempts ?? 0,
       lockedUntil: user.lockedUntil,
@@ -465,6 +483,13 @@ router.patch(
       return;
     }
     let extraData: any = {};
+    if (updateData.status) {
+      updateData.status = String(updateData.status).toUpperCase();
+      if (updateData.status === "ACTIVE") {
+        extraData.failedLoginAttempts = 0;
+        extraData.lockedUntil = null;
+      }
+    }
     if (password && typeof password === "string" && password.trim().length > 0) {
       const cleanPassword = password.trim();
       // ─── Validate password against policy ───────────────────────────
@@ -590,7 +615,7 @@ router.post(
     }
 
     await pool.query(
-      `UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = $1`,
+      `UPDATE users SET failed_login_attempts = 0, locked_until = NULL, status = 'ACTIVE' WHERE id = $1`,
       [id],
     );
 

@@ -122,7 +122,7 @@ export function EditUserDialog({
     username: user.username || "",
     email: user.email || "",
     phone: user.phone || "",
-    status: (user.status || "ACTIVE") as "ACTIVE" | "INACTIVE" | "LOCKED",
+    status: (String(user.status || "ACTIVE").toUpperCase()) as "ACTIVE" | "INACTIVE" | "LOCKED",
     role: user.roles?.[0] || "manager",
     jobTitle: user.jobTitle || "none",
     propertyId: initialPrimaryPropertyId,
@@ -147,7 +147,7 @@ export function EditUserDialog({
 
   // Lockout state handling
   const isInitiallyLocked =
-    user.status === "LOCKED" ||
+    String(user.status || "").toUpperCase() === "LOCKED" ||
     Boolean(user.lockedUntil && new Date(user.lockedUntil) > new Date());
   const [isLockedState, setIsLockedState] = useState(isInitiallyLocked);
   const [isUnlocking, setIsUnlocking] = useState(false);

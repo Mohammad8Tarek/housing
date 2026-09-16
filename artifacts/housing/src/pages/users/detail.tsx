@@ -248,7 +248,7 @@ export default function UserDetailPage() {
     setJobTitle(user.jobTitle || "");
     const r = (user.roles?.[0] || "user").toLowerCase();
     setPrimaryRole(r);
-    setIsActive(user.status !== "inactive");
+    setIsActive(String(user.status || "").toUpperCase() !== "INACTIVE");
 
     const pids = user.propertyIds?.length
       ? user.propertyIds
@@ -289,9 +289,11 @@ export default function UserDetailPage() {
 
   // Is account locked check
   const isLocked = useMemo(() => {
+    const st = String(user?.status || "").toUpperCase();
+    if (st === "LOCKED") return true;
     if (!user?.lockedUntil) return false;
     return new Date(user.lockedUntil) > new Date();
-  }, [user?.lockedUntil]);
+  }, [user?.status, user?.lockedUntil]);
 
   const lockoutRemainingMinutes = useMemo(() => {
     if (!isLocked || !user?.lockedUntil) return 0;
@@ -556,7 +558,7 @@ export default function UserDetailPage() {
       phone: phone || null,
       jobTitle: jobTitle || null,
       roles: [primaryRole],
-      status: isActive ? "active" : "inactive",
+      status: isActive ? "ACTIVE" : "INACTIVE",
       propertyIds: selectedPropertyIds,
       propertyId: primaryPropertyId || selectedPropertyIds[0] || null,
     };
