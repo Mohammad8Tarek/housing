@@ -585,15 +585,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 : user?.roles?.[0]?.replace(/_/g, " ")}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => logoutMutation.mutate()}
-            className="h-8 w-8 min-h-[32px] min-w-[32px] text-red-400 hover:text-red-300 hover:bg-red-500/20"
-            title={ar ? "تسجيل الخروج" : "Logout"}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
         </div>
       </div>
     </div>
