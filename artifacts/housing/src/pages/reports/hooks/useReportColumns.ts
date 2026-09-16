@@ -86,7 +86,8 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
   ],
   assignments: [
     { key: "profileCode", label: "Employee Code", labelAr: "كود الموظف", fixed: true },
-    { key: "fullName", label: "Full Name", labelAr: "الاسم", fixed: true },
+    { key: "fullName", label: "Full Name", labelAr: "الاسم بالكامل (ثلاثي)", fixed: true },
+    { key: "thirdName", label: "Third Name", labelAr: "الاسم الثالث" },
     { key: "employmentType", label: "Employment Type", labelAr: "نوع التوظيف" },
     { key: "companyName", label: "Company", labelAr: "الشركة" },
     { key: "roomNumber", label: "Room No", labelAr: "رقم الغرفة" },
@@ -137,9 +138,11 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
   ],
   profiles: [
     { key: "profileCode", label: "Employee Code", labelAr: "كود الموظف", fixed: true },
-    { key: "fullName", label: "Full Name", labelAr: "الاسم", fixed: true },
+    { key: "fullName", label: "Full Name", labelAr: "الاسم بالكامل (ثلاثي)", fixed: true },
     { key: "firstName", label: "First Name", labelAr: "الاسم الأول" },
-    { key: "lastName", label: "Last Name", labelAr: "الاسم الأخير" },
+    { key: "lastName", label: "Second Name", labelAr: "الاسم الثاني" },
+    { key: "thirdName", label: "Third Name", labelAr: "الاسم الثالث" },
+    { key: "fourthName", label: "Fourth Name", labelAr: "الاسم الرابع" },
     { key: "employmentType", label: "Employment Type", labelAr: "نوع التوظيف" },
     { key: "companyName", label: "Company", labelAr: "الشركة" },
     { key: "nationalId", label: "National ID", labelAr: "الرقم القومي" },
@@ -249,7 +252,8 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
   ],
   police_report: [
     { key: "profileCode", label: "Employee Code", labelAr: "كود الموظف", fixed: true },
-    { key: "fullName", label: "Full Name", labelAr: "الاسم بالكامل", fixed: true },
+    { key: "fullName", label: "Full Name", labelAr: "الاسم بالكامل (ثلاثي)", fixed: true },
+    { key: "thirdName", label: "Third Name", labelAr: "الاسم الثالث" },
     { key: "nationalId", label: "National ID", labelAr: "الرقم القومي", fixed: true },
     { key: "nationality", label: "Nationality", labelAr: "الجنسية" },
     { key: "dateOfBirth", label: "Date of Birth", labelAr: "تاريخ الميلاد" },

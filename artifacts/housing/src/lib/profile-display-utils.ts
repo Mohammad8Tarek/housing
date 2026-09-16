@@ -31,14 +31,14 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
   const fourthNameAr = profile.fourthNameAr || profile.fourth_name_ar || "";
 
   if (ar) {
-    // 1. Primary: Arabic fields
-    const arTokens = [firstNameAr, thirdNameAr, lastNameAr, fourthNameAr].filter(Boolean);
+    // 1. Primary: Arabic fields (الاسم الأول + الثاني + الثالث + الرابع)
+    const arTokens = [firstNameAr, lastNameAr, thirdNameAr, fourthNameAr].filter(Boolean);
     if (arTokens.length > 0) {
       return arTokens.join(" ").trim();
     }
 
     // 2. Fallback: Check if default name is already Arabic
-    const defaultTokens = [firstName, thirdName, lastName, fourthName].filter(Boolean);
+    const defaultTokens = [firstName, lastName, thirdName, fourthName].filter(Boolean);
     const defaultJoined = defaultTokens.join(" ").trim();
     if (hasArabicCharacters(defaultJoined)) {
       return defaultJoined;
@@ -51,8 +51,8 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
 
     return "—";
   } else {
-    // 1. Primary: English default fields
-    const enTokens = [firstName, thirdName, lastName, fourthName].filter(Boolean);
+    // 1. Primary: English default fields (First + Second + Third + Fourth)
+    const enTokens = [firstName, lastName, thirdName, fourthName].filter(Boolean);
     const enJoined = enTokens.join(" ").trim();
 
     if (enJoined && hasEnglishCharacters(enJoined)) {
@@ -60,7 +60,7 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
     }
 
     // 2. Fallback: If English has Arabic characters or is empty, check Arabic fields and transliterate to English
-    const arTokens = [firstNameAr, thirdNameAr, lastNameAr, fourthNameAr].filter(Boolean);
+    const arTokens = [firstNameAr, lastNameAr, thirdNameAr, fourthNameAr].filter(Boolean);
     const arJoined = arTokens.length > 0 ? arTokens.join(" ").trim() : enJoined;
 
     if (arJoined) {

@@ -204,6 +204,7 @@ export function ReportTable({
             {activeTab === "assignments" && (
               <>
                 {isVis("fullName") && H("fullName", ar ? "الموظف / المقيم" : "Occupant / Profile")}
+                {isVis("thirdName") && H("thirdName", ar ? "الاسم الثالث" : "Third Name")}
                 {isVis("employmentType") && H("employmentType", ar ? "نوع التوظيف" : "Employment")}
                 {isVis("roomNumber") && H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {isVis("buildingName") && H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
@@ -259,6 +260,10 @@ export function ReportTable({
             {activeTab === "profiles" && (
               <>
                 {isVis("fullName") && H("fullName", ar ? "كود والاسم" : "Code & Name")}
+                {isVis("firstName") && H("firstName", ar ? "الاسم الأول" : "First Name")}
+                {isVis("lastName") && H("lastName", ar ? "الاسم الثاني" : "Second Name")}
+                {isVis("thirdName") && H("thirdName", ar ? "الاسم الثالث" : "Third Name")}
+                {isVis("fourthName") && H("fourthName", ar ? "الاسم الرابع" : "Fourth Name")}
                 {isVis("employmentType") && H("employmentType", ar ? "النوع والشركة" : "Employment & Company")}
                 {isVis("nationalId") && H("nationalId", ar ? "الرقم القومي" : "National ID")}
                 {isVis("phone") && H("phone", ar ? "الهاتف" : "Phone")}
@@ -416,6 +421,7 @@ export function ReportTable({
               <>
                 {isVis("profileCode") && H("profileCode", ar ? "كود الموظف" : "Code")}
                 {isVis("fullName") && H("fullName", ar ? "الاسم بالكامل" : "Full Name")}
+                {isVis("thirdName") && H("thirdName", ar ? "الاسم الثالث" : "Third Name")}
                 {isVis("nationalId") && H("nationalId", ar ? "الرقم القومي" : "National ID")}
                 {isVis("nationality") && H("nationality", ar ? "الجنسية" : "Nationality")}
                 {isVis("dateOfBirth") && H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth")}
@@ -762,6 +768,7 @@ export function ReportTable({
                         </div>
                       </TableCell>
                     )}
+                    {isVis("thirdName") && <TableCell className="text-xs font-medium">{row.thirdName}</TableCell>}
                     {isVis("employmentType") && (
                       <TableCell>
                         {row.employmentType === "THIRD_PARTY" ? (
@@ -943,6 +950,10 @@ export function ReportTable({
                         </div>
                       </TableCell>
                     )}
+                    {isVis("firstName") && <TableCell className="text-xs">{row.firstName}</TableCell>}
+                    {isVis("lastName") && <TableCell className="text-xs">{row.lastName}</TableCell>}
+                    {isVis("thirdName") && <TableCell className="text-xs font-medium">{row.thirdName}</TableCell>}
+                    {isVis("fourthName") && <TableCell className="text-xs">{row.fourthName}</TableCell>}
                     {isVis("employmentType") && (
                       <TableCell>
                         {row.employmentType === "THIRD_PARTY" ? (
@@ -1499,6 +1510,7 @@ export function ReportTable({
                   <>
                     {isVis("profileCode") && <TableCell className="text-xs font-mono font-semibold">{row.profileCode}</TableCell>}
                     {isVis("fullName") && <TableCell className="text-xs font-bold text-foreground">{row.fullName}</TableCell>}
+                    {isVis("thirdName") && <TableCell className="text-xs font-medium">{row.thirdName}</TableCell>}
                     {isVis("nationalId") && <TableCell className="text-xs font-mono font-medium">{row.nationalId}</TableCell>}
                     {isVis("nationality") && <TableCell className="text-xs">{row.nationality}</TableCell>}
                     {isVis("dateOfBirth") && <TableCell className="text-xs font-mono">{row.dateOfBirth}</TableCell>}
