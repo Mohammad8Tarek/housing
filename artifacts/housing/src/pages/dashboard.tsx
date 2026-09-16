@@ -35,6 +35,8 @@ import {
   Activity,
   BarChart3,
   RefreshCw,
+  DoorOpen,
+  Home,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
@@ -73,7 +75,6 @@ import { BuildingCapacityMatrix } from "./dashboard/components/BuildingCapacityM
 import { HousekeepingPriorityQueue } from "./dashboard/components/HousekeepingPriorityQueue";
 import { DailyOperationsHub } from "./dashboard/components/DailyOperationsHub";
 import { QuickAssistBar } from "./dashboard/components/QuickAssistTab";
-import { HousingStructureExplorer } from "./dashboard/components/HousingStructureExplorer";
 
 function AnimatedNumber({ value }: { value: string | number }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -204,10 +205,29 @@ export default function Dashboard() {
     { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } },
   );
 
-  const { data: activity } = useGetRecentActivity(
-    { propertyId: isAll ? 0 : activePropertyId! },
-    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } },
-  );
+  const { data: housingBreakdown } = useQuery({
+    queryKey: ["/api/dashboard/housing-breakdown", isAll ? 0 : activePropertyId!],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/dashboard/housing-breakdown?propertyId=${isAll ? 0 : activePropertyId!}`,
+      );
+      if (!res.ok) throw new Error("Failed to load housing breakdown");
+      return res.json();
+    },
+    enabled: !isAll && !!activePropertyId,
+    refetchInterval: 15000,
+  });
+
+  const ribbonSummary = housingBreakdown?.summary || {
+    totalBuildings: occupancy?.length ?? 0,
+    totalFloors: 0,
+    totalRooms: stats?.totalRooms ?? 0,
+    occupiedRooms: stats?.occupiedRooms ?? 0,
+    totalBeds: stats?.totalBeds ?? 0,
+    occupiedBeds: stats?.occupiedBeds ?? 0,
+    availableBeds: stats?.availableBeds ?? 0,
+    bedOccupancyRate: stats?.bedOccupancyRate ?? 0,
+  };
 
   const totals = allStats?.totals;
   const perProperty = allStats?.perProperty ?? [];
@@ -519,6 +539,111 @@ export default function Dashboard() {
           maintenance={analytics?.roomStatusBreakdown?.maintenance ?? stats?.openMaintenance ?? 0}
           cleanRate={analytics?.turnoverHealth?.cleanRate}
         />
+      )}
+
+      {/* Live Housing Capacity Ribbon (Matching exact design under Readiness Tracker) */}
+      {!isAll && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+          {/* 1. Buildings */}
+          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                {ar ? "المباني" : "BUILDINGS"}
+              </span>
+              <span className="text-xl font-black text-foreground font-mono leading-tight">
+                {ribbonSummary.totalBuildings}
+              </span>
+            </div>
+          </div>
+
+          {/* 2. Floors */}
+          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                {ar ? "الأدوار" : "FLOORS"}
+              </span>
+              <span className="text-xl font-black text-foreground font-mono leading-tight">
+                {ribbonSummary.totalFloors}
+              </span>
+            </div>
+          </div>
+
+          {/* 3. Total Rooms */}
+          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Home className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                {ar ? "إجمالي الغرف" : "TOTAL ROOMS"}
+              </span>
+              <div className="flex items-baseline gap-1.5 leading-tight">
+                <span className="text-xl font-black text-foreground font-mono">
+                  {ribbonSummary.totalRooms}
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground font-mono">
+                  ({ribbonSummary.occupiedRooms} {ar ? "مشغولة" : "occ"})
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Bed Capacity */}
+          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <BedDouble className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                {ar ? "سعة الأسرة" : "BED CAPACITY"}
+              </span>
+              <span className="text-xl font-black text-foreground font-mono leading-tight">
+                {ribbonSummary.totalBeds}
+              </span>
+            </div>
+          </div>
+
+          {/* 5. Occupied Beds */}
+          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                {ar ? "الأسرة المشغولة" : "OCCUPIED BEDS"}
+              </span>
+              <div className="flex items-baseline gap-1.5 leading-tight">
+                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                  {ribbonSummary.occupiedBeds}
+                </span>
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                  ({ribbonSummary.bedOccupancyRate}%)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. Vacant Beds */}
+          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+              <DoorOpen className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                {ar ? "الأسرة الشاغرة" : "VACANT BEDS"}
+              </span>
+              <span className="text-xl font-black text-teal-600 dark:text-teal-400 font-mono leading-tight">
+                {ribbonSummary.availableBeds ?? (ribbonSummary.totalBeds - ribbonSummary.occupiedBeds)}
+              </span>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Per-Property Table (only in 'all' mode) */}
@@ -853,69 +978,6 @@ export default function Dashboard() {
           />
         );
 
-        const activityNode = (
-          <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <div>
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-primary" />
-                  {ar ? "سجل العمليات الأخير" : "Recent System Activity"}
-                </CardTitle>
-                <CardDescription className="text-xs mt-0.5">
-                  {ar ? "آخر الحركات والتحديثات المنفذة في النظام" : "Live stream of administrative actions"}
-                </CardDescription>
-              </div>
-              <Link href={buildNavHref("/activity-log")}>
-                <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent gap-1 py-1">
-                  {ar ? "السجل الكامل" : "Full Log"} <ArrowRight className="w-3 h-3" />
-                </Badge>
-              </Link>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-auto space-y-2.5 max-h-[300px]">
-              {activity && activity.length > 0 ? (
-                activity.slice(0, 6).map((act: any, i: number) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 text-sm py-2 px-2 rounded-lg border-b border-border/40 last:border-0 hover:bg-muted/40 transition-colors"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-bold text-primary">
-                        {act.username?.[0]?.toUpperCase() ?? "?"}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-foreground text-xs">{act.username}</span>
-                        <span className="text-muted-foreground text-xs">· {act.action}</span>
-                        {act.module && (
-                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4">
-                            {act.module}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0 font-mono">
-                      {act.timestamp ? formatDate(act.timestamp) : ""}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="h-full min-h-[140px] flex items-center justify-center text-muted-foreground text-sm flex-col gap-2 pt-4">
-                  <Activity className="w-8 h-8 opacity-20" />
-                  <p>{ar ? "لا توجد حركات مسجلة مؤخراً" : "No recent activity recorded"}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-
-        const housingStructureNode = (
-          <HousingStructureExplorer
-            propertyId={activePropertyId}
-            buildNavHref={buildNavHref}
-          />
-        );
-
         return (
           <>
             {/* Mode 1: Comprehensive Full Overview */}
@@ -928,12 +990,8 @@ export default function Dashboard() {
                 </div>
                 {chartsNode}
                 {matrixNode}
-                {housingStructureNode}
                 {operationsHubNode}
-                <div className="grid gap-5 md:grid-cols-2">
-                  {housekeepingNode}
-                  {activityNode}
-                </div>
+                {housekeepingNode}
               </div>
             )}
 
@@ -941,15 +999,11 @@ export default function Dashboard() {
             {dashboardViewMode === "operations" && (
               <div className="space-y-6">
                 {operationsHubNode}
-                {housingStructureNode}
                 <div className="grid gap-5 md:grid-cols-2">
                   {housekeepingNode}
                   {donutNode}
                 </div>
-                <div className="grid gap-5 md:grid-cols-2">
-                  {deptNode}
-                  {activityNode}
-                </div>
+                {deptNode}
               </div>
             )}
 
@@ -958,7 +1012,6 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {chartsNode}
                 {matrixNode}
-                {housingStructureNode}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {deptNode}
                   {donutNode}
@@ -974,15 +1027,11 @@ export default function Dashboard() {
                   {chartsNode}
                   {deptNode}
                 </div>
-                {housingStructureNode}
                 <div className="grid gap-5 lg:grid-cols-2">
                   {operationsHubNode}
                   {housekeepingNode}
                 </div>
-                <div className="grid gap-5 lg:grid-cols-2">
-                  {donutNode}
-                  {activityNode}
-                </div>
+                {donutNode}
               </div>
             )}
           </>

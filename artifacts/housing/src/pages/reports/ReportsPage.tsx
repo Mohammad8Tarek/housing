@@ -24,6 +24,7 @@ import { OccupancyForecastTab } from "./components/OccupancyForecastTab";
 import { VacantRoomsOperationalMatrix } from "./components/VacantRoomsOperationalMatrix";
 import { InHouseGroupedRoomsView } from "./components/InHouseGroupedRoomsView";
 import { ServiceRatingsTab } from "./components/ServiceRatingsTab";
+import { HousingMapReportTab } from "./components/HousingMapReportTab";
 
 export default function Reports() {
   const { activePropertyId } = useProperty();
@@ -265,11 +266,21 @@ export default function Reports() {
         />
       )}
 
+      {/* Housing Map & Detailed Structure Report */}
+      {filters.activeTab === "housing_map" && (
+        <HousingMapReportTab
+          ar={ar}
+          activePropertyId={activePropertyId}
+          properties={data.properties}
+        />
+      )}
+
       {/* Other Tabs: Data Table & Filters */}
       {filters.activeTab !== "analytics" &&
         filters.activeTab !== "manager_flash" &&
         filters.activeTab !== "occupancy_forecast" &&
-        filters.activeTab !== "service_ratings" && (
+        filters.activeTab !== "service_ratings" &&
+        filters.activeTab !== "housing_map" && (
         <>
           <ReportFilters
             ar={ar}

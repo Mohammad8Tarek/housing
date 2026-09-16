@@ -138,4 +138,10 @@ export const TABS: TabConfig[] = [
     labelAr: "تقييمات جودة الصيانة والنظافة",
     icon: <Star className="w-4 h-4 text-amber-500" />,
   },
+  {
+    id: "housing_map",
+    label: "Housing Map & Structure",
+    labelAr: "خريطة وتفصيل السكن والمباني",
+    icon: <Building2 className="w-4 h-4 text-indigo-500" />,
+  },
 ];
