@@ -1173,13 +1173,15 @@ export function TabChat({
       }
 
       if (typeof window !== "undefined") {
+        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+          return "ws://localhost:4000/ws";
+        }
         const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
         return `${proto}//${window.location.host}/ws`;
       }
 
       return "ws://localhost:4000/ws";
     };
-
 
     const connectWs = () => {
       if (isUnmounted) return;
@@ -1197,6 +1199,11 @@ export function TabChat({
         }
       } catch {
         /* storage may be restricted */
+      }
+
+      // If no session ID exists, do not attempt to connect unauthenticated
+      if (!sid && !Capacitor.isNativePlatform()) {
+        return;
       }
 
       const url = sid
@@ -1317,12 +1324,15 @@ export function TabChat({
           }
         };
 
-        ws.onclose = () => {
+        ws.onclose = (event: CloseEvent) => {
           isWsConnectedRef.current = false;
           clearInterval(pingTimer);
           if (!isUnmounted) {
-            console.info("[Chat WS] Disconnected, reconnecting in 2s...");
-            reconnectTimer = setTimeout(connectWs, 2000);
+            if (event.code === 1008 || event.code === 4001) {
+              console.warn("[Chat WS] Authentication required (1008). Standing by until session is authenticated.");
+              return;
+            }
+            reconnectTimer = setTimeout(connectWs, 3000);
           }
         };
 

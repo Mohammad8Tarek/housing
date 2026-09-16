@@ -13,6 +13,22 @@ import * as Sentry from "@sentry/react";
 // Automatically attach session ID to all TanStack Query / customFetch requests
 setSessionIdGetter(getSessionId);
 
+// Suppress third-party browser extension errors (e.g. Chrome Web Vitals reading undefined 'startTime' in VM scripts)
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (event) => {
+    const msg = event.message || "";
+    const filename = event.filename || "";
+    if (
+      msg.includes("startTime") ||
+      msg.includes("reportAllChanges") ||
+      filename.includes("<anonymous>")
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  });
+}
+
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
