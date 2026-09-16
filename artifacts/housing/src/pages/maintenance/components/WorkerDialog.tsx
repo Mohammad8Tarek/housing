@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePermission } from "@/hooks/use-permission";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -92,11 +93,27 @@ export function WorkerDialog({
   const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(false);
+  const { can, isSuperAdmin, isAdmin } = usePermission();
+  const canMnt = isSuperAdmin || isAdmin || can("maintenance", "create") || can("workers", "create");
+  const canHsk = isSuperAdmin || isAdmin || can("housekeeping", "create");
+
+  const defaultSpecialty = canHsk && !canMnt ? "housekeeping" : "general";
+
+  const allowedSpecialties = useMemo(() => {
+    if (canHsk && !canMnt) {
+      return WORKER_SPECIALTIES.filter((s) => s.key === "housekeeping");
+    }
+    if (canMnt && !canHsk) {
+      return WORKER_SPECIALTIES.filter((s) => s.key !== "housekeeping");
+    }
+    return WORKER_SPECIALTIES;
+  }, [canHsk, canMnt]);
+
   const [formData, setFormData] = useState<Worker>({
     name: "",
     phone: "",
     nationalId: "",
-    specialty: "general",
+    specialty: defaultSpecialty,
     status: "available",
     workerType: "internal",
     companyName: "",
@@ -110,7 +127,7 @@ export function WorkerDialog({
         name: worker.name || "",
         phone: worker.phone || "",
         nationalId: worker.nationalId || "",
-        specialty: worker.specialty || "general",
+        specialty: worker.specialty || defaultSpecialty,
         status: worker.status || "available",
         workerType: worker.workerType || "internal",
         companyName: worker.companyName || "",
@@ -122,7 +139,7 @@ export function WorkerDialog({
         name: "",
         phone: "",
         nationalId: "",
-        specialty: "general",
+        specialty: defaultSpecialty,
         status: "available",
         workerType: "internal",
         companyName: "",
@@ -130,7 +147,7 @@ export function WorkerDialog({
         notes: "",
       });
     }
-  }, [worker, open]);
+  }, [worker, open, defaultSpecialty]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,7 +283,7 @@ export function WorkerDialog({
                   <SelectValue placeholder={ar ? "اختر التخصص" : "Select specialty"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {WORKER_SPECIALTIES.map((spec) => {
+                  {allowedSpecialties.map((spec) => {
                     const Icon = spec.icon;
                     return (
                       <SelectItem key={spec.key} value={spec.key}>

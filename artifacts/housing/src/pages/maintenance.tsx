@@ -384,6 +384,17 @@ export default function Tickets() {
   });
   const propertyWorkers = workersData?.data || [];
 
+  const formWorkers = useMemo(() => {
+    if (!propertyWorkers || !Array.isArray(propertyWorkers)) return [];
+    if (form.category === "housekeeping") {
+      return propertyWorkers.filter((w: any) => w.specialty === "housekeeping");
+    }
+    if (form.category === "maintenance") {
+      return propertyWorkers.filter((w: any) => w.specialty !== "housekeeping");
+    }
+    return propertyWorkers;
+  }, [propertyWorkers, form.category]);
+
   // Pre-load profiles for employee mapping and current user match
   const { data: _eDataWrapper } = useListProfiles(
     { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
@@ -1513,24 +1524,34 @@ export default function Tickets() {
             </div>
 
             {/* Assign Worker (Optional) */}
-            {propertyWorkers.length > 0 && (
+            {formWorkers.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold flex items-center gap-1.5">
                   <HardHat className="w-3.5 h-3.5 text-primary" />
-                  <span>{ar ? "تعيين فني من فريق العمل (اختياري)" : "Assign Worker (Optional)"}</span>
+                  <span>
+                    {form.category === "housekeeping"
+                      ? (ar ? "تعيين موظف نظافة (اختياري)" : "Assign Cleaner (Optional)")
+                      : (ar ? "تعيين فني من فريق العمل (اختياري)" : "Assign Technician (Optional)")}
+                  </span>
                 </Label>
                 <Select
                   value={form.workerId || "unassigned"}
                   onValueChange={(v) => setForm((f) => ({ ...f, workerId: v === "unassigned" ? "" : v }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={ar ? "اختر الفني..." : "Select worker..."} />
+                    <SelectValue
+                      placeholder={
+                        form.category === "housekeeping"
+                          ? (ar ? "اختر موظف النظافة..." : "Select cleaner...")
+                          : (ar ? "اختر الفني..." : "Select worker...")
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent position="popper" sideOffset={4} className="max-h-56 overflow-y-auto">
                     <SelectItem value="unassigned">
                       — {ar ? "بدون تعيين حالياً" : "None / Unassigned"} —
                     </SelectItem>
-                    {propertyWorkers.map((w: any) => (
+                    {formWorkers.map((w: any) => (
                       <SelectItem key={w.id} value={String(w.id)}>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">{w.name}</span>

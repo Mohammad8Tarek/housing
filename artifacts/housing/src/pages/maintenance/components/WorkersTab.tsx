@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePermission } from "@/hooks/use-permission";
 import { useDebounce } from "@/hooks/use-debounce";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
@@ -90,12 +91,33 @@ export function WorkersTab({
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
+  const { can, isSuperAdmin, isAdmin } = usePermission();
+
+  const canMnt = isSuperAdmin || isAdmin || can("maintenance", "view") || can("workers", "view");
+  const canHsk = isSuperAdmin || isAdmin || can("housekeeping", "view");
+  const hasBoth = canMnt && canHsk;
+
+  const [departmentFilter, setDepartmentFilter] = useState<string>(() => {
+    if (canHsk && !canMnt) return "housekeeping";
+    if (canMnt && !canHsk) return "maintenance";
+    return "all";
+  });
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [workerTypeFilter, setWorkerTypeFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+
+  const availableSpecialties = useMemo(() => {
+    if (departmentFilter === "housekeeping") {
+      return WORKER_SPECIALTIES.filter((s) => s.key === "housekeeping");
+    }
+    if (departmentFilter === "maintenance") {
+      return WORKER_SPECIALTIES.filter((s) => s.key !== "housekeeping");
+    }
+    return WORKER_SPECIALTIES;
+  }, [departmentFilter]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
@@ -110,12 +132,14 @@ export function WorkersTab({
       debouncedSearch,
       specialtyFilter,
       workerTypeFilter,
+      departmentFilter,
     ],
     queryFn: async () => {
       const params = new URLSearchParams({
         propertyId: String(propertyId),
       });
       if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
+      if (departmentFilter !== "all") params.append("department", departmentFilter);
       if (specialtyFilter !== "all") params.append("specialty", specialtyFilter);
       if (workerTypeFilter !== "all") params.append("workerType", workerTypeFilter);
 
@@ -289,6 +313,26 @@ export function WorkersTab({
             <span>{ar ? "تصفية حسب:" : "Filter by:"}</span>
           </div>
 
+          {/* Department Filter (Visible when user has access to both) */}
+          {hasBoth && (
+            <Select
+              value={departmentFilter}
+              onValueChange={(val) => {
+                setDepartmentFilter(val);
+                setSpecialtyFilter("all");
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs w-[145px]">
+                <SelectValue placeholder={ar ? "القسم" : "Department"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{ar ? "كل الأقسام" : "All Departments"}</SelectItem>
+                <SelectItem value="maintenance">{ar ? "الصيانة الفنية" : "Maintenance"}</SelectItem>
+                <SelectItem value="housekeeping">{ar ? "الهاوس كيبنج" : "Housekeeping"}</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
           {/* Specialty Filter */}
           <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
             <SelectTrigger className="h-8 text-xs w-[140px]">
@@ -296,7 +340,7 @@ export function WorkersTab({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{ar ? "كل التخصصات" : "All Specialties"}</SelectItem>
-              {WORKER_SPECIALTIES.map((sp) => (
+              {availableSpecialties.map((sp) => (
                 <SelectItem key={sp.key} value={sp.key}>
                   {ar ? sp.labelAr : sp.labelEn}
                 </SelectItem>
@@ -316,11 +360,12 @@ export function WorkersTab({
             </SelectContent>
           </Select>
 
-          {(specialtyFilter !== "all" || workerTypeFilter !== "all" || search) && (
+          {(specialtyFilter !== "all" || workerTypeFilter !== "all" || (hasBoth && departmentFilter !== "all") || search) && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
+                setDepartmentFilter(canHsk && !canMnt ? "housekeeping" : canMnt && !canHsk ? "maintenance" : "all");
                 setSpecialtyFilter("all");
                 setWorkerTypeFilter("all");
                 setSearch("");

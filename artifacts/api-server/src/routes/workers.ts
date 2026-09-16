@@ -5,10 +5,10 @@ import {
   maintenanceTable,
   withTenant,
 } from "@workspace/db";
-import { eq, and, or, ilike, sql, desc, inArray } from "drizzle-orm";
+import { eq, ne, and, or, ilike, sql, desc, inArray } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -31,10 +31,38 @@ router.get(
         return;
       }
 
+      const user = (req as any).authUser;
+      const isSysAdmin =
+        user?.isSystemAdmin ||
+        user?.roles?.includes("super_admin") ||
+        user?.roles?.includes("system_admin");
+
+      const userHasMaintenance = isSysAdmin || hasPermission(user, "maintenance", "view");
+      const userHasHousekeeping = isSysAdmin || hasPermission(user, "housekeeping", "view");
+
       const search = req.query.search ? String(req.query.search).trim() : "";
       const specialty = req.query.specialty ? String(req.query.specialty).trim() : "all";
       const status = req.query.status ? String(req.query.status).trim() : "all";
       const workerType = req.query.workerType ? String(req.query.workerType).trim() : "all";
+      const departmentQuery = req.query.department
+        ? String(req.query.department).trim().toLowerCase()
+        : req.query.category
+          ? String(req.query.category).trim().toLowerCase()
+          : "all";
+
+      // عزل الفئات بين الصيانة والهاوس كيبنج:
+      let effectiveDept: "maintenance" | "housekeeping" | "all" = "all";
+      if (!isSysAdmin) {
+        if (userHasHousekeeping && !userHasMaintenance) {
+          effectiveDept = "housekeeping";
+        } else if (userHasMaintenance && !userHasHousekeeping) {
+          effectiveDept = "maintenance";
+        } else if (departmentQuery !== "all") {
+          effectiveDept = departmentQuery as any;
+        }
+      } else if (departmentQuery !== "all") {
+        effectiveDept = departmentQuery as any;
+      }
 
       let page = 1;
       let limit = 50;
@@ -44,6 +72,12 @@ router.get(
 
       const result = await withTenant(propertyId, async (tenantDb) => {
         const conditions = [];
+
+        if (effectiveDept === "housekeeping") {
+          conditions.push(eq(workersTable.specialty, "housekeeping"));
+        } else if (effectiveDept === "maintenance") {
+          conditions.push(ne(workersTable.specialty, "housekeeping"));
+        }
 
         if (specialty !== "all" && specialty !== "") {
           conditions.push(eq(workersTable.specialty, specialty));
@@ -243,6 +277,23 @@ router.get(
           .limit(1);
 
         if (!worker) return null;
+
+        const user = (req as any).authUser;
+        const isSysAdmin =
+          user?.isSystemAdmin ||
+          user?.roles?.includes("super_admin") ||
+          user?.roles?.includes("system_admin");
+
+        if (!isSysAdmin) {
+          const userHasMaintenance = hasPermission(user, "maintenance", "view");
+          const userHasHousekeeping = hasPermission(user, "housekeeping", "view");
+          if (userHasHousekeeping && !userHasMaintenance && worker.specialty !== "housekeeping") {
+            return null;
+          }
+          if (userHasMaintenance && !userHasHousekeeping && worker.specialty === "housekeeping") {
+            return null;
+          }
+        }
 
         const tasks = await tenantDb
           .select()

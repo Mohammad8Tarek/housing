@@ -269,6 +269,17 @@ export default function TicketDetailModal({
     ticket.workerPhone ||
     workers.find((w: any) => w.id === ticket.workerId)?.phone;
 
+  const filteredWorkers = useMemo(() => {
+    if (!workers || !Array.isArray(workers)) return [];
+    if (ticket?.category === "housekeeping") {
+      return workers.filter((w: any) => w.specialty === "housekeeping");
+    }
+    if (ticket?.category === "maintenance") {
+      return workers.filter((w: any) => w.specialty !== "housekeeping");
+    }
+    return workers;
+  }, [workers, ticket?.category]);
+
   const handleAddComment = () => {
     if (!commentText.trim()) return;
     setCommentsList((prev) => [
@@ -797,13 +808,19 @@ export default function TicketDetailModal({
                               }
                             >
                               <SelectTrigger className="h-8 text-xs bg-background">
-                                <SelectValue placeholder={ar ? "اختر الفني..." : "Select worker..."} />
+                                <SelectValue
+                                  placeholder={
+                                    ticket?.category === "housekeeping"
+                                      ? (ar ? "اختر موظف النظافة..." : "Select cleaner...")
+                                      : (ar ? "اختر الفني المختص..." : "Select technician...")
+                                  }
+                                />
                               </SelectTrigger>
                               <SelectContent className="max-h-52 overflow-y-auto">
                                 <SelectItem value="unassigned">
-                                  — {ar ? "بدون فني مسند" : "No Worker"} —
+                                  — {ticket?.category === "housekeeping" ? (ar ? "بدون موظف نظافة مسند" : "No Cleaner") : (ar ? "بدون فني مسند" : "No Worker")} —
                                 </SelectItem>
-                                {workers.map((w: any) => (
+                                {filteredWorkers.map((w: any) => (
                                   <SelectItem key={w.id} value={String(w.id)}>
                                     <div className="flex items-center gap-2">
                                       <span className="font-semibold">{w.name}</span>
