@@ -1213,6 +1213,24 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       END IF;
     END $$;`,
   },
+  {
+    name: "public.whatsapp_outbox_queue",
+    q: `CREATE TABLE IF NOT EXISTS public.whatsapp_outbox_queue (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER NOT NULL,
+      recipient_phone TEXT NOT NULL,
+      recipient_name TEXT,
+      message_type TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+      message_content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      processed_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_public_wa_outbox_prop_status ON public.whatsapp_outbox_queue (property_id, status);
+    CREATE INDEX IF NOT EXISTS idx_public_wa_outbox_created_at ON public.whatsapp_outbox_queue (created_at);`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2226,6 +2244,24 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         END IF;
       END LOOP;
     END $$;`,
+  },
+  {
+    name: "whatsapp_outbox_queue",
+    q: `CREATE TABLE IF NOT EXISTS "whatsapp_outbox_queue" (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER,
+      recipient_phone TEXT NOT NULL,
+      recipient_name TEXT,
+      message_type TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+      message_content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      processed_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_wa_outbox_status ON whatsapp_outbox_queue (status);
+    CREATE INDEX IF NOT EXISTS idx_tenant_wa_outbox_created_at ON whatsapp_outbox_queue (created_at);`,
   },
 ];
 

@@ -109,49 +109,135 @@ We are pleased to confirm your upcoming reservation:
 
 We wish you a safe trip and a pleasant stay! ✨`;
 
-// Message queue for rate-limiting and anti-ban delay jitter
-interface QueuedMessage {
-  propertyId: number;
-  rawPhone: string;
-  text: string;
-  messageType: string;
-  recipientName?: string;
-  resolve: (res: { success: boolean; reason?: string }) => void;
-  reject: (err: any) => void;
-}
+// Outbox queue processing state per property
+const isProcessingOutbox = new Map<number, boolean>();
 
-const messageQueue: QueuedMessage[] = [];
-let isQueueProcessing = false;
+/**
+ * Process all pending messages from public.whatsapp_outbox_queue in FIFO order
+ */
+export async function processOutboxQueue(
+  propertyId: number
+): Promise<{ processed: number; failed: number; pendingRemaining: number }> {
+  if (isProcessingOutbox.get(propertyId)) {
+    return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
+  }
 
-async function processQueue() {
-  if (isQueueProcessing || messageQueue.length === 0) return;
-  isQueueProcessing = true;
+  isProcessingOutbox.set(propertyId, true);
 
-  while (messageQueue.length > 0) {
-    const item = messageQueue.shift();
-    if (!item) break;
-
-    try {
-      const res = await executeSendHumanLike(
-        item.propertyId,
-        item.rawPhone,
-        item.text,
-        item.messageType,
-        item.recipientName
-      );
-      item.resolve(res);
-    } catch (err: any) {
-      item.reject(err);
+  try {
+    const session = await getWhatsAppSession(propertyId);
+    if (session.status !== "connected" || !session.sock) {
+      // Offline: messages remain securely in whatsapp_outbox_queue with status 'PENDING'
+      return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
     }
 
-    // Anti-ban random delay jitter between consecutive messages (3500ms to 6500ms)
-    if (messageQueue.length > 0) {
+    const { rows: pendingItems } = await pool.query(
+      `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
+       FROM public.whatsapp_outbox_queue
+       WHERE property_id = $1 AND status = 'PENDING'
+       ORDER BY id ASC
+       LIMIT 50`,
+      [propertyId]
+    );
+
+    if (pendingItems.length === 0) {
+      return { processed: 0, failed: 0, pendingRemaining: 0 };
+    }
+
+    console.log(
+      `[WhatsApp Outbox] Starting dispatch of ${pendingItems.length} pending messages for property ${propertyId}...`
+    );
+
+    let processed = 0;
+    let failed = 0;
+
+    for (const item of pendingItems) {
+      // Re-verify session is still active
+      const currentSession = await getWhatsAppSession(propertyId);
+      if (currentSession.status !== "connected" || !currentSession.sock) {
+        console.warn(
+          `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`
+        );
+        break;
+      }
+
+      // Mark as PROCESSING
+      await pool.query(
+        `UPDATE public.whatsapp_outbox_queue SET status = 'PROCESSING' WHERE id = $1`,
+        [item.id]
+      ).catch(() => {});
+
+      const result = await executeSendHumanLike(
+        item.property_id,
+        item.recipient_phone,
+        item.message_content,
+        item.message_type,
+        item.recipient_name,
+        item.id
+      );
+
+      if (result.success) {
+        processed++;
+        await pool.query(
+          `UPDATE public.whatsapp_outbox_queue 
+           SET status = 'SENT', processed_at = NOW(), last_error = NULL 
+           WHERE id = $1`,
+          [item.id]
+        ).catch(() => {});
+      } else if (result.reason === "NOT_REGISTERED") {
+        failed++;
+        await pool.query(
+          `UPDATE public.whatsapp_outbox_queue 
+           SET status = 'NOT_REGISTERED', processed_at = NOW(), last_error = 'Number not registered on WhatsApp' 
+           WHERE id = $1`,
+          [item.id]
+        ).catch(() => {});
+      } else if (result.reason === "NOT_CONNECTED") {
+        // Revert to PENDING so it retries automatically when connection restores
+        await pool.query(
+          `UPDATE public.whatsapp_outbox_queue 
+           SET status = 'PENDING', retry_count = retry_count + 1, last_error = 'WhatsApp disconnected during dispatch' 
+           WHERE id = $1`,
+          [item.id]
+        ).catch(() => {});
+        break; // Pause outbox processing until reconnected
+      } else {
+        const nextRetry = (item.retry_count || 0) + 1;
+        const finalStatus = nextRetry >= 5 ? "FAILED" : "PENDING";
+        failed++;
+        await pool.query(
+          `UPDATE public.whatsapp_outbox_queue 
+           SET status = $1, retry_count = $2, last_error = $3, processed_at = ${finalStatus === "FAILED" ? "NOW()" : "NULL"} 
+           WHERE id = $4`,
+          [finalStatus, nextRetry, result.reason || "Unknown error", item.id]
+        ).catch(() => {});
+      }
+
+      // Anti-ban random delay jitter between consecutive messages (3500ms to 6500ms)
       const jitterMs = 3500 + Math.floor(Math.random() * 3000);
       await new Promise((r) => setTimeout(r, jitterMs));
     }
-  }
 
-  isQueueProcessing = false;
+    const pendingRemaining = await getPendingQueueCount(propertyId);
+    return { processed, failed, pendingRemaining };
+  } finally {
+    isProcessingOutbox.set(propertyId, false);
+  }
+}
+
+/**
+ * Get count of pending outbox messages for a property
+ */
+export async function getPendingQueueCount(propertyId: number): Promise<number> {
+  try {
+    const res = await pool.query(
+      `SELECT COUNT(*) as count FROM public.whatsapp_outbox_queue WHERE property_id = $1 AND status = 'PENDING'`,
+      [propertyId]
+    );
+    return parseInt(res.rows[0]?.count || "0", 10);
+  } catch {
+    return 0;
+  }
 }
 
 /**
@@ -351,6 +437,11 @@ export async function connectPropertyWhatsApp(
          SET phone_number = $2, status = 'connected', qr_code = NULL, updated_at = NOW()`,
         [propertyId, session.phoneNumber || ""]
       ).catch(() => {});
+
+      // Immediately process any pending messages in outbox queue
+      processOutboxQueue(propertyId).catch((err) => {
+        console.error(`[WhatsApp Outbox] Auto-dispatch error on connect for property ${propertyId}:`, err);
+      });
     }
 
     if (connection === "close") {
@@ -358,58 +449,35 @@ export async function connectPropertyWhatsApp(
       session.sock = null;
 
       const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-      const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
       const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
 
       console.log(
         `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}, isRestartRequired: ${isRestartRequired}`
       );
 
-      if (isLoggedOut) {
-        // Explicitly logged out or auth rejected
-        session.status = "disconnected";
-        session.phoneNumber = undefined;
-        session.qrCode = undefined;
-        session.reconnectAttempts = 0;
+      session.status = "disconnected";
 
-        // Clean up session folder
-        try {
-          fs.rmSync(sessionFolder, { recursive: true, force: true });
-        } catch {}
-
-        await pool.query(
-          `UPDATE public.property_whatsapp_configs
-           SET status = 'disconnected', qr_code = NULL, phone_number = NULL, updated_at = NOW()
-           WHERE property_id = $1`,
-          [propertyId]
-        ).catch(() => {});
-      } else if (isRestartRequired) {
-        // QR Code was scanned! WhatsApp requires immediate reconnect with the newly saved credentials
+      if (isRestartRequired) {
+        // QR Code was scanned or stream restart requested! WhatsApp requires immediate reconnect with saved credentials
         console.log(`[WhatsApp] Pairing handshake in progress (code 515) for property ${propertyId}. Reconnecting with saved credentials...`);
         setTimeout(() => {
           connectPropertyWhatsApp(propertyId, false).catch((err) => {
             console.error(`[WhatsApp] Reconnect after restartRequired error:`, err);
           });
-        }, 500);
+        }, 800);
       } else {
-        // Temporary network drop or handshake retry
-        if (session.reconnectAttempts < 5) {
-          session.reconnectAttempts++;
-          const delay = Math.min(session.reconnectAttempts * 2000, 10000);
-          console.log(`[WhatsApp] Reconnecting property ${propertyId} (attempt ${session.reconnectAttempts}/5) in ${delay}ms...`);
-          setTimeout(() => {
-            connectPropertyWhatsApp(propertyId, false).catch(() => {});
-          }, delay);
-        } else {
-          session.status = "disconnected";
-          session.qrCode = undefined;
-          await pool.query(
-            `UPDATE public.property_whatsapp_configs
-             SET qr_code = NULL, updated_at = NOW()
-             WHERE property_id = $1 AND status = 'pairing'`,
-            [propertyId]
-          ).catch(() => {});
-        }
+        // Infinite auto-reconnect with exponential backoff!
+        // NOTE: We NEVER delete sessionFolder on connection.close!
+        // sessionFolder is ONLY deleted when user explicitly clicks "Disconnect" in the UI.
+        session.reconnectAttempts++;
+        const delay = Math.min(session.reconnectAttempts * 3000, 30000);
+        console.log(`[WhatsApp] Auto-reconnecting property ${propertyId} (attempt #${session.reconnectAttempts}) in ${delay}ms...`);
+        setTimeout(() => {
+          connectPropertyWhatsApp(propertyId, false).catch((err) => {
+            console.warn(`[WhatsApp] Auto-reconnect retry error for property ${propertyId}:`, err?.message);
+          });
+        }, delay);
       }
     }
   });
@@ -446,11 +514,65 @@ export async function disconnectPropertyWhatsApp(propertyId: number): Promise<vo
   ).catch(() => {});
 }
 
+let heartbeatInterval: NodeJS.Timeout | null = null;
+
+/**
+ * Background Keep-Alive Heartbeat:
+ * - Runs every 25 seconds
+ * - Verifies socket health for all stored sessions
+ * - Auto-restores disconnected sessions without user intervention
+ * - Automatically dispatches any pending outbox queue messages
+ */
+export function startKeepAliveHeartbeat(): void {
+  if (heartbeatInterval) return;
+
+  heartbeatInterval = setInterval(async () => {
+    try {
+      if (!fs.existsSync(SESSIONS_DIR)) return;
+      const entries = fs.readdirSync(SESSIONS_DIR);
+
+      for (const entry of entries) {
+        if (!entry.startsWith("property_")) continue;
+        const propIdStr = entry.replace("property_", "");
+        const propertyId = parseInt(propIdStr, 10);
+        if (isNaN(propertyId)) continue;
+
+        const sessionFolder = path.join(SESSIONS_DIR, entry);
+        const credsPath = path.join(sessionFolder, "creds.json");
+        if (!fs.existsSync(credsPath)) continue;
+
+        let session = activeSessions.get(propertyId);
+
+        // If session was disconnected or lost, auto-heal and restore
+        if (!session || (session.status !== "connected" && !session.isInitializing)) {
+          console.log(`[WhatsApp Heartbeat] Self-healing connection for property ${propertyId}...`);
+          connectPropertyWhatsApp(propertyId, false).catch(() => {});
+        } else if (session.status === "connected" && session.sock) {
+          // Verify socket is responsive by updating presence
+          try {
+            await session.sock.sendPresenceUpdate("available");
+          } catch {
+            console.warn(`[WhatsApp Heartbeat] Socket silent failure for property ${propertyId}. Reconnecting...`);
+            connectPropertyWhatsApp(propertyId, false).catch(() => {});
+          }
+
+          // Trigger processing of any pending outbox items
+          processOutboxQueue(propertyId).catch(() => {});
+        }
+      }
+    } catch (err: any) {
+      console.warn("[WhatsApp Heartbeat] Heartbeat check notice:", err?.message);
+    }
+  }, 25000);
+}
+
 /**
  * Auto-restore all active properties with stored WhatsApp credentials on server startup
  */
 export async function autoRestoreAllWhatsAppSessions(): Promise<void> {
   try {
+    startKeepAliveHeartbeat();
+
     if (!fs.existsSync(SESSIONS_DIR)) return;
     const entries = fs.readdirSync(SESSIONS_DIR);
     for (const entry of entries) {
@@ -479,7 +601,8 @@ async function executeSendHumanLike(
   rawPhone: string,
   text: string,
   messageType: string = "CHECKIN_WELCOME",
-  recipientName?: string
+  recipientName?: string,
+  _queueId?: number
 ): Promise<{ success: boolean; reason?: string }> {
   let session = await getWhatsAppSession(propertyId);
 
@@ -492,7 +615,6 @@ async function executeSendHumanLike(
   }
 
   if (session.status !== "connected" || !session.sock) {
-    await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "FAILED", "WhatsApp not connected");
     return { success: false, reason: "NOT_CONNECTED" };
   }
 
@@ -534,37 +656,68 @@ async function executeSendHumanLike(
     return { success: true };
   } catch (err: any) {
     console.error(`[WhatsApp] Error sending to ${cleanPhone}:`, err.message);
+    const isConnErr =
+      err?.message?.includes("Connection") ||
+      err?.message?.includes("closed") ||
+      err?.message?.includes("output: 428") ||
+      err?.message?.includes("not-authorized");
+    if (isConnErr) {
+      return { success: false, reason: "NOT_CONNECTED" };
+    }
     await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "FAILED", err.message || "Unknown error");
     return { success: false, reason: err.message };
   }
 }
 
 /**
- * Queue a message for safe human-like dispatch
+ * Queue a message for safe human-like dispatch via persistent database outbox
  */
-export function sendWhatsAppMessageSafe(
+export async function sendWhatsAppMessageSafe(
   propertyId: number,
   rawPhone: string,
   text: string,
   messageType: string = "CHECKIN_WELCOME",
   recipientName?: string
-): Promise<{ success: boolean; reason?: string }> {
-  return new Promise((resolve, reject) => {
-    messageQueue.push({
+): Promise<{ success: boolean; reason?: string; queued?: boolean }> {
+  const cleanPhone = normalizePhoneNumber(rawPhone);
+  if (!cleanPhone || cleanPhone.length < 8) {
+    await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "FAILED", "Invalid phone number format");
+    return { success: false, reason: "INVALID_PHONE" };
+  }
+
+  // 1. Insert into persistent database outbox queue
+  try {
+    await pool.query(
+      `INSERT INTO public.whatsapp_outbox_queue 
+       (property_id, recipient_phone, recipient_name, message_type, message_content, status, retry_count, created_at)
+       VALUES ($1, $2, $3, $4, $5, 'PENDING', 0, NOW())`,
+      [propertyId, cleanPhone, recipientName || null, messageType, text]
+    );
+
+    // Initial log entry as QUEUED
+    await logDelivery(
       propertyId,
-      rawPhone,
-      text,
-      messageType,
+      cleanPhone,
       recipientName,
-      resolve,
-      reject,
-    });
-    processQueue().catch(reject);
+      messageType,
+      text,
+      "QUEUED",
+      "في طابور الإرسال بانتظار المعالجة"
+    );
+  } catch (err: any) {
+    console.error("[WhatsApp Outbox] Error inserting message into outbox queue:", err);
+  }
+
+  // 2. Trigger asynchronous queue processing (dispatches immediately if connected, or stays pending if offline)
+  processOutboxQueue(propertyId).catch((err) => {
+    console.error("[WhatsApp Outbox] Outbox processor error:", err);
   });
+
+  return { success: true, queued: true };
 }
 
 /**
- * Log message delivery
+ * Log message delivery (transitions QUEUED to SENT / FAILED if applicable)
  */
 async function logDelivery(
   propertyId: number,
@@ -576,6 +729,21 @@ async function logDelivery(
   errorMessage?: string
 ) {
   try {
+    if (status === "SENT" || status === "NOT_REGISTERED" || status === "FAILED") {
+      const updateRes = await pool.query(
+        `UPDATE public.whatsapp_delivery_logs
+         SET status = $1, error_message = $2
+         WHERE id = (
+           SELECT id FROM public.whatsapp_delivery_logs
+           WHERE property_id = $3 AND recipient_phone = $4 AND message_type = $5 AND status = 'QUEUED'
+           ORDER BY id DESC LIMIT 1
+         )
+         RETURNING id`,
+        [status, errorMessage || null, propertyId, phone, type]
+      );
+      if (updateRes.rows.length > 0) return;
+    }
+
     await pool.query(
       `INSERT INTO public.whatsapp_delivery_logs
        (property_id, recipient_phone, recipient_name, message_type, message_content, status, error_message, created_at)
@@ -698,16 +866,9 @@ export async function sendCheckInWhatsAppNotification(params: {
     );
     const config = configRes.rows[0];
     
-    // If auto send explicitly disabled, skip
+    // If auto send explicitly disabled in settings, skip
     if (config && config.is_auto_send_enabled === false) {
       console.log(`[WhatsApp Auto-Send] Auto send is disabled for property ${propertyId}, skipping.`);
-      return;
-    }
-
-    // Must be connected either in active session or DB
-    const isConnected = session.status === "connected" || config?.status === "connected";
-    if (!isConnected) {
-      console.log(`[WhatsApp Auto-Send] WhatsApp is not connected for property ${propertyId} (session: ${session.status}, db: ${config?.status}), skipping.`);
       return;
     }
 
@@ -925,12 +1086,6 @@ export async function sendReservationConfirmationWhatsApp(params: {
     if (config && config.is_reservation_send_enabled === false) {
       console.log(`[WhatsApp Reservation] Auto send is disabled for property ${propertyId}, skipping.`);
       return { success: false, error: "تم تعطيل إرسال تأكيد الحجز في إعدادات الواتساب" };
-    }
-
-    const isConnected = session.status === "connected" || config?.status === "connected";
-    if (!isConnected) {
-      console.log(`[WhatsApp Reservation] WhatsApp is not connected for property ${propertyId}, skipping.`);
-      return { success: false, error: "خدمة الواتساب غير متصلة حالياً" };
     }
 
     // Resolve property & tenant schema name

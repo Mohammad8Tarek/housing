@@ -30,6 +30,8 @@ import {
   Globe,
   Radio,
   BookmarkCheck,
+  Clock,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
@@ -158,6 +160,8 @@ export function WhatsAppSettingsSection({
   const [status, setStatus] = useState<"disconnected" | "pairing" | "connected">("disconnected");
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pendingQueueCount, setPendingQueueCount] = useState<number>(0);
+  const [processingQueue, setProcessingQueue] = useState<boolean>(false);
 
   // Config Form
   const [isAutoSendEnabled, setIsAutoSendEnabled] = useState(true);
@@ -195,6 +199,9 @@ export function WhatsAppSettingsSection({
         setStatus(sData.status || "disconnected");
         setPhoneNumber(sData.phoneNumber || null);
         setQrCode(sData.qrCode || null);
+        if (sData.pendingQueueCount !== undefined) {
+          setPendingQueueCount(sData.pendingQueueCount);
+        }
         if (sData.isAutoSendEnabled !== undefined) {
           setIsAutoSendEnabled(sData.isAutoSendEnabled);
         }
@@ -228,6 +235,33 @@ export function WhatsAppSettingsSection({
       console.error("Error fetching WhatsApp config:", e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Manual Outbox Queue Flush
+  const handleProcessQueue = async () => {
+    if (!propertyId) return;
+    setProcessingQueue(true);
+    try {
+      const res = await fetch(`/api/whatsapp/queue/process?propertyId=${propertyId}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(
+          ar
+            ? `تمت معالجة الطابور بنجاح: تم إرسال ${data.processed || 0} رسالة، المتبقي: ${data.pendingRemaining ?? 0}`
+            : `Queue processed: ${data.processed || 0} sent, ${data.pendingRemaining ?? 0} pending`
+        );
+        fetchStatusAndConfig();
+      } else {
+        toast.error(data.error || (ar ? "فشل معالجة الطابور" : "Failed to process queue"));
+      }
+    } catch {
+      toast.error(ar ? "خطأ في الاتصال بالخادم" : "Server error");
+    } finally {
+      setProcessingQueue(false);
     }
   };
 
@@ -635,6 +669,75 @@ export function WhatsAppSettingsSection({
                 <div className="text-muted-foreground">{ar ? "فواصل 4-8 ثوانٍ تمنع كشف البوتات" : "Anti-spam rate limiting"}</div>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── PERSISTENT OUTBOX QUEUE STATUS CARD ── */}
+      <Card
+        className={`border-border/60 shadow-sm transition-all ${
+          pendingQueueCount > 0
+            ? "border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10"
+            : "bg-muted/20"
+        }`}
+      >
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold flex-shrink-0 ${
+                  pendingQueueCount > 0
+                    ? "bg-amber-500 text-white shadow-sm"
+                    : "bg-primary/10 text-primary"
+                }`}
+              >
+                <Layers className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-sm font-bold flex items-center gap-2">
+                  <span>
+                    {ar
+                      ? "طابور العمليات غير المتصلة (Offline Outbox Queue)"
+                      : "Offline Outbox Queue"}
+                  </span>
+                  {pendingQueueCount > 0 ? (
+                    <Badge className="bg-amber-500 text-white border-0 text-xs px-2 py-0.5 animate-pulse">
+                      {ar ? `${pendingQueueCount} رسالة معلقة` : `${pendingQueueCount} Pending`}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-emerald-600 border-emerald-500/30 text-xs">
+                      {ar ? "تم إرسال كل العمليات" : "All Processed"}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {pendingQueueCount > 0
+                    ? ar
+                      ? `يوجد ${pendingQueueCount} عملية تسكين أو حجز محفوظة بأمان في قاعدة البيانات، وسيتم إرسالها تلقائياً فور عودة اتصال الواتساب.`
+                      : `${pendingQueueCount} check-in or booking notifications saved safely in DB. They will dispatch automatically upon WhatsApp reconnection.`
+                    : ar
+                    ? "نظام الحفظ الدائم نشط: أي عملية تسكين أو حجز تتم أثناء انقطاع اتصال الواتساب تُحفظ تلقائياً في هذا الطابور ولا تضيع أبداً."
+                    : "Active offline buffer: Any accommodation or reservation performed while disconnected is queued and auto-dispatched."}
+                </p>
+              </div>
+            </div>
+
+            {pendingQueueCount > 0 && (
+              <Button
+                size="sm"
+                onClick={handleProcessQueue}
+                disabled={processingQueue || status !== "connected"}
+                className="gap-1.5 text-xs font-semibold self-end sm:self-auto text-white shadow-sm flex-shrink-0"
+                style={{ backgroundColor: status === "connected" ? "#00a884" : undefined }}
+              >
+                {processingQueue ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+                {ar ? "معالجة وإرسال الطابور الآن" : "Process Queue Now"}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -1072,6 +1175,11 @@ export function WhatsAppSettingsSection({
                       {log.status === "SENT" ? (
                         <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[10px] px-1.5 py-0.5">
                           {ar ? "تم الإرسال" : "Sent"}
+                        </Badge>
+                      ) : log.status === "QUEUED" ? (
+                        <Badge variant="outline" className="bg-amber-500/15 text-amber-600 border-amber-500/30 text-[10px] px-1.5 py-0.5 gap-1">
+                          <Clock className="w-2.5 h-2.5 animate-spin" />
+                          {ar ? "في الانتظار" : "Queued"}
                         </Badge>
                       ) : log.status === "NOT_REGISTERED" ? (
                         <Badge variant="outline" className="text-amber-600 border-amber-500/30 text-[10px] px-1.5 py-0.5">

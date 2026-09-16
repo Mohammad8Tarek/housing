@@ -2197,6 +2197,22 @@ We wish you a safe trip and a pleasant stay! ✨',
   CREATE INDEX IF NOT EXISTS idx_wa_delivery_logs_property_id ON public.whatsapp_delivery_logs (property_id);
   CREATE INDEX IF NOT EXISTS idx_wa_delivery_logs_created_at ON public.whatsapp_delivery_logs (created_at);
 
+  CREATE TABLE IF NOT EXISTS public.whatsapp_outbox_queue (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL,
+    recipient_phone TEXT NOT NULL,
+    recipient_name TEXT,
+    message_type TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+    message_content TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMPTZ
+  );
+  CREATE INDEX IF NOT EXISTS idx_wa_outbox_property_status ON public.whatsapp_outbox_queue (property_id, status);
+  CREATE INDEX IF NOT EXISTS idx_wa_outbox_created_at ON public.whatsapp_outbox_queue (created_at);
+
   -- --------------------------------------------------------
   -- Table: public.user_password_reset_otps
   -- --------------------------------------------------------

@@ -55,7 +55,7 @@ export const whatsappDeliveryLogsTable = pgTable(
     propertyId: integer("property_id").notNull(),
     recipientPhone: text("recipient_phone").notNull(),
     recipientName: text("recipient_name"),
-    messageType: text("message_type").notNull().default("CHECKIN_WELCOME"), // CHECKIN_WELCOME | TEST | MANUAL
+    messageType: text("message_type").notNull().default("CHECKIN_WELCOME"), // CHECKIN_WELCOME | TEST | MANUAL | RESERVATION_CONFIRMATION | BROADCAST
     messageContent: text("message_content").notNull(),
     status: text("status").notNull().default("SENT"), // SENT | FAILED | NOT_REGISTERED | QUEUED
     errorMessage: text("error_message"),
@@ -69,11 +69,42 @@ export const whatsappDeliveryLogsTable = pgTable(
   ]
 );
 
+export const whatsappOutboxQueueTable = pgTable(
+  "whatsapp_outbox_queue",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id").notNull(),
+    recipientPhone: text("recipient_phone").notNull(),
+    recipientName: text("recipient_name"),
+    messageType: text("message_type").notNull().default("CHECKIN_WELCOME"), // CHECKIN_WELCOME | RESERVATION_CONFIRMATION | BROADCAST | TEST | MANUAL
+    messageContent: text("message_content").notNull(),
+    status: text("status").notNull().default("PENDING"), // PENDING | PROCESSING | SENT | FAILED | NOT_REGISTERED
+    retryCount: integer("retry_count").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_wa_outbox_property_status").on(table.propertyId, table.status),
+    index("idx_wa_outbox_created_at").on(table.createdAt),
+  ]
+);
+
 export const insertPropertyWhatsappConfigSchema = createInsertSchema(
   propertyWhatsappConfigsTable
 ).omit({
   id: true,
   updatedAt: true,
+});
+
+export const insertWhatsappOutboxQueueSchema = createInsertSchema(
+  whatsappOutboxQueueTable
+).omit({
+  id: true,
+  createdAt: true,
+  processedAt: true,
 });
 
 export type InsertPropertyWhatsappConfig = z.infer<
@@ -83,3 +114,8 @@ export type PropertyWhatsappConfig =
   typeof propertyWhatsappConfigsTable.$inferSelect;
 export type WhatsappDeliveryLog =
   typeof whatsappDeliveryLogsTable.$inferSelect;
+export type WhatsappOutboxQueueItem =
+  typeof whatsappOutboxQueueTable.$inferSelect;
+export type InsertWhatsappOutboxQueueItem = z.infer<
+  typeof insertWhatsappOutboxQueueSchema
+>;

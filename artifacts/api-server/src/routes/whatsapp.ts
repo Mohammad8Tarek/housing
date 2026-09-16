@@ -14,6 +14,8 @@ import {
   DEFAULT_RESERVATION_EN,
   sendWhatsAppBroadcast,
   BroadcastRecipient,
+  getPendingQueueCount,
+  processOutboxQueue,
 } from "../lib/whatsapp-engine.js";
 
 const router = Router();
@@ -55,6 +57,7 @@ router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "v
     }
 
     const effectivePhone = session.phoneNumber || dbRow?.phone_number || null;
+    const pendingQueueCount = await getPendingQueueCount(propertyId);
 
     res.json({
       success: true,
@@ -62,7 +65,23 @@ router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "v
       phoneNumber: effectivePhone,
       qrCode: effectiveQr,
       isAutoSendEnabled: dbRow ? dbRow.is_auto_send_enabled : true,
+      pendingQueueCount,
       updatedAt: dbRow?.updated_at || null,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/whatsapp/queue/process - معالجة فورية لطابور الرسائل المعلقة
+// @ts-ignore
+router.post("/queue/process", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
+  try {
+    const propertyId = getTenantId(req) || 1;
+    const result = await processOutboxQueue(propertyId);
+    res.json({
+      success: true,
+      ...result,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
