@@ -207,7 +207,6 @@ export default function ReservationsPage() {
     }
   };
 
-  // Step 1: Mode, Step 2: Details, Step 3: Room & Dates
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [personMode, setPersonMode] = useState<"existing" | "new" | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<ProfileResult | null>(null);

@@ -105,7 +105,9 @@ function playNotificationSound() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.3);
-  } catch (_) {}
+  } catch {
+    // AudioContext blocked by browser autoplay policy before user gesture
+  }
 }
 
 function NotificationIcon({ type }: { type: string }) {
@@ -244,7 +246,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setSeenIds(updated);
     try {
       localStorage.setItem(userSeenKey, JSON.stringify([...updated]));
-    } catch {}
+    } catch {
+      // Storage quota exceeded or private browsing restrictions
+    }
   }, [allNotifications, seenIds, userSeenKey]);
 
   const markOneSeen = useCallback(
@@ -254,7 +258,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       setSeenIds(updated);
       try {
         localStorage.setItem(userSeenKey, JSON.stringify([...updated]));
-      } catch {}
+      } catch {
+        // Storage quota exceeded or private browsing restrictions
+      }
     },
     [seenIds, userSeenKey],
   );
@@ -271,7 +277,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           credentials: "include",
           body: JSON.stringify({ propertyId: id }),
         });
-      } catch (_) {}
+      } catch {
+        // Proceed with local state switch even if backend session sync dropped offline
+      }
     }
     setActivePropertyId(id);
     localStorage.setItem("activePropertyId", String(id));

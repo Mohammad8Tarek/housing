@@ -20,14 +20,12 @@ export default function ForgotPassword() {
   const { t, lang } = useTheme();
   const isRtl = lang === "ar";
 
-  // Step 1: Verification
   const [step, setStep] = useState<1 | 2>(1);
   const [employeeId, setEmployeeId] = useState("");
   const [nationalId, setNationalId] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
 
-  // Step 2: Reset
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

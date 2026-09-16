@@ -15,7 +15,7 @@ function isInStandaloneMode(): boolean {
   if (typeof window === "undefined") return false;
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true
+    window.navigator.standalone === true
   );
 }
 
@@ -23,8 +23,8 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
   const { lang } = useTheme();
   const isRtl = lang === "ar";
   const [installPrompt, setInstallPrompt] = useState<any>(() => {
-    if (typeof window !== "undefined" && (window as any).deferredPrompt) {
-      return (window as any).deferredPrompt;
+    if (typeof window !== "undefined" && window.deferredPrompt) {
+      return window.deferredPrompt;
     }
     return null;
   });
@@ -44,13 +44,13 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
     }
 
     const handler = (e: Event) => {
-      (window as any).deferredPrompt = e;
+      window.deferredPrompt = e as any;
       setInstallPrompt(e);
     };
 
     const handlePromptReady = () => {
-      if ((window as any).deferredPrompt) {
-        setInstallPrompt((window as any).deferredPrompt);
+      if (window.deferredPrompt) {
+        setInstallPrompt(window.deferredPrompt);
       }
     };
 
@@ -60,7 +60,7 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
     window.addEventListener("appinstalled", () => {
       setInstalled(true);
       setInstallPrompt(null);
-      (window as any).deferredPrompt = null;
+      window.deferredPrompt = null;
     });
 
     return () => {
@@ -70,7 +70,7 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
   }, []);
 
   const handleInstallClick = async () => {
-    const promptObj = installPrompt || (typeof window !== "undefined" ? (window as any).deferredPrompt : null);
+    const promptObj = installPrompt || (typeof window !== "undefined" ? window.deferredPrompt : null);
 
     if (promptObj && typeof promptObj.prompt === "function") {
       try {
@@ -79,10 +79,9 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
         if (result && result.outcome === "accepted") {
           setInstallPrompt(null);
           setInstalled(true);
-          (window as any).deferredPrompt = null;
+          window.deferredPrompt = null;
         }
-      } catch (e) {
-        console.warn("[PWA] prompt error:", e);
+      } catch {
         setShowManualGuide(true);
       }
     } else {

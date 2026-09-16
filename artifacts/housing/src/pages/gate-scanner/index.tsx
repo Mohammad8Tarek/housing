@@ -72,7 +72,9 @@ function playChime(isSuccess: boolean) {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.35);
-  } catch (_) {}
+  } catch {
+    // AudioContext blocked by browser autoplay policy before user gesture
+  }
 }
 
 export default function GateScannerPage() {

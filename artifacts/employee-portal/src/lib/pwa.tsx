@@ -14,8 +14,8 @@ const PWAContext = createContext<PWAContextType>({
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
   const [installPrompt, setInstallPrompt] = useState<any>(() => {
-    if (typeof window !== "undefined" && (window as any).deferredPrompt) {
-      return (window as any).deferredPrompt;
+    if (typeof window !== "undefined" && window.deferredPrompt) {
+      return window.deferredPrompt;
     }
     return null;
   });
@@ -24,25 +24,25 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return false;
     return (
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true
+      window.navigator.standalone === true
     );
   });
 
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      (window as any).deferredPrompt = e;
+      window.deferredPrompt = e as any;
       setInstallPrompt(e);
     };
 
     const handlePromptReady = () => {
-      if ((window as any).deferredPrompt) {
-        setInstallPrompt((window as any).deferredPrompt);
+      if (window.deferredPrompt) {
+        setInstallPrompt(window.deferredPrompt);
       }
     };
 
     const handleAppInstalled = () => {
-      (window as any).deferredPrompt = null;
+      window.deferredPrompt = null;
       setInstallPrompt(null);
       setIsInstalled(true);
     };
@@ -61,20 +61,20 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleInstall = async () => {
-    const promptEvent = installPrompt || (typeof window !== "undefined" ? (window as any).deferredPrompt : null);
+    const promptEvent = installPrompt || (typeof window !== "undefined" ? window.deferredPrompt : null);
     if (!promptEvent) return;
     try {
       if (typeof promptEvent.prompt === "function") {
         promptEvent.prompt();
         const r = await promptEvent.userChoice;
         if (r && r.outcome === "accepted") {
-          (window as any).deferredPrompt = null;
+          window.deferredPrompt = null;
           setInstallPrompt(null);
           setIsInstalled(true);
         }
       }
-    } catch (err) {
-      console.warn("[PWA] handleInstall error:", err);
+    } catch {
+      // User dismissed prompt or browser refused install
     }
   };
 
