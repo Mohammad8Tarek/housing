@@ -94,92 +94,128 @@ export const REPORT_TAB_CONFIG: Record<
 };
 
 // ----------------------------------------------------------------------------
-// 1. Bilingual Titles & Hospitality Mapping
+// 1. Opera PMS Technical Slugs Mapping
+// ----------------------------------------------------------------------------
+export const REPORT_OPERA_CODES: Record<string, string> = {
+  assignments: "gibyroom",
+  arrivals_manifest: "arrchkinbyroom",
+  departures_manifest: "depchkoutbyroom",
+  department_occupancy: "gi_inhousebycomp",
+  room_discrepancy: "alerts",
+  guest_preferences: "guest_preferences",
+  vacant_rooms: "gi_vacantrooms",
+  housekeeping_sheet: "hk_tasksheet",
+  occupancy_forecast: "gi_occforecast",
+  manager_flash: "mgr_flash",
+  housing: "room_inventory",
+  profiles: "profile_dir",
+  reservations: "res_manifest",
+  hostings: "guest_hosting",
+  maintenance: "mnt_tickets",
+  equipment_inventory: "amenities_inv",
+  history: "hist_ledger",
+  daily_movement: "daily_movement",
+  gate_logs: "gate_security",
+  police_report: "police_manifest",
+  service_ratings: "service_ratings",
+  housing_map: "housing_map",
+};
+
+// ----------------------------------------------------------------------------
+// 1.1 Bilingual Titles & Hospitality Mapping (Opera PMS Standard)
 // ----------------------------------------------------------------------------
 export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
   manager_flash: {
-    ar: "تقرير المدير الصباحي — مصفوفة المباني والعمليات اليومية",
-    en: "Daily Operations & Occupancy Morning Report (Manager Flash)",
+    ar: "تقرير المدير الصباحي للعمليات والإشغال",
+    en: "Daily Operations Morning Report (Manager Flash)",
   },
   arrivals_manifest: {
-    ar: "كشف الحجوزات والمتوقع وصولهم (Reservations & Arrivals)",
-    en: "Reservations & Expected Arrivals Manifest",
+    ar: "كشف الوصول والتسكين اليومي",
+    en: "Arrivals and Checked in Today",
   },
   departures_manifest: {
-    ar: "كشف المغادرات والتصفيات المستحقة (Due Out & Departures)",
-    en: "Due Out & Departures Manifest",
+    ar: "كشف المغادرات والتصفيات المستحقة",
+    en: "Departures and Checked Out Today",
   },
   housekeeping_sheet: {
-    ar: "كشف مهام ونظافة الغرف والتفتيش الميداني",
-    en: "Housekeeping Task Sheet & Room Cleanliness Report",
+    ar: "كشف مهام ونظافة الغرف اليومي",
+    en: "Housekeeping Daily Task Sheet",
   },
   room_discrepancy: {
-    ar: "تقرير تدقيق ومطابقة حالات الغرف (Discrepancy Audit)",
-    en: "Room Status Discrepancy & Audit Report",
+    ar: "كشف تنبيهات وتدقيق حالات الغرف",
+    en: "Alerts & Room Discrepancy",
   },
   occupancy_forecast: {
-    ar: "تقرير توقعات الإشغال وحركة الأسرة المستقبلية",
+    ar: "توقعات الإشغال والأسرة المستقبلية",
     en: "Occupancy & Bed Availability Forecast",
   },
   assignments: {
-    ar: "كشف المقيمين الفعليين وتوزيع الغرف والأسرة (In-House)",
-    en: "In-House Resident Occupancy & Rooming List",
+    ar: "كشف المقيمين الفعليين حسب الغرف",
+    en: "Guests INH - By Room",
   },
   vacant_rooms: {
     ar: "مصفوفة السعة التشغيلية والأسرة الشاغرة",
-    en: "Operational Bed Capacity & Vacancy Matrix Report",
+    en: "Operational Bed Capacity & Vacant Matrix",
   },
   housing: {
-    ar: "دليل الغرف السكنية والطاقة الاستيعابية الشاملة",
-    en: "Housing Room Inventory & Capacity Report",
+    ar: "سجل وحالة الغرف السكنية الشاملة",
+    en: "Housing Room Inventory & Capacity",
   },
   profiles: {
-    ar: "دليل ملفات الموظفين والنزلاء وبيانات السكن",
+    ar: "دليل ملفات العاملين والمقيمين بالسكن",
     en: "Staff & Resident Profiles Directory",
   },
   expiring_contracts: {
-    ar: "تقرير تدقيق العقود المنتهية والمشرفة على الانتهاء",
-    en: "Contract Expiration & Renewal Audit Report",
+    ar: "كشف العقود المنتهية والمشرفة على الانتهاء",
+    en: "Expiring Contracts & Renewal Audit",
   },
   reservations: {
-    ar: "سجل الحجوزات والتسكين المستقبلي (Reservations)",
+    ar: "سجل الحجوزات والتسكين المستقبلي",
     en: "Reservations & Booking Manifest",
   },
   hostings: {
-    ar: "سجل استضافة الضيوف والزيارات العائلية (Guest Hosting)",
-    en: "Guest & Family Visitor Hostings Report",
+    ar: "سجل استضافة الضيوف والزوار",
+    en: "Guest & Visitor Hostings Ledger",
   },
   maintenance: {
-    ar: "سجل أوامر العمل وبلاغات الصيانة الهندسية",
-    en: "Engineering Maintenance Work Orders & Defect Log",
+    ar: "سجل أوامر وبلاغات صيانة الغرف",
+    en: "Engineering Maintenance Work Orders",
   },
   housekeeping: {
-    ar: "سجل نظافة الغرف وجاهزية الإشراف الداخلي",
-    en: "Housekeeping Cleanliness Status & Turnover Log",
+    ar: "سجل جاهزية ونظافة الغرف",
+    en: "Housekeeping Cleanliness Turnover Log",
   },
   equipment_inventory: {
-    ar: "جرد عهد ومحتويات ومعدات الغرف السكنية",
-    en: "Room Amenities & Equipment Inventory Report",
+    ar: "جرد عهد ومحتويات الغرف السكنية",
+    en: "Room Amenities & Equipment Inventory",
   },
   history: {
-    ar: "سجل التسكين التاريخي وحركات الإقامة السابقة",
-    en: "Housing Historical Stays & Movements Archive",
+    ar: "سجل حركات التسكين التاريخي",
+    en: "Housing Historical Stays Archive",
   },
   daily_movement: {
-    ar: "تقرير الحركة اليومية (تسكين، مغادرة، نقل سرير، وصول)",
-    en: "Daily Housing Movements & Turnovers Report",
+    ar: "تقرير الحركة اليومية للتسكين والمغادرة",
+    en: "Daily Housing Movements & Turnovers",
   },
   department_occupancy: {
-    ar: "تقرير إشغال وتوزيع الأقسام بالسكن",
-    en: "Department Occupancy & Bed Distribution Report",
+    ar: "كشف المقيمين حسب الشركة والأقسام",
+    en: "Guests INH - By Company",
   },
   gate_logs: {
-    ar: "تقرير سجل البوابة وتصاريح الدخول والخروج",
-    en: "Gate Access Security & Turnstile Manifest",
+    ar: "سجل تصاريح وحركة البوابة الأمنية",
+    en: "Gate Access Security Manifest",
   },
   police_report: {
-    ar: "كشف شرطة السياحة ووزارة السياحة للعاملين المقيمين بالسكن",
-    en: "Tourism Police & Ministry of Tourism Resident Housing Manifest",
+    ar: "كشف شرطة السياحة للمقيمين بالسكن",
+    en: "Tourism Police Resident Housing Manifest",
+  },
+  service_ratings: {
+    ar: "تقرير تقييمات وجودة الخدمات بالسكن",
+    en: "Service Quality & Resident Ratings Report",
+  },
+  housing_map: {
+    ar: "المخطط الهيكلي المعماري وتوزيع الغرف",
+    en: "Housing Structure & Architectural Map",
   },
 };
 
@@ -841,7 +877,64 @@ export function generateAutoKpis(
 }
 
 // ----------------------------------------------------------------------------
-// 4. Main Engine Function: printLuxuryReport
+// ----------------------------------------------------------------------------
+// 3.5 Helper: Opera PMS Smart Column Alignment
+// ----------------------------------------------------------------------------
+export function getOperaColumnAlign(
+  headerName: string,
+  isArabic: boolean,
+): "left" | "center" | "right" {
+  const norm = (headerName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  // Right aligned numbers / currency / financial / capacity
+  if (
+    norm.includes("rate") ||
+    norm.includes("balance") ||
+    norm.includes("amount") ||
+    norm.includes("price") ||
+    norm.includes("total") ||
+    norm.includes("capacity") ||
+    norm.includes("occupied") ||
+    norm.includes("vacant") ||
+    norm.includes("nights") ||
+    norm.includes("count") ||
+    norm.includes("mins") ||
+    norm.includes("hours") ||
+    headerName.includes("إجمالي") ||
+    headerName.includes("سعر") ||
+    headerName.includes("رصيد") ||
+    headerName.includes("سعة") ||
+    headerName.includes("ليالي") ||
+    headerName.includes("شاغر") ||
+    headerName.includes("مشغول") ||
+    headerName.includes("عدد")
+  ) {
+    return isArabic ? "left" : "right";
+  }
+  // Center aligned codes, rooms, beds, dates, statuses
+  if (
+    norm.includes("room") ||
+    norm.includes("bed") ||
+    norm.includes("date") ||
+    norm.includes("status") ||
+    norm.includes("code") ||
+    norm.includes("type") ||
+    norm.includes("floor") ||
+    norm.includes("gender") ||
+    headerName.includes("غرفة") ||
+    headerName.includes("سرير") ||
+    headerName.includes("تاريخ") ||
+    headerName.includes("حالة") ||
+    headerName.includes("كود") ||
+    headerName.includes("طابق") ||
+    headerName.includes("جنس")
+  ) {
+    return "center";
+  }
+  return isArabic ? "right" : "left";
+}
+
+// ----------------------------------------------------------------------------
+// 4. Main Engine Function: printLuxuryReport (Opera PMS Edition)
 // ----------------------------------------------------------------------------
 export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void> {
   const {
@@ -868,22 +961,27 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const initialShowKpis = opts.showKpis !== undefined ? opts.showKpis : (tabConfig ? tabConfig.showKpis : false);
   const initialShowSigs = opts.showSignatures !== undefined ? opts.showSignatures : (tabConfig ? tabConfig.showSignatures : false);
 
-  // Resolve property name & logo
+  // Resolve property name & logo (PRESERVING SYSTEM LOGO STRICTLY)
   const propObj = properties.find((p: any) => p.id === (propId ?? activePropertyId));
   const propName = propObj?.name || (isArabic ? "سكن منتجعات وفنادق صن رايز" : "Sunrise Resorts Staff Housing");
-  const propAddress = propObj?.address || "";
 
   // Convert logos to base64 DataURLs if available
   const sysLogo = settings?.systemLogo ? await loadImgDataUrl(settings.systemLogo) : null;
   const propLogo = propObj?.logo && propObj.logo !== settings?.systemLogo ? await loadImgDataUrl(propObj.logo) : null;
+  const effectiveLogo = propLogo || sysLogo;
 
-  // Resolve Title & Subtitle
+  // Resolve Title & Opera Code
   const defaultTabInfo = activeTab ? REPORT_TAB_TITLES[activeTab] : undefined;
   const reportTitle = isArabic
     ? (opts.titleAr || opts.title || defaultTabInfo?.ar || "تقرير إدارة السكن")
     : (opts.title || defaultTabInfo?.en || "Staff Housing Operations Report");
+  const operaCode = REPORT_OPERA_CODES[activeTab || ""] || (activeTab ? activeTab.replace(/[^a-z0-9_]/gi, "").toLowerCase() : "gibyroom");
 
+  // Opera standard date & time (e.g. 16-09-26, 01:44)
   const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const operaDateStr = `${String(now.getFullYear()).slice(-2)}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const operaTimeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const issueDateFormatted = isArabic
     ? now.toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })
     : now.toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -909,28 +1007,49 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   // Determine Orientation: Automatically enforce Landscape if >= 5 columns or explicitly requested
   const orientation = opts.orientation || (colCount >= 5 ? "landscape" : "portrait");
 
-  // Dynamic font sizing & padding to guarantee zero-overflow fit on A4
-  let baseFontSizePt = 8.5;
-  let printFontSizePt = 8.0;
-  let cellPadding = "5px 7px";
-  let printPadding = "3.5px 5px";
+  // Opera high-density compact sizing
+  let baseFontSizePt = 8.2;
+  let printFontSizePt = 7.5;
+  let cellPadding = "3.5px 5px";
+  let printPadding = "2.5px 4px";
 
   if (colCount >= 14) {
     baseFontSizePt = 6.8;
     printFontSizePt = 5.8;
-    cellPadding = "2.5px 3.5px";
-    printPadding = "2px 3px";
+    cellPadding = "2px 3px";
+    printPadding = "1.8px 2.5px";
   } else if (colCount >= 11) {
-    baseFontSizePt = 7.4;
-    printFontSizePt = 6.5;
-    cellPadding = "3px 4.5px";
-    printPadding = "2.5px 4px";
+    baseFontSizePt = 7.2;
+    printFontSizePt = 6.4;
+    cellPadding = "2.5px 4px";
+    printPadding = "2px 3px";
   } else if (colCount >= 8) {
-    baseFontSizePt = 8.0;
-    printFontSizePt = 7.2;
-    cellPadding = "4px 6px";
-    printPadding = "3px 4.5px";
+    baseFontSizePt = 7.8;
+    printFontSizePt = 7.0;
+    cellPadding = "3px 4.5px";
+    printPadding = "2.2px 3.5px";
   }
+
+  // Calculate Column Totals for Opera Totals Row
+  const colTotals: (number | null)[] = headers.map((_, colIdx) => {
+    let isNumeric = true;
+    let sum = 0;
+    let countValid = 0;
+    for (const row of tableRows) {
+      const val = row[colIdx];
+      if (val === null || val === undefined || val === "" || val === "—") continue;
+      const cleanVal = String(val).replace(/,/g, "").trim();
+      const num = Number(cleanVal);
+      if (typeof val === "number" || (!isNaN(num) && !cleanVal.includes("-") && !cleanVal.includes("/"))) {
+        sum += num;
+        countValid++;
+      } else {
+        isNumeric = false;
+        break;
+      }
+    }
+    return isNumeric && countValid > 0 ? sum : null;
+  });
 
   // KPI Summary Cards - Only rendered if explicitly requested (never by default)
   const kpiCards: ReportKpiCard[] =
@@ -957,42 +1076,57 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       </div>`
     : "";
 
-  // Generate Table HTML
+  // Generate Opera Table Header HTML
   const theadHtml = `
     <thead>
-      <tr>
-        <th style="width: 32px; text-align: center;">#</th>
+      <tr class="opera-thead-row">
+        <th style="width: 28px; text-align: center;">#</th>
         ${headers
-          .map((h) => {
-            return `<th>${h}</th>`;
+          .map((h, i) => {
+            const align = getOperaColumnAlign(rawHeaders[i] || h, isArabic);
+            return `<th style="text-align: ${align};">${h}</th>`;
           })
           .join("")}
       </tr>
     </thead>
   `;
 
+  // Generate Opera Table Body HTML
   const tbodyHtml = `
     <tbody>
       ${tableRows.length > 0
         ? tableRows
             .map((row, idx) => {
               return `
-                <tr>
-                  <td style="text-align: center; font-weight: 700; color: #64748b;">${idx + 1}</td>
+                <tr class="opera-row">
+                  <td style="text-align: center; color: #64748b; font-size: ${printFontSizePt - 0.5}pt;">${idx + 1}</td>
                   ${row
-                    .map((cell) => {
+                    .map((cell, colIdx) => {
+                      const align = getOperaColumnAlign(rawHeaders[colIdx] || "", isArabic);
                       const formatted = formatStatusBadgeHtml(cell, isArabic);
                       const isNum = typeof cell === "number" || (!isNaN(Number(cell)) && cell !== "" && cell !== null && !String(cell).includes("-") && !String(cell).includes("/"));
-                      const alignStyle = isNum ? "text-align: center;" : "";
-                      return `<td style="${alignStyle}">${formatted}</td>`;
+                      const displayVal = (isNum && typeof cell === "number") ? cell.toLocaleString() : formatted;
+                      return `<td style="text-align: ${align};">${displayVal}</td>`;
                     })
                     .join("")}
                 </tr>
               `;
             })
             .join("")
-        : `<tr><td colspan="${headers.length + 1}" style="text-align:center; padding:24px; color:#94a3b8;">${isArabic ? "لا توجد سجلات مطابقة للعرض" : "No records found matching criteria"}</td></tr>`
+        : `<tr><td colspan="${headers.length + 1}" style="text-align:center; padding:20px; color:#64748b;">${isArabic ? "لا توجد سجلات مطابقة للعرض" : "No records found matching criteria"}</td></tr>`
       }
+      ${tableRows.length > 0 ? `
+        <tr class="opera-totals-row">
+          <td style="text-align: center; font-weight: bold;">—</td>
+          <td style="font-weight: bold;">${isArabic ? `إجمالي السجلات: ${tableRows.length}` : `Total Records: ${tableRows.length}`}</td>
+          ${colTotals.map((tot, i) => {
+            if (i === 0) return ""; // already spanned / handled
+            if (tot === null) return `<td></td>`;
+            const align = getOperaColumnAlign(rawHeaders[i] || "", isArabic);
+            return `<td style="text-align: ${align}; font-weight: bold;">${tot.toLocaleString()}</td>`;
+          }).join("")}
+        </tr>
+      ` : ""}
     </tbody>
   `;
 
@@ -1009,7 +1143,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     ? (signatures?.role3Ar || signatures?.role3 || (activeTab === "housekeeping_sheet" ? "مدير الإشراف الداخلي المعتمد" : "اعتماد / مدير الموارد البشرية والمدير العام"))
     : (signatures?.role3 || (activeTab === "housekeeping_sheet" ? "Executive Housekeeper" : "Approved by / HR Director"));
 
-  // Complete HTML Document
+  // Complete Opera PMS HTML Document
   const html = `<!DOCTYPE html>
 <html lang="${lang}" dir="${dir}">
 <head>
@@ -1020,27 +1154,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --primary: #0f2a44;
-      --primary-light: #1b3d60;
-      --gold: #c9a24d;
-      --gold-light: #dfbe73;
-      --gold-dark: #a88233;
-      --bg-page: #f8fafc;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --border-color: #e2e8f0;
-    }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif;
+      font-family: ${isArabic ? "'Cairo', Tahoma, Arial, sans-serif" : "Arial, Helvetica, 'Nimbus Sans L', sans-serif"};
       direction: ${dir};
-      background: var(--bg-page);
-      color: var(--text-main);
-      font-size: 8.5pt;
-      line-height: 1.4;
+      background: #f1f5f9;
+      color: #000000;
+      font-size: ${baseFontSizePt}pt;
+      line-height: 1.35;
       -webkit-font-smoothing: antialiased;
     }
 
@@ -1049,9 +1171,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       position: sticky;
       top: 0;
       z-index: 9999;
-      background: var(--primary);
+      background: #0f172a;
       color: #ffffff;
-      padding: 10px 24px;
+      padding: 8px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1068,11 +1190,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       color: #ffffff;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .bar-meta {
       font-size: 8pt;
-      color: var(--gold-light);
+      color: #94a3b8;
       background: rgba(255,255,255,0.08);
       padding: 2px 8px;
       border-radius: 4px;
@@ -1084,7 +1206,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       gap: 8px;
     }
     .btn {
-      padding: 7px 16px;
+      padding: 6px 14px;
       border-radius: 6px;
       font-weight: 700;
       font-size: 8.5pt;
@@ -1098,12 +1220,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .btn-primary {
-      background: linear-gradient(135deg, #c9a24d 0%, #b38e3c 100%);
-      color: #0f2a44;
-      border: 1px solid #e0be6c;
+      background: #0284c7;
+      color: #ffffff;
+      border: 1px solid #38bdf8;
     }
     .btn-primary:hover {
-      background: linear-gradient(135deg, #dfbe73 0%, #c9a24d 100%);
+      background: #0369a1;
       transform: translateY(-1px);
     }
     .btn-outline {
@@ -1134,93 +1256,118 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       width: ${orientation === "landscape" ? "297mm" : "210mm"};
       min-height: ${orientation === "landscape" ? "210mm" : "297mm"};
       background: #ffffff;
-      padding: 12mm 14mm;
+      padding: 10mm 12mm 10mm 12mm;
       box-shadow: 0 8px 30px rgba(0,0,0,0.07);
-      border-radius: 6px;
       position: relative;
     }
 
-    /* Header */
-    .header {
+    /* Opera PMS Header Layout */
+    .opera-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
+      align-items: flex-start;
+      margin-bottom: 6px;
     }
-    .logo-container img {
-      max-height: 44px;
+    .opera-header-left {
+      width: 25%;
+      display: flex;
+      align-items: center;
+    }
+    .opera-logo {
+      max-height: 52px;
       max-width: 140px;
       object-fit: contain;
     }
-    .brand-fallback {
-      font-weight: 900;
-      color: var(--primary);
-      font-size: 13pt;
+    .opera-fallback-brand {
+      font-weight: 800;
+      color: #000000;
+      font-size: 11pt;
       letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .brand-fallback-badge {
-      font-size: 7.5pt;
-      color: var(--gold-dark);
-      border-inline-start: 2px solid var(--gold);
-      padding-inline-start: 8px;
-      font-weight: 700;
       line-height: 1.2;
     }
-
-    .gold-divider {
-      height: 2.5px;
-      background: linear-gradient(90deg, #c9a24d 0%, #0f2a44 50%, #c9a24d 100%);
-      border: none;
-      margin: 8px 0 12px;
-      border-radius: 2px;
-    }
-
-    .title-box {
+    .opera-header-center {
+      width: 50%;
       text-align: center;
-      margin-bottom: 12px;
     }
-    .report-title {
-      font-size: 15pt;
-      font-weight: 900;
-      color: var(--primary);
-      margin-bottom: 4px;
+    .opera-hotel-name {
+      font-size: 10pt;
+      font-weight: 500;
+      font-style: italic;
+      color: #000000;
+      margin-bottom: 3px;
+      letter-spacing: 0.2px;
     }
-    .report-subtitle {
-      font-size: 8.5pt;
-      color: var(--text-muted);
+    .opera-report-title {
+      font-size: 13.5pt;
+      font-weight: 800;
+      color: #000000;
+      letter-spacing: 0.2px;
+    }
+    .opera-header-right {
+      width: 25%;
+      text-align: ${dir === "rtl" ? "left" : "right"};
+      font-size: 8pt;
+      font-weight: 500;
+      color: #000000;
+      line-height: 1.35;
+    }
+    .opera-meta-date {
       font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
     }
-    .sub-sep {
-      color: #94a3b8;
-      font-weight: 400;
+    .opera-meta-time {
+      font-weight: 500;
     }
 
-    /* Metadata Badge Bar */
-    .meta-bar {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 6px;
-      margin-bottom: 14px;
+    .opera-divider {
+      height: 1px;
+      background: #000000;
+      margin: 6px 0 10px 0;
     }
-    .meta-chip {
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 7.5pt;
-      font-weight: 600;
-      color: #334155;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+
+    /* Opera Data Table */
+    table.opera-table {
+      width: 100% !important;
+      max-width: 100% !important;
+      border-collapse: collapse !important;
+      border-spacing: 0 !important;
+      margin-bottom: 12px;
+      font-size: ${baseFontSizePt}pt;
+      table-layout: auto !important;
+    }
+    table.opera-table th {
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-weight: 700 !important;
+      font-size: ${baseFontSizePt}pt !important;
+      border-top: 1px solid #000000 !important;
+      border-bottom: 1px solid #000000 !important;
+      border-left: none !important;
+      border-right: none !important;
+      padding: ${cellPadding} !important;
+      line-height: 1.25;
+      vertical-align: bottom;
+      white-space: nowrap;
+    }
+    table.opera-table td {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border-top: none !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: 0.5px solid #f1f5f9 !important;
+      padding: ${cellPadding} !important;
+      line-height: 1.3;
+      vertical-align: top;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+    }
+    tr.opera-totals-row td {
+      border-top: 1px solid #000000 !important;
+      border-bottom: 1px solid #000000 !important;
+      font-weight: 700 !important;
+      font-size: ${baseFontSizePt}pt !important;
+      background: #ffffff !important;
+      padding: 4.5px 5px !important;
     }
 
     /* KPI Summary Cards */
@@ -1231,114 +1378,46 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       page-break-inside: avoid;
     }
     .kpi-card {
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: #fafbfc;
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
       text-align: center;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
     .kpi-card::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 3.5px;
-      background: var(--gold);
+      height: 3px;
+      background: #0f172a;
     }
-    .kpi-card.green::before { background: #10b981; }
+    .kpi-card.green::before { background: #16a34a; }
     .kpi-card.blue::before { background: #2563eb; }
     .kpi-card.orange::before { background: #ea580c; }
-    .kpi-card.red::before { background: #ef4444; }
-    .kpi-card.purple::before { background: #8b5cf6; }
-    .kpi-card.slate::before { background: #64748b; }
-
+    .kpi-card.red::before { background: #dc2626; }
     .kpi-val {
-      font-size: 16pt;
-      font-weight: 900;
-      line-height: 1.1;
+      font-size: 14pt;
+      font-weight: 800;
+      color: #000000;
       margin-top: 2px;
-      color: var(--primary);
     }
-    .kpi-card.green .kpi-val { color: #047857; }
-    .kpi-card.blue .kpi-val { color: #1d4ed8; }
-    .kpi-card.orange .kpi-val { color: #c2410c; }
-    .kpi-card.red .kpi-val { color: #dc2626; }
-    .kpi-card.gold .kpi-val { color: var(--gold-dark); }
-
     .kpi-label {
       font-size: 7.5pt;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-top: 3px;
+      font-weight: 600;
+      color: #475569;
     }
     .kpi-subtext {
       font-size: 6.8pt;
-      font-weight: 600;
-      color: #94a3b8;
-      margin-top: 2px;
-    }
-
-    /* Data Table */
-    table {
-      width: 100% !important;
-      max-width: 100% !important;
-      border-collapse: collapse;
-      margin-bottom: 16px;
-      font-size: ${baseFontSizePt}pt;
-      table-layout: auto !important;
-      word-break: break-word !important;
-      overflow-wrap: break-word !important;
-    }
-    th, td {
-      border: 1px solid #cbd5e1;
-      padding: ${cellPadding};
-      text-align: ${dir === "rtl" ? "right" : "left"};
-      word-break: break-word !important;
-      overflow-wrap: break-word !important;
-      white-space: normal !important;
-      vertical-align: middle;
-      line-height: 1.25;
-    }
-    th {
-      background: #1e293b;
-      color: #ffffff;
-      font-weight: 800;
-      font-size: ${baseFontSizePt}pt;
-      letter-spacing: 0.1px;
-      border: 1px solid #334155;
-      white-space: normal !important;
-    }
-    tr:nth-child(even) td {
-      background: #f8fafc;
-    }
-    tr:hover td {
-      background: #f1f5f9;
-    }
-
-    /* Clean, minimal cell badges (Zero noisy multi-color backgrounds) */
-    .badge {
-      display: inline-block;
-      font-size: inherit;
-      font-weight: 600;
-      color: #0f172a;
-      background: transparent !important;
-      border: none !important;
-      padding: 0 !important;
-    }
-    .badge-dot { display: none !important; }
-    .badge-green, .badge-red, .badge-blue, .badge-orange, .badge-slate {
-      background: transparent !important;
-      color: #0f172a !important;
-      border: none !important;
+      color: #64748b;
     }
 
     /* Signatures Block */
     .sig-section {
-      margin-top: 20px;
-      padding-top: 14px;
-      border-top: 1.5px dashed #cbd5e1;
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px dashed #cbd5e1;
       page-break-inside: avoid;
     }
     .sig-grid {
@@ -1347,17 +1426,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       gap: 16px;
     }
     .sig-card {
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px 12px;
-      background: #fafbfc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 8px 10px;
+      background: #ffffff;
       text-align: center;
     }
     .sig-role {
-      font-weight: 800;
+      font-weight: 700;
       font-size: 8pt;
-      color: var(--primary);
-      margin-bottom: 24px;
+      color: #000000;
+      margin-bottom: 22px;
     }
     .sig-line {
       border-top: 1px dashed #94a3b8;
@@ -1365,37 +1444,60 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
     .sig-date {
       font-size: 7pt;
-      color: var(--text-muted);
+      color: #64748b;
     }
 
-    /* Footer */
-    .foot {
+    /* Opera Footer Layout */
+    .opera-footer {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-end;
       font-size: 7pt;
-      color: #94a3b8;
-      margin-top: 16px;
-      padding-top: 8px;
-      border-top: 1px solid #e2e8f0;
+      color: #000000;
+      margin-top: 14px;
+      padding-top: 6px;
+      line-height: 1.35;
     }
-    .foot-cert {
-      font-weight: 700;
-      color: var(--gold-dark);
+    .opera-footer-left {
       display: flex;
-      align-items: center;
-      gap: 4px;
+      gap: 8px;
+      max-width: 48%;
+    }
+    .opera-filter-tag {
+      font-weight: 700;
+      color: #000000;
+      white-space: nowrap;
+    }
+    .opera-filter-desc {
+      display: flex;
+      flex-direction: column;
+      color: #000000;
+    }
+    .opera-footer-center {
+      text-align: center;
+      font-weight: 500;
+      font-size: 7.5pt;
+      color: #000000;
+    }
+    .opera-footer-right {
+      text-align: ${dir === "rtl" ? "left" : "right"};
+      font-style: italic;
+      font-family: monospace, sans-serif;
+      font-size: 7.5pt;
+      color: #000000;
+      letter-spacing: 0.3px;
     }
 
-    /* Print Specific Media Styles */
+    /* Print Media Styles */
     @media print {
       @page {
         size: A4 ${orientation};
-        margin: 4mm 6mm !important;
+        margin: 5mm 8mm 6mm 8mm !important;
       }
       html, body {
         width: 100% !important;
         background: #ffffff !important;
+        color: #000000 !important;
         font-size: ${printFontSizePt}pt !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -1411,25 +1513,24 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         min-height: auto !important;
         border-radius: 0 !important;
       }
-      table {
-        width: 100% !important;
-        max-width: 100% !important;
-        table-layout: auto !important;
+      table.opera-table {
         font-size: ${printFontSizePt}pt !important;
       }
-      th, td {
+      table.opera-table th {
         font-size: ${printFontSizePt}pt !important;
         padding: ${printPadding} !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
-        white-space: normal !important;
-      }
-      th {
-        background: #1e293b !important;
-        color: #ffffff !important;
-        border-color: #334155 !important;
+        border-top: 1px solid #000000 !important;
+        border-bottom: 1px solid #000000 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+      }
+      table.opera-table td {
+        font-size: ${printFontSizePt}pt !important;
+        padding: ${printPadding} !important;
+        color: #000000 !important;
+        border-bottom: 0.5px solid #e2e8f0 !important;
       }
       tr {
         page-break-inside: avoid !important;
@@ -1440,15 +1541,6 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       tfoot {
         display: table-footer-group !important;
       }
-      .badge, .badge-green, .badge-red, .badge-blue, .badge-orange, .badge-slate {
-        background: transparent !important;
-        color: #000000 !important;
-        border: none !important;
-        padding: 0 !important;
-      }
-      .badge-dot { display: none !important; }
-      .kpi-card { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      tr:nth-child(even) td { background: #f8fafc !important; -webkit-print-color-adjust: exact !important; }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
   </style>
@@ -1459,10 +1551,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   <div class="preview-actions-bar">
     <div class="bar-left">
       <div class="bar-title">
-        <span>👑</span>
+        <span>🏨</span>
         <span>${reportTitle}</span>
       </div>
-      <div class="bar-meta">${propName} · ${rows.length} ${isArabic ? "سجل" : "records"} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : (isArabic ? "رأسي (Portrait)" : "Portrait")}</span></div>
+      <div class="bar-meta">${propName} · ${tableRows.length} ${isArabic ? "سجل" : "records"} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : (isArabic ? "رأسي (Portrait)" : "Portrait")}</span> · <span style="font-family: monospace;">[${operaCode}]</span></div>
     </div>
     <div class="bar-actions">
       <button class="btn btn-primary" onclick="window.print()">🖨️ ${isArabic ? "طباعة / حفظ كـ PDF" : "Print / Save as PDF"}</button>
@@ -1480,55 +1572,39 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   <div class="sheet-wrapper">
     <div class="sheet" id="printSheet">
-      <!-- Header: Dual Logo -->
-      <div class="header">
-        <div class="logo-container">
-          ${propLogo
-            ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" />`
-            : `<div class="brand-fallback">
-                <span>SUNRISE</span>
-                <span class="brand-fallback-badge">${propName.toUpperCase()}</span>
-               </div>`
+      <!-- Opera Header Layout -->
+      <div class="opera-header">
+        <div class="opera-header-left">
+          ${effectiveLogo
+            ? `<img src="${effectiveLogo.dataUrl}" alt="Logo" class="opera-logo" />`
+            : `<div class="opera-fallback-brand">SUNRISE RESORTS<br /><small style="font-size:7pt;color:#64748b;">STAFF HOUSING</small></div>`
           }
         </div>
-        <div class="logo-container">
-          ${sysLogo
-            ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" />`
-            : `<div class="brand-fallback">
-                <span>RESORTS & CRUISES</span>
-                <span class="brand-fallback-badge">STAFF HOUSING</span>
-               </div>`
-          }
+        <div class="opera-header-center">
+          <div class="opera-hotel-name">${propName}</div>
+          <div class="opera-report-title">${reportTitle}</div>
+        </div>
+        <div class="opera-header-right">
+          <div class="opera-meta-date">${operaDateStr}</div>
+          <div class="opera-meta-time">${operaTimeStr}</div>
         </div>
       </div>
 
-      <hr class="gold-divider" />
+      <div class="opera-divider"></div>
 
-      <!-- Title & Subtitle (Clean & Minimal: Property/Building name and Date only) -->
-      <div class="title-box">
-        <h1 class="report-title">${reportTitle}</h1>
-        <div class="report-subtitle">
-          <span>${propName}</span>
-          <span class="sub-sep">·</span>
-          <span>${issueDateFormatted}</span>
-          ${dateFrom || dateTo ? `<span class="sub-sep">·</span><span>${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}${dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : ""}</span>` : ""}
-          ${search ? `<span class="sub-sep">·</span><span>${isArabic ? "بحث" : "Filter"}: "${search}"</span>` : ""}
-        </div>
-      </div>
-
-      <!-- Top KPI Summary Cards -->
+      <!-- Top KPI Summary Cards (Optional, toggled via bar) -->
       ${kpisHtml}
 
       <!-- Custom Injected Sections if any -->
       ${customSectionsHtml || ""}
 
-      <!-- Main Data Table -->
-      <table>
+      <!-- Opera Data Table -->
+      <table class="opera-table">
         ${theadHtml}
         ${tbodyHtml}
       </table>
 
-      <!-- Multi-Tier Official Signatures Block -->
+      <!-- Multi-Tier Official Signatures Block (Optional, toggled via bar) -->
       <div class="sig-section" id="sigSection" style="${initialShowSigs ? "" : "display: none !important;"}">
         <div class="sig-grid">
           <div class="sig-card">
@@ -1549,12 +1625,22 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         </div>
       </div>
 
-      <!-- Footer -->
-      <div class="foot">
-        <div>${isArabic ? "تاريخ الإصدار والطباعة:" : "Issue Date & Time:"} ${issueDateFormatted}</div>
-        <div class="foot-cert">
-          <span>🛡️</span>
-          <span>${isArabic ? "نظام إدارة سكن العاملين — وثيقة تشغيلية رسمية معتمدة" : "Sunrise Staff Housing Management System — Official Certified Document"}</span>
+      <!-- Opera Footer Layout -->
+      <div class="opera-footer">
+        <div class="opera-footer-left">
+          <div class="opera-filter-tag">${isArabic ? "عوامل التصفية" : "Filter"}</div>
+          <div class="opera-filter-desc">
+            <span>${isArabic ? "الفرع" : "Property"}: ${propName}</span>
+            ${dateFrom || dateTo ? `<span>${isArabic ? "الفترة" : "Date"}: ${dateFrom || "All"} — ${dateTo || "All"}</span>` : `<span>${isArabic ? "التاريخ" : "Date"}: ${operaDateStr}</span>`}
+            ${search ? `<span>${isArabic ? "البحث" : "Filter"}: "${search}"</span>` : `<span>${isArabic ? "الحالة: الكل" : "Status: All"}</span>`}
+            <span>${isArabic ? "الترتيب حسب: رقم الغرفة" : "Sort Order: Room No."}</span>
+          </div>
+        </div>
+        <div class="opera-footer-center">
+          <span class="opera-page-indicator">${isArabic ? "صفحة 1 من 1" : "Page 1 of 1"}</span>
+        </div>
+        <div class="opera-footer-right">
+          <span class="opera-report-slug">${operaCode}</span>
         </div>
       </div>
     </div>
