@@ -993,16 +993,6 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     ? (signatures?.role3Ar || signatures?.role3 || (activeTab === "housekeeping_sheet" ? "مدير الإشراف الداخلي المعتمد" : "اعتماد / مدير الموارد البشرية والمدير العام"))
     : (signatures?.role3 || (activeTab === "housekeeping_sheet" ? "Executive Housekeeper" : "Approved by / HR Director"));
 
-  // Build Metadata Badges
-  const metaBadges = [
-    `📅 ${issueDateFormatted}`,
-    `🏨 ${propName}`,
-    `📊 ${rows.length} ${isArabic ? "سجل" : "records"}`,
-    dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom}` : "",
-    dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : "",
-    search ? `🔍 "${search}"` : "",
-  ].filter(Boolean);
-
   // Complete HTML Document
   const html = `<!DOCTYPE html>
 <html lang="${lang}" dir="${dir}">
@@ -1186,6 +1176,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       font-size: 8.5pt;
       color: var(--text-muted);
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .sub-sep {
+      color: #94a3b8;
+      font-weight: 400;
     }
 
     /* Metadata Badge Bar */
@@ -1490,19 +1488,16 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
       <hr class="gold-divider" />
 
-      <!-- Title & Subtitle -->
+      <!-- Title & Subtitle (Clean & Minimal: Property/Building name and Date only) -->
       <div class="title-box">
         <h1 class="report-title">${reportTitle}</h1>
         <div class="report-subtitle">
-          ${isArabic
-            ? `الفرع: <strong>${propName}</strong> ${propAddress ? `(${propAddress})` : ""} · تصنيف الوثيقة: تقرير عمليات معتمد`
-            : `Property: <strong>${propName}</strong> ${propAddress ? `(${propAddress})` : ""} · Certified Operations Document`}
+          <span>${propName}</span>
+          <span class="sub-sep">·</span>
+          <span>${issueDateFormatted}</span>
+          ${dateFrom || dateTo ? `<span class="sub-sep">·</span><span>${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}${dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : ""}</span>` : ""}
+          ${search ? `<span class="sub-sep">·</span><span>${isArabic ? "بحث" : "Filter"}: "${search}"</span>` : ""}
         </div>
-      </div>
-
-      <!-- Metadata Chips -->
-      <div class="meta-bar">
-        ${metaBadges.map((badge) => `<div class="meta-chip">${badge}</div>`).join("")}
       </div>
 
       <!-- Top KPI Summary Cards -->
