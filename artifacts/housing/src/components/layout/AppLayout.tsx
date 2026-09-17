@@ -571,27 +571,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           );
         })}
       </div>
-
-      {/* User Info & Quick Actions at bottom of sidebar */}
-      <div className="p-3 border-t border-white/10 mt-auto bg-sidebar/50">
-        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white/5 border border-white/5">
-          <Avatar className="h-8 w-8 flex-shrink-0">
-            <AvatarFallback className="bg-primary text-sidebar-primary-foreground text-xs font-bold">
-              {user?.username?.substring(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate text-sidebar-foreground">
-              {user?.username}
-            </p>
-            <p className="text-[10px] text-sidebar-foreground/70 truncate capitalize">
-              {isSuperAdmin
-                ? (ar ? "مدير النظام" : "Super Admin")
-                : user?.roles?.[0]?.replace(/_/g, " ")}
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 
