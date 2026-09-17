@@ -1,7 +1,9 @@
 import makeWASocket, {
   DisconnectReason,
   useMultiFileAuthState,
+  fetchLatestWaWebVersion,
   fetchLatestBaileysVersion,
+  makeCacheableSignalKeyStore,
   Browsers,
 } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
@@ -11,8 +13,10 @@ import pino from "pino";
 import { pool } from "@workspace/db";
 import { ensureProfilePortalAccount } from "./portal-accounts.js";
 
-// Sessions storage directory
-const SESSIONS_DIR = path.resolve(process.cwd(), "storage/whatsapp_sessions");
+// Canonical sessions storage directory
+const SESSIONS_DIR = fs.existsSync(path.resolve(process.cwd(), "artifacts/api-server/storage/whatsapp_sessions"))
+  ? path.resolve(process.cwd(), "artifacts/api-server/storage/whatsapp_sessions")
+  : path.resolve(process.cwd(), "storage/whatsapp_sessions");
 if (!fs.existsSync(SESSIONS_DIR)) {
   fs.mkdirSync(SESSIONS_DIR, { recursive: true });
 }
@@ -22,6 +26,7 @@ interface SessionState {
   sock: any | null;
   status: "disconnected" | "pairing" | "connected";
   qrCode?: string;
+  pairingCode?: string;
   phoneNumber?: string;
   reconnectAttempts: number;
   isInitializing: boolean;
@@ -299,7 +304,8 @@ export async function getWhatsAppSession(propertyId: number): Promise<SessionSta
  */
 export async function connectPropertyWhatsApp(
   propertyId: number,
-  forceRestart: boolean = false
+  forceRestart: boolean = false,
+  phoneNumberForPairingCode?: string
 ): Promise<SessionState> {
   let session = activeSessions.get(propertyId);
   if (!session) {
@@ -331,6 +337,7 @@ export async function connectPropertyWhatsApp(
   session.isInitializing = true;
   session.status = "pairing";
   session.qrCode = undefined;
+  session.pairingCode = undefined;
 
   const sessionFolder = path.join(SESSIONS_DIR, `property_${propertyId}`);
   if (!fs.existsSync(sessionFolder)) {
@@ -346,13 +353,17 @@ export async function connectPropertyWhatsApp(
 
   const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
 
-  // Safe fetch of version with reliable fallback
-  let version: [number, number, number] = [2, 3000, 1017531234];
+  // Fetch actual live WhatsApp Web version from WhatsApp CDN
+  let version: [number, number, number] = [2, 3000, 1047787617];
   try {
-    const v = await fetchLatestBaileysVersion();
+    const v = await fetchLatestWaWebVersion();
     if (v?.version) version = v.version;
   } catch (err: any) {
-    console.warn("[WhatsApp] fetchLatestBaileysVersion fallback used:", err?.message);
+    try {
+      const v2 = await fetchLatestBaileysVersion();
+      if (v2?.version) version = v2.version;
+    } catch {}
+    console.warn("[WhatsApp] fetchLatestWaWebVersion fallback used:", err?.message);
   }
 
   const logger = pino({ level: "silent" });
@@ -363,11 +374,12 @@ export async function connectPropertyWhatsApp(
     printQRInTerminal: false,
     auth: {
       creds: state.creds,
-      keys: state.keys,
+      keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     generateHighQualityLinkPreview: false,
-    browser: Browsers.windows("Desktop"),
+    browser: Browsers.ubuntu("Chrome"),
     syncFullHistory: false,
+    getMessage: async () => undefined,
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
     keepAliveIntervalMs: 30000,
@@ -375,6 +387,27 @@ export async function connectPropertyWhatsApp(
   });
 
   session.sock = sock;
+
+  // If pairing code requested and not already registered
+  const validPairingPhone =
+    typeof phoneNumberForPairingCode === "string" && phoneNumberForPairingCode.trim().length > 0
+      ? phoneNumberForPairingCode.trim()
+      : undefined;
+
+  if (validPairingPhone && !state.creds.registered) {
+    setTimeout(async () => {
+      try {
+        const cleanPhone = normalizePhoneNumber(validPairingPhone);
+        if (cleanPhone && cleanPhone.length >= 8) {
+          const code = await sock.requestPairingCode(cleanPhone);
+          session.pairingCode = code;
+          console.log(`[WhatsApp] Pairing Code for property ${propertyId}:`, code);
+        }
+      } catch (err: any) {
+        console.error("[WhatsApp] requestPairingCode error:", err?.message);
+      }
+    }, 2000);
+  }
 
   sock.ev.on("creds.update", async () => {
     try {
@@ -420,6 +453,7 @@ export async function connectPropertyWhatsApp(
     if (connection === "open") {
       session.status = "connected";
       session.qrCode = undefined;
+      session.pairingCode = undefined;
       session.reconnectAttempts = 0;
       session.isInitializing = false;
 
@@ -448,30 +482,44 @@ export async function connectPropertyWhatsApp(
       session.isInitializing = false;
       session.sock = null;
 
-      const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+      const err = lastDisconnect?.error as any;
+      const statusCode = err?.output?.statusCode ?? err?.statusCode ?? err?.status;
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
       const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
 
       console.log(
         `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}, isRestartRequired: ${isRestartRequired}`
       );
 
+      const wasPairing = session.status === "pairing";
       session.status = "disconnected";
 
-      if (isRestartRequired) {
+      if (isLoggedOut) {
+        console.log(`[WhatsApp] Property ${propertyId} logged out. Resetting session credentials.`);
+        session.qrCode = undefined;
+        session.pairingCode = undefined;
+        session.phoneNumber = undefined;
+        try {
+          fs.rmSync(sessionFolder, { recursive: true, force: true });
+        } catch {}
+        pool.query(
+          `UPDATE public.property_whatsapp_configs
+           SET status = 'disconnected', qr_code = NULL, phone_number = NULL, updated_at = NOW()
+           WHERE property_id = $1`,
+          [propertyId]
+        ).catch(() => {});
+      } else if (isRestartRequired || statusCode === 515 || wasPairing) {
         // QR Code was scanned or stream restart requested! WhatsApp requires immediate reconnect with saved credentials
-        console.log(`[WhatsApp] Pairing handshake in progress (code 515) for property ${propertyId}. Reconnecting with saved credentials...`);
+        console.log(`[WhatsApp] Pairing handshake in progress (code ${statusCode}) for property ${propertyId}. Immediate reconnect with saved credentials...`);
         setTimeout(() => {
           connectPropertyWhatsApp(propertyId, false).catch((err) => {
             console.error(`[WhatsApp] Reconnect after restartRequired error:`, err);
           });
-        }, 800);
+        }, 50);
       } else {
         // Infinite auto-reconnect with exponential backoff!
-        // NOTE: We NEVER delete sessionFolder on connection.close!
-        // sessionFolder is ONLY deleted when user explicitly clicks "Disconnect" in the UI.
         session.reconnectAttempts++;
-        const delay = Math.min(session.reconnectAttempts * 3000, 30000);
+        const delay = Math.min(session.reconnectAttempts * 2000, 20000);
         console.log(`[WhatsApp] Auto-reconnecting property ${propertyId} (attempt #${session.reconnectAttempts}) in ${delay}ms...`);
         setTimeout(() => {
           connectPropertyWhatsApp(propertyId, false).catch((err) => {

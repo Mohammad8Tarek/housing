@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import {
   MessageSquare,
   QrCode,
@@ -32,6 +33,7 @@ import {
   BookmarkCheck,
   Clock,
   Layers,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
@@ -160,6 +162,10 @@ export function WhatsAppSettingsSection({
   const [status, setStatus] = useState<"disconnected" | "pairing" | "connected">("disconnected");
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingPhone, setPairingPhone] = useState<string>("");
+  const [pairingTab, setPairingTab] = useState<"qr" | "code">("qr");
+  const [requestingCode, setRequestingCode] = useState<boolean>(false);
   const [pendingQueueCount, setPendingQueueCount] = useState<number>(0);
   const [processingQueue, setProcessingQueue] = useState<boolean>(false);
 
@@ -199,6 +205,9 @@ export function WhatsAppSettingsSection({
         setStatus(sData.status || "disconnected");
         setPhoneNumber(sData.phoneNumber || null);
         setQrCode(sData.qrCode || null);
+        if (sData.pairingCode !== undefined) {
+          setPairingCode(sData.pairingCode || null);
+        }
         if (sData.pendingQueueCount !== undefined) {
           setPendingQueueCount(sData.pendingQueueCount);
         }
@@ -276,24 +285,30 @@ export function WhatsAppSettingsSection({
     return () => clearInterval(interval);
   }, [propertyId, status]);
 
-  // Connect / Request QR
-  const handleConnect = async () => {
+  // Connect / Request QR or Pairing Code
+  const handleConnect = async (phoneForCode?: string) => {
     if (!propertyId) return;
     setConnecting(true);
     try {
+      const safePhone = typeof phoneForCode === "string" && phoneForCode.trim().length > 0 ? phoneForCode.trim() : undefined;
       const res = await fetch(`/api/whatsapp/connect?propertyId=${propertyId}`, {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phoneNumber: safePhone,
+        }),
       });
       const data = await res.json();
       if (data.success) {
         setStatus(data.status);
         setQrCode(data.qrCode);
+        setPairingCode(data.pairingCode || null);
         setPhoneNumber(data.phoneNumber);
         toast.success(
-          ar
-            ? "تم توليد رمز QR بنجاح، قم بمسحه من هاتفك"
-            : "QR Code generated, scan with your phone"
+          data.pairingCode
+            ? (ar ? "تم إنشاء كود الاقتران بنجاح، أدخله في هاتفك" : "Pairing code generated, enter it on your phone")
+            : (ar ? "تم توليد رمز QR بنجاح، قم بمسحه من هاتفك" : "QR Code generated, scan with your phone")
         );
       } else {
         toast.error(data.error || (ar ? "فشل بدء الاتصال" : "Connection failed"));
@@ -302,6 +317,19 @@ export function WhatsAppSettingsSection({
       toast.error(ar ? "خطأ في الاتصال بالخادم" : "Server communication error");
     } finally {
       setConnecting(false);
+    }
+  };
+
+  const handleRequestPairingCode = async () => {
+    if (!pairingPhone.trim()) {
+      toast.error(ar ? "يرجى إدخال رقم هاتف الواتساب" : "Please enter WhatsApp phone number");
+      return;
+    }
+    setRequestingCode(true);
+    try {
+      await handleConnect(pairingPhone.trim());
+    } finally {
+      setRequestingCode(false);
     }
   };
 
@@ -527,7 +555,7 @@ export function WhatsAppSettingsSection({
               ) : (
                 <Button
                   size="sm"
-                  onClick={handleConnect}
+                  onClick={() => handleConnect()}
                   disabled={connecting}
                   className="text-white gap-1.5 shadow-sm"
                   style={{ backgroundColor: "#00a884" }}
@@ -573,70 +601,161 @@ export function WhatsAppSettingsSection({
             </div>
           )}
 
-          {status === "pairing" && qrCode && (
-            <div className="flex flex-col md:flex-row items-center justify-center gap-8 p-6 bg-muted/40 rounded-2xl border border-border/80">
-              <div className="flex flex-col items-center bg-white p-4 rounded-2xl shadow-md border">
-                <img
-                  src={qrCode}
-                  alt="WhatsApp QR Code"
-                  className="w-64 h-64 object-contain rounded-lg"
-                />
-                <div className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{ar ? "الرمز يتجدد تلقائياً كل 40 ثانية" : "Auto-refreshes every 40s"}</span>
-                </div>
+          {status === "pairing" && (
+            <div className="p-6 bg-muted/40 rounded-2xl border border-border/80 space-y-6">
+              {/* Pairing Method Switcher */}
+              <div className="flex items-center justify-center gap-2 max-w-sm mx-auto p-1 bg-background/80 rounded-xl border shadow-2xs">
+                <Button
+                  type="button"
+                  variant={pairingTab === "qr" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setPairingTab("qr")}
+                  className={`flex-1 text-xs font-semibold gap-1.5 h-8 ${
+                    pairingTab === "qr" ? "bg-[#00a884] hover:bg-[#00a884]/90 text-white shadow-xs" : ""
+                  }`}
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>{ar ? "مسح رمز QR" : "Scan QR Code"}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={pairingTab === "code" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setPairingTab("code")}
+                  className={`flex-1 text-xs font-semibold gap-1.5 h-8 ${
+                    pairingTab === "code" ? "bg-[#00a884] hover:bg-[#00a884]/90 text-white shadow-xs" : ""
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>{ar ? "الربط برقم الهاتف" : "Pair with Phone #"}</span>
+                </Button>
               </div>
 
-              <div className="max-w-md space-y-3 text-sm">
-                <h4 className="font-bold text-base text-foreground flex items-center gap-2">
-                  <Smartphone className="w-5 h-5 text-[#00a884]" />
-                  {ar ? "طريقة ربط الهاتف بالواتساب:" : "How to connect your phone:"}
-                </h4>
-                <ol className="space-y-2 list-decimal list-inside text-muted-foreground leading-relaxed">
-                  <li>
-                    {ar
-                      ? "افتح تطبيق WhatsApp على هاتف السكن."
-                      : "Open WhatsApp on the property phone."}
-                  </li>
-                  <li>
-                    {ar
-                      ? "اضغط على القائمة (⋮) أو الإعدادات > الأجهزة المرتبطة (Linked Devices)."
-                      : "Tap Menu (⋮) or Settings > Linked Devices."}
-                  </li>
-                  <li>
-                    {ar
-                      ? "اضغط على زر (ربط جهاز / Link a Device)."
-                      : "Tap (Link a Device)."}
-                  </li>
-                  <li>
-                    {ar
-                      ? "وجّه كاميرا الهاتف نحو الرمز المربع الظاهر أمامك."
-                      : "Point your phone camera to the QR Code on screen."}
-                  </li>
-                </ol>
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 flex-shrink-0" />
-                  <span>
-                    {ar
-                      ? "يتم الحفظ الدائم للجلسة، ولن تحتاج لإعادة المسح عند إعادة تشغيل السيرفر."
-                      : "Session is permanently preserved and auto-restored upon server restarts."}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+              {pairingTab === "qr" ? (
+                qrCode ? (
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+                    <div className="flex flex-col items-center bg-white p-4 rounded-2xl shadow-md border">
+                      <img
+                        src={qrCode}
+                        alt="WhatsApp QR Code"
+                        className="w-64 h-64 object-contain rounded-lg"
+                      />
+                      <div className="text-xs text-gray-500 mt-2 flex items-center gap-1 font-mono">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00a884]" />
+                        <span>{ar ? "الرمز يتجدد تلقائياً كل 40 ثانية" : "Auto-refreshes every 40s"}</span>
+                      </div>
+                    </div>
 
-          {status === "pairing" && !qrCode && (
-            <div className="flex flex-col items-center justify-center p-8 bg-muted/40 rounded-2xl border border-border/80 text-center space-y-3 animate-pulse">
-              <Loader2 className="w-10 h-10 text-[#00a884] animate-spin" />
-              <div className="text-sm font-bold text-foreground">
-                {ar ? "جاري إنشاء وتجهيز رمز QR جديد..." : "Generating a fresh QR Code..."}
-              </div>
-              <div className="text-xs text-muted-foreground max-w-sm">
-                {ar
-                  ? "يتم الآن إنشاء جلسة ربط آمنة مع خوادم الواتساب، سيظهر رمز QR خلال لحظات..."
-                  : "Establishing secure pairing session with WhatsApp servers, QR will appear in moments..."}
-              </div>
+                    <div className="max-w-md space-y-3 text-sm">
+                      <h4 className="font-bold text-base text-foreground flex items-center gap-2">
+                        <Smartphone className="w-5 h-5 text-[#00a884]" />
+                        {ar ? "طريقة ربط الهاتف بالواتساب:" : "How to connect your phone:"}
+                      </h4>
+                      <ol className="space-y-2 list-decimal list-inside text-muted-foreground leading-relaxed">
+                        <li>
+                          {ar
+                            ? "افتح تطبيق WhatsApp على هاتف السكن."
+                            : "Open WhatsApp on the property phone."}
+                        </li>
+                        <li>
+                          {ar
+                            ? "اضغط على القائمة (⋮) أو الإعدادات > الأجهزة المرتبطة (Linked Devices)."
+                            : "Tap Menu (⋮) or Settings > Linked Devices."}
+                        </li>
+                        <li>
+                          {ar
+                            ? "اضغط على زر (ربط جهاز / Link a Device)."
+                            : "Tap (Link a Device)."}
+                        </li>
+                        <li>
+                          {ar
+                            ? "وجّه كاميرا الهاتف نحو الرمز المربع الظاهر أمامك."
+                            : "Point your phone camera to the QR Code on screen."}
+                        </li>
+                      </ol>
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <Info className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                          <span>{ar ? "إذا ظهرت لك رسالة (couldn't link):" : "If you see 'couldn't link':"}</span>
+                        </div>
+                        <p className="leading-relaxed">
+                          {ar
+                            ? "تأكد من فتح تطبيق واتساب محدث، أو استخدم خيار «الربط برقم الهاتف» أعلاه للحصول على كود مباشر وإدخاله بهاتفك فوراً."
+                            : "Ensure WhatsApp is updated, or click 'Pair with Phone #' above to link with a direct pairing code."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 animate-pulse">
+                    <Loader2 className="w-10 h-10 text-[#00a884] animate-spin" />
+                    <div className="text-sm font-bold text-foreground">
+                      {ar ? "جاري إنشاء وتجهيز رمز QR جديد..." : "Generating a fresh QR Code..."}
+                    </div>
+                    <div className="text-xs text-muted-foreground max-w-sm">
+                      {ar
+                        ? "يتم الآن إنشاء جلسة ربط آمنة مع خوادم الواتساب، سيظهر رمز QR خلال لحظات..."
+                        : "Establishing secure pairing session with WhatsApp servers, QR will appear in moments..."}
+                    </div>
+                  </div>
+                )
+              ) : (
+                /* Pairing Code Tab */
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="p-4 rounded-xl bg-background border shadow-2xs space-y-3">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-[#00a884]" />
+                      <span>{ar ? "أدخل رقم هاتف واتساب الخاص بالسكن:" : "Enter Property WhatsApp Phone Number:"}</span>
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={pairingPhone}
+                        onChange={(e) => setPairingPhone(e.target.value)}
+                        placeholder={ar ? "مثال: 01012345678 أو 201012345678" : "e.g. 01012345678"}
+                        className="font-mono font-semibold"
+                        dir="ltr"
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleRequestPairingCode}
+                        disabled={requestingCode || !pairingPhone.trim()}
+                        className="bg-[#00a884] hover:bg-[#00a884]/90 text-white font-semibold shrink-0"
+                      >
+                        {requestingCode ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          ar ? "طلب كود الربط" : "Get Code"
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {ar
+                        ? "سيتم إرسال طلب لخوادم الواتساب وتوليد كود من 8 خانات تدخله في هاتفك بدلاً من مسح الكاميرا."
+                        : "Requests an 8-character code from WhatsApp servers to enter on your phone without using the camera."}
+                    </p>
+                  </div>
+
+                  {pairingCode && (
+                    <div className="p-5 rounded-2xl bg-background border-2 border-[#00a884]/30 shadow-md space-y-3 text-center animate-in fade-in">
+                      <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                        {ar ? "كود الاقتران السريع الخاص بهاتفك:" : "Your Direct WhatsApp Pairing Code:"}
+                      </div>
+                      <div className="text-3xl font-black font-mono tracking-widest text-[#00a884] py-3 bg-[#00a884]/5 rounded-xl border border-[#00a884]/20 select-all">
+                        {pairingCode}
+                      </div>
+                      <div className="text-xs text-muted-foreground text-start rtl:text-right ltr:text-left space-y-1.5 p-3 rounded-lg bg-muted/40">
+                        <div className="font-bold text-foreground mb-1">
+                          {ar ? "طريقة الإدخال بالهاتف:" : "How to enter on phone:"}
+                        </div>
+                        <div>1. {ar ? "افتح تطبيق WhatsApp على هاتفك." : "Open WhatsApp on your phone."}</div>
+                        <div>2. {ar ? "اضغط على: الأجهزة المرتبطة > ربط جهاز." : "Tap: Linked Devices > Link a Device."}</div>
+                        <div>3. {ar ? "اضغط في أسفل شاشة الهاتف على «الربط باستخدام رقم الهاتف بدلاً من ذلك»." : "Tap 'Link with phone number instead' at the bottom."}</div>
+                        <div>4. {ar ? "أدخل الكود الموضح أعلاه." : "Enter the 8-character code shown above."}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
