@@ -972,11 +972,63 @@ export function generateAutoKpis(
 // ----------------------------------------------------------------------------
 // 3.5 Helper: Opera PMS Smart Column Alignment
 // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// 3.4 Helper: Detect multi-item lists, notes, descriptions, and addresses
+// Guarantees text will ALWAYS wrap and NEVER blow out table width
+// ----------------------------------------------------------------------------
+export function isMultiItemOrTextColumn(headerName: string): boolean {
+  const norm = (headerName || "").toLowerCase().trim();
+  return (
+    norm.includes("list") ||
+    norm.includes("summary") ||
+    norm.includes("notes") ||
+    norm.includes("detail") ||
+    norm.includes("reason") ||
+    norm.includes("action") ||
+    norm.includes("address") ||
+    norm.includes("breakdown") ||
+    norm.includes("occupant") ||
+    norm.includes("problem") ||
+    norm.includes("comment") ||
+    norm.includes("feature") ||
+    norm.includes("amenit") ||
+    norm.includes("overview") ||
+    norm.includes("قائمة") ||
+    norm.includes("أرقام") ||
+    norm.includes("ارقام") ||
+    norm.includes("ملخص") ||
+    norm.includes("ملاحظات") ||
+    norm.includes("تفاصيل") ||
+    norm.includes("السبب") ||
+    norm.includes("سبب") ||
+    norm.includes("إجراء") ||
+    norm.includes("اجراء") ||
+    norm.includes("عنوان") ||
+    norm.includes("بيان") ||
+    norm.includes("توزيع") ||
+    norm.includes("مشكلة") ||
+    norm.includes("وصف") ||
+    norm.includes("عهد") ||
+    norm.includes("نزلاء") ||
+    norm.includes("متأثر") ||
+    norm.includes("مميزات")
+  );
+}
+
+// ----------------------------------------------------------------------------
+// 3.5 Helper: Opera PMS Smart Column Alignment
+// ----------------------------------------------------------------------------
 export function getOperaColumnAlign(
   headerName: string,
   isArabic: boolean,
 ): "left" | "center" | "right" {
   const norm = (headerName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  // Multi-item lists, descriptions, notes, addresses ALWAYS align to start according to language
+  if (isMultiItemOrTextColumn(headerName)) {
+    return isArabic ? "right" : "left";
+  }
+
   // Right aligned numbers / currency / financial / capacity
   if (
     norm.includes("rate") ||
@@ -1000,12 +1052,11 @@ export function getOperaColumnAlign(
     headerName.includes("مشغول") ||
     headerName.includes("عدد")
   ) {
-    return isArabic ? "left" : "right";
+    return "center";
   }
-  // Center aligned codes, rooms, beds, dates, statuses, issues, signatures, checks
+
+  // Center aligned codes, single rooms, beds, dates, statuses, issues, signatures, checks
   if (
-    norm.includes("room") ||
-    norm.includes("bed") ||
     norm.includes("date") ||
     norm.includes("status") ||
     norm.includes("code") ||
@@ -1015,7 +1066,6 @@ export function getOperaColumnAlign(
     norm.includes("issue") ||
     norm.includes("check") ||
     norm.includes("sign") ||
-    headerName.includes("غرفة") ||
     headerName.includes("سرير") ||
     headerName.includes("تاريخ") ||
     headerName.includes("حالة") ||
@@ -1024,15 +1074,121 @@ export function getOperaColumnAlign(
     headerName.includes("دور") ||
     headerName.includes("جنس") ||
     headerName.includes("صرف") ||
-    headerName.includes("توقيع")
+    headerName.includes("توقيع") ||
+    // Strict single room identifier
+    norm === "room" ||
+    norm === "roomno" ||
+    norm === "roomnumber" ||
+    headerName.trim() === "غرفة" ||
+    headerName.trim() === "رقم الغرفة"
   ) {
     return "center";
   }
+
   return isArabic ? "right" : "left";
 }
 
 /**
- * Intelligent column sizing and whitespace handling for Opera PMS tables.
+ * Intelligent proportional column width allocator for Opera PMS tables.
+ * Ensures the sum of all columns strictly fits within the 100% printable A4 page width.
+ */
+export function getOperaColumnWidth(headerName: string, colCount: number): string {
+  const norm = (headerName || "").toLowerCase().trim();
+  if (norm === "#") return "width: 28px; min-width: 24px;";
+
+  // Multi-item list, notes, reasons, or wide description column
+  if (isMultiItemOrTextColumn(norm)) {
+    return colCount <= 7 ? "width: 32%; min-width: 140px;" : colCount <= 11 ? "width: 25%; min-width: 110px;" : "width: 19%; min-width: 90px;";
+  }
+
+  // Small numeric counter columns (e.g. good, damaged, missing, qty, counts, beds, rooms)
+  if (
+    norm.includes("qty") ||
+    norm.includes("quantity") ||
+    norm.includes("count") ||
+    norm.includes("good") ||
+    norm.includes("repair") ||
+    norm.includes("damaged") ||
+    norm.includes("missing") ||
+    norm.includes("سليم") ||
+    norm.includes("صيانة") ||
+    norm.includes("تالف") ||
+    norm.includes("مفقود") ||
+    norm.includes("كمية") ||
+    norm.includes("عدد") ||
+    norm.includes("cap") ||
+    norm.includes("occ") ||
+    norm.includes("vac") ||
+    norm.includes("ooo") ||
+    norm.includes("dirty") ||
+    norm.includes("nights") ||
+    norm.includes("ليالي") ||
+    norm.includes("est time") ||
+    norm.includes("الوقت")
+  ) {
+    return colCount <= 7 ? "width: 8%; min-width: 44px;" : colCount <= 11 ? "width: 6.2%; min-width: 38px;" : "width: 5%; min-width: 32px;";
+  }
+
+  // Strict Single unit identifiers: Room No, Bed No, Floor, Code
+  if (
+    norm === "room" ||
+    norm.includes("room no") ||
+    norm.includes("room number") ||
+    norm === "غرفة" ||
+    norm === "رقم الغرفة" ||
+    norm.includes("bed no") ||
+    norm.includes("bed number") ||
+    norm === "سرير" ||
+    norm === "رقم السرير" ||
+    norm.includes("code") ||
+    norm.includes("كود") ||
+    norm.includes("floor") ||
+    norm.includes("طابق") ||
+    norm.includes("دور")
+  ) {
+    return colCount <= 7 ? "width: 9%; min-width: 50px;" : colCount <= 11 ? "width: 7.5%; min-width: 45px;" : "width: 6%; min-width: 40px;";
+  }
+
+  // Dates
+  if (norm.includes("date") || norm.includes("تاريخ")) {
+    return colCount <= 7 ? "width: 11%; min-width: 65px;" : colCount <= 11 ? "width: 9%; min-width: 58px;" : "width: 7.5%; min-width: 52px;";
+  }
+
+  // Status, Category, VIP, Gender
+  if (
+    norm.includes("status") ||
+    norm.includes("category") ||
+    norm.includes("حالة") ||
+    norm.includes("تصنيف") ||
+    norm.includes("فئة") ||
+    norm.includes("gender") ||
+    norm.includes("جنس")
+  ) {
+    return colCount <= 7 ? "width: 10%; min-width: 60px;" : colCount <= 11 ? "width: 8.5%; min-width: 52px;" : "width: 7%; min-width: 46px;";
+  }
+
+  // Names, Titles, Buildings, Departments
+  if (
+    norm.includes("name") ||
+    norm.includes("اسم") ||
+    norm.includes("building") ||
+    norm.includes("مبنى") ||
+    norm.includes("department") ||
+    norm.includes("dept") ||
+    norm.includes("قسم") ||
+    norm.includes("job") ||
+    norm.includes("وظيفة") ||
+    norm.includes("company") ||
+    norm.includes("شركة")
+  ) {
+    return colCount <= 7 ? "width: 18%; min-width: 90px;" : colCount <= 11 ? "width: 14%; min-width: 75px;" : "width: 11%; min-width: 65px;";
+  }
+
+  return "";
+}
+
+/**
+ * Intelligent column styling and whitespace handling for Opera PMS tables.
  * Distributes available width cleanly without hard min-widths that cause page blowout.
  */
 export function getOperaColumnStyle(headerName: string, isArabic: boolean): string {
@@ -1040,9 +1196,14 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
   
   // Sequence numbering column
   if (norm === "#") {
-    return "width: 28px; text-align: center;";
+    return "width: 28px; text-align: center; white-space: nowrap;";
   }
   
+  // Multi-item lists, notes, descriptions, reasons, addresses: MUST WRAP NATURALLY
+  if (isMultiItemOrTextColumn(headerName)) {
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; line-height: 1.35;`;
+  }
+
   // Water distribution issue checks / checkboxes / signatures
   if (
     norm.includes("صرف") ||
@@ -1054,17 +1215,50 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     return "text-align: center; white-space: nowrap;";
   }
 
-  // Room / Bed / Floor
+  // Pure Single Room / Bed / Floor identifier ONLY (strictly excluding lists/summaries)
+  const isStrictSingleRoomOrBed =
+    norm === "room" ||
+    norm === "room no" ||
+    norm === "room number" ||
+    norm === "غرفة" ||
+    norm === "رقم الغرفة" ||
+    norm === "bed" ||
+    norm === "bed no" ||
+    norm === "bed number" ||
+    norm === "سرير" ||
+    norm === "رقم السرير" ||
+    norm === "floor" ||
+    norm === "طابق" ||
+    norm === "دور";
+
+  if (isStrictSingleRoomOrBed) {
+    return "text-align: center; white-space: nowrap; font-weight: 600;";
+  }
+
+  // Compact number counters (good, repair, damaged, missing, quantities)
   if (
-    norm.includes("غرفة") ||
-    norm.includes("room") ||
-    norm.includes("سرير") ||
-    norm.includes("bed") ||
-    norm.includes("طابق") ||
-    norm.includes("floor") ||
-    norm.includes("دور")
+    norm.includes("qty") ||
+    norm.includes("quantity") ||
+    norm.includes("count") ||
+    norm.includes("good") ||
+    norm.includes("repair") ||
+    norm.includes("damaged") ||
+    norm.includes("missing") ||
+    norm.includes("سليم") ||
+    norm.includes("صيانة") ||
+    norm.includes("تالف") ||
+    norm.includes("مفقود") ||
+    norm.includes("كمية") ||
+    norm.includes("عدد") ||
+    norm.includes("cap") ||
+    norm.includes("occ") ||
+    norm.includes("vac") ||
+    norm.includes("ooo") ||
+    norm.includes("dirty") ||
+    norm.includes("nights") ||
+    norm.includes("ليالي")
   ) {
-    return "text-align: center; white-space: nowrap;";
+    return "text-align: center; white-space: normal; line-height: 1.15; font-weight: 600;";
   }
 
   // Codes & IDs
@@ -1087,7 +1281,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
 
   // Status & Categories
   if (norm.includes("حالة") || norm.includes("status") || norm.includes("جنس") || norm.includes("gender")) {
-    return "text-align: center; white-space: nowrap;";
+    return "text-align: center; white-space: normal;";
   }
 
   // Names, Departments, Buildings, Jobs - WRAP NATURALLY
@@ -1107,10 +1301,10 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("شركة") ||
     norm.includes("company")
   ) {
-    return "white-space: normal; word-break: normal;";
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal; word-break: break-word; overflow-wrap: break-word;`;
   }
 
-  return "";
+  return `white-space: normal; word-break: break-word; overflow-wrap: break-word;`;
 }
 
 // ----------------------------------------------------------------------------
@@ -1372,7 +1566,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
             const raw = rawHeaders[i] || h;
             const align = getOperaColumnAlign(raw, isArabic);
             const colStyle = getOperaColumnStyle(raw, isArabic);
-            return `<th style="text-align: ${align}; ${colStyle}">${h}</th>`;
+            const colWidth = getOperaColumnWidth(raw, colCount);
+            return `<th style="text-align: ${align}; ${colWidth} ${colStyle}">${h}</th>`;
           })
           .join("")}
       </tr>
@@ -1543,14 +1738,21 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       padding: 16px;
       display: flex;
       justify-content: center;
+      background: #f1f5f9;
+      width: 100%;
+      box-sizing: border-box;
+      overflow-x: auto;
     }
     .sheet {
       width: ${orientation === "landscape" ? "297mm" : "210mm"};
+      max-width: ${orientation === "landscape" ? "297mm" : "210mm"};
       min-height: ${orientation === "landscape" ? "210mm" : "297mm"};
       background: #ffffff;
-      padding: 10mm 12mm 10mm 12mm;
+      padding: 8mm 10mm;
       box-shadow: 0 8px 30px rgba(0,0,0,0.07);
       position: relative;
+      box-sizing: border-box;
+      overflow-x: hidden; /* STRICT CONTAINMENT: mathematically prevents table blowout beyond A4 */
     }
 
     /* Opera PMS Header Layout with Dual Logos */
@@ -1647,7 +1849,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       margin: 6px 0 10px 0;
     }
 
-    /* Opera Data Table */
+    /* Opera Data Table: Strict fixed layout guarantees zero page blowout */
     table.opera-table {
       width: 100% !important;
       max-width: 100% !important;
@@ -1655,7 +1857,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-spacing: 0 !important;
       margin-bottom: 12px;
       font-size: ${baseFontSizePt}pt;
-      table-layout: auto !important;
+      table-layout: fixed !important;
+      word-wrap: break-word !important;
     }
     table.opera-table th {
       background: #ffffff !important;
@@ -1667,8 +1870,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-left: none !important;
       border-right: none !important;
       padding: ${cellPadding} !important;
-      line-height: 1.2;
+      line-height: 1.25;
       vertical-align: bottom;
+      overflow-wrap: break-word !important;
+      word-break: break-word !important;
+      hyphens: auto;
     }
     table.opera-table td {
       background: #ffffff !important;
@@ -1680,8 +1886,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       padding: ${cellPadding} !important;
       line-height: 1.35;
       vertical-align: middle;
-      word-break: normal !important;
+      word-break: break-word !important;
       overflow-wrap: break-word !important;
+      white-space: normal;
     }
     tr.opera-totals-row td {
       border-top: 1px solid #000000 !important;
@@ -1690,6 +1897,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       font-size: ${baseFontSizePt}pt !important;
       background: #ffffff !important;
       padding: 4.5px 5px !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
     }
 
     /* KPI Summary Cards */
@@ -1836,6 +2045,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         border-radius: 0 !important;
       }
       table.opera-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed !important;
         font-size: ${printFontSizePt}pt !important;
       }
       table.opera-table th {
@@ -1847,12 +2059,16 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         color: #000000 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
       }
       table.opera-table td {
         font-size: ${printFontSizePt}pt !important;
         padding: ${printPadding} !important;
         color: #000000 !important;
         border-bottom: 0.5px solid #e2e8f0 !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
       }
       tr {
         page-break-inside: avoid !important;
@@ -2003,11 +2219,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       currentOrientation = currentOrientation === "landscape" ? "portrait" : "landscape";
       if (currentOrientation === "portrait") {
         sheet.style.width = "210mm";
+        sheet.style.maxWidth = "210mm";
         sheet.style.minHeight = "297mm";
         if (orientBtn) orientBtn.innerHTML = "📄 ${isArabic ? 'رأسي (انقر للأفقي)' : 'Portrait (Click for Landscape)'}";
         if (metaOrient) metaOrient.innerHTML = "${isArabic ? 'رأسي (Portrait)' : 'Portrait'}";
       } else {
         sheet.style.width = "297mm";
+        sheet.style.maxWidth = "297mm";
         sheet.style.minHeight = "210mm";
         if (orientBtn) orientBtn.innerHTML = "📄 ${isArabic ? 'أفقي (انقر للرأسي)' : 'Landscape (Click for Portrait)'}";
         if (metaOrient) metaOrient.innerHTML = "${isArabic ? 'أفقي (Landscape)' : 'Landscape'}";

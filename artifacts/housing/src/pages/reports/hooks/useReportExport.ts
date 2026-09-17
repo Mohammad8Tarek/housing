@@ -133,32 +133,17 @@ export function useReportExport({
             a.employmentType === "THIRD_PARTY"
               ? (ar ? "طرف ثالث" : "Third Party")
               : (ar ? "داخلي (فندق)" : "Internal"),
-          [ar ? "الشركة" : "Company"]: a.companyName,
-          [ar ? "رقم الغرفة" : "Room No"]: a.roomNumber,
-          [ar ? "رقم السرير" : "Bed No"]:
-            a.isEntireRoom
-              ? `${a.bedNumber && a.bedNumber !== "—" ? a.bedNumber : 1} (${ar ? "غرفة كاملة" : "Full Lock"})`
-              : a.bedNumber,
-          [ar ? "نوع الغرفة" : "Room Type"]: a.roomType || "—",
-          [ar ? "سعة الغرفة" : "Room Capacity"]: a.capacity ? `${a.capacity} ${ar ? "أسرة" : "beds"}` : "—",
-          [ar ? "المبنى" : "Building"]: a.buildingName,
-          [ar ? "الطابق" : "Floor"]: a.floorName,
+          [ar ? "الشركة" : "Company"]: a.companyName || "—",
+          [ar ? "الغرفة والسرير" : "Room & Bed"]: `${a.roomNumber || "—"}${a.isEntireRoom ? ` (${ar ? "غرفة كاملة" : "Full Lock"})` : (a.bedNumber && a.bedNumber !== "—" ? ` - سرير ${a.bedNumber}` : "")}`,
+          [ar ? "المبنى والطابق" : "Building & Floor"]: `${a.buildingName || "—"}${a.floorName ? ` (${a.floorName})` : ""}`,
           [ar ? "القسم" : "Department"]: a.department,
           [ar ? "الوظيفة" : "Job Title"]: a.jobTitle,
-          [ar ? "الدرجة" : "Level"]: a.level,
-          [ar ? "الهاتف" : "Phone"]: a.phone,
-          [ar ? "الرقم القومي" : "National ID"]: a.nationalId,
-          [ar ? "الجنسية" : "Nationality"]: a.nationality,
-          [ar ? "الجنس" : "Gender"]: a.gender === "M" ? (ar ? "ذكر" : "Male") : a.gender === "F" ? (ar ? "أنثى" : "Female") : a.gender,
-          [ar ? "تاريخ الميلاد" : "Date of Birth"]: a.dateOfBirth,
-          [ar ? "العنوان" : "Address"]: a.address,
-          [ar ? "تاريخ التعيين" : "Hire Date"]: a.hireDate,
-          [ar ? "تاريخ التسكين" : "Check-In Date"]: a.checkInDate,
-          [ar ? "انتهاء العقد" : "Contract End"]: a.contractEndDate,
-          [ar ? "المغادرة المتوقعة" : "Expected Check-Out"]: a.expectedCheckOutDate,
-          [ar ? "البريد الإلكتروني" : "Email"]: a.email,
-          [ar ? "هاتف الطوارئ" : "Emergency Contact"]: a.emergencyContact,
-          [ar ? "الحالة" : "Status"]:
+          [ar ? "الهاتف" : "Phone"]: a.phone || "—",
+          [ar ? "الرقم القومي" : "National ID"]: a.nationalId || "—",
+          [ar ? "الجنسية" : "Nationality"]: a.nationality || "—",
+          [ar ? "تاريخ التسكين" : "Check-In Date"]: a.checkInDate || "—",
+          [ar ? "المغادرة المتوقعة" : "Expected Check-Out"]: a.expectedCheckOutDate || a.contractEndDate || "—",
+          [ar ? "الحالة بالسكن" : "Status"]:
             a.status === "VACATION"
               ? (ar
                   ? `في إجازة${a.vacationEndDate ? ` (حتى ${a.vacationEndDate})` : ""}`
