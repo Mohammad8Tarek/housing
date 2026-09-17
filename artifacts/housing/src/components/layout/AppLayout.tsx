@@ -189,7 +189,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { propertyId: activePropertyId },
     { query: { enabled: !!activePropertyId, staleTime: 300000 } },
   );
-  const systemName = sysSettings?.systemName || "Sunrise";
+  const systemName =
+    sysSettings?.systemName &&
+    sysSettings.systemName !== "Sunrise" &&
+    sysSettings.systemName !== "Sunrise Housing"
+      ? sysSettings.systemName
+      : "SUNRISE Resident";
   const systemLogo = sysSettings?.systemLogo ?? null;
 
   useEffect(() => {
