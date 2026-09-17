@@ -1,7 +1,7 @@
 {
-  "name": "SUNRISE Housing Admin - لوحة تحكم السكن",
-  "short_name": "Housing Admin",
-  "description": "Sunrise Staff Housing Management System Admin Dashboard",
+  "name": "SUNRISE Resident",
+  "short_name": "SUNRISE Resident",
+  "description": "SUNRISE Resident System",
   "id": "/",
   "start_url": "/",
   "scope": "/",

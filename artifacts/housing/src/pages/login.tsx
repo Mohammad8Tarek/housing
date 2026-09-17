@@ -282,8 +282,8 @@ export default function Login() {
             </h3>
             <p className="text-muted-foreground">
               {isAr
-                ? "يرجى إدخال بيانات الدخول للمتابعة إلى لوحة التحكم"
-                : "Please enter your details to sign in to your account"}
+                ? "يرجى إدخال بيانات الدخول للمتابعة"
+                : "Please enter your details to sign in"}
             </p>
           </div>
 
