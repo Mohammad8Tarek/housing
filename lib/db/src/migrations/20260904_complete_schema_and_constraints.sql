@@ -2076,6 +2076,88 @@ BEGIN
     CREATE INDEX IF NOT EXISTS idx_gate_logs_status ON gate_logs(status);
     CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON gate_logs(scanned_at);
 
+    -- --------------------------------------------------------
+    -- Table: property_whatsapp_configs (per tenant)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "property_whatsapp_configs" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER,
+      "phone_number" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'disconnected',
+      "qr_code" TEXT,
+      "is_auto_send_enabled" BOOLEAN NOT NULL DEFAULT true,
+      "welcome_template_ar" TEXT NOT NULL DEFAULT '',
+      "welcome_template_en" TEXT NOT NULL DEFAULT '',
+      "supervisor_contact" TEXT DEFAULT '',
+      "is_reservation_send_enabled" BOOLEAN NOT NULL DEFAULT true,
+      "reservation_template_ar" TEXT NOT NULL DEFAULT '',
+      "reservation_template_en" TEXT NOT NULL DEFAULT '',
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_prop_wa_config_prop ON "property_whatsapp_configs"("property_id");
+
+    -- --------------------------------------------------------
+    -- Table: whatsapp_delivery_logs (per tenant)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "whatsapp_delivery_logs" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER,
+      "recipient_phone" TEXT NOT NULL,
+      "recipient_name" TEXT,
+      "message_type" TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+      "message_content" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'SENT',
+      "error_message" TEXT,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_wa_del_logs_created ON "whatsapp_delivery_logs"("created_at");
+
+    -- --------------------------------------------------------
+    -- Table: whatsapp_outbox_queue (per tenant)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "whatsapp_outbox_queue" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER,
+      "recipient_phone" TEXT NOT NULL,
+      "recipient_name" TEXT,
+      "message_type" TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+      "message_content" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'PENDING',
+      "retry_count" INTEGER NOT NULL DEFAULT 0,
+      "last_error" TEXT,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "processed_at" TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_wa_outbox_status ON "whatsapp_outbox_queue"("status");
+    CREATE INDEX IF NOT EXISTS idx_tenant_wa_outbox_created_at ON "whatsapp_outbox_queue"("created_at");
+
+    -- --------------------------------------------------------
+    -- Table: room_import_jobs (per tenant)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "room_import_jobs" (
+      "id" SERIAL PRIMARY KEY,
+      "status" TEXT NOT NULL DEFAULT 'pending',
+      "total_rooms" INTEGER NOT NULL DEFAULT 0,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- --------------------------------------------------------
+    -- Table: ws_sessions (per tenant)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "ws_sessions" (
+      "id" SERIAL PRIMARY KEY,
+      "user_id" INTEGER,
+      "property_id" INTEGER,
+      "session_key" TEXT NOT NULL,
+      "connected_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "last_ping_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "server_node" TEXT,
+      "is_active" BOOLEAN NOT NULL DEFAULT true
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_user ON "ws_sessions"("user_id");
+    CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_prop ON "ws_sessions"("property_id");
+    CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_active ON "ws_sessions"("is_active");
+
   END LOOP;
 
   -- Reset search path back to public
@@ -2259,6 +2341,33 @@ We wish you a safe trip and a pleasant stay! ✨',
   CREATE INDEX IF NOT EXISTS idx_gate_logs_direction ON public.gate_logs (direction);
   CREATE INDEX IF NOT EXISTS idx_gate_logs_status ON public.gate_logs (status);
   CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON public.gate_logs (scanned_at);
+
+  -- --------------------------------------------------------
+  -- Table: public.room_import_jobs
+  -- --------------------------------------------------------
+  CREATE TABLE IF NOT EXISTS public.room_import_jobs (
+    id SERIAL PRIMARY KEY,
+    status TEXT NOT NULL DEFAULT 'pending',
+    total_rooms INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+  -- --------------------------------------------------------
+  -- Table: public.ws_sessions
+  -- --------------------------------------------------------
+  CREATE TABLE IF NOT EXISTS public.ws_sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER,
+    property_id INTEGER,
+    session_key TEXT NOT NULL,
+    connected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_ping_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    server_node TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true
+  );
+  CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_user ON public.ws_sessions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_prop ON public.ws_sessions(property_id);
+  CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_active ON public.ws_sessions(is_active);
 
   RAISE NOTICE '>>> All schemas, tables, and constraints migrated successfully!';
 END $$;

@@ -1231,6 +1231,31 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     CREATE INDEX IF NOT EXISTS idx_public_wa_outbox_prop_status ON public.whatsapp_outbox_queue (property_id, status);
     CREATE INDEX IF NOT EXISTS idx_public_wa_outbox_created_at ON public.whatsapp_outbox_queue (created_at);`,
   },
+  {
+    name: "public.room_import_jobs",
+    q: `CREATE TABLE IF NOT EXISTS public.room_import_jobs (
+      id SERIAL PRIMARY KEY,
+      status TEXT NOT NULL DEFAULT 'pending',
+      total_rooms INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );`,
+  },
+  {
+    name: "public.ws_sessions",
+    q: `CREATE TABLE IF NOT EXISTS public.ws_sessions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER,
+      property_id INTEGER,
+      session_key TEXT NOT NULL,
+      connected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_ping_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      server_node TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT true
+    );
+    CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_user ON public.ws_sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_prop ON public.ws_sessions(property_id);
+    CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_active ON public.ws_sessions(is_active);`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2262,6 +2287,96 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     );
     CREATE INDEX IF NOT EXISTS idx_tenant_wa_outbox_status ON whatsapp_outbox_queue (status);
     CREATE INDEX IF NOT EXISTS idx_tenant_wa_outbox_created_at ON whatsapp_outbox_queue (created_at);`,
+  },
+  {
+    name: "rooms.separator_door_bed_type_view",
+    q: `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS separator_door BOOLEAN DEFAULT false;
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS bed_type TEXT DEFAULT 'SINGLE';
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS view TEXT DEFAULT 'STANDARD';`,
+  },
+  {
+    name: "settings.branding_and_departure_alert_columns",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS system_name TEXT;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS system_logo TEXT;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS default_language TEXT DEFAULT 'ar';
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS primary_color TEXT;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS sidebar_color TEXT;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS button_color TEXT;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS departure_alerts_enabled BOOLEAN DEFAULT true;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS departure_alert_threshold INTEGER DEFAULT 3;
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS report_footer TEXT;`,
+  },
+  {
+    name: "reservations.employee_code",
+    q: `ALTER TABLE reservations ADD COLUMN IF NOT EXISTS employee_code TEXT NOT NULL DEFAULT '';`,
+  },
+  {
+    name: "evaluations.employee_rating_and_response",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'evaluations') THEN
+        ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS employee_rating REAL;
+        ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS employee_response TEXT;
+      END IF;
+    END $$;`,
+  },
+  {
+    name: "property_whatsapp_configs",
+    q: `CREATE TABLE IF NOT EXISTS property_whatsapp_configs (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER,
+      phone_number TEXT,
+      status TEXT NOT NULL DEFAULT 'disconnected',
+      qr_code TEXT,
+      is_auto_send_enabled BOOLEAN NOT NULL DEFAULT true,
+      welcome_template_ar TEXT NOT NULL DEFAULT '',
+      welcome_template_en TEXT NOT NULL DEFAULT '',
+      supervisor_contact TEXT DEFAULT '',
+      is_reservation_send_enabled BOOLEAN NOT NULL DEFAULT true,
+      reservation_template_ar TEXT NOT NULL DEFAULT '',
+      reservation_template_en TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_prop_wa_config_prop ON property_whatsapp_configs(property_id);`,
+  },
+  {
+    name: "whatsapp_delivery_logs",
+    q: `CREATE TABLE IF NOT EXISTS whatsapp_delivery_logs (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER,
+      recipient_phone TEXT NOT NULL,
+      recipient_name TEXT,
+      message_type TEXT NOT NULL DEFAULT 'CHECKIN_WELCOME',
+      message_content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'SENT',
+      error_message TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_wa_del_logs_created ON whatsapp_delivery_logs (created_at);`,
+  },
+  {
+    name: "room_import_jobs",
+    q: `CREATE TABLE IF NOT EXISTS room_import_jobs (
+      id SERIAL PRIMARY KEY,
+      status TEXT NOT NULL DEFAULT 'pending',
+      total_rooms INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );`,
+  },
+  {
+    name: "ws_sessions",
+    q: `CREATE TABLE IF NOT EXISTS ws_sessions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER,
+      property_id INTEGER,
+      session_key TEXT NOT NULL,
+      connected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_ping_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      server_node TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT true
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_user ON ws_sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_prop ON ws_sessions(property_id);
+    CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_active ON ws_sessions(is_active);`,
   },
 ];
 
