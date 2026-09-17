@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Building2,
   BedDouble,
@@ -16,6 +16,11 @@ import {
   Clock,
   ThumbsUp,
   AlertCircle,
+  ArrowDownRight,
+  ArrowUpRight,
+  Calendar,
+  Briefcase,
+  Brush,
 } from "lucide-react";
 import {
   Table,
@@ -54,6 +59,8 @@ export function AnalyticsTab({
   evalStats,
   onPrint,
 }: AnalyticsTabProps) {
+  const [structureView, setStructureView] = useState<"buildings" | "floors">("buildings");
+
   const occRate = analytics?.occRate ?? 0;
   const occColorClass =
     occRate >= 90
@@ -194,6 +201,127 @@ export function AnalyticsTab({
         })}
       </div>
 
+      {/* Operations Movement & Turnover Status Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
+          <div>
+            <span className="text-[10px] text-muted-foreground block">{ar ? "وصول متوقع اليوم" : "Today Due In"}</span>
+            <span className="text-base font-extrabold font-mono text-emerald-600">{analytics?.todayArrivals ?? 0}</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
+            <ArrowDownRight className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
+          <div>
+            <span className="text-[10px] text-muted-foreground block">{ar ? "مغادرة اليوم" : "Today Due Out"}</span>
+            <span className="text-base font-extrabold font-mono text-rose-600">{analytics?.todayDepartures ?? 0}</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center">
+            <ArrowUpRight className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
+          <div>
+            <span className="text-[10px] text-muted-foreground block">{ar ? "صافي حركة اليوم" : "Net Movement"}</span>
+            <span className={`text-base font-extrabold font-mono ${(analytics?.netMovement ?? 0) >= 0 ? "text-blue-600" : "text-amber-600"}`}>
+              {(analytics?.netMovement ?? 0) > 0 ? `+${analytics?.netMovement}` : (analytics?.netMovement ?? 0)}
+            </span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center">
+            <Activity className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
+          <div>
+            <span className="text-[10px] text-muted-foreground block">{ar ? "حجوزات قادمة" : "Reservations"}</span>
+            <span className="text-base font-extrabold font-mono text-indigo-600">{analytics?.upcomingReservations ?? 0}</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center">
+            <Calendar className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
+          <div>
+            <span className="text-[10px] text-muted-foreground block">{ar ? "استضافات نشطة" : "Active Hostings"}</span>
+            <span className="text-base font-extrabold font-mono text-amber-600">{analytics?.activeHostings ?? 0}</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
+            <Users className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
+          <div>
+            <span className="text-[10px] text-muted-foreground block">{ar ? "عقود تنتهي (30يوم)" : "Expiring (30d)"}</span>
+            <span className="text-base font-extrabold font-mono text-purple-600">{analytics?.expiringContracts ?? 0}</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center">
+            <Clock className="w-4 h-4" />
+          </div>
+        </div>
+      </div>
+
+      {/* Housekeeping Readiness & Turnover Health Strip */}
+      <div className="bg-card border border-border/70 rounded-xl p-3 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <Brush className="w-4 h-4 text-primary" />
+            <h3 className="font-bold text-xs text-foreground">
+              {ar ? "جاهزية الغرف والنظافة التشغيلية (Housekeeping Turnover)" : "Housekeeping & Room Readiness"}
+            </h3>
+          </div>
+          <div className="flex items-center gap-3 text-xs font-mono">
+            <span className="text-muted-foreground">
+              {ar ? "غرف محجوزة بالكامل:" : "Full Room Locks:"}{" "}
+              <strong className="text-foreground">{analytics?.entireRoomLocks ?? 0}</strong>
+            </span>
+            <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 border-emerald-300 font-bold">
+              {ar ? "جاهزية التسكين:" : "Clean Ready:"} {analytics?.cleanReadyRooms ?? 0}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+          <div className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/60 rounded-lg p-2">
+            <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block font-medium">
+              {ar ? "شاغرة جاهزة للتسكين" : "Clean & Ready"}
+            </span>
+            <strong className="text-base font-extrabold text-emerald-600 font-mono">
+              {analytics?.cleanReadyRooms ?? 0} {ar ? "غرفة" : "rooms"}
+            </strong>
+          </div>
+          <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 rounded-lg p-2">
+            <span className="text-[10px] text-amber-700 dark:text-amber-300 block font-medium">
+              {ar ? "شاغرة تحتاج تنظيف" : "Dirty Pending"}
+            </span>
+            <strong className="text-base font-extrabold text-amber-600 font-mono">
+              {analytics?.dirtyRooms ?? 0} {ar ? "غرفة" : "rooms"}
+            </strong>
+          </div>
+          <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/60 rounded-lg p-2">
+            <span className="text-[10px] text-blue-700 dark:text-blue-300 block font-medium">
+              {ar ? "مشغولة ونظيفة" : "Occupied Clean"}
+            </span>
+            <strong className="text-base font-extrabold text-blue-600 font-mono">
+              {analytics?.occupiedCleanRooms ?? 0} {ar ? "غرفة" : "rooms"}
+            </strong>
+          </div>
+          <div className="bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/60 rounded-lg p-2">
+            <span className="text-[10px] text-rose-700 dark:text-rose-300 block font-medium">
+              {ar ? "مشغولة وتحتاج نظافة" : "Occupied Dirty"}
+            </span>
+            <strong className="text-base font-extrabold text-rose-600 font-mono">
+              {analytics?.occupiedDirtyRooms ?? 0} {ar ? "غرفة" : "rooms"}
+            </strong>
+          </div>
+        </div>
+      </div>
+
       {/* Overall Occupancy Health Gauge Card */}
       <div className="bg-card border border-border/70 rounded-xl p-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
@@ -304,101 +432,202 @@ export function AnalyticsTab({
             </div>
           </div>
 
-          {/* Building Occupancy Distribution */}
+          {/* Building & Floor Occupancy Distribution with Toggle */}
           <div className="bg-card border border-border/70 rounded-xl p-4 shadow-xs">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-sm flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary" />
-                {ar ? "الإشغال بحسب المباني السكنية" : "Occupancy by Building"}
-              </h3>
-              <span className="text-[11px] text-muted-foreground font-mono">
-                {analytics?.byBuilding?.length ?? 0} {ar ? "مبنى" : "buildings"}
-              </span>
+                <h3 className="font-bold text-sm text-foreground">
+                  {structureView === "buildings"
+                    ? (ar ? "الإشغال بحسب المباني السكنية" : "Occupancy by Building")
+                    : (ar ? "الإشغال بحسب الأدوار والطوابق" : "Occupancy by Floor")}
+                </h3>
+              </div>
+
+              {/* View Switcher */}
+              <div className="inline-flex rounded-lg bg-muted p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setStructureView("buildings")}
+                  className={`px-2.5 py-1 rounded-md font-medium text-[11px] transition-colors ${
+                    structureView === "buildings"
+                      ? "bg-card text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {ar ? "المباني" : "Buildings"} ({analytics?.byBuilding?.length ?? 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStructureView("floors")}
+                  className={`px-2.5 py-1 rounded-md font-medium text-[11px] transition-colors ${
+                    structureView === "floors"
+                      ? "bg-card text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {ar ? "الأدوار" : "Floors"} ({analytics?.byFloor?.length ?? 0})
+                </button>
+              </div>
             </div>
 
-            {(!analytics?.byBuilding || analytics.byBuilding.length === 0) ? (
-              <p className="text-xs text-muted-foreground text-center py-6">
-                {ar ? "لا توجد مبانٍ مسجلة" : "No buildings found"}
-              </p>
-            ) : (
-              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
-                {analytics.byBuilding.map((b: any) => {
-                  const bRate = b.rate ?? 0;
-                  const color =
-                    bRate >= 90
-                      ? "bg-red-500 text-red-600 dark:text-red-400"
-                      : bRate >= 75
-                      ? "bg-amber-500 text-amber-600 dark:text-amber-400"
-                      : "bg-emerald-500 text-emerald-600 dark:text-emerald-400";
-                  return (
-                    <div key={b.id} className="p-2 rounded-lg bg-muted/30 border border-border/40">
-                      <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="font-bold text-foreground truncate max-w-[170px]">{b.name}</span>
-                        <span className="text-muted-foreground text-[11px] font-mono">
-                          {b.currentOccupancy} / {b.capacity} {ar ? "سرير" : "beds"} · {b.availableRooms} {ar ? "غرفة شاغرة" : "avail"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${color.split(" ")[0]}`}
-                            style={{ width: `${Math.min(100, Math.max(2, bRate))}%` }}
-                          />
+            {structureView === "buildings" ? (
+              (!analytics?.byBuilding || analytics.byBuilding.length === 0) ? (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  {ar ? "لا توجد مبانٍ مسجلة" : "No buildings found"}
+                </p>
+              ) : (
+                <div className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1">
+                  {analytics.byBuilding.map((b: any) => {
+                    const bRate = b.rate ?? 0;
+                    const color =
+                      bRate >= 90
+                        ? "bg-red-500 text-red-600 dark:text-red-400"
+                        : bRate >= 75
+                        ? "bg-amber-500 text-amber-600 dark:text-amber-400"
+                        : "bg-emerald-500 text-emerald-600 dark:text-emerald-400";
+                    return (
+                      <div key={b.id} className="p-2.5 rounded-lg bg-muted/30 border border-border/40">
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-bold text-foreground truncate max-w-[170px]">{b.name}</span>
+                          <span className="text-muted-foreground text-[11px] font-mono">
+                            {b.currentOccupancy} / {b.capacity} {ar ? "سرير" : "beds"} · {b.availableRooms} {ar ? "غرفة شاغرة" : "avail"}
+                          </span>
                         </div>
-                        <span className={`text-xs font-mono font-bold w-10 text-right ${color.split(" ").slice(1).join(" ")}`}>
-                          {bRate}%
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${color.split(" ")[0]}`}
+                              style={{ width: `${Math.min(100, Math.max(2, bRate))}%` }}
+                            />
+                          </div>
+                          <span className={`text-xs font-mono font-bold w-10 text-right ${color.split(" ").slice(1).join(" ")}`}>
+                            {bRate}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              (!analytics?.byFloor || analytics.byFloor.length === 0) ? (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  {ar ? "لا توجد أدوار مسجلة" : "No floors found"}
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+                  {analytics.byFloor.map((f: any) => {
+                    const fRate = f.rate ?? 0;
+                    const color =
+                      fRate >= 90
+                        ? "text-red-600 dark:text-red-400"
+                        : fRate >= 75
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-emerald-600 dark:text-emerald-400";
+                    return (
+                      <div key={f.id} className="p-2 rounded-lg bg-muted/30 border border-border/40 flex items-center justify-between text-xs">
+                        <div className="truncate max-w-[170px]">
+                          <p className="font-bold text-foreground truncate">{f.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{f.buildingName}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-muted-foreground text-[11px]">
+                            {f.occupied} / {f.capacity} {ar ? "سرير" : "beds"}
+                          </span>
+                          <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded ${color}`}>
+                            {fRate}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
             )}
           </div>
         </div>
 
         {/* Column 2: Department Breakdown & Room Types */}
         <div className="space-y-4">
-          {/* Department Breakdown */}
+          {/* Workforce Structure & Companies Breakdown */}
           <div className="bg-card border border-border/70 rounded-xl p-4 shadow-xs">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-sm flex items-center gap-2">
-                <Users className="w-4 h-4 text-primary" />
-                {ar ? "توزيع المقيمين حسب الإدارات والأقسام" : "Residents by Department"}
+                <Briefcase className="w-4 h-4 text-primary" />
+                {ar ? "هيكل العمالة والشركات (داخلي / توريد)" : "Workforce Structure & Contractors"}
               </h3>
-              <span className="text-[11px] text-muted-foreground font-mono">
-                {analytics?.byDept?.length ?? 0} {ar ? "إدارة" : "depts"}
-              </span>
+              <Badge variant="secondary" className="text-[10px] font-mono">
+                {analytics?.thirdPartyStaffCount > 0 ? (ar ? "متعدد الشركات" : "Multi-Source") : (ar ? "فندقي فقط" : "Direct")}
+              </Badge>
             </div>
 
-            {(!analytics?.byDept || analytics.byDept.length === 0) ? (
-              <p className="text-xs text-muted-foreground text-center py-6">
-                {ar ? "لا توجد بيانات أقسام" : "No department data"}
-              </p>
-            ) : (
-              <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
-                {analytics.byDept.map((d: any) => {
-                  const maxCount = analytics.byDept[0]?.count ?? 1;
-                  const pct = Math.round(((d.count || 0) / maxCount) * 100);
-                  return (
-                    <div key={d.dept} className="text-xs">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-semibold text-foreground truncate max-w-[200px]">{d.dept}</span>
-                        <span className="font-mono text-muted-foreground text-[11px]">
-                          <strong className="text-foreground">{d.count}</strong> {ar ? "موظف" : "staff"}
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary/75 rounded-full"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Internal vs Outsource Ratio Strip */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/50 rounded-lg p-2.5 text-center">
+                <span className="text-[10px] text-blue-700 dark:text-blue-300 block font-medium">
+                  {ar ? "عمالة الفندق الأساسية" : "Direct Hotel Staff"}
+                </span>
+                <p className="text-xl font-black text-blue-700 dark:text-blue-400 font-mono">
+                  {analytics?.internalStaffCount ?? 0}
+                </p>
+              </div>
+              <div className="bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200/50 rounded-lg p-2.5 text-center">
+                <span className="text-[10px] text-purple-700 dark:text-purple-300 block font-medium">
+                  {ar ? "شركات توريد خارجية" : "3rd-Party Outsource"}
+                </span>
+                <p className="text-xl font-black text-purple-700 dark:text-purple-400 font-mono">
+                  {analytics?.thirdPartyStaffCount ?? 0}
+                </p>
+              </div>
+            </div>
+
+            {/* Outsource Companies List if available */}
+            {analytics?.byCompany && analytics.byCompany.length > 0 && (
+              <div className="mb-3 space-y-1.5 max-h-[85px] overflow-y-auto pr-1">
+                {analytics.byCompany.map((c: any) => (
+                  <div key={c.company} className="flex items-center justify-between text-xs bg-muted/40 px-2.5 py-1 rounded-md">
+                    <span className="text-foreground truncate max-w-[200px]">{c.company}</span>
+                    <span className="font-mono font-bold text-purple-600">{c.count} {ar ? "فرد" : "pax"}</span>
+                  </div>
+                ))}
               </div>
             )}
+
+            {/* Department Breakdown */}
+            <div className="border-t border-border/50 pt-2.5">
+              <p className="text-[11px] font-bold text-muted-foreground mb-2">
+                {ar ? "أعلى الإدارات إشغالاً بالسكن:" : "Top Resident Departments:"}
+              </p>
+              {(!analytics?.byDept || analytics.byDept.length === 0) ? (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  {ar ? "لا توجد بيانات أقسام" : "No department data"}
+                </p>
+              ) : (
+                <div className="space-y-1.5 max-h-[105px] overflow-y-auto pr-1">
+                  {analytics.byDept.slice(0, 4).map((d: any) => {
+                    const maxCount = analytics.byDept[0]?.count ?? 1;
+                    const pct = Math.round(((d.count || 0) / maxCount) * 100);
+                    return (
+                      <div key={d.dept} className="text-xs">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span className="font-medium text-foreground truncate max-w-[180px]">{d.dept}</span>
+                          <span className="font-mono text-muted-foreground text-[10px]">
+                            <strong className="text-foreground">{d.count}</strong> {ar ? "موظف" : "staff"}
+                          </span>
+                        </div>
+                        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary/75 rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Room Type Utilization Table */}
@@ -459,45 +688,72 @@ export function AnalyticsTab({
 
       {/* Bottom Row: 3 Modular Cards (Maintenance, Demographics, Quality & Evaluations) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1: Maintenance Tickets Overview */}
+        {/* Card 1: Maintenance Tickets & Priority Analysis */}
         <div className="bg-card border border-border/70 rounded-xl p-4 shadow-xs flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-orange-500" />
-              {ar ? "جاهزية الغرف وبلاغات الصيانة" : "Maintenance & Readiness"}
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-orange-500" />
+                {ar ? "أولويات الصيانة وجاهزية المرافق" : "Maintenance Priorities"}
+              </h3>
+              <span className="text-[10px] font-mono text-muted-foreground">
+                {ar ? "معدل الإنجاز" : "Resolved"}: {analytics?.resolutionRate ?? 100}%
+              </span>
+            </div>
 
+            {/* Open / In Progress */}
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="bg-red-50/80 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40 rounded-lg p-2.5 text-center">
-                <p className="text-lg font-black text-red-600 dark:text-red-400 font-mono">
+              <div className="bg-red-50/80 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40 rounded-lg p-2 text-center">
+                <p className="text-base font-black text-red-600 dark:text-red-400 font-mono">
                   {analytics?.openMaint ?? 0}
                 </p>
-                <p className="text-[11px] text-red-700 dark:text-red-300 font-medium">
+                <p className="text-[10px] text-red-700 dark:text-red-300 font-medium">
                   {ar ? "بلاغات مفتوحة" : "Open Tickets"}
                 </p>
               </div>
-              <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 rounded-lg p-2.5 text-center">
-                <p className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">
+              <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 rounded-lg p-2 text-center">
+                <p className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">
                   {analytics?.inProg ?? 0}
                 </p>
-                <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium">
+                <p className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">
                   {ar ? "قيد المعالجة" : "In Progress"}
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
-              <div className="bg-muted/40 rounded-lg p-1.5">
-                <span className="text-muted-foreground text-[10px] block">{ar ? "صيانة" : "Maint"}</span>
-                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.maintenance ?? 0}</strong>
+            {/* Maintenance Priorities Matrix */}
+            <div className="grid grid-cols-4 gap-1 text-center text-xs mb-2.5">
+              <div className="bg-red-100/60 dark:bg-red-950/30 rounded p-1">
+                <span className="text-[9px] text-red-700 dark:text-red-300 block">{ar ? "طارئة" : "Emerg"}</span>
+                <strong className="font-mono text-red-700 dark:text-red-400">{analytics?.byPriority?.emergency ?? 0}</strong>
               </div>
-              <div className="bg-muted/40 rounded-lg p-1.5">
-                <span className="text-muted-foreground text-[10px] block">{ar ? "نظافة" : "HK"}</span>
-                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.housekeeping ?? 0}</strong>
+              <div className="bg-orange-100/60 dark:bg-orange-950/30 rounded p-1">
+                <span className="text-[9px] text-orange-700 dark:text-orange-300 block">{ar ? "عالية" : "High"}</span>
+                <strong className="font-mono text-orange-700 dark:text-orange-400">{analytics?.byPriority?.high ?? 0}</strong>
               </div>
-              <div className="bg-muted/40 rounded-lg p-1.5">
-                <span className="text-muted-foreground text-[10px] block">{ar ? "عامة" : "General"}</span>
-                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.general ?? 0}</strong>
+              <div className="bg-amber-100/60 dark:bg-amber-950/30 rounded p-1">
+                <span className="text-[9px] text-amber-700 dark:text-amber-300 block">{ar ? "متوسطة" : "Med"}</span>
+                <strong className="font-mono text-amber-700 dark:text-amber-400">{analytics?.byPriority?.medium ?? 0}</strong>
+              </div>
+              <div className="bg-blue-100/60 dark:bg-blue-950/30 rounded p-1">
+                <span className="text-[9px] text-blue-700 dark:text-blue-300 block">{ar ? "منخفضة" : "Low"}</span>
+                <strong className="font-mono text-blue-700 dark:text-blue-400">{analytics?.byPriority?.low ?? 0}</strong>
+              </div>
+            </div>
+
+            {/* Category breakdown */}
+            <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
+              <div className="bg-muted/40 rounded p-1">
+                <span className="text-muted-foreground block">{ar ? "سباكة" : "Plumb"}</span>
+                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.plumbing ?? 0}</strong>
+              </div>
+              <div className="bg-muted/40 rounded p-1">
+                <span className="text-muted-foreground block">{ar ? "كهرباء" : "Elect"}</span>
+                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.electrical ?? 0}</strong>
+              </div>
+              <div className="bg-muted/40 rounded p-1">
+                <span className="text-muted-foreground block">{ar ? "تكييف" : "AC"}</span>
+                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.ac ?? 0}</strong>
               </div>
             </div>
           </div>

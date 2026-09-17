@@ -15,8 +15,11 @@ export function useReportExport({
   search,
   settings,
   analytics,
+  stats,
   rooms,
   profiles,
+  buildings,
+  floors,
   evalStats,
   floorMap,
   buildingMap,
@@ -474,8 +477,11 @@ export function useReportExport({
     if (isArabic) {
       printArabicAnalyticsReport({
         analytics,
+        stats,
         rooms,
         profiles,
+        buildings,
+        floors,
         evalStats,
         properties,
         propId,
