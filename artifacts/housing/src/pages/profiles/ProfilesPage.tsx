@@ -230,23 +230,39 @@ export function ProfilesPage() {
     },
   });
 
-  const handleSave = async (formData: ProfileForm, photo?: string) => {
+  const handleSave = async (
+    formData: ProfileForm,
+    photo?: string,
+    targetPropertyId?: number
+  ) => {
     try {
+      const resolvedPropertyId =
+        targetPropertyId ||
+        (typeof (formData as any).propertyId === "number" && (formData as any).propertyId > 0
+          ? (formData as any).propertyId
+          : typeof activePropertyId === "number" && activePropertyId > 0
+          ? activePropertyId
+          : 1);
+
       const created = await createMutation.mutateAsync({
-        data: { ...formData, propertyId: activePropertyId! } as any,
+        data: { ...formData, propertyId: resolvedPropertyId } as any,
       });
       if (photo && created?.id) {
-        await fetch(`/api/profiles/${created.id}/photo`, {
+        await fetch(`/api/profiles/${created.id}/photo?propertyId=${resolvedPropertyId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ photoUrl: photo }),
         });
       }
       invalidate();
-      toast.success(ar ? "تمت إضافة الملف الشخصي" : "Profile added");
+      toast.success(ar ? "تمت إضافة الملف الشخصي بنجاح" : "Profile added successfully");
       setIsOpen(false);
     } catch (err: any) {
-      toast.error(err?.message || "Error");
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        (ar ? "حدث خطأ أثناء حفظ الملف الشخصي" : "Failed to save profile");
+      toast.error(msg);
     }
   };
 
@@ -1143,7 +1159,7 @@ export function ProfilesPage() {
 
       {/* Add Dialog */}
       <ProfileDialog
-        propertyId={activePropertyId!}
+        propertyId={activePropertyId}
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         onSave={handleSave}
@@ -1152,7 +1168,11 @@ export function ProfilesPage() {
 
       {/* Excel Import Dialog */}
       <ExcelImportDialog
-        propertyId={activePropertyId!}
+        propertyId={
+          typeof activePropertyId === "number" && activePropertyId > 0
+            ? activePropertyId
+            : 1
+        }
         isOpen={importOpen}
         onClose={() => setImportOpen(false)}
         onImportSuccess={() => {
@@ -1164,7 +1184,11 @@ export function ProfilesPage() {
       {editingProfile && (
         <EditProfileDialog
           profile={editingProfile}
-          propertyId={activePropertyId!}
+          propertyId={
+            typeof activePropertyId === "number" && activePropertyId > 0
+              ? activePropertyId
+              : editingProfile.propertyId || 1
+          }
           onClose={() => setEditingProfile(null)}
         />
       )}

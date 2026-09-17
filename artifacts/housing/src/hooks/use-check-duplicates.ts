@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useDebounce } from "./use-debounce";
 
 export interface DuplicateInfo {
@@ -21,6 +21,7 @@ interface UseCheckDuplicatesOptions {
   phone?: string;
   excludeId?: number | null;
   enabled?: boolean;
+  propertyId?: number | string;
 }
 
 export function useCheckDuplicates({
@@ -29,6 +30,7 @@ export function useCheckDuplicates({
   phone = "",
   excludeId,
   enabled = true,
+  propertyId,
 }: UseCheckDuplicatesOptions) {
   const [duplicates, setDuplicates] = useState<DuplicateResults>({});
   const [isChecking, setIsChecking] = useState(false);
@@ -60,6 +62,7 @@ export function useCheckDuplicates({
         if (debouncedNationalId) params.append("nationalId", debouncedNationalId);
         if (debouncedPhone) params.append("phone", debouncedPhone);
         if (excludeId) params.append("excludeId", String(excludeId));
+        if (propertyId && propertyId !== "all") params.append("propertyId", String(propertyId));
 
         const res = await fetch(`/api/profiles/check-duplicate?${params.toString()}`, {
           signal: controller.signal,
@@ -86,7 +89,7 @@ export function useCheckDuplicates({
       isMounted = false;
       controller.abort();
     };
-  }, [debouncedProfileId, debouncedNationalId, debouncedPhone, excludeId, enabled]);
+  }, [debouncedProfileId, debouncedNationalId, debouncedPhone, excludeId, enabled, propertyId]);
 
   // Clean matched results so if user cleared a field it doesn't stay flagged
   const activeDuplicates: DuplicateResults = {};

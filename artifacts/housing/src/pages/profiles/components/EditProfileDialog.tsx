@@ -59,7 +59,7 @@ export function EditProfileDialog({
   onClose,
 }: {
   profile: any;
-  propertyId: number;
+  propertyId?: number | "all";
   onClose: () => void;
 }) {
   const { language } = useLanguage();
@@ -69,6 +69,11 @@ export function EditProfileDialog({
   const docsRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<PreviewableDocument | null>(null);
+
+  const effectivePropertyId =
+    typeof propertyId === "number" && propertyId > 0
+      ? propertyId
+      : profile.propertyId || 1;
 
   const [form, setForm] = useState<EditEmpForm>({
     firstName: profile.firstName ?? "",
@@ -202,15 +207,15 @@ export function EditProfileDialog({
   };
 
   const { data: departments = [] } = useLookupValues(
-    propertyId,
+    effectivePropertyId,
     LOOKUP_CATEGORIES.DEPARTMENT,
   );
   const { data: allJobTitles = [] } = useLookupValues(
-    propertyId,
+    effectivePropertyId,
     LOOKUP_CATEGORIES.JOB_TITLE,
   );
   const { data: nationalities = [] } = useLookupValues(
-    propertyId,
+    effectivePropertyId,
     LOOKUP_CATEGORIES.NATIONALITY,
   );
 
@@ -226,7 +231,7 @@ export function EditProfileDialog({
 
   const invalidate = () => {
     queryClient.invalidateQueries({
-      queryKey: getListProfilesQueryKey({ propertyId }),
+      queryKey: getListProfilesQueryKey({ propertyId: effectivePropertyId }),
     });
     queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
   };
@@ -593,7 +598,7 @@ export function EditProfileDialog({
                 <NationalitySelect
                   value={form.nationality}
                   onChange={(v) => set("nationality", v)}
-                  propertyId={propertyId}
+                  propertyId={effectivePropertyId}
                   placeholder={ar ? "اختر الجنسية..." : "Select nationality..."}
                 />
               </FormRow>

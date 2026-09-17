@@ -37,6 +37,7 @@ import {
   Sparkles,
   Languages,
 } from "lucide-react";
+import { useProperty } from "@/context/PropertyContext";
 import { transliterateToken } from "@/lib/bilingual-name-engine";
 import { translateDepartment, translateJobTitle } from "@/lib/bilingual-hospitality-dict";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
@@ -52,14 +53,36 @@ export function ProfileDialog({
   onSave,
   isSaving,
 }: {
-  propertyId: number;
+  propertyId?: number | "all";
   isOpen: boolean;
   onOpenChange: (o: boolean) => void;
-  onSave: (data: ProfileForm, photo?: string) => void;
+  onSave: (data: ProfileForm, photo?: string, targetPropertyId?: number) => void;
   isSaving: boolean;
 }) {
   const { language } = useLanguage();
   const ar = language === "ar";
+  const { properties, activePropertyId: contextPropertyId } = useProperty();
+
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number>(() => {
+    if (typeof propertyId === "number" && propertyId > 0) return propertyId;
+    if (typeof contextPropertyId === "number" && contextPropertyId > 0) return contextPropertyId;
+    const first = properties?.find((p) => p.id > 0);
+    return first ? first.id : 1;
+  });
+
+  useEffect(() => {
+    if (typeof propertyId === "number" && propertyId > 0) {
+      setSelectedPropertyId(propertyId);
+    } else if (typeof contextPropertyId === "number" && contextPropertyId > 0) {
+      setSelectedPropertyId(contextPropertyId);
+    }
+  }, [propertyId, contextPropertyId]);
+
+  const effectivePropertyId =
+    typeof propertyId === "number" && propertyId > 0
+      ? propertyId
+      : selectedPropertyId;
+
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
   const [errors, setErrors] = useState<
     Partial<Record<keyof ProfileForm, string>>
@@ -139,25 +162,32 @@ export function ProfileDialog({
     thirdName: false,
     fourthName: false,
   });
+  const [manuallyEditedEn, setManuallyEditedEn] = useState({
+    firstName: false,
+    lastName: false,
+    thirdName: false,
+    fourthName: false,
+  });
 
   const handleNameChange = (
     field: "firstName" | "lastName" | "thirdName" | "fourthName",
     value: string,
     lang: "en" | "ar"
   ) => {
+    const enKey = field;
+    const arKey = `${field}Ar` as keyof ProfileForm;
+
     if (lang === "en") {
-      const arKey = `${field}Ar` as keyof ProfileForm;
       set(field, value);
+      setManuallyEditedEn((prev) => ({ ...prev, [field]: true }));
       if (!manuallyEditedAr[field]) {
         const transliterated = transliterateToken(value, "ar");
         set(arKey, transliterated);
       }
     } else {
-      const enKey = field;
-      const arKey = `${field}Ar` as keyof ProfileForm;
       set(arKey, value);
       setManuallyEditedAr((prev) => ({ ...prev, [field]: true }));
-      if (!form[enKey]) {
+      if (!manuallyEditedEn[field]) {
         const transliterated = transliterateToken(value, "en");
         set(enKey, transliterated);
       }
@@ -199,19 +229,31 @@ export function ProfileDialog({
       setErrors({});
       setPhotoPreview(null);
       setPhotoData(null);
+      setManuallyEditedAr({
+        firstName: false,
+        lastName: false,
+        thirdName: false,
+        fourthName: false,
+      });
+      setManuallyEditedEn({
+        firstName: false,
+        lastName: false,
+        thirdName: false,
+        fourthName: false,
+      });
     }
   }, [isOpen]);
 
   const { data: departments = [] } = useLookupValues(
-    propertyId,
+    effectivePropertyId,
     LOOKUP_CATEGORIES.DEPARTMENT,
   );
   const { data: allJobTitles = [] } = useLookupValues(
-    propertyId,
+    effectivePropertyId,
     LOOKUP_CATEGORIES.JOB_TITLE,
   );
   const { data: nationalities = [] } = useLookupValues(
-    propertyId,
+    effectivePropertyId,
     LOOKUP_CATEGORIES.NATIONALITY,
   );
 
@@ -232,6 +274,7 @@ export function ProfileDialog({
     profileId: form.profileId,
     nationalId: form.nationalId,
     phone: form.phone,
+    propertyId: effectivePropertyId,
     enabled: isOpen,
   });
 
@@ -246,24 +289,36 @@ export function ProfileDialog({
     }
 
     const errs: Partial<Record<keyof ProfileForm, string>> = {};
-    if (!form.firstName.trim())
+    const hasFirstName = Boolean(form.firstName?.trim() || form.firstNameAr?.trim());
+    const hasLastName = Boolean(form.lastName?.trim() || form.lastNameAr?.trim());
+
+    if (!hasFirstName) {
       errs.firstName = ar ? "الاسم الأول مطلوب" : "First name required";
-    if (!form.lastName.trim())
+    }
+    if (!hasLastName) {
       errs.lastName = ar ? "الاسم الثاني مطلوب" : "Second name required";
-    if (!form.nationalId.trim())
+    }
+    if (!form.nationalId?.trim()) {
       errs.nationalId = ar ? "رقم الهوية مطلوب" : "National ID required";
-    if (form.employmentType !== "THIRD_PARTY") {
-      if (!form.department?.trim())
-        errs.department = ar ? "القسم مطلوب" : "Department required";
-      if (!form.jobTitle?.trim())
-        errs.jobTitle = ar ? "المسمى الوظيفي مطلوب" : "Job title required";
-      if (!form.hireDate)
-        errs.hireDate = ar ? "تاريخ التعيين مطلوب" : "Hire date required";
-    } else {
-      if (!form.companyName?.trim())
+    }
+
+    if (form.employmentType === "THIRD_PARTY") {
+      if (!form.companyName?.trim()) {
         errs.companyName = ar ? "اسم الشركة مطلوب" : "Company name required";
-      if (!form.jobTitle?.trim())
+      }
+      if (!form.jobTitle?.trim()) {
         errs.jobTitle = ar ? "الوظيفة / المهنة مطلوبة" : "Job/Occupation required";
+      }
+    } else {
+      if (!form.department?.trim()) {
+        errs.department = ar ? "القسم مطلوب" : "Department required";
+      }
+      if (!form.jobTitle?.trim()) {
+        errs.jobTitle = ar ? "المسمى الوظيفي مطلوب" : "Job title required";
+      }
+      if (!form.hireDate) {
+        errs.hireDate = ar ? "تاريخ التعيين مطلوب" : "Hire date required";
+      }
     }
 
     setErrors(errs);
@@ -327,6 +382,33 @@ export function ProfileDialog({
               />
             </div>
           </div>
+
+          {/* Target Hotel / Property (Shown when propertyId is "all" or not a specific hotel) */}
+          {(typeof propertyId !== "number" || propertyId <= 0) && (
+            <div className="p-3.5 bg-primary/5 border border-primary/20 rounded-xl space-y-1.5">
+              <Label className="text-xs font-bold text-primary flex items-center gap-1.5">
+                <Building className="w-4 h-4" />
+                {ar ? "الفندق / المنشأة التابع لها الموظف *" : "Target Hotel / Property *"}
+              </Label>
+              <Select
+                value={String(effectivePropertyId)}
+                onValueChange={(val) => setSelectedPropertyId(Number(val))}
+              >
+                <SelectTrigger className="h-9 bg-background">
+                  <SelectValue placeholder={ar ? "اختر الفندق..." : "Select hotel/property..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {properties
+                    .filter((p) => p.id > 0)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Section 1: Employment Type */}
           <div className="space-y-2">
@@ -569,7 +651,7 @@ export function ProfileDialog({
                 <NationalitySelect
                   value={form.nationality}
                   onChange={(v) => set("nationality", v)}
-                  propertyId={propertyId}
+                  propertyId={effectivePropertyId}
                   placeholder={ar ? "اختر الجنسية..." : "Select nationality..."}
                 />
               </FormRow>
@@ -967,26 +1049,77 @@ export function ProfileDialog({
           <Button
             onClick={() => {
               if (validate()) {
-                const autoId = form.profileId.trim() || `${form.employmentType === "THIRD_PARTY" ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
+                const autoId =
+                  form.profileId.trim() ||
+                  `${form.employmentType === "THIRD_PARTY" ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
+
+                const fnEn =
+                  form.firstName.trim() ||
+                  (form.firstNameAr ? transliterateToken(form.firstNameAr, "en") : "");
+                const lnEn =
+                  form.lastName.trim() ||
+                  (form.lastNameAr ? transliterateToken(form.lastNameAr, "en") : "");
+                const tnEn =
+                  form.thirdName?.trim() ||
+                  (form.thirdNameAr ? transliterateToken(form.thirdNameAr, "en") : "");
+                const foEn =
+                  form.fourthName?.trim() ||
+                  (form.fourthNameAr ? transliterateToken(form.fourthNameAr, "en") : "");
+
+                const fnAr =
+                  form.firstNameAr?.trim() ||
+                  (form.firstName ? transliterateToken(form.firstName, "ar") : "");
+                const lnAr =
+                  form.lastNameAr?.trim() ||
+                  (form.lastName ? transliterateToken(form.lastName, "ar") : "");
+                const tnAr =
+                  form.thirdNameAr?.trim() ||
+                  (form.thirdName ? transliterateToken(form.thirdName, "ar") : "");
+                const foAr =
+                  form.fourthNameAr?.trim() ||
+                  (form.fourthName ? transliterateToken(form.fourthName, "ar") : "");
+
                 const cleanedForm: ProfileForm = {
                   ...form,
                   status: "UNASSIGNED",
                   profileId: autoId,
+                  firstName: fnEn,
+                  lastName: lnEn,
+                  thirdName: tnEn,
+                  fourthName: foEn,
+                  firstNameAr: fnAr,
+                  lastNameAr: lnAr,
+                  thirdNameAr: tnAr,
+                  fourthNameAr: foAr,
+                  nationality: form.nationality.trim() || (ar ? "مصر" : "Egyptian"),
                   hireDate:
                     form.employmentType === "THIRD_PARTY"
-                      ? form.hireDate || new Date().toISOString().split("T")[0]
+                      ? (form.hireDate || new Date().toISOString().split("T")[0])
                       : form.hireDate,
                   department:
-                    form.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : form.department,
+                    form.employmentType === "THIRD_PARTY"
+                      ? "Third Party"
+                      : form.department,
+                  departmentAr:
+                    form.employmentType === "THIRD_PARTY"
+                      ? "طرف ثالث"
+                      : (form.departmentAr || translateDepartment(form.department, "ar")),
+                  jobTitle: form.jobTitle,
+                  jobTitleAr: form.jobTitleAr || translateJobTitle(form.jobTitle, "ar"),
                   level:
-                    form.employmentType === "THIRD_PARTY" ? "" : form.level,
+                    form.employmentType === "THIRD_PARTY"
+                      ? (form.level.trim() || "طرف ثالث")
+                      : (form.level.trim() || "عامل"),
                   contractEndDate:
-                    form.employmentType === "THIRD_PARTY" ? "" : form.contractEndDate,
+                    form.employmentType === "THIRD_PARTY"
+                      ? ""
+                      : (form.contractEndDate?.trim() || ""),
+                  dateOfBirth: form.dateOfBirth?.trim() || "",
                 };
-                onSave(cleanedForm, photoData ?? undefined);
+                onSave(cleanedForm, photoData ?? undefined, effectivePropertyId);
               }
             }}
-            disabled={isSaving || hasDuplicates}
+            disabled={isSaving}
             className="font-semibold"
           >
             {isSaving
