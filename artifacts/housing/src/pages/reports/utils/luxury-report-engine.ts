@@ -5,6 +5,8 @@
 // ============================================================================
 
 import { loadImgDataUrl } from "./export";
+import { formatNationality } from "@/lib/countries";
+import { translateDepartment, translateJobTitle } from "@/lib/bilingual-hospitality-dict";
 
 export interface ReportKpiCard {
   label: string;
@@ -593,6 +595,118 @@ export function translateReportHeader(header: string, isArabic: boolean): string
 }
 
 // ----------------------------------------------------------------------------
+// 1.8 Bilingual Value Translators (100% Arabic Localization Fallback)
+// ----------------------------------------------------------------------------
+export function translateRoomType(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toLowerCase().trim();
+  if (s.includes("deluxe") || s.includes("ديلوكس")) return "غرفة ديلوكس";
+  if (s.includes("suite") || s.includes("جناح")) return "جناح";
+  if (s.includes("family") || s.includes("عائلي")) return "جناح عائلي";
+  if (s.includes("single") || s.includes("فردي")) return "غرفة فردية";
+  if (s.includes("double") || s.includes("مزدوج")) return "غرفة مزدوجة";
+  if (s.includes("triple") || s.includes("ثلاثي")) return "غرفة ثلاثية";
+  if (s.includes("quad") || s.includes("رباعي")) return "غرفة رباعية";
+  if (s.includes("standard") || s.includes("قياسي")) return "غرفة قياسية";
+  return val;
+}
+
+export function translateGenderPolicy(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toLowerCase().trim();
+  if (s.includes("female") || s.includes("إناث") || s.includes("بنات")) return "إناث فقط";
+  if ((s.includes("male") && !s.includes("fe")) || s.includes("ذكور") || s.includes("شباب")) return "ذكور فقط";
+  if (s.includes("couple") || s.includes("أزواج")) return "أزواج";
+  if (s.includes("any") || s.includes("mix") || s.includes("مختلط")) return "متاح للجميع / مختلط";
+  return val;
+}
+
+export function translateProfileStatus(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toUpperCase().trim();
+  if (s === "ACTIVE") return "نشط بالسكن";
+  if (s === "VACATION") return "في إجازة";
+  if (s === "UNASSIGNED") return "غير مسكن";
+  if (s === "LEFT" || s === "CHECKED_OUT") return "غادر السكن";
+  if (s === "TRANSFERRED") return "منقول";
+  if (s === "SUSPENDED") return "موقوف";
+  return val;
+}
+
+export function translateReservationStatus(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toUpperCase().trim();
+  if (s === "UPCOMING") return "حجز قادم";
+  if (s === "CONFIRMED") return "مؤكد";
+  if (s === "CHECKED_IN") return "تم التسكين";
+  if (s === "CANCELLED") return "ملغي";
+  if (s === "NO_SHOW") return "لم يحضر";
+  return val;
+}
+
+export function translateMaintenanceCategory(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toLowerCase().trim();
+  if (s.includes("plumb") || s.includes("سباك")) return "سباكة وصحي";
+  if (s.includes("electr") || s.includes("كهرب")) return "كهرباء وإنارة";
+  if (s.includes("ac") || s.includes("hvac") || s.includes("تكييف") || s.includes("تبريد")) return "تكييف وتبريد";
+  if (s.includes("carpent") || s.includes("نجار")) return "نجارة وأثاث";
+  if (s.includes("paint") || s.includes("دهان")) return "دهانات وديكور";
+  if (s.includes("appliance") || s.includes("أجهز")) return "أجهزة كهربائية";
+  if (s.includes("pest") || s.includes("حشرات")) return "مكافحة حشرات";
+  if (s.includes("housekeep") || s.includes("نظاف")) return "إشراف داخلي / نظافة";
+  if (s.includes("general") || s.includes("عام")) return "صيانة عامة";
+  return val;
+}
+
+export function translateMaintenancePriority(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toLowerCase().trim();
+  if (s.includes("urg") || s.includes("طارئ") || s.includes("عاجل")) return "عاجلة / طارئة";
+  if (s.includes("high") || s.includes("مرتفع")) return "مرتفعة";
+  if (s.includes("med") || s.includes("متوسط") || s.includes("norm")) return "متوسطة";
+  if (s.includes("low") || s.includes("منخفض")) return "منخفضة";
+  return val;
+}
+
+export function translateMaintenanceStatus(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toLowerCase().trim();
+  if (s === "open" || s === "pending" || s.includes("انتظار") || s.includes("مفتوح")) return "قيد الانتظار";
+  if (s === "in_progress" || s.includes("تنفيذ") || s.includes("عمل")) return "جاري العمل";
+  if (s === "completed" || s === "resolved" || s.includes("مكتمل") || s.includes("تم")) return "تم الإنجاز";
+  if (s === "cancelled" || s.includes("ملغي")) return "ملغي";
+  if (s === "rejected" || s.includes("مرفوض")) return "مرفوض";
+  return val;
+}
+
+export function translateHostingStatus(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toLowerCase().trim();
+  if (s === "pending" || s.includes("انتظار")) return "بانتظار الموافقة";
+  if (s === "approved" || s.includes("موافق")) return "معتمد";
+  if (s === "active" || s.includes("ساري") || s.includes("حالي")) return "استضافة جارية";
+  if (s === "completed" || s.includes("منتهي")) return "تمت المغادرة";
+  if (s === "rejected" || s.includes("مرفوض")) return "مرفوض";
+  return val;
+}
+
+export function translateHostingRelation(val: string, ar: boolean): string {
+  if (!ar || !val || val === "—") return val || "—";
+  const s = val.toLowerCase().trim();
+  if (s.includes("father") || s.includes("والد") || s.includes("أب")) return "والد";
+  if (s.includes("mother") || s.includes("والدة") || s.includes("أم")) return "والدة";
+  if (s.includes("wife") || s.includes("زوجة")) return "زوجة";
+  if (s.includes("husband") || s.includes("زوج")) return "زوج";
+  if (s.includes("brother") || s.includes("أخ")) return "أخ";
+  if (s.includes("sister") || s.includes("أخت")) return "أخت";
+  if (s.includes("son") || s.includes("ابن")) return "ابن";
+  if (s.includes("daughter") || s.includes("ابنة")) return "ابنة";
+  if (s.includes("friend") || s.includes("صديق")) return "صديق";
+  return val;
+}
+
+// ----------------------------------------------------------------------------
 // 2. Helper: Status Badge Formatter (Clean, minimal executive presentation)
 // ----------------------------------------------------------------------------
 export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
@@ -610,6 +724,73 @@ export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
   }
   if (str === "[✓]" || str === "[x]" || str === "[X]" || str === "☑") {
     return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #059669; border-radius:2px; vertical-align:middle; background:#ecfdf5; color:#059669; text-align:center; font-size:10px; line-height:12px; font-weight:bold;">✓</span>`;
+  }
+
+  // Universal Arabic translation fallback for unlocalized cells
+  if (isArabic && !/[\u0600-\u06FF]/.test(str)) {
+    const upper = str.toUpperCase();
+    const lower = str.toLowerCase();
+
+    // 1. Profile / Resident Status
+    if (["ACTIVE", "VACATION", "UNASSIGNED", "LEFT", "CHECKED_OUT", "TRANSFERRED", "SUSPENDED"].includes(upper)) {
+      return translateProfileStatus(upper, true);
+    }
+    // 2. Reservation Status
+    if (["UPCOMING", "CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW"].includes(upper)) {
+      return translateReservationStatus(upper, true);
+    }
+    // 3. Maintenance / Ticket Status
+    if (["OPEN", "PENDING", "IN_PROGRESS", "COMPLETED", "RESOLVED", "REJECTED"].includes(upper)) {
+      return translateMaintenanceStatus(lower, true);
+    }
+    // 4. Room Cleanliness & Operational Status
+    if (lower === "clean" || lower === "available") return "نظيفة / متاحة";
+    if (lower === "dirty") return "متسخة (تحتاج نظافة)";
+    if (lower === "occupied") return "مشغولة";
+    if (lower === "occupied_dirty") return "مشغولة ومتسخة";
+    if (lower === "occupied_vacation") return "مشغولة (إجازة)";
+    if (["out_of_service", "oos"].includes(lower)) return "خارج الخدمة";
+    if (["out_of_order", "ooo", "maintenance"].includes(lower)) return "معطلة / صيانة";
+
+    // 5. Gender Policies
+    if (["male", "male only", "males", "male_only"].includes(lower)) return "ذكور فقط";
+    if (["female", "female only", "females", "female_only"].includes(lower)) return "إناث فقط";
+    if (["couple", "couples"].includes(lower)) return "أزواج";
+    if (["any", "mixed"].includes(lower)) return "متاح للجميع / مختلط";
+
+    // 6. Maintenance Categories
+    if (["plumbing", "electrical", "hvac", "ac", "air conditioning", "carpentry", "painting", "appliances", "pest control", "housekeeping", "general"].includes(lower)) {
+      return translateMaintenanceCategory(lower, true);
+    }
+
+    // 7. Maintenance Priorities
+    if (["urgent", "high", "medium", "low", "normal", "critical"].includes(lower)) {
+      return translateMaintenancePriority(lower, true);
+    }
+
+    // 8. Employment Type
+    if (lower === "internal") return "داخلي (فندق)";
+    if (lower === "third_party" || lower === "third party") return "طرف ثالث";
+
+    // 9. VIP / Category
+    if (upper === "VIP") return "هام (VIP)";
+    if (lower === "standard") return "عادي";
+
+    // 10. Gate Access Status
+    if (lower === "valid" || lower === "approved" || lower === "success") return "تصريح ساري ومطابق";
+    if (lower === "invalid" || lower === "denied" || lower === "rejected") return "مرفوض / غير صالح";
+
+    // 11. Known Nationalities
+    const nat = formatNationality(str, true, false);
+    if (nat !== str) return nat;
+
+    // 12. Department Translation
+    const dept = translateDepartment(str, "ar");
+    if (dept && dept !== str) return dept;
+
+    // 13. Job Title Translation
+    const job = translateJobTitle(str, "ar");
+    if (job && job !== str) return job;
   }
 
   return str;
@@ -1094,14 +1275,39 @@ export function getOperaColumnAlign(
  */
 export function getOperaColumnWidth(headerName: string, colCount: number): string {
   const norm = (headerName || "").toLowerCase().trim();
-  if (norm === "#") return "width: 28px; min-width: 24px;";
+  if (norm === "#") return "width: 26px;";
 
   // Multi-item list, notes, reasons, or wide description column
   if (isMultiItemOrTextColumn(norm)) {
-    return colCount <= 7 ? "width: 32%; min-width: 140px;" : colCount <= 11 ? "width: 25%; min-width: 110px;" : "width: 19%; min-width: 90px;";
+    return colCount <= 7 ? "width: 28%;" : colCount <= 11 ? "width: 20%;" : colCount <= 15 ? "width: 14%;" : "width: 10%;";
   }
 
-  // Small numeric counter columns (e.g. good, damaged, missing, qty, counts, beds, rooms)
+  // Pure Single Room / Bed / Floor / Code / Level / Sequence numbers
+  if (
+    norm === "room" ||
+    norm.includes("room no") ||
+    norm.includes("room number") ||
+    norm === "غرفة" ||
+    norm === "رقم الغرفة" ||
+    norm.includes("bed no") ||
+    norm.includes("bed number") ||
+    norm === "سرير" ||
+    norm === "رقم السرير" ||
+    norm === "bed" ||
+    norm.includes("code") ||
+    norm.includes("كود") ||
+    norm.includes("floor") ||
+    norm.includes("طابق") ||
+    norm.includes("دور") ||
+    norm.includes("level") ||
+    norm.includes("درجة") ||
+    norm.includes("order") ||
+    norm.includes("ترتيب")
+  ) {
+    return colCount <= 7 ? "width: 8%;" : colCount <= 11 ? "width: 6.5%;" : colCount <= 15 ? "width: 5%;" : "width: 3.8%;";
+  }
+
+  // Small numeric counters / quantities (good, repair, damaged, missing, nights, qty, counts, cap, occ)
   if (
     norm.includes("qty") ||
     norm.includes("quantity") ||
@@ -1124,37 +1330,59 @@ export function getOperaColumnWidth(headerName: string, colCount: number): strin
     norm.includes("nights") ||
     norm.includes("ليالي") ||
     norm.includes("est time") ||
-    norm.includes("الوقت")
+    norm.includes("الوقت") ||
+    norm.includes("days") ||
+    norm.includes("أيام") ||
+    norm.includes("متبقي")
   ) {
-    return colCount <= 7 ? "width: 8%; min-width: 44px;" : colCount <= 11 ? "width: 6.2%; min-width: 38px;" : "width: 5%; min-width: 32px;";
+    return colCount <= 7 ? "width: 8%;" : colCount <= 11 ? "width: 6.5%;" : colCount <= 15 ? "width: 5%;" : "width: 3.8%;";
   }
 
-  // Strict Single unit identifiers: Room No, Bed No, Floor, Code
+  // National ID & IDs (needs enough width for 14 digits)
   if (
-    norm === "room" ||
-    norm.includes("room no") ||
-    norm.includes("room number") ||
-    norm === "غرفة" ||
-    norm === "رقم الغرفة" ||
-    norm.includes("bed no") ||
-    norm.includes("bed number") ||
-    norm === "سرير" ||
-    norm === "رقم السرير" ||
-    norm.includes("code") ||
-    norm.includes("كود") ||
-    norm.includes("floor") ||
-    norm.includes("طابق") ||
-    norm.includes("دور")
+    norm.includes("national") ||
+    norm.includes("قومي") ||
+    norm.includes("id number") ||
+    norm.includes("هوية") ||
+    norm.includes("رقم قومي") ||
+    norm.includes("رقم الهوية")
   ) {
-    return colCount <= 7 ? "width: 9%; min-width: 50px;" : colCount <= 11 ? "width: 7.5%; min-width: 45px;" : "width: 6%; min-width: 40px;";
+    return colCount <= 7 ? "width: 13%;" : colCount <= 11 ? "width: 10%;" : colCount <= 15 ? "width: 8%;" : "width: 6.2%;";
   }
 
-  // Dates
-  if (norm.includes("date") || norm.includes("تاريخ")) {
-    return colCount <= 7 ? "width: 11%; min-width: 65px;" : colCount <= 11 ? "width: 9%; min-width: 58px;" : "width: 7.5%; min-width: 52px;";
+  // Phone / Mobile / Emergency Contact
+  if (
+    norm.includes("phone") ||
+    norm.includes("هاتف") ||
+    norm.includes("موبايل") ||
+    norm.includes("mobile") ||
+    norm.includes("emergency") ||
+    norm.includes("طوارئ") ||
+    norm.includes("تليفون")
+  ) {
+    return colCount <= 7 ? "width: 12%;" : colCount <= 11 ? "width: 9%;" : colCount <= 15 ? "width: 7.5%;" : "width: 5.8%;";
   }
 
-  // Status, Category, VIP, Gender
+  // Dates & Times (Check-in, Check-out, Birth, Hire, Scan, Inspected)
+  if (
+    norm.includes("date") ||
+    norm.includes("تاريخ") ||
+    norm.includes("check-in") ||
+    norm.includes("check-out") ||
+    norm.includes("checkin") ||
+    norm.includes("checkout") ||
+    norm.includes("دخول") ||
+    norm.includes("خروج") ||
+    norm.includes("وصول") ||
+    norm.includes("مغادرة") ||
+    norm.includes("time") ||
+    norm.includes("وقت") ||
+    norm.includes("ساعة")
+  ) {
+    return colCount <= 7 ? "width: 11%;" : colCount <= 11 ? "width: 8.5%;" : colCount <= 15 ? "width: 6.8%;" : "width: 5.2%;";
+  }
+
+  // Status, Category, Priority, Condition, Gender, Policy, Movement Type, Access Status
   if (
     norm.includes("status") ||
     norm.includes("category") ||
@@ -1162,12 +1390,43 @@ export function getOperaColumnWidth(headerName: string, colCount: number): strin
     norm.includes("تصنيف") ||
     norm.includes("فئة") ||
     norm.includes("gender") ||
-    norm.includes("جنس")
+    norm.includes("جنس") ||
+    norm.includes("priority") ||
+    norm.includes("أولوية") ||
+    norm.includes("condition") ||
+    norm.includes("action") ||
+    norm.includes("policy") ||
+    norm.includes("سياسة")
   ) {
-    return colCount <= 7 ? "width: 10%; min-width: 60px;" : colCount <= 11 ? "width: 8.5%; min-width: 52px;" : "width: 7%; min-width: 46px;";
+    return colCount <= 7 ? "width: 10%;" : colCount <= 11 ? "width: 8%;" : colCount <= 15 ? "width: 6%;" : "width: 4.8%;";
   }
 
-  // Names, Titles, Buildings, Departments
+  // Nationality
+  if (norm.includes("nationality") || norm.includes("جنسية")) {
+    return colCount <= 7 ? "width: 10%;" : colCount <= 11 ? "width: 8%;" : colCount <= 15 ? "width: 6.5%;" : "width: 5%;";
+  }
+
+  // Room Type, Employment Type
+  if (norm.includes("type") || norm.includes("نوع")) {
+    return colCount <= 7 ? "width: 10%;" : colCount <= 11 ? "width: 8%;" : colCount <= 15 ? "width: 6.5%;" : "width: 5%;";
+  }
+
+  // Checklist items (Linen, Amenities, Signature, Checks, Issues)
+  if (
+    norm.includes("check") ||
+    norm.includes("صرف") ||
+    norm.includes("فحص") ||
+    norm.includes("sign") ||
+    norm.includes("توقيع") ||
+    norm.includes("linen") ||
+    norm.includes("مفروشات") ||
+    norm.includes("amenit") ||
+    norm.includes("عهد")
+  ) {
+    return colCount <= 7 ? "width: 8%;" : colCount <= 11 ? "width: 6%;" : colCount <= 15 ? "width: 5%;" : "width: 4%;";
+  }
+
+  // Names, Titles, Buildings, Departments, Companies, Officers
   if (
     norm.includes("name") ||
     norm.includes("اسم") ||
@@ -1179,12 +1438,21 @@ export function getOperaColumnWidth(headerName: string, colCount: number): strin
     norm.includes("job") ||
     norm.includes("وظيفة") ||
     norm.includes("company") ||
-    norm.includes("شركة")
+    norm.includes("شركة") ||
+    norm.includes("resident") ||
+    norm.includes("مقيم") ||
+    norm.includes("نزيل") ||
+    norm.includes("officer") ||
+    norm.includes("فني") ||
+    norm.includes("guard") ||
+    norm.includes("أمن")
   ) {
-    return colCount <= 7 ? "width: 18%; min-width: 90px;" : colCount <= 11 ? "width: 14%; min-width: 75px;" : "width: 11%; min-width: 65px;";
+    return colCount <= 7 ? "width: 16%;" : colCount <= 11 ? "width: 12%;" : colCount <= 15 ? "width: 8.5%;" : "width: 6.5%;";
   }
 
-  return "";
+  // Dynamic Fair-Share Fallback for ANY other column — NEVER returns empty string!
+  const defaultPct = Math.max(3.8, Math.min(15, Math.round((100 / (colCount || 10)) * 10) / 10));
+  return `width: ${defaultPct}%;`;
 }
 
 /**
@@ -1196,12 +1464,12 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
   
   // Sequence numbering column
   if (norm === "#") {
-    return "width: 28px; text-align: center; white-space: nowrap;";
+    return "text-align: center; white-space: nowrap;";
   }
   
   // Multi-item lists, notes, descriptions, reasons, addresses: MUST WRAP NATURALLY
   if (isMultiItemOrTextColumn(headerName)) {
-    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; line-height: 1.35;`;
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; line-height: 1.3;`;
   }
 
   // Water distribution issue checks / checkboxes / signatures
@@ -1258,10 +1526,10 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("nights") ||
     norm.includes("ليالي")
   ) {
-    return "text-align: center; white-space: normal; line-height: 1.15; font-weight: 600;";
+    return "text-align: center; white-space: normal; line-height: 1.15; font-weight: 600; font-variant-numeric: tabular-nums;";
   }
 
-  // Codes & IDs
+  // Codes & IDs (National ID, Phone, Employee Code, ID Number)
   if (
     norm.includes("كود") ||
     norm.includes("code") ||
@@ -1269,22 +1537,42 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("national") ||
     norm.includes("هاتف") ||
     norm.includes("phone") ||
-    norm.includes("موبايل")
+    norm.includes("موبايل") ||
+    norm.includes("mobile") ||
+    norm.includes("emergency") ||
+    norm.includes("طوارئ") ||
+    norm.includes("هوية")
   ) {
-    return "text-align: center; white-space: nowrap; font-family: monospace;";
+    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; overflow: hidden; text-overflow: ellipsis;";
   }
 
-  // Dates
-  if (norm.includes("تاريخ") || norm.includes("date")) {
-    return "text-align: center; white-space: nowrap;";
+  // Dates & Times
+  if (
+    norm.includes("تاريخ") ||
+    norm.includes("date") ||
+    norm.includes("check-in") ||
+    norm.includes("check-out") ||
+    norm.includes("time") ||
+    norm.includes("وقت")
+  ) {
+    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums;";
   }
 
-  // Status & Categories
-  if (norm.includes("حالة") || norm.includes("status") || norm.includes("جنس") || norm.includes("gender")) {
-    return "text-align: center; white-space: normal;";
+  // Status & Categories & Types & Gender
+  if (
+    norm.includes("حالة") ||
+    norm.includes("status") ||
+    norm.includes("جنس") ||
+    norm.includes("gender") ||
+    norm.includes("type") ||
+    norm.includes("نوع") ||
+    norm.includes("priority") ||
+    norm.includes("أولوية")
+  ) {
+    return "text-align: center; white-space: normal; word-break: break-word; line-height: 1.2;";
   }
 
-  // Names, Departments, Buildings, Jobs - WRAP NATURALLY
+  // Names, Departments, Buildings, Jobs, Companies - WRAP NATURALLY
   if (
     norm.includes("اسم") ||
     norm.includes("name") ||
@@ -1299,12 +1587,15 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("مبنى") ||
     norm.includes("building") ||
     norm.includes("شركة") ||
-    norm.includes("company")
+    norm.includes("company") ||
+    norm.includes("guard") ||
+    norm.includes("أمن") ||
+    norm.includes("officer")
   ) {
-    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal; word-break: break-word; overflow-wrap: break-word;`;
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25;`;
   }
 
-  return `white-space: normal; word-break: break-word; overflow-wrap: break-word;`;
+  return `white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25;`;
 }
 
 // ----------------------------------------------------------------------------
@@ -1387,21 +1678,26 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   let cellPadding = "3.5px 5px";
   let printPadding = "2.5px 4px";
 
-  if (colCount >= 14) {
-    baseFontSizePt = 6.8;
-    printFontSizePt = 5.8;
-    cellPadding = "2px 3px";
-    printPadding = "1.8px 2.5px";
+  if (colCount >= 18) {
+    baseFontSizePt = 5.6;
+    printFontSizePt = 5.2;
+    cellPadding = "1.5px 2px";
+    printPadding = "1.2px 1.8px";
+  } else if (colCount >= 14) {
+    baseFontSizePt = 6.2;
+    printFontSizePt = 5.6;
+    cellPadding = "2px 2.5px";
+    printPadding = "1.5px 2px";
   } else if (colCount >= 11) {
-    baseFontSizePt = 7.2;
-    printFontSizePt = 6.4;
-    cellPadding = "2.5px 4px";
-    printPadding = "2px 3px";
+    baseFontSizePt = 7.0;
+    printFontSizePt = 6.2;
+    cellPadding = "2.5px 3.5px";
+    printPadding = "2px 2.5px";
   } else if (colCount >= 8) {
-    baseFontSizePt = 7.8;
-    printFontSizePt = 7.0;
-    cellPadding = "3px 4.5px";
-    printPadding = "2.2px 3.5px";
+    baseFontSizePt = 7.6;
+    printFontSizePt = 6.8;
+    cellPadding = "3px 4px";
+    printPadding = "2.2px 3px";
   }
 
   // Helper: Strictly determine if a column is a legitimate quantifiable metric that can be summed
@@ -1870,11 +2166,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-left: none !important;
       border-right: none !important;
       padding: ${cellPadding} !important;
-      line-height: 1.25;
+      line-height: 1.15;
       vertical-align: bottom;
-      overflow-wrap: break-word !important;
-      word-break: break-word !important;
-      hyphens: auto;
+      overflow-wrap: normal !important;
+      word-break: normal !important;
+      white-space: normal !important;
+      hyphens: manual;
     }
     table.opera-table td {
       background: #ffffff !important;
@@ -2042,6 +2339,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         width: 100% !important;
         max-width: 100% !important;
         min-height: auto !important;
+        height: auto !important;
+        overflow: visible !important;
         border-radius: 0 !important;
       }
       table.opera-table {
@@ -2059,8 +2358,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         color: #000000 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        white-space: normal !important;
+        min-width: 0 !important;
+        max-width: none !important;
       }
       table.opera-table td {
         font-size: ${printFontSizePt}pt !important;
@@ -2069,6 +2371,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         border-bottom: 0.5px solid #e2e8f0 !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
+        min-width: 0 !important;
+        max-width: none !important;
       }
       tr {
         page-break-inside: avoid !important;
@@ -2080,6 +2384,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         display: table-footer-group !important;
       }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      /* Hide hardcoded page indicator — browser print dialog handles page numbering */
+      .opera-page-indicator { display: none !important; }
+      /* Keep signatures and footer together — never split across pages */
+      .sig-section { page-break-inside: avoid !important; }
+      .opera-footer { page-break-inside: avoid !important; }
     }
   </style>
 </head>

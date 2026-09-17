@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { printLuxuryReport } from "../utils/luxury-report-engine";
+import { formatNationality } from "@/lib/countries";
+import { getProfileDisplayDepartment } from "@/lib/profile-display-utils";
 import {
   FileBarChart2,
   Building2,
@@ -198,7 +200,7 @@ export function ManagerFlashTab({
   const departmentBreakdown = useMemo(() => {
     const deptCounts: Record<string, number> = {};
     profiles.forEach((p: any) => {
-      const dept = p.department?.trim() || (ar ? "غير محدد" : "Unassigned");
+      const dept = ar ? getProfileDisplayDepartment(p, true) : (p.department?.trim() || "Unassigned");
       deptCounts[dept] = (deptCounts[dept] || 0) + 1;
     });
 
@@ -217,7 +219,8 @@ export function ManagerFlashTab({
   const nationalityBreakdown = useMemo(() => {
     const natCounts: Record<string, number> = {};
     profiles.forEach((p: any) => {
-      const nat = p.nationality?.trim() || (ar ? "غير مسجل" : "Other");
+      const rawNat = p.nationality?.trim();
+      const nat = ar ? (formatNationality(rawNat, true, false) || "غير مسجل") : (rawNat || "Other");
       natCounts[nat] = (natCounts[nat] || 0) + 1;
     });
 

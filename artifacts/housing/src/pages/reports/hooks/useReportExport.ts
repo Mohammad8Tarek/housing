@@ -1,5 +1,18 @@
 import { exportExcel, exportPDF, exportAnalyticsPDF, printArabicAnalyticsReport } from "../utils/export";
-import { translateReportHeader } from "../utils/luxury-report-engine";
+import {
+  translateReportHeader,
+  translateRoomType,
+  translateGenderPolicy,
+  translateProfileStatus,
+  translateReservationStatus,
+  translateMaintenanceCategory,
+  translateMaintenancePriority,
+  translateMaintenanceStatus,
+  translateHostingStatus,
+  translateHostingRelation,
+} from "../utils/luxury-report-engine";
+import { formatNationality } from "@/lib/countries";
+import { getProfileDisplayDepartment } from "@/lib/profile-display-utils";
 import { getRoomStatusLabel } from "@/pages/housing/utils";
 
 export function useReportExport({
@@ -140,7 +153,7 @@ export function useReportExport({
           [ar ? "الوظيفة" : "Job Title"]: a.jobTitle,
           [ar ? "الهاتف" : "Phone"]: a.phone || "—",
           [ar ? "الرقم القومي" : "National ID"]: a.nationalId || "—",
-          [ar ? "الجنسية" : "Nationality"]: a.nationality || "—",
+          [ar ? "الجنسية" : "Nationality"]: ar ? formatNationality(a.nationality, ar, false) : (a.nationality || "—"),
           [ar ? "تاريخ التسكين" : "Check-In Date"]: a.checkInDate || "—",
           [ar ? "المغادرة المتوقعة" : "Expected Check-Out"]: a.expectedCheckOutDate || a.contractEndDate || "—",
           [ar ? "الحالة بالسكن" : "Status"]:
@@ -162,12 +175,12 @@ export function useReportExport({
           [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
           [ar ? "المبنى" : "Building"]: r.buildingName,
           [ar ? "الطابق" : "Floor"]: r.floorName,
-          [ar ? "نوع الغرفة" : "Room Type"]: r.roomType,
+          [ar ? "نوع الغرفة" : "Room Type"]: translateRoomType(r.roomType, ar),
           [ar ? "السعة الإجمالية" : "Capacity"]: r.capacity,
           [ar ? "المشغول" : "Occupied"]: r.currentOccupancy,
           [ar ? "عدد الأسرة الشاغرة" : "Vacant Beds"]: r.vacantBedsCount,
           [ar ? "الأسرة المتاحة" : "Available Beds"]: r.availableBedsText,
-          [ar ? "سياسة الجنس" : "Gender Policy"]: r.genderPolicy,
+          [ar ? "سياسة الجنس" : "Gender Policy"]: translateGenderPolicy(r.genderPolicy, ar),
           [ar ? "حالة الغرفة" : "Room Status"]: getRoomStatusLabel(r.status, ar),
         }));
 
@@ -176,12 +189,12 @@ export function useReportExport({
           [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
           [ar ? "المبنى" : "Building"]: r.buildingName,
           [ar ? "الطابق" : "Floor"]: r.floorName,
-          [ar ? "نوع الغرفة" : "Room Type"]: r.roomType,
+          [ar ? "نوع الغرفة" : "Room Type"]: translateRoomType(r.roomType, ar),
           [ar ? "السعة" : "Capacity"]: r.capacity,
           [ar ? "المشغول" : "Occupied"]: r.currentOccupancy,
           [ar ? "الشاغر" : "Vacant Beds"]: r.vacantBeds,
           [ar ? "نسبة الإشغال" : "Occupancy Rate"]: r.occupancyRate,
-          [ar ? "سياسة الجنس" : "Gender Policy"]: r.genderPolicy,
+          [ar ? "سياسة الجنس" : "Gender Policy"]: translateGenderPolicy(r.genderPolicy, ar),
           [ar ? "حالة الغرفة" : "Room Status"]: getRoomStatusLabel(r.status, ar),
         }));
 
@@ -196,7 +209,7 @@ export function useReportExport({
           [ar ? "الشركة" : "Company"]: e.companyName,
           [ar ? "الرقم القومي" : "National ID"]: e.nationalId,
           [ar ? "الهاتف" : "Phone"]: e.phone,
-          [ar ? "الجنسية" : "Nationality"]: e.nationality,
+          [ar ? "الجنسية" : "Nationality"]: ar ? formatNationality(e.nationality, ar, false) : (e.nationality || "—"),
           [ar ? "الجنس" : "Gender"]: e.gender === "M" ? (ar ? "ذكر" : "Male") : e.gender === "F" ? (ar ? "أنثى" : "Female") : e.gender,
           [ar ? "تاريخ الميلاد" : "Date of Birth"]: e.dateOfBirth,
           [ar ? "العنوان" : "Address"]: e.address,
@@ -208,7 +221,7 @@ export function useReportExport({
           [ar ? "انتهاء العقد" : "Contract End"]: e.contractEndDate,
           [ar ? "البريد الإلكتروني" : "Email"]: e.email,
           [ar ? "هاتف الطوارئ" : "Emergency Contact"]: e.emergencyContact,
-          [ar ? "الحالة" : "Status"]: e.status,
+          [ar ? "الحالة" : "Status"]: translateProfileStatus(e.status, ar),
         }));
 
       case "expiring_contracts":
@@ -232,11 +245,11 @@ export function useReportExport({
           [ar ? "الهاتف" : "Phone"]: r.phone,
           [ar ? "القسم" : "Department"]: r.department,
           [ar ? "الوظيفة" : "Job Title"]: r.jobTitle,
-          [ar ? "نوع الغرفة" : "Room Type"]: r.roomType,
+          [ar ? "نوع الغرفة" : "Room Type"]: translateRoomType(r.roomType, ar),
           [ar ? "الغرفة المحجوزة" : "Reserved Room"]: r.roomNumber,
           [ar ? "تاريخ الوصول" : "Check-In"]: r.checkInDate,
           [ar ? "تاريخ المغادرة" : "Check-Out"]: r.checkOutDate,
-          [ar ? "الحالة" : "Status"]: r.status,
+          [ar ? "الحالة" : "Status"]: translateReservationStatus(r.status, ar),
         }));
 
       case "hostings":
@@ -244,26 +257,26 @@ export function useReportExport({
           [ar ? "الموظف المستضيف" : "Host Employee"]: h.hostEmployee,
           [ar ? "القسم" : "Department"]: h.hostDept,
           [ar ? "اسم الضيف" : "Guest Name"]: h.guestName,
-          [ar ? "صلة القرابة" : "Relationship"]: h.relation,
+          [ar ? "صلة القرابة" : "Relationship"]: translateHostingRelation(h.relation, ar),
           [ar ? "رقم الهوية" : "ID Number"]: h.guestId,
           [ar ? "رقم الغرفة" : "Room No"]: h.roomNumber,
           [ar ? "تاريخ الدخول" : "Check-In"]: h.checkInDate,
           [ar ? "تاريخ المغادرة" : "Check-Out"]: h.checkOutDate,
           [ar ? "سعر اليوم" : "Daily Rate"]: h.dailyRate,
           [ar ? "الإجمالي" : "Total Fee"]: h.totalAmount,
-          [ar ? "الحالة" : "Status"]: h.status,
+          [ar ? "الحالة" : "Status"]: translateHostingStatus(h.status, ar),
         }));
 
       case "maintenance":
         return data.map((m: any) => ({
           [ar ? "رقم الغرفة" : "Room No"]: m.roomNumber,
           [ar ? "المبنى" : "Building"]: m.buildingName,
-          [ar ? "الفئة" : "Category"]: m.category,
+          [ar ? "الفئة" : "Category"]: translateMaintenanceCategory(m.category, ar),
           [ar ? "وصف المشكلة" : "Problem Details"]: m.problemType,
-          [ar ? "الأولوية" : "Priority"]: m.priority,
+          [ar ? "الأولوية" : "Priority"]: translateMaintenancePriority(m.priority, ar),
           [ar ? "الفني المعين" : "Assigned To"]: m.assignedTo,
           [ar ? "تاريخ البلاغ" : "Reported Date"]: m.reportedAt,
-          [ar ? "الحالة" : "Status"]: m.status,
+          [ar ? "الحالة" : "Status"]: translateMaintenanceStatus(m.status, ar),
         }));
 
       case "equipment_inventory":
@@ -364,7 +377,7 @@ export function useReportExport({
           [ar ? "كود الموظف" : "Employee Code"]: p.profileCode,
           [ar ? "الاسم بالكامل" : "Full Name"]: p.fullName,
           [ar ? "الرقم القومي" : "National ID"]: p.nationalId,
-          [ar ? "الجنسية" : "Nationality"]: p.nationality,
+          [ar ? "الجنسية" : "Nationality"]: ar ? formatNationality(p.nationality, ar, false) : (p.nationality || "—"),
           [ar ? "تاريخ الميلاد" : "Date of Birth"]: p.dateOfBirth,
           [ar ? "الجنس" : "Gender"]: p.gender === "M" ? (ar ? "ذكر" : "Male") : p.gender === "F" ? (ar ? "أنثى" : "Female") : p.gender,
           [ar ? "الوظيفة" : "Job Title"]: p.jobTitle,
@@ -448,7 +461,7 @@ export function useReportExport({
       // Top Departments breakdown
       const deptCounts: Record<string, number> = {};
       profiles.forEach((p: any) => {
-        const dept = p.department?.trim() || (isArabic ? "غير محدد" : "Unassigned");
+        const dept = isArabic ? getProfileDisplayDepartment(p, true) : (p.department?.trim() || "Unassigned");
         deptCounts[dept] = (deptCounts[dept] || 0) + 1;
       });
       const totalP = profiles.length || 1;
@@ -464,7 +477,7 @@ export function useReportExport({
       // Top Nationalities breakdown
       const natCounts: Record<string, number> = {};
       profiles.forEach((p: any) => {
-        const nat = p.nationality?.trim() || (isArabic ? "غير مسجل" : "Other");
+        const nat = isArabic ? (formatNationality(p.nationality, true, false) || "غير مسجل") : (p.nationality?.trim() || "Other");
         natCounts[nat] = (natCounts[nat] || 0) + 1;
       });
       const natList = Object.entries(natCounts)

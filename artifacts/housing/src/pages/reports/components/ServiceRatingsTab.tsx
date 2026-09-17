@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { printLuxuryReport } from "../utils/luxury-report-engine";
+import { transliterateFullName, hasArabicCharacters } from "@/lib/bilingual-name-engine";
 import {
   Star,
   Award,
@@ -145,6 +146,15 @@ export function ServiceRatingsTab({
   };
 
   const handlePrint = async () => {
+    const formatWorkerName = (name: string) =>
+      !name || name === "—"
+        ? "—"
+        : ar
+        ? hasArabicCharacters(name)
+          ? name
+          : transliterateFullName(name, "ar")
+        : name;
+
     const rows = ratedTickets.map((t: any) => ({
       [ar ? "رقم الطلب" : "Ticket #"]: `#${t.id}`,
       [ar ? "الغرفة" : "Room"]: t.roomNumber || "—",
@@ -155,7 +165,7 @@ export function ServiceRatingsTab({
           ? (ar ? "هاوس كيبنج" : "Housekeeping")
           : t.category,
       [ar ? "نوع المشكلة" : "Problem Type"]: t.problemType,
-      [ar ? "الفني المعين" : "Worker"]: t.workerName || "—",
+      [ar ? "الفني المعين" : "Worker"]: formatWorkerName(t.workerName),
       [ar ? "التقييم النجوم" : "Rating (Stars)"]: `${t.rating || 0} / 5 ⭐`,
       [ar ? "ملاحظات الموظف" : "Resident Comment"]: t.ratingComment || "—",
       [ar ? "تاريخ التقييم" : "Rated At"]: t.ratedAt ? formatDateTime(t.ratedAt) : "—",
@@ -166,7 +176,7 @@ export function ServiceRatingsTab({
         ? rows
         : workerLeaderboard.map((w: any, idx: number) => ({
             [ar ? "الترتيب" : "Rank"]: idx + 1,
-            [ar ? "اسم الفني / العامل" : "Worker Name"]: w.workerName,
+            [ar ? "اسم الفني / العامل" : "Worker Name"]: formatWorkerName(w.workerName),
             [ar ? "التخصص" : "Specialty"]: w.specialty || "—",
             [ar ? "الطلبات المقيّمة" : "Total Rated Orders"]: w.totalRated,
             [ar ? "متوسط التقييم" : "Avg Rating"]: `${w.averageRating} / 5 ⭐`,

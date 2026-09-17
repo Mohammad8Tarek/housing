@@ -6,6 +6,20 @@ import {
   getProfileDisplayJobTitle,
   getProfileDisplayDepartment,
 } from "@/lib/profile-display-utils";
+import { formatNationality } from "@/lib/countries";
+import { transliterateFullName, hasArabicCharacters } from "@/lib/bilingual-name-engine";
+import { translateDepartment, translateJobTitle } from "@/lib/bilingual-hospitality-dict";
+import {
+  translateRoomType,
+  translateGenderPolicy,
+  translateProfileStatus,
+  translateReservationStatus,
+  translateMaintenanceCategory,
+  translateMaintenancePriority,
+  translateMaintenanceStatus,
+  translateHostingStatus,
+  translateHostingRelation,
+} from "../utils/luxury-report-engine";
 
 // Normalizes either "YYYY-MM-DD" or display "DD/MM/YYYY" (or "—"/"-")
 // to a comparable "YYYY-MM-DD" string for range filtering.
@@ -243,12 +257,12 @@ export function useReportDataProcessor({
             }
             return {
               id: r.id,
-              profileName: `${r.firstName || ""} ${r.lastName || ""}`.trim() || "—",
+              profileName: getProfileDisplayName(r, ar) || "—",
               profileId: r.guestIdCardNumber || `RES-${r.id}`,
               nationalId: r.guestIdCardNumber || "—",
               phone: r.guestPhone || "—",
-              department: r.department || "—",
-              jobTitle: r.jobTitle || "—",
+              department: getProfileDisplayDepartment(r, ar) || "—",
+              jobTitle: getProfileDisplayJobTitle(r, ar) || "—",
               roomNumber: room ? room.roomNumber : (r.roomNumber || (ar ? "غير محدد" : "Unassigned")),
               buildingName: bName,
               floorName: fName,
@@ -256,8 +270,8 @@ export function useReportDataProcessor({
               checkInDate: formatDate(r.checkInDate, "—"),
               checkOutDate: formatDate(r.checkOutDate, "—"),
               nights: nights > 0 ? nights : "—",
-              status: r.status || "CONFIRMED",
-              vipStatus: r.isVip ? "VIP" : "Standard",
+              status: ar ? translateReservationStatus(r.status, true) : (r.status || "CONFIRMED"),
+              vipStatus: r.isVip ? (ar ? "هام (VIP)" : "VIP") : (ar ? "عادي" : "Standard"),
               notes: r.notes || "",
             };
           })
@@ -522,7 +536,7 @@ export function useReportDataProcessor({
               impactedResidents: roomAssignments
                 .map((a: any) => {
                   const emp = empMap[a.profileId];
-                  return emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : `#${a.profileId}`;
+                  return emp ? getProfileDisplayName(emp, ar) : `#${a.profileId}`;
                 })
                 .join("، "),
               recommendedAction: ar
@@ -548,7 +562,7 @@ export function useReportDataProcessor({
               impactedResidents: roomAssignments
                 .map((a: any) => {
                   const emp = empMap[a.profileId];
-                  return emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : `#${a.profileId}`;
+                  return emp ? getProfileDisplayName(emp, ar) : `#${a.profileId}`;
                 })
                 .join("، "),
               recommendedAction: ar
@@ -574,7 +588,7 @@ export function useReportDataProcessor({
               impactedResidents: roomAssignments
                 .map((a: any) => {
                   const emp = empMap[a.profileId];
-                  return emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : `#${a.profileId}`;
+                  return emp ? getProfileDisplayName(emp, ar) : `#${a.profileId}`;
                 })
                 .join("، "),
               recommendedAction: ar
@@ -765,7 +779,7 @@ export function useReportDataProcessor({
               fourthName: ar ? (emp.fourthNameAr || emp.fourthName || "—") : (emp.fourthName || "—"),
               fullName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
               nationalId: emp.nationalId || "—",
-              nationality: emp.nationality || "—",
+              nationality: ar ? formatNationality(emp.nationality, ar, false) : (emp.nationality || "—"),
               phone: emp.phone || "—",
               department: getProfileDisplayDepartment(emp, ar) || "—",
               jobTitle: getProfileDisplayJobTitle(emp, ar) || "—",
@@ -774,7 +788,7 @@ export function useReportDataProcessor({
               companyName: emp.companyName || (emp.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "الفندق" : "Hotel")),
               roomId: a.roomId,
               roomNumber: room.roomNumber || `#${a.roomId}`,
-              roomType: room.roomType || "—",
+              roomType: ar ? translateRoomType(room.roomType, true) : (room.roomType || "—"),
               capacity: room.capacity || 1,
               bedNumber: bedNum ? String(bedNum) : "—",
               isEntireRoom: isEntire,
@@ -875,12 +889,12 @@ export function useReportDataProcessor({
               roomNumber: r.roomNumber,
               buildingName: buildingMap[r.buildingId] || "—",
               floorName: floorMap[r.floorId] || "—",
-              roomType: r.roomType || "Standard",
+              roomType: ar ? translateRoomType(r.roomType, true) : (r.roomType || "Standard"),
               capacity: cap,
               currentOccupancy: occ,
               vacantBedsCount,
               availableBedsText: availableBedNumbers.map((b) => (ar ? `سرير ${b}` : `Bed ${b}`)).join(", ") || (ar ? "أي سرير" : "Any Bed"),
-              genderPolicy: r.genderPolicy || "Any",
+              genderPolicy: ar ? translateGenderPolicy(r.genderPolicy, true) : (r.genderPolicy || "Any"),
               status: r.status || "available",
               isFullyVacant: occ === 0,
             };
@@ -939,12 +953,12 @@ export function useReportDataProcessor({
               roomNumber: r.roomNumber,
               buildingName: buildingMap[r.buildingId] || "—",
               floorName: floorMap[r.floorId] || "—",
-              roomType: r.roomType || "Standard",
+              roomType: ar ? translateRoomType(r.roomType, true) : (r.roomType || "Standard"),
               capacity: cap,
               currentOccupancy: occ,
               vacantBeds,
               occupancyRate: `${rate}%`,
-              genderPolicy: r.genderPolicy || "—",
+              genderPolicy: ar ? translateGenderPolicy(r.genderPolicy, true) : (r.genderPolicy || "—"),
               status: isFullLock ? "occupied" : (r.status || "available"),
             };
           });
@@ -990,7 +1004,7 @@ export function useReportDataProcessor({
               fourthName: ar ? (e.fourthNameAr || e.fourthName || "—") : (e.fourthName || "—"),
               fullName: getProfileDisplayName(e, ar),
               nationalId: e.nationalId || "—",
-              nationality: e.nationality || "—",
+              nationality: ar ? formatNationality(e.nationality, ar, false) : (e.nationality || "—"),
               phone: e.phone || "—",
               gender: e.gender || "M",
               dateOfBirth: formatDate(e.dateOfBirth, "—"),
@@ -1004,7 +1018,7 @@ export function useReportDataProcessor({
               address: e.address || "—",
               email: e.email || "—",
               emergencyContact: e.emergencyContact || "—",
-              status: e.status || "ACTIVE",
+              status: ar ? translateProfileStatus(e.status, true) : (e.status || "ACTIVE"),
               assignedRoom: room
                 ? `${room.roomNumber} (${asgn?.bedNumber ? (ar ? `سرير ${asgn.bedNumber}` : `Bed ${asgn.bedNumber}`) : ""})`
                 : (ar ? "غير مسكن" : "Unassigned"),
@@ -1058,11 +1072,11 @@ export function useReportDataProcessor({
             return {
               id: p.id,
               profileCode: p.profileId || `EMP-${p.id}`,
-              fullName: `${p.firstName || ""} ${p.lastName || ""}`.trim(),
+              fullName: getProfileDisplayName(p, ar),
               nationalId: p.nationalId || "—",
               phone: p.phone || "—",
-              department: p.department || "—",
-              jobTitle: p.jobTitle || "—",
+              department: getProfileDisplayDepartment(p, ar) || "—",
+              jobTitle: getProfileDisplayJobTitle(p, ar) || "—",
               contractEndDate: formatDate(p.contractEndDate, "—"),
               daysRemaining: diffDays,
               expStatus:
@@ -1111,16 +1125,16 @@ export function useReportDataProcessor({
             const room = r.roomId ? roomMap[r.roomId] : null;
             return {
               id: r.id,
-              guestName: `${r.firstName || ""} ${r.lastName || ""}`.trim(),
+              guestName: getProfileDisplayName(r, ar) || (r.guestName ? (ar ? (hasArabicCharacters(r.guestName) ? r.guestName : transliterateFullName(r.guestName, "ar")) : r.guestName) : "—"),
               nationalId: r.guestIdCardNumber || "—",
               phone: r.guestPhone || "—",
-              department: r.department || "—",
-              jobTitle: r.jobTitle || "—",
-              roomType: r.roomType || "—",
+              department: getProfileDisplayDepartment(r, ar) || "—",
+              jobTitle: getProfileDisplayJobTitle(r, ar) || "—",
+              roomType: ar ? translateRoomType(r.roomType, true) : (r.roomType || "—"),
               roomNumber: room ? room.roomNumber : "—",
               checkInDate: formatDate(r.checkInDate, "—"),
               checkOutDate: formatDate(r.checkOutDate, "—"),
-              status: r.status || "UPCOMING",
+              status: ar ? translateReservationStatus(r.status, true) : (r.status || "UPCOMING"),
               notes: r.notes || "—",
             };
           });
@@ -1155,17 +1169,17 @@ export function useReportDataProcessor({
             const room = h.roomId ? roomMap[h.roomId] : null;
             return {
               id: h.id,
-              hostEmployee: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || `#${h.profileId}`,
-              hostDept: emp.department || "—",
-              guestName: h.guestName || "—",
-              relation: h.relationship || "—",
+              hostEmployee: getProfileDisplayName(emp, ar) || `#${h.profileId}`,
+              hostDept: getProfileDisplayDepartment(emp, ar) || "—",
+              guestName: ar ? (hasArabicCharacters(h.guestName) ? h.guestName : transliterateFullName(h.guestName, "ar")) : (h.guestName || "—"),
+              relation: ar ? translateHostingRelation(h.relationship, true) : (h.relationship || "—"),
               guestId: h.guestNationalId || "—",
               roomNumber: room ? room.roomNumber : "—",
               checkInDate: formatDate(h.expectedFrom, "—"),
               checkOutDate: formatDate(h.expectedTo, "—"),
               dailyRate: h.dailyRate ? `${h.dailyRate} EGP` : "—",
               totalAmount: h.totalAmount ? `${h.totalAmount} EGP` : "—",
-              status: h.status || "pending",
+              status: ar ? translateHostingStatus(h.status, true) : (h.status || "pending"),
             };
           });
 
@@ -1197,13 +1211,13 @@ export function useReportDataProcessor({
               id: m.id,
               roomNumber: room.roomNumber || `#${m.roomId}`,
               buildingName: buildingMap[room.buildingId] || "—",
-              category: m.category || "General",
+              category: ar ? translateMaintenanceCategory(m.category, true) : (m.category || "General"),
               problemType: m.problemType || "—",
-              priority: m.priority || "Normal",
-              reportedBy: m.reportedBy || "—",
-              assignedTo: m.assignedToName || "—",
+              priority: ar ? translateMaintenancePriority(m.priority, true) : (m.priority || "Normal"),
+              reportedBy: m.reportedBy ? (ar ? (hasArabicCharacters(m.reportedBy) ? m.reportedBy : transliterateFullName(m.reportedBy, "ar")) : m.reportedBy) : "—",
+              assignedTo: m.assignedToName ? (ar ? (hasArabicCharacters(m.assignedToName) ? m.assignedToName : transliterateFullName(m.assignedToName, "ar")) : m.assignedToName) : "—",
               reportedAt: formatDate(m.reportedAt, "—"),
-              status: m.status || "open",
+              status: ar ? translateMaintenanceStatus(m.status, true) : (m.status || "open"),
               cost: m.cost ? `${m.cost} EGP` : "—",
             };
           });
@@ -1274,13 +1288,13 @@ export function useReportDataProcessor({
               roomNumber: r.roomNumber,
               buildingName: buildingMap[r.buildingId] || "—",
               floorName: floorMap[r.floorId] || "—",
-              roomType: r.roomType || "Standard",
+              roomType: ar ? translateRoomType(r.roomType, true) : (r.roomType || "Standard"),
               capacity: cap,
               currentOccupancy: occ,
               vacantBeds: Math.max(0, cap - occ),
-              genderPolicy: r.genderPolicy || "—",
+              genderPolicy: ar ? translateGenderPolicy(r.genderPolicy, true) : (r.genderPolicy || "—"),
               status: r.status || "available",
-              hkPriority,
+              hkPriority: ar ? (hkPriority === "high" ? "مرتفعة" : hkPriority === "maintenance" ? "صيانة" : hkPriority === "low" ? "منخفضة" : hkPriority === "none" ? "لا يوجد" : "عادية") : hkPriority,
               hkAction,
               openHkTickets: hkTickets,
               lastCleaned: formatDate(r.lastCleanedAt, "—"),
@@ -1516,9 +1530,9 @@ export function useReportDataProcessor({
               movementType: ar ? "حجز وصول متوقع" : "Expected Arrival",
               date: formatDate(r.checkInDate, "—"),
               rawDate: r.checkInDate,
-              profileName: r.guestName || "—",
+              profileName: getProfileDisplayName(r, ar) || (r.guestName ? (ar ? (hasArabicCharacters(r.guestName) ? r.guestName : transliterateFullName(r.guestName, "ar")) : r.guestName) : "—"),
               profileCode: r.nationalId || `RES-${r.id}`,
-              department: r.department || "—",
+              department: getProfileDisplayDepartment(r, ar) || (r.department ? (ar ? translateDepartment(r.department, "ar") : r.department) : "—"),
               roomNumber: r.roomNumber || (r.roomId ? roomMap[r.roomId]?.roomNumber : "—") || "—",
               bedNumber: "—",
               buildingName: buildingMap[r.buildingId] || "—",
@@ -1651,10 +1665,10 @@ export function useReportDataProcessor({
               rawDate,
               action: isExit ? (ar ? "خروج" : "Exit") : (ar ? "دخول" : "Entry"),
               direction: g.direction,
-              profileName: g.fullName || "—",
+              profileName: ar ? (hasArabicCharacters(g.fullName) ? g.fullName : transliterateFullName(g.fullName, "ar")) : (g.fullName || "—"),
               profileCode: g.employeeId || "—",
-              department: g.department || "—",
-              jobTitle: g.jobTitle || "—",
+              department: ar ? translateDepartment(g.department, "ar") : (g.department || "—"),
+              jobTitle: ar ? translateJobTitle(g.jobTitle, "ar") : (g.jobTitle || "—"),
               roomNumber: g.roomNumber || "—",
               buildingName: g.buildingName || "—",
               guardName: g.scannedBy || (ar ? "مسؤول الأمن" : "Security Officer"),
@@ -1735,7 +1749,7 @@ export function useReportDataProcessor({
               fourthName: ar ? (emp.fourthNameAr || emp.fourthName || "—") : (emp.fourthName || "—"),
               fullName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
               nationalId: emp.nationalId || "—",
-              nationality: emp.nationality || "—",
+              nationality: ar ? formatNationality(emp.nationality, ar, false) : (emp.nationality || "—"),
               dateOfBirth: formatDate(emp.dateOfBirth, "—"),
               gender: emp.gender || "M",
               jobTitle: getProfileDisplayJobTitle(emp, ar) || "—",
@@ -1757,7 +1771,7 @@ export function useReportDataProcessor({
               contractEndDate: formatDate(emp.contractEndDate, "—"),
               email: emp.email || "—",
               emergencyContact: emp.emergencyContact || "—",
-              status: effectiveStatus,
+              status: ar ? translateProfileStatus(effectiveStatus, true) : effectiveStatus,
             };
           });
 
