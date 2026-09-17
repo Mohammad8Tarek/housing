@@ -37,6 +37,7 @@ import {
   RefreshCw,
   DoorOpen,
   Home,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
@@ -75,6 +76,8 @@ import { BuildingCapacityMatrix } from "./dashboard/components/BuildingCapacityM
 import { HousekeepingPriorityQueue } from "./dashboard/components/HousekeepingPriorityQueue";
 import { DailyOperationsHub } from "./dashboard/components/DailyOperationsHub";
 import { QuickAssistBar } from "./dashboard/components/QuickAssistTab";
+import { useDashboardWidgets } from "./dashboard/hooks/useDashboardWidgets";
+import { DashboardCustomizeDialog } from "./dashboard/components/DashboardCustomizeDialog";
 
 function AnimatedNumber({ value }: { value: string | number }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -137,6 +140,22 @@ export default function Dashboard() {
   const [dashboardViewMode, setDashboardViewMode] = React.useState<
     "comprehensive" | "operations" | "analytics" | "compact"
   >("comprehensive");
+
+  // Customization dialog state and widgets hook
+  const [customizeOpen, setCustomizeOpen] = React.useState(false);
+  const {
+    registry,
+    userPreferences,
+    widgetPermissions,
+    isWidgetVisible,
+    toggleWidget,
+    setWidgetVisible,
+    resetToDefault,
+    enableAll,
+    disableAll,
+    visibleCount,
+    totalAllowedCount,
+  } = useDashboardWidgets();
 
   const buildNavHref = (baseHref: string) => {
     return propertySlug ? `/${propertySlug}${baseHref}` : baseHref;
@@ -335,6 +354,19 @@ export default function Dashboard() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setCustomizeOpen(true)}
+                className="h-8 gap-1.5 text-xs rounded-xl shadow-xs border-border/60 hover:bg-muted font-semibold"
+                title={ar ? "تخصيص أقسام ومؤشرات لوحة التحكم" : "Customize dashboard widgets"}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
+                <span className="hidden sm:inline">{ar ? "تخصيص اللوحة" : "Customize"}</span>
+                <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-mono h-4">
+                  {visibleCount}
+                </Badge>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 className="h-8 gap-1.5 text-xs rounded-xl shadow-xs border-border/60 hover:bg-muted"
@@ -389,7 +421,9 @@ export default function Dashboard() {
       )}
 
       {/* Quick Assist Page Navigation Tabs */}
-      <QuickAssistBar buildNavHref={buildNavHref} />
+      {isWidgetVisible("quick_assist") && (
+        <QuickAssistBar buildNavHref={buildNavHref} />
+      )}
 
       {/* Modernized Executive KPI Cards with Sparklines & Deltas */}
       {isAll ? (
@@ -441,96 +475,112 @@ export default function Dashboard() {
           />
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
-          {/* Card 1: Total Profiles */}
-          <DashboardKpiCard
-            title={ar ? "إجمالي الموظفين" : "Total Profiles"}
-            value={<AnimatedNumber value={totalProfilesCount} />}
-            sub={`${stats?.activeProfiles ?? 0} ${ar ? "نشط" : "active"} · ${Math.max(
-              0,
-              totalProfilesCount - (stats?.activeAssignments ?? 0),
-            )} ${ar ? "غير مسكن" : "unhoused"}`}
-            icon={Users}
-            href={buildNavHref("/profiles")}
-            color="text-blue-600 dark:text-blue-400"
-            bg="bg-blue-500/10"
-            delta={{ value: "+3.4%", isPositive: true }}
-            sparklineData={[105, 106, 107, 107, 108, 108, totalProfilesCount]}
-          />
-
-          {/* Card 2: Bed Occupancy Rate (Live Calculated) */}
-          <DashboardKpiCard
-            title={ar ? "إشغال الأسرة" : "Bed Occupancy"}
-            value={
-              <AnimatedNumber
-                value={`${stats?.bedOccupancyRate ?? analytics?.bedCapacity?.utilizationPercent ?? stats?.occupancyRate ?? 0}%`}
+        (isWidgetVisible("kpi_profiles") ||
+          isWidgetVisible("kpi_beds") ||
+          isWidgetVisible("kpi_rooms") ||
+          isWidgetVisible("kpi_arrivals") ||
+          isWidgetVisible("kpi_maintenance")) && (
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
+            {/* Card 1: Total Profiles */}
+            {isWidgetVisible("kpi_profiles") && (
+              <DashboardKpiCard
+                title={ar ? "إجمالي الموظفين" : "Total Profiles"}
+                value={<AnimatedNumber value={totalProfilesCount} />}
+                sub={`${stats?.activeProfiles ?? 0} ${ar ? "نشط" : "active"} · ${Math.max(
+                  0,
+                  totalProfilesCount - (stats?.activeAssignments ?? 0),
+                )} ${ar ? "غير مسكن" : "unhoused"}`}
+                icon={Users}
+                href={buildNavHref("/profiles")}
+                color="text-blue-600 dark:text-blue-400"
+                bg="bg-blue-500/10"
+                delta={{ value: "+3.4%", isPositive: true }}
+                sparklineData={[105, 106, 107, 107, 108, 108, totalProfilesCount]}
               />
-            }
-            sub={`${stats?.occupiedBeds ?? analytics?.bedCapacity?.occupiedBeds ?? 0} / ${
-              stats?.totalBeds ?? analytics?.bedCapacity?.totalBeds ?? 0
-            } ${ar ? "سرير مأهول" : "beds occupied"}`}
-            icon={BedDouble}
-            href={buildNavHref("/accommodation/in-house")}
-            color="text-amber-600 dark:text-amber-400"
-            bg="bg-amber-500/10"
-            delta={{ value: "+2.1%", isPositive: true }}
-            sparklineData={[70, 72, 75, 78, 80, 81, stats?.bedOccupancyRate ?? 82]}
-          />
+            )}
 
-          {/* Card 3: Room Occupancy Rate (Live Calculated) */}
-          <DashboardKpiCard
-            title={ar ? "إشغال الغرف" : "Room Occupancy"}
-            value={
-              <AnimatedNumber
-                value={`${stats?.roomOccupancyRate ?? analytics?.roomStatusBreakdown?.occupancyRate ?? stats?.occupancyRate ?? 0}%`}
+            {/* Card 2: Bed Occupancy Rate (Live Calculated) */}
+            {isWidgetVisible("kpi_beds") && (
+              <DashboardKpiCard
+                title={ar ? "إشغال الأسرة" : "Bed Occupancy"}
+                value={
+                  <AnimatedNumber
+                    value={`${stats?.bedOccupancyRate ?? analytics?.bedCapacity?.utilizationPercent ?? stats?.occupancyRate ?? 0}%`}
+                  />
+                }
+                sub={`${stats?.occupiedBeds ?? analytics?.bedCapacity?.occupiedBeds ?? 0} / ${
+                  stats?.totalBeds ?? analytics?.bedCapacity?.totalBeds ?? 0
+                } ${ar ? "سرير مأهول" : "beds occupied"}`}
+                icon={BedDouble}
+                href={buildNavHref("/accommodation/in-house")}
+                color="text-amber-600 dark:text-amber-400"
+                bg="bg-amber-500/10"
+                delta={{ value: "+2.1%", isPositive: true }}
+                sparklineData={[70, 72, 75, 78, 80, 81, stats?.bedOccupancyRate ?? 82]}
               />
-            }
-            sub={`${stats?.occupiedRooms ?? analytics?.roomStatusBreakdown?.occupied ?? 0} / ${
-              stats?.totalRooms ?? analytics?.roomStatusBreakdown?.totalRooms ?? 0
-            } ${ar ? "غرفة مأهولة" : "rooms occupied"}`}
-            icon={Building2}
-            href={buildNavHref("/housing")}
-            color="text-emerald-600 dark:text-emerald-400"
-            bg="bg-emerald-500/10"
-            delta={{ value: "+1.8%", isPositive: true }}
-            sparklineData={[50, 52, 55, 58, 62, 60, stats?.roomOccupancyRate ?? 65]}
-          />
+            )}
 
-          {/* Card 4: Expected Arrivals */}
-          <DashboardKpiCard
-            title={ar ? "المتوقع وصولهم" : "Arrivals"}
-            value={<AnimatedNumber value={stats?.upcomingReservations ?? 0} />}
-            sub={ar ? "وصول مؤكد قيد الانتظار" : "Confirmed pending arrivals"}
-            icon={CalendarCheck}
-            href={buildNavHref("/accommodation/reservations")}
-            color="text-purple-600 dark:text-purple-400"
-            bg="bg-purple-500/10"
-            delta={{ value: "0.0%", isNeutral: true }}
-            sparklineData={[4, 6, 5, 8, 7, 9, stats?.upcomingReservations ?? 8]}
-          />
+            {/* Card 3: Room Occupancy Rate (Live Calculated) */}
+            {isWidgetVisible("kpi_rooms") && (
+              <DashboardKpiCard
+                title={ar ? "إشغال الغرف" : "Room Occupancy"}
+                value={
+                  <AnimatedNumber
+                    value={`${stats?.roomOccupancyRate ?? analytics?.roomStatusBreakdown?.occupancyRate ?? stats?.occupancyRate ?? 0}%`}
+                  />
+                }
+                sub={`${stats?.occupiedRooms ?? analytics?.roomStatusBreakdown?.occupied ?? 0} / ${
+                  stats?.totalRooms ?? analytics?.roomStatusBreakdown?.totalRooms ?? 0
+                } ${ar ? "غرفة مأهولة" : "rooms occupied"}`}
+                icon={Building2}
+                href={buildNavHref("/housing")}
+                color="text-emerald-600 dark:text-emerald-400"
+                bg="bg-emerald-500/10"
+                delta={{ value: "+1.8%", isPositive: true }}
+                sparklineData={[50, 52, 55, 58, 62, 60, stats?.roomOccupancyRate ?? 65]}
+              />
+            )}
 
-          {/* Card 5: Maintenance & Tickets */}
-          <DashboardKpiCard
-            title={ar ? "تذاكر الصيانة" : "Active Tickets"}
-            value={<AnimatedNumber value={stats?.openMaintenance ?? 0} />}
-            sub={`${stats?.overdueMaintenance ?? 0} ${ar ? "قيد المتابعة" : "in progress"}`}
-            icon={Wrench}
-            href={buildNavHref("/maintenance")}
-            color="text-amber-600 dark:text-amber-400"
-            bg="bg-amber-500/10"
-            alert={(stats?.openMaintenance ?? 0) > 0}
-            delta={
-              (stats?.openMaintenance ?? 0) > 0
-                ? { value: `+${stats?.openMaintenance}`, isPositive: false }
-                : { value: "0", isPositive: true }
-            }
-            sparklineData={[8, 6, 5, 7, 4, 3, stats?.openMaintenance ?? 2]}
-          />
-        </div>
+            {/* Card 4: Expected Arrivals */}
+            {isWidgetVisible("kpi_arrivals") && (
+              <DashboardKpiCard
+                title={ar ? "المتوقع وصولهم" : "Arrivals"}
+                value={<AnimatedNumber value={stats?.upcomingReservations ?? 0} />}
+                sub={ar ? "وصول مؤكد قيد الانتظار" : "Confirmed pending arrivals"}
+                icon={CalendarCheck}
+                href={buildNavHref("/accommodation/reservations")}
+                color="text-purple-600 dark:text-purple-400"
+                bg="bg-purple-500/10"
+                delta={{ value: "0.0%", isNeutral: true }}
+                sparklineData={[4, 6, 5, 8, 7, 9, stats?.upcomingReservations ?? 8]}
+              />
+            )}
+
+            {/* Card 5: Maintenance & Tickets */}
+            {isWidgetVisible("kpi_maintenance") && (
+              <DashboardKpiCard
+                title={ar ? "تذاكر الصيانة" : "Active Tickets"}
+                value={<AnimatedNumber value={stats?.openMaintenance ?? 0} />}
+                sub={`${stats?.overdueMaintenance ?? 0} ${ar ? "قيد المتابعة" : "in progress"}`}
+                icon={Wrench}
+                href={buildNavHref("/maintenance")}
+                color="text-amber-600 dark:text-amber-400"
+                bg="bg-amber-500/10"
+                alert={(stats?.openMaintenance ?? 0) > 0}
+                delta={
+                  (stats?.openMaintenance ?? 0) > 0
+                    ? { value: `+${stats?.openMaintenance}`, isPositive: false }
+                    : { value: "0", isPositive: true }
+                }
+                sparklineData={[8, 6, 5, 7, 4, 3, stats?.openMaintenance ?? 2]}
+              />
+            )}
+          </div>
+        )
       )}
 
       {/* Live Room Readiness & Turnover Tracker Bar */}
-      {!isAll && (
+      {!isAll && isWidgetVisible("readiness_tracker") && (
         <ReadinessTrackerBar
           totalRooms={analytics?.roomStatusBreakdown?.total ?? stats?.totalRooms ?? 0}
           available={analytics?.roomStatusBreakdown?.available ?? stats?.availableRooms ?? 0}
@@ -542,7 +592,7 @@ export default function Dashboard() {
       )}
 
       {/* Live Housing Capacity Ribbon (Matching exact design under Readiness Tracker) */}
-      {!isAll && (
+      {!isAll && isWidgetVisible("capacity_ribbon") && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
           {/* 1. Buildings */}
           <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
@@ -741,31 +791,31 @@ export default function Dashboard() {
       {(() => {
         if (isAll) return null;
 
-        const donutNode = (
+        const donutNode = isWidgetVisible("donut_analytics") ? (
           <DashboardAnalyticsDonut
             roomStatusBreakdown={analytics?.roomStatusBreakdown}
             bedCapacity={analytics?.bedCapacity}
             isLoading={analyticsLoading}
           />
-        );
+        ) : null;
 
-        const deptNode = (
+        const deptNode = isWidgetVisible("department_list") ? (
           <DepartmentBarList
             departments={analytics?.departmentBreakdown}
             totalProfiles={totalProfilesCount}
             isLoading={analyticsLoading}
           />
-        );
+        ) : null;
 
-        const genderNode = (
+        const genderNode = isWidgetVisible("gender_demographics") ? (
           <GenderDemographicsCard
             genderDistribution={analytics?.genderDistribution}
             totalResidents={stats?.activeAssignments || (stats?.totalRooms ? stats.occupiedRooms : 0)}
             isLoading={analyticsLoading}
           />
-        );
+        ) : null;
 
-        const chartsNode = (
+        const chartsNode = isWidgetVisible("building_charts") ? (
           <Tabs value={chartTab} onValueChange={(v) => setChartTab(v as any)} className="space-y-4">
             <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
               <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
@@ -949,16 +999,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </Tabs>
-        );
-
-        const matrixNode = occupancy && occupancy.length > 0 ? (
-          <BuildingCapacityMatrix
-            buildings={occupancy}
-            buildNavHref={buildNavHref}
-          />
         ) : null;
 
-        const operationsHubNode = (
+        const matrixNode =
+          isWidgetVisible("capacity_matrix") && occupancy && occupancy.length > 0 ? (
+            <BuildingCapacityMatrix buildings={occupancy} buildNavHref={buildNavHref} />
+          ) : null;
+
+        const operationsHubNode = isWidgetVisible("daily_operations") ? (
           <DailyOperationsHub
             checkIns={pendingData?.checkIns}
             checkOuts={pendingData?.checkOuts}
@@ -966,9 +1014,9 @@ export default function Dashboard() {
             expiringContracts={pendingData?.expiringContracts}
             buildNavHref={buildNavHref}
           />
-        );
+        ) : null;
 
-        const housekeepingNode = (
+        const housekeepingNode = isWidgetVisible("housekeeping_queue") ? (
           <HousekeepingPriorityQueue
             dirtyRooms={pendingData?.dirtyRooms}
             cleanRate={analytics?.turnoverHealth?.cleanRate}
@@ -976,18 +1024,56 @@ export default function Dashboard() {
             readyCount={analytics?.roomStatusBreakdown?.available ?? stats?.availableRooms ?? 0}
             buildNavHref={buildNavHref}
           />
+        ) : null;
+
+        const hasAnyContent = Boolean(
+          donutNode ||
+          deptNode ||
+          genderNode ||
+          chartsNode ||
+          matrixNode ||
+          operationsHubNode ||
+          housekeepingNode
         );
+
+        if (!hasAnyContent) {
+          return (
+            <Card className="p-12 text-center border-dashed border-2 border-border/80 bg-card/40">
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                  <SlidersHorizontal className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">
+                    {ar ? "تم إخفاء جميع عناصر لوحة التحكم" : "All Dashboard Widgets Are Hidden"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {ar
+                      ? "يمكنك تخصيص وتفعيل العناصر المناسبة لك أو استعادة الضبط الافتراضي في أي وقت."
+                      : "You can customize and enable widgets according to your preferences or restore defaults."}
+                  </p>
+                </div>
+                <Button onClick={() => setCustomizeOpen(true)} className="gap-2 text-xs">
+                  <SlidersHorizontal className="w-4 h-4" />
+                  {ar ? "تخصيص اللوحة الآن" : "Customize Dashboard Now"}
+                </Button>
+              </div>
+            </Card>
+          );
+        }
 
         return (
           <>
             {/* Mode 1: Comprehensive Full Overview */}
             {dashboardViewMode === "comprehensive" && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {donutNode}
-                  {deptNode}
-                  {genderNode}
-                </div>
+                {(donutNode || deptNode || genderNode) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {donutNode}
+                    {deptNode}
+                    {genderNode}
+                  </div>
+                )}
                 {chartsNode}
                 {matrixNode}
                 {operationsHubNode}
@@ -999,10 +1085,12 @@ export default function Dashboard() {
             {dashboardViewMode === "operations" && (
               <div className="space-y-6">
                 {operationsHubNode}
-                <div className="grid gap-5 md:grid-cols-2">
-                  {housekeepingNode}
-                  {donutNode}
-                </div>
+                {(housekeepingNode || donutNode) && (
+                  <div className="grid gap-5 md:grid-cols-2">
+                    {housekeepingNode}
+                    {donutNode}
+                  </div>
+                )}
                 {deptNode}
               </div>
             )}
@@ -1012,31 +1100,55 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {chartsNode}
                 {matrixNode}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {deptNode}
-                  {donutNode}
-                  {genderNode}
-                </div>
+                {(deptNode || donutNode || genderNode) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {deptNode}
+                    {donutNode}
+                    {genderNode}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Mode 4: Compact High-Density View */}
             {dashboardViewMode === "compact" && (
               <div className="space-y-5">
-                <div className="grid gap-5 lg:grid-cols-2">
-                  {chartsNode}
-                  {deptNode}
-                </div>
-                <div className="grid gap-5 lg:grid-cols-2">
-                  {operationsHubNode}
-                  {housekeepingNode}
-                </div>
+                {(chartsNode || deptNode) && (
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    {chartsNode}
+                    {deptNode}
+                  </div>
+                )}
+                {(operationsHubNode || housekeepingNode) && (
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    {operationsHubNode}
+                    {housekeepingNode}
+                  </div>
+                )}
                 {donutNode}
               </div>
             )}
           </>
         );
       })()}
+
+      {/* Dashboard Customize Dialog */}
+      <DashboardCustomizeDialog
+        open={customizeOpen}
+        onOpenChange={setCustomizeOpen}
+        ar={ar}
+        registry={registry}
+        userPreferences={userPreferences}
+        widgetPermissions={widgetPermissions}
+        isWidgetVisible={isWidgetVisible}
+        toggleWidget={toggleWidget}
+        setWidgetVisible={setWidgetVisible}
+        resetToDefault={resetToDefault}
+        enableAll={enableAll}
+        disableAll={disableAll}
+        visibleCount={visibleCount}
+        totalAllowedCount={totalAllowedCount}
+      />
     </div>
   );
 }
