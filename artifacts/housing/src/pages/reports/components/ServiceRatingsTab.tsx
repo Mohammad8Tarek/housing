@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
+import { printLuxuryReport } from "../utils/luxury-report-engine";
 import {
   Star,
   Award,
@@ -143,8 +144,42 @@ export function ServiceRatingsTab({
     XLSX.writeFile(wb, `Service_Ratings_Report_${dateStr}.xlsx`);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    const rows = ratedTickets.map((t: any) => ({
+      [ar ? "رقم الطلب" : "Ticket #"]: `#${t.id}`,
+      [ar ? "الغرفة" : "Room"]: t.roomNumber || "—",
+      [ar ? "القسم" : "Category"]:
+        t.category === "maintenance"
+          ? (ar ? "صيانة" : "Maintenance")
+          : t.category === "housekeeping"
+          ? (ar ? "هاوس كيبنج" : "Housekeeping")
+          : t.category,
+      [ar ? "نوع المشكلة" : "Problem Type"]: t.problemType,
+      [ar ? "الفني المعين" : "Worker"]: t.workerName || "—",
+      [ar ? "التقييم النجوم" : "Rating (Stars)"]: `${t.rating || 0} / 5 ⭐`,
+      [ar ? "ملاحظات الموظف" : "Resident Comment"]: t.ratingComment || "—",
+      [ar ? "تاريخ التقييم" : "Rated At"]: t.ratedAt ? formatDateTime(t.ratedAt) : "—",
+    }));
+
+    const printRows =
+      rows.length > 0
+        ? rows
+        : workerLeaderboard.map((w: any, idx: number) => ({
+            [ar ? "الترتيب" : "Rank"]: idx + 1,
+            [ar ? "اسم الفني / العامل" : "Worker Name"]: w.workerName,
+            [ar ? "التخصص" : "Specialty"]: w.specialty || "—",
+            [ar ? "الطلبات المقيّمة" : "Total Rated Orders"]: w.totalRated,
+            [ar ? "متوسط التقييم" : "Avg Rating"]: `${w.averageRating} / 5 ⭐`,
+            [ar ? "نسبة الرضا" : "Satisfaction Rate"]: `${w.satisfactionRate}%`,
+          }));
+
+    await printLuxuryReport({
+      activeTab: "service_ratings",
+      rows: printRows,
+      properties,
+      activePropertyId,
+      language: ar ? "ar" : "en",
+    });
   };
 
   return (

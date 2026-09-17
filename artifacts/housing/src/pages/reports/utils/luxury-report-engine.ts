@@ -65,8 +65,8 @@ export const REPORT_TAB_CONFIG: Record<
   string,
   { showKpis: boolean; showSignatures: boolean }
 > = {
-  // Executive & Operations Audits (Clean formal report view - no bulky KPI dashboard)
-  manager_flash: { showKpis: false, showSignatures: true },
+  // Executive & Operations Audits (Clean formal report view - with executive KPIs and signatures)
+  manager_flash: { showKpis: true, showSignatures: true },
   housekeeping_sheet: { showKpis: false, showSignatures: true },
   room_discrepancy: { showKpis: false, showSignatures: true },
   occupancy_forecast: { showKpis: false, showSignatures: false },
@@ -89,7 +89,7 @@ export const REPORT_TAB_CONFIG: Record<
   department_occupancy: { showKpis: false, showSignatures: false },
   gate_logs: { showKpis: false, showSignatures: false },
   police_report: { showKpis: false, showSignatures: true },
-  service_ratings: { showKpis: false, showSignatures: false },
+  service_ratings: { showKpis: true, showSignatures: true },
   housing_map: { showKpis: false, showSignatures: false },
   water_distribution: { showKpis: false, showSignatures: true },
 };
@@ -110,6 +110,7 @@ export const REPORT_OPERA_CODES: Record<string, string> = {
   manager_flash: "mgr_flash",
   housing: "room_inventory",
   profiles: "profile_dir",
+  expiring_contracts: "contract_exp",
   reservations: "res_manifest",
   hostings: "guest_hosting",
   maintenance: "mnt_tickets",
@@ -631,6 +632,7 @@ export function generateAutoKpis(
     let occupiedBeds = 0;
     let vacantBeds = 0;
     let dirtyRooms = 0;
+    let oooRooms = 0;
 
     rows.forEach((r) => {
       totalRooms += Number(r["إجمالي الغرف"] ?? r["Total Rooms"] ?? 0) || 0;
@@ -638,6 +640,7 @@ export function generateAutoKpis(
       occupiedBeds += Number(r["الأسرة المشغولة"] ?? r["Occupied Beds"] ?? 0) || 0;
       vacantBeds += Number(r["الأسرة الشاغرة"] ?? r["Vacant Beds"] ?? 0) || 0;
       dirtyRooms += Number(r["غرف متسخة"] ?? r["Dirty Rooms"] ?? 0) || 0;
+      oooRooms += Number(r["غرف صيانة"] ?? r["OOO Rooms"] ?? 0) || 0;
     });
 
     const occRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
@@ -654,25 +657,35 @@ export function generateAutoKpis(
         labelAr: "إجمالي الأسِرّة",
         value: totalBeds,
         color: "blue",
+        subtext: `${totalRooms} ${isArabic ? "غرفة مسجلة" : "Rooms"}`,
       },
       {
         label: "Occupied Beds",
         labelAr: "الأسِرّة المشغولة",
         value: occupiedBeds,
         color: "blue",
-        subtext: `${occRate}% ${isArabic ? "نسبة الإشغال" : "Occupancy"}`,
+        subtext: `${occRate}% ${isArabic ? "نسبة الإشغال الكلية" : "Occupancy Rate"}`,
       },
       {
         label: "Vacant Beds",
         labelAr: "الأسِرّة الشاغرة",
         value: vacantBeds,
         color: "green",
+        subtext: `${totalBeds > 0 ? Math.round((vacantBeds / totalBeds) * 100) : 0}% ${isArabic ? "متاح للتسكين" : "Available"}`,
       },
       {
-        label: "Dirty Rooms",
+        label: "Dirty Rooms (HK)",
         labelAr: "غرف متسخة (HK)",
         value: dirtyRooms,
         color: dirtyRooms > 0 ? "orange" : "green",
+        subtext: isArabic ? "تحتاج لتجهيز" : "Pending HK",
+      },
+      {
+        label: "Out of Order (OOO)",
+        labelAr: "غرف خارج الخدمة",
+        value: oooRooms,
+        color: oooRooms > 0 ? "red" : "green",
+        subtext: isArabic ? "صيانة معطلة" : "Maintenance",
       },
     ];
   }
@@ -876,6 +889,56 @@ export function generateAutoKpis(
         label: "Resolved",
         labelAr: "تم الإنجاز والإصلاح",
         value: resolved,
+        color: "green",
+      },
+    ];
+  }
+
+  if (activeTab === "service_ratings") {
+    let totalRatingsSum = 0;
+    let validRatingsCount = 0;
+    let satisfactionCount = 0;
+
+    rows.forEach((r) => {
+      const rateStr = String(r["التقييم النجوم"] ?? r["Rating (Stars)"] ?? r["متوسط التقييم"] ?? r["Avg Rating"] ?? "");
+      const match = rateStr.match(/([\d.]+)/);
+      if (match) {
+        const rating = parseFloat(match[1]);
+        if (!isNaN(rating)) {
+          totalRatingsSum += rating;
+          validRatingsCount++;
+          if (rating >= 4) satisfactionCount++;
+        }
+      }
+    });
+
+    const avgRating = validRatingsCount > 0 ? (totalRatingsSum / validRatingsCount).toFixed(1) : "5.0";
+    const satPercent = validRatingsCount > 0 ? Math.round((satisfactionCount / validRatingsCount) * 100) : 100;
+
+    return [
+      {
+        label: "Total Evaluated Records",
+        labelAr: "إجمالي السجلات المقيّمة",
+        value: total,
+        color: "gold",
+      },
+      {
+        label: "Average Rating",
+        labelAr: "متوسط تقييم الخدمة",
+        value: `${avgRating} / 5`,
+        color: "blue",
+        subtext: "⭐⭐⭐⭐⭐",
+      },
+      {
+        label: "Satisfaction Rate",
+        labelAr: "نسبة الرضا العامة",
+        value: `${satPercent}%`,
+        color: satPercent >= 80 ? "green" : "orange",
+      },
+      {
+        label: "Quality Status",
+        labelAr: "مستوى الجودة",
+        value: satPercent >= 85 ? (isArabic ? "ممتاز" : "Excellent") : (isArabic ? "جيد" : "Good"),
         color: "green",
       },
     ];

@@ -242,13 +242,17 @@ export function ManagerFlashTab({
   }, [ar]);
 
   const handlePrint = () => {
-    window.print();
+    if (onExportPDF) {
+      onExportPDF();
+    } else {
+      window.print();
+    }
   };
 
   return (
     <div id="manager-flash-report" className="space-y-6 print:space-y-4 print:p-0">
       {/* ── Top Executive Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-sm border border-indigo-900/50 print:border-none print:shadow-none print:p-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-sm border border-indigo-900/50 print:bg-white print:text-black print:border-slate-300 print:shadow-none print:p-3">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">

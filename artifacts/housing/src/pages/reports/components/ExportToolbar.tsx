@@ -47,7 +47,9 @@ export function ExportToolbar({
   if (
     activeTab === "manager_flash" ||
     activeTab === "service_ratings" ||
-    activeTab === "housing_map"
+    activeTab === "housing_map" ||
+    activeTab === "occupancy_forecast" ||
+    activeTab === "analytics"
   ) {
     return null;
   }
