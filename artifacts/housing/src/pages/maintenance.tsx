@@ -250,7 +250,7 @@ export default function Tickets() {
   const hasExplicitFilter = canViewMntExplicit || canViewHskExplicit;
 
   const canViewMnt = isSuperAdmin || (hasExplicitFilter ? canViewMntExplicit : can("maintenance", "view"));
-  const canViewHsk = isSuperAdmin || (hasExplicitFilter ? (canViewHskExplicit || can("housekeeping", "view")) : (can("housekeeping", "view") || can("maintenance", "view")));
+  const canViewHsk = isSuperAdmin || (hasExplicitFilter ? canViewHskExplicit : can("housekeeping", "view"));
 
   const canEditMnt = isSuperAdmin || can("maintenance", "edit");
   const canCreateMnt = isSuperAdmin || can("maintenance", "create");
@@ -262,12 +262,12 @@ export default function Tickets() {
   const canDeleteHsk = isSuperAdmin || can("housekeeping", "delete");
   const canAssignHsk = isSuperAdmin || can("housekeeping", "assign");
 
-  const hasMaintenance = canViewMnt;
-  const hasHousekeeping = canViewHsk;
+  const hasMaintenance = canViewMnt || canCreateMnt || canEditMnt;
+  const hasHousekeeping = canViewHsk || canCreateHsk || canEditHsk;
 
   const isOnlyHousekeeping = !hasMaintenance && hasHousekeeping;
   const isOnlyMaintenance = hasMaintenance && !hasHousekeeping;
-  const hasBoth = hasMaintenance && hasHousekeeping;
+  const hasBoth = isSuperAdmin || (hasMaintenance && hasHousekeeping);
   const hasManagerialScope = isSuperAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
 
   const [scopeFilter, setScopeFilter] = useState<"all" | "me" | "unassigned">("all");
@@ -280,11 +280,14 @@ export default function Tickets() {
 
   const allowedCreateCategories = isSuperAdmin
     ? CATEGORIES
-    : [
-        ...(canCreateMnt && !isOnlyHousekeeping ? ["maintenance"] : []),
-        ...(canCreateHsk && !isOnlyMaintenance ? ["housekeeping"] : []),
-        ...(!isOnlyHousekeeping ? ["general"] : []),
-      ];
+    : isOnlyMaintenance
+      ? ["maintenance"]
+      : isOnlyHousekeeping
+        ? ["housekeeping"]
+        : [
+            ...(canCreateMnt ? ["maintenance"] : []),
+            ...(canCreateHsk ? ["housekeeping"] : []),
+          ];
 
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
@@ -1198,16 +1201,16 @@ export default function Tickets() {
                   <SelectValue placeholder={ar ? "كل الأنواع" : "All Types"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {!isOnlyHousekeeping && !isOnlyMaintenance && (
+                  {hasBoth && (
                     <SelectItem value="all">{ar ? "كل الأنواع" : "All Types"}</SelectItem>
                   )}
-                  {!isOnlyHousekeeping && (
+                  {canViewMnt && (
                     <SelectItem value="maintenance">{ar ? "صيانة فنية" : "Maintenance"}</SelectItem>
                   )}
-                  {!isOnlyMaintenance && (
+                  {canViewHsk && (
                     <SelectItem value="housekeeping">{ar ? "هاوس كيبنج" : "Housekeeping"}</SelectItem>
                   )}
-                  {!isOnlyHousekeeping && (
+                  {hasBoth && (
                     <SelectItem value="general">{ar ? "عام" : "General"}</SelectItem>
                   )}
                 </SelectContent>

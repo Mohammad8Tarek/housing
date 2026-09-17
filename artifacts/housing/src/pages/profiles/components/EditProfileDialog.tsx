@@ -76,6 +76,7 @@ export function EditProfileDialog({
       : profile.propertyId || 1;
 
   const [form, setForm] = useState<EditEmpForm>({
+    profileId: profile.profileId ?? "",
     firstName: profile.firstName ?? "",
     lastName: profile.lastName ?? "",
     thirdName: profile.thirdName ?? "",
@@ -294,9 +295,11 @@ export function EditProfileDialog({
   };
 
   const { duplicates, hasDuplicates } = useCheckDuplicates({
+    profileId: form.profileId,
     nationalId: form.nationalId,
     phone: form.phone,
     excludeId: profile.id,
+    propertyId: effectivePropertyId,
     enabled: Boolean(profile?.id),
   });
 
@@ -308,6 +311,10 @@ export function EditProfileDialog({
           ? "يرجى تعديل البيانات المكررة المحددة باللون الأحمر قبل الحفظ"
           : "Please resolve duplicate fields before saving",
       );
+      return;
+    }
+    if (!form.profileId?.trim()) {
+      toast.error(ar ? "كود الموظف مطلوب" : "Profile ID / Clock Number is required");
       return;
     }
     if (!form.firstName?.trim()) {
@@ -451,10 +458,42 @@ export function EditProfileDialog({
 
           {/* Section 2: Personal Information */}
           <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider border-b pb-2 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-              {ar ? "1. البيانات الشخصية الأساسية" : "1. Personal Information"}
-            </p>
+            <div className="flex items-center justify-between border-b pb-2">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                {ar ? "1. البيانات الشخصية الأساسية" : "1. Personal Information"}
+              </p>
+              <span className="text-xs text-muted-foreground font-mono">
+                {form.profileId}
+              </span>
+            </div>
+
+            {/* Profile ID / Clock Number Row */}
+            <div className="p-3.5 bg-background border rounded-xl shadow-2xs">
+              <FormRow label={ar ? "كود الموظف / رقم الساعة (Clock Number / ID) *" : "Profile ID / Clock Number *"}>
+                <Input
+                  value={form.profileId}
+                  onChange={(e) => set("profileId", e.target.value)}
+                  placeholder={ar ? "مثال: EMP-001 أو رقم البصمة..." : "e.g. EMP-001, Clock No..."}
+                  className={`h-9 font-mono font-semibold ${
+                    duplicates.profileId
+                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                      : ""
+                  }`}
+                  required
+                />
+                {duplicates.profileId && (
+                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {ar
+                        ? `كود الموظف مسجل مسبقاً باسم: ${duplicates.profileId.name}`
+                        : `Code already registered to: ${duplicates.profileId.name}`}
+                    </span>
+                  </div>
+                )}
+              </FormRow>
+            </div>
 
             {/* Bilingual Name Inputs with Realtime Auto-Translation */}
             <div className="p-3.5 bg-background border rounded-xl space-y-3.5 shadow-2xs">

@@ -78,10 +78,13 @@ import {
   Clock,
   CalendarPlus,
   X,
+  Pencil,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { formatDate } from "@/lib/date-utils";
 import { generateHousingLetterPdf } from "@/lib/pdf-utils";
+import { EditProfileDialog } from "./components/EditProfileDialog";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import {
   usePrintLanguage,
   PrintLanguageDialog,
@@ -267,6 +270,7 @@ export default function ProfileDetail() {
   
   const [deletingDocIndex, setDeletingDocIndex] = useState<number | null>(null);
   const [previewDoc, setPreviewDoc] = useState<{ fileName: string; fileType: string; fileData: string } | null>(null);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
 
   const handleIdImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -880,6 +884,17 @@ export default function ProfileDetail() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 self-start">
+                  <PermissionGate module="profiles" action="edit">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditProfileOpen(true)}
+                      className="gap-1.5 shadow-xs font-semibold h-8"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{ar ? "تعديل الملف" : "Edit Profile"}</span>
+                    </Button>
+                  </PermissionGate>
                   <div
                     className={`h-8 font-semibold text-xs rounded-full px-3 flex items-center gap-2 border shadow-xs ${
                       emp.status === "ACTIVE"
@@ -1646,6 +1661,17 @@ export default function ProfileDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {editProfileOpen && emp && (
+        <EditProfileDialog
+          profile={emp}
+          propertyId={effectivePropId}
+          onClose={() => {
+            setEditProfileOpen(false);
+            refetch();
+          }}
+        />
+      )}
 
       <PrintLanguageDialog
         open={langDialogOpen}

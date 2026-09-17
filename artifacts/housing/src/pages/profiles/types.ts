@@ -57,6 +57,7 @@ export const EMPTY_FORM: ProfileForm = {
 };
 
 export type EditEmpForm = {
+  profileId: string;
   firstName: string;
   lastName: string;
   thirdName: string;

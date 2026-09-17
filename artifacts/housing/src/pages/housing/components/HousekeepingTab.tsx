@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
+import { usePermission } from "@/hooks/use-permission";
 import {
   Select,
   SelectContent,
@@ -57,6 +58,11 @@ export function HousekeepingTab({
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
+  const { can, isSuperAdmin } = usePermission();
+
+  const canEditHsk = isSuperAdmin || can("housekeeping", "edit");
+  const canCreateHsk = isSuperAdmin || can("housekeeping", "create");
+  const canExportHsk = isSuperAdmin || can("housekeeping", "export");
 
   // Filters state
   const [buildingFilter, setBuildingFilter] = useState<string>("all");
@@ -775,32 +781,34 @@ export function HousekeepingTab({
             )}
           </div>
 
-          <BulkActionBar
-            count={selectedRoomIds.size}
-            onClear={() => setSelectedRoomIds(new Set())}
-            onExportExcel={handleBulkExportExcel}
-            ar={ar}
-            actions={[
-              {
-                label: ar ? "تنظيف المحدد" : "Mark Cleaned",
-                variant: "default",
-                onClick: handleBulkClean,
-                disabled: isBulkLoading,
-                icon: isBulkLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                ),
-              },
-              {
-                label: ar ? "تحديد كغير نظيفة" : "Mark Dirty",
-                variant: "outline",
-                onClick: handleBulkDirty,
-                disabled: isBulkLoading,
-                icon: <Brush className="w-3.5 h-3.5 text-orange-500" />,
-              },
-            ]}
-          />
+          {canEditHsk && (
+            <BulkActionBar
+              count={selectedRoomIds.size}
+              onClear={() => setSelectedRoomIds(new Set())}
+              onExportExcel={canExportHsk ? handleBulkExportExcel : undefined}
+              ar={ar}
+              actions={[
+                {
+                  label: ar ? "تنظيف المحدد" : "Mark Cleaned",
+                  variant: "default",
+                  onClick: handleBulkClean,
+                  disabled: isBulkLoading,
+                  icon: isBulkLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  ),
+                },
+                {
+                  label: ar ? "تحديد كغير نظيفة" : "Mark Dirty",
+                  variant: "outline",
+                  onClick: handleBulkDirty,
+                  disabled: isBulkLoading,
+                  icon: <Brush className="w-3.5 h-3.5 text-orange-500" />,
+                },
+              ]}
+            />
+          )}
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {paginatedRooms.map((room) => {
@@ -880,9 +888,10 @@ export function HousekeepingTab({
                 </div>
 
                 {/* Quick Action Button */}
+                {(canEditHsk || canCreateHsk) && (
                 <div className="mt-2 pt-2 border-t border-border/50 flex gap-2">
                   {/* For 'dirty' */}
-                  {(normStatus === "dirty" || normStatus === "vacant_dirty") && (
+                  {canEditHsk && (normStatus === "dirty" || normStatus === "vacant_dirty") && (
                     <Button
                       size="sm"
                       disabled={isUpdating}
@@ -901,7 +910,7 @@ export function HousekeepingTab({
                   )}
 
                   {/* For 'occupied_dirty' */}
-                  {normStatus === "occupied_dirty" && (
+                  {canEditHsk && normStatus === "occupied_dirty" && (
                     <Button
                       size="sm"
                       disabled={isUpdating}
@@ -920,7 +929,7 @@ export function HousekeepingTab({
                   )}
 
                   {/* For 'out_of_service' */}
-                  {(normStatus === "out_of_service" ||
+                  {canEditHsk && (normStatus === "out_of_service" ||
                     normStatus === "oos" ||
                     normStatus === "maintenance") && (
                     <Button
@@ -942,7 +951,7 @@ export function HousekeepingTab({
                   )}
 
                   {/* For 'available/clean' */}
-                  {(normStatus === "available" || normStatus === "clean") && (
+                  {canEditHsk && (normStatus === "available" || normStatus === "clean") && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -962,7 +971,7 @@ export function HousekeepingTab({
                   )}
 
                   {/* For 'occupied' */}
-                  {(normStatus === "occupied" || normStatus === "occupied_clean") && (
+                  {canEditHsk && (normStatus === "occupied" || normStatus === "occupied_clean") && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -982,7 +991,7 @@ export function HousekeepingTab({
                   )}
 
                   {/* OOS Button for all except OOS itself */}
-                  {normStatus !== "out_of_service" && normStatus !== "oos" && normStatus !== "maintenance" && normStatus !== "out_of_order" && (
+                  {canCreateHsk && normStatus !== "out_of_service" && normStatus !== "oos" && normStatus !== "maintenance" && normStatus !== "out_of_order" && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -1008,6 +1017,7 @@ export function HousekeepingTab({
                     </Button>
                   )}
                 </div>
+                )}
               </div>
             );
           })}
