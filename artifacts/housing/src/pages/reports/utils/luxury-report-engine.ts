@@ -1210,8 +1210,112 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     printPadding = "2.2px 3.5px";
   }
 
-  // Calculate Column Totals for Opera Totals Row
-  const colTotals: (number | null)[] = headers.map((_, colIdx) => {
+  // Helper: Strictly determine if a column is a legitimate quantifiable metric that can be summed
+  const isQuantifiableHeader = (headerName: string, rawHeaderName: string): boolean => {
+    const combined = `${headerName || ""} ${rawHeaderName || ""}`.toLowerCase();
+
+    // STRICT BLACKLIST: Identifiers, codes, phones, national IDs, room numbers, bed numbers, floors, rates, percentages
+    if (
+      combined.includes("قومي") ||
+      combined.includes("national") ||
+      combined.includes("هاتف") ||
+      combined.includes("phone") ||
+      combined.includes("موبايل") ||
+      combined.includes("mobile") ||
+      combined.includes("كود") ||
+      combined.includes("code") ||
+      combined.includes("هوية") ||
+      combined.includes("id") ||
+      combined.includes("رقم السرير") ||
+      combined.includes("bed no") ||
+      combined.includes("bed number") ||
+      combined.includes("رقم الغرفة") ||
+      combined.includes("room no") ||
+      combined.includes("room number") ||
+      combined.includes("طابق") ||
+      combined.includes("floor") ||
+      combined.includes("دور") ||
+      combined.includes("تسلسلي") ||
+      combined.includes("serial") ||
+      combined.includes("باركود") ||
+      combined.includes("barcode") ||
+      combined.includes("نسبة") ||
+      combined.includes("percent") ||
+      combined.includes("%") ||
+      combined.includes("تقييم") ||
+      combined.includes("rating") ||
+      combined.includes("stars") ||
+      combined.includes("نجوم") ||
+      combined.includes("تاريخ") ||
+      combined.includes("date") ||
+      combined.includes("ترتيب") ||
+      combined.includes("rank") ||
+      combined.includes("درجة") ||
+      combined.includes("level") ||
+      combined.includes("عمر") ||
+      combined.includes("age") ||
+      combined.includes("سنة") ||
+      combined.includes("year")
+    ) {
+      return false;
+    }
+
+    // WHITELIST: Only legitimate capacity, occupancy, inventory quantities, financial amounts
+    if (
+      combined.includes("إجمالي الغرف") ||
+      combined.includes("total rooms") ||
+      combined.includes("rooms count") ||
+      combined.includes("عدد الغرف") ||
+      combined.includes("إجمالي الأسرة") ||
+      combined.includes("total beds") ||
+      combined.includes("beds count") ||
+      combined.includes("عدد الأسرة") ||
+      combined.includes("مشغول") ||
+      combined.includes("occupied") ||
+      combined.includes("شاغر") ||
+      combined.includes("vacant") ||
+      combined.includes("متسخ") ||
+      combined.includes("dirty") ||
+      combined.includes("صيانة") ||
+      combined.includes("ooo") ||
+      combined.includes("سعة") ||
+      combined.includes("capacity") ||
+      combined.includes("كمية") ||
+      combined.includes("quantity") ||
+      combined.includes("مبلغ") ||
+      combined.includes("amount") ||
+      combined.includes("رسوم") ||
+      combined.includes("fee") ||
+      combined.includes("سعر") ||
+      combined.includes("price") ||
+      combined.includes("ليالي") ||
+      combined.includes("nights") ||
+      combined.includes("ساعات") ||
+      combined.includes("hours") ||
+      combined.includes("الوقت التقديري") ||
+      combined.includes("est time") ||
+      combined.includes("دقائق") ||
+      combined.includes("mins") ||
+      combined.includes("ذكور") ||
+      combined.includes("males") ||
+      combined.includes("إناث") ||
+      combined.includes("females") ||
+      combined.includes("عدد المقيمين") ||
+      combined.includes("residents count")
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // Calculate Column Totals for Opera Totals Row (strictly filtered for quantifiable columns only)
+  const colTotals: (number | null)[] = headers.map((h, colIdx) => {
+    const rawH = rawHeaders[colIdx] || "";
+    if (!isQuantifiableHeader(h, rawH)) {
+      return null;
+    }
+
     let isNumeric = true;
     let sum = 0;
     let countValid = 0;
@@ -1230,6 +1334,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
     return isNumeric && countValid > 0 ? sum : null;
   });
+
+  const hasAnyColTotal = colTotals.some((t) => t !== null);
 
   // KPI Summary Cards - Only rendered if explicitly requested (never by default)
   const kpiCards: ReportKpiCard[] =
@@ -1302,13 +1408,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       ${tableRows.length > 0 ? `
         <tr class="opera-totals-row">
           <td style="text-align: center; font-weight: bold;">—</td>
-          <td style="font-weight: bold;">${isArabic ? `إجمالي السجلات: ${tableRows.length}` : `Total Records: ${tableRows.length}`}</td>
-          ${colTotals.map((tot, i) => {
+          <td style="font-weight: bold;" ${!hasAnyColTotal ? `colspan="${headers.length}"` : ""}>
+            ${isArabic ? `إجمالي السجلات: ${tableRows.length} سجل` : `Total Records: ${tableRows.length}`}
+          </td>
+          ${hasAnyColTotal ? colTotals.map((tot, i) => {
             if (i === 0) return ""; // already spanned / handled
             if (tot === null) return `<td></td>`;
             const align = getOperaColumnAlign(rawHeaders[i] || "", isArabic);
             return `<td style="text-align: ${align}; font-weight: bold;">${tot.toLocaleString()}</td>`;
-          }).join("")}
+          }).join("") : ""}
         </tr>
       ` : ""}
     </tbody>
