@@ -2388,9 +2388,15 @@ async function runForAllTenants(query: string): Promise<number> {
     // the catalog query — otherwise `FROM properties` can resolve to an
     // EMPTY tenant.properties table and every migration silently skips.
     await client.query("SET search_path TO public");
-    const { rows: properties } = await client.query(
-      "SELECT id, schema_name FROM public.properties WHERE schema_name IS NOT NULL",
-    );
+    const { rows: properties } = await client.query(`
+      SELECT DISTINCT s_name AS schema_name FROM (
+        SELECT schema_name AS s_name FROM public.properties WHERE schema_name IS NOT NULL AND schema_name <> ''
+        UNION
+        SELECT schema_name AS s_name FROM information_schema.schemata 
+        WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast', 'public') 
+          AND schema_name NOT LIKE 'pg_%'
+      ) t
+    `);
     let count = 0;
     for (const prop of properties) {
       try {
@@ -2568,6 +2574,11 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "portal_message_reads",
     "workers",
     "gate_logs",
+    "property_whatsapp_configs",
+    "whatsapp_delivery_logs",
+    "whatsapp_outbox_queue",
+    "room_import_jobs",
+    "ws_sessions",
   ];
 
   const TABLES_WITH_PROPERTY_ID = new Set([
@@ -2580,6 +2591,10 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "password_reset_tokens",
     "gate_logs",
     "workers",
+    "property_whatsapp_configs",
+    "whatsapp_delivery_logs",
+    "whatsapp_outbox_queue",
+    "ws_sessions",
   ]);
 
   const client = await pool.connect();
