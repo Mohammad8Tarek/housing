@@ -888,8 +888,80 @@ router.get(
       return;
     }
 
-    const accounts = await withTenant(propertyId, async (tenantDb) => {
-      const rows = await tenantDb
+    const page = Math.max(1, parseInt(String(req.query?.page || "1"), 10));
+    const limit = Math.max(1, Math.min(100, parseInt(String(req.query?.limit || "15"), 10)));
+    const search = req.query?.search ? String(req.query.search).trim() : "";
+    const status = req.query?.status ? String(req.query.status).trim() : "";
+    const profileIdParam = req.query?.profileId ? String(req.query.profileId).trim() : "";
+    const isPaginated =
+      req.query?.paginate === "true" ||
+      req.query?.page !== undefined ||
+      req.query?.limit !== undefined;
+
+    const conditions: any[] = [];
+
+    if (profileIdParam) {
+      conditions.push(eq(profilesTable.profileId, profileIdParam));
+    }
+
+    if (search) {
+      const term = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(profilesTable.profileId, term),
+          ilike(profilesTable.firstName, term),
+          ilike(profilesTable.lastName, term),
+          ilike(sql`CONCAT(${profilesTable.firstName}, ' ', ${profilesTable.lastName})`, term),
+          ilike(profilesTable.department, term),
+          ilike(profilesTable.jobTitle, term),
+          ilike(profilesTable.phone, term),
+          ilike(profilesTable.nationalId, term),
+        ),
+      );
+    }
+
+    if (status === "active") {
+      conditions.push(eq(profilePortalAccountsTable.isActive, true));
+    } else if (status === "inactive" || status === "disabled") {
+      conditions.push(
+        and(
+          eq(profilePortalAccountsTable.isActive, false),
+          sql`${profilePortalAccountsTable.id} IS NOT NULL`,
+        ),
+      );
+    } else if (status === "no_account") {
+      conditions.push(sql`${profilePortalAccountsTable.id} IS NULL`);
+    }
+
+    const result = await withTenant(propertyId, async (tenantDb) => {
+      // 1. Total matching current filters
+      let countQuery = tenantDb
+        .select({ count: sql<number>`count(*)::int` })
+        .from(profilesTable)
+        .leftJoin(
+          profilePortalAccountsTable,
+          eq(profilesTable.profileId, profilePortalAccountsTable.profileId),
+        );
+
+      if (conditions.length > 0) {
+        countQuery = countQuery.where(and(...conditions)) as any;
+      }
+      const countRes = await countQuery;
+      const total = Number(countRes[0]?.count ?? 0);
+
+      // 2. Total active accounts overall for this property
+      const [activeRes] = await tenantDb
+        .select({ count: sql<number>`count(*)::int` })
+        .from(profilesTable)
+        .innerJoin(
+          profilePortalAccountsTable,
+          eq(profilesTable.profileId, profilePortalAccountsTable.profileId),
+        )
+        .where(eq(profilePortalAccountsTable.isActive, true));
+      const activeCount = Number(activeRes?.count ?? 0);
+
+      // 3. Paginated Data Query
+      let dataQuery = tenantDb
         .select({
           profileId: profilesTable.profileId,
           firstName: profilesTable.firstName,
@@ -908,10 +980,21 @@ router.get(
         .leftJoin(
           profilePortalAccountsTable,
           eq(profilesTable.profileId, profilePortalAccountsTable.profileId),
-        )
-        .orderBy(profilesTable.firstName, profilesTable.lastName);
+        );
 
-      return rows.map((r) => ({
+      if (conditions.length > 0) {
+        dataQuery = dataQuery.where(and(...conditions)) as any;
+      }
+
+      dataQuery = dataQuery.orderBy(profilesTable.firstName, profilesTable.lastName) as any;
+
+      if (isPaginated) {
+        dataQuery = dataQuery.limit(limit).offset((page - 1) * limit) as any;
+      }
+
+      const rows = await dataQuery;
+
+      const accounts = rows.map((r) => ({
         profileId: r.profileId,
         profileName:
           r.firstName && r.lastName
@@ -930,9 +1013,18 @@ router.get(
         failedAttempts: r.failedAttempts ?? 0,
         isLocked: r.lockedUntil ? new Date(r.lockedUntil) > new Date() : false,
       }));
+
+      return {
+        accounts,
+        total,
+        activeCount,
+        page: isPaginated ? page : 1,
+        limit: isPaginated ? limit : total,
+        totalPages: isPaginated ? Math.ceil(total / limit) : 1,
+      };
     });
 
-    res.json(accounts);
+    res.json(result);
   },
 );
 
