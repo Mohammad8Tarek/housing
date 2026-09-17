@@ -457,6 +457,109 @@ export function useReportExport({
     if (!canExportReports) return;
     const isArabic = ar; // Direct language mode — zero popup prompting!
     const rows = toExcelRows();
+    let extraOpts: any = {};
+
+    if (activeTab === "manager_flash" && profiles && profiles.length > 0) {
+      // Top Departments breakdown
+      const deptCounts: Record<string, number> = {};
+      profiles.forEach((p: any) => {
+        const dept = p.department?.trim() || (isArabic ? "غير محدد" : "Unassigned");
+        deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+      });
+      const totalP = profiles.length || 1;
+      const deptList = Object.entries(deptCounts)
+        .map(([name, count]) => ({
+          name,
+          count,
+          percent: Math.round((count / totalP) * 100),
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+
+      // Top Nationalities breakdown
+      const natCounts: Record<string, number> = {};
+      profiles.forEach((p: any) => {
+        const nat = p.nationality?.trim() || (isArabic ? "غير مسجل" : "Other");
+        natCounts[nat] = (natCounts[nat] || 0) + 1;
+      });
+      const natList = Object.entries(natCounts)
+        .map(([name, count]) => ({
+          name,
+          count,
+          percent: Math.round((count / totalP) * 100),
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      extraOpts.customBottomSectionsHtml = `
+        <div class="demographics-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0 16px 0; page-break-inside: avoid;">
+          <!-- Top Occupying Departments -->
+          <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff;">
+            <div style="font-weight: 800; font-size: 8.5pt; color: #0f2a44; border-bottom: 1.5px solid #0f2a44; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <span>🏢 ${isArabic ? "أعلى الإدارات والأقسام إشغالاً بالسكن (Top Departments)" : "Top Occupying Departments"}</span>
+              <span style="font-size: 7.5pt; color: #64748b; font-weight: 600;">${profiles.length} ${isArabic ? "موظف مسجل" : "Registered Staff"}</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
+              <thead>
+                <tr style="border-bottom: 1px solid #cbd5e1; color: #334155; font-weight: 700;">
+                  <th style="text-align: ${isArabic ? "right" : "left"}; padding: 4px 5px;">${isArabic ? "الإدارة / القسم" : "Department"}</th>
+                  <th style="text-align: center; padding: 4px 5px; width: 60px;">${isArabic ? "العدد" : "Count"}</th>
+                  <th style="text-align: center; padding: 4px 5px; width: 60px;">${isArabic ? "النسبة" : "Percent"}</th>
+                  <th style="text-align: center; padding: 4px 5px; width: 90px;">${isArabic ? "التمثيل" : "Progress"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${deptList.map((d) => `
+                  <tr style="border-bottom: 0.5px solid #f1f5f9;">
+                    <td style="text-align: ${isArabic ? "right" : "left"}; padding: 4px 5px; font-weight: 600; color: #0f172a;">${d.name}</td>
+                    <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #0284c7;">${d.count}</td>
+                    <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #334155;">${d.percent}%</td>
+                    <td style="text-align: center; padding: 4px 5px;">
+                      <div style="background: #e2e8f0; border-radius: 3px; height: 6px; width: 100%; overflow: hidden;">
+                        <div style="background: #0284c7; height: 6px; width: ${Math.min(d.percent, 100)}%;"></div>
+                      </div>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Nationalities Distribution -->
+          <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff;">
+            <div style="font-weight: 800; font-size: 8.5pt; color: #0f2a44; border-bottom: 1.5px solid #0f2a44; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <span>🌍 ${isArabic ? "توزيع الجنسيات بالسكن (Nationalities Distribution)" : "Nationalities Distribution"}</span>
+              <span style="font-size: 7.5pt; color: #64748b; font-weight: 600;">${natList.length} ${isArabic ? "جنسيات" : "Nationalities"}</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
+              <thead>
+                <tr style="border-bottom: 1px solid #cbd5e1; color: #334155; font-weight: 700;">
+                  <th style="text-align: ${isArabic ? "right" : "left"}; padding: 4px 5px;">${isArabic ? "الجنسية" : "Nationality"}</th>
+                  <th style="text-align: center; padding: 4px 5px; width: 60px;">${isArabic ? "العدد" : "Count"}</th>
+                  <th style="text-align: center; padding: 4px 5px; width: 60px;">${isArabic ? "النسبة" : "Percent"}</th>
+                  <th style="text-align: center; padding: 4px 5px; width: 90px;">${isArabic ? "التمثيل" : "Progress"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${natList.map((n) => `
+                  <tr style="border-bottom: 0.5px solid #f1f5f9;">
+                    <td style="text-align: ${isArabic ? "right" : "left"}; padding: 4px 5px; font-weight: 600; color: #0f172a;">${n.name}</td>
+                    <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #059669;">${n.count}</td>
+                    <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #334155;">${n.percent}%</td>
+                    <td style="text-align: center; padding: 4px 5px;">
+                      <div style="background: #e2e8f0; border-radius: 3px; height: 6px; width: 100%; overflow: hidden;">
+                        <div style="background: #059669; height: 6px; width: ${Math.min(n.percent, 100)}%;"></div>
+                      </div>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
     exportPDF(
       activeTab,
       rows,
@@ -468,6 +571,7 @@ export function useReportExport({
       search,
       settings,
       isArabic ? "ar" : "en",
+      extraOpts,
     );
   };
 

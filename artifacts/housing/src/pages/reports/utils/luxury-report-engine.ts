@@ -53,6 +53,7 @@ export interface LuxuryReportOptions {
     role3Ar?: string;
   };
   customSectionsHtml?: string;
+  customBottomSectionsHtml?: string;
   autoPrint?: boolean;
 }
 
@@ -1128,6 +1129,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     rows = [],
     signatures,
     customSectionsHtml,
+    customBottomSectionsHtml,
     autoPrint = true,
   } = opts;
 
@@ -1838,6 +1840,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         ${theadHtml}
         ${tbodyHtml}
       </table>
+
+      <!-- Custom Bottom Injected Sections if any (e.g. Demographics, Nationalities, Departments) -->
+      ${customBottomSectionsHtml || ""}
 
       <!-- Multi-Tier Official Signatures Block (Optional, toggled via bar) -->
       <div class="sig-section" id="sigSection" style="${initialShowSigs ? "" : "display: none !important;"}">

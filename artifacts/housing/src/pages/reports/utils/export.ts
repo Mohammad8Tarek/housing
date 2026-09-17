@@ -147,6 +147,7 @@ export const exportPDF = async (
   search: string,
   settings: any,
   language: "ar" | "en" = "ar",
+  extraOpts?: Partial<LuxuryReportOptions>,
 ) => {
   if (!rows || !rows.length) return;
 
@@ -162,6 +163,7 @@ export const exportPDF = async (
     settings,
     language,
     title: "", // Auto-resolved by activeTab in luxury engine
+    ...extraOpts,
   });
 };
 

@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import * as XLSX from "xlsx";
+import { printLuxuryReport } from "../utils/luxury-report-engine";
 import {
   FileBarChart2,
   Building2,
@@ -241,12 +243,202 @@ export function ManagerFlashTab({
     });
   }, [ar]);
 
-  const handlePrint = () => {
-    if (onExportPDF) {
-      onExportPDF();
-    } else {
-      window.print();
-    }
+  const handleExcelExport = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Building Capacity Matrix
+    const matrixRows = buildingBreakdown.map((row) => ({
+      [ar ? "المبنى والكود" : "Building & Code"]: `${row.name} (${row.code})`,
+      [ar ? "الأدوار" : "Floors"]: row.floorsCount,
+      [ar ? "إجمالي الغرف" : "Total Rooms"]: row.totalRooms,
+      [ar ? "إجمالي الأسرة" : "Total Beds"]: row.totalBeds,
+      [ar ? "المشغول" : "Occupied"]: row.occupiedBeds,
+      [ar ? "الشاغر المتاح" : "Vacant Beds"]: row.vacantBeds,
+      [ar ? "متسخ" : "Dirty"]: row.dirtyCount,
+      [ar ? "صيانة (OOO)" : "OOO"]: row.oooCount,
+      [ar ? "نسبة الإشغال" : "Occupancy Rate"]: `${row.occPercent}%`,
+      [ar ? "الحالة" : "Status"]:
+        row.occPercent >= 90
+          ? (ar ? "إشغال مرتفع" : "High Occupancy")
+          : row.occPercent >= 70
+          ? (ar ? "إشغال متوسط" : "Moderate")
+          : (ar ? "متاح للتسكين" : "Available"),
+    }));
+    const wsMatrix = XLSX.utils.json_to_sheet(matrixRows);
+    XLSX.utils.book_append_sheet(wb, wsMatrix, ar ? "مصفوفة إشغال المباني" : "Building Matrix");
+
+    // Sheet 2: Top Occupying Departments
+    const deptRows = departmentBreakdown.map((dept, idx) => ({
+      [ar ? "الترتيب" : "Rank"]: idx + 1,
+      [ar ? "الإدارة / القسم" : "Department"]: dept.name,
+      [ar ? "عدد الموظفين المقيمين" : "Staff Count"]: dept.count,
+      [ar ? "نسبة الإشغال من السكن" : "Occupancy Share"]: `${dept.percent}%`,
+    }));
+    const wsDept = XLSX.utils.json_to_sheet(deptRows);
+    XLSX.utils.book_append_sheet(wb, wsDept, ar ? "إشغال الأقسام" : "Departments");
+
+    // Sheet 3: Nationalities Distribution
+    const natRows = nationalityBreakdown.map((nat, idx) => ({
+      [ar ? "الترتيب" : "Rank"]: idx + 1,
+      [ar ? "الجنسية" : "Nationality"]: nat.name,
+      [ar ? "العدد" : "Count"]: nat.count,
+      [ar ? "النسبة المئوية" : "Percentage"]: `${nat.percent}%`,
+    }));
+    const wsNat = XLSX.utils.json_to_sheet(natRows);
+    XLSX.utils.book_append_sheet(wb, wsNat, ar ? "توزيع الجنسيات" : "Nationalities");
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Daily_Morning_Operations_Report_${dateStr}.xlsx`);
+  };
+
+  const handlePrint = async () => {
+    // 1. Generate Building Capacity Matrix Rows
+    const rows = buildingBreakdown.map((row) => ({
+      [ar ? "المبنى والكود" : "Building & Code"]: `${row.name} (${row.code})`,
+      [ar ? "الأدوار" : "Floors"]: row.floorsCount,
+      [ar ? "إجمالي الغرف" : "Rooms"]: row.totalRooms,
+      [ar ? "إجمالي الأسرة" : "Total Beds"]: row.totalBeds,
+      [ar ? "المشغول" : "Occupied"]: row.occupiedBeds,
+      [ar ? "الشاغر المتاح" : "Vacant Beds"]: row.vacantBeds,
+      [ar ? "متسخ" : "Dirty"]: row.dirtyCount,
+      [ar ? "صيانة (OOO)" : "OOO"]: row.oooCount,
+      [ar ? "نسبة الإشغال" : "Occupancy Rate"]: `${row.occPercent}%`,
+      [ar ? "الحالة" : "Status"]:
+        row.occPercent >= 90
+          ? (ar ? "إشغال مرتفع" : "High Occupancy")
+          : row.occPercent >= 70
+          ? (ar ? "إشغال متوسط" : "Moderate")
+          : (ar ? "متاح للتسكين" : "Available"),
+    }));
+
+    // 2. Generate Demographics Breakdown HTML (Top Occupying Departments & Nationalities)
+    const demographicsHtml = `
+      <div class="demographics-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0 16px 0; page-break-inside: avoid;">
+        <!-- Top Occupying Departments -->
+        <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff;">
+          <div style="font-weight: 800; font-size: 8.5pt; color: #0f2a44; border-bottom: 1.5px solid #0f2a44; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <span>🏢 ${ar ? "أعلى الإدارات والأقسام إشغالاً بالسكن (Top Departments)" : "Top Occupying Departments"}</span>
+            <span style="font-size: 7.5pt; color: #64748b; font-weight: 600;">${profiles.length} ${ar ? "موظف مسجل" : "Registered Staff"}</span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
+            <thead>
+              <tr style="border-bottom: 1px solid #cbd5e1; color: #334155; font-weight: 700;">
+                <th style="text-align: ${ar ? "right" : "left"}; padding: 4px 5px;">${ar ? "الإدارة / القسم" : "Department"}</th>
+                <th style="text-align: center; padding: 4px 5px; width: 60px;">${ar ? "العدد" : "Count"}</th>
+                <th style="text-align: center; padding: 4px 5px; width: 60px;">${ar ? "النسبة" : "Percent"}</th>
+                <th style="text-align: center; padding: 4px 5px; width: 90px;">${ar ? "التمثيل" : "Progress"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${departmentBreakdown
+                .map(
+                  (dept) => `
+                <tr style="border-bottom: 0.5px solid #f1f5f9;">
+                  <td style="text-align: ${ar ? "right" : "left"}; padding: 4px 5px; font-weight: 600; color: #0f172a;">${dept.name}</td>
+                  <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #0284c7;">${dept.count}</td>
+                  <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #334155;">${dept.percent}%</td>
+                  <td style="text-align: center; padding: 4px 5px;">
+                    <div style="background: #e2e8f0; border-radius: 3px; height: 6px; width: 100%; overflow: hidden;">
+                      <div style="background: #0284c7; height: 6px; width: ${Math.min(dept.percent, 100)}%;"></div>
+                    </div>
+                  </td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Nationalities Distribution -->
+        <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff;">
+          <div style="font-weight: 800; font-size: 8.5pt; color: #0f2a44; border-bottom: 1.5px solid #0f2a44; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <span>🌍 ${ar ? "توزيع الجنسيات بالسكن (Nationalities Distribution)" : "Nationalities Distribution"}</span>
+            <span style="font-size: 7.5pt; color: #64748b; font-weight: 600;">${nationalityBreakdown.length} ${ar ? "جنسيات" : "Nationalities"}</span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
+            <thead>
+              <tr style="border-bottom: 1px solid #cbd5e1; color: #334155; font-weight: 700;">
+                <th style="text-align: ${ar ? "right" : "left"}; padding: 4px 5px;">${ar ? "الجنسية" : "Nationality"}</th>
+                <th style="text-align: center; padding: 4px 5px; width: 60px;">${ar ? "العدد" : "Count"}</th>
+                <th style="text-align: center; padding: 4px 5px; width: 60px;">${ar ? "النسبة" : "Percent"}</th>
+                <th style="text-align: center; padding: 4px 5px; width: 90px;">${ar ? "التمثيل" : "Progress"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${nationalityBreakdown
+                .map(
+                  (nat) => `
+                <tr style="border-bottom: 0.5px solid #f1f5f9;">
+                  <td style="text-align: ${ar ? "right" : "left"}; padding: 4px 5px; font-weight: 600; color: #0f172a;">${nat.name}</td>
+                  <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #059669;">${nat.count}</td>
+                  <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #334155;">${nat.percent}%</td>
+                  <td style="text-align: center; padding: 4px 5px;">
+                    <div style="background: #e2e8f0; border-radius: 3px; height: 6px; width: 100%; overflow: hidden;">
+                      <div style="background: #059669; height: 6px; width: ${Math.min(nat.percent, 100)}%;"></div>
+                    </div>
+                  </td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    await printLuxuryReport({
+      activeTab: "manager_flash",
+      rows,
+      properties,
+      activePropertyId,
+      language: ar ? "ar" : "en",
+      customBottomSectionsHtml: demographicsHtml,
+      kpiCards: [
+        {
+          label: "Total Buildings",
+          labelAr: "إجمالي المباني",
+          value: buildings.length,
+          color: "gold",
+        },
+        {
+          label: "Total Capacity",
+          labelAr: "إجمالي الأسِرّة",
+          value: metrics.totalBeds,
+          color: "blue",
+          subtext: `${metrics.totalRooms} ${ar ? "غرفة مسجلة" : "Rooms"}`,
+        },
+        {
+          label: "Occupied Beds",
+          labelAr: "الأسِرّة المشغولة",
+          value: metrics.occupiedBeds,
+          color: "blue",
+          subtext: `${metrics.occRate}% ${ar ? "نسبة الإشغال الكلية" : "Occupancy Rate"}`,
+        },
+        {
+          label: "Vacant Beds",
+          labelAr: "الأسِرّة الشاغرة",
+          value: metrics.vacantBeds,
+          color: "green",
+          subtext: `${metrics.totalBeds > 0 ? Math.round((metrics.vacantBeds / metrics.totalBeds) * 100) : 0}% ${ar ? "متاح للتسكين" : "Available"}`,
+        },
+        {
+          label: "Dirty Rooms (HK)",
+          labelAr: "غرف متسخة (HK)",
+          value: metrics.dirtyRooms,
+          color: metrics.dirtyRooms > 0 ? "orange" : "green",
+          subtext: ar ? "تحتاج لتجهيز" : "Pending HK",
+        },
+        {
+          label: "Open Maintenance",
+          labelAr: "بلاغات صيانة مفتوحة",
+          value: metrics.openMaintenance,
+          color: metrics.openMaintenance > 0 ? "red" : "green",
+          subtext: ar ? "قيد الإصلاح" : "In Progress",
+        },
+      ],
+    });
   };
 
   return (
@@ -322,7 +514,7 @@ export function ManagerFlashTab({
             <Button
               variant="outline"
               size="sm"
-              onClick={onExportExcel}
+              onClick={handleExcelExport}
               className="text-xs h-8 gap-1.5 bg-emerald-950/60 text-emerald-200 border-emerald-700/50 hover:bg-emerald-900"
             >
               <FileBarChart2 className="w-3.5 h-3.5" />
