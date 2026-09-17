@@ -43,30 +43,13 @@ export function ExportToolbar({
     />
   ) : null;
 
-  if (activeTab === "manager_flash") {
-    return (
-      <div className="flex items-center gap-2">
-        {columnChooserElement}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportExcel}
-          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          {ar ? "تصدير مصفوفة المباني Excel" : "Export Matrix Excel"}
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleExportPDF}
-          className="gap-2 bg-amber-600 hover:bg-amber-700 text-white text-xs shadow-xs"
-        >
-          <FileText className="w-4 h-4" />
-          {ar ? "تقرير المدير الصباحي PDF" : "Morning Operations PDF"}
-        </Button>
-      </div>
-    );
+  // Tabs that have their own self-contained toolbar/actions (prevent duplicate print & export buttons)
+  if (
+    activeTab === "manager_flash" ||
+    activeTab === "service_ratings" ||
+    activeTab === "housing_map"
+  ) {
+    return null;
   }
 
   if (activeTab === "housekeeping_sheet") {
