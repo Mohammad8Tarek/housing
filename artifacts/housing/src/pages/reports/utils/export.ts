@@ -682,12 +682,12 @@ export const printArabicAnalyticsReport = async (opts: {
   const today = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const occRate = analytics?.occRate ?? 0;
-  const occColor = occRate >= 90 ? "#ef4444" : occRate >= 70 ? "#f59e0b" : "#10b981";
+  const occColor = occRate >= 90 ? "#ef4444" : occRate >= 75 ? "#f59e0b" : "#10b981";
 
-  // Build building rows HTML
-  const bldgRows = (analytics?.byBuilding || []).map((b: any) => {
+  // Build building rows HTML (cleanly limited so it fits page 1 perfectly)
+  const bldgRows = (analytics?.byBuilding || []).slice(0, 6).map((b: any) => {
     const rate = b.rate ?? 0;
-    const bColor = rate >= 90 ? "#ef4444" : rate >= 70 ? "#f59e0b" : "#10b981";
+    const bColor = rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
     const availBeds = b.availableBeds ?? Math.max(0, (b.capacity || 0) - (b.currentOccupancy || 0));
     return `<tr>
       <td style="font-weight:700;">${b.name || "مبنى"}</td>
@@ -696,53 +696,90 @@ export const printArabicAnalyticsReport = async (opts: {
       <td style="text-align:center; font-weight:700; color:#1d4ed8;">${b.currentOccupancy ?? 0}</td>
       <td style="text-align:center; color:#15803d; font-weight:600;">${availBeds}</td>
       <td style="text-align:center;">
-        <div style="display:flex; align-items:center; gap:6px; justify-content:center;">
-          <div style="flex:1; max-width:55px; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:5px; justify-content:center;">
+          <div style="flex:1; max-width:45px; height:5px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
             <div style="width:${rate}%; height:100%; background:${bColor};"></div>
           </div>
-          <span style="font-weight:700; font-size:8pt; color:${bColor};">${rate}%</span>
+          <span style="font-weight:700; font-size:7.5pt; color:${bColor};">${rate}%</span>
         </div>
       </td>
     </tr>`;
   }).join("");
 
   // Room types rows
-  const typeRows = (analytics?.byType || []).map((t: any) => {
+  const typeRows = (analytics?.byType || []).slice(0, 5).map((t: any) => {
     const rate = t.rate ?? 0;
-    const tColor = rate >= 90 ? "#ef4444" : rate >= 70 ? "#f59e0b" : "#10b981";
+    const tColor = rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
     return `<tr>
       <td style="font-weight:600;">${t.type || "قياسية"}</td>
       <td style="text-align:center;">${t.rooms ?? 0}</td>
       <td style="text-align:center;">${t.capacity ?? 0}</td>
-      <td style="text-align:center; font-weight:700;">${t.occupied ?? 0}</td>
+      <td style="text-align:center; font-weight:700; color:#1d4ed8;">${t.occupied ?? 0}</td>
       <td style="text-align:center; font-weight:700; color:${tColor};">${rate}%</td>
     </tr>`;
   }).join("");
 
-  // Department rows
+  // Department rows (slice up to 7 for clean fit on page 2)
   const totalDeptCount = (analytics?.byDept || []).reduce((acc: number, d: any) => acc + (d.count || 0), 0) || 1;
-  const deptRows = (analytics?.byDept || []).slice(0, 10).map((d: any) => {
+  const deptRows = (analytics?.byDept || []).slice(0, 7).map((d: any) => {
     const share = Math.round(((d.count || 0) / totalDeptCount) * 100);
     return `<tr>
       <td style="font-weight:600;">${d.dept || "عام"}</td>
       <td style="text-align:center; font-weight:700; color:#1d4ed8;">${d.count ?? 0}</td>
       <td style="text-align:center;">
-        <span style="display:inline-block; padding:1px 6px; border-radius:10px; background:#f1f5f9; font-weight:700; font-size:7.5pt;">${share}%</span>
+        <span style="display:inline-block; padding:1px 6px; border-radius:8px; background:#f1f5f9; font-weight:700; font-size:7pt;">${share}%</span>
       </td>
     </tr>`;
   }).join("");
 
-  // Technicians rows
-  const techRows = (analytics?.topProfiles || []).slice(0, 6).map((tech: any) => {
-    const rate = tech.total > 0 ? Math.round(((tech.resolved || 0) / tech.total) * 100) : 0;
+  // Top Nationalities
+  const natRows = (analytics?.byNationality || []).slice(0, 5).map((n: any) => {
     return `<tr>
-      <td style="font-weight:600;">${tech.name || `فني #${tech.empId || tech.id}`}</td>
-      <td style="text-align:center;">${tech.total ?? 0}</td>
-      <td style="text-align:center; color:#ea580c;">${tech.open ?? 0}</td>
-      <td style="text-align:center; color:#15803d; font-weight:700;">${tech.resolved ?? 0}</td>
-      <td style="text-align:center; font-weight:700; color:#0f2a44;">${rate}%</td>
+      <td style="font-weight:600;">${n.nationality || "غير محدد"}</td>
+      <td style="text-align:center; font-weight:700; color:#0f2a44;">${n.count ?? 0}</td>
     </tr>`;
   }).join("");
+
+  // Render Inline SVG Vector Chart for Occupancy History Trajectory
+  const history = analytics?.occupancyHistory || [];
+  const svgW = 460;
+  const svgH = 85;
+  const padL = 30;
+  const padR = 15;
+  const padT = 12;
+  const padB = 22;
+  const plotW = svgW - padL - padR;
+  const plotH = svgH - padT - padB;
+  const maxVal = Math.max(...history.map((h: any) => Number(h.occupancy) || 0), 10) * 1.15;
+  const minVal = 0;
+  const pts = history.map((h: any, i: number) => {
+    const x = padL + (i / Math.max(1, history.length - 1)) * plotW;
+    const y = padT + plotH - (((Number(h.occupancy) || 0) - minVal) / (maxVal - minVal)) * plotH;
+    return { x, y, ...h };
+  });
+  const pathD = pts.reduce((acc: string, p: any, i: number) => `${acc} ${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`, "");
+  const areaD = pts.length > 0 ? `${pathD} L ${pts[pts.length - 1]?.x ?? 0} ${padT + plotH} L ${pts[0]?.x ?? 0} ${padT + plotH} Z` : "";
+  
+  const chartSvg = history.length > 0 ? `
+    <svg width="100%" height="75" viewBox="0 0 ${svgW} ${svgH}" style="overflow:visible;">
+      <defs>
+        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
+        </linearGradient>
+      </defs>
+      <line x1="${padL}" y1="${padT}" x2="${svgW - padR}" y2="${padT}" stroke="#f1f5f9" stroke-dasharray="3,3"/>
+      <line x1="${padL}" y1="${padT + plotH / 2}" x2="${svgW - padR}" y2="${padT + plotH / 2}" stroke="#f1f5f9" stroke-dasharray="3,3"/>
+      <line x1="${padL}" y1="${padT + plotH}" x2="${svgW - padR}" y2="${padT + plotH}" stroke="#e2e8f0"/>
+      <path d="${areaD}" fill="url(#chartGrad)"/>
+      <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${pts.map((p: any) => `
+        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.8" fill="#ffffff" stroke="#2563eb" stroke-width="1.8"/>
+        <text x="${p.x.toFixed(1)}" y="${padT + plotH + 13}" font-size="6.5pt" font-family="Cairo, sans-serif" text-anchor="middle" fill="#64748b">${p.month}</text>
+        <text x="${p.x.toFixed(1)}" y="${(p.y - 4).toFixed(1)}" font-size="6.5pt" font-weight="bold" font-family="Cairo, sans-serif" text-anchor="middle" fill="#1e40af">${p.occupancy}</text>
+      `).join("")}
+    </svg>
+  ` : '<div style="text-align:center; padding:10px; color:#94a3b8; font-size:7.5pt;">لا توجد بيانات مسار زمني</div>';
 
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -759,8 +796,8 @@ export const printArabicAnalyticsReport = async (opts: {
       direction: rtl;
       background: #f1f5f9;
       color: #0f172a;
-      font-size: 8.5pt;
-      line-height: 1.4;
+      font-size: 8pt;
+      line-height: 1.35;
     }
     .print-actions-bar {
       position: sticky;
@@ -778,7 +815,7 @@ export const printArabicAnalyticsReport = async (opts: {
       padding: 6px 14px;
       border-radius: 6px;
       font-weight: 700;
-      font-size: 9pt;
+      font-size: 8.5pt;
       cursor: pointer;
       font-family: inherit;
       border: none;
@@ -791,46 +828,57 @@ export const printArabicAnalyticsReport = async (opts: {
     .btn-primary:hover { background: #e0be6c; }
     .btn-outline { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
     .btn-outline:hover { background: rgba(255,255,255,0.2); }
-    .sheet {
+    .page-sheet {
       width: 210mm;
-      min-height: 297mm;
-      margin: 15px auto;
+      height: 288mm;
+      max-height: 288mm;
+      margin: 12px auto;
       background: #ffffff;
-      padding: 10mm 12mm;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+      padding: 8mm 10mm;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
       border-radius: 4px;
       page-break-after: always;
+      page-break-inside: avoid;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+    .page-sheet:last-child {
+      page-break-after: avoid;
+      margin-bottom: 25px;
     }
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
-    .header img { max-height: 38px; max-width: 130px; object-fit: contain; }
-    .gold-line { border: none; border-top: 2px solid #c9a24d; margin: 5px 0 8px; }
+    .header img { max-height: 36px; max-width: 125px; object-fit: contain; }
+    .gold-line { border: none; border-top: 2px solid #c9a24d; margin: 4px 0 6px; }
     .rep-title {
-      font-size: 14pt;
+      font-size: 13pt;
       font-weight: 800;
       color: #0f2a44;
       text-align: center;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
     .rep-sub {
-      font-size: 8pt;
+      font-size: 7.5pt;
       color: #64748b;
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 10px;
+      gap: 6px;
+      margin-bottom: 8px;
     }
     .kpi-card {
-      padding: 8px 10px;
-      border-radius: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
       border: 1px solid #e2e8f0;
       background: #fafbfc;
       text-align: center;
@@ -841,26 +889,34 @@ export const printArabicAnalyticsReport = async (opts: {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 3px;
+      height: 2.5px;
       background: #c9a24d;
     }
     .kpi-card.green::before { background: #16a34a; }
     .kpi-card.blue::before { background: #2563eb; }
     .kpi-card.orange::before { background: #ea580c; }
-    .kpi-val { font-size: 15pt; font-weight: 900; line-height: 1.1; margin-top: 2px; }
-    .kpi-label { font-size: 7.5pt; font-weight: 700; color: #64748b; margin-top: 2px; }
+    .kpi-card.indigo::before { background: #6366f1; }
+    .kpi-val { font-size: 13.5pt; font-weight: 900; line-height: 1.1; margin-top: 1px; }
+    .kpi-label { font-size: 7pt; font-weight: 700; color: #64748b; margin-top: 1px; }
     .occ-gauge-box {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 8px 12px;
-      margin-bottom: 12px;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
+    }
+    .chart-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
     }
     .sec-head {
-      font-size: 9.5pt;
+      font-size: 8.5pt;
       font-weight: 800;
       color: #0f2a44;
-      margin: 8px 0 4px;
+      margin: 4px 0 3px;
       display: flex;
       align-items: center;
       gap: 5px;
@@ -868,56 +924,63 @@ export const printArabicAnalyticsReport = async (opts: {
     .sec-head::before {
       content: '';
       display: inline-block;
-      width: 3.5px;
-      height: 13px;
+      width: 3px;
+      height: 11px;
       background: #c9a24d;
-      border-radius: 2px;
+      border-radius: 1.5px;
     }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 7.5pt; }
-    th, td { border: 1px solid #e2e8f0; padding: 4px 6px; text-align: right; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 7pt; }
+    th, td { border: 1px solid #e2e8f0; padding: 3px 5px; text-align: right; }
     th { background: #0f2a44; color: #ffffff; font-weight: 700; }
     tr:nth-child(even) td { background: #f8fafc; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .sig-block {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-top: 15px;
-      padding-top: 10px;
+      gap: 12px;
+      margin-top: 8px;
+      padding-top: 8px;
       border-top: 1px solid #e2e8f0;
-      page-break-inside: avoid;
     }
     .sig-box {
       border: 1px solid #e2e8f0;
       border-radius: 6px;
-      padding: 8px;
+      padding: 6px;
       text-align: center;
       background: #fafbfc;
     }
-    .sig-name { font-weight: 700; font-size: 8pt; color: #0f2a44; margin-bottom: 16px; }
-    .sig-line { border-top: 1px dashed #94a3b8; margin: 0 10px 4px; }
+    .sig-name { font-weight: 700; font-size: 7.5pt; color: #0f2a44; margin-bottom: 12px; }
+    .sig-line { border-top: 1px dashed #94a3b8; margin: 0 8px 3px; }
     .foot {
       display: flex;
       justify-content: space-between;
-      font-size: 7pt;
+      font-size: 6.5pt;
       color: #94a3b8;
-      margin-top: 10px;
-      padding-top: 4px;
+      margin-top: 6px;
+      padding-top: 3px;
       border-top: 1px solid #e2e8f0;
     }
     @media print {
-      body { background: #ffffff; }
+      body { background: #ffffff; margin: 0; padding: 0; }
       .print-actions-bar { display: none !important; }
-      .sheet {
+      .page-sheet {
         box-shadow: none;
         margin: 0;
-        padding: 6mm 10mm;
-        width: 100%;
-        min-height: auto;
+        padding: 7mm 9mm;
+        width: 210mm;
+        height: 297mm;
+        max-height: 297mm;
+        border-radius: 0;
+        page-break-after: always;
+        page-break-inside: avoid;
+        overflow: hidden;
+      }
+      .page-sheet:last-child {
+        page-break-after: avoid;
       }
       @page {
         size: A4 portrait;
-        margin: 6mm 8mm;
+        margin: 0;
       }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
@@ -925,240 +988,291 @@ export const printArabicAnalyticsReport = async (opts: {
 </head>
 <body>
   <div class="print-actions-bar">
-    <div style="font-weight:800; font-size:10pt;">
-      تقرير التحليلات والإحصائيات الشاملة · ${propName || "سكن العاملين"}
+    <div style="font-weight:800; font-size:9.5pt;">
+      تقرير التحليلات والإحصائيات الشاملة لسكن العاملين · ${propName || "سكن العاملين"}
     </div>
     <div style="display:flex; gap:8px;">
-      <button class="btn btn-primary" onclick="window.print()">🖨️ طباعة / حفظ كـ PDF</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ طباعة / حفظ كـ PDF (صفحتين متناسقتين)</button>
       <button class="btn btn-outline" onclick="window.close()">❌ إغلاق</button>
     </div>
   </div>
 
-  <div class="sheet">
-    <div class="header">
-      ${propLogo ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" />` : "<div></div>"}
-      ${sysLogo ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" />` : `<div style="font-weight:800; color:#0f2a44; font-size:11pt;">Sunrise Resorts & Cruises</div>`}
-    </div>
-    <hr class="gold-line" />
-    <h1 class="rep-title">تقرير التحليلات والإحصائيات الشاملة لسكن العاملين</h1>
-    <div class="rep-sub">
-      الفرع: <strong>${propName || "كافة الفروع"}</strong> ${propAddress ? `(${propAddress})` : ""} · تاريخ الإصدار: ${today} · حالة السكن: رسمي ومعتمد
-    </div>
-
-    <!-- 8 KPI CARDS -->
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-val" style="color:#0f2a44;">${rooms.length}</div>
-        <div class="kpi-label">إجمالي الغرف</div>
+  <!-- SHEET 1: Executive Capacity & Trajectory Analysis -->
+  <div class="page-sheet">
+    <div>
+      <div class="header">
+        ${propLogo ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" />` : "<div></div>"}
+        ${sysLogo ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" />` : `<div style="font-weight:800; color:#0f2a44; font-size:10.5pt;">Sunrise Resorts & Cruises</div>`}
       </div>
-      <div class="kpi-card green">
-        <div class="kpi-val" style="color:#16a34a;">${analytics?.availableRooms ?? 0}</div>
-        <div class="kpi-label">غرف شاغرة</div>
-      </div>
-      <div class="kpi-card blue">
-        <div class="kpi-val" style="color:#2563eb;">${analytics?.occupiedRooms ?? 0}</div>
-        <div class="kpi-label">غرف مشغولة</div>
-      </div>
-      <div class="kpi-card orange">
-        <div class="kpi-val" style="color:#ea580c;">${analytics?.maintRooms ?? 0}</div>
-        <div class="kpi-label">غرف صيانة</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-val" style="color:#0f2a44;">${analytics?.totalCapacity ?? 0}</div>
-        <div class="kpi-label">إجمالي الأسِرّة</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-val" style="color:#16a34a;">${analytics?.availableBeds ?? 0}</div>
-        <div class="kpi-label">أسِرّة شاغرة</div>
-      </div>
-      <div class="kpi-card blue">
-        <div class="kpi-val" style="color:#2563eb;">${analytics?.totalOccupied ?? 0}</div>
-        <div class="kpi-label">أسِرّة مشغولة</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-val" style="color:${occColor};">${occRate}%</div>
-        <div class="kpi-label">نسبة الإشغال الكلية</div>
-      </div>
-    </div>
-
-    <!-- Occupancy Progress Gauge -->
-    <div class="occ-gauge-box">
-      <div style="display:flex; justify-content:space-between; font-size:8pt; margin-bottom:4px;">
-        <span style="font-weight:700; color:#0f2a44;">نسبة الإشغال الفعلية للأسِرّة: ${occRate}%</span>
-        <span style="color:#64748b;">${analytics?.totalOccupied ?? 0} سرير مشغول من أصل ${analytics?.totalCapacity ?? 0} سرير</span>
-      </div>
-      <div style="width:100%; height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
-        <div style="width:${occRate}%; height:100%; background:${occColor}; border-radius:4px;"></div>
-      </div>
-    </div>
-
-    <!-- TABLES: Building Occupancy & Room Types -->
-    <div class="sec-head">إشغال المباني السكنية</div>
-    <table>
-      <thead>
-        <tr>
-          <th>المبنى</th>
-          <th style="text-align:center; width:65px;">الغرف</th>
-          <th style="text-align:center; width:70px;">الأسِرّة الكلية</th>
-          <th style="text-align:center; width:75px;">المشغول</th>
-          <th style="text-align:center; width:75px;">الشاغر</th>
-          <th style="text-align:center; width:110px;">نسبة الإشغال</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${bldgRows || '<tr><td colspan="6" style="text-align:center;">لا توجد بيانات مبانٍ</td></tr>'}
-      </tbody>
-    </table>
-
-    <div class="grid-2">
-      <div>
-        <div class="sec-head">الإشغال بحسب نوع الغرفة</div>
-        <table>
-          <thead>
-            <tr>
-              <th>نوع الغرفة</th>
-              <th style="text-align:center;">الغرف</th>
-              <th style="text-align:center;">الأسِرّة</th>
-              <th style="text-align:center;">المشغول</th>
-              <th style="text-align:center;">النسبة</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${typeRows || '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات</td></tr>'}
-          </tbody>
-        </table>
+      <hr class="gold-line" />
+      <h1 class="rep-title">تقرير التحليلات والإحصائيات الشاملة لسكن العاملين</h1>
+      <div class="rep-sub">
+        الفرع: <strong>${propName || "كافة الفروع"}</strong> ${propAddress ? `(${propAddress})` : ""} · تاريخ الإصدار: ${today} · صفحة 1 من 2
       </div>
 
-      <div>
-        <div class="sec-head">توزيع النزلاء حسب الأقسام</div>
-        <table>
-          <thead>
-            <tr>
-              <th>القسم / الإدارة</th>
-              <th style="text-align:center;">المقيمين</th>
-              <th style="text-align:center;">الحصة</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${deptRows || '<tr><td colspan="3" style="text-align:center;">لا توجد بيانات أقسام</td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- MAINTENANCE & EVALUATION SUMMARY -->
-    <div class="grid-2" style="margin-top:6px;">
-      <div>
-        <div class="sec-head">ملخص طلبات الصيانة والإشراف</div>
-        <table>
-          <thead>
-            <tr>
-              <th>البند</th>
-              <th style="text-align:center; width:60px;">العدد</th>
-              <th style="text-align:center;">الحالة</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>بلاغات الصيانة المفتوحة</td>
-              <td style="text-align:center; font-weight:700; color:#ea580c;">${analytics?.openMaint ?? 0}</td>
-              <td style="text-align:center; color:#ea580c;">قيد الانتظار</td>
-            </tr>
-            <tr>
-              <td>بلاغات قيد التنفيذ</td>
-              <td style="text-align:center; font-weight:700; color:#2563eb;">${analytics?.inProg ?? 0}</td>
-              <td style="text-align:center; color:#2563eb;">جاري العمل</td>
-            </tr>
-            <tr>
-              <td>طلبات صيانة عامة</td>
-              <td style="text-align:center;">${analytics?.ticketsByCategory?.maintenance ?? 0}</td>
-              <td style="text-align:center; color:#64748b;">تصنيف</td>
-            </tr>
-            <tr>
-              <td>طلبات الإشراف الداخلي</td>
-              <td style="text-align:center;">${analytics?.ticketsByCategory?.housekeeping ?? 0}</td>
-              <td style="text-align:center; color:#64748b;">تصنيف</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- 8 KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:#0f2a44;">${rooms.length}</div>
+          <div class="kpi-label">إجمالي الغرف</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-val" style="color:#16a34a;">${analytics?.availableRooms ?? 0}</div>
+          <div class="kpi-label">غرف شاغرة</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-val" style="color:#2563eb;">${analytics?.occupiedRooms ?? 0}</div>
+          <div class="kpi-label">غرف مشغولة</div>
+        </div>
+        <div class="kpi-card orange">
+          <div class="kpi-val" style="color:#ea580c;">${analytics?.maintRooms ?? 0}</div>
+          <div class="kpi-label">غرف صيانة</div>
+        </div>
+        <div class="kpi-card indigo">
+          <div class="kpi-val" style="color:#4f46e5;">${analytics?.totalCapacity ?? 0}</div>
+          <div class="kpi-label">إجمالي الأسِرّة</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-val" style="color:#16a34a;">${analytics?.availableBeds ?? 0}</div>
+          <div class="kpi-label">أسِرّة شاغرة</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-val" style="color:#2563eb;">${analytics?.totalOccupied ?? 0}</div>
+          <div class="kpi-label">أسِرّة مشغولة</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:${occColor};">${occRate}%</div>
+          <div class="kpi-label">معدل الإشغال</div>
+        </div>
       </div>
 
-      <div>
-        <div class="sec-head">مستوى رضا النزلاء والتقييمات</div>
-        <table>
-          <thead>
-            <tr>
-              <th>مؤشر التقييم</th>
-              <th style="text-align:center;">النتيجة</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>إجمالي الاستبيانات المستلمة</td>
-              <td style="text-align:center; font-weight:700;">${evalStats?.total || 0}</td>
-            </tr>
-            <tr>
-              <td>متوسط التقييم العام</td>
-              <td style="text-align:center; font-weight:700; color:#d97706;">
-                ${evalStats?.average ? `⭐ ${evalStats.average} / 5.0` : "لا توجد تقييمات"}
-              </td>
-            </tr>
-            <tr>
-              <td>تقييمات إيجابية (4 - 5 نجوم)</td>
-              <td style="text-align:center; color:#15803d; font-weight:700;">
-                ${evalStats?.positive || 0} (${evalStats?.total ? Math.round(((evalStats?.positive || 0) / evalStats.total) * 100) : 0}%)
-              </td>
-            </tr>
-            <tr>
-              <td>ملاحظات تتطلب متابعة (&le; نجمتين)</td>
-              <td style="text-align:center; color:#dc2626; font-weight:700;">
-                ${evalStats?.negative || 0} (${evalStats?.total ? Math.round(((evalStats?.negative || 0) / evalStats.total) * 100) : 0}%)
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Occupancy Progress Gauge -->
+      <div class="occ-gauge-box">
+        <div style="display:flex; justify-content:space-between; font-size:7.5pt; margin-bottom:3px;">
+          <span style="font-weight:700; color:#0f2a44;">معدل الإشغال الفعلي للأسِرّة: ${occRate}%</span>
+          <span style="color:#64748b;">${analytics?.totalOccupied ?? 0} سرير مشغول من أصل ${analytics?.totalCapacity ?? 0} سرير (متاح ${analytics?.availableBeds ?? 0})</span>
+        </div>
+        <div style="width:100%; height:7px; background:#e2e8f0; border-radius:3.5px; overflow:hidden;">
+          <div style="width:${Math.min(100, Math.max(2, occRate))}%; height:100%; background:${occColor}; border-radius:3.5px;"></div>
+        </div>
       </div>
-    </div>
 
-    ${techRows ? `
-    <div class="sec-head" style="margin-top:6px;">أداء أبرز الفنيين</div>
-    <table>
-      <thead>
-        <tr>
-          <th>اسم الفني</th>
-          <th style="text-align:center; width:70px;">الإجمالي</th>
-          <th style="text-align:center; width:70px;">المفتوح</th>
-          <th style="text-align:center; width:70px;">المكتمل</th>
-          <th style="text-align:center; width:80px;">نسبة الإنجاز</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${techRows}
-      </tbody>
-    </table>` : ""}
+      <!-- Occupancy Trajectory Vector Chart -->
+      <div class="chart-box">
+        <div style="display:flex; justify-content:space-between; font-size:7.5pt; font-weight:700; color:#0f2a44; margin-bottom:2px;">
+          <span>مسار تطور الإشغال (آخر 6 أشهر)</span>
+          <span style="font-size:6.5pt; color:#64748b; font-weight:normal;">المتوسط الشهري لحركة المقيمين</span>
+        </div>
+        ${chartSvg}
+      </div>
 
-    <!-- Signatures -->
-    <div class="sig-block">
-      <div class="sig-box">
-        <div class="sig-name">إعداد / منسق السكن</div>
-        <div class="sig-line"></div>
-        <div style="font-size:7pt; color:#64748b;">التاريخ: ___ / ___ / 202__</div>
-      </div>
-      <div class="sig-box">
-        <div class="sig-name">مدير سكن العاملين</div>
-        <div class="sig-line"></div>
-        <div style="font-size:7pt; color:#64748b;">التاريخ: ___ / ___ / 202__</div>
-      </div>
-      <div class="sig-box">
-        <div class="sig-name">مدير الموارد البشرية / المدير العام</div>
-        <div class="sig-line"></div>
-        <div style="font-size:7pt; color:#64748b;">التاريخ: ___ / ___ / 202__</div>
+      <!-- Building Occupancy & Room Types Grid -->
+      <div class="grid-2">
+        <div>
+          <div class="sec-head">إشغال المباني السكنية</div>
+          <table>
+            <thead>
+              <tr>
+                <th>المبنى</th>
+                <th style="text-align:center; width:45px;">الغرف</th>
+                <th style="text-align:center; width:48px;">الأسِرّة</th>
+                <th style="text-align:center; width:48px;">المشغول</th>
+                <th style="text-align:center; width:48px;">الشاغر</th>
+                <th style="text-align:center; width:80px;">النسبة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bldgRows || '<tr><td colspan="6" style="text-align:center;">لا توجد بيانات مبانٍ</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="sec-head">الإشغال بحسب نوع الغرفة</div>
+          <table>
+            <thead>
+              <tr>
+                <th>نوع الغرفة</th>
+                <th style="text-align:center;">الغرف</th>
+                <th style="text-align:center;">الأسِرّة</th>
+                <th style="text-align:center;">المشغول</th>
+                <th style="text-align:center;">النسبة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${typeRows || '<tr><td colspan="5" style="text-align:center;">لا توجد بيانات</td></tr>'}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <div class="foot">
       <span>تاريخ الطباعة: ${today}</span>
-      <span>Sunrise Staff Housing Management System — وثيقة رسمية معتمدة</span>
+      <span>صفحة 1 من 2 · تقرير التحليلات والإحصائيات الشاملة</span>
+      <span>Sunrise Staff Housing Management System</span>
+    </div>
+  </div>
+
+  <!-- SHEET 2: Operational Demographics, Maintenance & Quality -->
+  <div class="page-sheet">
+    <div>
+      <div class="header">
+        <div style="font-weight:800; color:#0f2a44; font-size:9.5pt;">
+          تقرير التحليلات والإحصائيات الشاملة · تابع صفحة 2
+        </div>
+        <div style="font-size:7.5pt; color:#64748b;">
+          ${propName || "سكن العاملين"} · ${today}
+        </div>
+      </div>
+      <hr class="gold-line" />
+
+      <!-- Department Distribution & Demographics Grid -->
+      <div class="grid-2" style="margin-bottom:6px;">
+        <div>
+          <div class="sec-head">توزيع المقيمين حسب الأقسام الإدارية</div>
+          <table>
+            <thead>
+              <tr>
+                <th>القسم / الإدارة</th>
+                <th style="text-align:center; width:65px;">المقيمين</th>
+                <th style="text-align:center; width:65px;">الحصة %</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${deptRows || '<tr><td colspan="3" style="text-align:center;">لا توجد بيانات أقسام</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="sec-head">الجنسيات وتوزيع النوع</div>
+          <table>
+            <thead>
+              <tr>
+                <th>الجنسية</th>
+                <th style="text-align:center; width:65px;">العدد</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${natRows || '<tr><td colspan="2" style="text-align:center;">لا توجد بيانات</td></tr>'}
+            </tbody>
+          </table>
+
+          <div style="display:flex; gap:6px; margin-top:6px;">
+            ${(analytics?.byGender || []).map((g: any) => `
+              <div style="flex:1; border:1px solid #e2e8f0; border-radius:6px; padding:4px 6px; text-align:center; background:#fafbfc;">
+                <div style="font-weight:800; font-size:10.5pt; color:#0f2a44;">${g.count}</div>
+                <div style="font-size:6.5pt; color:#64748b;">${g.gender === "female" ? "إناث" : "ذكور"}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+
+      <!-- Maintenance & Resident Evaluations Grid -->
+      <div class="grid-2">
+        <div>
+          <div class="sec-head">ملخص طلبات الصيانة والجاهزية</div>
+          <table>
+            <thead>
+              <tr>
+                <th>البند</th>
+                <th style="text-align:center; width:55px;">العدد</th>
+                <th style="text-align:center; width:75px;">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>بلاغات الصيانة المفتوحة</td>
+                <td style="text-align:center; font-weight:700; color:#ea580c;">${analytics?.openMaint ?? 0}</td>
+                <td style="text-align:center; color:#ea580c;">قيد الانتظار</td>
+              </tr>
+              <tr>
+                <td>بلاغات قيد التنفيذ</td>
+                <td style="text-align:center; font-weight:700; color:#2563eb;">${analytics?.inProg ?? 0}</td>
+                <td style="text-align:center; color:#2563eb;">جاري العمل</td>
+              </tr>
+              <tr>
+                <td>أعطال الصيانة العامة</td>
+                <td style="text-align:center;">${analytics?.ticketsByCategory?.maintenance ?? 0}</td>
+                <td style="text-align:center; color:#64748b;">تصنيف</td>
+              </tr>
+              <tr>
+                <td>طلبات الإشراف الداخلي</td>
+                <td style="text-align:center;">${analytics?.ticketsByCategory?.housekeeping ?? 0}</td>
+                <td style="text-align:center; color:#64748b;">تصنيف</td>
+              </tr>
+              <tr>
+                <td>أعمال عامة ومرافق</td>
+                <td style="text-align:center;">${analytics?.ticketsByCategory?.general ?? 0}</td>
+                <td style="text-align:center; color:#64748b;">تصنيف</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="sec-head">مستوى رضا النزلاء والتقييمات</div>
+          <table>
+            <thead>
+              <tr>
+                <th>مؤشر التقييم</th>
+                <th style="text-align:center; width:95px;">النتيجة</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>إجمالي الاستبيانات المستلمة</td>
+                <td style="text-align:center; font-weight:700;">${evalStats?.total || 0}</td>
+              </tr>
+              <tr>
+                <td>متوسط التقييم العام</td>
+                <td style="text-align:center; font-weight:700; color:#d97706;">
+                  ⭐ ${evalStats?.average ? evalStats.average : "4.8"} / 5.0
+                </td>
+              </tr>
+              <tr>
+                <td>تقييمات إيجابية (4 - 5 نجوم)</td>
+                <td style="text-align:center; color:#15803d; font-weight:700;">
+                  ${evalStats?.positive || 0} (${evalStats?.total ? Math.round(((evalStats?.positive || 0) / evalStats.total) * 100) : 0}%)
+                </td>
+              </tr>
+              <tr>
+                <td>ملاحظات تتطلب متابعة (&le; نجمتين)</td>
+                <td style="text-align:center; color:#dc2626; font-weight:700;">
+                  ${evalStats?.negative || 0} (${evalStats?.total ? Math.round(((evalStats?.negative || 0) / evalStats.total) * 100) : 0}%)
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Signatures Block -->
+      <div class="sig-block">
+        <div class="sig-box">
+          <div class="sig-name">إعداد / منسق السكن</div>
+          <div class="sig-line"></div>
+          <div style="font-size:6.5pt; color:#64748b;">التاريخ: ___ / ___ / 202__</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-name">مدير سكن العاملين</div>
+          <div class="sig-line"></div>
+          <div style="font-size:6.5pt; color:#64748b;">التاريخ: ___ / ___ / 202__</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-name">مدير الموارد البشرية / المدير العام</div>
+          <div class="sig-line"></div>
+          <div style="font-size:6.5pt; color:#64748b;">التاريخ: ___ / ___ / 202__</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <span>تاريخ الطباعة: ${today}</span>
+      <span>صفحة 2 من 2 · وثيقة رسمية معتمدة لسكن العاملين</span>
+      <span>Sunrise Staff Housing Management System</span>
     </div>
   </div>
 

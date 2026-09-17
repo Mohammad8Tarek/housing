@@ -191,17 +191,6 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <StatsCards
-        stats={stats}
-        isLoading={data.isLoading}
-        ar={ar}
-        activeTab={filters.activeTab}
-        equipmentInventory={data.equipmentInventory}
-        rooms={data.rooms}
-        assignments={data.assignments}
-      />
-
       {/* Tabs Navigation */}
       <TabsNav
         activeTab={filters.activeTab}
@@ -238,6 +227,7 @@ export default function Reports() {
           rooms={data.rooms}
           analytics={analytics}
           evalStats={data.evalStats}
+          onPrint={handleExportAnalyticsPDF}
         />
       )}
 
