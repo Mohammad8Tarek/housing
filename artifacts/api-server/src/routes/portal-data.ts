@@ -482,9 +482,20 @@ router.get("/my-maintenance", async (req, res): Promise<void> => {
       )
       .limit(1);
 
-    if (!assignment) return [];
+    const userFilters = [
+      eq(maintenanceTable.reportedBy, sess.fullName),
+      eq(maintenanceTable.reportedBy, String(sess.profileDbId)),
+      eq(maintenanceTable.assignedTo, sess.profileDbId),
+      eq(maintenanceTable.ratedByProfileId, sess.profileDbId),
+    ];
+    if (sess.profileId) {
+      userFilters.push(eq(maintenanceTable.reportedBy, sess.profileId));
+    }
+    if (assignment?.roomId) {
+      userFilters.push(eq(maintenanceTable.roomId, assignment.roomId));
+    }
 
-    const conditions = [eq(maintenanceTable.roomId, assignment.roomId)];
+    const conditions = [or(...userFilters)];
     if (targetId && !isNaN(targetId)) {
       conditions.push(eq(maintenanceTable.id, targetId));
     }
@@ -660,8 +671,8 @@ router.post("/rate-maintenance", async (req, res): Promise<void> => {
       return { error: "Ticket not found", status: 404 };
     }
 
-    // Verify ticket status is resolved, closed, or completed
-    const allowedStatuses = ["resolved", "closed", "completed"];
+    // Verify ticket status is resolved, closed, completed, or done
+    const allowedStatuses = ["resolved", "closed", "completed", "done"];
     if (!allowedStatuses.includes((ticket.status || "").toLowerCase())) {
       return {
         error: "Cannot rate a ticket that is not yet completed or closed",

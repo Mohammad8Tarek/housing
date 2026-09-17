@@ -117,6 +117,18 @@ const statusInfo: Record<
     icon: "check_circle",
     cls: "bg-green-400/10 text-green-400 border-green-400/20",
   },
+  completed: {
+    label: "Completed",
+    labelAr: "مكتمل",
+    icon: "check_circle",
+    cls: "bg-green-400/10 text-green-400 border-green-400/20",
+  },
+  done: {
+    label: "Done",
+    labelAr: "منجز",
+    icon: "check_circle",
+    cls: "bg-green-400/10 text-green-400 border-green-400/20",
+  },
   closed: {
     label: "Closed",
     labelAr: "مغلق",
@@ -124,6 +136,9 @@ const statusInfo: Record<
     cls: "bg-muted2/10 text-muted2 border-border2",
   },
 };
+
+export const isRequestCompleted = (st?: string | null) =>
+  ["resolved", "closed", "completed", "done"].includes((st || "").toLowerCase());
 
 export default function TabRequests() {
   const { t, lang } = useTheme();
@@ -235,10 +250,10 @@ export default function TabRequests() {
 
   const displayedRequests = showAll ? requests : requests.slice(0, 4);
   const pendingCount = requests.filter(
-    (r) => r.status === "open" || r.status === "in_progress",
+    (r) => ["open", "in_progress"].includes((r.status || "").toLowerCase()),
   ).length;
   const unratedRequests = requests.filter(
-    (r) => (r.status === "resolved" || r.status === "closed") && !r.rating,
+    (r) => isRequestCompleted(r.status) && !r.rating,
   );
 
   return (
@@ -592,7 +607,8 @@ export default function TabRequests() {
         ) : (
           <div className="space-y-2.5">
             {displayedRequests.map((req, idx) => {
-              const si = statusInfo[req.status] ?? statusInfo.open;
+              const normStatus = (req.status || "").toLowerCase();
+              const si = statusInfo[normStatus] ?? statusInfo.open;
               const sLabel = isRtl ? si.labelAr : si.label;
               const icon =
                 requestIcons[req.problemType] ??
@@ -628,7 +644,7 @@ export default function TabRequests() {
                               <Star className="w-2.5 h-2.5 fill-amber-500" />
                               {req.rating}/5
                             </span>
-                          ) : (req.status === "resolved" || req.status === "closed") ? (
+                          ) : isRequestCompleted(req.status) ? (
                             <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30 animate-pulse">
                               <Star className="w-2.5 h-2.5 fill-amber-400" />
                               {isRtl ? "قيّم الآن" : "Rate Now"}

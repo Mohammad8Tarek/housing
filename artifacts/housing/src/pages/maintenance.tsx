@@ -2352,11 +2352,13 @@ export default function Tickets() {
 
       {/* Ticket Detail Modal */}
       {(() => {
+        if (selectedTicketId === null) return null;
         const selectedTicket = allTickets?.find((t: any) => t.id === selectedTicketId);
+        if (!selectedTicket) return null;
         const canEditSelectedTicket = isSuperAdmin || isAdmin || (selectedTicket?.category === "housekeeping" ? canEditHsk : canEditMnt);
         return (
           <TicketDetailModal
-            open={selectedTicketId !== null}
+            open={true}
             onClose={() => setSelectedTicketId(null)}
             ticket={selectedTicket}
             occupantName={selectedTicket ? roomOccupantMap[selectedTicket.roomId] : undefined}

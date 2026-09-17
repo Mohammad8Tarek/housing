@@ -154,6 +154,18 @@ export default function RequestDetails() {
       icon: <CheckCheck className="w-3 h-3" />,
       cls: "bg-green-400/10 text-green-400 border border-green-400/20",
     },
+    completed: {
+      label: "Completed",
+      labelAr: "تم الإنجاز",
+      icon: <CheckCheck className="w-3 h-3" />,
+      cls: "bg-green-400/10 text-green-400 border border-green-400/20",
+    },
+    done: {
+      label: "Done",
+      labelAr: "منجز",
+      icon: <CheckCheck className="w-3 h-3" />,
+      cls: "bg-green-400/10 text-green-400 border border-green-400/20",
+    },
     closed: {
       label: "Closed",
       labelAr: "مغلق",
@@ -207,13 +219,18 @@ export default function RequestDetails() {
     );
   }
 
-  const si = statusInfo[request.status] ?? statusInfo.open;
+  const normStatus = (request.status || "").toLowerCase();
+  const isCompletedOrClosed = ["resolved", "closed", "completed", "done"].includes(normStatus);
+  const isInProgress = normStatus === "in_progress";
+  const isOpen = normStatus === "open";
+
+  const si = statusInfo[normStatus] ?? statusInfo.open;
   const sLabel =
-    request.status === "open"
+    isOpen
       ? t("status.open")
-      : request.status === "in_progress"
+      : isInProgress
         ? t("status.in_progress")
-        : request.status === "resolved"
+        : isCompletedOrClosed
           ? t("status.resolved")
           : t("status.closed");
 
@@ -253,11 +270,11 @@ export default function RequestDetails() {
             className="absolute top-4 start-6 h-1 bg-accent2 rounded-full transition-all duration-500"
             style={{
               width:
-                request.status === "open"
+                isOpen
                   ? "25%"
-                  : request.status === "in_progress"
+                  : isInProgress
                     ? "60%"
-                    : request.status === "resolved" || request.status === "closed"
+                    : isCompletedOrClosed
                       ? "calc(100% - 48px)"
                       : "0%",
             }}
@@ -280,7 +297,7 @@ export default function RequestDetails() {
           <div className="relative z-10 flex flex-col items-center text-center gap-1.5">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors shadow-sm ${
-                request.status !== "open" || true
+                !isOpen
                   ? "bg-accent2 text-accent2-foreground"
                   : "bg-muted text-muted2"
               }`}
@@ -299,18 +316,18 @@ export default function RequestDetails() {
           <div className="relative z-10 flex flex-col items-center text-center gap-1.5">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors shadow-sm ${
-                request.status === "in_progress" || request.status === "resolved" || request.status === "closed"
+                isInProgress || isCompletedOrClosed
                   ? "bg-accent2 text-accent2-foreground animate-pulse"
                   : "bg-muted text-muted2"
               }`}
             >
-              <Loader2 className={`w-4 h-4 ${request.status === "in_progress" ? "animate-spin" : ""}`} />
+              <Loader2 className={`w-4 h-4 ${isInProgress ? "animate-spin" : ""}`} />
             </div>
             <span className="text-[11px] font-bold text-foreground">
               {isRtl ? "جاري الإصلاح" : "In Progress"}
             </span>
             <span className="text-[9px] text-muted2">
-              {request.status === "in_progress" ? (isRtl ? "الآن" : "Active") : (isRtl ? "ميداني" : "Field")}
+              {isInProgress ? (isRtl ? "الآن" : "Active") : (isRtl ? "ميداني" : "Field")}
             </span>
           </div>
 
@@ -318,7 +335,7 @@ export default function RequestDetails() {
           <div className="relative z-10 flex flex-col items-center text-center gap-1.5">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors shadow-sm ${
-                request.status === "resolved" || request.status === "closed"
+                isCompletedOrClosed
                   ? "bg-emerald-500 text-white"
                   : "bg-muted text-muted2"
               }`}
@@ -336,7 +353,7 @@ export default function RequestDetails() {
       </div>
 
       {/* Service Quality Rating Section (Mandatory on Resolved/Closed) */}
-      {(request.status === "resolved" || request.status === "closed") && (
+      {isCompletedOrClosed && (
         <div className="bg-card border border-border2 rounded-3xl p-6 shadow-xs overflow-hidden relative">
           {request.rating && !isEditingRating ? (
             /* Already Rated View */

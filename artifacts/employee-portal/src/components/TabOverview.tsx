@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import {
   ShieldCheck,
   Building2,
@@ -20,6 +21,7 @@ import {
   Key,
   Download,
   Loader2,
+  Star,
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
@@ -62,6 +64,7 @@ export default function TabOverview({
 }: Props) {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
+  const [, setLocation] = useLocation();
   const Chevron = isRtl ? ChevronLeft : ChevronRight;
 
   const room = portalData?.room as
@@ -142,14 +145,16 @@ export default function TabOverview({
   const [docCount, setDocCount] = useState(0);
   const [eventCount, setEventCount] = useState(0);
   const [roommates, setRoommates] = useState<any[]>([]);
+  const [unratedRequest, setUnratedRequest] = useState<any>(null);
 
   useEffect(() => {
     const loadOverviewData = async () => {
       try {
-        const [notifRes, docRes, roomRes] = await Promise.all([
+        const [notifRes, docRes, roomRes, mntRes] = await Promise.all([
           apiFetch("/api/portal-notifications/my", { credentials: "include" }),
           apiFetch("/api/portal-data/documents", { credentials: "include" }),
           apiFetch("/api/portal-data/roommates", { credentials: "include" }),
+          apiFetch("/api/portal-data/my-maintenance", { credentials: "include" }),
         ]);
 
         if (notifRes.ok) {
@@ -173,6 +178,17 @@ export default function TabOverview({
           }
         }
 
+        if (mntRes.ok) {
+          const mntData = await mntRes.json().catch(() => null);
+          const reqs = Array.isArray(mntData) ? mntData : mntData?.requests || [];
+          const unrated = reqs.find(
+            (r: any) =>
+              ["resolved", "closed", "completed", "done"].includes((r.status || "").toLowerCase()) &&
+              !r.rating,
+          );
+          setUnratedRequest(unrated || null);
+        }
+
         const upcomingEvents =
           portalData?.events?.length ?? portalData?.upcomingEvents?.length ?? 0;
         setEventCount(typeof upcomingEvents === "number" ? upcomingEvents : 0);
@@ -194,6 +210,36 @@ export default function TabOverview({
     <div className="px-4 pt-3 pb-6 space-y-4">
       {/* PWA Install Banner for Mobile & Web */}
       <PWAInstallBanner compact />
+
+      {/* ── UNRATED COMPLETED SERVICE ATTENTION CARD ── */}
+      {unratedRequest && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-500/5 border-2 border-amber-500/40 p-4 shadow-md flex items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 truncate">
+                <span>{isRtl ? "خدمة مكتملة بانتظار تقييمك!" : "Completed Service Awaiting Rating!"}</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono shrink-0">
+                  #{unratedRequest.id}
+                </span>
+              </h4>
+              <p className="text-[11px] text-muted2 mt-0.5 truncate">
+                {unratedRequest.problemType || unratedRequest.description || (isRtl ? "طلب صيانة" : "Maintenance request")}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLocation("/request-details?id=" + unratedRequest.id)}
+            className="shrink-0 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Star className="w-3.5 h-3.5 fill-white" />
+            <span>{isRtl ? "قيّم الآن" : "Rate Now"}</span>
+          </button>
+        </div>
+      )}
 
       {/* ── 1. DIGITAL RESIDENT WALLET PASS (Apple Wallet / Luxury Fintech Style) ── */}
       <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#121E36] via-[#1A2B4C] to-[#20365D] text-white p-5 shadow-2xl border border-white/10">

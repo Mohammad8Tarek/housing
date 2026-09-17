@@ -430,12 +430,14 @@ export default function Dashboard() {
             : (d as { requests?: Record<string, unknown>[] }).requests || [];
           const open = requests.filter(
             (req: Record<string, unknown>) =>
-              req.status === "OPEN" ||
-              req.status === "IN_PROGRESS" ||
-              req.status === "open" ||
-              req.status === "in_progress",
+              ["open", "in_progress"].includes(String(req.status || "").toLowerCase()),
           ).length;
-          if (!cancelled) setPendingCount(open);
+          const unrated = requests.filter(
+            (req: Record<string, unknown>) =>
+              ["resolved", "closed", "completed", "done"].includes(String(req.status || "").toLowerCase()) &&
+              !req.rating,
+          ).length;
+          if (!cancelled) setPendingCount(open + unrated);
         }
       } catch {
         /* silent */

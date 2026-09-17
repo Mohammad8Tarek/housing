@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,7 @@ import {
   Minimize2,
   Building2,
   Phone,
+  Star,
 } from "lucide-react";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
@@ -192,6 +193,17 @@ export default function TicketDetailModal({
   const [creatingSub, setCreatingSub] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
+  const filteredWorkers = useMemo(() => {
+    if (!workers || !Array.isArray(workers)) return [];
+    if (ticket?.category === "housekeeping") {
+      return workers.filter((w: any) => w.specialty === "housekeeping");
+    }
+    if (ticket?.category === "maintenance") {
+      return workers.filter((w: any) => w.specialty !== "housekeeping");
+    }
+    return workers;
+  }, [workers, ticket?.category]);
+
   if (!ticket) return null;
 
   const safeSubTickets = Array.isArray(subTickets) ? subTickets : [];
@@ -268,17 +280,6 @@ export default function TicketDetailModal({
   const currentWorkerPhone =
     ticket.workerPhone ||
     workers.find((w: any) => w.id === ticket.workerId)?.phone;
-
-  const filteredWorkers = useMemo(() => {
-    if (!workers || !Array.isArray(workers)) return [];
-    if (ticket?.category === "housekeeping") {
-      return workers.filter((w: any) => w.specialty === "housekeeping");
-    }
-    if (ticket?.category === "maintenance") {
-      return workers.filter((w: any) => w.specialty !== "housekeeping");
-    }
-    return workers;
-  }, [workers, ticket?.category]);
 
   const handleAddComment = () => {
     if (!commentText.trim()) return;
@@ -550,6 +551,79 @@ export default function TicketDetailModal({
                       )}
                     </div>
                   </div>
+
+                  {/* RESIDENT SERVICE RATING CARD */}
+                  {(ticket.rating || ["resolved", "closed", "completed", "done"].includes((ticket.status || "").toLowerCase())) && (
+                    <div className="bg-card rounded-xl border border-amber-500/20 shadow-xs overflow-hidden">
+                      <div className="px-5 py-3 border-b bg-amber-500/10 dark:bg-amber-500/15 flex items-center justify-between">
+                        <span className="text-xs font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase flex items-center gap-1.5">
+                          <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                          {ar ? "تقييم جودة الخدمة من النزيل" : "RESIDENT SERVICE RATING"}
+                        </span>
+                        {ticket.ratedAt && (
+                          <span className="text-[11px] font-mono text-muted-foreground">
+                            {format(new Date(ticket.ratedAt), "dd-MM-yyyy hh:mm a")}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="p-5 space-y-3">
+                        {ticket.rating ? (
+                          <>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-5 h-5 ${
+                                      star <= ticket.rating
+                                        ? "fill-amber-400 text-amber-400 drop-shadow-xs"
+                                        : "text-muted-foreground/30"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-sm font-bold text-foreground">
+                                {ticket.rating} / 5
+                              </span>
+                              <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold border-amber-500/30">
+                                {ticket.rating === 5
+                                  ? (ar ? "ممتاز ⭐⭐⭐⭐⭐" : "Excellent")
+                                  : ticket.rating === 4
+                                    ? (ar ? "جيد جداً ⭐⭐⭐⭐" : "Very Good")
+                                    : ticket.rating === 3
+                                      ? (ar ? "مقبول ⭐⭐⭐" : "Average")
+                                      : ticket.rating === 2
+                                        ? (ar ? "ضعيف ⭐⭐" : "Poor")
+                                        : (ar ? "سيء جداً ⭐" : "Very Poor")}
+                              </Badge>
+                            </div>
+
+                            {ticket.ratingComment && (
+                              <div className="p-3.5 bg-amber-500/5 dark:bg-amber-950/20 rounded-xl text-xs leading-relaxed text-foreground border border-amber-500/20 flex items-start gap-2.5">
+                                <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                <div className="space-y-0.5">
+                                  <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
+                                    {ar ? "تعليق وملاحظات النزيل:" : "Resident Feedback:"}
+                                  </p>
+                                  <p className="italic font-medium">"{ticket.ratingComment}"</p>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-950/20 p-3.5 rounded-xl border border-amber-200 dark:border-amber-900/50">
+                            <Clock className="w-4 h-4 shrink-0 text-amber-600 animate-pulse" />
+                            <span>
+                              {ar
+                                ? "تم إنجاز التذكرة، وبانتظار قيام النزيل بتقييم مستوى الخدمة عبر بورتال الموظفين."
+                                : "Ticket marked as completed. Awaiting resident service evaluation in Resident Portal."}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* TASK CARD */}
                   <div className="bg-card rounded-xl border shadow-xs overflow-hidden">
