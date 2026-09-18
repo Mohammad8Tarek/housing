@@ -1335,7 +1335,7 @@ export function computeReportColumnWidths(
       norm.includes("comment") ||
       norm.includes("overview")
     ) {
-      return 32;
+      return 28;
     }
 
     // B. Full Names, Guest Names, Resident Names, Employee Names (HIGHEST PRIORITY)
@@ -1354,28 +1354,40 @@ export function computeReportColumnWidths(
       (norm.includes("name") && !norm.includes("building") && !norm.includes("room")) ||
       (norm.includes("اسم") && !norm.includes("مبنى") && !norm.includes("غرفة"))
     ) {
-      return 36;
+      return 25;
     }
 
-    // C. Building Name / Building & Floor (When no person name exists, Building is the primary entity!)
+    // C. Building Name (When no person name exists, Building is the primary entity!)
     if (norm.includes("building") || norm.includes("مبنى")) {
-      return hasPersonName ? 14 : 30; // Big allocation if it's the primary name!
+      return hasPersonName ? 14 : 26;
     }
 
     // D. Department & Job Title & Company
     if (norm.includes("department") || norm.includes("dept") || norm.includes("قسم")) {
-      return 18;
-    }
-    if (norm.includes("job") || norm.includes("title") || norm.includes("وظيفة") || norm.includes("مسمى")) {
-      return 16;
-    }
-    if (norm.includes("company") || norm.includes("شركة")) {
       return 15;
     }
+    if (norm.includes("job") || norm.includes("title") || norm.includes("وظيفة") || norm.includes("مسمى")) {
+      return 13;
+    }
+    if (norm.includes("company") || norm.includes("شركة")) {
+      return 13;
+    }
 
-    // E. National ID & Phone (Fixed length digits)
+    // E. Employee Codes & Profile IDs & System Codes (NEEDS ENOUGH SPACE TO AVOID TRUNCATION)
+    if (
+      norm.includes("code") ||
+      norm.includes("كود") ||
+      norm.includes("profile id") ||
+      norm.includes("profile / id") ||
+      norm.includes("رقم الموظف") ||
+      norm.includes("profilecode")
+    ) {
+      return 11.5;
+    }
+
+    // F. National ID & Phone (Fixed length digits)
     if (norm.includes("national") || norm.includes("قومي") || norm.includes("هوية")) {
-      return 11;
+      return 12;
     }
     if (
       norm.includes("phone") ||
@@ -1386,10 +1398,10 @@ export function computeReportColumnWidths(
       norm.includes("طوارئ") ||
       norm.includes("تليفون")
     ) {
-      return 10;
+      return 11;
     }
 
-    // F. Dates & Times
+    // G. Dates & Times
     if (
       norm.includes("date") ||
       norm.includes("تاريخ") ||
@@ -1402,18 +1414,15 @@ export function computeReportColumnWidths(
       norm.includes("time") ||
       norm.includes("وقت")
     ) {
-      return 8.5;
+      return 9.5;
     }
 
-    // G. Nationality & Employment Type & Gender
-    if (norm.includes("nationality") || norm.includes("جنسية") || norm.includes("employment") || norm.includes("توظيف")) {
-      return 8;
-    }
-    if (norm.includes("gender") || norm.includes("جنس") || norm.includes("policy") || norm.includes("سياسة")) {
-      return 7;
+    // H. Signatures (NEEDS ENOUGH SPACE TO SIGN PHYSICALLY)
+    if (norm.includes("sign") || norm.includes("توقيع")) {
+      return 11;
     }
 
-    // H. Status & Priority & Category & Severity & Type
+    // I. Status & Priority & Category & Severity & Type
     if (
       norm.includes("status") ||
       norm.includes("حالة") ||
@@ -1426,20 +1435,34 @@ export function computeReportColumnWidths(
       norm.includes("type") ||
       norm.includes("نوع")
     ) {
+      return 8;
+    }
+
+    // J. Nationality & Employment Type & Gender
+    if (norm.includes("nationality") || norm.includes("جنسية") || norm.includes("employment") || norm.includes("توظيف")) {
       return 7.5;
     }
-
-    // I. Single Room & Bed & Floor Identifiers (Pure compact IDs)
-    if (
-      norm.includes("room") || norm.includes("غرفة") ||
-      norm.includes("bed") || norm.includes("سرير") ||
-      norm.includes("floor") || norm.includes("طابق") || norm.includes("دور") ||
-      norm.includes("code") || norm.includes("كود")
-    ) {
-      return 6.5;
+    if (norm.includes("gender") || norm.includes("جنس") || norm.includes("policy") || norm.includes("سياسة")) {
+      return 7;
     }
 
-    // J. Counts, numbers, nights, percentages, quantities, rates
+    // K. Room No & Bed No & Floor Identifiers (Pure compact IDs)
+    if (norm.includes("room") || norm.includes("غرفة")) {
+      return 8.0;
+    }
+    if (norm.includes("bed") || norm.includes("سرير")) {
+      return 7.0;
+    }
+    if (norm.includes("floor") || norm.includes("طابق") || norm.includes("دور") || norm.includes("level") || norm.includes("درجة")) {
+      return 7.0;
+    }
+
+    // L. Checkboxes, inspection checkpoints, issues
+    if (norm.includes("check") || norm.includes("فحص") || norm.includes("issue") || norm.includes("صرف") || norm.includes("linen") || norm.includes("amenit")) {
+      return 6.0;
+    }
+
+    // M. Counts, numbers, nights, percentages, quantities, rates
     if (
       norm.includes("total") || norm.includes("إجمالي") ||
       norm.includes("count") || norm.includes("عدد") ||
@@ -1453,12 +1476,7 @@ export function computeReportColumnWidths(
       norm.includes("cap") || norm.includes("سعة") ||
       norm.includes("mins") || norm.includes("ساعة")
     ) {
-      return 5.5;
-    }
-
-    // K. Checkboxes, signatures, inspection stamps
-    if (norm.includes("check") || norm.includes("فحص") || norm.includes("sign") || norm.includes("توقيع") || norm.includes("linen") || norm.includes("amenit")) {
-      return 5;
+      return 6.0;
     }
 
     // Default fallback weight
@@ -1762,7 +1780,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("طوارئ") ||
     norm.includes("هوية")
   ) {
-    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; font-weight: 700 !important; color: #000000 !important; overflow: hidden; text-overflow: ellipsis;";
+    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;";
   }
 
   // Dates & Times
@@ -2090,7 +2108,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
             const raw = rawHeaders[i] || h;
             const align = getOperaColumnAlign(raw, isArabic);
             const colStyle = getOperaColumnStyle(raw, isArabic);
-            return `<th style="width: ${colWidthsPct[i]}%; text-align: ${align}; ${colStyle}">${h}</th>`;
+            const thStyle = `${colStyle.replace(/white-space:\s*nowrap;?/gi, "").trim()} white-space: normal; line-height: 1.15;`;
+            return `<th style="width: ${colWidthsPct[i]}%; text-align: ${align}; ${thStyle}">${h}</th>`;
           })
           .join("")}
       </tr>
