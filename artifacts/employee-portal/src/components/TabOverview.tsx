@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   ShieldCheck,
@@ -76,62 +76,52 @@ export default function TabOverview({
     employee?.firstName ||
     (isRtl ? "موظف" : "Employee");
 
+  const staffCode = String(
+    employee?.profileId ||
+    (employee as any)?.employeeId ||
+    employee?.id ||
+    ""
+  );
+
   const [greeting, setGreeting] = useState(() => getTimeGreeting(isRtl));
   const [showQrModal, setShowQrModal] = useState(false);
   const [gatePass, setGatePass] = useState<any>(null);
   const [loadingPass, setLoadingPass] = useState(false);
+  const hasFetchedPassRef = useRef(false);
+
+  const fetchPass = useCallback(async () => {
+    if (loadingPass) return;
+    setLoadingPass(true);
+    try {
+      const empCode = employee?.id || employee?.profileId;
+      const url = empCode ? `/api/gate/pass/${empCode}` : "/api/gate/pass/me";
+      const res = await apiFetch(url, { credentials: "include" });
+      if (res.ok) {
+        const json = await res.json().catch(() => null);
+        if (json?.gatePass) {
+          setGatePass(json.gatePass);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load gate pass:", err);
+    } finally {
+      setLoadingPass(false);
+    }
+  }, [employee?.id, employee?.profileId, loadingPass]);
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchPass = async () => {
-      setLoadingPass(true);
-      try {
-        const empCode = employee?.id || employee?.profileId;
-        const res = await apiFetch(`/api/gate/pass/${empCode || "me"}`, { credentials: "include" });
-        if (res.ok) {
-          const json = await res.json().catch(() => null);
-          if (isMounted && json?.gatePass) {
-            setGatePass(json.gatePass);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load gate pass:", err);
-      } finally {
-        if (isMounted) setLoadingPass(false);
-      }
-    };
-    fetchPass();
-    return () => {
-      isMounted = false;
-    };
-  }, [employee?.id, employee?.profileId]);
+    if (!hasFetchedPassRef.current) {
+      hasFetchedPassRef.current = true;
+      fetchPass();
+    }
+  }, [fetchPass]);
 
+  // When QR modal opens, if pass wasn't loaded yet, fetch once
   useEffect(() => {
     if (showQrModal && !gatePass && !loadingPass) {
-      let isMounted = true;
-      const fetchPass = async () => {
-        setLoadingPass(true);
-        try {
-          const empCode = employee?.id || employee?.profileId;
-          const res = await apiFetch(`/api/gate/pass/${empCode || "me"}`, { credentials: "include" });
-          if (res.ok) {
-            const json = await res.json().catch(() => null);
-            if (isMounted && json?.gatePass) {
-              setGatePass(json.gatePass);
-            }
-          }
-        } catch (err) {
-          console.error("Failed to load gate pass on modal open:", err);
-        } finally {
-          if (isMounted) setLoadingPass(false);
-        }
-      };
       fetchPass();
-      return () => {
-        isMounted = false;
-      };
     }
-  }, [showQrModal, gatePass, loadingPass, employee?.id, employee?.profileId]);
+  }, [showQrModal, gatePass, loadingPass, fetchPass]);
 
   useEffect(() => {
     setGreeting(getTimeGreeting(isRtl));
@@ -204,7 +194,6 @@ export default function TabOverview({
     ).length || 0;
 
   const isAssigned = Boolean(room?.roomNumber);
-  const staffCode = employee?.employeeId || employee?.profileId || "EMP-203";
 
   return (
     <div className="px-4 pt-3 pb-6 space-y-4">
@@ -560,18 +549,22 @@ export default function TabOverview({
 
             {/* Crisp Scannable QR Code */}
             <div className="relative">
-              {loadingPass && !gatePass?.qrDataUrl ? (
-                <div className="w-[180px] h-[180px] rounded-2xl bg-muted/50 border flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  <span className="text-[11px] font-medium">{isRtl ? "جاري تجهيز الرمز..." : "Loading pass..."}</span>
+              <ResidentQRCode
+                data={
+                  gatePass?.qrPayload ||
+                  `SUNRISE:GATE:P${employee?.propertyId || 1}:E${staffCode}:PID${employee?.id || 0}:R${room?.roomNumber || "UNASSIGNED"}`
+                }
+                qrDataUrl={gatePass?.qrDataUrl}
+                size={180}
+                className="border-4 border-muted"
+              />
+              {loadingPass && !gatePass?.qrDataUrl && (
+                <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-1.5 pointer-events-none animate-in fade-in">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-[10px] font-bold text-foreground/80">
+                    {isRtl ? "جاري التحديث..." : "Updating..."}
+                  </span>
                 </div>
-              ) : (
-                <ResidentQRCode
-                  data={gatePass?.qrPayload || `SUNRISE:GATE:P1:E${staffCode}:PID${employee?.id || 0}:R${room?.roomNumber || "NONE"}`}
-                  qrDataUrl={gatePass?.qrDataUrl}
-                  size={180}
-                  className="border-4 border-muted"
-                />
               )}
             </div>
 

@@ -566,6 +566,8 @@ export default function GateScannerPage() {
               {scanMode === "CAMERA" ? (
                 <div className="space-y-4 pt-1 animate-in fade-in">
                   <GateCameraScanner
+                    containerId="gate-camera-viewport-inline"
+                    active={scanMode === "CAMERA" && !fullscreenCameraOpen}
                     onScan={(decodedCode) => handleVerify(decodedCode, "CAMERA_SCAN")}
                     isVerifying={isVerifying}
                     isAr={isAr}
@@ -1092,6 +1094,8 @@ export default function GateScannerPage() {
 
           <div className="space-y-4 pt-2">
             <GateCameraScanner
+              containerId="gate-camera-viewport-fullscreen"
+              active={fullscreenCameraOpen}
               onScan={(code) => {
                 handleVerify(code, "CAMERA_SCAN");
               }}

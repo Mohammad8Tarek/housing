@@ -70,13 +70,13 @@ const allowAdminOrPortalAuth = async (req: any, res: any, next: any) => {
 // Generates official scannable Gate Pass with real QR Code
 router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Promise<void> => {
   try {
-    const rawPropertyId = req.query.propertyId ? Number(req.query.propertyId) : getTenantId(req);
+    const pSess = portalSession(req) || (req as any).portalUser;
+    const rawPropertyId = req.query.propertyId ? Number(req.query.propertyId) : (pSess?.propertyId || getTenantId(req));
     const rawParam = String(req.params.profileId).trim();
     let profileIdNum: number | null = null;
     let employeeCodeStr: string | null = null;
 
     if (rawParam === "me") {
-      const pSess = portalSession(req) || (req as any).portalUser;
       if (!pSess?.profileDbId) {
         res.status(400).json({ error: "Profile not found in portal session" });
         return;
@@ -96,7 +96,7 @@ router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Pr
     let activeAssignment: any = null;
     let roomInfo: any = null;
     let buildingInfo: any = null;
-    let propertyId = rawPropertyId || 1;
+    let propertyId = rawPropertyId || pSess?.propertyId || 1;
 
     // Helper to query within a tenant
     const loadProfileData = async (tenantDb: any, propId: number) => {

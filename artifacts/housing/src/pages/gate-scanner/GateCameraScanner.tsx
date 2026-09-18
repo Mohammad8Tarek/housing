@@ -20,12 +20,16 @@ interface GateCameraScannerProps {
   onScan: (decodedText: string) => void;
   isVerifying: boolean;
   isAr: boolean;
+  containerId?: string;
+  active?: boolean;
 }
 
 export function GateCameraScanner({
   onScan,
   isVerifying,
   isAr,
+  containerId = "gate-camera-viewport",
+  active = true,
 }: GateCameraScannerProps) {
   const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
   const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([]);
@@ -42,7 +46,10 @@ export function GateCameraScanner({
   const cooldownTimerRef = useRef<any>(null);
   const isCooldownRef = useRef<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const containerId = "gate-camera-viewport";
+  const onScanRef = useRef(onScan);
+  onScanRef.current = onScan;
+  const isVerifyingRef = useRef(isVerifying);
+  isVerifyingRef.current = isVerifying;
 
   // Stop camera helper
   const stopCamera = useCallback(async () => {
@@ -54,6 +61,8 @@ export function GateCameraScanner({
         scannerRef.current.clear();
       } catch (err) {
         console.warn("[GateCameraScanner] Error stopping camera:", err);
+      } finally {
+        scannerRef.current = null;
       }
     }
     setIsTorchOn(false);
@@ -62,44 +71,67 @@ export function GateCameraScanner({
 
   // Start camera helper
   const startCamera = useCallback(async (camId?: string, mode?: "environment" | "user") => {
-    if (!isCameraActive) return;
+    if (!active || !isCameraActive) return;
     setIsStarting(true);
     setCameraError(null);
 
     await stopCamera();
 
+    // Check secure context (HTTPS / localhost required for getUserMedia)
+    if (
+      typeof window !== "undefined" &&
+      !window.isSecureContext &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      setCameraError(
+        isAr
+          ? "متصفحك يمنع فتح الكاميرا بدون اتصال آمن (HTTPS). يرجى الدخول عبر رابط https:// أو إدخال الكود يدوياً."
+          : "Camera requires a secure context (HTTPS). Please open the site via HTTPS or enter ID manually."
+      );
+      setIsStarting(false);
+      return;
+    }
+
+    const containerEl = document.getElementById(containerId);
+    if (!containerEl) {
+      console.warn(`[GateCameraScanner] Container #${containerId} not found in DOM yet.`);
+      setIsStarting(false);
+      return;
+    }
+
     try {
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode(containerId, {
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.UPC_A,
-          ],
-          verbose: false,
-          experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true,
-          },
-        });
-      }
+      const scanner = new Html5Qrcode(containerId, {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.UPC_A,
+        ],
+        verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
+        },
+      });
+      scannerRef.current = scanner;
 
       // Enumerate cameras if not already done
+      let targetCamId = camId || selectedCameraId;
       try {
         const devs = await Html5Qrcode.getCameras();
         if (devs && devs.length > 0) {
           setCameras(devs);
-          if (!selectedCameraId && !camId) {
+          if (!targetCamId) {
             // Pick back camera if labeled, or default to first
             const backCam = devs.find((d) =>
               /back|rear|environment|خلف/i.test(d.label)
             );
             if (backCam) {
-              camId = backCam.id;
+              targetCamId = backCam.id;
               setSelectedCameraId(backCam.id);
             } else {
-              camId = devs[0].id;
+              targetCamId = devs[0].id;
               setSelectedCameraId(devs[0].id);
             }
           }
@@ -108,51 +140,63 @@ export function GateCameraScanner({
         console.warn("[GateCameraScanner] Could not enumerate devices:", e);
       }
 
-      const cameraConfig = camId
-        ? { deviceId: { exact: camId } }
-        : { facingMode: mode || facingMode };
-
-      await scannerRef.current.start(
-        cameraConfig,
-        {
-          fps: 20,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const edgeSize = Math.max(220, Math.floor(minEdge * 0.85));
-            return { width: edgeSize, height: edgeSize };
-          },
+      const scanConfig = {
+        fps: 20,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const edgeSize = Math.max(220, Math.floor(minEdge * 0.85));
+          return { width: edgeSize, height: edgeSize };
         },
-        (decodedText) => {
-          // Check cooldown
-          if (isCooldownRef.current || isVerifying) return;
-          isCooldownRef.current = true;
-          setLastScannedCode(decodedText);
-          setCooldownRemaining(2);
+      };
 
-          // Trigger parent scan handler
-          onScan(decodedText);
+      const onScanSuccess = (decodedText: string) => {
+        if (isCooldownRef.current || isVerifyingRef.current) return;
+        isCooldownRef.current = true;
+        setLastScannedCode(decodedText);
+        setCooldownRemaining(2);
 
-          // Countdown cooldown timer
-          let remaining = 2;
-          if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
-          cooldownTimerRef.current = setInterval(() => {
-            remaining -= 1;
-            setCooldownRemaining(remaining);
-            if (remaining <= 0) {
-              clearInterval(cooldownTimerRef.current);
-              isCooldownRef.current = false;
-              setCooldownRemaining(0);
-            }
-          }, 1000);
-        },
-        () => {
-          // silent frame error
+        onScanRef.current(decodedText);
+
+        let remaining = 2;
+        if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+        cooldownTimerRef.current = setInterval(() => {
+          remaining -= 1;
+          setCooldownRemaining(remaining);
+          if (remaining <= 0) {
+            clearInterval(cooldownTimerRef.current);
+            isCooldownRef.current = false;
+            setCooldownRemaining(0);
+          }
+        }, 1000);
+      };
+
+      let started = false;
+      // 1. Try with targetCamId or facingMode environment
+      try {
+        const camConfig: any = targetCamId
+          ? { deviceId: { exact: targetCamId } }
+          : { facingMode: { ideal: mode || facingMode } };
+        await scanner.start(camConfig, scanConfig, onScanSuccess, () => {});
+        started = true;
+      } catch (err1) {
+        console.warn("[GateCameraScanner] First camera attempt failed, retrying with fallback constraint:", err1);
+      }
+
+      // 2. If first attempt failed (e.g. desktop webcam without environment mode), try user or generic
+      if (!started) {
+        try {
+          await scanner.start({ facingMode: "user" }, scanConfig, onScanSuccess, () => {});
+          started = true;
+        } catch (err2) {
+          console.warn("[GateCameraScanner] User facing mode failed, trying default constraint:", err2);
+          await scanner.start({} as any, scanConfig, onScanSuccess, () => {});
+          started = true;
         }
-      );
+      }
 
       // Check for torch capability
       try {
-        const capabilities = scannerRef.current.getRunningTrackCapabilities();
+        const capabilities = scanner.getRunningTrackCapabilities();
         if (capabilities && (capabilities as any).torch) {
           setHasTorch(true);
         } else {
@@ -162,8 +206,8 @@ export function GateCameraScanner({
     } catch (err: any) {
       console.error("[GateCameraScanner] Camera start error:", err);
       let errMsg = isAr
-        ? "تعذر الوصول إلى الكاميرا. يرجى التأكد من منح الإذن للمتصفح والاتصال عبر HTTPS أو localhost."
-        : "Failed to access camera. Please allow camera permissions and ensure HTTPS or localhost.";
+        ? "تعذر الوصول إلى الكاميرا. يرجى التأكد من منح الإذن للمتصفح واستخدام اتصال HTTPS."
+        : "Failed to access camera. Please allow camera permissions and ensure HTTPS.";
       if (err?.name === "NotAllowedError" || String(err).includes("Permission")) {
         errMsg = isAr
           ? "تم رفض إذن الكاميرا. الرجاء السماح بالوصول للكاميرا من إعدادات المتصفح."
@@ -172,12 +216,16 @@ export function GateCameraScanner({
         errMsg = isAr
           ? "لم يتم العثور على أي كاميرا متصلة بالجهاز."
           : "No camera found on this device.";
+      } else if (err?.name === "NotReadableError" || String(err).includes("Could not start video source")) {
+        errMsg = isAr
+          ? "الكاميرا قيد الاستخدام بواسطة تطبيق أو نافذة أخرى."
+          : "Camera is already in use by another app or browser tab.";
       }
       setCameraError(errMsg);
     } finally {
       setIsStarting(false);
     }
-  }, [facingMode, isAr, isCameraActive, isVerifying, onScan, selectedCameraId, stopCamera]);
+  }, [active, containerId, facingMode, isAr, isCameraActive, selectedCameraId, stopCamera]);
 
   // Handle Torch Toggle
   const toggleTorch = async () => {
@@ -249,17 +297,21 @@ export function GateCameraScanner({
 
   // Lifecycle
   useEffect(() => {
-    if (isCameraActive) {
-      startCamera(selectedCameraId);
+    let timer: any = null;
+    if (active && isCameraActive) {
+      timer = setTimeout(() => {
+        startCamera(selectedCameraId);
+      }, 150);
     } else {
       stopCamera();
     }
 
     return () => {
+      if (timer) clearTimeout(timer);
       if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
       stopCamera();
     };
-  }, [isCameraActive]);
+  }, [active, isCameraActive, selectedCameraId, startCamera, stopCamera]);
 
   return (
     <div className="space-y-3">

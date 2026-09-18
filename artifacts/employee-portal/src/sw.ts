@@ -11,21 +11,29 @@ precacheAndRoute(self.__WB_MANIFEST);
 self.skipWaiting();
 clientsClaim();
 
-// Navigation fallback — serve index.html for all navigation requests
+// Navigation fallback — serve index.html for all SPA navigation requests
 registerRoute(
   new NavigationRoute(
     async ({ request }) => {
-      const cache = await caches.open("workbox-precache");
-      const cachedResponse = await cache.match("/index.html");
-      return cachedResponse || fetch(request);
+      try {
+        const cache = await caches.open("workbox-precache");
+        const cachedResponse = await cache.match("/index.html");
+        if (cachedResponse) return cachedResponse;
+        return await fetch(request);
+      } catch {
+        const cache = await caches.open("workbox-precache");
+        const fallback = await cache.match("/index.html");
+        return (
+          fallback ||
+          new Response(
+            "<!doctype html><html><head><meta charset='UTF-8'><title>Offline</title></head><body style='background:#0d0f14;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;'><h2>Sunrise Portal Offline</h2></body></html>",
+            { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
+          )
+        );
+      }
     },
     {
-      allowlist: [
-        /\/dashboard/,
-        /\/login/,
-        /\/change-password/,
-        /\/request-details/,
-      ],
+      denylist: [/^\/api\//, /^\/ws/, /\.[a-zA-Z0-9]+$/],
     },
   ),
 );

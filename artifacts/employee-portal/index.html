@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <!-- PWA Icons -->
+    <!-- PWA Icons & Manifest -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" sizes="192x192" />
+    <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- Theme & App Info -->
     <meta name="theme-color" content="#f0a500" />
@@ -22,6 +23,7 @@
     <!-- PWA Install Early Handler -->
     <script>
       window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
         window.deferredPrompt = e;
         window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
       });

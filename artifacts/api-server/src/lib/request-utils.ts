@@ -5,6 +5,7 @@ export function getTenantId(req: any): number {
     Number(req.query?.propertyId) ||
     Number(req.body?.propertyId) ||
     Number(req.session?.propertyId) ||
+    Number(req.session?.portal?.propertyId) ||
     0
   );
 }

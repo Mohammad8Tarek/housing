@@ -9,6 +9,20 @@ import { setBaseUrl, setSessionIdGetter } from "@workspace/api-client-react";
 import { getSessionId } from "./lib/api";
 import { Capacitor } from "@capacitor/core";
 import * as Sentry from "@sentry/react";
+import { registerSW } from "virtual:pwa-register";
+
+// Eagerly register service worker for PWA support on web
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+  registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      console.log("[PWA] New content available, ready to update.");
+    },
+    onOfflineReady() {
+      console.log("[PWA] App ready to work offline.");
+    },
+  });
+}
 
 // Automatically attach session ID to all TanStack Query / customFetch requests
 setSessionIdGetter(getSessionId);
