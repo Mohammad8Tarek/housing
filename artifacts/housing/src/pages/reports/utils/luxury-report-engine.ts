@@ -1451,7 +1451,7 @@ export function getOperaColumnWidth(headerName: string, colCount: number): strin
   }
 
   // Dynamic Fair-Share Fallback for ANY other column — NEVER returns empty string!
-  const defaultPct = Math.max(3.8, Math.min(15, Math.round((100 / (colCount || 10)) * 10) / 10));
+  const defaultPct = Math.max(4.5, Math.min(18, Math.round((96 / Math.max(1, (colCount - 1) || 10)) * 10) / 10));
   return `width: ${defaultPct}%;`;
 }
 
@@ -1462,14 +1462,14 @@ export function getOperaColumnWidth(headerName: string, colCount: number): strin
 export function getOperaColumnStyle(headerName: string, isArabic: boolean): string {
   const norm = (headerName || "").toLowerCase().trim();
   
-  // Sequence numbering column
+  // Sequence numbering column — tightly constrained
   if (norm === "#") {
-    return "text-align: center; white-space: nowrap;";
+    return "text-align: center; white-space: nowrap; font-weight: 700 !important; width: 28px !important; max-width: 32px !important; color: #000000 !important;";
   }
   
   // Multi-item lists, notes, descriptions, reasons, addresses: MUST WRAP NATURALLY
   if (isMultiItemOrTextColumn(headerName)) {
-    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; line-height: 1.3;`;
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; line-height: 1.3; font-weight: 600 !important; color: #000000 !important;`;
   }
 
   // Water distribution issue checks / checkboxes / signatures
@@ -1480,7 +1480,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("توقيع") ||
     norm.includes("signature")
   ) {
-    return "text-align: center; white-space: nowrap;";
+    return "text-align: center; white-space: nowrap; font-weight: 600 !important; color: #000000 !important;";
   }
 
   // Pure Single Room / Bed / Floor identifier ONLY (strictly excluding lists/summaries)
@@ -1500,7 +1500,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm === "دور";
 
   if (isStrictSingleRoomOrBed) {
-    return "text-align: center; white-space: nowrap; font-weight: 600;";
+    return "text-align: center; white-space: nowrap; font-weight: 700 !important; color: #000000 !important;";
   }
 
   // Compact number counters (good, repair, damaged, missing, quantities)
@@ -1526,7 +1526,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("nights") ||
     norm.includes("ليالي")
   ) {
-    return "text-align: center; white-space: normal; line-height: 1.15; font-weight: 600; font-variant-numeric: tabular-nums;";
+    return "text-align: center; white-space: normal; line-height: 1.15; font-weight: 700 !important; font-variant-numeric: tabular-nums; color: #000000 !important;";
   }
 
   // Codes & IDs (National ID, Phone, Employee Code, ID Number)
@@ -1543,7 +1543,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("طوارئ") ||
     norm.includes("هوية")
   ) {
-    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; overflow: hidden; text-overflow: ellipsis;";
+    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; font-weight: 700 !important; color: #000000 !important; overflow: hidden; text-overflow: ellipsis;";
   }
 
   // Dates & Times
@@ -1555,7 +1555,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("time") ||
     norm.includes("وقت")
   ) {
-    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums;";
+    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;";
   }
 
   // Status & Categories & Types & Gender
@@ -1569,7 +1569,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("priority") ||
     norm.includes("أولوية")
   ) {
-    return "text-align: center; white-space: normal; word-break: break-word; line-height: 1.2;";
+    return "text-align: center; white-space: normal; word-break: break-word; line-height: 1.2; font-weight: 700 !important; color: #000000 !important;";
   }
 
   // Names, Departments, Buildings, Jobs, Companies - WRAP NATURALLY
@@ -1592,10 +1592,10 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("أمن") ||
     norm.includes("officer")
   ) {
-    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25;`;
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25; font-weight: 700 !important; color: #000000 !important;`;
   }
 
-  return `white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25;`;
+  return `white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25; font-weight: 600 !important; color: #000000 !important;`;
 }
 
 // ----------------------------------------------------------------------------
@@ -1672,32 +1672,32 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   // Determine Orientation: Automatically enforce Landscape if >= 5 columns or explicitly requested
   const orientation = opts.orientation || (colCount >= 5 ? "landscape" : "portrait");
 
-  // Opera high-density compact sizing
-  let baseFontSizePt = 8.2;
-  let printFontSizePt = 7.5;
-  let cellPadding = "3.5px 5px";
-  let printPadding = "2.5px 4px";
+  // Opera high-density compact sizing - clear, legible & bold typography
+  let baseFontSizePt = 9.0;
+  let printFontSizePt = 8.5;
+  let cellPadding = "4px 5px";
+  let printPadding = "3px 4px";
 
   if (colCount >= 18) {
-    baseFontSizePt = 5.6;
-    printFontSizePt = 5.2;
-    cellPadding = "1.5px 2px";
-    printPadding = "1.2px 1.8px";
-  } else if (colCount >= 14) {
-    baseFontSizePt = 6.2;
-    printFontSizePt = 5.6;
-    cellPadding = "2px 2.5px";
-    printPadding = "1.5px 2px";
-  } else if (colCount >= 11) {
     baseFontSizePt = 7.0;
-    printFontSizePt = 6.2;
-    cellPadding = "2.5px 3.5px";
-    printPadding = "2px 2.5px";
-  } else if (colCount >= 8) {
-    baseFontSizePt = 7.6;
     printFontSizePt = 6.8;
+    cellPadding = "2px 2.5px";
+    printPadding = "1.8px 2.2px";
+  } else if (colCount >= 14) {
+    baseFontSizePt = 7.5;
+    printFontSizePt = 7.2;
+    cellPadding = "2.5px 3.2px";
+    printPadding = "2.2px 2.8px";
+  } else if (colCount >= 11) {
+    baseFontSizePt = 8.0;
+    printFontSizePt = 7.8;
     cellPadding = "3px 4px";
-    printPadding = "2.2px 3px";
+    printPadding = "2.6px 3.2px";
+  } else if (colCount >= 8) {
+    baseFontSizePt = 8.5;
+    printFontSizePt = 8.2;
+    cellPadding = "3.5px 4.5px";
+    printPadding = "2.8px 3.6px";
   }
 
   // Helper: Strictly determine if a column is a legitimate quantifiable metric that can be summed
@@ -1852,11 +1852,21 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       </div>`
     : "";
 
-  // Generate Opera Table Header HTML
+  // Generate Opera Table Header HTML with strict colgroup
   const theadHtml = `
+    <colgroup>
+      <col class="opera-col-seq" style="width: 28px; max-width: 32px;" />
+      ${headers
+        .map((h, i) => {
+          const raw = rawHeaders[i] || h;
+          const colWidth = getOperaColumnWidth(raw, colCount);
+          return `<col style="${colWidth}" />`;
+        })
+        .join("")}
+    </colgroup>
     <thead>
       <tr class="opera-thead-row">
-        <th style="width: 28px; min-width: 24px; text-align: center;">#</th>
+        <th class="opera-seq-col" style="width: 28px; max-width: 32px; min-width: 22px; text-align: center;">#</th>
         ${headers
           .map((h, i) => {
             const raw = rawHeaders[i] || h;
@@ -1878,7 +1888,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
             .map((row, idx) => {
               return `
                 <tr class="opera-row">
-                  <td style="text-align: center; color: #64748b; font-size: ${printFontSizePt - 0.5}pt;">${idx + 1}</td>
+                  <td class="opera-seq-col" style="width: 28px; max-width: 32px; text-align: center; color: #000000; font-weight: 700; font-size: ${printFontSizePt}pt;">${idx + 1}</td>
                   ${row
                     .map((cell, colIdx) => {
                       const raw = rawHeaders[colIdx] || "";
@@ -1894,11 +1904,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
               `;
             })
             .join("")
-        : `<tr><td colspan="${headers.length + 1}" style="text-align:center; padding:20px; color:#64748b;">${isArabic ? "لا توجد سجلات مطابقة للعرض" : "No records found matching criteria"}</td></tr>`
+        : `<tr><td colspan="${headers.length + 1}" style="text-align:center; padding:20px; color:#000000; font-weight: 700;">${isArabic ? "لا توجد سجلات مطابقة للعرض" : "No records found matching criteria"}</td></tr>`
       }
       ${tableRows.length > 0 ? `
         <tr class="opera-totals-row">
-          <td style="text-align: center; font-weight: bold;">—</td>
+          <td class="opera-seq-col" style="width: 28px; max-width: 32px; text-align: center; font-weight: 800; color: #000000;">—</td>
           <td style="font-weight: bold;" ${!hasAnyColTotal ? `colspan="${headers.length}"` : ""}>
             ${isArabic ? `إجمالي السجلات: ${tableRows.length} سجل` : `Total Records: ${tableRows.length}`}
           </td>
@@ -2156,17 +2166,30 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       table-layout: fixed !important;
       word-wrap: break-word !important;
     }
+    col.opera-col-seq,
+    table.opera-table th.opera-seq-col,
+    table.opera-table td.opera-seq-col,
+    table.opera-table th:first-child,
+    table.opera-table td:first-child {
+      width: 28px !important;
+      max-width: 32px !important;
+      min-width: 22px !important;
+      text-align: center !important;
+      padding-left: 2px !important;
+      padding-right: 2px !important;
+      white-space: nowrap !important;
+    }
     table.opera-table th {
-      background: #ffffff !important;
+      background: #f8fafc !important;
       color: #000000 !important;
-      font-weight: 700 !important;
+      font-weight: 800 !important;
       font-size: ${baseFontSizePt}pt !important;
-      border-top: 1px solid #000000 !important;
-      border-bottom: 1px solid #000000 !important;
+      border-top: 1.5px solid #000000 !important;
+      border-bottom: 1.5px solid #000000 !important;
       border-left: none !important;
       border-right: none !important;
       padding: ${cellPadding} !important;
-      line-height: 1.15;
+      line-height: 1.25;
       vertical-align: bottom;
       overflow-wrap: normal !important;
       word-break: normal !important;
@@ -2176,24 +2199,27 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     table.opera-table td {
       background: #ffffff !important;
       color: #000000 !important;
+      font-weight: 600 !important;
       border-top: none !important;
       border-left: none !important;
       border-right: none !important;
-      border-bottom: 0.5px solid #e2e8f0 !important;
+      border-bottom: 1px solid #94a3b8 !important;
       padding: ${cellPadding} !important;
       line-height: 1.35;
       vertical-align: middle;
       word-break: break-word !important;
       overflow-wrap: break-word !important;
       white-space: normal;
+      -webkit-font-smoothing: antialiased;
     }
     tr.opera-totals-row td {
-      border-top: 1px solid #000000 !important;
-      border-bottom: 1px solid #000000 !important;
-      font-weight: 700 !important;
+      border-top: 1.5px solid #000000 !important;
+      border-bottom: 2px solid #000000 !important;
+      font-weight: 800 !important;
       font-size: ${baseFontSizePt}pt !important;
-      background: #ffffff !important;
-      padding: 4.5px 5px !important;
+      background: #f8fafc !important;
+      color: #000000 !important;
+      padding: 5px 6px !important;
       word-break: break-word !important;
       overflow-wrap: break-word !important;
     }
@@ -2349,30 +2375,43 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         table-layout: fixed !important;
         font-size: ${printFontSizePt}pt !important;
       }
+      col.opera-col-seq,
+      table.opera-table th.opera-seq-col,
+      table.opera-table td.opera-seq-col,
+      table.opera-table th:first-child,
+      table.opera-table td:first-child {
+        width: 26px !important;
+        max-width: 30px !important;
+        min-width: 20px !important;
+        text-align: center !important;
+        padding-left: 1px !important;
+        padding-right: 1px !important;
+        white-space: nowrap !important;
+      }
       table.opera-table th {
         font-size: ${printFontSizePt}pt !important;
+        font-weight: 800 !important;
         padding: ${printPadding} !important;
-        border-top: 1px solid #000000 !important;
-        border-bottom: 1px solid #000000 !important;
-        background: #ffffff !important;
+        border-top: 1.5px solid #000000 !important;
+        border-bottom: 1.5px solid #000000 !important;
+        background: #f1f5f9 !important;
         color: #000000 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         word-break: normal !important;
         overflow-wrap: normal !important;
         white-space: normal !important;
-        min-width: 0 !important;
-        max-width: none !important;
       }
       table.opera-table td {
         font-size: ${printFontSizePt}pt !important;
+        font-weight: 600 !important;
         padding: ${printPadding} !important;
         color: #000000 !important;
-        border-bottom: 0.5px solid #e2e8f0 !important;
+        border-bottom: 1px solid #94a3b8 !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
-        min-width: 0 !important;
-        max-width: none !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       tr {
         page-break-inside: avoid !important;

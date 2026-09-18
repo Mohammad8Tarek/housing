@@ -146,7 +146,7 @@ export default function Reports() {
       ar,
       activeTab: filters.activeTab,
       canExportReports,
-      currentData: processor.currentData,
+      currentData: () => sortedData,
       properties: data.properties,
       propId: data.propId,
       activePropertyId,

@@ -48,9 +48,17 @@ export function sortReportRows<T extends Record<string, any>>(
   sort: ReportSort,
 ): T[] {
   if (!sort) return rows;
-  return [...rows].sort((ra, rb) =>
-    compareReportValues(ra?.[sort.key], rb?.[sort.key], sort.dir),
-  );
+  return [...rows].sort((ra, rb) => {
+    let va = ra?.[sort.key];
+    let vb = rb?.[sort.key];
+    if ((va == null || va === "") && (sort.key === "roomNumber" || sort.key === "room")) {
+      va = ra?.roomNumber ?? ra?.room ?? ra?.roomId ?? ra?.room_number ?? "";
+    }
+    if ((vb == null || vb === "") && (sort.key === "roomNumber" || sort.key === "room")) {
+      vb = rb?.roomNumber ?? rb?.room ?? rb?.roomId ?? rb?.room_number ?? "";
+    }
+    return compareReportValues(va, vb, sort.dir);
+  });
 }
 
 /** Click cycles asc → desc → off. Changing tabs resets via `resetKey`. */
