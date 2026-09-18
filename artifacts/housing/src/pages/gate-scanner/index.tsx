@@ -85,6 +85,20 @@ export default function GateScannerPage() {
 
   // State
   const [direction, setDirection] = useState<"IN" | "OUT">("IN");
+  const directionRef = useRef<"IN" | "OUT">("IN");
+  directionRef.current = direction;
+
+  const handleSetDirection = (newDir: "IN" | "OUT") => {
+    directionRef.current = newDir;
+    setDirection(newDir);
+    toast.info(
+      isAr
+        ? `تم ضبط الاتجاه: ${newDir === "IN" ? "دخول السكن (IN)" : "خروج من السكن (OUT)"}`
+        : `Direction set to: ${newDir === "IN" ? "Entry (IN)" : "Exit (OUT)"}`
+    );
+    if (scanMode === "MANUAL") inputRef.current?.focus();
+  };
+
   const [scanMode, setScanMode] = useState<"CAMERA" | "MANUAL">("CAMERA");
   const [fullscreenCameraOpen, setFullscreenCameraOpen] = useState<boolean>(false);
   const [scanInput, setScanInput] = useState("");
@@ -170,11 +184,12 @@ export default function GateScannerPage() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables: any) => {
+      const loggedDir = variables?.direction || data?.log?.direction || directionRef.current;
       toast.success(
         isAr
-          ? `تم تسجيل حركة ${direction === "IN" ? "الدخول" : "الخروج"} بنجاح`
-          : `Recorded ${direction} movement successfully`
+          ? `تم تسجيل حركة ${loggedDir === "IN" ? "الدخول" : "الخروج"} بنجاح`
+          : `Recorded ${loggedDir} movement successfully`
       );
       queryClient.invalidateQueries({ queryKey: ["gate-logs"] });
       queryClient.invalidateQueries({ queryKey: ["gate-stats"] });
@@ -185,9 +200,15 @@ export default function GateScannerPage() {
   });
 
   // Verify pass function
-  const handleVerify = async (valueToVerify?: string, methodOverride?: string) => {
+  const handleVerify = async (
+    valueToVerify?: string,
+    methodOverride?: string,
+    dirOverride?: "IN" | "OUT"
+  ) => {
     const rawVal = (valueToVerify !== undefined ? valueToVerify : scanInput).trim();
     if (!rawVal) return;
+
+    const currentDirection = dirOverride || directionRef.current || direction;
 
     setIsVerifying(true);
     try {
@@ -229,7 +250,7 @@ export default function GateScannerPage() {
             jobTitle: result.resident.jobTitle,
             roomNumber: result.resident.roomNumber,
             buildingName: result.resident.buildingName,
-            direction,
+            direction: currentDirection,
             status: "GRANTED",
             reason: result.reason,
             scanMethod: effectiveScanMethod,
@@ -252,7 +273,7 @@ export default function GateScannerPage() {
           jobTitle: result.resident?.jobTitle || null,
           roomNumber: result.resident?.roomNumber || null,
           buildingName: result.resident?.buildingName || null,
-          direction,
+          direction: currentDirection,
           status: "DENIED",
           reason: result.reason,
           scanMethod: effectiveScanMethod,
@@ -514,10 +535,7 @@ export default function GateScannerPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      setDirection("IN");
-                      if (scanMode === "MANUAL") inputRef.current?.focus();
-                    }}
+                    onClick={() => handleSetDirection("IN")}
                     className={`flex items-center justify-center gap-3 p-4 rounded-2xl font-bold transition-all border-2 text-sm sm:text-base cursor-pointer ${
                       direction === "IN"
                         ? "bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 shadow-md scale-[1.01]"
@@ -538,10 +556,7 @@ export default function GateScannerPage() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setDirection("OUT");
-                      if (scanMode === "MANUAL") inputRef.current?.focus();
-                    }}
+                    onClick={() => handleSetDirection("OUT")}
                     className={`flex items-center justify-center gap-3 p-4 rounded-2xl font-bold transition-all border-2 text-sm sm:text-base cursor-pointer ${
                       direction === "OUT"
                         ? "bg-blue-500/15 border-blue-500 text-blue-700 dark:text-blue-300 shadow-md scale-[1.01]"
@@ -568,7 +583,9 @@ export default function GateScannerPage() {
                   <GateCameraScanner
                     containerId="gate-camera-viewport-inline"
                     active={scanMode === "CAMERA" && !fullscreenCameraOpen}
-                    onScan={(decodedCode) => handleVerify(decodedCode, "CAMERA_SCAN")}
+                    direction={direction}
+                    onDirectionChange={handleSetDirection}
+                    onScan={(decodedCode, scanDir) => handleVerify(decodedCode, "CAMERA_SCAN", scanDir)}
                     isVerifying={isVerifying}
                     isAr={isAr}
                   />
@@ -813,7 +830,7 @@ export default function GateScannerPage() {
                           jobTitle: lastVerification.resident.jobTitle,
                           roomNumber: lastVerification.resident.roomNumber,
                           buildingName: lastVerification.resident.buildingName,
-                          direction,
+                          direction: directionRef.current || direction,
                           status: lastVerification.verdict,
                           reason: lastVerification.reason,
                           scanMethod: "MANUAL",
@@ -1077,18 +1094,37 @@ export default function GateScannerPage() {
       <Dialog open={fullscreenCameraOpen} onOpenChange={setFullscreenCameraOpen}>
         <DialogContent className="max-w-2xl w-full p-4 sm:p-6 rounded-3xl bg-background border shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+            <DialogTitle className="flex items-center justify-between flex-wrap gap-2">
               <span className="flex items-center gap-2 text-base font-bold text-foreground">
                 <Camera className="w-5 h-5 text-primary" />
                 {isAr ? "كاميرا فحص تصريح البوابة بملء الشاشة" : "Full Screen Gate Pass Camera"}
               </span>
-              <Badge
-                className={`font-mono text-xs px-3 py-1 uppercase rounded-full ${
-                  direction === "IN" ? "bg-emerald-500 text-white" : "bg-blue-500 text-white"
-                }`}
-              >
-                {direction === "IN" ? (isAr ? "دخول (IN)" : "IN") : (isAr ? "خروج (OUT)" : "OUT")}
-              </Badge>
+              <div className="flex items-center gap-1 p-1 bg-muted border border-border rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => handleSetDirection("IN")}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    direction === "IN"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>{isAr ? "دخول (IN)" : "IN"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetDirection("OUT")}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    direction === "OUT"
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{isAr ? "خروج (OUT)" : "OUT"}</span>
+                </button>
+              </div>
             </DialogTitle>
           </DialogHeader>
 
@@ -1096,8 +1132,10 @@ export default function GateScannerPage() {
             <GateCameraScanner
               containerId="gate-camera-viewport-fullscreen"
               active={fullscreenCameraOpen}
-              onScan={(code) => {
-                handleVerify(code, "CAMERA_SCAN");
+              direction={direction}
+              onDirectionChange={handleSetDirection}
+              onScan={(code, scanDir) => {
+                handleVerify(code, "CAMERA_SCAN", scanDir);
               }}
               isVerifying={isVerifying}
               isAr={isAr}

@@ -11,13 +11,17 @@ import {
   AlertCircle,
   CheckCircle2,
   ScanLine,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface GateCameraScannerProps {
-  onScan: (decodedText: string) => void;
+  onScan: (decodedText: string, currentDirection?: "IN" | "OUT") => void;
+  direction?: "IN" | "OUT";
+  onDirectionChange?: (dir: "IN" | "OUT") => void;
   isVerifying: boolean;
   isAr: boolean;
   containerId?: string;
@@ -26,6 +30,8 @@ interface GateCameraScannerProps {
 
 export function GateCameraScanner({
   onScan,
+  direction = "IN",
+  onDirectionChange,
   isVerifying,
   isAr,
   containerId = "gate-camera-viewport",
@@ -50,6 +56,8 @@ export function GateCameraScanner({
   onScanRef.current = onScan;
   const isVerifyingRef = useRef(isVerifying);
   isVerifyingRef.current = isVerifying;
+  const directionRef = useRef(direction);
+  directionRef.current = direction;
 
   // Stop camera helper
   const stopCamera = useCallback(async () => {
@@ -155,7 +163,7 @@ export function GateCameraScanner({
         setLastScannedCode(decodedText);
         setCooldownRemaining(2);
 
-        onScanRef.current(decodedText);
+        onScanRef.current(decodedText, directionRef.current);
 
         let remaining = 2;
         if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
@@ -272,7 +280,7 @@ export function GateCameraScanner({
         html5QrCode.clear();
       }
       toast.success(isAr ? "تم قراءة الكود بنجاح!" : "QR Code detected successfully!");
-      onScan(decodedText);
+      onScanRef.current(decodedText, directionRef.current);
     } catch (err) {
       toast.error(
         isAr
@@ -361,6 +369,36 @@ export function GateCameraScanner({
           )}
         </div>
 
+        {/* Direction Switcher directly in Camera Toolbar */}
+        {onDirectionChange && (
+          <div className="flex items-center gap-1 p-0.5 bg-background border border-border/80 rounded-xl shadow-2xs">
+            <button
+              type="button"
+              onClick={() => onDirectionChange("IN")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                direction === "IN"
+                  ? "bg-emerald-600 text-white shadow-xs scale-[1.02]"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>{isAr ? "دخول (IN)" : "IN"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDirectionChange("OUT")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                direction === "OUT"
+                  ? "bg-blue-600 text-white shadow-xs scale-[1.02]"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>{isAr ? "خروج (OUT)" : "OUT"}</span>
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-1.5">
           {/* Flip camera */}
           {isCameraActive && (
@@ -431,6 +469,32 @@ export function GateCameraScanner({
         {/* Laser Scanner Line and Corner Target Overlay (when active) */}
         {isCameraActive && !cameraError && !isStarting && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-4">
+            {/* Direction Indicator Badge (Clickable to switch) */}
+            <div className="absolute top-3 inset-x-0 flex justify-center pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => onDirectionChange && onDirectionChange(direction === "IN" ? "OUT" : "IN")}
+                className={`font-mono text-xs px-3.5 py-1 font-bold rounded-full shadow-lg transition-all flex items-center gap-1.5 border cursor-pointer ${
+                  direction === "IN"
+                    ? "bg-emerald-600/90 hover:bg-emerald-600 text-white border-emerald-400/60"
+                    : "bg-blue-600/90 hover:bg-blue-600 text-white border-blue-400/60"
+                }`}
+                title={isAr ? "اضغط للتبديل بين الدخول والخروج" : "Click to toggle IN / OUT"}
+              >
+                {direction === "IN" ? (
+                  <>
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>{isAr ? "اتجاه المسح: دخول (IN)" : "SCANNING: IN"}</span>
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>{isAr ? "اتجاه المسح: خروج (OUT)" : "SCANNING: OUT"}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
             {/* Viewfinder Target Box */}
             <div className="relative w-[85%] h-[85%] border-2 border-primary/60 rounded-3xl overflow-hidden shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
               {/* Corner Accents */}
