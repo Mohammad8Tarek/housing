@@ -1270,12 +1270,231 @@ export function getOperaColumnAlign(
 }
 
 /**
+ * Dynamic Proportional Column Width Allocator for Opera PMS Tables.
+ * Guarantees:
+ * 1. '#' sequence column is strictly bounded (2.0% - 3.0%, ~22px-28px).
+ * 2. High-text columns (Full Name, Guest Name, Resident, Notes, Reasons, Building, Department, Job)
+ *    receive the lion's share of table space (20% - 35%).
+ * 3. Compact columns (Room No, Bed No, Code, Counts, Dates, Status) stay compact.
+ * 4. Sum of all columns (including '#') equals EXACTLY 100.0% — eliminating phantom browser stretching.
+ */
+export function computeReportColumnWidths(
+  headers: string[],
+  rawHeaders: string[],
+  orientation: "landscape" | "portrait" = "landscape",
+): { seqWidthPct: number; colWidthsPct: number[] } {
+  const colCount = headers.length + 1; // including sequence column
+
+  // 1. Sequence column percentage (strictly 2.0% - 2.8% in landscape, 2.8% - 3.5% in portrait)
+  const seqWidthPct = orientation === "landscape" 
+    ? (colCount >= 14 ? 2.0 : colCount >= 9 ? 2.5 : 3.0)
+    : (colCount >= 10 ? 2.8 : 3.5);
+
+  const availablePct = 100.0 - seqWidthPct;
+
+  // Check if any person name column exists in this table
+  const hasPersonName = headers.some((h, i) => {
+    const raw = (rawHeaders[i] || "").toLowerCase().trim();
+    const trans = (h || "").toLowerCase().trim();
+    const norm = `${raw} ${trans}`;
+    return (
+      norm.includes("full name") ||
+      norm.includes("guest name") ||
+      norm.includes("resident") ||
+      norm.includes("occupant") ||
+      norm.includes("profile name") ||
+      norm.includes("الاسم") ||
+      norm.includes("اسم النزيل") ||
+      norm.includes("الموظف") ||
+      norm.includes("المقيم") ||
+      norm.includes("اسم الموظف")
+    );
+  });
+
+  // 2. Assign semantic weights based on column content
+  const weights = headers.map((h, i) => {
+    const raw = (rawHeaders[i] || "").toLowerCase().trim();
+    const trans = (h || "").toLowerCase().trim();
+    const norm = `${raw} ${trans}`;
+
+    // A. Multi-item lists, wide notes, reasons, actions, remarks (HIGHEST PRIORITY)
+    if (
+      norm.includes("notes") ||
+      norm.includes("reason") ||
+      norm.includes("action") ||
+      norm.includes("detail") ||
+      norm.includes("ملاحظات") ||
+      norm.includes("سبب") ||
+      norm.includes("بيان") ||
+      norm.includes("إجراء") ||
+      norm.includes("اجراء") ||
+      norm.includes("تفاصيل") ||
+      norm.includes("وصف") ||
+      norm.includes("problem") ||
+      norm.includes("مشكلة") ||
+      norm.includes("comment") ||
+      norm.includes("overview")
+    ) {
+      return 32;
+    }
+
+    // B. Full Names, Guest Names, Resident Names, Employee Names (HIGHEST PRIORITY)
+    if (
+      norm.includes("full name") ||
+      norm.includes("guest name") ||
+      norm.includes("resident") ||
+      norm.includes("occupant") ||
+      norm.includes("profile name") ||
+      norm.includes("الاسم") ||
+      norm.includes("اسم النزيل") ||
+      norm.includes("الموظف") ||
+      norm.includes("المقيم") ||
+      norm.includes("اسم الموظف") ||
+      norm.includes("النزلاء") ||
+      (norm.includes("name") && !norm.includes("building") && !norm.includes("room")) ||
+      (norm.includes("اسم") && !norm.includes("مبنى") && !norm.includes("غرفة"))
+    ) {
+      return 36;
+    }
+
+    // C. Building Name / Building & Floor (When no person name exists, Building is the primary entity!)
+    if (norm.includes("building") || norm.includes("مبنى")) {
+      return hasPersonName ? 14 : 30; // Big allocation if it's the primary name!
+    }
+
+    // D. Department & Job Title & Company
+    if (norm.includes("department") || norm.includes("dept") || norm.includes("قسم")) {
+      return 18;
+    }
+    if (norm.includes("job") || norm.includes("title") || norm.includes("وظيفة") || norm.includes("مسمى")) {
+      return 16;
+    }
+    if (norm.includes("company") || norm.includes("شركة")) {
+      return 15;
+    }
+
+    // E. National ID & Phone (Fixed length digits)
+    if (norm.includes("national") || norm.includes("قومي") || norm.includes("هوية")) {
+      return 11;
+    }
+    if (
+      norm.includes("phone") ||
+      norm.includes("mobile") ||
+      norm.includes("هاتف") ||
+      norm.includes("موبايل") ||
+      norm.includes("emergency") ||
+      norm.includes("طوارئ") ||
+      norm.includes("تليفون")
+    ) {
+      return 10;
+    }
+
+    // F. Dates & Times
+    if (
+      norm.includes("date") ||
+      norm.includes("تاريخ") ||
+      norm.includes("check-in") ||
+      norm.includes("check-out") ||
+      norm.includes("arrival") ||
+      norm.includes("departure") ||
+      norm.includes("hire") ||
+      norm.includes("birth") ||
+      norm.includes("time") ||
+      norm.includes("وقت")
+    ) {
+      return 8.5;
+    }
+
+    // G. Nationality & Employment Type & Gender
+    if (norm.includes("nationality") || norm.includes("جنسية") || norm.includes("employment") || norm.includes("توظيف")) {
+      return 8;
+    }
+    if (norm.includes("gender") || norm.includes("جنس") || norm.includes("policy") || norm.includes("سياسة")) {
+      return 7;
+    }
+
+    // H. Status & Priority & Category & Severity & Type
+    if (
+      norm.includes("status") ||
+      norm.includes("حالة") ||
+      norm.includes("priority") ||
+      norm.includes("أولوية") ||
+      norm.includes("category") ||
+      norm.includes("فئة") ||
+      norm.includes("severity") ||
+      norm.includes("خطورة") ||
+      norm.includes("type") ||
+      norm.includes("نوع")
+    ) {
+      return 7.5;
+    }
+
+    // I. Single Room & Bed & Floor Identifiers (Pure compact IDs)
+    if (
+      norm.includes("room") || norm.includes("غرفة") ||
+      norm.includes("bed") || norm.includes("سرير") ||
+      norm.includes("floor") || norm.includes("طابق") || norm.includes("دور") ||
+      norm.includes("code") || norm.includes("كود")
+    ) {
+      return 6.5;
+    }
+
+    // J. Counts, numbers, nights, percentages, quantities, rates
+    if (
+      norm.includes("total") || norm.includes("إجمالي") ||
+      norm.includes("count") || norm.includes("عدد") ||
+      norm.includes("qty") || norm.includes("كمية") ||
+      norm.includes("rate") || norm.includes("نسبة") ||
+      norm.includes("nights") || norm.includes("ليالي") ||
+      norm.includes("occupied") || norm.includes("مشغول") ||
+      norm.includes("vacant") || norm.includes("شاغر") ||
+      norm.includes("dirty") || norm.includes("متسخ") ||
+      norm.includes("ooo") || norm.includes("صيانة") ||
+      norm.includes("cap") || norm.includes("سعة") ||
+      norm.includes("mins") || norm.includes("ساعة")
+    ) {
+      return 5.5;
+    }
+
+    // K. Checkboxes, signatures, inspection stamps
+    if (norm.includes("check") || norm.includes("فحص") || norm.includes("sign") || norm.includes("توقيع") || norm.includes("linen") || norm.includes("amenit")) {
+      return 5;
+    }
+
+    // Default fallback weight
+    return 8;
+  });
+
+  const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+
+  // 3. Normalize weights into percentages summing to exactly availablePct
+  const rawColWidths = weights.map((w) => (w / totalWeight) * availablePct);
+
+  // Round to 1 decimal place
+  const roundedColWidths = rawColWidths.map((pct) => Math.round(pct * 10) / 10);
+
+  // Adjust rounding delta onto the largest text column so the sum is EXACTLY 100.0%
+  const currentTotal = seqWidthPct + roundedColWidths.reduce((a, b) => a + b, 0);
+  const delta = Math.round((100.0 - currentTotal) * 10) / 10;
+  
+  if (delta !== 0) {
+    let maxIdx = 0;
+    for (let i = 1; i < weights.length; i++) {
+      if (weights[i] > weights[maxIdx]) maxIdx = i;
+    }
+    roundedColWidths[maxIdx] = Math.round((roundedColWidths[maxIdx] + delta) * 10) / 10;
+  }
+
+  return { seqWidthPct, colWidthsPct: roundedColWidths };
+}
+
+/**
  * Intelligent proportional column width allocator for Opera PMS tables.
  * Ensures the sum of all columns strictly fits within the 100% printable A4 page width.
  */
 export function getOperaColumnWidth(headerName: string, colCount: number): string {
   const norm = (headerName || "").toLowerCase().trim();
-  if (norm === "#") return "width: 26px;";
+  if (norm === "#") return "width: 2.5%;";
 
   // Multi-item list, notes, reasons, or wide description column
   if (isMultiItemOrTextColumn(norm)) {
@@ -1464,7 +1683,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
   
   // Sequence numbering column — tightly constrained
   if (norm === "#") {
-    return "text-align: center; white-space: nowrap; font-weight: 700 !important; width: 28px !important; max-width: 32px !important; color: #000000 !important;";
+    return "text-align: center; white-space: nowrap; font-weight: 700 !important; color: #000000 !important;";
   }
   
   // Multi-item lists, notes, descriptions, reasons, addresses: MUST WRAP NATURALLY
@@ -1852,28 +2071,26 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       </div>`
     : "";
 
-  // Generate Opera Table Header HTML with strict colgroup
+  // Determine exact proportional column widths guaranteeing 100.0% sum
+  const { seqWidthPct, colWidthsPct } = computeReportColumnWidths(headers, rawHeaders, orientation);
+
+  // Generate Opera Table Header HTML with strict colgroup summing to 100.0%
   const theadHtml = `
     <colgroup>
-      <col class="opera-col-seq" style="width: 28px; max-width: 32px;" />
+      <col class="opera-col-seq" style="width: ${seqWidthPct}%;" />
       ${headers
-        .map((h, i) => {
-          const raw = rawHeaders[i] || h;
-          const colWidth = getOperaColumnWidth(raw, colCount);
-          return `<col style="${colWidth}" />`;
-        })
+        .map((_, i) => `<col style="width: ${colWidthsPct[i]}%;" />`)
         .join("")}
     </colgroup>
     <thead>
       <tr class="opera-thead-row">
-        <th class="opera-seq-col" style="width: 28px; max-width: 32px; min-width: 22px; text-align: center;">#</th>
+        <th class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center;">#</th>
         ${headers
           .map((h, i) => {
             const raw = rawHeaders[i] || h;
             const align = getOperaColumnAlign(raw, isArabic);
             const colStyle = getOperaColumnStyle(raw, isArabic);
-            const colWidth = getOperaColumnWidth(raw, colCount);
-            return `<th style="text-align: ${align}; ${colWidth} ${colStyle}">${h}</th>`;
+            return `<th style="width: ${colWidthsPct[i]}%; text-align: ${align}; ${colStyle}">${h}</th>`;
           })
           .join("")}
       </tr>
@@ -1888,7 +2105,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
             .map((row, idx) => {
               return `
                 <tr class="opera-row">
-                  <td class="opera-seq-col" style="width: 28px; max-width: 32px; text-align: center; color: #000000; font-weight: 700; font-size: ${printFontSizePt}pt;">${idx + 1}</td>
+                  <td class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center; color: #000000; font-weight: 700; font-size: ${printFontSizePt}pt;">${idx + 1}</td>
                   ${row
                     .map((cell, colIdx) => {
                       const raw = rawHeaders[colIdx] || "";
@@ -1897,7 +2114,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
                       const formatted = formatStatusBadgeHtml(cell, isArabic);
                       const isNum = typeof cell === "number" || (!isNaN(Number(cell)) && cell !== "" && cell !== null && !String(cell).includes("-") && !String(cell).includes("/"));
                       const displayVal = (isNum && typeof cell === "number") ? cell.toLocaleString() : formatted;
-                      return `<td style="text-align: ${align}; ${colStyle}">${displayVal}</td>`;
+                      return `<td style="width: ${colWidthsPct[colIdx]}%; text-align: ${align}; ${colStyle}">${displayVal}</td>`;
                     })
                     .join("")}
                 </tr>
@@ -1908,7 +2125,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
       ${tableRows.length > 0 ? `
         <tr class="opera-totals-row">
-          <td class="opera-seq-col" style="width: 28px; max-width: 32px; text-align: center; font-weight: 800; color: #000000;">—</td>
+          <td class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center; font-weight: 800; color: #000000;">—</td>
           <td style="font-weight: bold;" ${!hasAnyColTotal ? `colspan="${headers.length}"` : ""}>
             ${isArabic ? `إجمالي السجلات: ${tableRows.length} سجل` : `Total Records: ${tableRows.length}`}
           </td>
@@ -2171,13 +2388,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     table.opera-table td.opera-seq-col,
     table.opera-table th:first-child,
     table.opera-table td:first-child {
-      width: 28px !important;
+      width: ${seqWidthPct}% !important;
       max-width: 32px !important;
-      min-width: 22px !important;
+      min-width: 18px !important;
       text-align: center !important;
       padding-left: 2px !important;
       padding-right: 2px !important;
       white-space: nowrap !important;
+      overflow: hidden !important;
     }
     table.opera-table th {
       background: #f8fafc !important;
@@ -2380,13 +2598,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       table.opera-table td.opera-seq-col,
       table.opera-table th:first-child,
       table.opera-table td:first-child {
-        width: 26px !important;
-        max-width: 30px !important;
-        min-width: 20px !important;
+        width: ${seqWidthPct}% !important;
+        max-width: 28px !important;
+        min-width: 16px !important;
         text-align: center !important;
         padding-left: 1px !important;
         padding-right: 1px !important;
         white-space: nowrap !important;
+        overflow: hidden !important;
       }
       table.opera-table th {
         font-size: ${printFontSizePt}pt !important;
