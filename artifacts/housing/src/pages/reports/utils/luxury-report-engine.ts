@@ -1236,11 +1236,10 @@ export function getOperaColumnAlign(
     return "center";
   }
 
-  // Center aligned codes, single rooms, beds, dates, statuses, issues, signatures, checks
+  // Center aligned single rooms, beds, dates, statuses, issues, signatures, checks
   if (
     norm.includes("date") ||
     norm.includes("status") ||
-    norm.includes("code") ||
     norm.includes("type") ||
     norm.includes("floor") ||
     norm.includes("gender") ||
@@ -1250,7 +1249,6 @@ export function getOperaColumnAlign(
     headerName.includes("سرير") ||
     headerName.includes("تاريخ") ||
     headerName.includes("حالة") ||
-    headerName.includes("كود") ||
     headerName.includes("طابق") ||
     headerName.includes("دور") ||
     headerName.includes("جنس") ||
@@ -1354,7 +1352,7 @@ export function computeReportColumnWidths(
       (norm.includes("name") && !norm.includes("building") && !norm.includes("room")) ||
       (norm.includes("اسم") && !norm.includes("مبنى") && !norm.includes("غرفة"))
     ) {
-      return 25;
+      return 22;
     }
 
     // C. Building Name (When no person name exists, Building is the primary entity!)
@@ -1382,7 +1380,7 @@ export function computeReportColumnWidths(
       norm.includes("رقم الموظف") ||
       norm.includes("profilecode")
     ) {
-      return 11.5;
+      return 16;
     }
 
     // F. National ID & Phone (Fixed length digits)
@@ -1766,10 +1764,19 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     return "text-align: center; white-space: normal; line-height: 1.15; font-weight: 700 !important; font-variant-numeric: tabular-nums; color: #000000 !important;";
   }
 
-  // Codes & IDs (National ID, Phone, Employee Code, ID Number)
+  // Employee Codes & Identifiers (Align to start so long codes do not overflow outward)
   if (
     norm.includes("كود") ||
     norm.includes("code") ||
+    norm.includes("profile id") ||
+    norm.includes("profile / id") ||
+    norm.includes("رقم الموظف")
+  ) {
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;`;
+  }
+
+  // National ID & Phone & Emergency Contacts (Fixed numeric)
+  if (
     norm.includes("قومي") ||
     norm.includes("national") ||
     norm.includes("هاتف") ||
@@ -2447,6 +2454,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       word-break: break-word !important;
       overflow-wrap: break-word !important;
       white-space: normal;
+      overflow: hidden !important;
       -webkit-font-smoothing: antialiased;
     }
     tr.opera-totals-row td {
@@ -2648,6 +2656,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         border-bottom: 1px solid #94a3b8 !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
+        overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
