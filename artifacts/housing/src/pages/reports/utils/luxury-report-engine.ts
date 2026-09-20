@@ -1275,6 +1275,7 @@ export function getOperaColumnAlign(
  *    receive the lion's share of table space (20% - 35%).
  * 3. Compact columns (Room No, Bed No, Code, Counts, Dates, Status) stay compact.
  * 4. Sum of all columns (including '#') equals EXACTLY 100.0% — eliminating phantom browser stretching.
+ */
 export function computeReportColumnWidths(
   headers: string[],
   rawHeaders: string[],
