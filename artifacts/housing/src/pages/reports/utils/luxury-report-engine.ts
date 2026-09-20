@@ -1921,9 +1921,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       if (printWindow) {
         printWindow.document.open();
         printWindow.document.write(`<!DOCTYPE html>
-<html dir="${dir}" lang="${lang}">
+<html class="notranslate" dir="${dir}" lang="${lang}">
 <head>
   <meta charset="utf-8">
+  <meta name="google" content="notranslate">
   <title>${isArabic ? "جاري تجهيز التقرير الفاخر..." : "Preparing Luxury Report..."}</title>
   <style>
     body {
@@ -2290,9 +2291,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Complete Opera PMS HTML Document
   const html = `<!DOCTYPE html>
-<html lang="${lang}" dir="${dir}">
+<html class="notranslate" lang="${lang}" dir="${dir}">
 <head>
   <meta charset="UTF-8" />
+  <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${reportTitle} — ${propName}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -3003,12 +3005,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         printFrame = document.createElement("iframe");
         printFrame.id = "__sunrise_luxury_print_frame";
         printFrame.style.position = "fixed";
-        printFrame.style.right = "0";
-        printFrame.style.bottom = "0";
-        printFrame.style.width = "0";
-        printFrame.style.height = "0";
+        printFrame.style.left = "-9999px";
+        printFrame.style.top = "-9999px";
+        printFrame.style.width = "1024px";
+        printFrame.style.height = "768px";
         printFrame.style.border = "0";
-        printFrame.style.visibility = "hidden";
+        printFrame.style.opacity = "0";
+        printFrame.style.pointerEvents = "none";
         printFrame.setAttribute("aria-hidden", "true");
         document.body.appendChild(printFrame);
       }
@@ -3019,14 +3022,16 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         frameDoc.write(html);
         frameDoc.close();
         if (autoPrint) {
-          setTimeout(() => {
+          const triggerPrint = () => {
             try {
               printFrame?.contentWindow?.focus();
               printFrame?.contentWindow?.print();
             } catch (err) {
               console.error("Iframe print execution failed:", err);
             }
-          }, 500);
+          };
+          printFrame.onload = triggerPrint;
+          setTimeout(triggerPrint, 500);
         }
         return;
       }
