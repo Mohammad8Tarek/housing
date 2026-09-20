@@ -77,7 +77,7 @@ function generateOtpEmailHtml(name: string, otp: string, expiresInSeconds: numbe
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>رمز التحقق لاستعادة كلمة المرور | Sunrise Staff Housing</title>
+  <title>رمز التحقق لاستعادة كلمة المرور | SUNRISE Resident</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-font-smoothing: antialiased; color: #1e293b;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 30px 15px;">
@@ -93,7 +93,7 @@ function generateOtpEmailHtml(name: string, otp: string, expiresInSeconds: numbe
                 SUNRISE
               </div>
               <div style="font-size: 14px; font-weight: 500; color: #e2e8f0; letter-spacing: 0.5px;">
-                Resorts & Cruises &bull; Staff Housing Management
+                Resorts & Cruises &bull; SUNRISE Resident
               </div>
               <div style="margin-top: 12px; display: inline-block; padding: 4px 14px; background-color: rgba(201, 162, 77, 0.15); border: 1px solid rgba(201, 162, 77, 0.3); border-radius: 20px; font-size: 12px; color: #fef08a;">
                 إدارة السكن الفندقي والعاملين
@@ -108,7 +108,7 @@ function generateOtpEmailHtml(name: string, otp: string, expiresInSeconds: numbe
                 مرحباً ${escapeHtml(name)} 👋
               </h2>
               <p style="font-size: 15px; line-height: 1.7; color: #475569; margin: 0 0 24px 0;">
-                لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك في <strong>نظام إدارة سكن العاملين (Sunrise Staff Housing)</strong>.
+                لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك في <strong>SUNRISE Resident</strong>.
                 استخدم رمز التحقق (OTP) التالي لتأكيد هويتك ومتابعة العملية:
               </p>
 
@@ -128,7 +128,7 @@ function generateOtpEmailHtml(name: string, otp: string, expiresInSeconds: numbe
               <!-- English Mirror -->
               <div style="direction: ltr; text-align: left; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 20px;">
                 <p style="font-size: 13px; line-height: 1.6; color: #64748b; margin: 0;">
-                  We received a password reset request for your Sunrise Staff Housing account.
+                  We received a password reset request for your SUNRISE Resident account.
                   Please enter the 6-digit code above to reset your password. This code will expire in <strong>${minutes} minutes (${expiresInSeconds} seconds)</strong>.
                 </p>
               </div>
@@ -149,7 +149,7 @@ function generateOtpEmailHtml(name: string, otp: string, expiresInSeconds: numbe
           <tr>
             <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 22px 30px; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.6;">
               <div>&copy; ${new Date().getFullYear()} Sunrise Resorts & Cruises. All rights reserved.</div>
-              <div style="margin-top: 4px;">Sunrise Staff Housing Management System &bull; Secure Authentication Module</div>
+              <div style="margin-top: 4px;">SUNRISE Resident &bull; Secure Authentication Module</div>
             </td>
           </tr>
 
@@ -200,14 +200,14 @@ export async function sendOtpEmail({
       config?.smtpFrom ||
       process.env.SMTP_FROM ||
       process.env.MAIL_FROM ||
-      `"Sunrise Staff Housing" <${config?.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`;
+      `"SUNRISE Resident" <${config?.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`;
 
     const info = await transporter.sendMail({
       from: fromAddress,
       to: toEmail,
-      subject: `رمز التحقق لاستعادة كلمة المرور: ${otpCode} | Sunrise Staff Housing`,
+      subject: `رمز التحقق لاستعادة كلمة المرور: ${otpCode} | SUNRISE Resident`,
       html: generateOtpEmailHtml(recipientName, otpCode, expiresInSeconds),
-      text: `مرحباً ${recipientName}،\nرمز التحقق لاستعادة كلمة المرور الخاص بك في Sunrise Staff Housing هو: ${otpCode}\nهذا الرمز صالح لمدة ${Math.ceil(expiresInSeconds / 60)} دقيقة (${expiresInSeconds} ثانية) فقط.\nإذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.`,
+      text: `مرحباً ${recipientName}،\nرمز التحقق لاستعادة كلمة المرور الخاص بك في SUNRISE Resident هو: ${otpCode}\nهذا الرمز صالح لمدة ${Math.ceil(expiresInSeconds / 60)} دقيقة (${expiresInSeconds} ثانية) فقط.\nإذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.`,
     });
 
     console.log(`[AUTH OTP] Email sent successfully to ${toEmail}. Message ID: ${info.messageId}`);
@@ -241,22 +241,22 @@ export async function sendTestEmail({
     const fromAddress =
       config?.smtpFrom ||
       process.env.SMTP_FROM ||
-      `"Sunrise Staff Housing" <${config?.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`;
+      `"SUNRISE Resident" <${config?.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`;
 
     const info = await transporter.sendMail({
       from: fromAddress,
       to: toEmail,
-      subject: "اختبار إعدادات البريد الإلكتروني | Sunrise Staff Housing",
+      subject: "اختبار إعدادات البريد الإلكتروني | SUNRISE Resident",
       html: `
         <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #0F2A44 0%, #1e3a5f 100%); padding: 24px; text-align: center; border-radius: 8px; color: #C9A24D;">
             <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 1px;">SUNRISE</h1>
-            <p style="margin: 6px 0 0; color: #e2e8f0; font-size: 13px;">Resorts & Cruises &bull; Staff Housing Management</p>
+            <p style="margin: 6px 0 0; color: #e2e8f0; font-size: 13px;">Resorts & Cruises &bull; SUNRISE Resident</p>
           </div>
           <div style="padding: 24px 8px;">
             <h2 style="color: #0F2A44; margin-top: 0; font-size: 19px;">تهانينا! إعدادات البريد الإلكتروني تعمل بنجاح 🎉</h2>
             <p style="color: #475569; font-size: 14px; line-height: 1.7;">
-              تم إرسال هذه الرسالة التجريبية بنجاح لتأكيد صحة اتصال سيرفر البريد الإلكتروني (SMTP) بنظام إدارة سكن العاملين (Sunrise Staff Housing).
+              تم إرسال هذه الرسالة التجريبية بنجاح لتأكيد صحة اتصال سيرفر البريد الإلكتروني (SMTP) بنظام SUNRISE Resident.
             </p>
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 13px; color: #334155;">
               <div style="margin-bottom: 8px;"><strong>سيرفر البريد (Host):</strong> ${escapeHtml(config?.smtpHost || process.env.SMTP_HOST || 'Default')}</div>
@@ -273,7 +273,7 @@ export async function sendTestEmail({
           </div>
         </div>
       `,
-      text: `تهانينا! إعدادات البريد الإلكتروني تعمل بنجاح في نظام Sunrise Staff Housing.\nالسيرفر: ${config?.smtpHost || process.env.SMTP_HOST || 'Default'}\nالمنفذ: ${config?.smtpPort || process.env.SMTP_PORT || '587'}\nتاريخ الاختبار: ${new Date().toLocaleString('ar-EG')}`,
+      text: `تهانينا! إعدادات البريد الإلكتروني تعمل بنجاح في نظام SUNRISE Resident.\nالسيرفر: ${config?.smtpHost || process.env.SMTP_HOST || 'Default'}\nالمنفذ: ${config?.smtpPort || process.env.SMTP_PORT || '587'}\nتاريخ الاختبار: ${new Date().toLocaleString('ar-EG')}`,
     });
 
     console.log(`[SMTP TEST] Test email sent successfully to ${toEmail}. Message ID: ${info.messageId}`);
