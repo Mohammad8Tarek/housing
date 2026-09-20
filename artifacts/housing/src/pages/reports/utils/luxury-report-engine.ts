@@ -1275,27 +1275,60 @@ export function getOperaColumnAlign(
  *    receive the lion's share of table space (20% - 35%).
  * 3. Compact columns (Room No, Bed No, Code, Counts, Dates, Status) stay compact.
  * 4. Sum of all columns (including '#') equals EXACTLY 100.0% — eliminating phantom browser stretching.
- */
 export function computeReportColumnWidths(
   headers: string[],
   rawHeaders: string[],
   orientation: "landscape" | "portrait" = "landscape",
+  tableRows: any[][] = [],
 ): { seqWidthPct: number; colWidthsPct: number[] } {
   const colCount = headers.length + 1; // including sequence column
 
-  // 1. Sequence column percentage (strictly 2.0% - 2.8% in landscape, 2.8% - 3.5% in portrait)
+  // 1. Sequence column percentage (compact: strictly 2.2% - 2.8% in landscape, 2.8% - 3.5% in portrait)
   const seqWidthPct = orientation === "landscape" 
-    ? (colCount >= 14 ? 2.0 : colCount >= 9 ? 2.5 : 3.0)
-    : (colCount >= 10 ? 2.8 : 3.5);
+    ? (colCount >= 14 ? 2.2 : colCount >= 9 ? 2.5 : 3.0)
+    : (colCount >= 10 ? 3.0 : 3.5);
 
   const availablePct = 100.0 - seqWidthPct;
 
-  // Check if any person name column exists in this table
-  const hasPersonName = headers.some((h, i) => {
-    const raw = (rawHeaders[i] || "").toLowerCase().trim();
+  // Helper to strip HTML tags when measuring cell string lengths
+  const stripHtml = (val: any): string => {
+    if (val === null || val === undefined) return "";
+    const s = String(val);
+    return s.replace(/<[^>]*>/g, "").trim();
+  };
+
+  // Inspect actual cell contents in tableRows (sample up to 200 rows for instant performance)
+  const sampleRows = tableRows.slice(0, 200);
+
+  // 2. Measure actual data length and semantic type for each column
+  const columnMetrics = headers.map((h, colIdx) => {
+    const raw = (rawHeaders[colIdx] || "").toLowerCase().trim();
     const trans = (h || "").toLowerCase().trim();
     const norm = `${raw} ${trans}`;
-    return (
+
+    // Measure maximum and average text length in this column
+    let maxCharLen = (h || "").length;
+    let totalChars = 0;
+    let validCount = 0;
+    let allNumeric = true;
+
+    for (const row of sampleRows) {
+      const cellVal = row[colIdx];
+      const text = stripHtml(cellVal);
+      if (text.length > 0 && text !== "—" && text !== "-") {
+        maxCharLen = Math.max(maxCharLen, text.length);
+        totalChars += text.length;
+        validCount++;
+        if (isNaN(Number(text.replace(/,/g, ""))) && !text.includes("-") && !text.includes("/")) {
+          allNumeric = false;
+        }
+      }
+    }
+
+    const avgCharLen = validCount > 0 ? totalChars / validCount : maxCharLen;
+
+    // Detect semantic column category
+    const isPersonName =
       norm.includes("full name") ||
       norm.includes("guest name") ||
       norm.includes("resident") ||
@@ -1303,20 +1336,12 @@ export function computeReportColumnWidths(
       norm.includes("profile name") ||
       norm.includes("الاسم") ||
       norm.includes("اسم النزيل") ||
-      norm.includes("الموظف") ||
-      norm.includes("المقيم") ||
-      norm.includes("اسم الموظف")
-    );
-  });
+      norm.includes("اسم الموظف") ||
+      norm.includes("النزلاء") ||
+      norm.includes("اسم المقيم") ||
+      (norm.includes("name") && !norm.includes("building") && !norm.includes("room") && !norm.includes("company") && !norm.includes("floor"));
 
-  // 2. Assign semantic weights based on column content
-  const weights = headers.map((h, i) => {
-    const raw = (rawHeaders[i] || "").toLowerCase().trim();
-    const trans = (h || "").toLowerCase().trim();
-    const norm = `${raw} ${trans}`;
-
-    // A. Multi-item lists, wide notes, reasons, actions, remarks (HIGHEST PRIORITY)
-    if (
+    const isWideText =
       norm.includes("notes") ||
       norm.includes("reason") ||
       norm.includes("action") ||
@@ -1331,166 +1356,182 @@ export function computeReportColumnWidths(
       norm.includes("problem") ||
       norm.includes("مشكلة") ||
       norm.includes("comment") ||
-      norm.includes("overview")
-    ) {
-      return 28;
-    }
+      norm.includes("overview");
 
-    // B. Full Names, Guest Names, Resident Names, Employee Names (HIGHEST PRIORITY)
-    if (
-      norm.includes("full name") ||
-      norm.includes("guest name") ||
-      norm.includes("resident") ||
-      norm.includes("occupant") ||
-      norm.includes("profile name") ||
-      norm.includes("الاسم") ||
-      norm.includes("اسم النزيل") ||
-      norm.includes("الموظف") ||
-      norm.includes("المقيم") ||
-      norm.includes("اسم الموظف") ||
-      norm.includes("النزلاء") ||
-      (norm.includes("name") && !norm.includes("building") && !norm.includes("room")) ||
-      (norm.includes("اسم") && !norm.includes("مبنى") && !norm.includes("غرفة"))
-    ) {
-      return 22;
-    }
+    const isCompactNumberOrId =
+      norm === "room" ||
+      norm.includes("room no") ||
+      norm.includes("room number") ||
+      norm === "غرفة" ||
+      norm === "رقم الغرفة" ||
+      norm.includes("bed no") ||
+      norm.includes("bed number") ||
+      norm === "سرير" ||
+      norm === "رقم السرير" ||
+      norm === "bed" ||
+      norm.includes("nights") ||
+      norm.includes("ليالي") ||
+      norm.includes("count") ||
+      norm.includes("عدد") ||
+      norm.includes("qty") ||
+      norm.includes("كمية") ||
+      norm.includes("age") ||
+      norm.includes("عمر") ||
+      norm.includes("floor") ||
+      norm.includes("طابق") ||
+      norm.includes("دور") ||
+      norm.includes("level") ||
+      norm.includes("dirty") ||
+      norm.includes("متسخ") ||
+      norm.includes("ooo") ||
+      norm.includes("صيانة") ||
+      norm.includes("vacant") ||
+      norm.includes("شاغر") ||
+      norm.includes("occupied") ||
+      norm.includes("مشغول") ||
+      (allNumeric && maxCharLen <= 6 && !norm.includes("national") && !norm.includes("phone"));
 
-    // C. Building Name (When no person name exists, Building is the primary entity!)
-    if (norm.includes("building") || norm.includes("مبنى")) {
-      return hasPersonName ? 14 : 26;
-    }
-
-    // D. Department & Job Title & Company
-    if (norm.includes("department") || norm.includes("dept") || norm.includes("قسم")) {
-      return 15;
-    }
-    if (norm.includes("job") || norm.includes("title") || norm.includes("وظيفة") || norm.includes("مسمى")) {
-      return 13;
-    }
-    if (norm.includes("company") || norm.includes("شركة")) {
-      return 13;
-    }
-
-    // E. Employee Codes & Profile IDs & System Codes (NEEDS ENOUGH SPACE TO AVOID TRUNCATION)
-    if (
-      norm.includes("code") ||
-      norm.includes("كود") ||
-      norm.includes("profile id") ||
-      norm.includes("profile / id") ||
-      norm.includes("رقم الموظف") ||
-      norm.includes("profilecode")
-    ) {
-      return 16;
-    }
-
-    // F. National ID & Phone (Fixed length digits)
-    if (norm.includes("national") || norm.includes("قومي") || norm.includes("هوية")) {
-      return 12;
-    }
-    if (
+    const isFixedFormatId =
+      norm.includes("national") ||
+      norm.includes("قومي") ||
+      norm.includes("هوية") ||
       norm.includes("phone") ||
-      norm.includes("mobile") ||
       norm.includes("هاتف") ||
+      norm.includes("mobile") ||
       norm.includes("موبايل") ||
-      norm.includes("emergency") ||
-      norm.includes("طوارئ") ||
-      norm.includes("تليفون")
-    ) {
-      return 11;
-    }
-
-    // G. Dates & Times
-    if (
       norm.includes("date") ||
       norm.includes("تاريخ") ||
+      norm.includes("time") ||
+      norm.includes("وقت") ||
       norm.includes("check-in") ||
       norm.includes("check-out") ||
-      norm.includes("arrival") ||
-      norm.includes("departure") ||
-      norm.includes("hire") ||
-      norm.includes("birth") ||
-      norm.includes("time") ||
-      norm.includes("وقت")
-    ) {
-      return 9.5;
-    }
+      norm.includes("code") ||
+      norm.includes("كود");
 
-    // H. Signatures (NEEDS ENOUGH SPACE TO SIGN PHYSICALLY)
-    if (norm.includes("sign") || norm.includes("توقيع")) {
-      return 11;
-    }
-
-    // I. Status & Priority & Category & Severity & Type
-    if (
+    const isStatusBadge =
       norm.includes("status") ||
       norm.includes("حالة") ||
       norm.includes("priority") ||
       norm.includes("أولوية") ||
       norm.includes("category") ||
       norm.includes("فئة") ||
-      norm.includes("severity") ||
-      norm.includes("خطورة") ||
       norm.includes("type") ||
-      norm.includes("نوع")
-    ) {
-      return 8;
+      norm.includes("نوع") ||
+      norm.includes("gender") ||
+      norm.includes("جنس");
+
+    const isEntity =
+      norm.includes("department") ||
+      norm.includes("dept") ||
+      norm.includes("قسم") ||
+      norm.includes("job") ||
+      norm.includes("title") ||
+      norm.includes("وظيفة") ||
+      norm.includes("مسمى") ||
+      norm.includes("building") ||
+      norm.includes("مبنى") ||
+      norm.includes("company") ||
+      norm.includes("شركة") ||
+      norm.includes("nationality") ||
+      norm.includes("جنسية");
+
+    return {
+      colIdx,
+      h,
+      raw,
+      norm,
+      maxCharLen,
+      avgCharLen,
+      isPersonName,
+      isWideText,
+      isCompactNumberOrId,
+      isFixedFormatId,
+      isStatusBadge,
+      isEntity,
+    };
+  });
+
+  // Check if any primary entity name column exists
+  const hasPersonName = columnMetrics.some((m) => m.isPersonName);
+
+  // 3. Compute Content-Aware Dynamic Weights
+  const weights = columnMetrics.map((m) => {
+    // A. Person Name: High Priority! Generously sized to display complete Arabic/English names without cramming
+    if (m.isPersonName) {
+      const lengthBonus = Math.min(12, Math.max(0, m.maxCharLen - 15) * 0.4);
+      return 24 + lengthBonus;
     }
 
-    // J. Nationality & Employment Type & Gender
-    if (norm.includes("nationality") || norm.includes("جنسية") || norm.includes("employment") || norm.includes("توظيف")) {
-      return 7.5;
-    }
-    if (norm.includes("gender") || norm.includes("جنس") || norm.includes("policy") || norm.includes("سياسة")) {
-      return 7;
+    // B. Wide text, Notes, Reasons: Scaled by actual content presence
+    if (m.isWideText) {
+      if (m.maxCharLen > 18) {
+        return Math.min(34, 22 + (m.maxCharLen - 18) * 0.35);
+      }
+      return 12; // When notes are short/empty, don't waste space!
     }
 
-    // K. Room No & Bed No & Floor Identifiers (Pure compact IDs)
-    if (norm.includes("room") || norm.includes("غرفة")) {
+    // C. Compact Numbers, Room No, Bed No, Counts: Keep strictly compact
+    if (m.isCompactNumberOrId) {
+      // Room number "101" or Bed "A" needs very little space
+      if (m.maxCharLen <= 4) return 4.5;
+      if (m.maxCharLen <= 6) return 5.5;
+      return 6.5;
+    }
+
+    // D. Fixed Format IDs (Dates, Phones, National ID, System Codes)
+    if (m.isFixedFormatId) {
+      if (m.norm.includes("national") || m.norm.includes("قومي")) return 10.0;
+      if (m.norm.includes("phone") || m.norm.includes("هاتف") || m.norm.includes("mobile")) return 9.5;
+      if (m.norm.includes("date") || m.norm.includes("تاريخ")) return 8.5;
+      if (m.norm.includes("time") || m.norm.includes("وقت")) return 7.0;
       return 8.0;
     }
-    if (norm.includes("bed") || norm.includes("سرير")) {
-      return 7.0;
-    }
-    if (norm.includes("floor") || norm.includes("طابق") || norm.includes("دور") || norm.includes("level") || norm.includes("درجة")) {
-      return 7.0;
+
+    // E. Status & Category Badges
+    if (m.isStatusBadge) {
+      return 7.5;
     }
 
-    // L. Checkboxes, inspection checkpoints, issues
-    if (norm.includes("check") || norm.includes("فحص") || norm.includes("issue") || norm.includes("صرف") || norm.includes("linen") || norm.includes("amenit")) {
-      return 6.0;
+    // F. Building Name (When no person name exists, Building is the primary subject)
+    if (m.norm.includes("building") || m.norm.includes("مبنى")) {
+      return hasPersonName ? 12.0 : 24.0;
     }
 
-    // M. Counts, numbers, nights, percentages, quantities, rates
-    if (
-      norm.includes("total") || norm.includes("إجمالي") ||
-      norm.includes("count") || norm.includes("عدد") ||
-      norm.includes("qty") || norm.includes("كمية") ||
-      norm.includes("rate") || norm.includes("نسبة") ||
-      norm.includes("nights") || norm.includes("ليالي") ||
-      norm.includes("occupied") || norm.includes("مشغول") ||
-      norm.includes("vacant") || norm.includes("شاغر") ||
-      norm.includes("dirty") || norm.includes("متسخ") ||
-      norm.includes("ooo") || norm.includes("صيانة") ||
-      norm.includes("cap") || norm.includes("سعة") ||
-      norm.includes("mins") || norm.includes("ساعة")
-    ) {
-      return 6.0;
+    // G. Department & Job Title & Company & Nationality
+    if (m.isEntity) {
+      const entityLengthBonus = Math.min(6, Math.max(0, m.maxCharLen - 10) * 0.25);
+      return 12.0 + entityLengthBonus;
     }
 
-    // Default fallback weight
-    return 8;
+    // H. Fallback: Proportional to measured text length
+    return Math.max(6.0, Math.min(18.0, 6.0 + m.maxCharLen * 0.4));
   });
 
   const totalWeight = weights.reduce((acc, w) => acc + w, 0);
 
-  // 3. Normalize weights into percentages summing to exactly availablePct
+  // 4. Normalize weights into percentages summing to exactly availablePct
   const rawColWidths = weights.map((w) => (w / totalWeight) * availablePct);
 
   // Round to 1 decimal place
-  const roundedColWidths = rawColWidths.map((pct) => Math.round(pct * 10) / 10);
+  const roundedColWidths = rawColWidths.map((pct, idx) => {
+    const m = columnMetrics[idx];
+    // Enforce reasonable strict minimums and maximums per column type
+    if (m.isCompactNumberOrId) {
+      return Math.min(orientation === "landscape" ? 6.5 : 8.0, Math.max(3.5, Math.round(pct * 10) / 10));
+    }
+    if (m.isPersonName) {
+      const minNamePct = colCount >= 14 ? 14.0 : colCount >= 10 ? 18.0 : 22.0;
+      return Math.max(minNamePct, Math.round(pct * 10) / 10);
+    }
+    return Math.round(pct * 10) / 10;
+  });
 
-  // Adjust rounding delta onto the largest text column so the sum is EXACTLY 100.0%
-  const currentTotal = seqWidthPct + roundedColWidths.reduce((a, b) => a + b, 0);
+  // Re-normalize so sum(roundedColWidths) equals availablePct exactly
+  const interimSum = roundedColWidths.reduce((a, b) => a + b, 0);
+  const reAdjustedWidths = roundedColWidths.map((w) => Math.round((w / interimSum) * availablePct * 10) / 10);
+
+  // 5. Adjust any remaining decimal delta onto the widest text column so sum is EXACTLY 100.0%
+  const currentTotal = seqWidthPct + reAdjustedWidths.reduce((a, b) => a + b, 0);
   const delta = Math.round((100.0 - currentTotal) * 10) / 10;
   
   if (delta !== 0) {
@@ -1498,10 +1539,10 @@ export function computeReportColumnWidths(
     for (let i = 1; i < weights.length; i++) {
       if (weights[i] > weights[maxIdx]) maxIdx = i;
     }
-    roundedColWidths[maxIdx] = Math.round((roundedColWidths[maxIdx] + delta) * 10) / 10;
+    reAdjustedWidths[maxIdx] = Math.round((reAdjustedWidths[maxIdx] + delta) * 10) / 10;
   }
 
-  return { seqWidthPct, colWidthsPct: roundedColWidths };
+  return { seqWidthPct, colWidthsPct: reAdjustedWidths };
 }
 
 /**
@@ -1916,32 +1957,32 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   // Determine Orientation: Automatically enforce Landscape if >= 5 columns or explicitly requested
   const orientation = opts.orientation || (colCount >= 5 ? "landscape" : "portrait");
 
-  // Opera high-density compact sizing - clear, legible & bold typography
-  let baseFontSizePt = 9.0;
-  let printFontSizePt = 8.5;
-  let cellPadding = "4px 5px";
-  let printPadding = "3px 4px";
+  // High-legibility, bold typography for effortless reading with the naked eye
+  let baseFontSizePt = 10.0;
+  let printFontSizePt = 9.5;
+  let cellPadding = "4.5px 6px";
+  let printPadding = "3.5px 5px";
 
   if (colCount >= 18) {
-    baseFontSizePt = 7.0;
-    printFontSizePt = 6.8;
-    cellPadding = "2px 2.5px";
-    printPadding = "1.8px 2.2px";
+    baseFontSizePt = 8.2;
+    printFontSizePt = 8.0;
+    cellPadding = "2.5px 3.5px";
+    printPadding = "2.2px 3.0px";
   } else if (colCount >= 14) {
-    baseFontSizePt = 7.5;
-    printFontSizePt = 7.2;
-    cellPadding = "2.5px 3.2px";
-    printPadding = "2.2px 2.8px";
-  } else if (colCount >= 11) {
-    baseFontSizePt = 8.0;
-    printFontSizePt = 7.8;
+    baseFontSizePt = 8.8;
+    printFontSizePt = 8.5;
     cellPadding = "3px 4px";
-    printPadding = "2.6px 3.2px";
+    printPadding = "2.5px 3.5px";
+  } else if (colCount >= 11) {
+    baseFontSizePt = 9.2;
+    printFontSizePt = 8.8;
+    cellPadding = "3.5px 5px";
+    printPadding = "2.8px 4px";
   } else if (colCount >= 8) {
-    baseFontSizePt = 8.5;
-    printFontSizePt = 8.2;
-    cellPadding = "3.5px 4.5px";
-    printPadding = "2.8px 3.6px";
+    baseFontSizePt = 9.8;
+    printFontSizePt = 9.2;
+    cellPadding = "4px 5.5px";
+    printPadding = "3.2px 4.5px";
   }
 
   // Helper: Strictly determine if a column is a legitimate quantifiable metric that can be summed
@@ -2096,8 +2137,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       </div>`
     : "";
 
-  // Determine exact proportional column widths guaranteeing 100.0% sum
-  const { seqWidthPct, colWidthsPct } = computeReportColumnWidths(headers, rawHeaders, orientation);
+  // Determine exact proportional column widths guaranteeing 100.0% sum (Content-Aware Auto-Fit)
+  const { seqWidthPct, colWidthsPct } = computeReportColumnWidths(headers, rawHeaders, orientation, tableRows);
 
   // Generate Opera Table Header HTML with strict colgroup summing to 100.0%
   const theadHtml = `
@@ -2443,13 +2484,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     table.opera-table td {
       background: #ffffff !important;
       color: #000000 !important;
-      font-weight: 600 !important;
+      font-weight: 700 !important;
       border-top: none !important;
       border-left: none !important;
       border-right: none !important;
-      border-bottom: 1px solid #94a3b8 !important;
+      border-bottom: 1px solid #cbd5e1 !important;
       padding: ${cellPadding} !important;
-      line-height: 1.35;
+      line-height: 1.3;
       vertical-align: middle;
       word-break: break-word !important;
       overflow-wrap: break-word !important;
@@ -2650,10 +2691,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
       table.opera-table td {
         font-size: ${printFontSizePt}pt !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         padding: ${printPadding} !important;
         color: #000000 !important;
-        border-bottom: 1px solid #94a3b8 !important;
+        border-bottom: 1px solid #cbd5e1 !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
         overflow: hidden !important;
