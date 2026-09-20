@@ -70,6 +70,7 @@ function getTransporter(config?: SmtpConfig) {
  */
 function generateOtpEmailHtml(name: string, otp: string, expiresInSeconds: number): string {
   const minutes = Math.ceil(expiresInSeconds / 60);
+  const minuteLabel = minutes === 1 ? "دقيقة واحدة" : minutes === 2 ? "دقيقتين" : `${minutes} دقائق`;
 
   return `
 <!DOCTYPE html>
@@ -121,7 +122,7 @@ function generateOtpEmailHtml(name: string, otp: string, expiresInSeconds: numbe
                   ${otp}
                 </div>
                 <div style="font-size: 13px; font-weight: 700; color: #dc2626; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                  ⏱️ صالح لمدة ${minutes} دقيقة (${expiresInSeconds} ثانية) فقط
+                  ⏱️ صالح لمدة ${minuteLabel} (${expiresInSeconds} ثانية) فقط
                 </div>
               </div>
 
@@ -179,17 +180,19 @@ export async function sendOtpEmail({
   toEmail,
   recipientName,
   otpCode,
-  expiresInSeconds = 120,
+  expiresInSeconds = 180,
   config,
 }: SendOtpEmailParams): Promise<SendEmailResult> {
   const isConfigured = isSmtpConfigured(config);
+  const minutes = Math.ceil(expiresInSeconds / 60);
+  const minuteLabel = minutes === 1 ? "دقيقة واحدة" : minutes === 2 ? "دقيقتين" : `${minutes} دقائق`;
 
   if (!isConfigured) {
     console.log("\n" + "=".repeat(65));
     console.log("📨 [AUTH OTP SIMULATION] (SMTP not configured in environment or settings)");
     console.log(`👤 Recipient : ${recipientName} <${toEmail}>`);
     console.log(`🔑 OTP Code  : >>> ${otpCode} <<<`);
-    console.log(`⏱️ Validity  : ${expiresInSeconds} seconds (${Math.ceil(expiresInSeconds / 60)} minutes)`);
+    console.log(`⏱️ Validity  : ${expiresInSeconds} seconds (${minutes} minutes)`);
     console.log("=".repeat(65) + "\n");
     return { success: true, mode: "console" };
   }
@@ -207,7 +210,7 @@ export async function sendOtpEmail({
       to: toEmail,
       subject: `رمز التحقق لاستعادة كلمة المرور: ${otpCode} | SUNRISE Resident`,
       html: generateOtpEmailHtml(recipientName, otpCode, expiresInSeconds),
-      text: `مرحباً ${recipientName}،\nرمز التحقق لاستعادة كلمة المرور الخاص بك في SUNRISE Resident هو: ${otpCode}\nهذا الرمز صالح لمدة ${Math.ceil(expiresInSeconds / 60)} دقيقة (${expiresInSeconds} ثانية) فقط.\nإذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.`,
+      text: `مرحباً ${recipientName}،\nرمز التحقق لاستعادة كلمة المرور الخاص بك في SUNRISE Resident هو: ${otpCode}\nهذا الرمز صالح لمدة ${minuteLabel} (${expiresInSeconds} ثانية) فقط.\nإذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.`,
     });
 
     console.log(`[AUTH OTP] Email sent successfully to ${toEmail}. Message ID: ${info.messageId}`);

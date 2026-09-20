@@ -134,7 +134,7 @@ export function ForgotPasswordModal({
       }
 
       setMaskedEmail(data.maskedEmail || "");
-      setOtpRemainingSeconds(data.expiresInSeconds || 120);
+      setOtpRemainingSeconds(data.expiresInSeconds || 180);
       setCooldownRemainingSeconds(data.cooldownSeconds || 60);
       setOtp("");
       setStep(2);
@@ -176,7 +176,7 @@ export function ForgotPasswordModal({
         return;
       }
 
-      setOtpRemainingSeconds(data.expiresInSeconds || 120);
+      setOtpRemainingSeconds(data.expiresInSeconds || 180);
       setCooldownRemainingSeconds(data.cooldownSeconds || 120);
       setOtp("");
       toast.success(

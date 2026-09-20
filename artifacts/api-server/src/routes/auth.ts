@@ -656,7 +656,7 @@ router.post("/auth/forgot-password/request-otp", async (req, res): Promise<void>
   // Generate 6-digit cryptographically secure OTP
   const otpCode = crypto.randomInt(100000, 999999).toString();
   const otpHash = await bcrypt.hash(otpCode, 10);
-  const TTL_SECONDS = 120; // Exactly 2 minutes per requirements
+  const TTL_SECONDS = 180; // Exactly 3 minutes (180 seconds)
   const expiresAt = new Date(Date.now() + TTL_SECONDS * 1000);
 
   // Invalidate older OTP records for this user
@@ -789,11 +789,11 @@ router.post("/auth/forgot-password/verify-otp", async (req, res): Promise<void> 
     return;
   }
 
-  // Check expiration (Strict 120s / 2 mins)
+  // Check expiration (Strict 180s / 3 mins)
   if (new Date() > new Date(otpRecord.expiresAt)) {
     res.status(400).json({
       error:
-        "انتهت صلاحية رمز التحقق (أكثر من دقيقتين). يرجى طلب رمز جديد / Verification code has expired. Please request a new code.",
+        "انتهت صلاحية رمز التحقق (أكثر من 3 دقائق). يرجى طلب رمز جديد / Verification code has expired. Please request a new code.",
       code: "OTP_EXPIRED",
     });
     return;
