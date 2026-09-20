@@ -3,8 +3,8 @@ setlocal
 title Sunrise Frontends (Fast)
 
 set PORT=9000
-set API_PORT=4100
-set VITE_API_PORT=4100
+set API_PORT=4000
+set VITE_API_PORT=4000
 
 echo.
 echo =========================================
@@ -19,8 +19,8 @@ start "Sunrise Employee Portal" cmd /k "npx vite preview --config vite.config.ts
 echo Starting Housing Portal on port 9000...
 cd /d "%~dp0artifacts\housing"
 set PORT=9000
-set API_PORT=4100
-set VITE_API_PORT=4100
+set API_PORT=4000
+set VITE_API_PORT=4000
 start "Sunrise Housing Portal" cmd /k "npx vite preview --config vite.config.ts --port 9000 --host 0.0.0.0"
 
 echo.

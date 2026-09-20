@@ -65,8 +65,6 @@ import {
   Palette,
   UtensilsCrossed,
   MessageCircle,
-  Smartphone,
-  ExternalLink,
 } from "lucide-react";
 
 import { PortalContactsSection } from "./components/PortalContactsSection";
@@ -89,47 +87,15 @@ export function PortalPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {ar ? "إدارة محتوى بوابة المقيمين" : "Resident Portal Management"}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            {ar
-              ? "لوحة الإدارة والتحكم لمحتوى، حسابات، فعاليات، ومستندات بوابة الموظفين"
-              : "Administrative dashboard for managing employee portal content, accounts, and events"}
-          </p>
-        </div>
-
-        {/* Portal App Launcher */}
-        <Button
-          size="sm"
-          className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs gap-1.5 shadow-sm self-start sm:self-auto"
-          onClick={() => {
-            const portalUrl = `${window.location.protocol}//${window.location.hostname}:10000/login`;
-            window.open(portalUrl, "_blank");
-          }}
-          title={ar ? "فتح تطبيق الموظفين المستقل (PWA App)" : "Open Resident Portal App"}
-        >
-          <Smartphone className="w-4 h-4" />
-          <span>{ar ? "فتح تطبيق الموظفين (Port 10000)" : "Open Employee App (Port 10000)"}</span>
-          <ExternalLink className="w-3 h-3 opacity-70" />
-        </Button>
-      </div>
-
-      {/* Info Notice regarding PWA installation */}
-      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-3 text-xs">
-        <Smartphone className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-        <div className="space-y-0.5">
-          <span className="font-bold text-amber-900 dark:text-amber-200">
-            {ar ? "تنويه تثبيت تطبيق الموظفين على الموبايل:" : "Employee Mobile App Installation Note:"}
-          </span>
-          <p className="text-amber-800 dark:text-amber-300">
-            {ar
-              ? "لتثبيت تطبيق المقيمين كـ App على هاتف الموظف، يجب فتح رابط البوابة المخصص للموظفين (Port 10000) وليس لوحة تحكم السكن الإدارية. اضغط على زر 'فتح تطبيق الموظفين' أعلاه أو شارك الرابط مع الموظف ليقوم بتثبيته."
-              : "To install the Resident Portal app on employee devices, open the dedicated employee portal URL (Port 10000), not this admin dashboard. Click 'Open Employee App' above or share the link with the employee to install."}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">
+          {ar ? "إدارة محتوى بوابة المقيمين" : "Resident Portal Management"}
+        </h1>
+        <p className="text-xs text-muted-foreground mt-1">
+          {ar
+            ? "لوحة الإدارة والتحكم لمحتوى، حسابات، فعاليات، ومستندات بوابة الموظفين"
+            : "Administrative dashboard for managing employee portal content, accounts, and events"}
+        </p>
       </div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full md:w-auto flex gap-2 whitespace-nowrap mb-8 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
