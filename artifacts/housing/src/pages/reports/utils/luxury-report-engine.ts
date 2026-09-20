@@ -1268,13 +1268,11 @@ export function getOperaColumnAlign(
 }
 
 /**
- * Dynamic Proportional Column Width Allocator for Opera PMS Tables.
+ * Dynamic Content-Proportional Column Width Allocator for Opera PMS Tables.
  * Guarantees:
- * 1. '#' sequence column is strictly bounded (2.0% - 3.0%, ~22px-28px).
- * 2. High-text columns (Full Name, Guest Name, Resident, Notes, Reasons, Building, Department, Job)
- *    receive the lion's share of table space (20% - 35%).
- * 3. Compact columns (Room No, Bed No, Code, Counts, Dates, Status) stay compact.
- * 4. Sum of all columns (including '#') equals EXACTLY 100.0% — eliminating phantom browser stretching.
+ * 1. Zero Overpowering: Every column receives width strictly proportional to its real text demand.
+ * 2. Zero Word Splitting: Columns are guaranteed enough width to fit their longest unbroken word/token (e.g. "Housekeeping", "Supervisor", "ACTIVE", "CLK-2020-M001").
+ * 3. Exact 100.0% Sum: The sequence column and all data columns sum to exactly 100.0%, perfectly filling the printable A4 page.
  */
 export function computeReportColumnWidths(
   headers: string[],
@@ -1284,10 +1282,10 @@ export function computeReportColumnWidths(
 ): { seqWidthPct: number; colWidthsPct: number[] } {
   const colCount = headers.length + 1; // including sequence column
 
-  // 1. Sequence column percentage (compact: strictly 2.2% - 2.8% in landscape, 2.8% - 3.5% in portrait)
-  const seqWidthPct = orientation === "landscape" 
-    ? (colCount >= 14 ? 2.2 : colCount >= 9 ? 2.5 : 3.0)
-    : (colCount >= 10 ? 3.0 : 3.5);
+  // 1. Sequence column percentage (compact: strictly 1.8% - 2.5% in landscape, 2.5% - 3.2% in portrait)
+  const seqWidthPct = orientation === "landscape"
+    ? (colCount >= 14 ? 1.8 : colCount >= 9 ? 2.2 : 2.6)
+    : (colCount >= 12 ? 2.6 : colCount >= 8 ? 3.0 : 3.4);
 
   const availablePct = 100.0 - seqWidthPct;
 
@@ -1298,289 +1296,176 @@ export function computeReportColumnWidths(
     return s.replace(/<[^>]*>/g, "").trim();
   };
 
-  // Inspect actual cell contents in tableRows (sample up to 200 rows for instant performance)
-  const sampleRows = tableRows.slice(0, 200);
+  // Inspect actual cell contents in tableRows (sample up to 250 rows for performance)
+  const sampleRows = tableRows.slice(0, 250);
 
-  // 2. Measure actual data length and semantic type for each column
+  // 2. Measure actual data length, longest word/token, and semantic category for each column
   const columnMetrics = headers.map((h, colIdx) => {
     const raw = (rawHeaders[colIdx] || "").toLowerCase().trim();
     const trans = (h || "").toLowerCase().trim();
     const norm = `${raw} ${trans}`;
 
-    // Measure maximum and average text length in this column
-    let maxCharLen = (h || "").length;
-    let totalChars = 0;
-    let validCount = 0;
-    let allNumeric = true;
+    // Header words metrics (split ONLY on whitespace so hyphens in words like Check-In do not under-estimate word length)
+    const headerClean = stripHtml(h);
+    const headerWords = headerClean.split(/\s+/);
+    let maxHeaderWordLen = 0;
+    for (const w of headerWords) {
+      maxHeaderWordLen = Math.max(maxHeaderWordLen, w.length);
+    }
+    const headerTotalLen = headerClean.length;
+
+    // Sample cells metrics
+    let maxCellLen = 0;
+    let maxCellWordLen = 0;
+    let totalCellChars = 0;
+    let validCellCount = 0;
 
     for (const row of sampleRows) {
       const cellVal = row[colIdx];
       const text = stripHtml(cellVal);
       if (text.length > 0 && text !== "—" && text !== "-") {
-        maxCharLen = Math.max(maxCharLen, text.length);
-        totalChars += text.length;
-        validCount++;
-        if (isNaN(Number(text.replace(/,/g, ""))) && !text.includes("-") && !text.includes("/")) {
-          allNumeric = false;
+        maxCellLen = Math.max(maxCellLen, text.length);
+        totalCellChars += text.length;
+        validCellCount++;
+
+        // CRITICAL: Split words strictly by whitespace \s+! Do NOT split by hyphens (-) or underscores (_)
+        // so codes like CLK-6533-M001, dates like 15/05/1998, and QA_ROOM_ENTIRE are measured as full continuous tokens!
+        const words = text.split(/\s+/);
+        for (const w of words) {
+          maxCellWordLen = Math.max(maxCellWordLen, w.length);
         }
       }
     }
 
-    const avgCharLen = validCount > 0 ? totalChars / validCount : maxCharLen;
+    const avgCellLen = validCellCount > 0 ? totalCellChars / validCellCount : maxCellLen;
 
-    // Detect semantic column category
-    const isPersonName =
-      norm.includes("full name") ||
-      norm.includes("guest name") ||
-      norm.includes("resident") ||
-      norm.includes("occupant") ||
-      norm.includes("profile name") ||
-      norm.includes("الاسم") ||
-      norm.includes("اسم النزيل") ||
-      norm.includes("اسم الموظف") ||
-      norm.includes("النزلاء") ||
-      norm.includes("اسم المقيم") ||
-      (norm.includes("name") && !norm.includes("building") && !norm.includes("room") && !norm.includes("company") && !norm.includes("floor"));
-
-    const isWideText =
-      norm.includes("notes") ||
-      norm.includes("reason") ||
-      norm.includes("action") ||
-      norm.includes("detail") ||
-      norm.includes("ملاحظات") ||
-      norm.includes("سبب") ||
-      norm.includes("بيان") ||
-      norm.includes("إجراء") ||
-      norm.includes("اجراء") ||
-      norm.includes("تفاصيل") ||
-      norm.includes("وصف") ||
-      norm.includes("problem") ||
-      norm.includes("مشكلة") ||
-      norm.includes("comment") ||
-      norm.includes("overview");
-
-    const isCodeOrId =
+    // Detect semantic column characteristics
+    const isFixedSingleLine =
       norm.includes("code") ||
       norm.includes("كود") ||
       norm.includes("clock") ||
       norm.includes("profile id") ||
       norm.includes("profile / id") ||
-      norm.includes("رقم الموظف");
-
-    const isCompactNumberOrId =
-      !isCodeOrId &&
-      (
-        norm === "room" ||
-        norm.includes("room no") ||
-        norm.includes("room number") ||
-        norm === "غرفة" ||
-        norm === "رقم الغرفة" ||
-        norm.includes("bed no") ||
-        norm.includes("bed number") ||
-        norm === "سرير" ||
-        norm === "رقم السرير" ||
-        norm === "bed" ||
-        norm.includes("nights") ||
-        norm.includes("ليالي") ||
-        norm.includes("count") ||
-        norm.includes("عدد") ||
-        norm.includes("qty") ||
-        norm.includes("كمية") ||
-        norm.includes("age") ||
-        norm.includes("عمر") ||
-        norm.includes("floor") ||
-        norm.includes("طابق") ||
-        norm.includes("دور") ||
-        norm.includes("level") ||
-        norm.includes("dirty") ||
-        norm.includes("متسخ") ||
-        norm.includes("ooo") ||
-        norm.includes("صيانة") ||
-        norm.includes("vacant") ||
-        norm.includes("شاغر") ||
-        norm.includes("occupied") ||
-        norm.includes("مشغول") ||
-        (allNumeric && maxCharLen <= 6 && !norm.includes("national") && !norm.includes("phone"))
-      );
-
-    const isFixedFormatId =
-      !isCodeOrId &&
-      (
-        norm.includes("national") ||
-        norm.includes("قومي") ||
-        norm.includes("هوية") ||
-        norm.includes("phone") ||
-        norm.includes("هاتف") ||
-        norm.includes("mobile") ||
-        norm.includes("موبايل") ||
-        norm.includes("date") ||
-        norm.includes("تاريخ") ||
-        norm.includes("time") ||
-        norm.includes("وقت") ||
-        norm.includes("check-in") ||
-        norm.includes("check-out")
-      );
-
-    const isStatusBadge =
+      norm.includes("national") ||
+      norm.includes("قومي") ||
+      norm.includes("phone") ||
+      norm.includes("هاتف") ||
+      norm.includes("mobile") ||
+      norm.includes("موبايل") ||
+      norm.includes("date") ||
+      norm.includes("تاريخ") ||
+      norm.includes("check-in") ||
+      norm.includes("check-out") ||
+      norm.includes("birth") ||
+      norm.includes("ميلاد") ||
       norm.includes("status") ||
       norm.includes("حالة") ||
-      norm.includes("priority") ||
-      norm.includes("أولوية") ||
-      norm.includes("category") ||
-      norm.includes("فئة") ||
-      norm.includes("type") ||
-      norm.includes("نوع") ||
       norm.includes("gender") ||
-      norm.includes("جنس");
-
-    const isEntity =
-      norm.includes("department") ||
-      norm.includes("dept") ||
-      norm.includes("قسم") ||
-      norm.includes("job") ||
-      norm.includes("title") ||
-      norm.includes("وظيفة") ||
-      norm.includes("مسمى") ||
-      norm.includes("building") ||
-      norm.includes("مبنى") ||
-      norm.includes("company") ||
-      norm.includes("شركة") ||
+      norm.includes("جنس") ||
       norm.includes("nationality") ||
-      norm.includes("جنسية");
+      norm.includes("جنسية") ||
+      norm === "room" ||
+      norm.includes("room no") ||
+      norm === "غرفة" ||
+      norm === "رقم الغرفة" ||
+      norm.includes("bed no") ||
+      norm === "سرير" ||
+      norm === "رقم السرير" ||
+      norm === "bed" ||
+      norm.includes("count") ||
+      norm.includes("عدد") ||
+      norm.includes("qty") ||
+      norm.includes("كمية") ||
+      norm.includes("floor") ||
+      norm.includes("طابق") ||
+      norm.includes("دور") ||
+      norm.includes("nights") ||
+      norm.includes("ليالي") ||
+      norm.includes("issue") ||
+      norm.includes("صرف");
+
+    const isLongFreeText =
+      norm.includes("notes") ||
+      norm.includes("reason") ||
+      norm.includes("ملاحظات") ||
+      norm.includes("سبب") ||
+      norm.includes("تفاصيل") ||
+      norm.includes("detail") ||
+      norm.includes("comment");
 
     return {
       colIdx,
       h,
-      raw,
       norm,
-      maxCharLen,
-      avgCharLen,
-      isPersonName,
-      isWideText,
-      isCodeOrId,
-      isCompactNumberOrId,
-      isFixedFormatId,
-      isStatusBadge,
-      isEntity,
+      headerClean,
+      maxHeaderWordLen,
+      headerTotalLen,
+      maxCellLen,
+      maxCellWordLen,
+      avgCellLen,
+      isFixedSingleLine,
+      isLongFreeText,
     };
   });
 
-  // Check if any primary entity name column exists
-  const hasPersonName = columnMetrics.some((m) => m.isPersonName);
+  // 3. Compute Content Demand Units for each column
+  const demands = columnMetrics.map((m) => {
+    // Non-splittable token threshold: The column MUST accommodate its longest unbroken word or token + padding
+    const tokenMax = Math.max(m.maxHeaderWordLen, m.maxCellWordLen);
+    const minTokenFloor = tokenMax + 2.0;
 
-  // 3. Compute Content-Aware Dynamic Weights
-  const weights = columnMetrics.map((m) => {
-    // A. Person Name: High Priority! Generously sized to display complete Arabic/English names without cramming
-    if (m.isPersonName) {
-      const lengthBonus = Math.min(6, Math.max(0, m.maxCharLen - 15) * 0.25);
-      return (colCount >= 12 ? 18 : 24) + lengthBonus;
-    }
+    // Effective length to display
+    const effLen = m.maxCellLen > 0 ? Math.max(m.maxCellLen, m.headerTotalLen * 0.75) : m.headerTotalLen;
 
-    // B. Wide text, Notes, Reasons: Scaled by actual content presence
-    if (m.isWideText) {
-      return m.maxCharLen > 18 ? Math.min(26, 18 + (m.maxCharLen - 18) * 0.25) : 10;
-    }
-
-    // C. Compact Numbers, Room No, Bed No, Counts: Keep strictly compact
-    if (m.isCompactNumberOrId) {
-      return m.maxCharLen <= 4 ? 4.5 : m.maxCharLen <= 6 ? 5.5 : 6.0;
+    if (m.isFixedSingleLine) {
+      // Fixed single-line format: Must fit entire text on a single line with comfortable breathing space
+      const fixedExtra = /national|قومي|phone|هاتف|mobile|موبايل/i.test(m.norm) ? 3.0 : 2.2;
+      return Math.max(minTokenFloor, effLen + fixedExtra);
     }
 
-    // C1. Employee Code / Clock Number: Generous allocation so long codes (e.g. CLK-2020-M001) never touch Full Name
-    if (m.isCodeOrId) {
-      return Math.max(12.5, 9.5 + m.maxCharLen * 0.45);
+    if (m.isLongFreeText) {
+      // Long freeform text / notes
+      return orientation === "landscape"
+        ? Math.max(minTokenFloor, Math.min(26, effLen * 0.75 + 4))
+        : Math.max(minTokenFloor, Math.min(18, effLen * 0.55 + 3));
     }
 
-    // D. Fixed Format IDs (Dates, Phones, National ID, System Codes)
-    if (m.norm.includes("national") || m.norm.includes("قومي")) {
-      return 12.0;
+    // Natural multi-word text columns (Full Name, Department, Job Title, Building, Company, etc.)
+    // In landscape: allocate comfortably so names and titles fit on 1 or 2 lines cleanly without overpowering
+    // In portrait: allow 2-line clean wrapping at word boundaries without squeezing
+    if (orientation === "landscape") {
+      const maxTextCap = colCount >= 16 ? 18 : 24;
+      const textDemand = Math.max(m.avgCellLen * 0.95 + 2.0, effLen * 0.85 + 2.5);
+      return Math.max(minTokenFloor, Math.min(maxTextCap, textDemand));
+    } else {
+      const textDemand = Math.max(m.avgCellLen * 0.7 + 2.0, effLen * 0.65 + 2.5);
+      return Math.max(minTokenFloor, Math.min(17, textDemand));
     }
-    if (m.norm.includes("phone") || m.norm.includes("هاتف")) {
-      return 9.8;
-    }
-    if (m.norm.includes("date") || m.norm.includes("check-in") || m.norm.includes("check-out") || m.norm.includes("تاريخ")) {
-      return 9.2;
-    }
-    if (m.isFixedFormatId) {
-      return 8.0;
-    }
-
-    // E. Status & Category Badges
-    if (m.isStatusBadge) {
-      return 6.0;
-    }
-
-    // F. Building Name (When no person name exists, Building is the primary subject)
-    if (m.norm.includes("building") || m.norm.includes("مبنى")) {
-      return hasPersonName ? 9.0 : 20.0;
-    }
-
-    // G. Department & Job Title & Company & Nationality
-    if (m.norm.includes("company") || m.norm.includes("dept") || m.norm.includes("department") || m.norm.includes("job") || m.norm.includes("type")) {
-      return Math.max(6.5, Math.min(9.0, 5.5 + m.maxCharLen * 0.2));
-    }
-
-    if (m.isEntity) {
-      const entityLengthBonus = Math.min(4, Math.max(0, m.maxCharLen - 10) * 0.2);
-      return 8.0 + entityLengthBonus;
-    }
-
-    // H. Fallback: Proportional to measured text length
-    return Math.max(5.5, Math.min(10.0, 5.0 + m.maxCharLen * 0.25));
   });
 
-  const totalWeight = weights.reduce((acc, w) => acc + w, 0);
-  if (weights.length === 0 || totalWeight <= 0) {
+  const totalDemand = demands.reduce((acc, d) => acc + d, 0);
+  if (demands.length === 0 || totalDemand <= 0) {
     return { seqWidthPct, colWidthsPct: [] };
   }
 
-  // 4. Normalize weights into percentages summing to exactly availablePct
-  const rawColWidths = weights.map((w) => (w / totalWeight) * availablePct);
+  // 4. Calculate exact proportional percentage
+  const rawColWidths = demands.map((d) => (d / totalDemand) * availablePct);
 
-  // Round to 1 decimal place
-  const roundedColWidths = rawColWidths.map((pct, idx) => {
-    const m = columnMetrics[idx];
-    // Enforce reasonable strict minimums and maximums per column type
-    if (m.isCompactNumberOrId) {
-      return Math.min(orientation === "landscape" ? 6.0 : 7.0, Math.max(3.2, Math.round(pct * 10) / 10));
-    }
-    if (m.isCodeOrId) {
-      const minCodePct = orientation === "landscape"
-        ? (colCount >= 14 ? 9.5 : 10.5)
-        : (colCount >= 10 ? 10.5 : 12.0);
-      return Math.max(minCodePct, Math.round(pct * 10) / 10);
-    }
-    if (m.norm.includes("national") || m.norm.includes("قومي")) {
-      return Math.max(orientation === "landscape" ? 8.5 : 9.8, Math.round(pct * 10) / 10);
-    }
-    if (m.norm.includes("phone") || m.norm.includes("هاتف")) {
-      return Math.max(orientation === "landscape" ? 7.0 : 8.0, Math.round(pct * 10) / 10);
-    }
-    if (m.norm.includes("date") || m.norm.includes("check-in") || m.norm.includes("check-out") || m.norm.includes("تاريخ")) {
-      return Math.max(orientation === "landscape" ? 6.6 : 7.2, Math.round(pct * 10) / 10);
-    }
-    if (m.isPersonName) {
-      const minNamePct = colCount >= 14 ? 13.0 : colCount >= 10 ? 15.0 : 18.0;
-      return Math.max(minNamePct, Math.round(pct * 10) / 10);
-    }
-    return Math.round(pct * 10) / 10;
-  });
+  // Round to 1 decimal place with adaptive minimum percentage based on total column count
+  const minColPct = colCount >= 20 ? 2.2 : colCount >= 16 ? 2.6 : colCount >= 12 ? 3.0 : 3.5;
+  const roundedColWidths = rawColWidths.map((w) => Math.max(minColPct, Math.round(w * 10) / 10));
 
-  // Re-normalize so sum(roundedColWidths) equals availablePct exactly
+  // Re-balance so sum equals availablePct exactly
   const interimSum = roundedColWidths.reduce((a, b) => a + b, 0);
-  if (interimSum <= 0) {
-    return { seqWidthPct, colWidthsPct: roundedColWidths };
-  }
   const reAdjustedWidths = roundedColWidths.map((w) => Math.round((w / interimSum) * availablePct * 10) / 10);
 
-  // 5. Adjust any remaining decimal delta onto the widest text column so sum is EXACTLY 100.0%
+  // Distribute residual decimal difference to the widest column so sum is EXACTLY 100.0%
   const currentTotal = seqWidthPct + reAdjustedWidths.reduce((a, b) => a + b, 0);
   const delta = Math.round((100.0 - currentTotal) * 10) / 10;
-  
   if (delta !== 0) {
     let maxIdx = 0;
-    for (let i = 1; i < weights.length; i++) {
-      if (weights[i] > weights[maxIdx]) maxIdx = i;
+    for (let i = 1; i < demands.length; i++) {
+      if (demands[i] > demands[maxIdx]) maxIdx = i;
     }
     reAdjustedWidths[maxIdx] = Math.round((reAdjustedWidths[maxIdx] + delta) * 10) / 10;
   }
@@ -1848,7 +1733,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     return "text-align: center; white-space: normal; line-height: 1.15; font-weight: 700 !important; font-variant-numeric: tabular-nums; color: #000000 !important;";
   }
 
-  // Employee Codes & Identifiers (Align to start, add generous padding-inline-end so code never collides with Name)
+  // Employee Codes & Identifiers (Align to start, clean spacing)
   if (
     norm.includes("كود") ||
     norm.includes("code") ||
@@ -1857,8 +1742,8 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("profile / id") ||
     norm.includes("رقم الموظف")
   ) {
-    const endPad = isArabic ? "padding-left: 18px !important;" : "padding-right: 18px !important;";
-    return `text-align: ${isArabic ? "right" : "left"}; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important; ${endPad}`;
+    const endPad = isArabic ? "padding-left: 8px !important;" : "padding-right: 8px !important;";
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important; ${endPad}`;
   }
 
   // National ID & Phone & Emergency Contacts (Fixed numeric)
@@ -1873,7 +1758,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("طوارئ") ||
     norm.includes("هوية")
   ) {
-    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;";
+    return "text-align: center; white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important; letter-spacing: 0.2px;";
   }
 
   // Dates & Times
@@ -1885,7 +1770,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("time") ||
     norm.includes("وقت")
   ) {
-    return "text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;";
+    return "text-align: center; white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;";
   }
 
   // Status & Categories & Types & Gender
@@ -1899,10 +1784,10 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("priority") ||
     norm.includes("أولوية")
   ) {
-    return "text-align: center; white-space: normal; word-break: break-word; line-height: 1.2; font-weight: 700 !important; color: #000000 !important;";
+    return "text-align: center; white-space: nowrap !important; line-height: 1.2; font-weight: 700 !important; color: #000000 !important;";
   }
 
-  // Full Names (Person Name): Add generous padding-inline-start to guarantee clear separation from Employee Code
+  // Full Names (Person Name)
   const isPersonNameOnly =
     norm.includes("full name") ||
     norm.includes("guest name") ||
@@ -1914,11 +1799,11 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     (norm.includes("name") && !norm.includes("building") && !norm.includes("company"));
 
   if (isPersonNameOnly) {
-    const startPad = isArabic ? "padding-right: 14px !important;" : "padding-left: 14px !important;";
-    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25; font-weight: 700 !important; color: #000000 !important; ${startPad}`;
+    const startPad = isArabic ? "padding-right: 6px !important;" : "padding-left: 6px !important;";
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: normal !important; overflow-wrap: normal !important; line-height: 1.25; font-weight: 700 !important; color: #000000 !important; ${startPad}`;
   }
 
-  // Other Entities: Departments, Buildings, Jobs, Companies - WRAP NATURALLY
+  // Other Entities: Departments, Buildings, Jobs, Companies - WRAP ONLY AT WORDS
   if (
     norm.includes("قسم") ||
     norm.includes("dept") ||
@@ -1933,10 +1818,10 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("أمن") ||
     norm.includes("officer")
   ) {
-    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25; font-weight: 700 !important; color: #000000 !important;`;
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: normal !important; overflow-wrap: normal !important; line-height: 1.25; font-weight: 700 !important; color: #000000 !important;`;
   }
 
-  return `white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25; font-weight: 600 !important; color: #000000 !important;`;
+  return `white-space: normal !important; word-break: normal !important; overflow-wrap: normal !important; line-height: 1.25; font-weight: 600 !important; color: #000000 !important;`;
 }
 
 // ----------------------------------------------------------------------------
@@ -2076,32 +1961,74 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   // Determine Orientation: Automatically enforce Landscape if >= 5 columns or explicitly requested
   const orientation = opts.orientation || (colCount >= 5 ? "landscape" : "portrait");
 
-  // High-legibility, bold typography for effortless reading with the naked eye
-  let baseFontSizePt = 10.0;
-  let printFontSizePt = 9.5;
+  // High-legibility, bold typography scaled by orientation and column density
+  let baseFontSizePt = 9.8;
+  let printFontSizePt = 9.2;
   let cellPadding = "4.5px 6px";
   let printPadding = "3.5px 5px";
+  let tableLetterSpacing = "normal";
 
-  if (colCount >= 18) {
-    baseFontSizePt = 8.2;
-    printFontSizePt = 8.0;
-    cellPadding = "2.5px 3.5px";
-    printPadding = "2.2px 3.0px";
-  } else if (colCount >= 14) {
-    baseFontSizePt = 8.8;
-    printFontSizePt = 8.5;
-    cellPadding = "3px 4px";
-    printPadding = "2.5px 3.5px";
-  } else if (colCount >= 11) {
-    baseFontSizePt = 9.2;
-    printFontSizePt = 8.8;
-    cellPadding = "3.5px 5px";
-    printPadding = "2.8px 4px";
-  } else if (colCount >= 8) {
-    baseFontSizePt = 9.8;
-    printFontSizePt = 9.2;
-    cellPadding = "4px 5.5px";
-    printPadding = "3.2px 4.5px";
+  if (orientation === "landscape") {
+    if (colCount >= 20) {
+      // Ultra-dense reports (e.g. Police Report with 22 columns)
+      baseFontSizePt = 6.8;
+      printFontSizePt = 6.4;
+      cellPadding = "2px 2.5px";
+      printPadding = "1.5px 2px";
+      tableLetterSpacing = "-0.25px";
+    } else if (colCount >= 16) {
+      baseFontSizePt = 7.5;
+      printFontSizePt = 7.0;
+      cellPadding = "2.5px 3.5px";
+      printPadding = "2px 2.8px";
+      tableLetterSpacing = "-0.15px";
+    } else if (colCount >= 13) {
+      baseFontSizePt = 8.2;
+      printFontSizePt = 7.8;
+      cellPadding = "3px 4.5px";
+      printPadding = "2.5px 3.8px";
+      tableLetterSpacing = "normal";
+    } else if (colCount >= 10) {
+      baseFontSizePt = 8.8;
+      printFontSizePt = 8.4;
+      cellPadding = "3.5px 5px";
+      printPadding = "3px 4.2px";
+      tableLetterSpacing = "normal";
+    }
+  } else {
+    // Portrait mode (190mm printable width)
+    if (colCount >= 20) {
+      // Extreme density on portrait: micro font to prevent collision
+      baseFontSizePt = 5.8;
+      printFontSizePt = 5.5;
+      cellPadding = "1.5px 2px";
+      printPadding = "1.2px 1.5px";
+      tableLetterSpacing = "-0.35px";
+    } else if (colCount >= 16) {
+      baseFontSizePt = 6.6;
+      printFontSizePt = 6.2;
+      cellPadding = "2px 2.5px";
+      printPadding = "1.5px 2px";
+      tableLetterSpacing = "-0.2px";
+    } else if (colCount >= 13) {
+      baseFontSizePt = 7.2;
+      printFontSizePt = 6.8;
+      cellPadding = "2.5px 3px";
+      printPadding = "2px 2.5px";
+      tableLetterSpacing = "-0.1px";
+    } else if (colCount >= 10) {
+      baseFontSizePt = 7.8;
+      printFontSizePt = 7.4;
+      cellPadding = "3px 4px";
+      printPadding = "2.5px 3.5px";
+      tableLetterSpacing = "normal";
+    } else if (colCount >= 7) {
+      baseFontSizePt = 8.6;
+      printFontSizePt = 8.2;
+      cellPadding = "3.5px 5px";
+      printPadding = "3px 4.5px";
+      tableLetterSpacing = "normal";
+    }
   }
 
   // Helper: Strictly determine if a column is a legitimate quantifiable metric that can be summed
@@ -2593,13 +2520,21 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-bottom: 1.5px solid #000000 !important;
       border-left: none !important;
       border-right: none !important;
+      border-inline-end: 1px solid #e2e8f0 !important;
       padding: ${cellPadding} !important;
-      line-height: 1.25;
+      line-height: 1.2;
       vertical-align: bottom;
-      overflow-wrap: normal !important;
-      word-break: normal !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
       white-space: normal !important;
-      hyphens: manual;
+      word-break: normal !important;
+      overflow-wrap: break-word !important;
+      box-sizing: border-box !important;
+      letter-spacing: ${tableLetterSpacing};
+      hyphens: none !important;
+    }
+    table.opera-table th:last-child {
+      border-inline-end: none !important;
     }
     table.opera-table td {
       background: #ffffff !important;
@@ -2608,15 +2543,22 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-top: none !important;
       border-left: none !important;
       border-right: none !important;
+      border-inline-end: 1px solid #f1f5f9 !important;
       border-bottom: 1px solid #cbd5e1 !important;
       padding: ${cellPadding} !important;
-      line-height: 1.3;
+      line-height: 1.25;
       vertical-align: middle;
-      word-break: break-word !important;
-      overflow-wrap: break-word !important;
-      white-space: normal;
       overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      word-break: normal;
+      overflow-wrap: break-word;
+      box-sizing: border-box !important;
+      letter-spacing: ${tableLetterSpacing};
+      hyphens: none !important;
       -webkit-font-smoothing: antialiased;
+    }
+    table.opera-table td:last-child {
+      border-inline-end: none !important;
     }
     tr.opera-totals-row td {
       border-top: 1.5px solid #000000 !important;
