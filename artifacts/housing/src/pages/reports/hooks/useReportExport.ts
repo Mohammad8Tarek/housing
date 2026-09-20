@@ -14,6 +14,7 @@ import {
 import { formatNationality } from "@/lib/countries";
 import { getProfileDisplayDepartment } from "@/lib/profile-display-utils";
 import { getRoomStatusLabel } from "@/pages/housing/utils";
+import { toast } from "sonner";
 
 export function useReportExport({
   ar = true,
@@ -446,15 +447,29 @@ export function useReportExport({
   };
 
   const handleExportExcel = () => {
-    if (!canExportReports) return;
+    if (!canExportReports) {
+      toast.error(ar ? "ليس لديك صلاحية تصدير التقارير" : "You do not have permission to export reports");
+      return;
+    }
     const rows = toExcelRows();
+    if (!rows || rows.length === 0) {
+      toast.warning(ar ? "لا توجد بيانات مطابقة لتصديرها إلى Excel" : "No matching data available to export to Excel");
+      return;
+    }
     exportExcel(activeTab, rows);
   };
 
   const handleExportPDF = async () => {
-    if (!canExportReports) return;
-    const isArabic = ar; // Direct language mode — zero popup prompting!
+    if (!canExportReports) {
+      toast.error(ar ? "ليس لديك صلاحية تصدير التقارير" : "You do not have permission to export reports");
+      return;
+    }
     const rows = toExcelRows();
+    if (!rows || rows.length === 0) {
+      toast.warning(ar ? "لا توجد بيانات مطابقة لتصديرها كـ PDF" : "No matching data available to export as PDF");
+      return;
+    }
+    const isArabic = ar; // Direct language mode — zero popup prompting!
     let extraOpts: any = {};
 
     if (activeTab === "manager_flash" && profiles && profiles.length > 0) {

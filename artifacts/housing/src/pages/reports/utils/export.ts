@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { toast } from "sonner";
 import { getExportFileName, formatDate } from "@/lib/date-utils";
 import {
   printLuxuryReport,
@@ -21,7 +22,10 @@ export {
 };
 
 export const exportExcel = (activeTab: string, rows: Record<string, any>[]) => {
-  if (!rows.length) return;
+  if (!rows || !rows.length) {
+    toast.warning("لا توجد بيانات مطابقة لتصديرها إلى Excel");
+    return;
+  }
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(
@@ -149,7 +153,10 @@ export const exportPDF = async (
   language: "ar" | "en" = "ar",
   extraOpts?: Partial<LuxuryReportOptions>,
 ) => {
-  if (!rows || !rows.length) return;
+  if (!rows || !rows.length) {
+    toast.warning(language === "ar" ? "لا توجد بيانات مطابقة لتصديرها كـ PDF" : "No matching records found to export as PDF");
+    return;
+  }
 
   await printLuxuryReport({
     activeTab,

@@ -1508,6 +1508,9 @@ export function computeReportColumnWidths(
   });
 
   const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+  if (weights.length === 0 || totalWeight <= 0) {
+    return { seqWidthPct, colWidthsPct: [] };
+  }
 
   // 4. Normalize weights into percentages summing to exactly availablePct
   const rawColWidths = weights.map((w) => (w / totalWeight) * availablePct);
@@ -1528,6 +1531,9 @@ export function computeReportColumnWidths(
 
   // Re-normalize so sum(roundedColWidths) equals availablePct exactly
   const interimSum = roundedColWidths.reduce((a, b) => a + b, 0);
+  if (interimSum <= 0) {
+    return { seqWidthPct, colWidthsPct: roundedColWidths };
+  }
   const reAdjustedWidths = roundedColWidths.map((w) => Math.round((w / interimSum) * availablePct * 10) / 10);
 
   // 5. Adjust any remaining decimal delta onto the widest text column so sum is EXACTLY 100.0%
@@ -1906,6 +1912,68 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const isArabic = opts.language === "ar" || opts.language === undefined;
   const dir = isArabic ? "rtl" : "ltr";
   const lang = isArabic ? "ar" : "en";
+
+  // Open window SYNCHRONOUSLY at the top before any await to avoid browser popup blockers!
+  let printWindow: Window | null = null;
+  if (typeof window !== "undefined") {
+    try {
+      printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`<!DOCTYPE html>
+<html dir="${dir}" lang="${lang}">
+<head>
+  <meta charset="utf-8">
+  <title>${isArabic ? "جاري تجهيز التقرير الفاخر..." : "Preparing Luxury Report..."}</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", "Tajawal", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #0f172a;
+      color: #f8fafc;
+      text-align: center;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h2 {
+      margin: 18px 0 8px 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="spinner"></div>
+  <h2>${isArabic ? "جاري تجهيز التقرير ومعالجة التنسيق..." : "Preparing Luxury Report..."}</h2>
+  <p>${isArabic ? "لحظات وسيتم فتح نافذة المعاينة والطباعة وحفظ PDF تلقائياً..." : "Opening print preview and PDF dialog shortly..."}</p>
+</body>
+</html>`);
+        printWindow.document.close();
+      }
+    } catch (e) {
+      printWindow = null;
+    }
+  }
 
   // Resolve showKpis & showSignatures with smart defaults from REPORT_TAB_CONFIG
   const tabConfig = activeTab ? REPORT_TAB_CONFIG[activeTab] : undefined;
@@ -2915,20 +2983,63 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 </body>
 </html>`;
 
-  // Open in a real standalone browser tab (zero constrained popup dimensions)
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    // Fallback if popups are blocked: Trigger download of standalone HTML report
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${activeTab || "Sunrise_Report"}_${Date.now()}.html`;
-    a.click();
-    return;
+  // 1. If popup window opened successfully synchronously, write the full report into it
+  if (printWindow && !printWindow.closed) {
+    try {
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      return;
+    } catch (err) {
+      console.warn("Writing to popup window failed, using iframe fallback", err);
+    }
   }
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  // 2. Bulletproof Fallback: If popup was blocked or prevented, use invisible iframe on current document
+  if (typeof document !== "undefined") {
+    try {
+      let printFrame = document.getElementById("__sunrise_luxury_print_frame") as HTMLIFrameElement | null;
+      if (!printFrame) {
+        printFrame = document.createElement("iframe");
+        printFrame.id = "__sunrise_luxury_print_frame";
+        printFrame.style.position = "fixed";
+        printFrame.style.right = "0";
+        printFrame.style.bottom = "0";
+        printFrame.style.width = "0";
+        printFrame.style.height = "0";
+        printFrame.style.border = "0";
+        printFrame.style.visibility = "hidden";
+        printFrame.setAttribute("aria-hidden", "true");
+        document.body.appendChild(printFrame);
+      }
+
+      const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+      if (frameDoc) {
+        frameDoc.open();
+        frameDoc.write(html);
+        frameDoc.close();
+        if (autoPrint) {
+          setTimeout(() => {
+            try {
+              printFrame?.contentWindow?.focus();
+              printFrame?.contentWindow?.print();
+            } catch (err) {
+              console.error("Iframe print execution failed:", err);
+            }
+          }, 500);
+        }
+        return;
+      }
+    } catch (iframeErr) {
+      console.warn("Iframe print injection failed, falling back to download", iframeErr);
+    }
+  }
+
+  // 3. Ultimate Fallback: Download self-contained HTML report
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${activeTab || "Sunrise_Report"}_${Date.now()}.html`;
+  a.click();
 }
