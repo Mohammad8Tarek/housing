@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, FileText } from "lucide-react";
+import { FileSpreadsheet, FileText, Download } from "lucide-react";
 import { Tab } from "../types";
 import { ColumnChooser, ColDef } from "@/components/ui/column-chooser";
 
@@ -15,6 +15,14 @@ interface ExportToolbarProps {
   onToggle?: (key: string, checked: boolean) => void;
   onShowAll?: () => void;
   onHideAll?: () => void;
+  // Smart report export props (jsPDF + AutoTable system)
+  handleSmartExportPdf?: () => void;
+  handleSmartExportCsv?: () => void;
+  handleSmartExportXlsx?: () => void;
+  isSmartExportingPdf?: boolean;
+  isSmartExportingCsv?: boolean;
+  isSmartExportingXlsx?: boolean;
+  hasSmartReport?: boolean;
 }
 
 export function ExportToolbar({
@@ -29,6 +37,13 @@ export function ExportToolbar({
   onToggle,
   onShowAll,
   onHideAll,
+  handleSmartExportPdf,
+  handleSmartExportCsv,
+  handleSmartExportXlsx,
+  isSmartExportingPdf,
+  isSmartExportingCsv,
+  isSmartExportingXlsx,
+  hasSmartReport,
 }: ExportToolbarProps) {
   if (!canExportReports) return null;
 
@@ -146,6 +161,52 @@ export function ExportToolbar({
     );
   }
 
+  // ── Smart Report Export buttons (jsPDF + AutoTable) ──
+  if (hasSmartReport && handleSmartExportPdf && handleSmartExportCsv && handleSmartExportXlsx) {
+    return (
+      <div className="flex items-center gap-2">
+        {columnChooserElement}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSmartExportXlsx}
+          disabled={isSmartExportingXlsx}
+          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          {isSmartExportingXlsx
+            ? (ar ? "جاري التصدير..." : "Exporting...")
+            : "Excel"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSmartExportCsv}
+          disabled={isSmartExportingCsv}
+          className="gap-2 text-slate-700 border-slate-200 hover:bg-slate-50 text-xs"
+        >
+          <Download className="w-4 h-4" />
+          {isSmartExportingCsv
+            ? (ar ? "جاري التصدير..." : "Exporting...")
+            : "CSV"}
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleSmartExportPdf}
+          disabled={isSmartExportingPdf}
+          className="gap-2 bg-sky-600 hover:bg-sky-700 text-white text-xs shadow-xs"
+        >
+          <FileText className="w-4 h-4" />
+          {isSmartExportingPdf
+            ? (ar ? "جاري التوليد..." : "Generating...")
+            : (ar ? "تقرير PDF ذكي" : "Smart PDF")}
+        </Button>
+      </div>
+    );
+  }
+
+  // ── Legacy fallback: Excel + PDF ──
   return (
     <div className="flex items-center gap-2">
       {columnChooserElement}

@@ -1,0 +1,130 @@
+@media print {
+  /* ── 1. Hide everything except the report ── */
+  body * { visibility: hidden; }
+  .report-printable,
+  .report-printable * { visibility: visible; }
+  .report-printable { position: absolute; top: 0; left: 0; width: 100%; }
+
+  /* ── 2. Hide UI chrome ── */
+  nav, header, aside, footer,
+  .sidebar, .bottom-nav, .toolbar,
+  .no-print, button, .ion-page > ion-header { display: none !important; }
+
+  /* ── 3. Page setup ── */
+  @page {
+    size: A4 landscape;          /* switch to portrait if fewer columns */
+    margin: 15mm;
+  }
+
+  /* ── 4. Report header ── */
+  .report-print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10mm;
+    padding-bottom: 4mm;
+    border-bottom: 0.5mm solid #334155;
+  }
+  .report-print-title {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .report-print-meta {
+    font-size: 8pt;
+    color: #64748b;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ── 5. Filter summary bar ── */
+  .report-filter-bar {
+    background: #f8fafc;
+    border: 0.3mm solid #e2e8f0;
+    border-radius: 1mm;
+    padding: 2mm 4mm;
+    font-size: 8pt;
+    color: #475569;
+    margin-bottom: 5mm;
+  }
+
+  /* ── 6. Table — the heart of the report ── */
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8pt;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1e293b;
+    table-layout: fixed;       /* ← CRITICAL: enforces column widths */
+  }
+
+  /* Column widths driven by data-width attribute set by the app */
+  .report-table th[data-width],
+  .report-table td[data-width] {
+    width: attr(data-width);   /* e.g. data-width="24mm" */
+  }
+
+  /* Header row */
+  .report-table thead th {
+    background: #0f172a !important;
+    color: white !important;
+    font-weight: 700;
+    padding: 3mm 2mm;
+    text-align: left;
+    font-size: 7.5pt;
+    border: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /* Body rows */
+  .report-table tbody td {
+    padding: 2.5mm 2mm;
+    border-bottom: 0.2mm solid #e2e8f0;
+    vertical-align: top;
+    overflow: hidden;
+    word-wrap: break-word;    /* ← wraps inside fixed-width cell */
+  }
+
+  /* Alternating row shading */
+  .report-table tbody tr:nth-child(even) td {
+    background: #f8fafc !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Alignment classes */
+  .report-table .text-right { text-align: right !important; }
+  .report-table .text-center { text-align: center !important; }
+  .report-table .font-mono { font-family: 'Courier New', monospace; }
+
+  /* Status cells — color dot + text (no colored background, prints cleanly) */
+  .report-table .status-cell::before {
+    content: '●';
+    margin-right: 2mm;
+    font-size: 6pt;
+  }
+  .report-table .status-active::before,
+  .report-table .status-approved::before  { color: #16a34a; }
+  .report-table .status-pending::before   { color: #d97706; }
+  .report-table .status-rejected::before  { color: #dc2626; }
+  .report-table .status-inactive::before  { color: #94a3b8; }
+
+  /* ── 7. Prevent page breaks inside a row ── */
+  .report-table tr { page-break-inside: avoid; }
+
+  /* ── 8. Repeat header on every page ── */
+  .report-table thead { display: table-header-group; }
+
+  /* ── 9. Footer / page number ── */
+  .report-print-footer {
+    position: fixed;
+    bottom: 8mm;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 7pt;
+    color: #94a3b8;
+  }
+}

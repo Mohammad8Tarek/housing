@@ -12,6 +12,8 @@ import { useReportAnalytics } from "./hooks/useReportAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
 import { sortReportRows, useReportSort } from "./hooks/useReportSort";
 import { useReportColumns } from "./hooks/useReportColumns";
+import { useSmartReportExport } from "@/hooks/useSmartReportExport";
+import { SMART_REPORT_TABS } from "@/config/reportDefinitions";
 
 import { ClipboardCheck, AlertOctagon } from "lucide-react";
 import { ExportToolbar } from "./components/ExportToolbar";
@@ -169,6 +171,27 @@ export default function Reports() {
       filterRow: reportCols.filterRow,
     });
 
+  // ── Smart Report Export (jsPDF + AutoTable column system) ──
+  const smartDef = SMART_REPORT_TABS[filters.activeTab];
+  const activeProperty = data.properties?.find((p: any) => String(p.id) === String(activePropertyId));
+  const propertyLabel = activeProperty ? (ar ? activeProperty.nameAr || activeProperty.name : activeProperty.name) : undefined;
+
+  const smartExport = useSmartReportExport({
+    columns: smartDef?.columns ?? [],
+    getData: () => sortedData as Record<string, unknown>[],
+    meta: {
+      title: smartDef ? (ar ? smartDef.titleAr : smartDef.title) : '',
+      subtitle: propertyLabel,
+      filters: {
+        ...(filters.dateFrom ? { [ar ? 'من' : 'From']: filters.dateFrom } : {}),
+        ...(filters.dateTo ? { [ar ? 'إلى' : 'To']: filters.dateTo } : {}),
+        ...(filters.search ? { [ar ? 'بحث' : 'Search']: filters.search } : {}),
+      },
+    },
+    generatedBy: undefined,
+    language: ar ? 'ar' : 'en',
+  });
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -186,6 +209,13 @@ export default function Reports() {
             handleExportAnalyticsPDF={handleExportAnalyticsPDF}
             handleExportExcel={handleExportExcel}
             handleExportPDF={handleExportPDF}
+            handleSmartExportPdf={smartExport.exportPdf}
+            handleSmartExportCsv={smartExport.exportCsv}
+            handleSmartExportXlsx={smartExport.exportXlsx}
+            isSmartExportingPdf={smartExport.isExportingPdf}
+            isSmartExportingCsv={smartExport.isExportingCsv}
+            isSmartExportingXlsx={smartExport.isExportingXlsx}
+            hasSmartReport={!!smartDef}
             cols={reportCols.cols}
             visible={reportCols.visible}
             onToggle={reportCols.toggle}
