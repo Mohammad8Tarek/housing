@@ -97,9 +97,10 @@ export function RoomModals({
   const isDuplicateRoomNumber = useMemo(() => {
     if (!rForm.roomNumber?.trim() || !rForm.buildingId) return false;
     const trimmed = rForm.roomNumber.trim().toLowerCase();
+    const editRoomId = editRoom?.id != null ? Number(editRoom.id) : null;
     return (rooms || []).some(
       (r: any) =>
-        r.id !== editRoom?.id &&
+        (editRoomId === null || Number(r.id) !== editRoomId) &&
         Number(r.buildingId) === Number(rForm.buildingId) &&
         r.roomNumber?.trim().toLowerCase() === trimmed
     );

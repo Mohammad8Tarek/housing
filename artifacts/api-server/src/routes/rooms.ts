@@ -661,24 +661,6 @@ router.patch(
       return;
     }
 
-    // ── Prevent duplicate room number on update ───────────────────────────
-    if (parsed.data.roomNumber) {
-      const existingRoom = await withTenant(propertyId, async (tenantDb) => {
-        return await tenantDb
-          .select({ id: roomsTable.id })
-          .from(roomsTable)
-          .where(ilike(roomsTable.roomNumber, parsed.data.roomNumber!.trim()));
-      });
-      const conflict = existingRoom.find((r) => r.id !== params.data.id);
-      if (conflict) {
-        res.status(409).json({
-          error: `Room ${parsed.data.roomNumber} already exists in this property`,
-          code: "ROOM_DUPLICATE",
-        });
-        return;
-      }
-    }
-
     const {
       view,
       bedType,
@@ -692,6 +674,51 @@ router.patch(
       buildingId,
       floorId,
     } = req.body;
+
+    const [currentRoom] = await withTenant(propertyId, async (tenantDb) => {
+      return await tenantDb
+        .select()
+        .from(roomsTable)
+        .where(eq(roomsTable.id, params.data.id));
+    });
+
+    if (!currentRoom) {
+      res.status(404).json({ error: "Room not found" });
+      return;
+    }
+
+    const effectiveBuildingId =
+      buildingId !== undefined
+        ? Number(buildingId)
+        : currentRoom.buildingId;
+    const targetRoomNumber = (
+      parsed.data.roomNumber || currentRoom.roomNumber
+    )?.trim();
+
+    // ── Prevent duplicate room number in the SAME building on update ───────
+    if (targetRoomNumber && effectiveBuildingId) {
+      const duplicateRooms = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select({ id: roomsTable.id })
+          .from(roomsTable)
+          .where(
+            and(
+              eq(roomsTable.buildingId, effectiveBuildingId),
+              ilike(roomsTable.roomNumber, targetRoomNumber),
+              sql`${roomsTable.id} != ${params.data.id}`,
+            ),
+          );
+      });
+
+      if (duplicateRooms.length > 0) {
+        res.status(409).json({
+          error: `Room ${targetRoomNumber} already exists in this building`,
+          message: `الغرفة رقم ${targetRoomNumber} مسجلة مسبقاً في هذا المبنى`,
+          code: "ROOM_DUPLICATE",
+        });
+        return;
+      }
+    }
 
     const extraData: any = {};
     if (buildingId !== undefined) extraData.buildingId = Number(buildingId);
@@ -715,13 +742,6 @@ router.patch(
       extraData.featuresList = String(features).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
     }
     if (notes !== undefined) extraData.notes = notes;
-
-    const [existingRoom] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(roomsTable)
-        .where(eq(roomsTable.id, params.data.id));
-    });
 
     const [updated] = await withTenant(propertyId, async (tenantDb) => {
       return await tenantDb
