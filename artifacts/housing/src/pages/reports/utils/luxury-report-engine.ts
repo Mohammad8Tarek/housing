@@ -1359,55 +1359,67 @@ export function computeReportColumnWidths(
       norm.includes("comment") ||
       norm.includes("overview");
 
+    const isCodeOrId =
+      norm.includes("code") ||
+      norm.includes("كود") ||
+      norm.includes("clock") ||
+      norm.includes("profile id") ||
+      norm.includes("profile / id") ||
+      norm.includes("رقم الموظف");
+
     const isCompactNumberOrId =
-      norm === "room" ||
-      norm.includes("room no") ||
-      norm.includes("room number") ||
-      norm === "غرفة" ||
-      norm === "رقم الغرفة" ||
-      norm.includes("bed no") ||
-      norm.includes("bed number") ||
-      norm === "سرير" ||
-      norm === "رقم السرير" ||
-      norm === "bed" ||
-      norm.includes("nights") ||
-      norm.includes("ليالي") ||
-      norm.includes("count") ||
-      norm.includes("عدد") ||
-      norm.includes("qty") ||
-      norm.includes("كمية") ||
-      norm.includes("age") ||
-      norm.includes("عمر") ||
-      norm.includes("floor") ||
-      norm.includes("طابق") ||
-      norm.includes("دور") ||
-      norm.includes("level") ||
-      norm.includes("dirty") ||
-      norm.includes("متسخ") ||
-      norm.includes("ooo") ||
-      norm.includes("صيانة") ||
-      norm.includes("vacant") ||
-      norm.includes("شاغر") ||
-      norm.includes("occupied") ||
-      norm.includes("مشغول") ||
-      (allNumeric && maxCharLen <= 6 && !norm.includes("national") && !norm.includes("phone"));
+      !isCodeOrId &&
+      (
+        norm === "room" ||
+        norm.includes("room no") ||
+        norm.includes("room number") ||
+        norm === "غرفة" ||
+        norm === "رقم الغرفة" ||
+        norm.includes("bed no") ||
+        norm.includes("bed number") ||
+        norm === "سرير" ||
+        norm === "رقم السرير" ||
+        norm === "bed" ||
+        norm.includes("nights") ||
+        norm.includes("ليالي") ||
+        norm.includes("count") ||
+        norm.includes("عدد") ||
+        norm.includes("qty") ||
+        norm.includes("كمية") ||
+        norm.includes("age") ||
+        norm.includes("عمر") ||
+        norm.includes("floor") ||
+        norm.includes("طابق") ||
+        norm.includes("دور") ||
+        norm.includes("level") ||
+        norm.includes("dirty") ||
+        norm.includes("متسخ") ||
+        norm.includes("ooo") ||
+        norm.includes("صيانة") ||
+        norm.includes("vacant") ||
+        norm.includes("شاغر") ||
+        norm.includes("occupied") ||
+        norm.includes("مشغول") ||
+        (allNumeric && maxCharLen <= 6 && !norm.includes("national") && !norm.includes("phone"))
+      );
 
     const isFixedFormatId =
-      norm.includes("national") ||
-      norm.includes("قومي") ||
-      norm.includes("هوية") ||
-      norm.includes("phone") ||
-      norm.includes("هاتف") ||
-      norm.includes("mobile") ||
-      norm.includes("موبايل") ||
-      norm.includes("date") ||
-      norm.includes("تاريخ") ||
-      norm.includes("time") ||
-      norm.includes("وقت") ||
-      norm.includes("check-in") ||
-      norm.includes("check-out") ||
-      norm.includes("code") ||
-      norm.includes("كود");
+      !isCodeOrId &&
+      (
+        norm.includes("national") ||
+        norm.includes("قومي") ||
+        norm.includes("هوية") ||
+        norm.includes("phone") ||
+        norm.includes("هاتف") ||
+        norm.includes("mobile") ||
+        norm.includes("موبايل") ||
+        norm.includes("date") ||
+        norm.includes("تاريخ") ||
+        norm.includes("time") ||
+        norm.includes("وقت") ||
+        norm.includes("check-in") ||
+        norm.includes("check-out")
+      );
 
     const isStatusBadge =
       norm.includes("status") ||
@@ -1445,6 +1457,7 @@ export function computeReportColumnWidths(
       avgCharLen,
       isPersonName,
       isWideText,
+      isCodeOrId,
       isCompactNumberOrId,
       isFixedFormatId,
       isStatusBadge,
@@ -1459,53 +1472,61 @@ export function computeReportColumnWidths(
   const weights = columnMetrics.map((m) => {
     // A. Person Name: High Priority! Generously sized to display complete Arabic/English names without cramming
     if (m.isPersonName) {
-      const lengthBonus = Math.min(12, Math.max(0, m.maxCharLen - 15) * 0.4);
-      return 24 + lengthBonus;
+      const lengthBonus = Math.min(6, Math.max(0, m.maxCharLen - 15) * 0.25);
+      return (colCount >= 12 ? 18 : 24) + lengthBonus;
     }
 
     // B. Wide text, Notes, Reasons: Scaled by actual content presence
     if (m.isWideText) {
-      if (m.maxCharLen > 18) {
-        return Math.min(34, 22 + (m.maxCharLen - 18) * 0.35);
-      }
-      return 12; // When notes are short/empty, don't waste space!
+      return m.maxCharLen > 18 ? Math.min(26, 18 + (m.maxCharLen - 18) * 0.25) : 10;
     }
 
     // C. Compact Numbers, Room No, Bed No, Counts: Keep strictly compact
     if (m.isCompactNumberOrId) {
-      // Room number "101" or Bed "A" needs very little space
-      if (m.maxCharLen <= 4) return 4.5;
-      if (m.maxCharLen <= 6) return 5.5;
-      return 6.5;
+      return m.maxCharLen <= 4 ? 4.5 : m.maxCharLen <= 6 ? 5.5 : 6.0;
+    }
+
+    // C1. Employee Code / Clock Number: Generous allocation so long codes (e.g. CLK-2020-M001) never touch Full Name
+    if (m.isCodeOrId) {
+      return Math.max(12.5, 9.5 + m.maxCharLen * 0.45);
     }
 
     // D. Fixed Format IDs (Dates, Phones, National ID, System Codes)
+    if (m.norm.includes("national") || m.norm.includes("قومي")) {
+      return 12.0;
+    }
+    if (m.norm.includes("phone") || m.norm.includes("هاتف")) {
+      return 9.8;
+    }
+    if (m.norm.includes("date") || m.norm.includes("check-in") || m.norm.includes("check-out") || m.norm.includes("تاريخ")) {
+      return 9.2;
+    }
     if (m.isFixedFormatId) {
-      if (m.norm.includes("national") || m.norm.includes("قومي")) return 10.0;
-      if (m.norm.includes("phone") || m.norm.includes("هاتف") || m.norm.includes("mobile")) return 9.5;
-      if (m.norm.includes("date") || m.norm.includes("تاريخ")) return 8.5;
-      if (m.norm.includes("time") || m.norm.includes("وقت")) return 7.0;
       return 8.0;
     }
 
     // E. Status & Category Badges
     if (m.isStatusBadge) {
-      return 7.5;
+      return 6.0;
     }
 
     // F. Building Name (When no person name exists, Building is the primary subject)
     if (m.norm.includes("building") || m.norm.includes("مبنى")) {
-      return hasPersonName ? 12.0 : 24.0;
+      return hasPersonName ? 9.0 : 20.0;
     }
 
     // G. Department & Job Title & Company & Nationality
+    if (m.norm.includes("company") || m.norm.includes("dept") || m.norm.includes("department") || m.norm.includes("job") || m.norm.includes("type")) {
+      return Math.max(6.5, Math.min(9.0, 5.5 + m.maxCharLen * 0.2));
+    }
+
     if (m.isEntity) {
-      const entityLengthBonus = Math.min(6, Math.max(0, m.maxCharLen - 10) * 0.25);
-      return 12.0 + entityLengthBonus;
+      const entityLengthBonus = Math.min(4, Math.max(0, m.maxCharLen - 10) * 0.2);
+      return 8.0 + entityLengthBonus;
     }
 
     // H. Fallback: Proportional to measured text length
-    return Math.max(6.0, Math.min(18.0, 6.0 + m.maxCharLen * 0.4));
+    return Math.max(5.5, Math.min(10.0, 5.0 + m.maxCharLen * 0.25));
   });
 
   const totalWeight = weights.reduce((acc, w) => acc + w, 0);
@@ -1521,10 +1542,25 @@ export function computeReportColumnWidths(
     const m = columnMetrics[idx];
     // Enforce reasonable strict minimums and maximums per column type
     if (m.isCompactNumberOrId) {
-      return Math.min(orientation === "landscape" ? 6.5 : 8.0, Math.max(3.5, Math.round(pct * 10) / 10));
+      return Math.min(orientation === "landscape" ? 6.0 : 7.0, Math.max(3.2, Math.round(pct * 10) / 10));
+    }
+    if (m.isCodeOrId) {
+      const minCodePct = orientation === "landscape"
+        ? (colCount >= 14 ? 9.5 : 10.5)
+        : (colCount >= 10 ? 10.5 : 12.0);
+      return Math.max(minCodePct, Math.round(pct * 10) / 10);
+    }
+    if (m.norm.includes("national") || m.norm.includes("قومي")) {
+      return Math.max(orientation === "landscape" ? 8.5 : 9.8, Math.round(pct * 10) / 10);
+    }
+    if (m.norm.includes("phone") || m.norm.includes("هاتف")) {
+      return Math.max(orientation === "landscape" ? 7.0 : 8.0, Math.round(pct * 10) / 10);
+    }
+    if (m.norm.includes("date") || m.norm.includes("check-in") || m.norm.includes("check-out") || m.norm.includes("تاريخ")) {
+      return Math.max(orientation === "landscape" ? 6.6 : 7.2, Math.round(pct * 10) / 10);
     }
     if (m.isPersonName) {
-      const minNamePct = colCount >= 14 ? 14.0 : colCount >= 10 ? 18.0 : 22.0;
+      const minNamePct = colCount >= 14 ? 13.0 : colCount >= 10 ? 15.0 : 18.0;
       return Math.max(minNamePct, Math.round(pct * 10) / 10);
     }
     return Math.round(pct * 10) / 10;
@@ -1812,15 +1848,17 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     return "text-align: center; white-space: normal; line-height: 1.15; font-weight: 700 !important; font-variant-numeric: tabular-nums; color: #000000 !important;";
   }
 
-  // Employee Codes & Identifiers (Align to start so long codes do not overflow outward)
+  // Employee Codes & Identifiers (Align to start, add generous padding-inline-end so code never collides with Name)
   if (
     norm.includes("كود") ||
     norm.includes("code") ||
+    norm.includes("clock") ||
     norm.includes("profile id") ||
     norm.includes("profile / id") ||
     norm.includes("رقم الموظف")
   ) {
-    return `text-align: ${isArabic ? "right" : "left"}; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;`;
+    const endPad = isArabic ? "padding-left: 18px !important;" : "padding-right: 18px !important;";
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important; ${endPad}`;
   }
 
   // National ID & Phone & Emergency Contacts (Fixed numeric)
@@ -1864,13 +1902,24 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     return "text-align: center; white-space: normal; word-break: break-word; line-height: 1.2; font-weight: 700 !important; color: #000000 !important;";
   }
 
-  // Names, Departments, Buildings, Jobs, Companies - WRAP NATURALLY
+  // Full Names (Person Name): Add generous padding-inline-start to guarantee clear separation from Employee Code
+  const isPersonNameOnly =
+    norm.includes("full name") ||
+    norm.includes("guest name") ||
+    norm.includes("profile name") ||
+    norm.includes("اسم النزيل") ||
+    norm.includes("اسم الموظف") ||
+    norm.includes("الاسم بالكامل") ||
+    (norm.includes("الاسم") && !norm.includes("مبنى") && !norm.includes("شركة")) ||
+    (norm.includes("name") && !norm.includes("building") && !norm.includes("company"));
+
+  if (isPersonNameOnly) {
+    const startPad = isArabic ? "padding-right: 14px !important;" : "padding-left: 14px !important;";
+    return `text-align: ${isArabic ? "right" : "left"}; white-space: normal; word-break: break-word; overflow-wrap: break-word; line-height: 1.25; font-weight: 700 !important; color: #000000 !important; ${startPad}`;
+  }
+
+  // Other Entities: Departments, Buildings, Jobs, Companies - WRAP NATURALLY
   if (
-    norm.includes("اسم") ||
-    norm.includes("name") ||
-    norm.includes("موظف") ||
-    norm.includes("resident") ||
-    norm.includes("نزيل") ||
     norm.includes("قسم") ||
     norm.includes("dept") ||
     norm.includes("department") ||
