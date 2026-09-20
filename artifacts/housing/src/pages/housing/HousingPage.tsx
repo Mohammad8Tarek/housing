@@ -1,7 +1,9 @@
 import { RoomImportWizard } from "./components/import/RoomImportWizard";
-import { FileSpreadsheet, Download } from "lucide-react";
+import { FileSpreadsheet, Download, FileDown, Building, MapPin, Users, Key, Info, LayoutGrid, Sparkles, BedDouble } from "lucide-react";
+import * as XLSX from "xlsx";
+import { getExportFileName } from "@/lib/date-utils";
+import { toast } from "sonner";
 import { useState } from "react";
-import { Building, MapPin, Users, Key, Info, LayoutGrid, Sparkles, BedDouble } from "lucide-react";
 import { downloadRoomImportTemplate } from "@/lib/room-importer-engine";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -136,6 +138,172 @@ export function HousingPage() {
 
   const cleanRate = totalRooms > 0 ? Math.round((availableRooms / totalRooms) * 100) : 100;
 
+  const exportHousingConfiguration = () => {
+    if (!rooms.length && !buildings.length) {
+      toast.error(ar ? "لا توجد بيانات غرف أو مبانٍ لتصديرها" : "No housing data available to export");
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+
+    // 1. Rooms Configuration Sheet
+    const roomRows = rooms.map((r: any) => {
+      const bld = buildings.find((b: any) => b.id === r.buildingId);
+      const flr = floors.find((f: any) => f.id === r.floorId);
+      const roomAssignments = activeAssignments.filter((a: any) => a.roomId === r.id);
+      const cap = r.capacity || 1;
+      const occ = roomAssignments.length;
+      const availBeds = Math.max(0, cap - occ);
+
+      const statusMap: Record<string, { ar: string; en: string }> = {
+        available: { ar: "شاغرة (جاهزة)", en: "Vacant Clean" },
+        dirty: { ar: "تحتاج تنظيف", en: "Vacant Dirty" },
+        occupied: { ar: "مشغولة", en: "Occupied Clean" },
+        occupied_dirty: { ar: "مشغولة (تحتاج تنظيف)", en: "Occupied Dirty" },
+        occupied_vacation: { ar: "في إجازة", en: "On Vacation" },
+        out_of_service: { ar: "خارج الخدمة", en: "Out of Service" },
+        out_of_order: { ar: "معطلة", en: "Out of Order" },
+        maintenance: { ar: "صيانة", en: "Maintenance" },
+      };
+      const stObj = statusMap[(r.status || "").toLowerCase()] || { ar: r.status || "", en: r.status || "" };
+
+      return ar ? {
+        "رقم الغرفة": r.roomNumber ?? "",
+        "المبنى": bld?.name || r.building || "",
+        "كود المبنى": bld?.code || "",
+        "الدور / الطابق": flr ? `${flr.floorNumber}` : (r.floor ?? ""),
+        "نوع / تصنيف الغرفة": r.classification || r.roomType || r.type || "",
+        "أقصى سعة استيعابية": cap,
+        "الإشغال الفعلي": occ,
+        "الأسرة الشاغرة": availBeds,
+        "نوع الأسرة": r.bedType ?? "",
+        "حالة الغرفة التشغيلية": stObj.ar,
+        "حالة النظافة": r.cleanlinessStatus === "dirty" ? "تحتاج تنظيف" : "نظيفة",
+        "تخصيص الجنس": r.gender === "female" ? "إناث" : r.gender === "male" ? "ذكور" : "مشترك / غير محدد",
+        "إطلالة الغرفة": r.view ?? "",
+        "باب فاصل / متصلة": r.separatorDoor ? "نعم" : "لا",
+        "المساحة (م2)": r.size || (r.sizeSqm ? `${r.sizeSqm}m²` : ""),
+        "التجهيزات والمميزات": Array.isArray(r.featuresList)
+          ? r.featuresList.join(", ")
+          : (typeof r.features === "string" ? r.features : ""),
+        "ملاحظات": r.notes ?? "",
+      } : {
+        "Room Number": r.roomNumber ?? "",
+        "Building": bld?.name || r.building || "",
+        "Building Code": bld?.code || "",
+        "Floor": flr ? `${flr.floorNumber}` : (r.floor ?? ""),
+        "Room Type": r.classification || r.roomType || r.type || "",
+        "Max Capacity": cap,
+        "Current Occupancy": occ,
+        "Available Beds": availBeds,
+        "Bed Type": r.bedType ?? "",
+        "Operational Status": stObj.en,
+        "Cleanliness": r.cleanlinessStatus || "clean",
+        "Gender Policy": r.gender || "Any",
+        "View": r.view ?? "",
+        "Connecting Door": r.separatorDoor ? "Yes" : "No",
+        "Size (Sqm)": r.size || (r.sizeSqm ? `${r.sizeSqm}m²` : ""),
+        "Features & Amenities": Array.isArray(r.featuresList)
+          ? r.featuresList.join(", ")
+          : (typeof r.features === "string" ? r.features : ""),
+        "Notes": r.notes ?? "",
+      };
+    });
+
+    // 2. Buildings Configuration Sheet
+    const buildingRows = buildings.map((b: any) => {
+      const bRooms = rooms.filter((r: any) => r.buildingId === b.id);
+      const bCapacity = bRooms.reduce((acc: number, r: any) => acc + (r.capacity || 1), 0);
+      const bActiveAssignments = activeAssignments.filter((a: any) => {
+        const room = rooms.find((r: any) => r.id === a.roomId);
+        return room && room.buildingId === b.id;
+      });
+      const bOcc = bActiveAssignments.length;
+      const bRate = bCapacity > 0 ? Math.round((bOcc / bCapacity) * 100) : 0;
+
+      return ar ? {
+        "اسم المبنى": b.name ?? "",
+        "كود المبنى": b.code ?? "",
+        "عدد الطوابق": b.floorsCount ?? floors.filter((f: any) => f.buildingId === b.id).length,
+        "إجمالي الغرف": bRooms.length,
+        "إجمالي الطاقة الاستيعابية": bCapacity,
+        "الإشغال الفعلي": bOcc,
+        "نسبة الإشغال": `${bRate}%`,
+        "التخصيص": b.gender === "female" ? "إناث" : b.gender === "male" ? "ذكور" : "مشترك",
+        "ملاحظات": b.notes ?? b.description ?? "",
+      } : {
+        "Building Name": b.name ?? "",
+        "Building Code": b.code ?? "",
+        "Floors Count": b.floorsCount ?? floors.filter((f: any) => f.buildingId === b.id).length,
+        "Total Rooms": bRooms.length,
+        "Total Capacity": bCapacity,
+        "Current Occupancy": bOcc,
+        "Occupancy Rate": `${bRate}%`,
+        "Gender": b.gender ?? "Mixed",
+        "Notes": b.notes ?? b.description ?? "",
+      };
+    });
+
+    // 3. Beds Inventory & Detailed Occupancy Sheet
+    const bedRows: any[] = [];
+    rooms.forEach((r: any) => {
+      const bld = buildings.find((b: any) => b.id === r.buildingId);
+      const flr = floors.find((f: any) => f.id === r.floorId);
+      const roomAssignments = activeAssignments.filter((a: any) => a.roomId === r.id);
+      const cap = r.capacity || 1;
+
+      for (let b = 1; b <= cap; b++) {
+        const asgn = roomAssignments.find((a: any) => a.bedNumber === b || (cap === 1 && !a.bedNumber));
+        const emp = asgn ? profiles.find((p: any) => p.id === asgn.profileId) : null;
+        const occName = emp
+          ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || emp.firstNameAr || ""
+          : (asgn?.profileName || "");
+        const occCode = emp?.profileId || asgn?.profileCode || "";
+        const isVac = asgn?.profileStatus === "VACATION" || emp?.status === "VACATION";
+
+        bedRows.push(ar ? {
+          "رقم الغرفة": r.roomNumber ?? "",
+          "المبنى": bld?.name || r.building || "",
+          "الطابق": flr ? `${flr.floorNumber}` : (r.floor ?? ""),
+          "رقم السرير": `سرير ${b}`,
+          "نوع السرير": r.bedType ?? "",
+          "حالة السرير": !asgn ? "شاغر" : isVac ? "مقيم (في إجازة)" : "مشغول",
+          "كود الموظف المقيم": occCode,
+          "اسم الموظف المقيم": occName,
+          "المسمى الوظيفي": emp?.jobTitle || emp?.jobTitleAr || asgn?.jobTitle || "",
+          "القسم": emp?.department || emp?.departmentAr || asgn?.department || "",
+          "تاريخ التسكين": asgn?.checkInDate ? String(asgn.checkInDate).split("T")[0] : "",
+          "تاريخ الخروج المتوقع": asgn?.expectedCheckOutDate ? String(asgn.expectedCheckOutDate).split("T")[0] : "",
+        } : {
+          "Room Number": r.roomNumber ?? "",
+          "Building": bld?.name || r.building || "",
+          "Floor": flr ? `${flr.floorNumber}` : (r.floor ?? ""),
+          "Bed Number": `Bed ${b}`,
+          "Bed Type": r.bedType ?? "",
+          "Bed Status": !asgn ? "Available" : isVac ? "Occupied (Vacation)" : "Occupied",
+          "Occupant Code": occCode,
+          "Occupant Name": occName,
+          "Job Title": emp?.jobTitle || asgn?.jobTitle || "",
+          "Department": emp?.department || asgn?.department || "",
+          "Check-In Date": asgn?.checkInDate ? String(asgn.checkInDate).split("T")[0] : "",
+          "Expected Check-Out": asgn?.expectedCheckOutDate ? String(asgn.expectedCheckOutDate).split("T")[0] : "",
+        });
+      }
+    });
+
+    const wsRooms = XLSX.utils.json_to_sheet(roomRows);
+    const wsBuildings = XLSX.utils.json_to_sheet(buildingRows);
+    const wsBeds = XLSX.utils.json_to_sheet(bedRows);
+
+    XLSX.utils.book_append_sheet(wb, wsRooms, ar ? "كنفجريشن الغرف" : "Rooms");
+    XLSX.utils.book_append_sheet(wb, wsBuildings, ar ? "كنفجريشن المباني" : "Buildings");
+    XLSX.utils.book_append_sheet(wb, wsBeds, ar ? "جرد وتوزيع الأسرة" : "Beds Inventory");
+
+    const fileName = getExportFileName(ar ? "تكوين_السكن_والغرف_الشامل" : "Housing_Configuration_Complete", "xlsx");
+    XLSX.writeFile(wb, fileName);
+    toast.success(ar ? "تم تصدير كنفجريشن السكن والغرف والأسرة بنجاح!" : "Housing configuration exported successfully!");
+  };
+
   return (
     <div className="flex-1 w-full p-6 md:p-8 space-y-6">
       {/* ── HEADER & STATS ── */}
@@ -147,6 +315,17 @@ export function HousingPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <PermissionGate module="housing" action="export">
+            <Button
+              variant="outline"
+              onClick={exportHousingConfiguration}
+              className="gap-1.5 text-xs font-semibold h-9 shadow-xs"
+              title={ar ? "تصدير كنفجريشن المباني والغرف والأسرة بالكامل إلى Excel" : "Export Complete Housing & Rooms Configuration"}
+            >
+              <FileDown className="w-4 h-4 text-emerald-600" />
+              {ar ? "تصدير كنفجريشن السكن (Excel)" : "Export Housing Config"}
+            </Button>
+          </PermissionGate>
           <PermissionGate module="housing" action="export">
             <Button
               variant="outline"

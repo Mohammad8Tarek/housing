@@ -34,7 +34,10 @@ import {
   Search,
   FileSpreadsheet,
   Download,
+  FileDown,
 } from "lucide-react";
+import * as XLSX from "xlsx";
+import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
@@ -282,38 +285,131 @@ export function LookupSection({
     }
   };
 
+  const exportLookupsExcel = () => {
+    if (!values || values.length === 0) {
+      toast.error(ar ? "لا توجد بيانات لتصديرها" : "No lookup data available to export");
+      return;
+    }
+
+    try {
+      const wb = XLSX.utils.book_new();
+
+      if (category === "job_title") {
+        const rows = values.map((v: any) => {
+          return ar ? {
+            "القسم": v.parentValue || "",
+            "المسمى الوظيفي": v.value || "",
+            "الدرجة / المستوى": v.extraValue || "",
+            "الحالة": v.isActive === false ? "معطل" : "نشط",
+            "ترتيب العرض": v.sortOrder || 0,
+          } : {
+            "Department": v.parentValue || "",
+            "Job Title": v.value || "",
+            "Level": v.extraValue || "",
+            "Status": v.isActive === false ? "Inactive" : "Active",
+            "Sort Order": v.sortOrder || 0,
+          };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "المسميات الوظيفية" : "Job Titles");
+        const filename = getExportFileName(ar ? "المسميات_الوظيفية_والأقسام" : "Job_Titles_and_Departments", "xlsx");
+        XLSX.writeFile(wb, filename);
+      } else if (category === "department") {
+        const rows = values.map((v: any) => {
+          return ar ? {
+            "اسم القسم": v.value || "",
+            "الحالة": v.isActive === false ? "معطل" : "نشط",
+            "ترتيب العرض": v.sortOrder || 0,
+          } : {
+            "Department Name": v.value || "",
+            "Status": v.isActive === false ? "Inactive" : "Active",
+            "Sort Order": v.sortOrder || 0,
+          };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "الأقسام" : "Departments");
+        const filename = getExportFileName(ar ? "أقسام_العمل" : "Departments", "xlsx");
+        XLSX.writeFile(wb, filename);
+      } else {
+        const rows = values.map((v: any) => {
+          const rowObj: Record<string, any> = {};
+          if (ar) {
+            rowObj[currentLabel] = v.value || "";
+            if (parentCategory) rowObj[currentParentLabel] = v.parentValue || "";
+            if (showCapacity || extraLabel) rowObj[currentExtraLabel || "السعة"] = v.extraValue || "";
+            rowObj["الحالة"] = v.isActive === false ? "معطل" : "نشط";
+            rowObj["ترتيب العرض"] = v.sortOrder || 0;
+          } else {
+            rowObj[currentLabel] = v.value || "";
+            if (parentCategory) rowObj[currentParentLabel] = v.parentValue || "";
+            if (showCapacity || extraLabel) rowObj[currentExtraLabel || "Capacity"] = v.extraValue || "";
+            rowObj["Status"] = v.isActive === false ? "Inactive" : "Active";
+            rowObj["Sort Order"] = v.sortOrder || 0;
+          }
+          return rowObj;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, currentLabel.slice(0, 31));
+        const filename = getExportFileName(`Lookup_${category}`, "xlsx");
+        XLSX.writeFile(wb, filename);
+      }
+
+      toast.success(ar ? "تم تصدير البيانات بنجاح!" : "Lookup data exported successfully!");
+    } catch (err: any) {
+      toast.error(ar ? `فشل التصدير: ${err.message}` : `Export failed: ${err.message}`);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{description}</p>
-        {(category === "job_title" || category === "department") && (
-          <div className="flex items-center gap-2">
-            <PermissionGate module="settings" action="export">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => downloadJobTitlesTemplate("xlsx", ar ? "ar" : "en")}
-                className="gap-1.5 text-xs font-semibold h-8 shadow-xs"
-                title={ar ? "تحميل نموذج ملف Excel الجاهز للاستيراد" : "Download Excel Import Template"}
-              >
-                <Download className="w-3.5 h-3.5 text-primary" />
-                {ar ? "تحميل نموذج Excel" : "Excel Template"}
-              </Button>
-            </PermissionGate>
-            <PermissionGate module="settings" action="create">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setImportDialogOpen(true)}
-                className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-white shadow-md text-xs h-8"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                {ar ? "استيراد من Excel / CSV" : "Import (Excel / CSV)"}
-              </Button>
-            </PermissionGate>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <PermissionGate module="settings" action="export">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={exportLookupsExcel}
+              className="gap-1.5 text-xs font-semibold h-8 shadow-xs"
+              title={ar ? "تصدير القوائم والبيانات الحالية إلى Excel" : "Export current lookups to Excel"}
+            >
+              <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+              {ar ? "تصدير Excel" : "Export Excel"}
+            </Button>
+          </PermissionGate>
+          {(category === "job_title" || category === "department") && (
+            <>
+              <PermissionGate module="settings" action="export">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadJobTitlesTemplate("xlsx", ar ? "ar" : "en")}
+                  className="gap-1.5 text-xs font-semibold h-8 shadow-xs"
+                  title={ar ? "تحميل نموذج ملف Excel الجاهز للاستيراد" : "Download Excel Import Template"}
+                >
+                  <Download className="w-3.5 h-3.5 text-primary" />
+                  {ar ? "تحميل نموذج Excel" : "Excel Template"}
+                </Button>
+              </PermissionGate>
+              <PermissionGate module="settings" action="create">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setImportDialogOpen(true)}
+                  className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-white shadow-md text-xs h-8"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  {ar ? "استيراد من Excel / CSV" : "Import (Excel / CSV)"}
+                </Button>
+              </PermissionGate>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filter by Department / Parent */}

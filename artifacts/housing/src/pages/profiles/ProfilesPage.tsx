@@ -62,6 +62,7 @@ import {
   Users,
   AlertCircle,
   FileSpreadsheet,
+  FileDown,
   Pencil,
   Download,
   Upload,
@@ -131,6 +132,7 @@ export function ProfilesPage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [importProgress, setImportProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const LIMIT = 25;
   const [pageSize, setPageSize] = useState(10);
@@ -432,82 +434,174 @@ export function ProfilesPage() {
     });
   };
 
-  const exportSelectedExcel = () => {
-    const target =
-      selectedRows.size > 0
-        ? profiles.filter((e) => selectedRows.has(e.id))
-        : profiles;
-    const rows = target.map((e) => {
-      const dispName = getProfileDisplayName(e, ar);
-      const dispJob = getProfileDisplayJobTitle(e, ar);
-      const dispDept = getProfileDisplayDepartment(e, ar);
-      const nat = formatNationality(e.nationality, ar);
+  const handleExportProfilesExcel = async (onlySelected = false) => {
+    try {
+      setIsExporting(true);
+      toast.loading(
+        ar
+          ? "جاري تجهيز وتصدير ملف الموظفين الشامل..."
+          : "Preparing full employee profiles export...",
+        { id: "export-profiles" }
+      );
 
-      if (ar) {
-        return {
-          "كود الموظف": e.profileId,
-          "الاسم بالكامل": dispName,
-          "الاسم الأول": e.firstNameAr || e.firstName || "",
-          "اسم الأب": e.lastNameAr || e.lastName || "",
-          "اسم الجد": e.thirdNameAr || e.thirdName || "",
-          "العائلة": e.fourthNameAr || e.fourthName || "",
-          "نوع التوظيف": e.employmentType === "THIRD_PARTY" ? "طرف ثالث" : "موظف داخلي",
-          "الشركة / جهة العمل": e.companyName || "",
-          "القسم": dispDept,
-          "الوظيفة": dispJob,
-          "الدرجة": e.level ?? "",
-          "الجنسية": nat,
-          "النوع": e.gender === "M" ? "ذكر" : e.gender === "F" ? "أنثى" : "",
-          "الرقم القومي": e.nationalId ?? "",
-          "الهاتف": e.phone ?? "",
-          "البريد الإلكتروني": e.email ?? "",
-          "جهة اتصال الطوارئ": e.emergencyContact ?? "",
-          "تاريخ التعيين": formatDate(e.hireDate, ""),
-          "انتهاء العقد": formatDate(e.contractEndDate, ""),
-          "تاريخ الميلاد": formatDate(e.dateOfBirth, ""),
-          "العنوان": e.address ?? "",
-          "الحالة":
-            e.status === "ACTIVE" || e.status === "ASSIGNED"
-              ? "مقيم بالسكن"
-              : e.status === "VACATION"
-                ? "في إجازة"
-                : e.status === "LEFT"
-                  ? "تمت المغادرة"
-                  : e.status === "TRANSFERRED"
-                    ? "منقول لفندق آخر"
-                    : "غير مسكّن",
-        };
+      let targetList: any[] = [];
+      if (onlySelected && selectedRows.size > 0) {
+        targetList = profiles.filter((e: any) => selectedRows.has(e.id));
+      } else {
+        // Fetch all profiles from server without pagination limitation
+        const res = await fetch(`/api/profiles?propertyId=${activePropertyId}&limit=5000`);
+        if (!res.ok) throw new Error("Failed to fetch profiles");
+        const json = await res.json();
+        targetList = json.data || [];
       }
 
-      return {
-        Code: e.profileId,
-        "Full Name": dispName,
-        "First Name": e.firstName || "",
-        "Second Name": e.lastName || "",
-        "Third Name": e.thirdName || "",
-        "Fourth Name": e.fourthName || "",
-        "Employment Type": e.employmentType || "INTERNAL",
-        "Company / Workplace": e.companyName || "",
-        Department: dispDept,
-        "Job Title": dispJob,
-        Level: e.level ?? "",
-        Nationality: nat,
-        Gender: e.gender === "M" ? "Male" : e.gender === "F" ? "Female" : "",
-        "National ID": e.nationalId ?? "",
-        Phone: e.phone ?? "",
-        Email: e.email ?? "",
-        "Emergency Contact": e.emergencyContact ?? "",
-        "Hire Date": formatDate(e.hireDate, ""),
-        "Contract End Date": formatDate(e.contractEndDate, ""),
-        "Date of Birth": formatDate(e.dateOfBirth, ""),
-        Address: e.address ?? "",
-        Status: e.status,
-      };
-    });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, ar ? "الملفات الشخصية" : "Profiles");
-    XLSX.writeFile(wb, getExportFileName(ar ? "الملفات_الشخصية" : "Profiles", "xlsx"));
+      if (targetList.length === 0) {
+        toast.error(
+          ar ? "لا توجد ملفات موظفين لتصديرها" : "No profiles found to export",
+          { id: "export-profiles" }
+        );
+        return;
+      }
+
+      // Fetch active assignments to include housing info (building, room, bed)
+      let asgnMap: Record<number, any> = {};
+      try {
+        const asgnRes = await fetch(`/api/assignments/in-house?propertyId=${activePropertyId}&limit=5000`);
+        if (asgnRes.ok) {
+          const asgnJson = await asgnRes.json();
+          const asgnList = asgnJson.data || [];
+          for (const a of asgnList) {
+            const pid = a.assignment?.profileId || a.profileId;
+            if (pid) asgnMap[pid] = a;
+          }
+        }
+      } catch {}
+
+      const rows = targetList.map((e: any) => {
+        const asgn = asgnMap[e.id];
+        const dispName = getProfileDisplayName(e, ar);
+        const dispJob = getProfileDisplayJobTitle(e, ar);
+        const dispDept = getProfileDisplayDepartment(e, ar);
+        const nat = formatNationality(e.nationality, ar);
+
+        const housingStatusAr = asgn
+          ? (asgn.profileStatus === "VACATION" ? "مقيم (في إجازة)" : "مقيم بالسكن")
+          : (e.status === "VACATION"
+              ? "في إجازة"
+              : e.status === "LEFT"
+                ? "تمت المغادرة"
+                : e.status === "TRANSFERRED"
+                  ? "منقول لفندق آخر"
+                  : "غير مسكّن");
+
+        const housingStatusEn = asgn
+          ? (asgn.profileStatus === "VACATION" ? "In-House (Vacation)" : "In-House")
+          : (e.status === "VACATION"
+              ? "On Vacation"
+              : e.status === "LEFT"
+                ? "Checked Out / Left"
+                : e.status === "TRANSFERRED"
+                  ? "Transferred"
+                  : "Unassigned");
+
+        const roomNum = asgn?.roomNumber || "";
+        const bldName = asgn?.buildingName || "";
+        const flrNum = asgn?.floorNumber != null ? asgn.floorNumber : "";
+        const bedStr = asgn ? ((asgn.assignment?.bedNumber || asgn.bedNumber) ? `Bed ${asgn.assignment?.bedNumber || asgn.bedNumber}` : "") : "";
+
+        if (ar) {
+          return {
+            "كود الموظف": e.profileId ?? "",
+            "الاسم بالكامل (عربي)": [e.firstNameAr, e.lastNameAr, e.thirdNameAr, e.fourthNameAr].filter(Boolean).join(" ") || dispName,
+            "الاسم بالكامل (إنجليزي)": [e.firstName, e.lastName, e.thirdName, e.fourthName].filter(Boolean).join(" ") || "",
+            "الاسم الأول": e.firstNameAr || e.firstName || "",
+            "اسم الأب": e.lastNameAr || e.lastName || "",
+            "اسم الجد": e.thirdNameAr || e.thirdName || "",
+            "العائلة / اللقب": e.fourthNameAr || e.fourthName || "",
+            "الرقم القومي / الهوية": e.nationalId ?? "",
+            "الجنسية": nat,
+            "النوع": e.gender === "M" ? "ذكر" : e.gender === "F" ? "أنثى" : "",
+            "تاريخ الميلاد": formatDate(e.dateOfBirth, ""),
+            "الهاتف": e.phone ?? "",
+            "البريد الإلكتروني": e.email ?? "",
+            "جهة اتصال الطوارئ": e.emergencyContact ?? "",
+            "العنوان": e.address ?? "",
+            "القسم": dispDept,
+            "القسم (إنجليزي)": e.department || "",
+            "المسمى الوظيفي": dispJob,
+            "المسمى الوظيفي (إنجليزي)": e.jobTitle || "",
+            "الدرجة الوظيفية": e.level ?? "",
+            "نوع التوظيف": e.employmentType === "THIRD_PARTY" ? "طرف ثالث (عمالة خارجية)" : "موظف داخلي",
+            "الشركة / مقاول الباطن": e.companyName || "",
+            "تاريخ التعيين": formatDate(e.hireDate, ""),
+            "انتهاء العقد": formatDate(e.contractEndDate, ""),
+            "حالة السكن والتسكين": housingStatusAr,
+            "المبنى الحالي": bldName,
+            "الدور الحالي": flrNum,
+            "الغرفة الحالية": roomNum,
+            "السرير": bedStr,
+            "تاريخ بداية الإجازة": formatDate(e.vacationStartDate, ""),
+            "تاريخ انتهاء الإجازة": formatDate(e.vacationEndDate, ""),
+            "ملاحظات الإجازة": e.vacationNotes ?? "",
+            "تاريخ الإضافة للنظام": formatDate(e.createdAt, ""),
+          };
+        }
+
+        return {
+          "Profile / Employee Code": e.profileId ?? "",
+          "Full Name": [e.firstName, e.lastName, e.thirdName, e.fourthName].filter(Boolean).join(" ") || dispName,
+          "Full Name (Arabic)": [e.firstNameAr, e.lastNameAr, e.thirdNameAr, e.fourthNameAr].filter(Boolean).join(" ") || "",
+          "First Name": e.firstName || "",
+          "Second Name": e.lastName || "",
+          "Third Name": e.thirdName || "",
+          "Last / Family Name": e.fourthName || "",
+          "National ID": e.nationalId ?? "",
+          "Nationality": nat,
+          "Gender": e.gender === "M" ? "Male" : e.gender === "F" ? "Female" : "",
+          "Date of Birth": formatDate(e.dateOfBirth, ""),
+          "Phone": e.phone ?? "",
+          "Email": e.email ?? "",
+          "Emergency Contact": e.emergencyContact ?? "",
+          "Address": e.address ?? "",
+          "Department": dispDept,
+          "Job Title": dispJob,
+          "Job Level": e.level ?? "",
+          "Employment Type": e.employmentType || "INTERNAL",
+          "Company / Workplace": e.companyName || "",
+          "Hire Date": formatDate(e.hireDate, ""),
+          "Contract End Date": formatDate(e.contractEndDate, ""),
+          "Housing Status": housingStatusEn,
+          "Current Building": bldName,
+          "Current Floor": flrNum,
+          "Current Room": roomNum,
+          "Current Bed": bedStr,
+          "Vacation Start Date": formatDate(e.vacationStartDate, ""),
+          "Vacation End Date": formatDate(e.vacationEndDate, ""),
+          "Vacation Notes": e.vacationNotes ?? "",
+          "Created Date": formatDate(e.createdAt, ""),
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, ar ? "دليل الموظفين الشامل" : "Complete Profiles");
+      const filename = getExportFileName(ar ? "سجل_الموظفين_الشامل" : "Profiles_Complete", "xlsx");
+      XLSX.writeFile(wb, filename);
+
+      toast.success(
+        ar
+          ? `تم تصدير بيانات ${rows.length} موظف بنجاح!`
+          : `Successfully exported ${rows.length} employee profiles!`,
+        { id: "export-profiles" }
+      );
+    } catch (err: any) {
+      toast.error(
+        ar ? `فشل تصدير الموظفين: ${err.message}` : `Export failed: ${err.message}`,
+        { id: "export-profiles" }
+      );
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -546,6 +640,18 @@ export function ProfilesPage() {
               <LayoutGrid className="w-4 h-4" />
             </Button>
           </div>
+          <PermissionGate module="profiles" action="export">
+            <Button
+              variant="outline"
+              onClick={() => handleExportProfilesExcel(false)}
+              disabled={isExporting}
+              className="gap-1.5 text-xs font-semibold h-9 shadow-xs"
+              title={ar ? "تصدير كافة الموظفين بكل البيانات إلى ملف Excel" : "Export all employee profiles to Excel"}
+            >
+              <FileDown className="w-4 h-4 text-emerald-600" />
+              {ar ? "تصدير Excel" : "Export Excel"}
+            </Button>
+          </PermissionGate>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
             {ar ? "استيراد Excel" : "Import Excel"}
@@ -636,7 +742,7 @@ export function ProfilesPage() {
       <BulkActionBar
         count={selectedRows.size}
         onClear={() => setSelectedRows(new Set())}
-        onExportExcel={exportSelectedExcel}
+        onExportExcel={() => handleExportProfilesExcel(true)}
         ar={ar}
         extraActions={
           <PermissionGate module="profiles" action="delete">
