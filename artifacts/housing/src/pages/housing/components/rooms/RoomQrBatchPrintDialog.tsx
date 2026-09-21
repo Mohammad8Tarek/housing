@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
-import { getRoomQrImageUrl } from "@/lib/qr-service";
+import { getRoomQrImageUrl, generateRoomQrDataUrl } from "@/lib/qr-service";
 
 interface RoomQrBatchPrintDialogProps {
   open: boolean;
@@ -56,6 +56,8 @@ export function RoomQrBatchPrintDialog({
   const [buildingFilter, setBuildingFilter] = useState("all");
   const [floorFilter, setFloorFilter] = useState("all");
   const [layoutMode, setLayoutMode] = useState<"4" | "6" | "8">("6");
+  const [isPreparingPrint, setIsPreparingPrint] = useState(false);
+  const [previewQrMap, setPreviewQrMap] = useState<Record<number, string>>({});
 
   // Filtered rooms to print
   const printableRooms = useMemo(() => {
@@ -74,10 +76,55 @@ export function RoomQrBatchPrintDialog({
     });
   }, [rooms, selectedRoomIds, buildingFilter, floorFilter]);
 
-  const handlePrint = () => {
+  // Load client-side QR codes for the first preview batch
+  useEffect(() => {
+    let active = true;
+    if (!open) return;
+    const loadPreviews = async () => {
+      const slice = printableRooms.slice(0, 12);
+      const newMap: Record<number, string> = {};
+      for (const r of slice) {
+        try {
+          newMap[r.id] = await generateRoomQrDataUrl(propertyId, r.id, { width: 250 });
+        } catch {
+          newMap[r.id] = getRoomQrImageUrl(propertyId, r.id, "png");
+        }
+      }
+      if (active) {
+        setPreviewQrMap((prev) => ({ ...prev, ...newMap }));
+      }
+    };
+    loadPreviews();
+    return () => {
+      active = false;
+    };
+  }, [open, printableRooms, propertyId]);
+
+  const handlePrint = async () => {
     if (printableRooms.length === 0) {
       toast.error(ar ? "لا توجد غرف مطابقة للطباعة" : "No rooms match criteria to print");
       return;
+    }
+
+    setIsPreparingPrint(true);
+    const toastId = toast.loading(
+      ar ? "جاري إعداد الرموز بدقة عالية..." : "Preparing high-resolution placards..."
+    );
+
+    const qrUrls: Record<number, string> = {};
+    try {
+      await Promise.all(
+        printableRooms.map(async (r) => {
+          try {
+            qrUrls[r.id] = await generateRoomQrDataUrl(propertyId, r.id, { width: 350 });
+          } catch {
+            qrUrls[r.id] = getRoomQrImageUrl(propertyId, r.id, "png");
+          }
+        })
+      );
+    } finally {
+      toast.dismiss(toastId);
+      setIsPreparingPrint(false);
     }
 
     const printWindow = window.open("", "_blank");
@@ -97,7 +144,7 @@ export function RoomQrBatchPrintDialog({
         const f = floors.find((x) => x.id === r.floorId);
         const bName = b?.name || `Building #${r.buildingId}`;
         const fNum = f?.floorNumber ?? 0;
-        const qrUrl = getRoomQrImageUrl(propertyId, r.id, "png");
+        const qrUrl = qrUrls[r.id] || getRoomQrImageUrl(propertyId, r.id, "png");
 
         return `
           <div class="placard-card">
@@ -395,12 +442,16 @@ export function RoomQrBatchPrintDialog({
                       {r.roomNumber}
                     </div>
 
-                    <div className="w-20 h-20 mx-auto bg-white p-1 rounded border border-dashed border-amber-400">
-                      <img
-                        src={qrUrl}
-                        alt={`QR ${r.roomNumber}`}
-                        className="w-full h-full object-contain"
-                      />
+                    <div className="w-20 h-20 mx-auto bg-white p-1 rounded border border-dashed border-amber-400 flex items-center justify-center">
+                      {previewQrMap[r.id] ? (
+                        <img
+                          src={previewQrMap[r.id]}
+                          alt={`QR ${r.roomNumber}`}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      )}
                     </div>
 
                     <p className="text-[8px] font-bold text-primary truncate">

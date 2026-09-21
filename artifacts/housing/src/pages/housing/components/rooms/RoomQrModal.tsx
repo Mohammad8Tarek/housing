@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +17,10 @@ import {
   ExternalLink,
   Check,
   Building,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
-import { getRoomServiceUrl, getRoomQrImageUrl } from "@/lib/qr-service";
+import { getRoomServiceUrl, generateRoomQrDataUrl, getRoomQrImageUrl } from "@/lib/qr-service";
 
 interface RoomQrModalProps {
   open: boolean;
@@ -45,13 +44,39 @@ export function RoomQrModal({
   const { language } = useLanguage();
   const ar = language === "ar";
   const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [isLoadingQr, setIsLoadingQr] = useState(true);
+
+  const targetUrl = room ? getRoomServiceUrl(propertyId, room.id) : "";
+  const bName = room ? (buildingName || room.buildingName || `Building #${room.buildingId}`) : "";
+  const fNum = room ? (floorNumber ?? room.floorNumber ?? 0) : 0;
+
+  useEffect(() => {
+    let active = true;
+    if (!room || !open) return;
+
+    setIsLoadingQr(true);
+    generateRoomQrDataUrl(propertyId, room.id, { width: 500 })
+      .then((url) => {
+        if (active) {
+          setQrDataUrl(url);
+          setIsLoadingQr(false);
+        }
+      })
+      .catch((err) => {
+        console.error("QR generation error:", err);
+        if (active) {
+          setQrDataUrl(getRoomQrImageUrl(propertyId, room.id, "png"));
+          setIsLoadingQr(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, propertyId, room?.id]);
 
   if (!room) return null;
-
-  const targetUrl = getRoomServiceUrl(propertyId, room.id);
-  const qrImageUrl = getRoomQrImageUrl(propertyId, room.id, "png");
-  const bName = buildingName || room.buildingName || `Building #${room.buildingId}`;
-  const fNum = floorNumber ?? room.floorNumber ?? 0;
 
   const handleCopyUrl = async () => {
     try {
@@ -64,17 +89,14 @@ export function RoomQrModal({
     }
   };
 
-  const handleDownloadQr = async () => {
+  const handleDownloadQr = () => {
     try {
-      const response = await fetch(qrImageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      if (!qrDataUrl) return;
       const a = document.createElement("a");
-      a.href = url;
+      a.href = qrDataUrl;
       a.download = `Room_${room.roomNumber}_QR.png`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast.success(ar ? "تم تحميل رمز الـ QR بنجاح" : "QR code downloaded");
     } catch {
@@ -98,7 +120,7 @@ export function RoomQrModal({
           <style>
             @page {
               size: A5 portrait;
-              margin: 10mm;
+              margin: 8mm;
             }
             body {
               font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -106,6 +128,8 @@ export function RoomQrModal({
               padding: 0;
               background-color: #fff;
               color: #0F2A44;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -113,14 +137,13 @@ export function RoomQrModal({
             }
             .placard {
               width: 100%;
-              max-width: 130mm;
+              max-width: 440px;
               border: 3px solid #0F2A44;
-              border-radius: 16px;
+              border-radius: 20px;
               padding: 24px;
-              text-align: center;
               box-sizing: border-box;
-              background: #ffffff;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+              text-align: center;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             }
             .brand-header {
               border-bottom: 2px solid #C9A24D;
@@ -128,33 +151,34 @@ export function RoomQrModal({
               margin-bottom: 16px;
             }
             .brand-name {
-              font-size: 16px;
-              font-weight: 800;
+              font-size: 18px;
+              font-weight: 900;
               color: #0F2A44;
               text-transform: uppercase;
               letter-spacing: 1px;
             }
             .brand-sub {
-              font-size: 11px;
+              font-size: 10px;
               color: #C9A24D;
               font-weight: 700;
+              letter-spacing: 0.5px;
               margin-top: 2px;
             }
             .room-number-wrap {
-              margin: 12px 0 8px 0;
+              margin: 8px 0;
             }
             .room-label {
-              font-size: 12px;
+              font-size: 13px;
               text-transform: uppercase;
+              font-weight: 700;
               color: #64748b;
-              font-weight: bold;
             }
             .room-number {
-              font-size: 42px;
+              font-size: 48px;
               font-weight: 900;
               color: #0F2A44;
               line-height: 1.1;
-              letter-spacing: -0.5px;
+              letter-spacing: -1px;
             }
             .location-badges {
               display: flex;
@@ -163,30 +187,31 @@ export function RoomQrModal({
               margin-bottom: 16px;
             }
             .badge {
-              background: #f1f5f9;
+              display: inline-block;
+              padding: 4px 12px;
+              border-radius: 9999px;
+              background-color: #f1f5f9;
               color: #0F2A44;
               border: 1px solid #cbd5e1;
-              border-radius: 6px;
-              padding: 4px 10px;
-              font-size: 11px;
-              font-weight: bold;
+              font-size: 12px;
+              font-weight: 700;
             }
             .qr-frame {
               background: #ffffff;
-              padding: 12px;
               border: 2px dashed #C9A24D;
-              border-radius: 12px;
+              border-radius: 16px;
+              padding: 12px;
               display: inline-block;
-              margin: 8px auto 14px auto;
+              margin: 8px auto;
             }
             .qr-image {
-              width: 160px;
-              height: 160px;
+              width: 180px;
+              height: 180px;
               display: block;
             }
             .instructions {
-              margin-top: 8px;
-              border-top: 1px dashed #cbd5e1;
+              margin-top: 14px;
+              border-top: 1px solid #e2e8f0;
               padding-top: 12px;
             }
             .inst-ar {
@@ -229,7 +254,7 @@ export function RoomQrModal({
             </div>
 
             <div class="qr-frame">
-              <img src="${qrImageUrl}" alt="Room QR Code" class="qr-image" />
+              <img src="${qrDataUrl}" alt="Room QR Code" class="qr-image" />
             </div>
 
             <div class="instructions">
@@ -247,7 +272,7 @@ export function RoomQrModal({
             window.onload = function() {
               setTimeout(function() {
                 window.print();
-              }, 400);
+              }, 300);
             };
           </script>
         </body>
@@ -295,12 +320,19 @@ export function RoomQrModal({
           </div>
 
           {/* QR Code Frame */}
-          <div className="p-3 rounded-xl bg-white border-2 border-dashed border-amber-400/80 shadow-xs">
-            <img
-              src={qrImageUrl}
-              alt={`QR Room ${room.roomNumber}`}
-              className="w-44 h-44 object-contain"
-            />
+          <div className="p-3 rounded-xl bg-white border-2 border-dashed border-amber-400/80 shadow-xs flex items-center justify-center min-h-[190px] min-w-[190px]">
+            {isLoadingQr || !qrDataUrl ? (
+              <div className="w-44 h-44 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-[10px]">{ar ? "جاري تجهيز الرمز..." : "Generating QR..."}</span>
+              </div>
+            ) : (
+              <img
+                src={qrDataUrl}
+                alt={`QR Room ${room.roomNumber}`}
+                className="w-44 h-44 object-contain"
+              />
+            )}
           </div>
 
           <div className="space-y-1">
@@ -347,6 +379,7 @@ export function RoomQrModal({
             variant="outline"
             size="sm"
             onClick={handleDownloadQr}
+            disabled={!qrDataUrl}
             className="text-xs gap-1.5"
           >
             <Download className="w-3.5 h-3.5" />
@@ -356,6 +389,7 @@ export function RoomQrModal({
             type="button"
             size="sm"
             onClick={handlePrintSinglePlacard}
+            disabled={!qrDataUrl}
             className="text-xs gap-1.5 bg-primary text-primary-foreground font-semibold"
           >
             <Printer className="w-3.5 h-3.5" />
