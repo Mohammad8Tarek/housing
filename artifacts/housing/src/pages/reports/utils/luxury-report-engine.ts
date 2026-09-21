@@ -515,9 +515,18 @@ export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = 
   priority: { ar: "الأولوية", en: "Priority" },
   assignedto: { ar: "الفني المعين", en: "Assigned To" },
   "assigned to": { ar: "الفني المعين", en: "Assigned To" },
+  reportedby: { ar: "مقدم البلاغ", en: "Reported By" },
+  "reported by": { ar: "مقدم البلاغ", en: "Reported By" },
+  "مقدم البلاغ": { ar: "مقدم البلاغ", en: "Reported By" },
   reportedat: { ar: "تاريخ البلاغ", en: "Reported Date" },
   "reported at": { ar: "تاريخ البلاغ", en: "Reported At" },
   "reported date": { ar: "تاريخ البلاغ", en: "Reported Date" },
+  rating: { ar: "التقييم", en: "Rating" },
+  "rating & feedback": { ar: "التقييم والملاحظات", en: "Rating & Feedback" },
+  "rating comments": { ar: "ملاحظات التقييم", en: "Rating Comments" },
+  occupantssummary: { ar: "المقيمين والنزلاء بالأسرة", en: "Residents & Beds" },
+  "residents & beds": { ar: "المقيمين والنزلاء بالأسرة", en: "Residents & Beds" },
+  "المقيمين والنزلاء بالأسرة": { ar: "المقيمين والنزلاء بالأسرة", en: "Residents & Beds" },
 
   // Inventory & Assets
   itemname: { ar: "اسم الصنف / المعدة", en: "Item Name" },

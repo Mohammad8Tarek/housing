@@ -1216,19 +1216,26 @@ export function useReportDataProcessor({
 
             return {
               id: m.id,
+              issueId: m.id,
               roomNumber: m.roomNumber || room.roomNumber || `#${m.roomId}`,
+              location: `${m.roomNumber || room.roomNumber || `#${m.roomId}`} (${bName})`,
+              building: bName,
               buildingName: bName,
+              floor: fName,
               floorName: fName,
               category: ar ? translateMaintenanceCategory(m.category, true) : (m.category || "General"),
               rawCategory: m.category || "maintenance",
               problemType: m.problemType || "—",
+              issueDescription: m.problemType || "—",
               priority: ar ? translateMaintenancePriority(m.priority, true) : (m.priority || "Normal"),
               rawPriority: m.priority || "Normal",
               reportedBy: reporter,
               assignedTo: m.workerName || m.assignedToName ? (ar ? (hasArabicCharacters(m.workerName || m.assignedToName) ? (m.workerName || m.assignedToName) : transliterateFullName(m.workerName || m.assignedToName, "ar")) : (m.workerName || m.assignedToName)) : (m.assignedTo || "—"),
               reportedAt: formatDate(m.reportedAt, "—"),
               rawReportedAt: m.reportedAt,
+              resolvedAt: m.resolvedAt ? formatDate(m.resolvedAt, "—") : (m.status === "completed" || m.status === "resolved" ? formatDate(m.updatedAt || m.reportedAt, "—") : "—"),
               status: ar ? translateMaintenanceStatus(m.status, true) : (m.status || "open"),
+              resolutionStatus: ar ? translateMaintenanceStatus(m.status, true) : (m.status || "open"),
               rawStatus: m.status || "open",
               rating: m.rating != null ? Number(m.rating) : null,
               ratingComment: m.ratingComment || null,
@@ -2192,10 +2199,85 @@ export function useReportDataProcessor({
         ]);
       }
 
+      // 23. HOUSING MAP & STRUCTURE REPORT (خريطة وتفصيل السكن والمباني)
+      case "housing_map": {
+        const list = rooms
+          .filter((r: any) => {
+            if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
+            if (filterFloor !== "all" && !filteredFloorIds.has(r.floorId)) return false;
+            if (filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
+            return true;
+          })
+          .map((r: any) => {
+            const bName = buildingMap[r.buildingId] || "—";
+            const fNum = roomFloorNum(r);
+            const fName = fNum ? (String(fNum).toLowerCase().includes("floor") || String(fNum).includes("دور") ? fNum : (ar ? `الدور ${fNum}` : `Floor ${fNum}`)) : "—";
+            const roomAssigns = assignments.filter((a: any) => a.roomId === r.id && ["ACTIVE", "VACATION", "OCCUPIED_VACATION"].includes(String(a.status).toUpperCase()));
+            const occupantsList = roomAssigns.map((a: any, idx: number) => {
+              const p = empMap[a.profileId] || {};
+              const pName = p.fullName || a.employeeName || (ar ? "مقيم" : "Resident");
+              const pCode = p.profileCode || a.employeeCode || "—";
+              const pDept = p.department || a.department || "—";
+              const bed = a.bedNumber || (idx + 1);
+              return `${pName}${pCode !== "—" ? ` [${pCode}]` : ""}${pDept !== "—" ? ` (${pDept})` : ""} - سرير #${bed}`;
+            });
+            const occupantsSummary = occupantsList.length > 0 ? occupantsList.join(" | ") : (ar ? "شاغرة بالكامل" : "Vacant");
+            const cap = Number(r.capacity) || 1;
+            const occ = roomAssigns.length;
+            const avail = Math.max(0, cap - occ);
+
+            let stText = ar ? "شاغرة" : "Vacant";
+            if (occ >= cap) stText = ar ? "مشغولة" : "Occupied";
+            else if (occ > 0) stText = ar ? "إشغال جزئي" : "Partial";
+
+            return {
+              id: r.id,
+              roomNumber: r.roomNumber,
+              building: bName,
+              buildingName: bName,
+              floor: fName,
+              floorName: fName,
+              roomType: ar ? translateRoomType(r.roomType, true) : (r.roomType || "Standard"),
+              totalCapacity: cap,
+              capacity: cap,
+              currentOccupants: occ,
+              occupiedCount: occ,
+              vacantBeds: avail,
+              availableBeds: avail,
+              status: stText,
+              occupancyStatus: stText,
+              occupantsSummary,
+              residentsSummary: occupantsSummary,
+              residents: roomAssigns.map((a: any, idx: number) => {
+                const p = empMap[a.profileId] || {};
+                return {
+                  name: p.fullName || a.employeeName || (ar ? "مقيم" : "Resident"),
+                  code: p.profileCode || a.employeeCode || "-",
+                  dept: p.department || a.department || "-",
+                  job: p.jobTitle || a.jobTitle || "-",
+                  gender: p.gender || a.gender || "-",
+                  nationality: p.nationality || a.nationality || "-",
+                  bedNumber: a.bedNumber ? String(a.bedNumber) : String(idx + 1),
+                };
+              }),
+            };
+          });
+
+        return applySearchAndDate(list, undefined, (r) => [
+          r.roomNumber,
+          r.buildingName,
+          r.floorName,
+          r.roomType,
+          r.status,
+          r.occupantsSummary,
+        ]);
+      }
+
       default:
         return [];
     }
   };
+
 
   return { currentData };
 }

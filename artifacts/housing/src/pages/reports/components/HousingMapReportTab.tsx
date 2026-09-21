@@ -1069,7 +1069,7 @@ export function HousingMapReportTab({
         </Card>
       ) : viewMode === "map" ? (
         /* Visual Map Hierarchy Mode */
-        <div className="space-y-6">
+        <div id="housing-map-visual" className="space-y-6">
           {filteredBuildings.map((building: any) => {
             const isBExpanded = expandedBuildings[building.id] !== false;
 

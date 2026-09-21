@@ -289,18 +289,24 @@ export const POLICY_EXCEPTIONS_COLUMNS: ReportColumnDef[] = [
 // ══════════════════════════════════════════════════════════
 
 // 18. MAINTENANCE
-// Orientation: LANDSCAPE — open and resolved issues
+// Orientation: LANDSCAPE — open and resolved issues with ratings and reporter
 export const MAINTENANCE_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'issueId',          header: 'Issue ID',     headerAr: 'رقم البلاغ',        type: 'id'         },
-  { key: 'location',         header: 'Location',     headerAr: 'الموقع / الغرفة',   type: 'text-short' },
-  { key: 'issueDescription', header: 'Issue',        headerAr: 'وصف المشكلة',       type: 'text'       },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
+  { key: 'buildingName',     header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floorName',        header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
+  { key: 'reportedBy',       header: 'Reported By',  headerAr: 'مقدم البلاغ',       type: 'text'       },
+  { key: 'category',         header: 'Category',     headerAr: 'الفئة',             type: 'text-short' },
+  { key: 'problemType',      header: 'Issue Details',headerAr: 'نوع ووصف المشكلة',  type: 'text'       },
   { key: 'priority',         header: 'Priority',     headerAr: 'الأولوية',          type: 'status'     },
-  { key: 'reportedAt',       header: 'Reported',     headerAr: 'تاريخ البلاغ',      type: 'date'       },
   { key: 'assignedTo',       header: 'Assigned To',  headerAr: 'الفني المعين',      type: 'text-short' },
-  { key: 'resolvedAt',       header: 'Resolved',     headerAr: 'تاريخ الحل',        type: 'date'       },
-  { key: 'resolutionStatus', header: 'Status',       headerAr: 'الحالة',            type: 'status'     },
+  { key: 'reportedAt',       header: 'Reported Date',headerAr: 'تاريخ البلاغ',      type: 'date'       },
+  { key: 'rating',           header: 'Rating',       headerAr: 'التقييم',           type: 'text-short',
+    format: (v) => (v ? (String(v).includes('★') ? String(v) : `${v}/5 ★`) : '—')
+  },
+  { key: 'status',           header: 'Status',       headerAr: 'الحالة',            type: 'status'     },
 ];
+
 
 // 19. AMENITIES & EQUIPMENT INVENTORY
 // Orientation: LANDSCAPE — asset register
@@ -371,7 +377,8 @@ export const GUEST_HOSTINGS_COLUMNS: ReportColumnDef[] = [
 ];
 
 // 23. HOUSING MAP & STRUCTURE
-// ⚠ HYBRID EXPORT — visual map + tabular inventory
+// 23. HOUSING MAP & STRUCTURE
+// ⚠ HYBRID EXPORT — visual map + tabular inventory with resident bed allocations
 // Orientation: LANDSCAPE for the table section
 // Use html2canvas to capture the visual map, then append this table below it in PDF
 export const HOUSING_MAP_COLUMNS: ReportColumnDef[] = [
@@ -380,11 +387,13 @@ export const HOUSING_MAP_COLUMNS: ReportColumnDef[] = [
   { key: 'floor',            header: 'Floor',        headerAr: 'الطابق',            type: 'text-short', widthOverride: 16 },
   { key: 'roomNumber',       header: 'Room',         headerAr: 'رقم الغرفة',        type: 'id'         },
   { key: 'roomType',         header: 'Type',         headerAr: 'نوع الغرفة',        type: 'text-short' },
-  { key: 'totalCapacity',    header: 'Capacity',     headerAr: 'السعة الإجمالية',   type: 'number'     },
-  { key: 'currentOccupants', header: 'Occupied',     headerAr: 'المشغول',            type: 'number'     },
+  { key: 'totalCapacity',    header: 'Capacity',     headerAr: 'سعة الأسرة',        type: 'number'     },
+  { key: 'currentOccupants', header: 'Occupied',     headerAr: 'المشغول',           type: 'number'     },
   { key: 'vacantBeds',       header: 'Vacant',       headerAr: 'الشاغر',            type: 'number'     },
-  { key: 'status',           header: 'Status',       headerAr: 'الحالة',            type: 'status'     },
+  { key: 'status',           header: 'Status',       headerAr: 'حالة الإشغال',      type: 'status'     },
+  { key: 'occupantsSummary', header: 'Residents & Beds', headerAr: 'المقيمين والنزلاء بالأسرة', type: 'text' },
 ];
+
 
 // ══════════════════════════════════════════════════════════
 // SPECIAL HANDLING — 3 reports need extra care
@@ -504,41 +513,78 @@ export function generateTourismPolicePDF(
 // ── SPECIAL 3: HOUSING MAP & STRUCTURE ──
 // Has a visual building map — use hybrid approach.
 
+// ── SPECIAL 3: HOUSING MAP & STRUCTURE ──
+// Has a visual building map — use hybrid approach.
+
 export async function exportHousingMapPDF(
   mapData: Record<string, unknown>[],
-  meta: ReportMeta
+  meta: ReportMeta & { language?: 'ar' | 'en' }
 ): Promise<void> {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const margin = 15;
+  const isAr = meta?.language === 'ar';
 
+  let hasPage1 = false;
   // Page 1: Visual map captured via html2canvas
   const mapEl = document.getElementById('housing-map-visual');
   if (mapEl) {
-    const canvas = await html2canvas(mapEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-    const imgData = canvas.toDataURL('image/png');
-    const usableW = doc.internal.pageSize.getWidth() - margin * 2;
-    const imgH = Math.min((canvas.height / canvas.width) * usableW, 170);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Housing Map & Structure', margin, 14);
-    doc.addImage(imgData, 'PNG', margin, 20, usableW, imgH);
+    try {
+      const canvas = await html2canvas(mapEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const usableW = doc.internal.pageSize.getWidth() - margin * 2;
+      const imgH = Math.min((canvas.height / canvas.width) * usableW, 170);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(isAr ? 'خريطة وتفصيل السكن والمباني المعمارية' : 'Housing Map & Architectural Structure', margin, 14);
+      doc.addImage(imgData, 'PNG', margin, 20, usableW, imgH);
+      hasPage1 = true;
+    } catch {
+      hasPage1 = false;
+    }
   }
 
-  // Page 2: Detailed table
-  doc.addPage();
+  // Tabular detailed room & occupants page
+  if (hasPage1) {
+    doc.addPage();
+  }
+
+  const headRow = HOUSING_MAP_COLUMNS.map(c => (isAr && c.headerAr ? c.headerAr : c.header));
+  const bodyRows = mapData.map((row, rIdx) =>
+    HOUSING_MAP_COLUMNS.map(col => {
+      if (col.type === 'index') return String(rIdx + 1);
+      let val = row[col.key];
+      if (val === undefined && col.key === 'occupantsSummary') {
+        val = row.residentsSummary;
+        if (!val && Array.isArray(row.residents)) {
+          val = (row.residents as any[])
+            .map((res: any, idx: number) => {
+              const bedNum = res.bedNumber || idx + 1;
+              const name = res.name || res.fullName || (isAr ? 'مقيم' : 'Resident');
+              const code = res.employeeNumber || res.profileCode ? ` [${res.employeeNumber || res.profileCode}]` : '';
+              return `${name}${code} (${isAr ? 'سرير' : 'Bed'} #${bedNum})`;
+            })
+            .join(' | ');
+        }
+      }
+      return formatValue(val ?? '—', col.type);
+    })
+  );
+
   autoTable(doc, {
-    head: [HOUSING_MAP_COLUMNS.map(c => c.header)],
-    body: mapData.map(row => HOUSING_MAP_COLUMNS.map(col =>
-      formatValue(row[col.key], col.type)
-    )),
+    head: [headRow],
+    body: bodyRows,
     startY: 20,
     margin: { left: margin, right: margin },
     headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { fontSize: 8 },
+    bodyStyles: { fontSize: 7.5, cellPadding: 2.5 },
+    columnStyles: {
+      9: { cellWidth: 70 }, // occupants column wider for readability
+    },
   });
 
   doc.save(`housing-map-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+
 
 // ══════════════════════════════════════════════════════════
 // CELL COLOR OVERRIDES — Hook helper for jsPDF-AutoTable
