@@ -94,10 +94,12 @@ router.patch(
         "smtpPass",
         "smtpFrom",
         // ─── Housing Policy ──────────────────────────────────────────
+        "policyLevel0Capacity",
         "policyLevel1Capacity",
         "policyLevel2Capacity",
         "policyLevel3Capacity",
         "policyLevel4Capacity",
+        "policyLevel0AllowEntire",
         "policyLevel1AllowEntire",
         "policyLevel2AllowEntire",
         "policyDepartmentClustering",

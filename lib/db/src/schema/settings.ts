@@ -62,10 +62,12 @@ export const settingsTable = pgTable("settings", {
   smtpFrom: text("smtp_from"),
 
   // ─── Housing Allocation Policy ──────────────────────────────────────
+  policyLevel0Capacity: integer("policy_level_0_capacity").notNull().default(1),
   policyLevel1Capacity: integer("policy_level_1_capacity").notNull().default(1),
   policyLevel2Capacity: integer("policy_level_2_capacity").notNull().default(2),
   policyLevel3Capacity: integer("policy_level_3_capacity").notNull().default(3),
   policyLevel4Capacity: integer("policy_level_4_capacity").notNull().default(4),
+  policyLevel0AllowEntire: boolean("policy_level_0_allow_entire").notNull().default(true),
   policyLevel1AllowEntire: boolean("policy_level_1_allow_entire").notNull().default(true),
   policyLevel2AllowEntire: boolean("policy_level_2_allow_entire").notNull().default(false),
   policyDepartmentClustering: boolean("policy_department_clustering").notNull().default(true),

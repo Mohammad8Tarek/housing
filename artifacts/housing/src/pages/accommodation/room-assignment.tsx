@@ -538,8 +538,9 @@ export default function RoomAssignment() {
       assignments: allAssignments,
       profiles: profilesList,
       policySettings: settings,
+      isEntireRoom,
     });
-  }, [selectedProfile, selectedRoom, allAssignments, profilesList, settings]);
+  }, [selectedProfile, selectedRoom, allAssignments, profilesList, settings, isEntireRoom]);
 
   const createMutation = useCreateAssignment({
     mutation: {

@@ -1879,6 +1879,7 @@ export function useReportDataProcessor({
         const exceptions: any[] = [];
         const policySettings = settings || {};
 
+        const l0Cap = Number(policySettings?.policyLevel0Capacity) || 1;
         const l1Cap = Number(policySettings?.policyLevel1Capacity) || 1;
         const l2Cap = Number(policySettings?.policyLevel2Capacity) || 2;
         const l3Cap = Number(policySettings?.policyLevel3Capacity) || 3;
@@ -1915,13 +1916,27 @@ export function useReportDataProcessor({
 
           let maxAllowedCap = l4Cap;
           let levelCategory = ar ? "الدرجة الرابعة (عمال/خدمات)" : "Level 4 (General Staff)";
-          if (lvl === "1" || lvl.includes("إدارة عليا") || lvl.includes("gm") || lvl.includes("director")) {
+          if (
+            lvl === "0" ||
+            lvl === "level 0" ||
+            lvl === "vip" ||
+            lvl.includes("قيادات") ||
+            lvl.includes("عليا") ||
+            lvl.includes("إدارة عليا") ||
+            lvl.includes("chief") ||
+            lvl.includes("controller") ||
+            lvl.includes("gm") ||
+            lvl.includes("director")
+          ) {
+            maxAllowedCap = l0Cap;
+            levelCategory = ar ? "الدرجة صفر (إدارة عليا / قيادات)" : "Level 0 (Top Executive / VIP)";
+          } else if (lvl === "1" || lvl === "level 1" || lvl.includes("مدير قسم") || lvl.includes("مدير إدارة") || lvl.includes("head") || lvl.includes("hod")) {
             maxAllowedCap = l1Cap;
-            levelCategory = ar ? "الدرجة الأولى (إدارة عليا)" : "Level 1 (Executive)";
-          } else if (lvl === "2" || lvl.includes("مشرف") || lvl.includes("supervisor") || lvl.includes("manager")) {
+            levelCategory = ar ? "الدرجة الأولى (مدراء أقسام)" : "Level 1 (Department Heads)";
+          } else if (lvl === "2" || lvl === "level 2" || lvl.includes("مشرف") || lvl.includes("supervisor") || lvl.includes("manager")) {
             maxAllowedCap = l2Cap;
-            levelCategory = ar ? "الدرجة الثانية (إشرافي/مدراء)" : "Level 2 (Supervisory)";
-          } else if (lvl === "3" || lvl.includes("فني") || lvl.includes("specialist") || lvl.includes("senior")) {
+            levelCategory = ar ? "الدرجة الثانية (إشرافي/مساعدين)" : "Level 2 (Supervisory)";
+          } else if (lvl === "3" || lvl === "level 3" || lvl.includes("فني") || lvl.includes("specialist") || lvl.includes("senior")) {
             maxAllowedCap = l3Cap;
             levelCategory = ar ? "الدرجة الثالثة (فني/تخصصي)" : "Level 3 (Senior/Staff)";
           }
@@ -1984,8 +1999,26 @@ export function useReportDataProcessor({
 
           // Check C: Unauthorized Entire Room Booking
           if (a.isEntireRoom && roomCap > 1) {
-            const isL1 = lvl === "1" || lvl.includes("إدارة عليا") || lvl.includes("gm") || lvl.includes("director");
-            const allowEntire = isL1 ? (policySettings?.policyLevel1AllowEntire ?? true) : (policySettings?.policyLevel2AllowEntire ?? false);
+            const isL0 =
+              lvl === "0" ||
+              lvl === "level 0" ||
+              lvl === "vip" ||
+              lvl.includes("قيادات") ||
+              lvl.includes("عليا") ||
+              lvl.includes("إدارة عليا") ||
+              lvl.includes("chief") ||
+              lvl.includes("controller") ||
+              lvl.includes("gm") ||
+              lvl.includes("director");
+            const isL1 = !isL0 && (lvl === "1" || lvl === "level 1" || lvl.includes("مدير"));
+            const isL2 = !isL0 && !isL1 && (lvl === "2" || lvl === "level 2" || lvl.includes("مشرف") || lvl.includes("supervisor"));
+            const allowEntire = isL0
+              ? (policySettings?.policyLevel0AllowEntire ?? true)
+              : isL1
+              ? (policySettings?.policyLevel1AllowEntire ?? true)
+              : isL2
+              ? (policySettings?.policyLevel2AllowEntire ?? false)
+              : false;
             if (!allowEntire) {
               exceptions.push({
                 id: `entire_${a.id}`,

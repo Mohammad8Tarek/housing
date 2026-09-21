@@ -1590,10 +1590,12 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_history_count" INTEGER NOT NULL DEFAULT 5;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "lockout_threshold" INTEGER NOT NULL DEFAULT 5;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "lockout_duration_minutes" INTEGER NOT NULL DEFAULT 15;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_0_capacity" INTEGER DEFAULT 1;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_1_capacity" INTEGER DEFAULT 1;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_2_capacity" INTEGER DEFAULT 2;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_3_capacity" INTEGER DEFAULT 3;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_4_capacity" INTEGER DEFAULT 4;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_0_allow_entire" BOOLEAN DEFAULT true;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_1_allow_entire" BOOLEAN DEFAULT true;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_2_allow_entire" BOOLEAN DEFAULT false;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_department_clustering" BOOLEAN DEFAULT true;

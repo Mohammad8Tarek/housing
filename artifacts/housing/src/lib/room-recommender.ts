@@ -23,39 +23,68 @@ export function getLevelTargetCapacity(
   levelNameAr: string;
   levelNameEn: string;
 } {
-  const lvl = String(levelRaw || "").trim().toLowerCase();
+  const lvl = String(levelRaw ?? "").trim().toLowerCase();
 
+  const l0Cap = Number(policySettings?.policyLevel0Capacity) || 1;
   const l1Cap = Number(policySettings?.policyLevel1Capacity) || 1;
   const l2Cap = Number(policySettings?.policyLevel2Capacity) || 2;
   const l3Cap = Number(policySettings?.policyLevel3Capacity) || 3;
   const l4Cap = Number(policySettings?.policyLevel4Capacity) || 4;
 
-  // Level 1: Top Management / Directors / General Managers
+  // Level 0: Top Management / Executives / General Managers / Corporate Directors / VIP
+  // Highest entitlement: Single room / Private Suite / Deluxe accommodation
+  if (
+    lvl === "0" ||
+    lvl === "level 0" ||
+    lvl === "vip" ||
+    lvl.includes("قيادات") ||
+    lvl.includes("عليا") ||
+    lvl.includes("إدارة عليا") ||
+    lvl.includes("chief") ||
+    lvl.includes("controller") ||
+    lvl.includes("gm") ||
+    lvl.includes("general manager") ||
+    lvl.includes("director") ||
+    lvl.includes("cluster")
+  ) {
+    return {
+      minCap: 1,
+      maxCap: l0Cap,
+      idealCap: l0Cap,
+      levelNameAr: "إدارة عليا / قيادات (المستوى 0)",
+      levelNameEn: "Executive / Top Management (Level 0)",
+    };
+  }
+
+  // Level 1: Department Heads / Middle Management / Operations Managers
   if (
     lvl === "1" ||
-    lvl.includes("إدارة عليا") ||
-    lvl.includes("مدير عام") ||
-    lvl.includes("gm") ||
-    lvl.includes("director") ||
+    lvl === "level 1" ||
+    lvl.includes("مدير إدارة") ||
+    lvl.includes("مدير قسم") ||
+    lvl.includes("مدير فندق") ||
+    lvl.includes("head") ||
     lvl.includes("hod")
   ) {
     return {
       minCap: 1,
       maxCap: l1Cap,
       idealCap: l1Cap,
-      levelNameAr: "إدارة عليا (المستوى 1)",
-      levelNameEn: "Top Management (Level 1)",
+      levelNameAr: "مدراء أقسام / إدارة وسطى (المستوى 1)",
+      levelNameEn: "Department Heads (Level 1)",
     };
   }
 
-  // Level 2: Supervisors / Middle Management / Assistant Managers
+  // Level 2: Supervisors / Assistant Managers / Specialists
   if (
     lvl === "2" ||
+    lvl === "level 2" ||
     lvl.includes("إشراف") ||
     lvl.includes("مشرف") ||
     lvl.includes("supervisor") ||
-    lvl.includes("executive") ||
-    lvl.includes("manager")
+    lvl.includes("assistant manager") ||
+    lvl.includes("specialist") ||
+    lvl.includes("نائب")
   ) {
     return {
       minCap: 1,
@@ -66,30 +95,32 @@ export function getLevelTargetCapacity(
     };
   }
 
-  // Level 3: Senior Staff / Specialists / Technicians
+  // Level 3: Staff / Senior Technicians / Officers
   if (
     lvl === "3" ||
+    lvl === "level 3" ||
     lvl.includes("فني") ||
-    lvl.includes("specialist") ||
+    lvl.includes("technician") ||
     lvl.includes("senior") ||
-    lvl.includes("special")
+    lvl.includes("officer") ||
+    lvl.includes("موظف")
   ) {
     return {
       minCap: 1,
       maxCap: l3Cap,
       idealCap: l3Cap,
-      levelNameAr: "مستوى مهني متخصص (المستوى 3)",
-      levelNameEn: "Senior Staff (Level 3)",
+      levelNameAr: "موظفون وفنيون (المستوى 3)",
+      levelNameEn: "Staff & Technicians (Level 3)",
     };
   }
 
-  // Level 4 / Staff: General Staff / Operations
+  // Level 4 / General Workers: Shared Rooms / Line Staff
   return {
     minCap: 1,
     maxCap: l4Cap,
     idealCap: l4Cap,
-    levelNameAr: lvl ? `مستوى ${lvl}` : "طاقم العمل (المستوى 4)",
-    levelNameEn: lvl ? `Level ${lvl}` : "General Staff (Level 4)",
+    levelNameAr: lvl === "4" || lvl === "level 4" ? "عمال وخدمات (المستوى 4)" : (lvl ? `مستوى ${lvl}` : "طاقم العمل (المستوى 4)"),
+    levelNameEn: lvl === "4" || lvl === "level 4" ? "General Workers (Level 4)" : (lvl ? `Level ${lvl}` : "General Staff (Level 4)"),
   };
 }
 
@@ -253,9 +284,9 @@ export function recommendBestRooms({
       }
     }
 
-    // 5. Prefer vacant rooms for Level 1
+    // 5. Prefer vacant rooms for Level 0 and Level 1
     if (target.idealCap === 1 && roomOcc === 0) {
-      score += 30;
+      score += 40;
     }
 
     // ── NEW: 6. Room View Preference ──────────────────────────────────────────
@@ -288,20 +319,34 @@ export function recommendBestRooms({
       profileJobTitle.includes("عائل") ||
       preferredClassification.toLowerCase().includes("family");
 
-    const isExecutive =
-      profileLevel === "1" ||
+    const lvlStr = String(profileLevel ?? "").trim().toLowerCase();
+    const isTopExecutive =
+      lvlStr === "0" ||
+      lvlStr === "level 0" ||
+      lvlStr === "vip" ||
+      lvlStr.includes("إدارة عليا") ||
+      lvlStr.includes("قيادات") ||
+      profileJobTitle.includes("general manager") ||
       profileJobTitle.includes("مدير عام") ||
+      profileJobTitle.includes("chief") ||
+      profileJobTitle.includes("controller") ||
+      profileJobTitle.includes("cluster") ||
+      profileJobTitle.includes("director");
+
+    const isExecutive =
+      !isTopExecutive &&
+      (lvlStr === "1" ||
+      lvlStr === "level 1" ||
       profileJobTitle.includes("مدير إدارة") ||
       profileJobTitle.includes("مدير فندق") ||
-      profileJobTitle.includes("رئيس") ||
-      profileJobTitle.includes("director") ||
-      profileJobTitle.includes("general manager") ||
-      profileJobTitle.includes("gm") ||
+      profileJobTitle.includes("مدير قسم") ||
       profileJobTitle.includes("head") ||
-      profileJobTitle.includes("executive");
+      profileJobTitle.includes("hod") ||
+      profileJobTitle.includes("executive"));
 
     const isSupervisory =
-      profileLevel === "2" ||
+      lvlStr === "2" ||
+      lvlStr === "level 2" ||
       profileJobTitle.includes("مشرف") ||
       profileJobTitle.includes("نائب") ||
       profileJobTitle.includes("مسؤول") ||
@@ -334,8 +379,30 @@ export function recommendBestRooms({
       }
     }
 
-    // 8.2 Executive & Deluxe match
-    if (isExecutive) {
+    // 8.2 Top Executive / Level 0 (VIP Suites, Deluxe, Single)
+    if (isTopExecutive) {
+      if (roomCls.includes("deluxe") || roomCls.includes("ديلوكس") || roomCls.includes("suite") || roomCls.includes("جناح")) {
+        score += 70;
+        levelMatch = true;
+        matchReasonAr += ` • جناح / غرفة فاخرة ملائمة للإدارة العليا (${r.classification || "VIP / Suite"})`;
+        matchReasonEn += ` • Suite / Deluxe room matching Top Executive (${r.classification || "VIP / Suite"})`;
+        customBadgeLabelAr = "إدارة عليا VIP";
+        customBadgeLabelEn = "Top Executive VIP";
+      } else if (roomCls.includes("superior") || roomCls.includes("سوبيريور") || roomCapacity === 1) {
+        score += 50;
+        levelMatch = true;
+        matchReasonAr += ` • غرفة فردية متميزة (${r.classification || "غرفة فردية"})`;
+        matchReasonEn += ` • Single/Superior room (${r.classification || "Single"})`;
+        customBadgeLabelAr = "إدارة عليا";
+        customBadgeLabelEn = "Top Exec";
+      }
+      if (roomOcc === 0) {
+        score += 35; // Priority for vacant room
+      }
+      if (roomCapacity > target.maxCap) {
+        score -= 75; // Heavy penalty if placed in shared multi-bed room
+      }
+    } else if (isExecutive) {
       if (roomCls.includes("deluxe") || roomCls.includes("ديلوكس")) {
         score += 45;
         levelMatch = true;
@@ -343,11 +410,17 @@ export function recommendBestRooms({
         matchReasonEn += ` • Deluxe classification matching executive title (${r.classification})`;
         customBadgeLabelAr = r.classification || "تنفيذي";
         customBadgeLabelEn = r.classification || "Executive";
-      } else if (roomCls.includes("superior") || roomCls.includes("سوبيريور")) {
+      } else if (roomCls.includes("superior") || roomCls.includes("سوبيريور") || roomCapacity === 1) {
         score += 35;
         levelMatch = true;
         matchReasonAr += ` • تصنيف ممتاز (${r.classification})`;
         matchReasonEn += ` • Superior classification (${r.classification})`;
+      }
+      if (roomOcc === 0) {
+        score += 25;
+      }
+      if (roomCapacity > target.maxCap) {
+        score -= 50;
       }
     } else if (isSupervisory) {
       if (roomCls.includes("superior") || roomCls.includes("سوبيريور")) {
@@ -361,9 +434,12 @@ export function recommendBestRooms({
         score += 25;
       }
     } else if (!isFamilyTarget) {
-      // Regular staff
+      // Regular staff / workers (Levels 3 and 4)
       if (roomCls.includes("standard") || !r.classification) {
         score += 15;
+      }
+      if (roomCls.includes("suite") || roomCls.includes("جناح") || (roomCls.includes("deluxe") && roomCapacity === 1)) {
+        score -= 40;
       }
     }
 
@@ -449,12 +525,14 @@ export function checkPolicyCompliance({
   assignments = [],
   profiles = [],
   policySettings = {},
+  isEntireRoom = false,
 }: {
   profile: any;
   room: any;
   assignments?: any[];
   profiles?: any[];
   policySettings?: any;
+  isEntireRoom?: boolean;
 }): {
   compliant: boolean;
   violations: { code: string; messageAr: string; messageEn: string }[];
@@ -469,17 +547,39 @@ export function checkPolicyCompliance({
   if (roomCap > target.maxCap) {
     violations.push({
       code: "CAPACITY_EXCEEDED",
-      messageAr: `سعة الغرفة (${roomCap} أفراد) تتجاوز الحد الأقصى للمستوى ${profile.level || "العادي"} (${target.maxCap} أفراد)`,
-      messageEn: `Room capacity (${roomCap}) exceeds maximum allowed for Level ${profile.level || "Standard"} (${target.maxCap})`,
+      messageAr: `سعة الغرفة (${roomCap} أفراد) تتجاوز الحد الأقصى المسموح لـ ${target.levelNameAr} (${target.maxCap} أفراد)`,
+      messageEn: `Room capacity (${roomCap}) exceeds maximum allowed for ${target.levelNameEn} (${target.maxCap} persons)`,
     });
   }
 
   // 2. Entire room booking validation
+  const allowL0Entire = policySettings?.policyLevel0AllowEntire ?? true;
   const allowL1Entire = policySettings?.policyLevel1AllowEntire ?? true;
   const allowL2Entire = policySettings?.policyLevel2AllowEntire ?? false;
-  const lvl = String(profile.level || "").trim().toLowerCase();
-  const isL1 = lvl === "1" || lvl.includes("إدارة عليا") || lvl.includes("gm") || lvl.includes("director");
-  const isL2 = lvl === "2" || lvl.includes("مشرف") || lvl.includes("supervisor") || lvl.includes("manager");
+  const lvl = String(profile.level ?? "").trim().toLowerCase();
+  const isL0 =
+    lvl === "0" ||
+    lvl === "level 0" ||
+    lvl === "vip" ||
+    lvl.includes("قيادات") ||
+    lvl.includes("إدارة عليا") ||
+    lvl.includes("chief") ||
+    lvl.includes("controller") ||
+    lvl.includes("gm") ||
+    lvl.includes("director");
+  const isL1 = !isL0 && (lvl === "1" || lvl === "level 1" || lvl.includes("مدير"));
+  const isL2 = !isL0 && !isL1 && (lvl === "2" || lvl === "level 2" || lvl.includes("مشرف") || lvl.includes("supervisor"));
+
+  if (isEntireRoom) {
+    const isAllowedEntire = (isL0 && allowL0Entire) || (isL1 && allowL1Entire) || (isL2 && allowL2Entire);
+    if (!isAllowedEntire) {
+      violations.push({
+        code: "ENTIRE_ROOM_NOT_ALLOWED",
+        messageAr: `حجز الغرفة بالكامل غير مسموح لـ ${target.levelNameAr} وفقاً لسياسة السكن`,
+        messageEn: `Booking entire room is not permitted for ${target.levelNameEn} according to housing policy`,
+      });
+    }
+  }
 
   // 3. Department Segregation & Roommates
   const profileDept = (profile.department || "").trim().toLowerCase();
@@ -496,7 +596,7 @@ export function checkPolicyCompliance({
     if (policySettings?.policyStrictDepartmentSegregation && diffDeptOccupants.length > 0) {
       violations.push({
         code: "STRICT_DEPT_VIOLATION",
-        messageAr: `مخالفة سياسة فصل الأقسام: الغرفة تضم زملاء من أقسام أخرى (${diffDeptOccupants.map((o: any) => o.department).join(", ")})`,
+        messageAr: `مخالفة سياسة فصل الأقسام: الغرفة تضم نزلاء من أقسام أخرى (${diffDeptOccupants.map((o: any) => o.department).join(", ")})`,
         messageEn: `Department segregation violation: Room contains occupants from other departments (${diffDeptOccupants.map((o: any) => o.department).join(", ")})`,
       });
     }

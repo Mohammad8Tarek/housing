@@ -1286,6 +1286,14 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ADD COLUMN IF NOT EXISTS housing_manager_2_email TEXT
     `,
   },
+  {
+    name: "public.settings.policy_level_0",
+    q: `
+      ALTER TABLE public.settings
+        ADD COLUMN IF NOT EXISTS policy_level_0_capacity INTEGER NOT NULL DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS policy_level_0_allow_entire BOOLEAN NOT NULL DEFAULT true;
+    `,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1299,7 +1307,9 @@ const TENANT_MIGRATIONS = [
   // === Settings: Policies, Rules & Contacts ===
   {
     name: "tenant.settings.policy_and_contacts",
-    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_1_capacity INTEGER NOT NULL DEFAULT 1;
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_0_capacity INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_0_allow_entire BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_1_capacity INTEGER NOT NULL DEFAULT 1;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_2_capacity INTEGER NOT NULL DEFAULT 2;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_3_capacity INTEGER NOT NULL DEFAULT 3;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_4_capacity INTEGER NOT NULL DEFAULT 4;

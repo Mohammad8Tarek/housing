@@ -78,6 +78,11 @@ export function PoliciesSection({
               </tr>
             </thead>
             <tbody>
+              <tr style="background-color: #fffbeb;">
+                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong style="color: #b45309;">${ar ? "الدرجة صفر (Level 0 - الإدارة العليا / VIP)" : "Level 0 (Executive / VIP)"}</strong></td>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel0Capacity} ${ar ? "فرد (غرفة مستقلة / جناح)" : "person (Single / Suite)"}</td>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel0AllowEntire ? (ar ? "مسموح (غرفة كاملة مستقلة)" : "Allowed (Entire Room)") : (ar ? "غير مسموح" : "Not Allowed")}</td>
+              </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة الأولى (Level 1 - المدراء)" : "Level 1 (Executive/Managers)"}</strong></td>
                 <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel1Capacity} ${ar ? "فرد" : "person"}</td>
@@ -207,7 +212,26 @@ export function PoliciesSection({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <FormField
+              control={form.control}
+              name="policyLevel0Capacity"
+              render={({ field }) => (
+                <FormItem className="bg-amber-500/10 p-3 rounded-lg border border-amber-300/70 dark:border-amber-700/50">
+                  <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
+                    <Badge variant="outline" className="bg-amber-500 text-white border-amber-600 text-[10px] font-bold">Level 0 ★</Badge>
+                    {ar ? "سعة الإدارة العليا" : "Level 0 Capacity"}
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" min={1} max={5} {...field} className="bg-background" />
+                  </FormControl>
+                  <FormDescription className="text-[11px] text-amber-900/80 dark:text-amber-300/80 font-medium">
+                    {ar ? "القيادات العليا والمدراء العموم / VIP (فردي/جناح - 1 فرد)" : "Top Execs / GM / VIP (default 1)"}
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="policyLevel1Capacity"
@@ -326,6 +350,29 @@ export function PoliciesSection({
                       {ar
                         ? "منع تسكين أي موظف في غرفة بها موظف من قسم آخر وظهور استثناء للمشرف"
                         : "Disallow mixing employees of different departments in the same room"}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="policyLevel0AllowEntire"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-amber-500/5 border-amber-300/60 dark:border-amber-700/50">
+                  <div className="space-y-0.5 pe-4">
+                    <FormLabel className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      {ar ? "حجز غرفة كاملة للإدارة العليا (Level 0 Entire Room)" : "Allow Entire Room for Level 0"}
+                    </FormLabel>
+                    <FormDescription className="text-[11px]">
+                      {ar
+                        ? "استحقاق حجز الغرفة بالكامل كفردي أو جناح مستقل لقيادات الإدارة العليا"
+                        : "Allow booking full single room/suite for Level 0 executives"}
                     </FormDescription>
                   </div>
                   <FormControl>
