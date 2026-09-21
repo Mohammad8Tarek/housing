@@ -17,6 +17,7 @@ export const assignmentsTable = pgTable("assignments", {
   checkInDate: text("check_in_date").notNull(),
   expectedCheckOutDate: text("expected_check_out_date"),
   checkOutDate: text("check_out_date"),
+  checkOutReason: text("check_out_reason"),
   notes: text("notes").notNull().default(""),
   status: text("status").notNull().default("ACTIVE"),
   createdAt: timestamp("created_at", { withTimezone: true })

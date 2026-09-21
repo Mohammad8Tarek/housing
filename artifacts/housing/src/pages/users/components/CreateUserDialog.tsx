@@ -73,10 +73,10 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Form state
   const [form, setForm] = useState({
     username: "",
     email: "",
+    nationalId: "",
     phone: "",
     password: "",
     role: "manager",
@@ -297,6 +297,7 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
       data: {
         username: form.username.trim(),
         email: form.email.trim() || undefined,
+        nationalId: form.nationalId.trim() || undefined,
         phone: form.phone.trim() || undefined,
         password: form.password,
         propertyId: primaryPid,
@@ -465,6 +466,25 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     value={form.phone}
                     onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                     autoComplete="tel"
+                  />
+                </div>
+              </div>
+
+              {/* National ID */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                  {ar ? "الرقم القومي (14 رقماً)" : "National ID (14 digits)"}
+                </Label>
+                <div className="relative">
+                  <Input
+                    dir="ltr"
+                    type="text"
+                    maxLength={14}
+                    className="font-mono text-sm bg-background border-border/80 focus-visible:ring-[#0F2A44]/30"
+                    placeholder="29010101234567"
+                    value={form.nationalId}
+                    onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value.replace(/\D/g, "") }))}
                   />
                 </div>
               </div>

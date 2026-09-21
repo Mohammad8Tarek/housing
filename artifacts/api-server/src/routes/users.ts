@@ -244,6 +244,7 @@ router.get(
         failed_login_attempts: usersTable.failedLoginAttempts,
         locked_until: usersTable.lockedUntil,
         job_title: usersTable.jobTitle,
+        national_id: usersTable.nationalId,
         has_signature: userSignaturesTable.id,
       })
       .from(usersTable)
@@ -265,6 +266,7 @@ router.get(
       email: u.email ?? null,
       phone: u.phone ?? null,
       jobTitle: u.job_title ?? null,
+      nationalId: u.national_id ?? null,
       roles: u.roles ?? [],
       permissions: u.permissions ?? [],
       hasSignature: !!u.has_signature,
@@ -315,6 +317,7 @@ router.get(
         failedLoginAttempts: usersTable.failedLoginAttempts,
         lockedUntil: usersTable.lockedUntil,
         jobTitle: usersTable.jobTitle,
+        nationalId: usersTable.nationalId,
         hasSignature: userSignaturesTable.id,
         signatureImageUrl: userSignaturesTable.signatureImageUrl,
       })
@@ -339,6 +342,7 @@ router.get(
       email: user.email ?? null,
       phone: user.phone ?? null,
       jobTitle: user.jobTitle ?? null,
+      nationalId: user.nationalId ?? null,
       roles: user.roles ?? [],
       permissions: user.permissions ?? [],
       hasSignature: !!user.hasSignature,
@@ -419,6 +423,7 @@ router.post(
       ...safeUser,
       email: safeUserAny.email || null,
       phone: safeUserAny.phone || null,
+      nationalId: safeUserAny.nationalId ?? safeUserAny.national_id ?? null,
       propertyIds: pids,
     });
   },
@@ -576,6 +581,8 @@ router.patch(
       username: updated.username,
       email: updated.email || null,
       phone: updated.phone || null,
+      jobTitle: updated.jobTitle ?? updated.job_title ?? null,
+      nationalId: updated.nationalId ?? updated.national_id ?? null,
       propertyId: updated.property_id,
       propertyIds: updated.property_ids ?? propertyIds ?? [],
       roles: updated.roles,

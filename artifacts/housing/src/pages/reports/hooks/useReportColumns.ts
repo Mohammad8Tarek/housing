@@ -285,6 +285,21 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
     { key: "waterIssue2", label: "2nd Issue (2nd Half)", labelAr: "الصرف الثاني (النصف الثاني)", fixed: true },
     { key: "signature", label: "Resident Signature", labelAr: "توقيع المستلم" },
   ],
+  policy_exceptions: [
+    { key: "profileName", label: "Resident Name", labelAr: "اسم المقيم", fixed: true },
+    { key: "profileCode", label: "Employee Code", labelAr: "كود الموظف", fixed: true },
+    { key: "nationalId", label: "National ID", labelAr: "الرقم القومي" },
+    { key: "jobLevel", label: "Job Level", labelAr: "الدرجة الوظيفية" },
+    { key: "department", label: "Department", labelAr: "القسم" },
+    { key: "roomNumber", label: "Room No", labelAr: "رقم الغرفة" },
+    { key: "buildingName", label: "Building", labelAr: "المبنى" },
+    { key: "roomCapacity", label: "Capacity", labelAr: "سعة الغرفة" },
+    { key: "currentOccupancy", label: "Occupancy", labelAr: "الإشغال الحالي" },
+    { key: "violationType", label: "Violation Type", labelAr: "نوع المخالفة", fixed: true },
+    { key: "violationDetails", label: "Policy Details", labelAr: "تفاصيل المخالفة والسياسة" },
+    { key: "severity", label: "Severity", labelAr: "مستوى الأهمية" },
+    { key: "overrideReason", label: "Override Reason", labelAr: "سبب الاستثناء الإداري" },
+  ],
 };
 
 export function useReportColumns(activeTab: string, ar: boolean) {

@@ -14,6 +14,7 @@ import {
   useListProperties,
   useListAssignments,
   useCreateAssignment,
+  useListProfiles,
   useGetSettings,
   getListReservationsQueryKey,
   getListRoomsQueryKey,
@@ -383,6 +384,19 @@ export default function ReservationsPage() {
     return map;
   }, [rooms]);
 
+  const { data: _profData } = useListProfiles(
+    { propertyId: activePropertyId, limit: 1000 },
+    { query: { enabled: !!activePropertyId, staleTime: 60000 } }
+  );
+  const profilesList = (_profData as any)?.profiles || (_profData as any)?.data || [];
+
+  const { data: settings } = useGetSettings(undefined, {
+    query: {
+      queryKey: ["/api/settings"],
+      enabled: !!activePropertyId,
+    },
+  });
+
 
   const { isSuperAdmin, isAdmin, hasRole, can } = usePermission();
   const canOverrideSingleOccupancy = Boolean(
@@ -415,7 +429,6 @@ export default function ReservationsPage() {
     // Default search to "all" so cross-property employees are discovered immediately by name/code
     setSearchPropertyId("all");
   }, []);
-  const { data: settings } = useGetSettings({ query: { enabled: !!activePropertyId } });
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
 
   const isCrossProperty = Boolean(
@@ -549,8 +562,26 @@ export default function ReservationsPage() {
   const profileForRecommend = selectedProfile || (personMode === "new" && newForm.firstName ? { level: newForm.level, gender: newForm.gender, department: newForm.department, employmentType: newForm.employmentType, jobTitle: newForm.jobTitle } : null);
   const recommendation = useMemo(() => {
     if (!profileForRecommend || !rooms.length) return null;
-    return recommendBestRooms({ profile: profileForRecommend, rooms, assignments: allAssignments, profiles: [] });
-  }, [profileForRecommend, rooms, allAssignments]);
+    return recommendBestRooms({
+      profile: profileForRecommend,
+      rooms,
+      assignments: allAssignments,
+      profiles: profilesList,
+      policySettings: settings,
+    });
+  }, [profileForRecommend, rooms, allAssignments, profilesList, settings]);
+
+  // Auto-Select best compliant room based on level and department
+  useEffect(() => {
+    if (profileForRecommend && recommendation?.bestRoom && !selectedRoomId) {
+      setSelectedRoomId(String(recommendation.bestRoom.id));
+      const r = recommendation.bestRoom;
+      const opts = getBedOptions(r.roomType, r.capacity);
+      if (opts.length > 0) {
+        setSelectedBed(opts[0]);
+      }
+    }
+  }, [profileForRecommend, recommendation?.bestRoom?.id, selectedRoomId]);
 
   const sortedFilteredRooms = useMemo(() => {
     return [...filteredRooms].sort((a: any, b: any) => {

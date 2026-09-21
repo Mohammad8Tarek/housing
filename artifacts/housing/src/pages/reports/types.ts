@@ -24,7 +24,8 @@ export type Tab =
   | "service_ratings"
   | "housing_map"
   | "water_distribution"
-  | "police_report";
+  | "police_report"
+  | "policy_exceptions";
 
 export interface TabConfig {
   id: Tab;

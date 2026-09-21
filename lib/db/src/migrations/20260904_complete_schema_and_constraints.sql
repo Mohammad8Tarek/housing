@@ -172,6 +172,7 @@ BEGIN
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "contract_end_date" TEXT;
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "is_entire_room" BOOLEAN DEFAULT false;
+    ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "check_out_reason" TEXT;
 
     -- --------------------------------------------------------
     -- Table: buildings
@@ -1589,6 +1590,40 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_history_count" INTEGER NOT NULL DEFAULT 5;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "lockout_threshold" INTEGER NOT NULL DEFAULT 5;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "lockout_duration_minutes" INTEGER NOT NULL DEFAULT 15;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_1_capacity" INTEGER DEFAULT 1;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_2_capacity" INTEGER DEFAULT 2;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_3_capacity" INTEGER DEFAULT 3;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_4_capacity" INTEGER DEFAULT 4;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_1_allow_entire" BOOLEAN DEFAULT true;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_2_allow_entire" BOOLEAN DEFAULT false;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_department_clustering" BOOLEAN DEFAULT true;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_strict_department_segregation" BOOLEAN DEFAULT false;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_max_nights" INTEGER DEFAULT 7;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_max_visits_per_year" INTEGER DEFAULT 2;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_min_service_months" INTEGER DEFAULT 6;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_cooldown_days" INTEGER DEFAULT 90;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_require_national_id" BOOLEAN DEFAULT true;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "curfew_enabled" BOOLEAN DEFAULT false;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "curfew_time" TEXT DEFAULT '23:00';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_rules_text" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "family_visit_policy_text" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_policy_text" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_1_name" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_1_title" TEXT DEFAULT 'HR Manager';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_1_phone" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_1_email" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_name" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_title" TEXT DEFAULT 'HR Coordinator';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_phone" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_email" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_1_name" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_1_title" TEXT DEFAULT 'Housing Manager';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_1_phone" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_1_email" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_2_name" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_2_title" TEXT DEFAULT 'Assistant Housing Manager';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_2_phone" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_2_email" TEXT DEFAULT '';
 
     -- --------------------------------------------------------
     -- Table: survey_item_responses
@@ -2167,6 +2202,12 @@ BEGIN
 
   -- Reset search path back to public
   SET search_path TO public;
+
+  -- Users national_id and public assignments
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS "national_id" TEXT;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'assignments') THEN
+    ALTER TABLE public.assignments ADD COLUMN IF NOT EXISTS "check_out_reason" TEXT;
+  END IF;
 
   -- User foreign key cascades and set null
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_signatures') THEN

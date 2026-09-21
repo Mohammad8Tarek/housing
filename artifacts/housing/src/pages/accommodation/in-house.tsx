@@ -106,6 +106,16 @@ import {
   getProfileDisplayDepartment,
 } from "@/lib/profile-display-utils";
 
+export const CHECKOUT_REASONS = [
+  { value: "resignation", labelAr: "استقالة من العمل", labelEn: "Resignation" },
+  { value: "contract_end", labelAr: "انتهاء عقد العمل", labelEn: "Contract Termination / End" },
+  { value: "property_transfer", labelAr: "نقل لفندق أو فرع آخر", labelEn: "Transfer to Another Property" },
+  { value: "external_housing", labelAr: "انتقال لسكن خارجي (بدل سكن)", labelEn: "Moved to External Housing" },
+  { value: "extended_leave", labelAr: "إجازة مطولة مع إخلاء طرف", labelEn: "Extended Leave with Clearance" },
+  { value: "disciplinary", labelAr: "إنهاء خدمة / فصل تأديبي", labelEn: "Disciplinary Dismissal" },
+  { value: "other", labelAr: "أسباب أخرى", labelEn: "Other Reason" },
+];
+
 function EmpAvatar({ emp, name, photoUrl }: { emp?: any; name?: string; photoUrl?: string }) {
   const photo = photoUrl || emp?.photoUrl;
   const firstName = emp?.firstName || name?.split(" ")?.[0] || "";
@@ -146,6 +156,7 @@ export default function InHouse() {
   const [bulkCheckoutOpen, setBulkCheckoutOpen] = useState(false);
   const [bulkCheckoutLoading, setBulkCheckoutLoading] = useState(false);
   const [bulkCheckoutNotes, setBulkCheckoutNotes] = useState("");
+  const [bulkCheckoutReason, setBulkCheckoutReason] = useState("");
   const [checkoutDialog, setCheckoutDialog] = useState<{
     open: boolean;
     id: number | null;
@@ -179,6 +190,7 @@ export default function InHouse() {
   const [checkoutDate, setCheckoutDate] = useState(
     new Date().toISOString().split("T")[0],
   );
+  const [checkoutReason, setCheckoutReason] = useState("");
   const [checkoutNotes, setCheckoutNotes] = useState("");
   const [transferRoomId, setTransferRoomId] = useState("");
   const [selectedTransferBed, setSelectedTransferBed] = useState("");
@@ -753,10 +765,15 @@ export default function InHouse() {
 
   const handleCheckout = () => {
     if (!checkoutDialog.id) return;
+    if (!checkoutReason) {
+      toast.error(ar ? "يرجى اختيار سبب المغادرة (إلزامي)" : "Checkout reason is mandatory");
+      return;
+    }
     checkoutMutation.mutate({
       id: checkoutDialog.id,
       data: {
         checkOutDate: new Date(checkoutDate).toISOString(),
+        checkOutReason: checkoutReason,
         notes: checkoutNotes || undefined,
       } as any,
     });
@@ -901,6 +918,10 @@ export default function InHouse() {
 
   const handleBulkCheckout = async () => {
     if (selectedRows.size === 0) return;
+    if (!bulkCheckoutReason) {
+      toast.error(ar ? "يرجى اختيار سبب المغادرة الجماعية (إلزامي)" : "Bulk checkout reason is mandatory");
+      return;
+    }
     setBulkCheckoutLoading(true);
     const ids = Array.from(selectedRows);
     let successCount = 0;
@@ -910,6 +931,7 @@ export default function InHouse() {
           id,
           data: {
             checkOutDate: new Date().toISOString(),
+            checkOutReason: bulkCheckoutReason,
             notes: bulkCheckoutNotes || (ar ? "خروج جماعي" : "Bulk Checkout"),
           } as any,
         });
@@ -922,6 +944,7 @@ export default function InHouse() {
     setBulkCheckoutOpen(false);
     setSelectedRows(new Set());
     setBulkCheckoutNotes("");
+    setBulkCheckoutReason("");
     toast.success(
       ar
         ? `تم تسجيل خروج ${successCount} من أصل ${ids.length} مقيم بنجاح`
@@ -1540,6 +1563,7 @@ export default function InHouse() {
                                     new Date().toISOString().split("T")[0],
                                   );
                                   setCheckoutNotes("");
+                                  setCheckoutReason("");
                                   setCheckoutDialog({
                                     open: true,
                                     id: a.id,
@@ -1944,9 +1968,27 @@ export default function InHouse() {
               />
             </div>
             <div className="space-y-1.5">
+              <Label className="flex items-center gap-1 font-semibold text-xs">
+                {ar ? "سبب المغادرة" : "Check-out Reason"}
+                <span className="text-destructive font-bold">*</span>
+              </Label>
+              <Select value={checkoutReason} onValueChange={setCheckoutReason}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={ar ? "اختر سبب المغادرة (إلزامي)..." : "Select reason (Mandatory)..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHECKOUT_REASONS.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {ar ? r.labelAr : r.labelEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label>{ar ? "ملاحظات" : "Notes"}</Label>
               <Textarea
-                placeholder={ar ? "أي ملاحظات..." : "Any notes..."}
+                placeholder={ar ? "أي ملاحظات إضافية..." : "Any additional notes..."}
                 value={checkoutNotes}
                 onChange={(e) => setCheckoutNotes(e.target.value)}
                 rows={2}
@@ -1961,7 +2003,7 @@ export default function InHouse() {
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={checkoutMutation.isPending}
+                disabled={checkoutMutation.isPending || !checkoutReason}
               >
                 {checkoutMutation.isPending
                   ? ar
@@ -2130,6 +2172,24 @@ export default function InHouse() {
               </p>
             </div>
             <div className="space-y-1.5">
+              <Label className="flex items-center gap-1 font-semibold text-xs">
+                {ar ? "سبب المغادرة الجماعية" : "Bulk Check-out Reason"}
+                <span className="text-destructive font-bold">*</span>
+              </Label>
+              <Select value={bulkCheckoutReason} onValueChange={setBulkCheckoutReason}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={ar ? "اختر سبب المغادرة الجماعية (إلزامي)..." : "Select bulk reason (Mandatory)..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHECKOUT_REASONS.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {ar ? r.labelAr : r.labelEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label>{ar ? "ملاحظات خروج جماعي (اختياري)" : "Notes (Optional)"}</Label>
               <Input
                 placeholder={ar ? "سبب أو تفاصيل المغادرة الجماعية..." : "Reason or details..."}
@@ -2140,7 +2200,10 @@ export default function InHouse() {
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="outline"
-                onClick={() => setBulkCheckoutOpen(false)}
+                onClick={() => {
+                  setBulkCheckoutOpen(false);
+                  setBulkCheckoutReason("");
+                }}
                 disabled={bulkCheckoutLoading}
               >
                 {ar ? "إلغاء" : "Cancel"}
@@ -2148,7 +2211,7 @@ export default function InHouse() {
               <Button
                 variant="destructive"
                 onClick={handleBulkCheckout}
-                disabled={bulkCheckoutLoading}
+                disabled={bulkCheckoutLoading || !bulkCheckoutReason}
                 className="gap-1.5"
               >
                 {bulkCheckoutLoading ? (

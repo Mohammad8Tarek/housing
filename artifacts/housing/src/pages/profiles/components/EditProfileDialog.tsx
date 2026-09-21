@@ -132,6 +132,34 @@ export function EditProfileDialog({
     }
   };
 
+  const [fullArabicInput, setFullArabicInput] = useState("");
+
+  const handleFullArabicNameChange = (val: string) => {
+    setFullArabicInput(val);
+    const parts = val.trim().split(/\s+/).filter(Boolean);
+    const p1 = parts[0] || "";
+    const p2 = parts[1] || "";
+    const p3 = parts[2] || "";
+    const p4 = parts.slice(3).join(" ") || "";
+
+    const fnEn = p1 ? transliterateToken(p1, "en") : "";
+    const lnEn = p2 ? transliterateToken(p2, "en") : "";
+    const tnEn = p3 ? transliterateToken(p3, "en") : "";
+    const foEn = p4 ? transliterateToken(p4, "en") : "";
+
+    setForm((prev) => ({
+      ...prev,
+      firstNameAr: p1,
+      lastNameAr: p2,
+      thirdNameAr: p3,
+      fourthNameAr: p4,
+      firstName: fnEn,
+      lastName: lnEn,
+      thirdName: tnEn,
+      fourthName: foEn,
+    }));
+  };
+
   const handleAutoTranslateNames = () => {
     const fnAr = form.firstName ? transliterateToken(form.firstName, "ar") : form.firstNameAr;
     const lnAr = form.lastName ? transliterateToken(form.lastName, "ar") : form.lastNameAr;
@@ -512,6 +540,26 @@ export function EditProfileDialog({
                   <Sparkles className="w-3 h-3 text-amber-500" />
                   {ar ? "تعريب وترجمة تلقائية" : "Auto-Transliterate"}
                 </Button>
+              </div>
+
+              {/* Full Arabic Name Single-Field Entry with Auto Transliteration */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-primary flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    {ar ? "إدخال الاسم الرباعي كاملاً بالعربية (ترجمة وتوزيع فوري للإنجليزية)" : "Full Arabic Name (Instant Auto-Translate to English)"}
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground">
+                    {ar ? "اكتب أو الصق الاسم كاملاً وسيتم توزيعه وترجمته تلقائياً" : "Type or paste full Arabic name to auto-fill both languages"}
+                  </span>
+                </div>
+                <Input
+                  value={fullArabicInput}
+                  onChange={(e) => handleFullArabicNameChange(e.target.value)}
+                  placeholder={ar ? "اكتب الاسم الرباعي كاملاً هنا (مثال: محمد طارق أحمد محمود)..." : "Type full Arabic name here..."}
+                  dir="rtl"
+                  className="h-9 bg-background border-primary/30 font-medium"
+                />
               </div>
 
               {/* English Names */}

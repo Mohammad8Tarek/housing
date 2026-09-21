@@ -1256,10 +1256,62 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_prop ON public.ws_sessions(property_id);
     CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_active ON public.ws_sessions(is_active);`,
   },
+  {
+    name: "public.users.national_id",
+    q: "ALTER TABLE public.users ADD COLUMN IF NOT EXISTS national_id TEXT",
+  },
+  {
+    name: "public.assignments.check_out_reason",
+    q: "ALTER TABLE public.assignments ADD COLUMN IF NOT EXISTS check_out_reason TEXT",
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
 const TENANT_MIGRATIONS = [
+  // === Assignments: Check-out reason ===
+  {
+    name: "tenant.assignments.check_out_reason",
+    q: "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS check_out_reason TEXT",
+  },
+
+  // === Settings: Policies, Rules & Contacts ===
+  {
+    name: "tenant.settings.policy_and_contacts",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_1_capacity INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_2_capacity INTEGER NOT NULL DEFAULT 2;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_3_capacity INTEGER NOT NULL DEFAULT 3;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_4_capacity INTEGER NOT NULL DEFAULT 4;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_1_allow_entire BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_2_allow_entire BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_department_clustering BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_strict_department_segregation BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS visit_max_nights INTEGER NOT NULL DEFAULT 7;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS visit_max_visits_per_year INTEGER NOT NULL DEFAULT 2;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS visit_min_service_months INTEGER NOT NULL DEFAULT 6;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS visit_cooldown_days INTEGER NOT NULL DEFAULT 90;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS visit_require_national_id BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS curfew_enabled BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS curfew_time TEXT NOT NULL DEFAULT '23:00';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_rules_text TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS family_visit_policy_text TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_policy_text TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS hr_contact_1_name TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS hr_contact_1_title TEXT DEFAULT 'HR Manager';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS hr_contact_1_phone TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS hr_contact_1_email TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS hr_contact_2_name TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS hr_contact_2_title TEXT DEFAULT 'HR Coordinator';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS hr_contact_2_phone TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS hr_contact_2_email TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_manager_1_name TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_manager_1_title TEXT DEFAULT 'Housing Manager';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_manager_1_phone TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_manager_1_email TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_manager_2_name TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_manager_2_title TEXT DEFAULT 'Assistant Housing Manager';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_manager_2_phone TEXT DEFAULT '';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_manager_2_email TEXT DEFAULT '';`,
+  },
   // === Settings ===
   {
     name: "settings.portal_contact_email",

@@ -818,6 +818,64 @@ router.get("/contacts", async (req, res): Promise<void> => {
   });
 });
 
+// ─── Support Contacts (HR 1 & 2, Housing Manager 1 & 2) ──────
+router.get("/support-contacts", async (req, res): Promise<void> => {
+  const sess = portalSession(req)!;
+
+  const settings = await withTenant(sess.propertyId, async (tenantDb) => {
+    const [s] = await tenantDb.select().from(settingsTable).limit(1);
+    return s;
+  });
+
+  const contacts = [
+    {
+      id: "hr_1",
+      category: "hr",
+      roleAr: "مسؤول الموارد البشرية 1",
+      roleEn: "HR Coordinator 1",
+      name: settings?.hrContact1Name || "",
+      title: settings?.hrContact1Title || "",
+      phone: settings?.hrContact1Phone || "",
+      email: settings?.hrContact1Email || "",
+    },
+    {
+      id: "hr_2",
+      category: "hr",
+      roleAr: "مسؤول الموارد البشرية 2",
+      roleEn: "HR Coordinator 2",
+      name: settings?.hrContact2Name || "",
+      title: settings?.hrContact2Title || "",
+      phone: settings?.hrContact2Phone || "",
+      email: settings?.hrContact2Email || "",
+    },
+    {
+      id: "mgr_1",
+      category: "housing",
+      roleAr: "مدير السكن 1",
+      roleEn: "Housing Manager 1",
+      name: settings?.housingManager1Name || "",
+      title: settings?.housingManager1Title || "",
+      phone: settings?.housingManager1Phone || "",
+      email: settings?.housingManager1Email || "",
+    },
+    {
+      id: "mgr_2",
+      category: "housing",
+      roleAr: "مدير السكن 2",
+      roleEn: "Housing Manager 2",
+      name: settings?.housingManager2Name || "",
+      title: settings?.housingManager2Title || "",
+      phone: settings?.housingManager2Phone || "",
+      email: settings?.housingManager2Email || "",
+    },
+  ];
+
+  res.json({
+    success: true,
+    contacts,
+  });
+});
+
 // ─── Portal Documents ──────────────────────────
 router.get("/documents", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;

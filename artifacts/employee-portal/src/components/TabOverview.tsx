@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   AlertCircle,
   MessageCircle,
+  Phone,
+  Mail,
   Key,
   Download,
   Loader2,
@@ -136,16 +138,29 @@ export default function TabOverview({
   const [eventCount, setEventCount] = useState(0);
   const [roommates, setRoommates] = useState<any[]>([]);
   const [unratedRequest, setUnratedRequest] = useState<any>(null);
+  const [supportContacts, setSupportContacts] = useState<any[]>([]);
 
   useEffect(() => {
     const loadOverviewData = async () => {
       try {
-        const [notifRes, docRes, roomRes, mntRes] = await Promise.all([
+        const [notifRes, docRes, roomRes, mntRes, contactsRes] = await Promise.all([
           apiFetch("/api/portal-notifications/my", { credentials: "include" }),
           apiFetch("/api/portal-data/documents", { credentials: "include" }),
           apiFetch("/api/portal-data/roommates", { credentials: "include" }),
           apiFetch("/api/portal-data/my-maintenance", { credentials: "include" }),
+          apiFetch("/api/portal-data/support-contacts", { credentials: "include" }),
         ]);
+
+        if (contactsRes.ok) {
+          const cData = await contactsRes.json().catch(() => null);
+          if (cData?.contacts) {
+            setSupportContacts(
+              (cData.contacts || []).filter(
+                (c: any) => c.name || c.phone || c.email
+              )
+            );
+          }
+        }
 
         if (notifRes.ok) {
           const notifData = await notifRes.json().catch(() => null);
@@ -482,6 +497,81 @@ export default function TabOverview({
           <Chevron className="w-3.5 h-3.5" />
         </div>
       </button>
+
+      {/* ── 4b. OFFICIAL HOUSING & HR CONTACTS (HR 1&2, HOUSING MANAGER 1&2) ── */}
+      {supportContacts.length > 0 && (
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-primary" />
+              {isRtl ? "مسؤولو الموارد البشرية وإدارة السكن" : "Official HR & Housing Contacts"}
+            </h3>
+            <span className="text-[10px] font-medium text-muted-foreground">
+              {isRtl ? "تواصل مباشر" : "Direct Support"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {supportContacts.map((c) => (
+              <div
+                key={c.id}
+                className="p-3.5 rounded-2xl bg-card/90 border border-border/70 shadow-2xs hover:border-primary/40 transition-all flex flex-col justify-between gap-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary mb-1">
+                      {isRtl ? c.roleAr : c.roleEn}
+                    </span>
+                    <h4 className="text-xs font-bold text-foreground truncate">
+                      {c.name || (isRtl ? "المسؤول المعتمد" : "Authorized Contact")}
+                    </h4>
+                    {c.title && (
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {c.title}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/40">
+                  {c.phone && (
+                    <>
+                      <a
+                        href={`tel:${c.phone}`}
+                        className="flex-1 py-1.5 px-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                        title={isRtl ? "اتصال هاتفي" : "Call"}
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>{isRtl ? "اتصال" : "Call"}</span>
+                      </a>
+                      <a
+                        href={`https://wa.me/${c.phone.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-1.5 px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                        title="WhatsApp"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span className="text-[10px]">واتساب</span>
+                      </a>
+                    </>
+                  )}
+                  {c.email && (
+                    <a
+                      href={`mailto:${c.email}`}
+                      className="py-1.5 px-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                      title={c.email}
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      <span className="text-[10px]">{isRtl ? "إيميل" : "Email"}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── 5. RECENT NOTIFICATIONS & ANNOUNCEMENTS ── */}
       <div>

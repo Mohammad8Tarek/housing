@@ -15,6 +15,7 @@ export const usersTable = pgTable("users", {
   phone: text("phone"),
   department: text("department"),
   jobTitle: text("job_title"),
+  nationalId: text("national_id"),
   passwordHash: text("password_hash").notNull(),
   passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
   roles: text("roles").array().notNull().default([]),

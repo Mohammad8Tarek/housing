@@ -716,6 +716,7 @@ export const CheckoutAssignmentParams = zod.object({
 
 export const CheckoutAssignmentBody = zod.object({
   "checkOutDate": zod.string(),
+  "checkOutReason": zod.string().min(1, "سبب المغادرة إلزامي"),
   "notes": zod.string().optional()
 })
 
@@ -729,6 +730,7 @@ export const CheckoutAssignmentResponse = zod.object({
   "checkInDate": zod.string(),
   "expectedCheckOutDate": zod.string().nullish(),
   "checkOutDate": zod.string().nullish(),
+  "checkOutReason": zod.string().nullish(),
   "notes": zod.string(),
   "status": zod.string(),
   "createdAt": zod.string()
@@ -1253,7 +1255,8 @@ export const ListUsersResponseItem = zod.object({
   "username": zod.string(),
   "roles": zod.array(zod.string()),
   "permissions": zod.array(zod.string()),
-  "status": zod.string()
+  "status": zod.string(),
+  "nationalId": zod.string().nullish()
 })
 export const ListUsersResponse = zod.array(ListUsersResponseItem)
 
@@ -1271,7 +1274,8 @@ export const CreateUserBody = zod.object({
   "status": zod.string().optional(),
   "jobTitle": zod.string().nullish(),
   "email": zod.string().nullish(),
-  "phone": zod.string().nullish()
+  "phone": zod.string().nullish(),
+  "nationalId": zod.string().nullish()
 })
 
 
@@ -1288,7 +1292,8 @@ export const GetUserResponse = zod.object({
   "username": zod.string(),
   "roles": zod.array(zod.string()),
   "permissions": zod.array(zod.string()),
-  "status": zod.string()
+  "status": zod.string(),
+  "nationalId": zod.string().nullish()
 })
 
 
@@ -1309,7 +1314,8 @@ export const UpdateUserBody = zod.object({
   "password": zod.string().nullish(),
   "jobTitle": zod.string().nullish(),
   "propertyIds": zod.array(zod.number()).optional(),
-  "propertyId": zod.number().optional()
+  "propertyId": zod.number().optional(),
+  "nationalId": zod.string().nullish()
 })
 
 export const UpdateUserResponse = zod.object({
@@ -1318,7 +1324,8 @@ export const UpdateUserResponse = zod.object({
   "username": zod.string(),
   "roles": zod.array(zod.string()),
   "permissions": zod.array(zod.string()),
-  "status": zod.string()
+  "status": zod.string(),
+  "nationalId": zod.string().nullish()
 })
 
 
@@ -1392,8 +1399,42 @@ export const UpdateSettingsBody = zod.object({
   "buttonColor": zod.string().optional(),
   "departureAlertsEnabled": zod.boolean().optional(),
   "departureAlertThreshold": zod.number().optional(),
-  "reportFooter": zod.string().optional()
-})
+  "reportFooter": zod.string().optional(),
+  "policyLevel1Capacity": zod.number().optional(),
+  "policyLevel2Capacity": zod.number().optional(),
+  "policyLevel3Capacity": zod.number().optional(),
+  "policyLevel4Capacity": zod.number().optional(),
+  "policyLevel1AllowEntire": zod.boolean().optional(),
+  "policyLevel2AllowEntire": zod.boolean().optional(),
+  "policyDepartmentClustering": zod.boolean().optional(),
+  "policyStrictDepartmentSegregation": zod.boolean().optional(),
+  "visitMaxNights": zod.number().optional(),
+  "visitMaxVisitsPerYear": zod.number().optional(),
+  "visitMinServiceMonths": zod.number().optional(),
+  "visitCooldownDays": zod.number().optional(),
+  "visitRequireNationalId": zod.boolean().optional(),
+  "curfewEnabled": zod.boolean().optional(),
+  "curfewTime": zod.string().optional(),
+  "housingRulesText": zod.string().nullish(),
+  "familyVisitPolicyText": zod.string().nullish(),
+  "housingPolicyText": zod.string().nullish(),
+  "hrContact1Name": zod.string().nullish(),
+  "hrContact1Title": zod.string().nullish(),
+  "hrContact1Phone": zod.string().nullish(),
+  "hrContact1Email": zod.string().nullish(),
+  "hrContact2Name": zod.string().nullish(),
+  "hrContact2Title": zod.string().nullish(),
+  "hrContact2Phone": zod.string().nullish(),
+  "hrContact2Email": zod.string().nullish(),
+  "housingManager1Name": zod.string().nullish(),
+  "housingManager1Title": zod.string().nullish(),
+  "housingManager1Phone": zod.string().nullish(),
+  "housingManager1Email": zod.string().nullish(),
+  "housingManager2Name": zod.string().nullish(),
+  "housingManager2Title": zod.string().nullish(),
+  "housingManager2Phone": zod.string().nullish(),
+  "housingManager2Email": zod.string().nullish()
+}).passthrough()
 
 export const UpdateSettingsResponse = zod.object({
   "id": zod.number(),
@@ -1407,7 +1448,7 @@ export const UpdateSettingsResponse = zod.object({
   "departureAlertsEnabled": zod.boolean(),
   "departureAlertThreshold": zod.number(),
   "reportFooter": zod.string()
-})
+}).passthrough()
 
 
 /**

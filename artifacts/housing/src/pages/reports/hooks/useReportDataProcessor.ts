@@ -138,6 +138,7 @@ export function useReportDataProcessor({
   floorMap,
   roomMap,
   empMap,
+  settings = {},
 }: any) {
   const filteredBuildingIds = useMemo(() => {
     return new Set(
@@ -1870,6 +1871,184 @@ export function useReportDataProcessor({
           i.bedNumber,
           i.buildingName,
           i.floorName,
+        ]);
+      }
+
+      // POLICY EXCEPTIONS & LEVEL AUDIT REPORT (تقرير استثناءات ومخالفات السياسة والدرجات الوظيفية)
+      case "policy_exceptions": {
+        const exceptions: any[] = [];
+        const policySettings = settings || {};
+
+        const l1Cap = Number(policySettings?.policyLevel1Capacity) || 1;
+        const l2Cap = Number(policySettings?.policyLevel2Capacity) || 2;
+        const l3Cap = Number(policySettings?.policyLevel3Capacity) || 3;
+        const l4Cap = Number(policySettings?.policyLevel4Capacity) || 4;
+        const clusterEnabled = policySettings?.policyDepartmentClustering ?? true;
+        const strictSegregation = policySettings?.policyStrictDepartmentSegregation ?? false;
+
+        // Group active assignments by room
+        const activeByRoom = new Map<number, any[]>();
+        for (const a of assignments) {
+          if (a.status === "ACTIVE" || a.status === "VACATION") {
+            const list = activeByRoom.get(a.roomId) || [];
+            list.push(a);
+            activeByRoom.set(a.roomId, list);
+          }
+        }
+
+        // 1. Audit active occupants
+        for (const a of assignments) {
+          if (a.status !== "ACTIVE" && a.status !== "VACATION") continue;
+          const room = roomMap[a.roomId];
+          const emp = empMap[a.profileId];
+          if (!emp || !room) continue;
+
+          if (filterBuilding !== "all" && !filteredBuildingIds.has(room.buildingId)) continue;
+          if (filterFloor !== "all" && !filteredFloorIds.has(room.floorId)) continue;
+          if (filterDepartment !== "all" && emp.department !== filterDepartment) continue;
+
+          const bName = buildingMap[room.buildingId] || "—";
+          const roomCap = room.capacity || 1;
+          const roomOcc = activeByRoom.get(room.id)?.length || 1;
+          const lvl = String(emp.level || "").trim().toLowerCase();
+          const profileDept = (emp.department || "").trim().toLowerCase();
+
+          let maxAllowedCap = l4Cap;
+          let levelCategory = ar ? "الدرجة الرابعة (عمال/خدمات)" : "Level 4 (General Staff)";
+          if (lvl === "1" || lvl.includes("إدارة عليا") || lvl.includes("gm") || lvl.includes("director")) {
+            maxAllowedCap = l1Cap;
+            levelCategory = ar ? "الدرجة الأولى (إدارة عليا)" : "Level 1 (Executive)";
+          } else if (lvl === "2" || lvl.includes("مشرف") || lvl.includes("supervisor") || lvl.includes("manager")) {
+            maxAllowedCap = l2Cap;
+            levelCategory = ar ? "الدرجة الثانية (إشرافي/مدراء)" : "Level 2 (Supervisory)";
+          } else if (lvl === "3" || lvl.includes("فني") || lvl.includes("specialist") || lvl.includes("senior")) {
+            maxAllowedCap = l3Cap;
+            levelCategory = ar ? "الدرجة الثالثة (فني/تخصصي)" : "Level 3 (Senior/Staff)";
+          }
+
+          // Check A: Capacity Exceeded
+          if (roomCap > maxAllowedCap) {
+            exceptions.push({
+              id: `cap_${a.id}`,
+              profileName: getProfileDisplayName(emp, ar) || "—",
+              profileCode: emp.profileId || emp.code || "—",
+              nationalId: emp.nationalId || "—",
+              jobLevel: emp.level || levelCategory,
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              roomNumber: room.roomNumber || "—",
+              buildingName: bName,
+              roomCapacity: roomCap,
+              currentOccupancy: roomOcc,
+              violationType: ar ? "تجاوز سعة الدرجة الوظيفية" : "Level Capacity Exceeded",
+              violationDetails: ar
+                ? `المقيم من ${levelCategory} ومسكن بغرفة سعتها (${roomCap} أفراد) والحد الأقصى للسياسة (${maxAllowedCap} فرد)`
+                : `Resident is ${levelCategory} in a room of ${roomCap} beds (policy max: ${maxAllowedCap})`,
+              severity: ar ? "مرتفعة" : "High",
+              overrideReason: a.notes?.includes("استثناء") || a.notes?.includes("override") ? a.notes : (ar ? "لا يوجد تصريح مسجل" : "No override noted"),
+            });
+          }
+
+          // Check B: Department Segregation / Mixing
+          const roommates = (activeByRoom.get(room.id) || [])
+            .filter((x: any) => x.id !== a.id)
+            .map((x: any) => empMap[x.profileId])
+            .filter(Boolean);
+
+          if (profileDept && roommates.length > 0) {
+            const diffDeptRoommates = roommates.filter(
+              (rm: any) => (rm.department || "").trim().toLowerCase() !== profileDept && (rm.department || "").trim() !== ""
+            );
+            if ((strictSegregation || clusterEnabled) && diffDeptRoommates.length > 0) {
+              exceptions.push({
+                id: `dept_${a.id}`,
+                profileName: getProfileDisplayName(emp, ar) || "—",
+                profileCode: emp.profileId || emp.code || "—",
+                nationalId: emp.nationalId || "—",
+                jobLevel: emp.level || levelCategory,
+                department: getProfileDisplayDepartment(emp, ar) || "—",
+                roomNumber: room.roomNumber || "—",
+                buildingName: bName,
+                roomCapacity: roomCap,
+                currentOccupancy: roomOcc,
+                violationType: strictSegregation
+                  ? (ar ? "مخالفة صارمة لفصل الأقسام" : "Strict Department Mixing Violation")
+                  : (ar ? "خلط أقسام مختلفة بالغرفة" : "Cross-Department Clustering Exception"),
+                violationDetails: ar
+                  ? `الغرفة تضم أقساماً مختلفة: قسم (${emp.department}) مع قسم (${diffDeptRoommates.map((d: any) => d.department).join(", ")})`
+                  : `Room contains mixed departments: (${emp.department}) with (${diffDeptRoommates.map((d: any) => d.department).join(", ")})`,
+                severity: strictSegregation ? (ar ? "حرجة" : "Critical") : (ar ? "متوسطة" : "Medium"),
+                overrideReason: a.notes?.includes("استثناء") || a.notes?.includes("override") ? a.notes : (ar ? "لا يوجد تصريح مسجل" : "No override noted"),
+              });
+            }
+          }
+
+          // Check C: Unauthorized Entire Room Booking
+          if (a.isEntireRoom && roomCap > 1) {
+            const isL1 = lvl === "1" || lvl.includes("إدارة عليا") || lvl.includes("gm") || lvl.includes("director");
+            const allowEntire = isL1 ? (policySettings?.policyLevel1AllowEntire ?? true) : (policySettings?.policyLevel2AllowEntire ?? false);
+            if (!allowEntire) {
+              exceptions.push({
+                id: `entire_${a.id}`,
+                profileName: getProfileDisplayName(emp, ar) || "—",
+                profileCode: emp.profileId || emp.code || "—",
+                nationalId: emp.nationalId || "—",
+                jobLevel: emp.level || levelCategory,
+                department: getProfileDisplayDepartment(emp, ar) || "—",
+                roomNumber: room.roomNumber || "—",
+                buildingName: bName,
+                roomCapacity: roomCap,
+                currentOccupancy: roomOcc,
+                violationType: ar ? "حجز غرفة كاملة غير مصرح" : "Unauthorized Entire Room",
+                violationDetails: ar
+                  ? `حجز غرفة متعددة الأسرة (${roomCap} سرير) بالكامل لشخص واحد غير مصرح له في السياسة`
+                  : `Entire multi-bed room (${roomCap} beds) reserved by a single occupant not entitled in policy`,
+                severity: ar ? "مرتفعة" : "High",
+                overrideReason: a.notes || (ar ? "لا يوجد تصريح مسجل" : "No override noted"),
+              });
+            }
+          }
+        }
+
+        // 2. Audit Family Visits overstay
+        const maxNights = Number(policySettings?.visitMaxNights) || 7;
+        for (const h of (hostings || [])) {
+          if (h.status === "ACTIVE" || h.status === "APPROVED") {
+            const start = new Date(h.startDate || h.checkInDate || h.createdAt);
+            const end = h.endDate || h.checkOutDate ? new Date(h.endDate || h.checkOutDate) : new Date();
+            const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+            if (days > maxNights) {
+              const hostEmp = empMap[h.profileId];
+              exceptions.push({
+                id: `host_${h.id}`,
+                profileName: h.guestName || (ar ? "ضيف عائلي" : "Family Guest"),
+                profileCode: hostEmp?.profileId || `Host #${h.profileId}`,
+                nationalId: h.nationalId || h.guestId || "—",
+                jobLevel: ar ? "زيارة عائلية" : "Family Visit",
+                department: hostEmp ? getProfileDisplayDepartment(hostEmp, ar) : "—",
+                roomNumber: h.roomNumber || (h.roomId ? roomMap[h.roomId]?.roomNumber : "—") || "—",
+                buildingName: h.roomId && roomMap[h.roomId] ? (buildingMap[roomMap[h.roomId].buildingId] || "—") : "—",
+                roomCapacity: 1,
+                currentOccupancy: 1,
+                violationType: ar ? "تجاوز الحد الأقصى لليالي الزيارة" : "Visit Duration Exceeded",
+                violationDetails: ar
+                  ? `مدة الزيارة (${days} ليالٍ) تجاوزت الحد الأقصى المسموح (${maxNights} ليالٍ)`
+                  : `Visit length (${days} nights) exceeded max allowed (${maxNights} nights)`,
+                severity: ar ? "مرتفعة" : "High",
+                overrideReason: h.notes || (ar ? "طلب استضافة معتمد" : "Approved hosting request"),
+              });
+            }
+          }
+        }
+
+        return applySearchAndDate(exceptions, undefined, (i) => [
+          i.profileName,
+          i.profileCode,
+          i.nationalId,
+          i.department,
+          i.roomNumber,
+          i.buildingName,
+          i.violationType,
+          i.violationDetails,
         ]);
       }
 

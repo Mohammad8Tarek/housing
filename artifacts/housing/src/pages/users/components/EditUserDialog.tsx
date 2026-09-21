@@ -121,6 +121,7 @@ export function EditUserDialog({
   const [formData, setFormData] = useState({
     username: user.username || "",
     email: user.email || "",
+    nationalId: user.nationalId || user.national_id || "",
     phone: user.phone || "",
     status: (String(user.status || "ACTIVE").toUpperCase()) as "ACTIVE" | "INACTIVE" | "LOCKED",
     role: user.roles?.[0] || "manager",
@@ -406,6 +407,7 @@ export function EditUserDialog({
       const patchPayload: any = {
         username: formData.username.trim(),
         email: formData.email.trim() || undefined,
+        nationalId: formData.nationalId.trim() || undefined,
         phone: formData.phone.trim() || undefined,
         status: isLockedState ? "LOCKED" : formData.status,
         roles: resolvedRoles,
@@ -617,6 +619,25 @@ export function EditUserDialog({
                     value={formData.phone}
                     onChange={(e) => setFormData((f) => ({ ...f, phone: e.target.value }))}
                     autoComplete="tel"
+                  />
+                </div>
+              </div>
+
+              {/* National ID */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                  {ar ? "الرقم القومي (14 رقماً)" : "National ID (14 digits)"}
+                </Label>
+                <div className="relative">
+                  <Input
+                    dir="ltr"
+                    type="text"
+                    maxLength={14}
+                    className="font-mono text-sm bg-background border-border/80 focus-visible:ring-[#0F2A44]/30"
+                    placeholder="29010101234567"
+                    value={formData.nationalId}
+                    onChange={(e) => setFormData((f) => ({ ...f, nationalId: e.target.value.replace(/\D/g, "") }))}
                   />
                 </div>
               </div>

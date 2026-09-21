@@ -1,4 +1,4 @@
-import { recommendBestRooms } from "@/lib/room-recommender";
+import { recommendBestRooms, checkPolicyCompliance } from "@/lib/room-recommender";
 import { Sparkles } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import {
   useListFloors,
   useListProperties,
   useListAssignments,
+  useListProfiles,
   useGetSettings,
   getListAssignmentsQueryKey,
   getListRoomsQueryKey,
@@ -165,6 +166,13 @@ export default function RoomAssignment() {
       enabled: !!activePropertyId,
     },
   });
+
+  const { data: allProfilesData } = useListProfiles(
+    { propertyId: effectiveTargetPropId, limit: 1000 },
+    { query: { enabled: !!effectiveTargetPropId } }
+  );
+  const profilesList = (allProfilesData as any)?.profiles || (allProfilesData as any)?.data || [];
+
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
   const targetProp = allProperties.find((p: any) => p.id === effectiveTargetPropId) || activeProp;
 
@@ -172,6 +180,8 @@ export default function RoomAssignment() {
   const [archiveSourceProfile, setArchiveSourceProfile] = useState<boolean>(true);
   const [crossPropertyModalOpen, setCrossPropertyModalOpen] = useState<boolean>(false);
   const [customPhone, setCustomPhone] = useState("");
+  const [policyOverride, setPolicyOverride] = useState<boolean>(false);
+  const [policyOverrideReason, setPolicyOverrideReason] = useState<string>("");
   const isCrossProperty = Boolean(
     selectedProfile &&
     (
@@ -481,12 +491,13 @@ export default function RoomAssignment() {
       },
       rooms,
       assignments: allAssignments,
-      profiles: [],
+      profiles: profilesList,
+      policySettings: settings,
       preferences: {
         isFamily: isFamilyHousing,
       },
     });
-  }, [selectedProfile, rooms, allAssignments, isFamilyHousing]);
+  }, [selectedProfile, rooms, allAssignments, profilesList, settings, isFamilyHousing]);
 
   // Pre-sort filtered rooms so recommended ones appear first
   const sortedFilteredRooms = useMemo(() => {
@@ -501,12 +512,34 @@ export default function RoomAssignment() {
     });
   }, [filteredRooms, recommendation]);
 
+  // Auto-Select best compliant room based on level and department policy
+  useEffect(() => {
+    if (selectedProfile && recommendation?.bestRoom && !selectedRoomId) {
+      setSelectedRoomId(String(recommendation.bestRoom.id));
+      const r = recommendation.bestRoom;
+      const opts = getBedOptions(r.roomType, r.capacity);
+      if (opts.length > 0) {
+        setSelectedBed(opts[0]);
+      }
+    }
+  }, [selectedProfile?.id, recommendation?.bestRoom?.id, selectedRoomId]);
 
   const selectedRoom = rooms.find((r) => r.id === parseInt(selectedRoomId));
   const bedOptions = selectedRoom
     ? getBedOptions(selectedRoom.roomType, selectedRoom.capacity)
     : [];
   const isMultiBed = bedOptions.length > 1;
+
+  const policyCheck = useMemo(() => {
+    if (!selectedProfile || !selectedRoom) return { compliant: true, violations: [] };
+    return checkPolicyCompliance({
+      profile: selectedProfile,
+      room: selectedRoom,
+      assignments: allAssignments,
+      profiles: profilesList,
+      policySettings: settings,
+    });
+  }, [selectedProfile, selectedRoom, allAssignments, profilesList, settings]);
 
   const createMutation = useCreateAssignment({
     mutation: {
@@ -686,6 +719,15 @@ export default function RoomAssignment() {
       return;
     }
 
+    if (!policyCheck.compliant && !policyOverride) {
+      toast.error(
+        ar
+          ? `مخالفة سياسة التسكين: ${policyCheck.violations.map((v) => v.messageAr).join(" | ")}. يرجى تفعيل الاستثناء الإداري للمتابعة.`
+          : `Policy violation: ${policyCheck.violations.map((v) => v.messageEn).join(" | ")}. Please enable policy override.`
+      );
+      return;
+    }
+
     // If cross-property: OPEN THE EXPLICIT CONFIRMATION MODAL TO ASK THE USER DIRECTLY!
     if (isCrossProperty) {
       setCrossPropertyModalOpen(true);
@@ -700,6 +742,10 @@ export default function RoomAssignment() {
     const finalArchive = archiveOverride !== undefined ? archiveOverride : archiveSourceProfile;
     const finalTransferType = finalArchive ? "PERMANENT" : "TASK_FORCE";
 
+    const finalNotes = policyOverride && policyOverrideReason
+      ? `${notes ? notes + " | " : ""}[استثناء سياسة: ${policyOverrideReason}]`
+      : (notes || undefined);
+
     createMutation.mutate({
       data: {
         propertyId: effectiveTargetPropId,
@@ -711,7 +757,7 @@ export default function RoomAssignment() {
           : undefined,
         bedNumber: isEntireRoom ? (selectedBed ? parseInt(selectedBed) : 1) : (selectedBed ? parseInt(selectedBed) : (selectedRoom?.capacity === 1 ? 1 : undefined)),
         isEntireRoom: isEntireRoom,
-        notes: notes || undefined,
+        notes: finalNotes,
         sourcePropertyId: selectedProfile.propertyId,
         transferType: isCrossProperty ? finalTransferType : undefined,
         archiveSourceProfile: isCrossProperty ? finalArchive : undefined,
@@ -1608,6 +1654,46 @@ export default function RoomAssignment() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* تنبيه مخالفة سياسة التسكين */}
+          {selectedProfile && selectedRoom && !policyCheck.compliant && (
+            <div className="p-3.5 rounded-lg border border-amber-300 bg-amber-50/80 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 space-y-2.5">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <p className="font-bold text-sm">
+                    {ar ? "تنبيه: الغرفة المحددة تخالف سياسة التسكين المعتمدة" : "Policy Violation Alert: Selected room violates housing policy"}
+                  </p>
+                  <ul className="list-disc pe-4 ps-4 space-y-0.5">
+                    {policyCheck.violations.map((v, idx) => (
+                      <li key={idx}>{ar ? v.messageAr : v.messageEn}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-amber-200 dark:border-amber-800/60 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={policyOverride}
+                    onChange={(e) => setPolicyOverride(e.target.checked)}
+                    className="rounded text-amber-600 focus:ring-amber-500"
+                  />
+                  <span>
+                    {ar ? "تأكيد التجاوز والاستثناء الإداري من السياسة (Administrative Override)" : "Confirm administrative override of housing policy"}
+                  </span>
+                </label>
+                {policyOverride && (
+                  <Input
+                    placeholder={ar ? "سبب الاستثناء وتصريح الإدارة (إلزامي)..." : "Reason for administrative override (Mandatory)..."}
+                    value={policyOverrideReason}
+                    onChange={(e) => setPolicyOverrideReason(e.target.value)}
+                    className="text-xs bg-white dark:bg-zinc-900 border-amber-300"
+                  />
+                )}
+              </div>
+            </div>
+          )}
 
           {/* معلومات الغرفة المختارة */}
           {selectedRoom &&

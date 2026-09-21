@@ -299,6 +299,12 @@ export default function UsersPage() {
       defaultVisible: true,
     },
     { key: "phone", label: "Phone", labelAr: "الهاتف", defaultVisible: true },
+    {
+      key: "nationalId",
+      label: "National ID",
+      labelAr: "الرقم القومي",
+      defaultVisible: true,
+    },
     { key: "roles", label: "Roles", labelAr: "الأدوار", defaultVisible: false },
     {
       key: "workflowRole",
@@ -393,6 +399,7 @@ export default function UsersPage() {
         : all;
     const rows = target.map((u: any) => ({
       Username: u.username,
+      National_ID: u.nationalId || u.national_id || "",
       Email: u.email || "",
       Phone: u.phone || "",
       Roles: (u.roles || []).join(", "),
@@ -1018,6 +1025,11 @@ export default function UsersPage() {
                     {ar ? "الهاتف" : "Phone"}
                   </TableHead>
                 )}
+                {isUVisible("nationalId") && (
+                  <TableHead className="font-semibold font-mono">
+                    {ar ? "الرقم القومي" : "National ID"}
+                  </TableHead>
+                )}
                 {isUVisible("roles") && (
                   <TableHead className="font-semibold">
                     {ar ? "الدور" : "Role"}
@@ -1150,6 +1162,17 @@ export default function UsersPage() {
                               <span className="italic text-gray-400">—</span>
                             )}
                           </div>
+                        </TableCell>
+                      )}
+                      {isUVisible("nationalId") && (
+                        <TableCell className="max-w-xs">
+                          {(u as any).nationalId || (u as any).national_id ? (
+                            <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-muted border text-foreground">
+                              {(u as any).nationalId || (u as any).national_id}
+                            </span>
+                          ) : (
+                            <span className="italic text-gray-400">—</span>
+                          )}
                         </TableCell>
                       )}
                       {isUVisible("roles") && (

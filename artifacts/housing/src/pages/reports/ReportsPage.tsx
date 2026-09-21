@@ -104,6 +104,7 @@ export default function Reports() {
     floorMap: data.floorMap,
     roomMap: data.roomMap,
     empMap: data.empMap,
+    settings: data.settings,
   });
 
   const allData = processor.currentData();

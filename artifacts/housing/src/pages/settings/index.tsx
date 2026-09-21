@@ -28,6 +28,7 @@ import {
   MessageSquare,
   HardHat,
   Mail,
+  Scale,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { useProperty } from "@/context/PropertyContext";
@@ -36,6 +37,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSettingsForm } from "./hooks/useSettingsForm";
 import { GeneralSettings } from "./components/GeneralSettings";
 import { SecuritySettings } from "./components/SecuritySettings";
+import { PoliciesSection } from "./components/PoliciesSection";
 import { LookupSection } from "./components/LookupSection";
 import { HrSyncSection } from "./components/HrSyncSection";
 import { DoorLocksSection } from "./components/DoorLocksSection";
@@ -88,6 +90,40 @@ export default function Settings() {
         passwordHistoryCount: (settings as any).passwordHistoryCount ?? 5,
         lockoutThreshold: (settings as any).lockoutThreshold ?? 5,
         lockoutDurationMinutes: (settings as any).lockoutDurationMinutes ?? 15,
+        policyLevel1Capacity: (settings as any).policyLevel1Capacity ?? 1,
+        policyLevel2Capacity: (settings as any).policyLevel2Capacity ?? 2,
+        policyLevel3Capacity: (settings as any).policyLevel3Capacity ?? 3,
+        policyLevel4Capacity: (settings as any).policyLevel4Capacity ?? 4,
+        policyLevel1AllowEntire: (settings as any).policyLevel1AllowEntire ?? true,
+        policyLevel2AllowEntire: (settings as any).policyLevel2AllowEntire ?? false,
+        policyDepartmentClustering: (settings as any).policyDepartmentClustering ?? true,
+        policyStrictDepartmentSegregation: (settings as any).policyStrictDepartmentSegregation ?? false,
+        visitMaxNights: (settings as any).visitMaxNights ?? 7,
+        visitMaxVisitsPerYear: (settings as any).visitMaxVisitsPerYear ?? 2,
+        visitMinServiceMonths: (settings as any).visitMinServiceMonths ?? 6,
+        visitCooldownDays: (settings as any).visitCooldownDays ?? 90,
+        visitRequireNationalId: (settings as any).visitRequireNationalId ?? true,
+        curfewEnabled: (settings as any).curfewEnabled ?? false,
+        curfewTime: (settings as any).curfewTime ?? "23:00",
+        housingRulesText: (settings as any).housingRulesText ?? "",
+        familyVisitPolicyText: (settings as any).familyVisitPolicyText ?? "",
+        housingPolicyText: (settings as any).housingPolicyText ?? "",
+        hrContact1Name: (settings as any).hrContact1Name ?? "",
+        hrContact1Title: (settings as any).hrContact1Title ?? "HR Manager",
+        hrContact1Phone: (settings as any).hrContact1Phone ?? "",
+        hrContact1Email: (settings as any).hrContact1Email ?? "",
+        hrContact2Name: (settings as any).hrContact2Name ?? "",
+        hrContact2Title: (settings as any).hrContact2Title ?? "HR Coordinator",
+        hrContact2Phone: (settings as any).hrContact2Phone ?? "",
+        hrContact2Email: (settings as any).hrContact2Email ?? "",
+        housingManager1Name: (settings as any).housingManager1Name ?? "",
+        housingManager1Title: (settings as any).housingManager1Title ?? "Housing Manager",
+        housingManager1Phone: (settings as any).housingManager1Phone ?? "",
+        housingManager1Email: (settings as any).housingManager1Email ?? "",
+        housingManager2Name: (settings as any).housingManager2Name ?? "",
+        housingManager2Title: (settings as any).housingManager2Title ?? "Assistant Housing Manager",
+        housingManager2Phone: (settings as any).housingManager2Phone ?? "",
+        housingManager2Email: (settings as any).housingManager2Email ?? "",
       });
       applyBrandColors(settings.primaryColor, (settings as any).buttonColor);
     }
@@ -130,10 +166,14 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-9 mb-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 md:grid-cols-10 mb-6">
             <TabsTrigger value="general">
               <Image className="w-3.5 h-3.5 mr-1.5" />
               {ar ? "عام" : "General"}
+            </TabsTrigger>
+            <TabsTrigger value="policies">
+              <Scale className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+              {ar ? "السياسات واللوائح" : "Policies"}
             </TabsTrigger>
             <TabsTrigger value="organization">
               <Building2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
@@ -193,6 +233,28 @@ export default function Settings() {
                     {updateMutation.isPending
                       ? (ar ? "جاري الحفظ..." : "Saving...")
                       : (ar ? "حفظ الإعدادات" : "Save Settings")}
+                  </Button>
+                </PermissionGate>
+              </div>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="policies">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <PoliciesSection
+                language={language}
+                isLoading={isLoading}
+                propertyName={
+                  properties?.find((p: any) => p.id === selectedPropertyId)?.displayName ||
+                  properties?.find((p: any) => p.id === selectedPropertyId)?.name
+                }
+              />
+              <div className="flex justify-end">
+                <PermissionGate module="settings" action="edit">
+                  <Button type="submit" disabled={updateMutation.isPending}>
+                    {updateMutation.isPending
+                      ? (ar ? "جاري الحفظ..." : "Saving...")
+                      : (ar ? "حفظ السياسات واللوائح" : "Save Policies & Rules")}
                   </Button>
                 </PermissionGate>
               </div>

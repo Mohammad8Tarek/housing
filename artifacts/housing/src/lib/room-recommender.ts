@@ -13,7 +13,10 @@ export type RecommendationResult = {
   badgeLabelEn: string;
 };
 
-export function getLevelTargetCapacity(levelRaw: string | number | null | undefined): {
+export function getLevelTargetCapacity(
+  levelRaw: string | number | null | undefined,
+  policySettings?: any,
+): {
   minCap: number;
   maxCap: number;
   idealCap: number;
@@ -21,6 +24,11 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
   levelNameEn: string;
 } {
   const lvl = String(levelRaw || "").trim().toLowerCase();
+
+  const l1Cap = Number(policySettings?.policyLevel1Capacity) || 1;
+  const l2Cap = Number(policySettings?.policyLevel2Capacity) || 2;
+  const l3Cap = Number(policySettings?.policyLevel3Capacity) || 3;
+  const l4Cap = Number(policySettings?.policyLevel4Capacity) || 4;
 
   // Level 1: Top Management / Directors / General Managers
   if (
@@ -33,8 +41,8 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
   ) {
     return {
       minCap: 1,
-      maxCap: 1,
-      idealCap: 1,
+      maxCap: l1Cap,
+      idealCap: l1Cap,
       levelNameAr: "إدارة عليا (المستوى 1)",
       levelNameEn: "Top Management (Level 1)",
     };
@@ -51,8 +59,8 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
   ) {
     return {
       minCap: 1,
-      maxCap: 2,
-      idealCap: 2,
+      maxCap: l2Cap,
+      idealCap: l2Cap,
       levelNameAr: "مستوى إشرافي (المستوى 2)",
       levelNameEn: "Supervisory (Level 2)",
     };
@@ -67,9 +75,9 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
     lvl.includes("special")
   ) {
     return {
-      minCap: 2,
-      maxCap: 3,
-      idealCap: 2,
+      minCap: 1,
+      maxCap: l3Cap,
+      idealCap: l3Cap,
       levelNameAr: "مستوى مهني متخصص (المستوى 3)",
       levelNameEn: "Senior Staff (Level 3)",
     };
@@ -77,11 +85,11 @@ export function getLevelTargetCapacity(levelRaw: string | number | null | undefi
 
   // Level 4 / Staff: General Staff / Operations
   return {
-    minCap: 2,
-    maxCap: 4,
-    idealCap: 3,
-    levelNameAr: lvl ? `مستوى ${lvl}` : "طاقم العمل",
-    levelNameEn: lvl ? `Level ${lvl}` : "General Staff",
+    minCap: 1,
+    maxCap: l4Cap,
+    idealCap: l4Cap,
+    levelNameAr: lvl ? `مستوى ${lvl}` : "طاقم العمل (المستوى 4)",
+    levelNameEn: lvl ? `Level ${lvl}` : "General Staff (Level 4)",
   };
 }
 
@@ -91,6 +99,7 @@ export function recommendBestRooms({
   assignments = [],
   profiles = [],
   preferences = {},
+  policySettings = {},
 }: {
   profile: {
     level?: string | number | null;
@@ -105,6 +114,7 @@ export function recommendBestRooms({
   rooms: any[];
   assignments?: any[];
   profiles?: any[];
+  policySettings?: any;
   /** Optional caller-supplied preferences to influence scoring */
   preferences?: {
     preferredView?: string;       // e.g. "Sea view", "Tal View"
@@ -142,7 +152,7 @@ export function recommendBestRooms({
   const profileDept = (profile?.department || "").toLowerCase();
   const profileNat = (profile?.nationality || "").toLowerCase();
 
-  const target = getLevelTargetCapacity(profileLevel);
+  const target = getLevelTargetCapacity(profileLevel, policySettings);
 
   const {
     preferredView = "",
@@ -217,15 +227,29 @@ export function recommendBestRooms({
       score -= 10; // Needs housekeeping
     }
 
-    // 4. Department Harmony Bonus (if room has fellow department colleagues)
+    // 4. Department Harmony & Clustering Policy
+    const clusterEnabled = policySettings?.policyDepartmentClustering ?? true;
+    const strictSegregation = policySettings?.policyStrictDepartmentSegregation ?? false;
+
     if (profileDept && existingOccupants.length > 0) {
       const sameDeptCount = existingOccupants.filter(
         (o) => (o.department || "").toLowerCase() === profileDept
       ).length;
-      if (sameDeptCount > 0) {
-        score += 15;
-        matchReasonAr += ` • زملاء من نفس القسم (${profile?.department})`;
-        matchReasonEn += ` • Roommates from same department (${profile?.department})`;
+      const diffDeptCount = existingOccupants.filter(
+        (o) => (o.department || "").toLowerCase() !== profileDept && (o.department || "").trim() !== ""
+      ).length;
+
+      if (strictSegregation && diffDeptCount > 0) {
+        // Disqualify room if strict segregation is turned on
+        continue;
+      }
+
+      if (clusterEnabled && sameDeptCount > 0) {
+        score += 65; // High priority boost to cluster colleagues together!
+        matchReasonAr += ` • مطابقة القسم (${profile?.department}) مع زملاء الغرفة`;
+        matchReasonEn += ` • Department match (${profile?.department}) with roommates`;
+      } else if (clusterEnabled && diffDeptCount > 0) {
+        score -= 25; // Prefer rooms with same department or empty rooms
       }
     }
 
@@ -416,5 +440,70 @@ export function recommendBestRooms({
     bestRoom: scored[0]?.room || null,
     scoredRooms: scored,
     recommendedMap,
+  };
+}
+
+export function checkPolicyCompliance({
+  profile,
+  room,
+  assignments = [],
+  profiles = [],
+  policySettings = {},
+}: {
+  profile: any;
+  room: any;
+  assignments?: any[];
+  profiles?: any[];
+  policySettings?: any;
+}): {
+  compliant: boolean;
+  violations: { code: string; messageAr: string; messageEn: string }[];
+} {
+  const violations: { code: string; messageAr: string; messageEn: string }[] = [];
+  if (!profile || !room) return { compliant: true, violations };
+
+  const target = getLevelTargetCapacity(profile.level, policySettings);
+  const roomCap = room.capacity || 1;
+
+  // 1. Capacity & Level Check
+  if (roomCap > target.maxCap) {
+    violations.push({
+      code: "CAPACITY_EXCEEDED",
+      messageAr: `سعة الغرفة (${roomCap} أفراد) تتجاوز الحد الأقصى للمستوى ${profile.level || "العادي"} (${target.maxCap} أفراد)`,
+      messageEn: `Room capacity (${roomCap}) exceeds maximum allowed for Level ${profile.level || "Standard"} (${target.maxCap})`,
+    });
+  }
+
+  // 2. Entire room booking validation
+  const allowL1Entire = policySettings?.policyLevel1AllowEntire ?? true;
+  const allowL2Entire = policySettings?.policyLevel2AllowEntire ?? false;
+  const lvl = String(profile.level || "").trim().toLowerCase();
+  const isL1 = lvl === "1" || lvl.includes("إدارة عليا") || lvl.includes("gm") || lvl.includes("director");
+  const isL2 = lvl === "2" || lvl.includes("مشرف") || lvl.includes("supervisor") || lvl.includes("manager");
+
+  // 3. Department Segregation & Roommates
+  const profileDept = (profile.department || "").trim().toLowerCase();
+  const profileMap = new Map<number, any>(profiles.map((p: any) => [p.id, p]));
+  const roomActiveAssignments = (assignments || []).filter(
+    (a: any) => a.roomId === room.id && a.status === "ACTIVE" && a.profileId !== profile.id
+  );
+  const existingRoommates = roomActiveAssignments.map((a: any) => profileMap.get(a.profileId)).filter(Boolean);
+
+  if (profileDept && existingRoommates.length > 0) {
+    const diffDeptOccupants = existingRoommates.filter(
+      (r: any) => (r.department || "").trim().toLowerCase() !== profileDept && (r.department || "").trim() !== ""
+    );
+    if (policySettings?.policyStrictDepartmentSegregation && diffDeptOccupants.length > 0) {
+      violations.push({
+        code: "STRICT_DEPT_VIOLATION",
+        messageAr: `مخالفة سياسة فصل الأقسام: الغرفة تضم زملاء من أقسام أخرى (${diffDeptOccupants.map((o: any) => o.department).join(", ")})`,
+        messageEn: `Department segregation violation: Room contains occupants from other departments (${diffDeptOccupants.map((o: any) => o.department).join(", ")})`,
+      });
+    }
+  }
+
+  return {
+    compliant: violations.length === 0,
+    violations,
   };
 }

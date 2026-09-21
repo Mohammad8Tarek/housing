@@ -61,6 +61,51 @@ export const settingsTable = pgTable("settings", {
   smtpPass: text("smtp_pass"),
   smtpFrom: text("smtp_from"),
 
+  // ─── Housing Allocation Policy ──────────────────────────────────────
+  policyLevel1Capacity: integer("policy_level_1_capacity").notNull().default(1),
+  policyLevel2Capacity: integer("policy_level_2_capacity").notNull().default(2),
+  policyLevel3Capacity: integer("policy_level_3_capacity").notNull().default(3),
+  policyLevel4Capacity: integer("policy_level_4_capacity").notNull().default(4),
+  policyLevel1AllowEntire: boolean("policy_level_1_allow_entire").notNull().default(true),
+  policyLevel2AllowEntire: boolean("policy_level_2_allow_entire").notNull().default(false),
+  policyDepartmentClustering: boolean("policy_department_clustering").notNull().default(true),
+  policyStrictDepartmentSegregation: boolean("policy_strict_department_segregation").notNull().default(false),
+
+  // ─── Family Visit Policy ──────────────────────────────────────────
+  visitMaxNights: integer("visit_max_nights").notNull().default(7),
+  visitMaxVisitsPerYear: integer("visit_max_visits_per_year").notNull().default(2),
+  visitMinServiceMonths: integer("visit_min_service_months").notNull().default(6),
+  visitCooldownDays: integer("visit_cooldown_days").notNull().default(90),
+  visitRequireNationalId: boolean("visit_require_national_id").notNull().default(true),
+
+  // ─── Housing Rules & Documentation ─────────────────────────────────
+  curfewEnabled: boolean("curfew_enabled").notNull().default(false),
+  curfewTime: text("curfew_time").notNull().default("23:00"),
+  housingRulesText: text("housing_rules_text").default(""),
+  familyVisitPolicyText: text("family_visit_policy_text").default(""),
+  housingPolicyText: text("housing_policy_text").default(""),
+
+  // ─── Key Contacts (HR 1 & 2, Housing Manager 1 & 2) ────────────────
+  hrContact1Name: text("hr_contact_1_name").default(""),
+  hrContact1Title: text("hr_contact_1_title").default("HR Manager"),
+  hrContact1Phone: text("hr_contact_1_phone").default(""),
+  hrContact1Email: text("hr_contact_1_email").default(""),
+
+  hrContact2Name: text("hr_contact_2_name").default(""),
+  hrContact2Title: text("hr_contact_2_title").default("HR Coordinator"),
+  hrContact2Phone: text("hr_contact_2_phone").default(""),
+  hrContact2Email: text("hr_contact_2_email").default(""),
+
+  housingManager1Name: text("housing_manager_1_name").default(""),
+  housingManager1Title: text("housing_manager_1_title").default("Housing Manager"),
+  housingManager1Phone: text("housing_manager_1_phone").default(""),
+  housingManager1Email: text("housing_manager_1_email").default(""),
+
+  housingManager2Name: text("housing_manager_2_name").default(""),
+  housingManager2Title: text("housing_manager_2_title").default("Assistant Housing Manager"),
+  housingManager2Phone: text("housing_manager_2_phone").default(""),
+  housingManager2Email: text("housing_manager_2_email").default(""),
+
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

@@ -89,6 +89,7 @@ import {
   User,
   Mail,
   Phone,
+  Fingerprint,
   Search,
   CheckCircle2,
   XCircle,
@@ -197,6 +198,7 @@ export default function UserDetailPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [nationalId, setNationalId] = useState("");
   const [department, setDepartment] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [primaryRole, setPrimaryRole] = useState("user");
@@ -244,6 +246,7 @@ export default function UserDetailPage() {
     setName(user.name || user.username || "");
     setEmail(user.email || "");
     setPhone(user.phone || "");
+    setNationalId((user as any).nationalId || (user as any).national_id || "");
     setDepartment(user.department || "");
     setJobTitle(user.jobTitle || "");
     const r = (user.roles?.[0] || "user").toLowerCase();
@@ -556,6 +559,7 @@ export default function UserDetailPage() {
       name,
       email: email || null,
       phone: phone || null,
+      nationalId: nationalId || null,
       jobTitle: jobTitle || null,
       roles: [primaryRole],
       status: isActive ? "ACTIVE" : "INACTIVE",
@@ -846,6 +850,12 @@ export default function UserDetailPage() {
                       {user.phone}
                     </span>
                   )}
+                  {(user.nationalId || (user as any).national_id) && (
+                    <span className="flex items-center gap-1 text-muted-foreground font-mono">
+                      <Fingerprint className="w-3.5 h-3.5" />
+                      {user.nationalId || (user as any).national_id}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -984,7 +994,7 @@ export default function UserDetailPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">{ar ? "البريد الإلكتروني" : "Email Address"}</Label>
                     <Input
@@ -1001,6 +1011,17 @@ export default function UserDetailPage() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+20 100 000 0000"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">{ar ? "الرقم القومي (14 رقم)" : "National ID (14 digits)"}</Label>
+                    <Input
+                      value={nationalId}
+                      onChange={(e) => setNationalId(e.target.value.replace(/\D/g, "").slice(0, 14))}
+                      placeholder="29901011234567"
+                      maxLength={14}
+                      className="font-mono tracking-wider"
                     />
                   </div>
                 </div>

@@ -90,6 +90,24 @@ export const MAINTENANCE_REPORT_COLUMNS: ReportColumnDef[] = [
   { key: 'status',        header: 'Status',         headerAr: 'الحالة',        type: 'status'     },
 ];
 
+// ── 7. POLICY EXCEPTIONS & AUDIT REPORT (policy_exceptions tab) ──
+export const POLICY_EXCEPTIONS_REPORT_COLUMNS: ReportColumnDef[] = [
+  { key: 'index',            header: '#',               headerAr: '#',                      type: 'index'      },
+  { key: 'profileName',      header: 'Resident Name',   headerAr: 'اسم المقيم',             type: 'text'       },
+  { key: 'profileCode',      header: 'Employee Code',   headerAr: 'كود الموظف',            type: 'id'         },
+  { key: 'nationalId',       header: 'National ID',     headerAr: 'الرقم القومي',           type: 'id'         },
+  { key: 'jobLevel',         header: 'Job Level',       headerAr: 'الدرجة الوظيفية',        type: 'text-short' },
+  { key: 'department',       header: 'Department',      headerAr: 'القسم',                 type: 'text-short' },
+  { key: 'roomNumber',       header: 'Room No',         headerAr: 'رقم الغرفة',            type: 'id'         },
+  { key: 'buildingName',     header: 'Building',        headerAr: 'المبنى',                type: 'text-short' },
+  { key: 'roomCapacity',     header: 'Capacity',        headerAr: 'سعة الغرفة',            type: 'number'     },
+  { key: 'currentOccupancy', header: 'Occupancy',       headerAr: 'الإشغال الحالي',        type: 'number'     },
+  { key: 'violationType',    header: 'Violation Type',  headerAr: 'نوع المخالفة',          type: 'status'     },
+  { key: 'violationDetails', header: 'Policy Details',  headerAr: 'تفاصيل المخالفة والسياسة', type: 'text'     },
+  { key: 'severity',         header: 'Severity',        headerAr: 'مستوى الأهمية',         type: 'status'     },
+  { key: 'overrideReason',   header: 'Override Reason', headerAr: 'سبب الاستثناء الإداري',  type: 'text'       },
+];
+
 // ════════════════════════════════════════════════════════════
 // Tab → Column Definition lookup (used by ReportsPage)
 // ════════════════════════════════════════════════════════════
@@ -126,5 +144,10 @@ export const SMART_REPORT_TABS: Partial<Record<Tab, {
     columns: MAINTENANCE_REPORT_COLUMNS,
     title: 'Maintenance Report',
     titleAr: 'تقرير الصيانة',
+  },
+  policy_exceptions: {
+    columns: POLICY_EXCEPTIONS_REPORT_COLUMNS,
+    title: 'Policy Exceptions & Audit Report',
+    titleAr: 'تقرير مخالفات واستثناءات سياسات السكن',
   },
 };

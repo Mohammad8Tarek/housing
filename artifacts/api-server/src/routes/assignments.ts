@@ -939,6 +939,12 @@ router.post(
       return;
     }
 
+    const rawReason = String((req.body as any)?.checkOutReason || (req.body as any)?.reason || "").trim();
+    if (!rawReason) {
+      res.status(400).json({ error: "سبب تسجيل الخروج والمغادرة إلزامي (Check-out reason is mandatory)" });
+      return;
+    }
+
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [assignment] = await tenantDb
         .select()
@@ -950,7 +956,11 @@ router.post(
 
       const [updated] = await tenantDb
         .update(assignmentsTable)
-        .set({ status: "CHECKED_OUT", checkOutDate: parsed.data.checkOutDate })
+        .set({
+          status: "CHECKED_OUT",
+          checkOutDate: parsed.data.checkOutDate,
+          checkOutReason: rawReason,
+        })
         .where(eq(assignmentsTable.id, params.data.id))
         .returning();
 
@@ -1028,7 +1038,7 @@ router.post(
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `تسجيل مغادرة من الغرفة رقم ${roomNum} - الموظف #${result.assignment!.profileId}`,
+      action: `تسجيل مغادرة من الغرفة رقم ${roomNum} - الموظف #${result.assignment!.profileId} (السبب: ${rawReason})`,
       actionType: "CHECKOUT",
       module: "accommodation",
       entityType: "assignment",
@@ -1038,6 +1048,7 @@ router.post(
         roomId: result.room?.id,
         profileId: result.assignment!.profileId,
         checkoutDate: new Date().toISOString(),
+        checkoutReason: rawReason,
         performedBy: s.username,
         performedByRole: s.userRole,
       },
