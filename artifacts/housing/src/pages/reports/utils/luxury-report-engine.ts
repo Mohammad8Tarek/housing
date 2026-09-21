@@ -95,6 +95,7 @@ export const REPORT_TAB_CONFIG: Record<
   service_ratings: { showKpis: true, showSignatures: true },
   housing_map: { showKpis: false, showSignatures: false },
   water_distribution: { showKpis: false, showSignatures: true },
+  policy_exceptions: { showKpis: true, showSignatures: true },
 };
 
 // ----------------------------------------------------------------------------
@@ -125,6 +126,7 @@ export const REPORT_OPERA_CODES: Record<string, string> = {
   service_ratings: "service_ratings",
   housing_map: "housing_map",
   water_distribution: "water_dist",
+  policy_exceptions: "policy_audit",
 };
 
 // ----------------------------------------------------------------------------
@@ -226,6 +228,10 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
   water_distribution: {
     ar: "كشف صرف وتوزيع مياه الشرب الشهري",
     en: "Monthly Drinking Water Distribution Sheet",
+  },
+  policy_exceptions: {
+    ar: "تقرير مخالفات واستثناءات سياسات السكن",
+    en: "Housing Policy Exceptions & Audit Report",
   },
 };
 
@@ -726,6 +732,11 @@ export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
     return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #059669; border-radius:2px; vertical-align:middle; background:#ecfdf5; color:#059669; text-align:center; font-size:10px; line-height:12px; font-weight:bold;">✓</span>`;
   }
 
+  // Star rating badge styling
+  if (str.includes("★")) {
+    return `<span style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#fffbeb; border:1px solid #fde68a; color:#d97706; white-space:nowrap;">${str}</span>`;
+  }
+
   // Universal Arabic translation fallback for unlocalized cells
   if (isArabic && !/[\u0600-\u06FF]/.test(str)) {
     const upper = str.toUpperCase();
@@ -806,6 +817,7 @@ export function generateAutoKpis(
 ): ReportKpiCard[] {
   if (!rows || rows.length === 0) return [];
 
+  const ar = isArabic;
   const total = rows.length;
 
   if (activeTab === "manager_flash") {
@@ -1142,6 +1154,49 @@ export function generateAutoKpis(
         labelAr: "مستوى الجودة",
         value: satPercent >= 85 ? (isArabic ? "ممتاز" : "Excellent") : (isArabic ? "جيد" : "Good"),
         color: "green",
+      },
+    ];
+  }
+
+  if (activeTab === "policy_exceptions") {
+    let criticalCount = 0;
+    let deptMixingCount = 0;
+    let documentedOverrideCount = 0;
+
+    rows.forEach((r) => {
+      const sev = String(r["مستوى الأهمية"] ?? r["Severity"] ?? "").toLowerCase();
+      const viol = String(r["نوع المخالفة"] ?? r["Violation Type"] ?? "").toLowerCase();
+      const over = String(r["سبب الاستثناء الإداري"] ?? r["Override Reason"] ?? "").toLowerCase();
+
+      if (sev.includes("حرج") || sev.includes("critical")) criticalCount++;
+      if (viol.includes("أقسام") || viol.includes("department") || viol.includes("خلط")) deptMixingCount++;
+      if (over && !over.includes("لا يوجد") && !over.includes("no override") && over !== "—") documentedOverrideCount++;
+    });
+
+    return [
+      {
+        label: "Total Exceptions",
+        labelAr: "إجمالي المخالفات والاستثناءات",
+        value: total,
+        color: "gold",
+      },
+      {
+        label: "Critical Violations",
+        labelAr: "مخالفات حرجة",
+        value: criticalCount,
+        color: criticalCount > 0 ? "red" : "green",
+      },
+      {
+        label: "Dept Mixing",
+        labelAr: "خلط أقسام بالغرف",
+        value: deptMixingCount,
+        color: deptMixingCount > 0 ? "orange" : "green",
+      },
+      {
+        label: "Approved Overrides",
+        labelAr: "استثناءات بتصريح معتمد",
+        value: documentedOverrideCount,
+        color: "blue",
       },
     ];
   }

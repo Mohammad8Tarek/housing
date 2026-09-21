@@ -428,6 +428,23 @@ export function useReportExport({
           [ar ? "توقيع المستلم" : "Signature"]: "",
         }));
 
+      case "policy_exceptions":
+        return data.map((ex: any) => ({
+          [ar ? "اسم المقيم" : "Resident Name"]: ex.profileName,
+          [ar ? "كود الموظف" : "Employee Code"]: ex.profileCode,
+          [ar ? "الرقم القومي" : "National ID"]: ex.nationalId,
+          [ar ? "الدرجة الوظيفية" : "Job Level"]: ex.jobLevel,
+          [ar ? "القسم" : "Department"]: ex.department,
+          [ar ? "رقم الغرفة" : "Room No"]: ex.roomNumber,
+          [ar ? "المبنى" : "Building"]: ex.buildingName,
+          [ar ? "سعة الغرفة" : "Capacity"]: ex.roomCapacity,
+          [ar ? "الإشغال الحالي" : "Occupancy"]: ex.currentOccupancy,
+          [ar ? "نوع المخالفة" : "Violation Type"]: ex.violationType,
+          [ar ? "تفاصيل المخالفة والسياسة" : "Policy Details"]: ex.violationDetails,
+          [ar ? "مستوى الأهمية" : "Severity"]: ex.severity,
+          [ar ? "سبب الاستثناء الإداري" : "Override Reason"]: ex.overrideReason,
+        }));
+
       default:
         if (ar && Array.isArray(data)) {
           return data.map((item: any) => {

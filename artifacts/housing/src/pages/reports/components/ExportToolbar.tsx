@@ -161,52 +161,7 @@ export function ExportToolbar({
     );
   }
 
-  // ── Smart Report Export buttons (jsPDF + AutoTable) ──
-  if (hasSmartReport && handleSmartExportPdf && handleSmartExportCsv && handleSmartExportXlsx) {
-    return (
-      <div className="flex items-center gap-2">
-        {columnChooserElement}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSmartExportXlsx}
-          disabled={isSmartExportingXlsx}
-          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          {isSmartExportingXlsx
-            ? (ar ? "جاري التصدير..." : "Exporting...")
-            : "Excel"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSmartExportCsv}
-          disabled={isSmartExportingCsv}
-          className="gap-2 text-slate-700 border-slate-200 hover:bg-slate-50 text-xs"
-        >
-          <Download className="w-4 h-4" />
-          {isSmartExportingCsv
-            ? (ar ? "جاري التصدير..." : "Exporting...")
-            : "CSV"}
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleSmartExportPdf}
-          disabled={isSmartExportingPdf}
-          className="gap-2 bg-sky-600 hover:bg-sky-700 text-white text-xs shadow-xs"
-        >
-          <FileText className="w-4 h-4" />
-          {isSmartExportingPdf
-            ? (ar ? "جاري التوليد..." : "Generating...")
-            : (ar ? "تقرير PDF ذكي" : "Smart PDF")}
-        </Button>
-      </div>
-    );
-  }
-
-  // ── Legacy fallback: Excel + PDF ──
+  // ── Unified Luxury Report Toolbar for all tabs ──
   return (
     <div className="flex items-center gap-2">
       {columnChooserElement}
@@ -214,19 +169,33 @@ export function ExportToolbar({
         variant="outline"
         size="sm"
         onClick={handleExportExcel}
-        className="gap-2 text-green-700 border-green-200 hover:bg-green-50"
+        className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs font-semibold"
       >
         <FileSpreadsheet className="w-4 h-4" />
-        Excel
+        {ar ? "تصدير Excel" : "Excel"}
       </Button>
+      {hasSmartReport && handleSmartExportCsv && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSmartExportCsv}
+          disabled={isSmartExportingCsv}
+          className="gap-2 text-slate-700 border-slate-200 hover:bg-slate-50 text-xs font-semibold"
+        >
+          <Download className="w-4 h-4" />
+          {isSmartExportingCsv
+            ? (ar ? "جاري التصدير..." : "Exporting...")
+            : "CSV"}
+        </Button>
+      )}
       <Button
-        variant="outline"
+        variant="default"
         size="sm"
         onClick={handleExportPDF}
-        className="gap-2 text-red-700 border-red-200 hover:bg-red-50"
+        className="gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs shadow-xs font-semibold"
       >
         <FileText className="w-4 h-4" />
-        PDF
+        {ar ? "طباعة تقرير PDF" : "Print PDF"}
       </Button>
     </div>
   );
