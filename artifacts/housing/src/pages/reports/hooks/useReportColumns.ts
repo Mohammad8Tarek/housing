@@ -303,6 +303,20 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
     { key: "severity", label: "Severity", labelAr: "مستوى الأهمية" },
     { key: "overrideReason", label: "Override Reason", labelAr: "سبب الاستثناء الإداري" },
   ],
+  vacations: [
+    { key: "profileCode", label: "Employee Code", labelAr: "كود الموظف", fixed: true },
+    { key: "fullName", label: "Employee Name", labelAr: "الاسم بالكامل", fixed: true },
+    { key: "department", label: "Department", labelAr: "القسم" },
+    { key: "jobTitle", label: "Job Title", labelAr: "الوظيفة" },
+    { key: "housingInfo", label: "Room & Bed", labelAr: "الغرفة والسرير" },
+    { key: "buildingName", label: "Building", labelAr: "المبنى" },
+    { key: "startDate", label: "Vacation Start", labelAr: "بداية الإجازة", fixed: true },
+    { key: "endDate", label: "Expected Return", labelAr: "العودة المتوقعة" },
+    { key: "actualReturnDate", label: "Actual Return", labelAr: "العودة الفعلية" },
+    { key: "duration", label: "Duration (Days)", labelAr: "المدة (أيام)" },
+    { key: "status", label: "Status", labelAr: "حالة الإجازة", fixed: true },
+    { key: "notes", label: "Notes", labelAr: "ملاحظات" },
+  ],
 };
 
 export function useReportColumns(activeTab: string, ar: boolean) {

@@ -114,6 +114,21 @@ export function useReportData(
   });
   const gateLogs: any[] = _gateData || [];
 
+  const { data: _vacData, isLoading: vacLoad } = useQuery({
+    queryKey: ["report-vacations", propId],
+    queryFn: async () => {
+      if (!propId) return [];
+      const res = await fetch(`/api/reports/vacations?propertyId=${propId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: !!propId,
+  });
+  const vacations: any[] = _vacData || [];
+
   const [evalStats, setEvalStats] = useState({
     total: 0,
     average: 0,
@@ -136,7 +151,7 @@ export function useReportData(
   }, [propId]);
 
   const isLoading =
-    roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad || invLoad || gateLoad;
+    roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad || invLoad || gateLoad || vacLoad;
 
   const buildingMap = useMemo(() => {
     const m: Record<number, string> = {};
@@ -223,6 +238,7 @@ export function useReportData(
     hostings,
     equipmentInventory,
     gateLogs,
+    vacations,
     evalStats,
     isLoading,
     buildingMap,

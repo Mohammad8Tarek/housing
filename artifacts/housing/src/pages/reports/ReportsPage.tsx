@@ -15,7 +15,7 @@ import { useReportColumns } from "./hooks/useReportColumns";
 import { useSmartReportExport } from "@/hooks/useSmartReportExport";
 import { SMART_REPORT_TABS } from "@/config/reportDefinitions";
 
-import { ClipboardCheck, AlertOctagon } from "lucide-react";
+import { ClipboardCheck, AlertOctagon, Palmtree } from "lucide-react";
 import { ExportToolbar } from "./components/ExportToolbar";
 import { StatsCards } from "./components/StatsCards";
 import { TabsNav } from "./components/TabsNav";
@@ -101,6 +101,7 @@ export default function Reports() {
     hostings: data.hostings,
     equipmentInventory: data.equipmentInventory,
     gateLogs: data.gateLogs,
+    vacations: data.vacations,
     buildingMap: data.buildingMap,
     floorMap: data.floorMap,
     roomMap: data.roomMap,
@@ -423,6 +424,40 @@ export default function Reports() {
               <div className="flex items-center gap-2 shrink-0">
                 <span className="px-2.5 py-1 rounded-md bg-rose-600 text-white font-bold text-xs">
                   {ar ? "فحص فوري للمشرف" : "Immediate Inspection Required"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {filters.activeTab === "vacations" && (
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-emerald-900 dark:text-emerald-200">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 shrink-0">
+                  <Palmtree className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm">
+                    {ar ? "سجل وأرشيف إجازات الموظفين (استعلام زمني بالتاريخ)" : "Staff Vacations & Leaves Historical Archive"}
+                  </h4>
+                  <p className="text-muted-foreground mt-0.5">
+                    {ar
+                      ? "يتيح لك تحديد أي فترة زمنية سابقة (من تاريخ / إلى تاريخ) للاستعلام الدقيق عن كل من نزل إجازة في تلك الفترة وحالته وتاريخ عودته الفعلي وسكنه."
+                      : "Filter by any historical date range (From / To) to audit who was on leave, their expected vs actual return dates, housing assignments, and overdue status."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap shrink-0 text-xs font-semibold">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                  <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+                  {ar ? "في إجازة حالياً" : "On Vacation"}
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                  {ar ? "عاد للعمل" : "Returned"}
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800">
+                  <span className="w-2 h-2 rounded-full bg-rose-600" />
+                  {ar ? "متأخر عن العودة" : "Overdue"}
                 </span>
               </div>
             </div>

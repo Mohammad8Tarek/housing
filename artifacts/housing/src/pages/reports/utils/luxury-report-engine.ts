@@ -95,6 +95,7 @@ export const REPORT_TAB_CONFIG: Record<
   service_ratings: { showKpis: true, showSignatures: true },
   housing_map: { showKpis: false, showSignatures: false },
   water_distribution: { showKpis: false, showSignatures: true },
+  vacations: { showKpis: true, showSignatures: true },
   policy_exceptions: { showKpis: true, showSignatures: true },
 };
 
@@ -126,6 +127,7 @@ export const REPORT_OPERA_CODES: Record<string, string> = {
   service_ratings: "service_ratings",
   housing_map: "housing_map",
   water_distribution: "water_dist",
+  vacations: "vacation_ledger",
   policy_exceptions: "policy_audit",
 };
 
@@ -228,6 +230,10 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
   water_distribution: {
     ar: "كشف صرف وتوزيع مياه الشرب الشهري",
     en: "Monthly Drinking Water Distribution Sheet",
+  },
+  vacations: {
+    ar: "تقرير وسجل وأرشيف إجازات العاملين",
+    en: "Staff Vacations & Historical Leaves Ledger",
   },
   policy_exceptions: {
     ar: "تقرير مخالفات واستثناءات سياسات السكن",
@@ -1197,6 +1203,46 @@ export function generateAutoKpis(
         labelAr: "استثناءات بتصريح معتمد",
         value: documentedOverrideCount,
         color: "blue",
+      },
+    ];
+  }
+
+  if (activeTab === "vacations") {
+    let onVacation = 0;
+    let returned = 0;
+    let overdue = 0;
+
+    rows.forEach((r) => {
+      const st = String(r["حالة الإجازة"] ?? r["Status"] ?? r["الحالة"] ?? "").toLowerCase();
+      if (st.includes("متأخر") || st.includes("overdue")) overdue++;
+      else if (st.includes("عاد") || st.includes("returned") || st.includes("مكتمل")) returned++;
+      else if (st.includes("إجازة") || st.includes("vacation") || st.includes("نشط") || st.includes("active")) onVacation++;
+    });
+
+    return [
+      {
+        label: "Total Vacation Records",
+        labelAr: "إجمالي سجلات الإجازات",
+        value: total,
+        color: "gold",
+      },
+      {
+        label: "Currently on Vacation",
+        labelAr: "في إجازة حالياً",
+        value: onVacation,
+        color: "blue",
+      },
+      {
+        label: "Returned to Work",
+        labelAr: "عادوا للعمل",
+        value: returned,
+        color: "green",
+      },
+      {
+        label: "Overdue Return",
+        labelAr: "متأخرون عن العودة",
+        value: overdue,
+        color: overdue > 0 ? "red" : "green",
       },
     ];
   }

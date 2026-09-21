@@ -8,6 +8,8 @@ import {
   reservationsTable,
   hostingsTable,
   workersTable,
+  profileVacationsTable,
+  buildingsTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, desc, sql, count } from "drizzle-orm";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
@@ -169,6 +171,165 @@ router.get("/service-ratings", requirePermission("reports", "view"), async (req,
     );
 
     res.json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// @ts-ignore
+router.get("/vacations", requirePermission("reports", "view"), async (req, res, next) => {
+  try {
+    const propertyId = getTenantId(req);
+    if (!propertyId)
+      return res.status(400).json({ success: false, message: "propertyId required" });
+
+    const search = ((req.query.search as string) || "").trim().toLowerCase();
+    const status = (req.query.status as string) || "ALL";
+    const department = (req.query.department as string) || "";
+    const buildingId = req.query.buildingId ? Number(req.query.buildingId) : undefined;
+    const dateFrom = (req.query.dateFrom as string) || "";
+    const dateTo = (req.query.dateTo as string) || "";
+
+    const result = await withTableFallback(
+      async () =>
+        withTenant(propertyId, async (tenantDb) => {
+          const vacationRows = await tenantDb
+            .select({
+              id: profileVacationsTable.id,
+              profileId: profileVacationsTable.profileId,
+              startDate: profileVacationsTable.startDate,
+              endDate: profileVacationsTable.endDate,
+              actualReturnDate: profileVacationsTable.actualReturnDate,
+              notes: profileVacationsTable.notes,
+              status: profileVacationsTable.status,
+              createdAt: profileVacationsTable.createdAt,
+              employeeId: profilesTable.employeeId,
+              name: profilesTable.name,
+              department: profilesTable.department,
+              jobTitle: profilesTable.jobTitle,
+              phone: profilesTable.phone,
+              nationalId: profilesTable.nationalId,
+              profileStatus: profilesTable.status,
+            })
+            .from(profileVacationsTable)
+            .innerJoin(profilesTable, eq(profileVacationsTable.profileId, profilesTable.id))
+            .orderBy(desc(profileVacationsTable.startDate), desc(profileVacationsTable.id));
+
+          const assignments = await tenantDb
+            .select({
+              profileId: assignmentsTable.profileId,
+              roomId: assignmentsTable.roomId,
+              bedNumber: assignmentsTable.bedNumber,
+              isEntireRoom: assignmentsTable.isEntireRoom,
+              status: assignmentsTable.status,
+              roomNumber: roomsTable.roomNumber,
+              buildingId: roomsTable.buildingId,
+              buildingName: buildingsTable.name,
+            })
+            .from(assignmentsTable)
+            .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+            .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id));
+
+          const profileAssignmentMap = new Map<number, any>();
+          for (const a of assignments) {
+            if (a.profileId == null) continue;
+            const existing = profileAssignmentMap.get(a.profileId);
+            if (!existing || (a.status === "ACTIVE" && existing.status !== "ACTIVE")) {
+              profileAssignmentMap.set(a.profileId, a);
+            }
+          }
+
+          const todayStr = new Date().toISOString().slice(0, 10);
+
+          const data = vacationRows
+            .map((v) => {
+              const ass = profileAssignmentMap.get(v.profileId);
+
+              let computedStatus = "ACTIVE";
+              if (v.actualReturnDate) {
+                computedStatus = "COMPLETED";
+              } else if (v.endDate && v.endDate < todayStr) {
+                computedStatus = "OVERDUE";
+              }
+
+              const start = new Date(v.startDate);
+              const end = new Date(v.actualReturnDate || v.endDate);
+              let duration = 0;
+              if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                duration = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+              }
+
+              return {
+                id: v.id,
+                profileId: v.profileId,
+                profileCode: v.employeeId || `EMP-${v.profileId}`,
+                fullName: v.name || "—",
+                department: v.department || "—",
+                jobTitle: v.jobTitle || "—",
+                phone: v.phone || "",
+                nationalId: v.nationalId || "",
+                startDate: v.startDate,
+                endDate: v.endDate,
+                actualReturnDate: v.actualReturnDate || null,
+                duration,
+                statusKey: computedStatus,
+                rawStatus: v.status,
+                notes: v.notes || "",
+                createdAt: v.createdAt,
+                roomId: ass?.roomId || null,
+                roomNumber: ass?.roomNumber || "—",
+                bedNumber: ass?.bedNumber || "—",
+                isEntireRoom: ass?.isEntireRoom || false,
+                buildingId: ass?.buildingId || null,
+                buildingName: ass?.buildingName || "—",
+              };
+            })
+            .filter((item) => {
+              if (status && status !== "ALL") {
+                if (item.statusKey !== status) return false;
+              }
+
+              if (department && department !== "all" && item.department !== department) {
+                return false;
+              }
+
+              if (buildingId && item.buildingId !== buildingId) {
+                return false;
+              }
+
+              // Historical Date Query: [dateFrom, dateTo]
+              const vStart = item.startDate;
+              const vEnd = item.actualReturnDate || item.endDate || "9999-12-31";
+
+              if (dateFrom && vEnd < dateFrom) {
+                return false;
+              }
+              if (dateTo && vStart > dateTo) {
+                return false;
+              }
+
+              if (search) {
+                const q = search.toLowerCase();
+                const match =
+                  item.fullName.toLowerCase().includes(q) ||
+                  item.profileCode.toLowerCase().includes(q) ||
+                  item.department.toLowerCase().includes(q) ||
+                  item.jobTitle.toLowerCase().includes(q) ||
+                  String(item.roomNumber).toLowerCase().includes(q) ||
+                  String(item.buildingName).toLowerCase().includes(q) ||
+                  item.notes.toLowerCase().includes(q);
+                if (!match) return false;
+              }
+
+              return true;
+            });
+
+          return data;
+        }),
+      []
+    );
+
+    res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }

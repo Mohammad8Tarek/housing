@@ -500,6 +500,24 @@ export function ReportTable({
                 )}
               </>
             )}
+
+            {/* VACATIONS & HISTORICAL LEAVES HEADERS */}
+            {activeTab === "vacations" && (
+              <>
+                {isVis("profileCode") && H("profileCode", ar ? "كود الموظف" : "Code")}
+                {isVis("fullName") && H("fullName", ar ? "الاسم بالكامل" : "Employee Name")}
+                {isVis("department") && H("department", ar ? "القسم" : "Department")}
+                {isVis("jobTitle") && H("jobTitle", ar ? "الوظيفة" : "Job Title")}
+                {isVis("housingInfo") && H("housingInfo", ar ? "الغرفة والسرير" : "Room & Bed")}
+                {isVis("buildingName") && H("buildingName", ar ? "المبنى" : "Building")}
+                {isVis("startDate") && H("startDate", ar ? "بداية الإجازة" : "Start Date")}
+                {isVis("endDate") && H("endDate", ar ? "العودة المتوقعة" : "Expected Return")}
+                {isVis("actualReturnDate") && H("actualReturnDate", ar ? "العودة الفعلية" : "Actual Return")}
+                {isVis("duration") && H("duration", ar ? "المدة (أيام)" : "Duration", "text-center")}
+                {isVis("status") && H("status", ar ? "حالة الإجازة" : "Status", "text-center")}
+                {isVis("notes") && H("notes", ar ? "ملاحظات" : "Notes")}
+              </>
+            )}
           </TableRow>
         </TableHeader>
 
@@ -1779,6 +1797,94 @@ export function ReportTable({
                     {isVis("signature") && (
                       <TableCell className="text-center text-xs text-muted-foreground/40 font-mono">
                         ....................
+                      </TableCell>
+                    )}
+                  </>
+                )}
+
+                {/* VACATIONS & HISTORICAL LEAVES ROW */}
+                {activeTab === "vacations" && (
+                  <>
+                    {isVis("profileCode") && (
+                      <TableCell className="font-mono text-xs font-semibold text-primary">
+                        {row.profileCode || "—"}
+                      </TableCell>
+                    )}
+                    {isVis("fullName") && (
+                      <TableCell className="font-semibold text-foreground">
+                        <div>{row.fullName}</div>
+                        {row.phone && <div className="text-[11px] text-muted-foreground">{row.phone}</div>}
+                      </TableCell>
+                    )}
+                    {isVis("department") && (
+                      <TableCell className="text-xs text-muted-foreground font-medium">
+                        {row.department || "—"}
+                      </TableCell>
+                    )}
+                    {isVis("jobTitle") && (
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.jobTitle || "—"}
+                      </TableCell>
+                    )}
+                    {isVis("housingInfo") && (
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Bed className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <span className="font-semibold">{row.roomNumber || "—"}</span>
+                          {row.bedNumber && row.bedNumber !== "—" && (
+                            <span className="text-muted-foreground text-[11px]">({ar ? `سرير ${row.bedNumber}` : `Bed ${row.bedNumber}`})</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isVis("buildingName") && (
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.buildingName || "—"}
+                      </TableCell>
+                    )}
+                    {isVis("startDate") && (
+                      <TableCell className="text-xs font-mono font-medium">
+                        {row.startDate || "—"}
+                      </TableCell>
+                    )}
+                    {isVis("endDate") && (
+                      <TableCell className="text-xs font-mono">
+                        {row.endDate || "—"}
+                      </TableCell>
+                    )}
+                    {isVis("actualReturnDate") && (
+                      <TableCell className="text-xs font-mono font-medium">
+                        {row.actualReturnDate && row.actualReturnDate !== "—" ? (
+                          <span className="text-emerald-600 font-semibold">{row.actualReturnDate}</span>
+                        ) : (
+                          <span className="text-muted-foreground/60">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("duration") && (
+                      <TableCell className="text-center text-xs font-mono font-semibold">
+                        {row.duration ? `${row.duration} ${ar ? "يوم" : "d"}` : "—"}
+                      </TableCell>
+                    )}
+                    {isVis("status") && (
+                      <TableCell className="text-center">
+                        <Badge
+                          variant="outline"
+                          className={
+                            row.statusKey === "COMPLETED"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              : row.statusKey === "OVERDUE"
+                              ? "bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold animate-pulse dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                              : "bg-amber-50 text-amber-700 border-amber-200 text-xs font-semibold dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                          }
+                        >
+                          {row.status}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {isVis("notes") && (
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                        {row.notes || "—"}
                       </TableCell>
                     )}
                   </>

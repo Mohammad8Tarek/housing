@@ -134,6 +134,7 @@ export function useReportDataProcessor({
   hostings,
   equipmentInventory = [],
   gateLogs = [],
+  vacations = [],
   buildingMap,
   floorMap,
   roomMap,
@@ -2115,6 +2116,79 @@ export function useReportDataProcessor({
           i.buildingName,
           i.violationType,
           i.violationDetails,
+        ]);
+      }
+
+      case "vacations": {
+        const list = (vacations || [])
+          .filter((v: any) => {
+            if (filterBuilding !== "all" && filterBuilding) {
+              if (v.buildingId !== Number(filterBuilding)) return false;
+            }
+            if (filterDepartment !== "all" && filterDepartment) {
+              if (v.department !== filterDepartment) return false;
+            }
+            if (filterStatus !== "all" && filterStatus) {
+              if (v.statusKey !== filterStatus.toUpperCase()) return false;
+            }
+
+            // Historical Date Overlap Query: [dateFrom, dateTo]
+            const vStart = v.startDate;
+            const vEnd = v.actualReturnDate || v.endDate || "9999-12-31";
+
+            if (dateFrom && vEnd < dateFrom) return false;
+            if (dateTo && vStart > dateTo) return false;
+
+            return true;
+          })
+          .map((v: any) => {
+            let statusBadge = ar ? "في إجازة حالياً" : "On Vacation";
+            if (v.statusKey === "COMPLETED") {
+              statusBadge = ar ? "عاد للعمل" : "Returned";
+            } else if (v.statusKey === "OVERDUE") {
+              statusBadge = ar ? "متأخر عن العودة" : "Overdue";
+            }
+
+            const housingDisplay = v.roomNumber && v.roomNumber !== "—"
+              ? `${v.roomNumber}${v.bedNumber && v.bedNumber !== "—" ? ` (${ar ? `سرير ${v.bedNumber}` : `Bed ${v.bedNumber}`})` : ""}`
+              : "—";
+
+            return {
+              id: v.id,
+              profileId: v.profileId,
+              profileCode: v.profileCode,
+              fullName: v.fullName,
+              department: v.department,
+              jobTitle: v.jobTitle,
+              phone: v.phone,
+              nationalId: v.nationalId,
+              roomNumber: v.roomNumber,
+              bedNumber: v.bedNumber,
+              housingInfo: housingDisplay,
+              buildingName: v.buildingName,
+              buildingId: v.buildingId,
+              startDate: v.startDate,
+              endDate: v.endDate,
+              actualReturnDate: v.actualReturnDate || "—",
+              duration: v.duration,
+              status: statusBadge,
+              statusKey: v.statusKey,
+              notes: v.notes || "—",
+            };
+          });
+
+        return applySearchAndDate(list, undefined, (v) => [
+          v.profileCode,
+          v.fullName,
+          v.department,
+          v.jobTitle,
+          v.roomNumber,
+          v.buildingName,
+          v.startDate,
+          v.endDate,
+          v.actualReturnDate,
+          v.status,
+          v.notes,
         ]);
       }
 

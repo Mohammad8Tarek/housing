@@ -23,6 +23,7 @@ import {
   Star,
   Droplets,
   Scale,
+  Palmtree,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
@@ -158,6 +159,12 @@ export const TABS: TabConfig[] = [
     label: "Water Distribution Sheet",
     labelAr: "كشف صرف مياه الشرب الشهري",
     icon: <Droplets className="w-4 h-4 text-cyan-500" />,
+  },
+  {
+    id: "vacations",
+    label: "Staff Vacations & Historical Archive",
+    labelAr: "سجل وأرشيف إجازات الموظفين",
+    icon: <Palmtree className="w-4 h-4 text-emerald-600" />,
   },
   {
     id: "policy_exceptions",

@@ -25,6 +25,7 @@ export type Tab =
   | "housing_map"
   | "water_distribution"
   | "police_report"
+  | "vacations"
   | "policy_exceptions";
 
 export interface TabConfig {

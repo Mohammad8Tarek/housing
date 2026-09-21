@@ -445,6 +445,22 @@ export function useReportExport({
           [ar ? "سبب الاستثناء الإداري" : "Override Reason"]: ex.overrideReason,
         }));
 
+      case "vacations":
+        return data.map((v: any) => ({
+          [ar ? "كود الموظف" : "Employee Code"]: v.profileCode,
+          [ar ? "الاسم بالكامل" : "Employee Name"]: v.fullName,
+          [ar ? "القسم" : "Department"]: v.department,
+          [ar ? "الوظيفة" : "Job Title"]: v.jobTitle,
+          [ar ? "الغرفة والسرير" : "Room & Bed"]: v.housingInfo,
+          [ar ? "المبنى" : "Building"]: v.buildingName,
+          [ar ? "بداية الإجازة" : "Vacation Start"]: v.startDate,
+          [ar ? "العودة المتوقعة" : "Expected Return"]: v.endDate,
+          [ar ? "العودة الفعلية" : "Actual Return"]: v.actualReturnDate,
+          [ar ? "المدة (أيام)" : "Duration (Days)"]: v.duration,
+          [ar ? "حالة الإجازة" : "Status"]: v.status,
+          [ar ? "ملاحظات" : "Notes"]: v.notes,
+        }));
+
       default:
         if (ar && Array.isArray(data)) {
           return data.map((item: any) => {
