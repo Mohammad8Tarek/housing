@@ -1296,7 +1296,7 @@ export default function ReservationsPage() {
     { key: "guest", label: "Guest & Type", labelAr: "النزيل والتصنيف", defaultVisible: true, fixed: true },
     { key: "contact", label: "Contact & ID", labelAr: "التواصل والهوية", defaultVisible: true },
     { key: "stay", label: "Stay Period", labelAr: "فترة الإقامة", defaultVisible: true },
-    { key: "room", label: "Room & Housing", labelAr: "الغرفة والتسكين", defaultVisible: true },
+    { key: "room", label: "Building & Housing", labelAr: "المبنى والتسكين", defaultVisible: true },
     { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
     { key: "actions", label: "Actions", labelAr: "إجراءات", defaultVisible: true, fixed: true },
     // Granular columns for power users via ColumnChooser:
@@ -1398,7 +1398,7 @@ export default function ReservationsPage() {
               )}
               {isResVisible("room") && (
                 <TableHead className="font-semibold text-xs text-foreground w-[22%] min-w-0">
-                  {ar ? "الغرفة والتسكين" : "Room & Housing"}
+                  {ar ? "المبنى والتسكين" : "Building & Housing"}
                 </TableHead>
               )}
               {isResVisible("emptype") && <TableHead className="font-semibold text-xs">{ar ? "النوع" : "Type"}</TableHead>}
@@ -1523,28 +1523,35 @@ export default function ReservationsPage() {
                       </TableCell>
                     )}
 
-                    {/* Room & Housing */}
+                    {/* Building & Housing */}
                     {isResVisible("room") && (
                       <TableCell className="py-2.5 min-w-0">
                         <div className="flex flex-col text-xs gap-0.5 min-w-0">
-                          {roomNumber ? (
-                            <div className="flex items-center gap-1.5 font-bold text-sm text-primary leading-tight min-w-0">
-                              <BedDouble className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                              <span className="truncate">{ar ? `غرفة ${roomNumber}` : `Room ${roomNumber}`}</span>
-                              {bedNumber && (
-                                <span className="inline-flex items-center px-1.5 py-0 text-[10px] font-semibold rounded bg-primary/10 text-primary border border-primary/20 flex-shrink-0">
-                                  {ar ? `سرير ${bedNumber}` : `Bed ${bedNumber}`}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold">
-                              <BedDouble className="w-3.5 h-3.5 flex-shrink-0 opacity-80" />
-                              <span>{ar ? "لم تُحدد بعد" : "Not Assigned"}</span>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {buildingName && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-semibold">
+                                <Building2 className="w-3 h-3 text-sky-600 dark:text-sky-400 shrink-0" />
+                                <span>{buildingName}</span>
+                              </span>
+                            )}
+                            {roomNumber ? (
+                              <span className="font-bold text-sm text-primary flex items-center gap-1 truncate">
+                                <BedDouble className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <span>{ar ? `غرفة ${roomNumber}` : `Room ${roomNumber}`}</span>
+                                {bedNumber && (
+                                  <span className="inline-flex items-center px-1.5 py-0 text-[10px] font-semibold rounded bg-primary/10 text-primary border border-primary/20">
+                                    {ar ? `سرير ${bedNumber}` : `Bed ${bedNumber}`}
+                                  </span>
+                                )}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                                <BedDouble className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                                <span>{ar ? "لم تُحدد بعد" : "Not Assigned"}</span>
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            {buildingName && <span className="font-medium text-foreground/70">{buildingName} • </span>}
                             <span>{roomType || (ar ? "غرفة سكنية" : "Standard")}</span>
                           </div>
                         </div>

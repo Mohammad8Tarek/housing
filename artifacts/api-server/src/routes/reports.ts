@@ -10,6 +10,7 @@ import {
   workersTable,
   profileVacationsTable,
   buildingsTable,
+  floorsTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, desc, sql, count } from "drizzle-orm";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
@@ -64,6 +65,8 @@ router.get("/service-ratings", requirePermission("reports", "view"), async (req,
               id: maintenanceTable.id,
               roomId: maintenanceTable.roomId,
               roomNumber: roomsTable.roomNumber,
+              buildingName: buildingsTable.name,
+              floorNumber: floorsTable.number,
               category: maintenanceTable.category,
               problemType: maintenanceTable.problemType,
               description: maintenanceTable.description,
@@ -82,6 +85,8 @@ router.get("/service-ratings", requirePermission("reports", "view"), async (req,
             })
             .from(maintenanceTable)
             .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+            .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+            .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
             .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
             .where(whereClause)
             .orderBy(desc(maintenanceTable.ratedAt), desc(maintenanceTable.id));

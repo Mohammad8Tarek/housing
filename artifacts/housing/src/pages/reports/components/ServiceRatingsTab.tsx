@@ -95,6 +95,7 @@ export function ServiceRatingsTab({
     const s = searchTicket.toLowerCase();
     return (
       String(t.id).includes(s) ||
+      (t.buildingName && t.buildingName.toLowerCase().includes(s)) ||
       (t.roomNumber && String(t.roomNumber).toLowerCase().includes(s)) ||
       (t.workerName && t.workerName.toLowerCase().includes(s)) ||
       (t.description && t.description.toLowerCase().includes(s)) ||
@@ -123,6 +124,8 @@ export function ServiceRatingsTab({
     // Sheet 2: Detailed Rated Tickets
     const ticketRows = ratedTickets.map((t: any) => ({
       [ar ? "رقم الطلب" : "Ticket #"]: t.id,
+      [ar ? "المبنى" : "Building"]: t.buildingName || "—",
+      [ar ? "الدور" : "Floor"]: t.floorNumber != null ? (ar ? `الدور ${t.floorNumber}` : `Floor ${t.floorNumber}`) : "—",
       [ar ? "الغرفة" : "Room"]: t.roomNumber || "—",
       [ar ? "القسم" : "Category"]:
         t.category === "maintenance"
@@ -157,6 +160,8 @@ export function ServiceRatingsTab({
 
     const rows = ratedTickets.map((t: any) => ({
       [ar ? "رقم الطلب" : "Ticket #"]: `#${t.id}`,
+      [ar ? "المبنى" : "Building"]: t.buildingName || "—",
+      [ar ? "الدور" : "Floor"]: t.floorNumber != null ? (ar ? `الدور ${t.floorNumber}` : `Floor ${t.floorNumber}`) : "—",
       [ar ? "الغرفة" : "Room"]: t.roomNumber || "—",
       [ar ? "القسم" : "Category"]:
         t.category === "maintenance"
@@ -561,6 +566,8 @@ export function ServiceRatingsTab({
             <TableHeader>
               <TableRow className="bg-muted/40">
                 <TableHead className="w-16 font-semibold text-xs">{ar ? "رقم" : "ID"}</TableHead>
+                <TableHead className="font-semibold text-xs">{ar ? "المبنى" : "Building"}</TableHead>
+                <TableHead className="font-semibold text-xs">{ar ? "الدور" : "Floor"}</TableHead>
                 <TableHead className="font-semibold text-xs">{ar ? "الغرفة" : "Room"}</TableHead>
                 <TableHead className="font-semibold text-xs">{ar ? "القسم والخدمة" : "Category & Problem"}</TableHead>
                 <TableHead className="font-semibold text-xs">{ar ? "الفني المعين" : "Worker"}</TableHead>
@@ -576,8 +583,14 @@ export function ServiceRatingsTab({
                     <TableCell className="font-mono text-xs font-bold text-muted-foreground">
                       #{t.id}
                     </TableCell>
-                    <TableCell className="text-xs font-bold">
-                      {ar ? "غرفة" : "Room"} {t.roomNumber || "—"}
+                    <TableCell className="text-xs font-semibold text-foreground">
+                      {t.buildingName || "—"}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {t.floorNumber != null ? (ar ? `الدور ${t.floorNumber}` : `Floor ${t.floorNumber}`) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs font-bold text-primary">
+                      {t.roomNumber ? (ar ? `غرفة ${t.roomNumber}` : `Room ${t.roomNumber}`) : "—"}
                     </TableCell>
                     <TableCell className="text-xs">
                       <div className="flex flex-col">

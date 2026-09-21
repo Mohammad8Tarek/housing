@@ -38,6 +38,8 @@ export const RESERVATIONS_ARRIVALS_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
   { key: 'reservationId',    header: 'Res. ID',      headerAr: 'رقم الحجز',         type: 'id'         },
   { key: 'guestName',        header: 'Guest Name',   headerAr: 'اسم النزيل',        type: 'text'       },
+  { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floor',            header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
   { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'roomType',         header: 'Room Type',    headerAr: 'نوع الغرفة',        type: 'text-short' },
   { key: 'checkInDate',      header: 'Check-in',     headerAr: 'تاريخ الوصول',      type: 'date'       },
@@ -52,8 +54,10 @@ export const RESERVATIONS_ARRIVALS_COLUMNS: ReportColumnDef[] = [
 // Orientation: LANDSCAPE — operational checkout list
 export const DUE_OUT_DEPARTURES_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'guestName',        header: 'Guest Name',   headerAr: 'اسم النزيل',        type: 'text'       },
+  { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floor',            header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'checkInDate',      header: 'Checked In',   headerAr: 'تاريخ التسكين',     type: 'date'       },
   { key: 'checkOutDate',     header: 'Due Out',      headerAr: 'المغادرة المستحقة', type: 'date'       },
   { key: 'nightsStayed',     header: 'Nights',       headerAr: 'الليالي المقضاة',   type: 'number'     },
@@ -81,12 +85,13 @@ export const OCCUPANCY_FORECAST_COLUMNS: ReportColumnDef[] = [
 // ══════════════════════════════════════════════════════════
 
 // 5. IN-HOUSE OCCUPANTS & ROOMS
-// Orientation: LANDSCAPE — who is in each room right now
+// Orientation: LANDSCAPE — Building -> Floor -> Room -> Bed
 export const IN_HOUSE_OCCUPANTS_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'roomNumber',       header: 'Room',         headerAr: 'رقم الغرفة',        type: 'id'         },
   { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
   { key: 'floor',            header: 'Floor',        headerAr: 'الطابق',            type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'رقم الغرفة',        type: 'id'         },
+  { key: 'bedNumber',        header: 'Bed',          headerAr: 'السرير',            type: 'id'         },
   { key: 'occupantName',     header: 'Occupant',     headerAr: 'اسم النزيل',        type: 'text'       },
   { key: 'department',       header: 'Department',   headerAr: 'القسم',             type: 'text-short' },
   { key: 'checkInDate',      header: 'Check-in',     headerAr: 'تاريخ التسكين',     type: 'date'       },
@@ -96,7 +101,7 @@ export const IN_HOUSE_OCCUPANTS_COLUMNS: ReportColumnDef[] = [
 ];
 
 // 6. VACANT BEDS & OPERATIONAL CAPACITY
-// Orientation: LANDSCAPE — capacity planning
+// Orientation: LANDSCAPE — Building -> Floor -> Room
 export const VACANT_BEDS_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
   { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
@@ -110,12 +115,12 @@ export const VACANT_BEDS_COLUMNS: ReportColumnDef[] = [
 ];
 
 // 7. COMPLETE ROOM INVENTORY
-// Orientation: LANDSCAPE — full room catalog
+// Orientation: LANDSCAPE — Building -> Floor -> Room
 export const ROOM_INVENTORY_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'roomNumber',       header: 'Room',         headerAr: 'رقم الغرفة',        type: 'id'         },
   { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
   { key: 'floor',            header: 'Floor',        headerAr: 'الطابق',            type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'رقم الغرفة',        type: 'id'         },
   { key: 'roomType',         header: 'Type',         headerAr: 'نوع الغرفة',        type: 'text-short' },
   { key: 'capacity',         header: 'Cap.',         headerAr: 'السعة',             type: 'number'     },
   { key: 'currentOccupants', header: 'Occupants',    headerAr: 'المقيمين الحاليين', type: 'number'     },
@@ -125,11 +130,12 @@ export const ROOM_INVENTORY_COLUMNS: ReportColumnDef[] = [
 ];
 
 // 8. HOUSEKEEPING & CLEANLINESS
-// Orientation: LANDSCAPE — daily cleaning schedule
+// Orientation: LANDSCAPE — Building -> Floor -> Room
 export const HOUSEKEEPING_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'roomNumber',       header: 'Room',         headerAr: 'رقم الغرفة',        type: 'id'         },
+  { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
   { key: 'floor',            header: 'Floor',        headerAr: 'الطابق',            type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'رقم الغرفة',        type: 'id'         },
   { key: 'roomType',         header: 'Type',         headerAr: 'نوع الغرفة',        type: 'text-short' },
   { key: 'housekeeper',      header: 'Assigned To',  headerAr: 'المشرف المعين',     type: 'text'       },
   { key: 'lastCleaned',      header: 'Last Cleaned', headerAr: 'آخر نظافة',         type: 'datetime'   },
@@ -139,9 +145,11 @@ export const HOUSEKEEPING_COLUMNS: ReportColumnDef[] = [
 ];
 
 // 9. ROOM DISCREPANCY & AUDIT
-// Orientation: LANDSCAPE — system vs physical mismatch
+// Orientation: LANDSCAPE — Building -> Floor -> Room
 export const ROOM_DISCREPANCY_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
+  { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floor',            header: 'Floor',        headerAr: 'الطابق',            type: 'text-short', widthOverride: 16 },
   { key: 'roomNumber',       header: 'Room',         headerAr: 'رقم الغرفة',        type: 'id'         },
   { key: 'systemStatus',     header: 'System',       headerAr: 'حالة السيستم',      type: 'status'     },
   { key: 'physicalStatus',   header: 'Physical',     headerAr: 'الحالة الفعلية',    type: 'status'     },
@@ -196,6 +204,10 @@ export const STAFF_VACATIONS_COLUMNS: ReportColumnDef[] = [
   { key: 'staffId',          header: 'Staff ID',     headerAr: 'كود الموظف',        type: 'id'         },
   { key: 'fullName',         header: 'Full Name',    headerAr: 'الاسم بالكامل',     type: 'text'       },
   { key: 'department',       header: 'Department',   headerAr: 'القسم',             type: 'text-short' },
+  { key: 'buildingName',     header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floorName',        header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
+  { key: 'bedNumber',        header: 'Bed',          headerAr: 'السرير',            type: 'id'         },
   { key: 'vacationType',     header: 'Leave Type',   headerAr: 'نوع الإجازة',       type: 'text-short' },
   { key: 'startDate',        header: 'From',         headerAr: 'تاريخ البدء',       type: 'date'       },
   { key: 'endDate',          header: 'To',           headerAr: 'العودة المتوقعة',   type: 'date'       },
@@ -224,6 +236,7 @@ export const DAILY_MOVEMENT_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
   { key: 'staffId',          header: 'Staff ID',     headerAr: 'كود الموظف',        type: 'id'         },
   { key: 'fullName',         header: 'Name',         headerAr: 'الاسم',             type: 'text'       },
+  { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
   { key: 'movementType',     header: 'Action',       headerAr: 'نوع الحركة',        type: 'status'     },
   { key: 'fromRoom',         header: 'From Room',    headerAr: 'من غرفة',           type: 'id'         },
   { key: 'toRoom',           header: 'To Room',      headerAr: 'إلى غرفة',          type: 'id'         },
@@ -265,6 +278,8 @@ export const TOURISM_POLICE_COLUMNS: ReportColumnDef[] = [
   { key: 'dateOfBirth',      header: 'Date of Birth',headerAr: 'تاريخ الميلاد',     type: 'date'       },
   { key: 'checkInDate',      header: 'Arrival',      headerAr: 'تاريخ التسكين',     type: 'date'       },
   { key: 'checkOutDate',     header: 'Departure',    headerAr: 'تاريخ المغادرة',    type: 'date'       },
+  { key: 'buildingName',     header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floorName',        header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
   { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'purpose',          header: 'Purpose',      headerAr: 'جهة العمل / الغرض', type: 'text-short' },
 ];
@@ -274,6 +289,9 @@ export const TOURISM_POLICE_COLUMNS: ReportColumnDef[] = [
 export const POLICY_EXCEPTIONS_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
   { key: 'exceptionId',      header: 'Exception ID', headerAr: 'كود المخالفة',      type: 'id'         },
+  { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floor',            header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'policyName',       header: 'Policy',       headerAr: 'السياسة',           type: 'text-short' },
   { key: 'requestedBy',      header: 'Requested By', headerAr: 'مقدم الاستثناء',    type: 'text-short' },
   { key: 'exceptionType',    header: 'Type',         headerAr: 'نوع المخالفة',      type: 'text-short' },
@@ -292,9 +310,9 @@ export const POLICY_EXCEPTIONS_COLUMNS: ReportColumnDef[] = [
 // Orientation: LANDSCAPE — open and resolved issues with ratings and reporter
 export const MAINTENANCE_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'buildingName',     header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
   { key: 'floorName',        header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'reportedBy',       header: 'Reported By',  headerAr: 'مقدم البلاغ',       type: 'text'       },
   { key: 'category',         header: 'Category',     headerAr: 'الفئة',             type: 'text-short' },
   { key: 'problemType',      header: 'Issue Details',headerAr: 'نوع ووصف المشكلة',  type: 'text'       },
@@ -327,6 +345,9 @@ export const AMENITIES_INVENTORY_COLUMNS: ReportColumnDef[] = [
 // Orientation: LANDSCAPE — utility consumption tracking
 export const WATER_DISTRIBUTION_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
+  { key: 'buildingName',     header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floorName',        header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'locationUnit',     header: 'Location',     headerAr: 'الموقع / الغرفة',   type: 'text'       },
   { key: 'meterNumber',      header: 'Meter No.',    headerAr: 'رقم العداد / الوحدة',type: 'id'        },
   { key: 'prevReading',      header: 'Prev. Read.',  headerAr: 'القراءة السابقة',   type: 'number'     },
@@ -368,6 +389,8 @@ export const GUEST_HOSTINGS_COLUMNS: ReportColumnDef[] = [
   { key: 'hostingId',        header: 'Hosting ID',   headerAr: 'رقم الاستضافة',     type: 'id'         },
   { key: 'hostName',         header: 'Host',         headerAr: 'الموظف المضيف',     type: 'text'       },
   { key: 'guestName',        header: 'Guest',        headerAr: 'اسم الضيف',         type: 'text'       },
+  { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floor',            header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
   { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
   { key: 'checkInDate',      header: 'From',         headerAr: 'تاريخ الدخول',      type: 'date'       },
   { key: 'checkOutDate',     header: 'To',           headerAr: 'تاريخ الخروج',      type: 'date'       },

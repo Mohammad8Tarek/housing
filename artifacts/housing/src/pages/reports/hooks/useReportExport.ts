@@ -68,10 +68,10 @@ export function useReportExport({
           [ar ? "الهاتف" : "Phone"]: r.phone,
           [ar ? "القسم" : "Department"]: r.department,
           [ar ? "المسمى الوظيفي" : "Job Title"]: r.jobTitle,
-          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
-          [ar ? "السرير" : "Bed No"]: r.bedNumber,
           [ar ? "المبنى" : "Building"]: r.buildingName,
           [ar ? "الطابق" : "Floor"]: r.floorName,
+          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
+          [ar ? "السرير" : "Bed No"]: r.bedNumber,
           [ar ? "تاريخ الوصول" : "Arrival Date"]: r.checkInDate,
           [ar ? "تاريخ المغادرة" : "Departure Date"]: r.checkOutDate,
           [ar ? "الليالي" : "Nights"]: r.nights,
@@ -86,9 +86,9 @@ export function useReportExport({
           [ar ? "كود الموظف" : "Profile ID"]: d.profileId,
           [ar ? "القسم" : "Department"]: d.department,
           [ar ? "الوظيفة" : "Job Title"]: d.jobTitle,
+          [ar ? "المبنى" : "Building"]: d.buildingName,
           [ar ? "الغرفة" : "Room No"]: d.roomNumber,
           [ar ? "السرير" : "Bed No"]: d.bedNumber,
-          [ar ? "المبنى" : "Building"]: d.buildingName,
           [ar ? "تاريخ التسكين" : "Check-In Date"]: d.checkInDate,
           [ar ? "المغادرة المستحقة" : "Due Out Date"]: d.checkOutDate,
           [ar ? "نوع المغادرة" : "Departure Type"]: d.departureCategory,
@@ -98,9 +98,9 @@ export function useReportExport({
 
       case "housekeeping_sheet":
         return data.map((h: any) => ({
-          [ar ? "رقم الغرفة" : "Room No"]: h.roomNumber,
           [ar ? "المبنى" : "Building"]: h.buildingName,
           [ar ? "الطابق" : "Floor"]: h.floorName,
+          [ar ? "رقم الغرفة" : "Room No"]: h.roomNumber,
           [ar ? "نوع الغرفة" : "Room Type"]: h.roomType,
           [ar ? "حالة الإشغال (FO)" : "FO Status"]: h.foStatus,
           [ar ? "حالة النظافة (HK)" : "HK Status"]: getRoomStatusLabel(h.hkStatus, ar),
@@ -116,9 +116,9 @@ export function useReportExport({
         return data.map((d: any) => ({
           [ar ? "مستوى الخطورة" : "Severity"]: d.severityLabel,
           [ar ? "نوع التباين" : "Discrepancy Type"]: d.typeLabel,
-          [ar ? "رقم الغرفة" : "Room No"]: d.roomNumber,
           [ar ? "المبنى" : "Building"]: d.buildingName,
           [ar ? "الطابق" : "Floor"]: d.floorName,
+          [ar ? "رقم الغرفة" : "Room No"]: d.roomNumber,
           [ar ? "حالة الاستقبال (FO)" : "FO Status"]: d.foStatus,
           [ar ? "حالة الهاوس كيبنج (HK)" : "HK Status"]: d.hkStatus,
           [ar ? "النزلاء المتأثرون" : "Impacted Residents"]: d.impactedResidents,
@@ -148,8 +148,8 @@ export function useReportExport({
               ? (ar ? "طرف ثالث" : "Third Party")
               : (ar ? "داخلي (فندق)" : "Internal"),
           [ar ? "الشركة" : "Company"]: a.companyName || "—",
-          [ar ? "الغرفة والسرير" : "Room & Bed"]: `${a.roomNumber || "—"}${a.isEntireRoom ? ` (${ar ? "غرفة كاملة" : "Full Lock"})` : (a.bedNumber && a.bedNumber !== "—" ? ` - سرير ${a.bedNumber}` : "")}`,
           [ar ? "المبنى والطابق" : "Building & Floor"]: `${a.buildingName || "—"}${a.floorName ? ` (${a.floorName})` : ""}`,
+          [ar ? "الغرفة والسرير" : "Room & Bed"]: `${a.roomNumber || "—"}${a.isEntireRoom ? ` (${ar ? "غرفة كاملة" : "Full Lock"})` : (a.bedNumber && a.bedNumber !== "—" ? ` - سرير ${a.bedNumber}` : "")}`,
           [ar ? "القسم" : "Department"]: a.department,
           [ar ? "الوظيفة" : "Job Title"]: a.jobTitle,
           [ar ? "الهاتف" : "Phone"]: a.phone || "—",
@@ -173,9 +173,9 @@ export function useReportExport({
 
       case "vacant_rooms":
         return data.map((r: any) => ({
-          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
           [ar ? "المبنى" : "Building"]: r.buildingName,
           [ar ? "الطابق" : "Floor"]: r.floorName,
+          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
           [ar ? "نوع الغرفة" : "Room Type"]: translateRoomType(r.roomType, ar),
           [ar ? "السعة الإجمالية" : "Capacity"]: r.capacity,
           [ar ? "المشغول" : "Occupied"]: r.currentOccupancy,
@@ -187,9 +187,9 @@ export function useReportExport({
 
       case "housing":
         return data.map((r: any) => ({
-          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
           [ar ? "المبنى" : "Building"]: r.buildingName,
           [ar ? "الطابق" : "Floor"]: r.floorName,
+          [ar ? "رقم الغرفة" : "Room No"]: r.roomNumber,
           [ar ? "نوع الغرفة" : "Room Type"]: translateRoomType(r.roomType, ar),
           [ar ? "السعة" : "Capacity"]: r.capacity,
           [ar ? "المشغول" : "Occupied"]: r.currentOccupancy,
@@ -270,9 +270,9 @@ export function useReportExport({
 
       case "maintenance":
         return data.map((m: any) => ({
-          [ar ? "رقم الغرفة" : "Room No"]: m.roomNumber,
           [ar ? "المبنى" : "Building"]: m.buildingName || "—",
           [ar ? "الدور" : "Floor"]: m.floorName || "—",
+          [ar ? "رقم الغرفة" : "Room No"]: m.roomNumber,
           [ar ? "مقدم البلاغ" : "Reported By"]: m.reportedBy || "—",
           [ar ? "الفئة" : "Category"]: translateMaintenanceCategory(m.category, ar),
           [ar ? "وصف المشكلة" : "Problem Details"]: m.problemType,
@@ -308,9 +308,9 @@ export function useReportExport({
         }
 
         return data.map((it: any) => ({
-          [ar ? "رقم الغرفة" : "Room No"]: it.roomNumber,
           [ar ? "المبنى" : "Building"]: it.buildingName,
           [ar ? "الطابق" : "Floor"]: it.floorName,
+          [ar ? "رقم الغرفة" : "Room No"]: it.roomNumber,
           [ar ? "اسم المعدة / القطعة" : "Item Name"]: it.itemName,
           [ar ? "الموديل" : "Model"]: it.modelNumber || "—",
           [ar ? "التصنيف" : "Category"]:
@@ -346,9 +346,9 @@ export function useReportExport({
           [ar ? "المقيم / النزيل" : "Resident / Profile"]: m.profileName,
           [ar ? "كود الموظف" : "Code"]: m.profileCode,
           [ar ? "القسم" : "Department"]: m.department,
+          [ar ? "المبنى" : "Building"]: m.buildingName,
           [ar ? "الغرفة" : "Room No"]: m.roomNumber,
           [ar ? "السرير" : "Bed No"]: m.bedNumber,
-          [ar ? "المبنى" : "Building"]: m.buildingName,
           [ar ? "التفاصيل والملاحظات" : "Details / Reason"]: m.notes,
         }));
 
@@ -370,8 +370,8 @@ export function useReportExport({
           [ar ? "الاسم" : "Person Name"]: g.profileName,
           [ar ? "كود الموظف" : "ID / Code"]: g.profileCode,
           [ar ? "القسم" : "Department"]: g.department,
-          [ar ? "الغرفة" : "Room No"]: g.roomNumber,
           [ar ? "المبنى" : "Building"]: g.buildingName,
+          [ar ? "الغرفة" : "Room No"]: g.roomNumber,
           [ar ? "مسؤول الأمن" : "Security Officer"]: g.guardName,
           [ar ? "حالة التصريح" : "Access Status"]: g.status,
           [ar ? "ملاحظات" : "Notes"]: g.notes,
@@ -395,13 +395,13 @@ export function useReportExport({
           [ar ? "الشركة / جهة العمل" : "Company"]: p.companyName,
           [ar ? "العنوان بالبطاقة" : "Address"]: p.address,
           [ar ? "الهاتف" : "Phone"]: p.phone,
+          [ar ? "المبنى" : "Building"]: p.buildingName,
+          [ar ? "الطابق" : "Floor"]: p.floorName,
           [ar ? "رقم الغرفة" : "Room No"]: p.roomNumber,
           [ar ? "رقم السرير" : "Bed No"]:
             p.isEntireRoom
               ? `${p.bedNumber && p.bedNumber !== "—" ? p.bedNumber : 1} (${ar ? "غرفة كاملة" : "Full Lock"})`
               : p.bedNumber,
-          [ar ? "المبنى" : "Building"]: p.buildingName,
-          [ar ? "الطابق" : "Floor"]: p.floorName,
           [ar ? "تاريخ التسكين" : "Check-In Date"]: p.checkInDate,
           [ar ? "تاريخ التعيين" : "Hire Date"]: p.hireDate,
           [ar ? "انتهاء العقد" : "Contract End"]: p.contractEndDate,
@@ -435,8 +435,8 @@ export function useReportExport({
           [ar ? "الرقم القومي" : "National ID"]: ex.nationalId,
           [ar ? "الدرجة الوظيفية" : "Job Level"]: ex.jobLevel,
           [ar ? "القسم" : "Department"]: ex.department,
-          [ar ? "رقم الغرفة" : "Room No"]: ex.roomNumber,
           [ar ? "المبنى" : "Building"]: ex.buildingName,
+          [ar ? "رقم الغرفة" : "Room No"]: ex.roomNumber,
           [ar ? "سعة الغرفة" : "Capacity"]: ex.roomCapacity,
           [ar ? "الإشغال الحالي" : "Occupancy"]: ex.currentOccupancy,
           [ar ? "نوع المخالفة" : "Violation Type"]: ex.violationType,
@@ -451,8 +451,8 @@ export function useReportExport({
           [ar ? "الاسم بالكامل" : "Employee Name"]: v.fullName,
           [ar ? "القسم" : "Department"]: v.department,
           [ar ? "الوظيفة" : "Job Title"]: v.jobTitle,
-          [ar ? "الغرفة والسرير" : "Room & Bed"]: v.housingInfo,
           [ar ? "المبنى" : "Building"]: v.buildingName,
+          [ar ? "الغرفة والسرير" : "Room & Bed"]: v.housingInfo,
           [ar ? "بداية الإجازة" : "Vacation Start"]: v.startDate,
           [ar ? "العودة المتوقعة" : "Expected Return"]: v.endDate,
           [ar ? "العودة الفعلية" : "Actual Return"]: v.actualReturnDate,

@@ -57,8 +57,14 @@ export function InHouseGroupedRoomsView({
       return item;
     });
 
-    // Sort rooms by roomNumber natural sort
+    // Sort rooms by Building -> Floor -> Room Number natural sort
     list.sort((a, b) => {
+      const bCompare = String(a.roomInfo.buildingName || "").localeCompare(String(b.roomInfo.buildingName || ""), undefined, { numeric: true, sensitivity: "base" });
+      if (bCompare !== 0) return bCompare;
+
+      const fCompare = String(a.roomInfo.floorName || "").localeCompare(String(b.roomInfo.floorName || ""), undefined, { numeric: true, sensitivity: "base" });
+      if (fCompare !== 0) return fCompare;
+
       return String(a.roomInfo.roomNumber).localeCompare(String(b.roomInfo.roomNumber), undefined, {
         numeric: true,
         sensitivity: "base",
@@ -129,12 +135,12 @@ export function InHouseGroupedRoomsView({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-base text-foreground">
-                      {ar ? `غرفة ${roomInfo.roomNumber}` : `Room ${roomInfo.roomNumber}`}
-                    </span>
-                    <Badge variant="outline" className="text-xs bg-background font-normal text-muted-foreground">
+                    <Badge variant="outline" className="text-xs bg-background font-semibold text-foreground border-border/80">
                       {roomInfo.buildingName} • {roomInfo.floorName}
                     </Badge>
+                    <span className="font-bold text-base text-primary">
+                      {ar ? `غرفة ${roomInfo.roomNumber}` : `Room ${roomInfo.roomNumber}`}
+                    </span>
                     {roomInfo.roomType && roomInfo.roomType !== "—" && (
                       <Badge variant="secondary" className="text-xs font-semibold">
                         {roomInfo.roomType}

@@ -151,8 +151,8 @@ export function ReportTable({
               <>
                 {H("profileName", ar ? "اسم النزيل / الحجز" : "Guest / Profile")}
                 {H("department", ar ? "القسم والمسمى" : "Dept & Title")}
-                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
+                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {H("checkInDate", ar ? "تاريخ الوصول (Due In)" : "Arrival (Due In)")}
                 {H("checkOutDate", ar ? "تاريخ المغادرة" : "Check-Out")}
                 {H("nights", ar ? "الليالي" : "Nights", "text-center")}
@@ -166,8 +166,8 @@ export function ReportTable({
               <>
                 {H("profileName", ar ? "الموظف / النزيل" : "Resident / Profile")}
                 {H("department", ar ? "القسم والمسمى" : "Dept & Title")}
-                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
+                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {H("checkInDate", ar ? "تاريخ التسكين" : "Check-In")}
                 {H("checkOutDate", ar ? "المغادرة المستحقة (Due Out)" : "Due Out Date")}
                 {H("departureCategory", ar ? "نوع المغادرة" : "Departure Type")}
@@ -179,8 +179,8 @@ export function ReportTable({
             {/* OPERA PMS: HOUSEKEEPING ATTENDANT TASK SHEET HEADERS */}
             {activeTab === "housekeeping_sheet" && (
               <>
-                {H("roomNumber", ar ? "الغرفة" : "Room")}
                 {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
+                {H("roomNumber", ar ? "الغرفة" : "Room")}
                 {H("foStatus", ar ? "حالة الإشغال (FO)" : "FO Status", "text-center")}
                 {H("hkStatus", ar ? "حالة النظافة (HK)" : "HK Status")}
                 {H("taskType", ar ? "نوع المهمة المطلوبة" : "Task Assignment")}
@@ -197,8 +197,8 @@ export function ReportTable({
               <>
                 {H("severity", ar ? "الخطورة" : "Severity", "text-center")}
                 {H("type", ar ? "نوع التباين والفحص الميداني" : "Discrepancy Type")}
-                {H("roomNumber", ar ? "الغرفة" : "Room")}
                 {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
+                {H("roomNumber", ar ? "الغرفة" : "Room")}
                 {H("foStatus", ar ? "حالة الاستقبال (Front Office)" : "Front Office")}
                 {H("hkStatus", ar ? "حالة النظافة الميدانية (HK)" : "Housekeeping")}
                 {H("impactedResidents", ar ? "النزلاء المعنيون / الملاحظات" : "Impacted Residents / Details")}
@@ -226,8 +226,8 @@ export function ReportTable({
                 {isVis("profileCode") && H("profileCode", ar ? "كود الموظف" : "Code")}
                 {isVis("fullName") && H("fullName", ar ? "الموظف / المقيم" : "Occupant / Profile")}
                 {isVis("employmentType") && H("employmentType", ar ? "نوع التوظيف" : "Employment")}
-                {isVis("roomNumber") && H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {isVis("buildingName") && H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {isVis("roomNumber") && H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {isVis("department") && H("department", ar ? "القسم والمسمى" : "Dept & Title")}
                 {isVis("level") && H("level", ar ? "الدرجة" : "Level")}
                 {isVis("phone") && H("phone", ar ? "الهاتف" : "Phone")}
@@ -249,8 +249,8 @@ export function ReportTable({
             {/* 2. VACANT ROOMS HEADERS */}
             {activeTab === "vacant_rooms" && (
               <>
-                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
                 {H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
                 {H("roomType", ar ? "نوع الغرفة" : "Room Type")}
                 {H("capacity", ar ? "السعة" : "Capacity", "text-center")}
                 {H("currentOccupancy", ar ? "المشغول" : "Occupied", "text-center")}
@@ -264,8 +264,8 @@ export function ReportTable({
             {/* 3. HOUSING INVENTORY HEADERS */}
             {activeTab === "housing" && (
               <>
-                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
                 {H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
                 {H("roomType", ar ? "النوع" : "Type")}
                 {H("capacity", ar ? "السعة" : "Capacity", "text-center")}
                 {H("currentOccupancy", ar ? "المشغول" : "Occupied", "text-center")}
@@ -346,8 +346,8 @@ export function ReportTable({
             {/* 8. MAINTENANCE HEADERS */}
             {activeTab === "maintenance" && (
               <>
-                {H("roomNumber", ar ? "الغرفة" : "Room No")}
                 {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
+                {H("roomNumber", ar ? "الغرفة" : "Room No")}
                 {H("reportedBy", ar ? "مقدم البلاغ (الطالب)" : "Reported By")}
                 {H("category", ar ? "الفئة" : "Category")}
                 {H("problemType", ar ? "نوع المشكلة" : "Problem Details")}
@@ -362,8 +362,8 @@ export function ReportTable({
             {/* 9. HOUSEKEEPING HEADERS */}
             {activeTab === "housekeeping" && (
               <>
-                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
                 {H("buildingName", ar ? "المبنى والطابق" : "Building & Floor")}
+                {H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
                 {H("roomType", ar ? "نوع الغرفة" : "Room Type")}
                 {H("capacity", ar ? "السعة" : "Cap", "text-center")}
                 {H("currentOccupancy", ar ? "المشغول" : "Occ", "text-center")}
@@ -387,7 +387,8 @@ export function ReportTable({
                 </>
               ) : (
                 <>
-                  {H("roomNumber", ar ? "الغرفة والموقع" : "Room & Location")}
+                  {H("buildingName", ar ? "المبنى والموقع" : "Building & Location")}
+                  {H("roomNumber", ar ? "الغرفة" : "Room")}
                   {H("itemName", ar ? "اسم المعدة / القطعة" : "Equipment / Item")}
                   {H("category", ar ? "التصنيف" : "Category")}
                   {H("quantity", ar ? "العدد" : "Qty", "text-center")}
@@ -406,8 +407,8 @@ export function ReportTable({
                 {H("date", ar ? "التاريخ والوقت" : "Date & Time")}
                 {H("profileName", ar ? "المقيم / النزيل" : "Resident / Profile")}
                 {H("department", ar ? "القسم" : "Department")}
-                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {H("buildingName", ar ? "المبنى" : "Building")}
+                {H("roomNumber", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {H("notes", ar ? "التفاصيل والملاحظات" : "Details & Notes")}
               </>
             )}
@@ -455,10 +456,10 @@ export function ReportTable({
                 {isVis("companyName") && H("companyName", ar ? "الشركة" : "Company")}
                 {isVis("address") && H("address", ar ? "العنوان بالبطاقة" : "Address")}
                 {isVis("phone") && H("phone", ar ? "الهاتف" : "Phone")}
-                {isVis("roomNumber") && H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
-                {isVis("bedNumber") && H("bedNumber", ar ? "السرير" : "Bed No")}
                 {isVis("buildingName") && H("buildingName", ar ? "المبنى" : "Building")}
                 {isVis("floorName") && H("floorName", ar ? "الطابق" : "Floor")}
+                {isVis("roomNumber") && H("roomNumber", ar ? "رقم الغرفة" : "Room No")}
+                {isVis("bedNumber") && H("bedNumber", ar ? "السرير" : "Bed No")}
                 {isVis("checkInDate") && H("checkInDate", ar ? "تاريخ التسكين" : "Check-In")}
                 {isVis("hireDate") && H("hireDate", ar ? "تاريخ التعيين" : "Hire Date")}
                 {isVis("contractEndDate") && H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
@@ -508,8 +509,8 @@ export function ReportTable({
                 {isVis("fullName") && H("fullName", ar ? "الاسم بالكامل" : "Employee Name")}
                 {isVis("department") && H("department", ar ? "القسم" : "Department")}
                 {isVis("jobTitle") && H("jobTitle", ar ? "الوظيفة" : "Job Title")}
-                {isVis("housingInfo") && H("housingInfo", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {isVis("buildingName") && H("buildingName", ar ? "المبنى" : "Building")}
+                {isVis("housingInfo") && H("housingInfo", ar ? "الغرفة والسرير" : "Room & Bed")}
                 {isVis("startDate") && H("startDate", ar ? "بداية الإجازة" : "Start Date")}
                 {isVis("endDate") && H("endDate", ar ? "العودة المتوقعة" : "Expected Return")}
                 {isVis("actualReturnDate") && H("actualReturnDate", ar ? "العودة الفعلية" : "Actual Return")}
@@ -580,13 +581,13 @@ export function ReportTable({
                       <p className="text-[11px] text-muted-foreground">{row.jobTitle}</p>
                     </TableCell>
                     <TableCell>
+                      <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
+                      <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant="outline" className="font-mono bg-blue-50 text-blue-700 border-blue-200">
                         {ar ? `غرفة ${row.roomNumber} (${row.bedNumber})` : `Room ${row.roomNumber} (${row.bedNumber})`}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
-                      <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-mono text-emerald-700 bg-emerald-50 border-emerald-200">
@@ -622,13 +623,13 @@ export function ReportTable({
                       <p className="text-[11px] text-muted-foreground">{row.jobTitle}</p>
                     </TableCell>
                     <TableCell>
+                      <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
+                      <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant="outline" className="font-mono bg-slate-50 text-slate-700 border-slate-200">
                         {ar ? `غرفة ${row.roomNumber} (سرير ${row.bedNumber})` : `Room ${row.roomNumber} (Bed ${row.bedNumber})`}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
-                      <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{row.checkInDate}</TableCell>
                     <TableCell>
@@ -665,16 +666,16 @@ export function ReportTable({
                 {activeTab === "housekeeping_sheet" && (
                   <>
                     <TableCell>
+                      <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
+                      <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-base font-mono text-foreground">{row.roomNumber}</span>
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
                           {row.roomType}
                         </Badge>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
-                      <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
@@ -760,11 +761,11 @@ export function ReportTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-bold text-base font-mono text-foreground">{row.roomNumber}</span>
-                    </TableCell>
-                    <TableCell>
                       <p className="text-xs font-medium text-foreground">{row.buildingName}</p>
                       <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-bold text-base font-mono text-foreground">{row.roomNumber}</span>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
@@ -857,6 +858,11 @@ export function ReportTable({
                         )}
                       </TableCell>
                     )}
+                    {isVis("buildingName") && (
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.buildingName} • {row.floorName}
+                      </TableCell>
+                    )}
                     {isVis("roomNumber") && (
                       <TableCell>
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -878,11 +884,6 @@ export function ReportTable({
                             </Badge>
                           )}
                         </div>
-                      </TableCell>
-                    )}
-                    {isVis("buildingName") && (
-                      <TableCell className="text-xs text-muted-foreground">
-                        {row.buildingName} • {row.floorName}
                       </TableCell>
                     )}
                     {isVis("department") && (
@@ -963,11 +964,11 @@ export function ReportTable({
                 {/* 2. VACANT ROOMS ROW */}
                 {activeTab === "vacant_rooms" && (
                   <>
-                    <TableCell className="font-bold text-base text-primary">
-                      {row.roomNumber}
-                    </TableCell>
                     <TableCell className="text-xs">
                       {row.buildingName} • {row.floorName}
+                    </TableCell>
+                    <TableCell className="font-bold text-base text-primary">
+                      {row.roomNumber}
                     </TableCell>
                     <TableCell className="text-xs capitalize">{row.roomType}</TableCell>
                     <TableCell className="text-center font-semibold">{row.capacity}</TableCell>
@@ -994,8 +995,8 @@ export function ReportTable({
                 {/* 3. HOUSING INVENTORY ROW */}
                 {activeTab === "housing" && (
                   <>
-                    <TableCell className="font-bold text-primary">{row.roomNumber}</TableCell>
                     <TableCell className="text-xs">{row.buildingName} • {row.floorName}</TableCell>
+                    <TableCell className="font-bold text-primary">{row.roomNumber}</TableCell>
                     <TableCell className="text-xs capitalize">{row.roomType}</TableCell>
                     <TableCell className="text-center font-semibold">{row.capacity}</TableCell>
                     <TableCell className="text-center">{row.currentOccupancy}</TableCell>
@@ -1182,12 +1183,6 @@ export function ReportTable({
                 {activeTab === "maintenance" && (
                   <>
                     <TableCell>
-                      <span className="font-bold text-primary flex items-center gap-1">
-                        <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
-                        {row.roomNumber}
-                      </span>
-                    </TableCell>
-                    <TableCell>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-xs font-semibold text-foreground flex items-center gap-1">
                           <Building2 className="w-3 h-3 text-sky-600 shrink-0" />
@@ -1198,6 +1193,12 @@ export function ReportTable({
                           {row.floorName}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-bold text-primary flex items-center gap-1">
+                        <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
+                        {row.roomNumber}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
@@ -1275,11 +1276,11 @@ export function ReportTable({
                 {activeTab === "housekeeping" && (
                   <>
                     <TableCell>
-                      <span className="font-bold text-primary">{row.roomNumber}</span>
-                    </TableCell>
-                    <TableCell>
                       <p className="text-xs font-medium">{row.buildingName}</p>
                       <p className="text-[11px] text-muted-foreground">{row.floorName}</p>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-bold text-primary">{row.roomNumber}</span>
                     </TableCell>
                     <TableCell className="text-xs capitalize">{row.roomType}</TableCell>
                     <TableCell className="text-center text-xs font-semibold">{row.capacity}</TableCell>
@@ -1436,14 +1437,17 @@ export function ReportTable({
                   ) : (
                     <>
                       <TableCell>
-                        <div className="font-semibold text-sm">
+                        <div className="text-xs font-medium text-foreground">
+                          {row.buildingName}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {row.floorName}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-bold text-primary text-sm">
                           {ar ? "غرفة" : "Room"} {row.roomNumber}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <span>{row.buildingName}</span>
-                          <span>•</span>
-                          <span>{row.floorName}</span>
-                        </div>
+                        </span>
                       </TableCell>
                       <TableCell>
                         <div className="font-medium text-sm text-foreground flex items-center gap-1.5">
@@ -1552,6 +1556,7 @@ export function ReportTable({
                       <div className="text-[11px] text-muted-foreground font-mono">{row.profileCode}</div>
                     </TableCell>
                     <TableCell className="text-xs">{row.department}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{row.buildingName}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-mono text-xs">
                         {ar ? "غرفة" : "Room"} {row.roomNumber}
@@ -1562,7 +1567,6 @@ export function ReportTable({
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{row.buildingName}</TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={row.notes}>
                       {row.notes}
                     </TableCell>
@@ -1684,6 +1688,8 @@ export function ReportTable({
                       </TableCell>
                     )}
                     {isVis("phone") && <TableCell className="text-xs font-mono">{row.phone}</TableCell>}
+                    {isVis("buildingName") && <TableCell className="text-xs text-muted-foreground">{row.buildingName}</TableCell>}
+                    {isVis("floorName") && <TableCell className="text-xs text-muted-foreground">{row.floorName}</TableCell>}
                     {isVis("roomNumber") && <TableCell className="text-xs font-bold text-primary">{row.roomNumber}</TableCell>}
                     {isVis("bedNumber") && (
                       <TableCell className="text-xs">
@@ -1696,8 +1702,6 @@ export function ReportTable({
                         )}
                       </TableCell>
                     )}
-                    {isVis("buildingName") && <TableCell className="text-xs text-muted-foreground">{row.buildingName}</TableCell>}
-                    {isVis("floorName") && <TableCell className="text-xs text-muted-foreground">{row.floorName}</TableCell>}
                     {isVis("checkInDate") && <TableCell className="text-xs font-mono">{row.checkInDate}</TableCell>}
                     {isVis("hireDate") && <TableCell className="text-xs font-mono">{row.hireDate}</TableCell>}
                     {isVis("contractEndDate") && <TableCell className="text-xs font-mono">{row.contractEndDate}</TableCell>}
@@ -1826,6 +1830,11 @@ export function ReportTable({
                         {row.jobTitle || "—"}
                       </TableCell>
                     )}
+                    {isVis("buildingName") && (
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.buildingName || "—"}
+                      </TableCell>
+                    )}
                     {isVis("housingInfo") && (
                       <TableCell>
                         <div className="flex items-center gap-1.5 text-xs">
@@ -1835,11 +1844,6 @@ export function ReportTable({
                             <span className="text-muted-foreground text-[11px]">({ar ? `سرير ${row.bedNumber}` : `Bed ${row.bedNumber}`})</span>
                           )}
                         </div>
-                      </TableCell>
-                    )}
-                    {isVis("buildingName") && (
-                      <TableCell className="text-xs text-muted-foreground">
-                        {row.buildingName || "—"}
                       </TableCell>
                     )}
                     {isVis("startDate") && (

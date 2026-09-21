@@ -709,7 +709,7 @@ export default function Tickets() {
 
   const COLS = [
     { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
-    { key: "room_person", label: "ROOM & RESIDENT", labelAr: "الغرفة والنزيل", defaultVisible: true },
+    { key: "room_person", label: "BUILDING, FLOOR & ROOM", labelAr: "المبنى والدور والغرفة", defaultVisible: true },
     { key: "problem", label: "PROBLEM", labelAr: "المشكلة", defaultVisible: true },
     { key: "resident", label: "RESIDENT", labelAr: "Resident", defaultVisible: true },
     { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: true },
@@ -1868,7 +1868,7 @@ export default function Tickets() {
                   )}
                   {(isVisible("room_person") || isVisible("name")) && (
                     <TableHead className="font-semibold min-w-[210px]">
-                      {ar ? "الغرفة والمبنى والدور" : "ROOM, BUILDING & FLOOR"}
+                      {ar ? "المبنى والدور والغرفة" : "BUILDING, FLOOR & ROOM"}
                     </TableHead>
                   )}
                   {isVisible("problem") && (
@@ -1949,10 +1949,6 @@ export default function Tickets() {
                       <TableCell className="text-xs font-medium">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-bold text-foreground flex items-center gap-1">
-                              <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
-                              {ar ? "الغرفة" : "Room"} {req.roomNumber || roomMap[req.roomId] || req.roomId}
-                            </span>
                             {(req.buildingName || req.floorNumber) && (
                               <div className="flex items-center gap-1 flex-wrap">
                                 {req.buildingName && (
@@ -1969,6 +1965,10 @@ export default function Tickets() {
                                 )}
                               </div>
                             )}
+                            <span className="font-bold text-foreground flex items-center gap-1">
+                              <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
+                              {ar ? "الغرفة" : "Room"} {req.roomNumber || roomMap[req.roomId] || req.roomId}
+                            </span>
                           </div>
                           {roomOccupantMap[req.roomId] ? (
                             <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
