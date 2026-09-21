@@ -418,24 +418,29 @@ router.get(
             tenantDb
               .select()
               .from(assignmentsTable)
-              .where(statusEq(assignmentsTable.status, "active")),
+              .where(sql`lower(${assignmentsTable.status}) IN ('active', 'vacation', 'occupied_vacation')`),
           ),
           safeSelect(() => tenantDb.select().from(profilesTable)),
         ]);
 
         const profileMap = new Map<number, any>();
         for (const p of profiles) {
+          const fullName =
+            `${p.firstName || ""} ${p.lastName || ""}`.trim() ||
+            (p as any).fullName ||
+            (p as any).name ||
+            `Staff #${p.profileId || p.id}`;
           profileMap.set(p.id, {
             id: p.id,
-            profileId: p.profileId,
-            fullName:
-              `${p.firstName || ""} ${p.lastName || ""}`.trim() ||
-              (p as any).fullName ||
-              `Staff #${p.id}`,
+            profileId: p.profileId || (p as any).code || String(p.id),
+            fullName,
+            name: fullName,
             department: p.department || "General",
             jobTitle: p.jobTitle || (p as any).position || "Staff",
             gender: p.gender || "M",
-            phone: p.phone,
+            phone: p.phone || "",
+            nationality: p.nationality || "",
+            employeeNumber: p.profileId || (p as any).code || String(p.id),
           });
         }
 
@@ -446,8 +451,15 @@ router.get(
           const list = assignmentsByRoom.get(a.roomId) || [];
           const prof = profileMap.get(a.profileId) || {
             id: a.profileId,
+            profileId: String(a.profileId),
             fullName: "Resident",
+            name: "Resident",
             department: "General",
+            jobTitle: "Staff",
+            gender: "M",
+            phone: "",
+            nationality: "",
+            employeeNumber: String(a.profileId),
           };
           list.push({
             assignmentId: a.id,
@@ -455,6 +467,16 @@ router.get(
             isEntireRoom: Boolean(a.isEntireRoom),
             checkInDate: a.checkInDate,
             expectedCheckOutDate: a.expectedCheckOutDate,
+            name: prof.fullName,
+            fullName: prof.fullName,
+            employeeNumber: prof.profileId,
+            profileCode: prof.profileId,
+            department: prof.department,
+            jobTitle: prof.jobTitle,
+            gender: prof.gender,
+            phone: prof.phone,
+            nationality: prof.nationality,
+            status: a.status,
             profile: prof,
           });
           assignmentsByRoom.set(a.roomId, list);
@@ -473,11 +495,28 @@ router.get(
           const vacantBeds = Math.max(0, cap - occupiedBeds);
 
           let displayStatus = (r.status || "available").toLowerCase();
+          const rawSt = (r.status || "available").toLowerCase();
           if (displayStatus === "available" && occ > 0) {
             displayStatus = occupiedBeds >= cap ? "occupied" : "partially_occupied";
           } else if (displayStatus === "occupied" && occ < cap && !isEntire) {
             displayStatus = occ === 0 ? "available" : "partially_occupied";
           }
+
+          let statusCategory = "available";
+          if (rawSt.includes("out_of_service") || rawSt.includes("out_of_order") || rawSt.includes("maintenance")) {
+            statusCategory = "maintenance";
+          } else if (displayStatus === "occupied" || occupiedBeds >= cap) {
+            statusCategory = "occupied";
+          } else if (displayStatus === "partially_occupied" || (occupiedBeds > 0 && occupiedBeds < cap)) {
+            statusCategory = "partial";
+          }
+
+          const cleanlinessStatus =
+            rawSt.includes("dirty")
+              ? "dirty"
+              : rawSt.includes("inspected")
+              ? "inspected"
+              : "clean";
 
           list.push({
             id: r.id,
@@ -485,9 +524,13 @@ router.get(
             roomType: r.roomType || "standard",
             capacity: cap,
             occupiedBeds,
+            occupiedCount: occupiedBeds,
             vacantBeds,
+            availableBeds: vacantBeds,
             currentOccupancy: occ,
             status: displayStatus,
+            statusCategory,
+            cleanlinessStatus,
             rawStatus: r.status,
             gender: r.gender,
             separatorDoor: r.separatorDoor,

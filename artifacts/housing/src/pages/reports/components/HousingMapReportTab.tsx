@@ -28,6 +28,9 @@ import {
   MapPin,
   Bed,
   Check,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +79,92 @@ export function HousingMapReportTab({
   const [viewMode, setViewMode] = useState<"map" | "table">("map");
   const [expandedBuildings, setExpandedBuildings] = useState<Record<number, boolean>>({});
   const [expandedFloors, setExpandedFloors] = useState<Record<number, boolean>>({});
+  const [sortBy, setSortBy] = useState<string>("roomNumber");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortDir("asc");
+    }
+  };
+
+  const getResidentInfo = (res: any, idx?: number) => {
+    const name =
+      res?.name ||
+      res?.fullName ||
+      res?.profile?.fullName ||
+      res?.profile?.name ||
+      (ar ? "مقيم" : "Resident");
+    const code =
+      res?.employeeNumber ||
+      res?.profileCode ||
+      res?.profile?.profileId ||
+      res?.profile?.employeeNumber ||
+      "-";
+    const dept = res?.department || res?.profile?.department || "-";
+    const job = res?.jobTitle || res?.profile?.jobTitle || "-";
+    const gender = res?.gender || res?.profile?.gender || "-";
+    const nationality = res?.nationality || res?.profile?.nationality || "-";
+    const bedNum = res?.bedNumber ? String(res.bedNumber) : idx !== undefined ? String(idx + 1) : "1";
+    return { name, code, dept, job, gender, nationality, bedNum };
+  };
+
+  const compareRooms = (a: any, b: any) => {
+    let diff = 0;
+    switch (sortBy) {
+      case "roomNumber":
+        diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+        break;
+      case "buildingName":
+        diff = String(a.buildingName || "").localeCompare(String(b.buildingName || ""));
+        if (diff === 0) {
+          diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+        }
+        break;
+      case "floor":
+        diff = Number(a.floorNumber ?? 0) - Number(b.floorNumber ?? 0);
+        if (diff === 0) {
+          diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+        }
+        break;
+      case "occupancy": {
+        const occA = a.occupiedCount ?? a.occupiedBeds ?? (a.residents?.length || 0);
+        const occB = b.occupiedCount ?? b.occupiedBeds ?? (b.residents?.length || 0);
+        diff = occA - occB;
+        if (diff === 0) {
+          diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+        }
+        break;
+      }
+      case "status": {
+        const stA = String(a.statusCategory || a.status || "");
+        const stB = String(b.statusCategory || b.status || "");
+        diff = stA.localeCompare(stB);
+        if (diff === 0) {
+          diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+        }
+        break;
+      }
+      case "cleanliness": {
+        const clA = String(a.cleanlinessStatus || "");
+        const clB = String(b.cleanlinessStatus || "");
+        diff = clA.localeCompare(clB);
+        break;
+      }
+      case "residents": {
+        const firstA = a.residents?.[0] ? getResidentInfo(a.residents[0]).name : "";
+        const firstB = b.residents?.[0] ? getResidentInfo(b.residents[0]).name : "";
+        diff = firstA.localeCompare(firstB);
+        break;
+      }
+      default:
+        diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+    }
+    return sortDir === "desc" ? -diff : diff;
+  };
 
   // Sync selectedPropertyId if parent activePropertyId changes
   React.useEffect(() => {
@@ -177,13 +266,19 @@ export function HousingMapReportTab({
           })
           .map((f: any) => {
             const filteredRooms = (f.rooms || []).filter((r: any) => {
+              const occ = r.occupiedCount ?? r.occupiedBeds ?? (r.residents?.length || 0);
+              const cap = r.capacity || 1;
+              const avail = r.availableBeds ?? r.vacantBeds ?? Math.max(0, cap - occ);
+              const stCat = r.statusCategory || (occ === 0 ? "available" : occ >= cap ? "occupied" : "partial");
+              const clnSt = r.cleanlinessStatus || (String(r.status || "").includes("dirty") ? "dirty" : "clean");
+
               // Status filter
               if (statusFilter !== "all") {
-                if (statusFilter === "available" && r.statusCategory !== "available") return false;
-                if (statusFilter === "occupied" && r.statusCategory !== "occupied") return false;
-                if (statusFilter === "partial" && r.statusCategory !== "partial") return false;
-                if (statusFilter === "dirty" && r.cleanlinessStatus !== "dirty") return false;
-                if (statusFilter === "maintenance" && r.statusCategory !== "maintenance") return false;
+                if (statusFilter === "available" && stCat !== "available") return false;
+                if (statusFilter === "occupied" && stCat !== "occupied") return false;
+                if (statusFilter === "partial" && stCat !== "partial") return false;
+                if (statusFilter === "dirty" && clnSt !== "dirty") return false;
+                if (statusFilter === "maintenance" && stCat !== "maintenance") return false;
               }
 
               // Search query
@@ -191,23 +286,46 @@ export function HousingMapReportTab({
                 const matchRoom = (r.roomNumber || "").toLowerCase().includes(q);
                 const matchType = (r.roomType || "").toLowerCase().includes(q);
                 const matchResident = (r.residents || []).some((res: any) => {
+                  const info = getResidentInfo(res);
                   return (
-                    (res.name || "").toLowerCase().includes(q) ||
-                    (res.department || "").toLowerCase().includes(q) ||
-                    (res.jobTitle || "").toLowerCase().includes(q) ||
-                    (res.employeeNumber || "").toLowerCase().includes(q)
+                    info.name.toLowerCase().includes(q) ||
+                    info.dept.toLowerCase().includes(q) ||
+                    info.job.toLowerCase().includes(q) ||
+                    info.code.toLowerCase().includes(q) ||
+                    info.nationality.toLowerCase().includes(q)
                   );
                 });
                 if (!matchRoom && !matchType && !matchResident) return false;
               }
 
               return true;
+            }).map((r: any) => {
+              const occ = r.occupiedCount ?? r.occupiedBeds ?? (r.residents?.length || 0);
+              const cap = r.capacity || 1;
+              const avail = r.availableBeds ?? r.vacantBeds ?? Math.max(0, cap - occ);
+              const stCat = r.statusCategory || (occ === 0 ? "available" : occ >= cap ? "occupied" : "partial");
+              const clnSt = r.cleanlinessStatus || (String(r.status || "").includes("dirty") ? "dirty" : "clean");
+
+              return {
+                ...r,
+                occupiedCount: occ,
+                availableBeds: avail,
+                statusCategory: stCat,
+                cleanlinessStatus: clnSt,
+                buildingName: b.name,
+                buildingCode: b.code,
+                floorName: f.name || `Floor ${f.floorNumber}`,
+                floorNumber: f.floorNumber,
+              };
             });
+
+            // Sort rooms within each floor according to active sort settings
+            const sortedRooms = [...filteredRooms].sort(compareRooms);
 
             return {
               ...f,
-              rooms: filteredRooms,
-              roomCount: filteredRooms.length,
+              rooms: sortedRooms,
+              roomCount: sortedRooms.length,
             };
           })
           .filter((f: any) => f.rooms.length > 0 || (!q && statusFilter === "all"));
@@ -219,9 +337,9 @@ export function HousingMapReportTab({
         };
       })
       .filter((b: any) => b.totalFilteredRooms > 0 || (!q && statusFilter === "all" && selectedBuildingId === "all"));
-  }, [rawBuildings, selectedBuildingId, selectedFloorId, statusFilter, searchQuery]);
+  }, [rawBuildings, selectedBuildingId, selectedFloorId, statusFilter, searchQuery, sortBy, sortDir]);
 
-  // Flat list of rooms for table view and export
+  // Flat list of rooms for table view and export (sorted according to user selection)
   const flatRooms = useMemo(() => {
     const list: any[] = [];
     filteredBuildings.forEach((b: any) => {
@@ -237,33 +355,48 @@ export function HousingMapReportTab({
         });
       });
     });
+    list.sort(compareRooms);
     return list;
-  }, [filteredBuildings]);
+  }, [filteredBuildings, sortBy, sortDir]);
 
   // Excel Export Handler
   const handleExportExcel = () => {
     const rows: any[] = [];
 
     flatRooms.forEach((r) => {
-      if (r.residents && r.residents.length > 0) {
-        r.residents.forEach((res: any) => {
+      const residents = r.residents || [];
+      if (residents.length > 0) {
+        residents.forEach((res: any, idx: number) => {
+          const info = getResidentInfo(res, idx);
           rows.push({
             [ar ? "المبنى" : "Building"]: r.buildingName,
             [ar ? "الدور" : "Floor"]: r.floorName,
             [ar ? "رقم الغرفة" : "Room Number"]: r.roomNumber,
             [ar ? "نوع الغرفة" : "Room Type"]: r.roomType || (ar ? "عادية" : "Standard"),
-            [ar ? "حالة الإشغال" : "Occupancy Status"]: r.statusCategory,
-            [ar ? "حالة النظافة" : "Cleanliness"]: r.cleanlinessStatus,
+            [ar ? "حالة الإشغال" : "Occupancy Status"]:
+              r.statusCategory === "available"
+                ? (ar ? "شاغرة" : "Vacant")
+                : r.statusCategory === "occupied"
+                ? (ar ? "مشغولة" : "Occupied")
+                : r.statusCategory === "partial"
+                ? (ar ? "إشغال جزئي" : "Partial")
+                : (ar ? "صيانة" : "Out of Service"),
+            [ar ? "حالة النظافة" : "Cleanliness"]:
+              r.cleanlinessStatus === "clean"
+                ? (ar ? "نظيفة" : "Clean")
+                : r.cleanlinessStatus === "dirty"
+                ? (ar ? "متسخة" : "Dirty")
+                : (ar ? "مفتشة" : "Inspected"),
             [ar ? "سعة الأسرة" : "Bed Capacity"]: r.capacity,
             [ar ? "الأسرة المشغولة" : "Occupied Beds"]: r.occupiedCount,
             [ar ? "الأسرة الشاغرة" : "Available Beds"]: r.availableBeds,
-            [ar ? "رقم السرير" : "Bed #"]: res.bedNumber || (ar ? "سرير" : "Bed"),
-            [ar ? "اسم الموظف" : "Employee Name"]: res.name,
-            [ar ? "كود الموظف" : "Employee Code"]: res.employeeNumber || "-",
-            [ar ? "القسم" : "Department"]: res.department || "-",
-            [ar ? "المسمى الوظيفي" : "Job Title"]: res.jobTitle || "-",
-            [ar ? "النوع" : "Gender"]: res.gender || "-",
-            [ar ? "الجنسية" : "Nationality"]: res.nationality || "-",
+            [ar ? "رقم السرير" : "Bed #"]: ar ? `سرير ${info.bedNum}` : `Bed ${info.bedNum}`,
+            [ar ? "اسم الموظف / المقيم" : "Resident Name"]: info.name,
+            [ar ? "كود الموظف" : "Employee Code"]: info.code,
+            [ar ? "القسم" : "Department"]: info.dept,
+            [ar ? "المسمى الوظيفي" : "Job Title"]: info.job,
+            [ar ? "النوع" : "Gender"]: info.gender,
+            [ar ? "الجنسية" : "Nationality"]: info.nationality,
           });
         });
       } else {
@@ -272,18 +405,23 @@ export function HousingMapReportTab({
           [ar ? "الدور" : "Floor"]: r.floorName,
           [ar ? "رقم الغرفة" : "Room Number"]: r.roomNumber,
           [ar ? "نوع الغرفة" : "Room Type"]: r.roomType || (ar ? "عادية" : "Standard"),
-          [ar ? "حالة الإشغال" : "Occupancy Status"]: r.statusCategory,
-          [ar ? "حالة النظافة" : "Cleanliness"]: r.cleanlinessStatus,
+          [ar ? "حالة الإشغال" : "Occupancy Status"]: ar ? "شاغرة" : "Vacant",
+          [ar ? "حالة النظافة" : "Cleanliness"]:
+            r.cleanlinessStatus === "clean"
+              ? (ar ? "نظيفة" : "Clean")
+              : r.cleanlinessStatus === "dirty"
+              ? (ar ? "متسخة" : "Dirty")
+              : (ar ? "مفتشة" : "Inspected"),
           [ar ? "سعة الأسرة" : "Bed Capacity"]: r.capacity,
-          [ar ? "الأسرة المشغولة" : "Occupied Beds"]: r.occupiedCount,
-          [ar ? "الأسرة الشاغرة" : "Available Beds"]: r.availableBeds,
-          [ar ? "رقم السرير" : "Bed #"]: "-",
-          [ar ? "اسم الموظف" : "Employee Name"]: ar ? "شاغر (لا يوجد مقيم)" : "Vacant",
-          [ar ? "كود الموظف" : "Employee Code"]: "-",
-          [ar ? "القسم" : "Department"]: "-",
-          [ar ? "المسمى الوظيفي" : "Job Title"]: "-",
-          [ar ? "النوع" : "Gender"]: "-",
-          [ar ? "الجنسية" : "Nationality"]: "-",
+          [ar ? "الأسرة المشغولة" : "Occupied Beds"]: 0,
+          [ar ? "الأسرة الشاغرة" : "Available Beds"]: r.capacity,
+          [ar ? "رقم السرير" : "Bed #"]: "—",
+          [ar ? "اسم الموظف / المقيم" : "Resident Name"]: ar ? "شاغر (لا يوجد مقيم)" : "Vacant",
+          [ar ? "كود الموظف" : "Employee Code"]: "—",
+          [ar ? "القسم" : "Department"]: "—",
+          [ar ? "المسمى الوظيفي" : "Job Title"]: "—",
+          [ar ? "النوع" : "Gender"]: "—",
+          [ar ? "الجنسية" : "Nationality"]: "—",
         });
       }
     });
@@ -306,10 +444,10 @@ export function HousingMapReportTab({
         r.residents && r.residents.length > 0
           ? r.residents
               .map((res: any, idx: number) => {
-                const bedStr = res.bedNumber ? `#${res.bedNumber}` : `#${idx + 1}`;
-                const codeStr = res.employeeNumber ? ` [${res.employeeNumber}]` : "";
-                const deptStr = res.department ? ` (${res.department})` : "";
-                return `${res.name}${codeStr}${deptStr} - ${bedStr}`;
+                const info = getResidentInfo(res, idx);
+                const codeStr = info.code !== "-" ? ` [${info.code}]` : "";
+                const deptStr = info.dept !== "-" ? ` (${info.dept})` : "";
+                return `${info.name}${codeStr}${deptStr} - سرير #${info.bedNum}`;
               })
               .join(" | ")
           : (ar ? "شاغرة بالكامل" : "Fully Vacant");
@@ -397,12 +535,18 @@ export function HousingMapReportTab({
                                       </div>
                                       <div style="display: flex; flex-direction: column; gap: 2px;">
                                         ${residents.length > 0
-                                          ? residents.map((res: any, rIdx: number) => `
-                                            <div style="background: rgba(255,255,255,0.7); border: 0.5px solid rgba(0,0,0,0.06); border-radius: 2px; padding: 1.5px 3px; font-size: 6.2pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                              <strong>#${res.bedNumber || rIdx + 1}:</strong> ${res.name} ${res.department ? `<span style="color: #64748b;">(${res.department})</span>` : ""}
-                                            </div>
-                                          `).join("")
-                                          : `<div style="font-style: italic; color: #94a3b8; font-size: 6.2pt; text-align: center;">${ar ? "شاغرة" : "Vacant"}</div>`
+                                          ? residents.map((res: any, rIdx: number) => {
+                                              const info = getResidentInfo(res, rIdx);
+                                              return `
+                                                <div style="background: rgba(255,255,255,0.85); border: 0.5px solid rgba(0,0,0,0.1); border-radius: 3px; padding: 2px 4px; font-size: 6.5pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;">
+                                                  <strong style="color: #0369a1;">#${info.bedNum}:</strong> 
+                                                  <strong style="color: #0f172a;">${info.name}</strong> 
+                                                  ${info.code !== "-" ? `<span style="color: #64748b; font-family: monospace;">[${info.code}]</span>` : ""}
+                                                  ${info.dept !== "-" ? `<span style="color: #475569;">(${info.dept})</span>` : ""}
+                                                </div>
+                                              `;
+                                            }).join("")
+                                          : `<div style="font-style: italic; color: #94a3b8; font-size: 6.5pt; text-align: center; padding: 2px;">${ar ? "شاغرة (متاح للتسكين)" : "Vacant"}</div>`
                                         }
                                       </div>
                                     </div>
@@ -854,6 +998,56 @@ export function HousingMapReportTab({
                 <SelectItem value="maintenance" className="text-xs">{ar ? "صيانة / خارج الخدمة" : "Maintenance"}</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Sorting Controls */}
+            <div className="flex items-center gap-1.5 ms-auto">
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[160px] h-9 text-xs rounded-xl bg-background font-semibold">
+                  <ArrowUpDown className="w-3.5 h-3.5 me-1 text-muted-foreground" />
+                  <SelectValue placeholder={ar ? "ترتيب حسب" : "Sort by"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="roomNumber" className="text-xs">
+                    {ar ? "رقم الغرفة" : "Room Number"}
+                  </SelectItem>
+                  <SelectItem value="buildingName" className="text-xs">
+                    {ar ? "المبنى" : "Building"}
+                  </SelectItem>
+                  <SelectItem value="floor" className="text-xs">
+                    {ar ? "الدور / الطابق" : "Floor"}
+                  </SelectItem>
+                  <SelectItem value="occupancy" className="text-xs">
+                    {ar ? "نسبة / عدد الإشغال" : "Occupancy Rate"}
+                  </SelectItem>
+                  <SelectItem value="status" className="text-xs">
+                    {ar ? "حالة الإشغال" : "Occupancy Status"}
+                  </SelectItem>
+                  <SelectItem value="cleanliness" className="text-xs">
+                    {ar ? "حالة النظافة" : "Cleanliness"}
+                  </SelectItem>
+                  <SelectItem value="residents" className="text-xs">
+                    {ar ? "اسم المقيم" : "Resident Name"}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))}
+                className="h-9 px-2.5 rounded-xl border-border/60 hover:bg-muted font-bold text-xs"
+                title={sortDir === "asc" ? (ar ? "ترتيب تصاعدي (اضغط للتنازلي)" : "Ascending (Click for DESC)") : (ar ? "ترتيب تنازلي (اضغط للتصاعدي)" : "Descending (Click for ASC)")}
+              >
+                {sortDir === "asc" ? (
+                  <ArrowUp className="w-3.5 h-3.5 text-primary" />
+                ) : (
+                  <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                )}
+                <span className="text-[10px] font-mono ms-1">
+                  {sortDir === "asc" ? (ar ? "تصاعدي" : "ASC") : (ar ? "تنازلي" : "DESC")}
+                </span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -1003,25 +1197,27 @@ export function HousingMapReportTab({
                                         const resident = residents[slotIdx];
 
                                         if (resident) {
+                                          const info = getResidentInfo(resident, slotIdx);
                                           return (
                                             <div
                                               key={slotIdx}
-                                              className="flex items-center gap-2 p-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs"
+                                              className="flex items-center gap-2 p-1.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/40 text-xs"
                                             >
                                               <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center text-[10px] font-bold shrink-0">
                                                 <Bed className="w-3 h-3" />
                                               </div>
                                               <div className="min-w-0 flex-1">
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between gap-1">
                                                   <span className="font-bold text-foreground truncate text-[11px]">
-                                                    {resident.name}
+                                                    {info.name}
                                                   </span>
-                                                  <span className="text-[10px] font-mono text-muted-foreground">
-                                                    {resident.bedNumber ? `#${resident.bedNumber}` : `#${slotIdx + 1}`}
+                                                  <span className="text-[10px] font-mono text-muted-foreground font-semibold shrink-0">
+                                                    #{info.bedNum}
                                                   </span>
                                                 </div>
                                                 <p className="text-[10px] text-muted-foreground truncate">
-                                                  {resident.department || "-"} · {resident.jobTitle || "-"}
+                                                  {info.code !== "-" && <span className="font-mono me-1">[{info.code}]</span>}
+                                                  {info.dept} {info.job !== "-" ? `· ${info.job}` : ""}
                                                 </p>
                                               </div>
                                             </div>
@@ -1064,14 +1260,84 @@ export function HousingMapReportTab({
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/50 text-muted-foreground uppercase tracking-wider font-semibold">
-                  <th className="py-3 px-3 text-start">{ar ? "المبنى" : "Building"}</th>
-                  <th className="py-3 px-3 text-start">{ar ? "الدور" : "Floor"}</th>
-                  <th className="py-3 px-3 text-start">{ar ? "رقم الغرفة" : "Room"}</th>
+                  <th
+                    onClick={() => toggleSort("buildingName")}
+                    className="py-3 px-3 text-start cursor-pointer select-none hover:text-foreground transition-colors group"
+                  >
+                    <span>{ar ? "المبنى" : "Building"}</span>
+                    {sortBy === "buildingName" ? (
+                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
+                    )}
+                  </th>
+                  <th
+                    onClick={() => toggleSort("floor")}
+                    className="py-3 px-3 text-start cursor-pointer select-none hover:text-foreground transition-colors group"
+                  >
+                    <span>{ar ? "الدور" : "Floor"}</span>
+                    {sortBy === "floor" ? (
+                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
+                    )}
+                  </th>
+                  <th
+                    onClick={() => toggleSort("roomNumber")}
+                    className="py-3 px-3 text-start cursor-pointer select-none hover:text-foreground transition-colors group"
+                  >
+                    <span>{ar ? "رقم الغرفة" : "Room"}</span>
+                    {sortBy === "roomNumber" ? (
+                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
+                    )}
+                  </th>
                   <th className="py-3 px-3 text-start">{ar ? "النوع" : "Type"}</th>
-                  <th className="py-3 px-3 text-center">{ar ? "الحالة" : "Status"}</th>
-                  <th className="py-3 px-3 text-center">{ar ? "النظافة" : "Clean"}</th>
-                  <th className="py-3 px-3 text-center">{ar ? "الأسرة" : "Beds"}</th>
-                  <th className="py-3 px-3 text-start">{ar ? "المقيمين والنزلاء" : "Residents"}</th>
+                  <th
+                    onClick={() => toggleSort("status")}
+                    className="py-3 px-3 text-center cursor-pointer select-none hover:text-foreground transition-colors group"
+                  >
+                    <span>{ar ? "الحالة" : "Status"}</span>
+                    {sortBy === "status" ? (
+                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
+                    )}
+                  </th>
+                  <th
+                    onClick={() => toggleSort("cleanliness")}
+                    className="py-3 px-3 text-center cursor-pointer select-none hover:text-foreground transition-colors group"
+                  >
+                    <span>{ar ? "النظافة" : "Clean"}</span>
+                    {sortBy === "cleanliness" ? (
+                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
+                    )}
+                  </th>
+                  <th
+                    onClick={() => toggleSort("occupancy")}
+                    className="py-3 px-3 text-center cursor-pointer select-none hover:text-foreground transition-colors group"
+                  >
+                    <span>{ar ? "الأسرة" : "Beds"}</span>
+                    {sortBy === "occupancy" ? (
+                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
+                    )}
+                  </th>
+                  <th
+                    onClick={() => toggleSort("residents")}
+                    className="py-3 px-3 text-start cursor-pointer select-none hover:text-foreground transition-colors group"
+                  >
+                    <span>{ar ? "المقيمين والنزلاء بالأسرة" : "Residents & Beds"}</span>
+                    {sortBy === "residents" ? (
+                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
+                    )}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -1089,24 +1355,30 @@ export function HousingMapReportTab({
                     <td className="py-2.5 px-3">
                       {r.residents && r.residents.length > 0 ? (
                         <div className="space-y-1">
-                          {r.residents.map((res: any, idx: number) => (
-                            <div key={idx} className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-semibold text-foreground">{res.name}</span>
-                              {res.department && (
-                                <Badge variant="outline" className="text-[9px] py-0 px-1">
-                                  {res.department}
-                                </Badge>
-                              )}
-                              {res.bedNumber && (
-                                <span className="text-[10px] text-muted-foreground font-mono">
-                                  (سرير {res.bedNumber})
+                          {r.residents.map((res: any, idx: number) => {
+                            const info = getResidentInfo(res, idx);
+                            return (
+                              <div key={idx} className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-foreground text-xs">{info.name}</span>
+                                {info.code !== "-" && (
+                                  <span className="text-[10px] font-mono text-muted-foreground bg-muted/60 px-1 rounded">
+                                    [{info.code}]
+                                  </span>
+                                )}
+                                {info.dept !== "-" && (
+                                  <Badge variant="outline" className="text-[9px] py-0 px-1 bg-slate-50 dark:bg-slate-900">
+                                    {info.dept}
+                                  </Badge>
+                                )}
+                                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono font-bold">
+                                  (سرير {info.bedNum})
                                 </span>
-                              )}
-                            </div>
-                          ))}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground/60 italic">{ar ? "شاغرة" : "Vacant"}</span>
+                        <span className="text-muted-foreground/60 italic">{ar ? "شاغرة (لا يوجد مقيمين)" : "Vacant"}</span>
                       )}
                     </td>
                   </tr>
