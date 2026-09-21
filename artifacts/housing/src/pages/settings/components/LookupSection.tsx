@@ -61,6 +61,7 @@ interface LookupSectionProps {
   showCapacity?: boolean;
   extraLabel?: string;
   enablePagination?: boolean;
+  customLevelRules?: any[];
 }
 
 export function LookupSection({
@@ -73,9 +74,24 @@ export function LookupSection({
   showCapacity,
   extraLabel,
   enablePagination,
+  customLevelRules,
 }: LookupSectionProps) {
   const { language } = useLanguage();
   const ar = language === "ar";
+
+  const suggestedLevels = [
+    { value: "Level 0", label: ar ? "Level 0 - الإدارة العليا / VIP (سعة 1)" : "Level 0 - Executive / VIP (Cap 1)" },
+    { value: "Level 1", label: ar ? "Level 1 - المدراء ورؤساء القطاعات (سعة 1)" : "Level 1 - GMs / Execs (Cap 1)" },
+    { value: "Level 2", label: ar ? "Level 2 - مدراء الأقسام والمساعدون (سعة 2)" : "Level 2 - Dept Heads (Cap 2)" },
+    { value: "Level 3", label: ar ? "Level 3 - المشرفون والموظفون (سعة 3)" : "Level 3 - Supervisors / Staff (Cap 3)" },
+    { value: "Level 4", label: ar ? "Level 4 - العمال والخدمات المعاونة (سعة 4)" : "Level 4 - Workers (Cap 4)" },
+    { value: "Level 5", label: ar ? "Level 5 - غرف خماسية (سعة 5)" : "Level 5 - 5-Bed (Cap 5)" },
+    { value: "Level 6", label: ar ? "Level 6 - غرف سداسية (سعة 6)" : "Level 6 - 6-Bed (Cap 6)" },
+    ...(customLevelRules || []).map((r: any) => ({
+      value: r.name,
+      label: `${r.name} - ${r.nameAr || ""} (${r.capacity} ${ar ? "أفراد" : "beds"})`,
+    })),
+  ];
 
   const [newValue, setNewValue] = useState("");
   const [newCapacity, setNewCapacity] = useState<number>(2);
@@ -460,12 +476,24 @@ export function LookupSection({
             className="flex-1 min-w-[200px] h-9 text-sm"
           />
           {extraLabel && (
-            <Input
-              placeholder={ar ? `${currentExtraLabel} (مثال: المستوى 1)...` : `${currentExtraLabel} (e.g. Level 1)...`}
-              value={newExtraValue}
-              onChange={(e) => setNewExtraValue(e.target.value)}
-              className="w-44 h-9 text-sm font-medium"
-            />
+            <>
+              <Input
+                list={category === "job_title" ? "suggested-job-levels" : undefined}
+                placeholder={ar ? `${currentExtraLabel} (مثال: Level 1)...` : `${currentExtraLabel} (e.g. Level 1)...`}
+                value={newExtraValue}
+                onChange={(e) => setNewExtraValue(e.target.value)}
+                className="w-48 h-9 text-sm font-medium"
+              />
+              {category === "job_title" && (
+                <datalist id="suggested-job-levels">
+                  {suggestedLevels.map((lvl) => (
+                    <option key={lvl.value} value={lvl.value}>
+                      {lvl.label}
+                    </option>
+                  ))}
+                </datalist>
+              )}
+            </>
           )}
           {showCapacity && (
             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -617,14 +645,15 @@ export function LookupSection({
                         {extraLabel && (
                           <TableCell>
                             <Input
+                              list={category === "job_title" ? "suggested-job-levels" : undefined}
                               value={editExtraValue}
                               onChange={(e) => setEditExtraValue(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") saveEdit(v);
                                 if (e.key === "Escape") cancelEdit();
                               }}
-                              className="h-8 text-sm font-semibold text-primary w-36"
-                              placeholder={ar ? "مثال: المستوى 1" : "e.g. Level 1"}
+                              className="h-8 text-sm font-semibold text-primary w-40"
+                              placeholder={ar ? "مثال: Level 1" : "e.g. Level 1"}
                             />
                           </TableCell>
                         )}

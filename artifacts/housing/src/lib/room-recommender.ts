@@ -30,6 +30,34 @@ export function getLevelTargetCapacity(
   const l2Cap = Number(policySettings?.policyLevel2Capacity) || 2;
   const l3Cap = Number(policySettings?.policyLevel3Capacity) || 3;
   const l4Cap = Number(policySettings?.policyLevel4Capacity) || 4;
+  const l5Cap = Number(policySettings?.policyLevel5Capacity) || 5;
+  const l6Cap = Number(policySettings?.policyLevel6Capacity) || 6;
+
+  // Check user-defined dynamic custom rules first
+  const customRules: any[] = Array.isArray(policySettings?.customLevelRules)
+    ? policySettings.customLevelRules
+    : [];
+  const matchedCustom = customRules.find((cr: any) => {
+    const crName = String(cr.name || "").trim().toLowerCase();
+    const crNameAr = String(cr.nameAr || "").trim().toLowerCase();
+    return (
+      (crName && lvl === crName) ||
+      (crNameAr && lvl === crNameAr) ||
+      (crName && lvl.includes(crName)) ||
+      (crNameAr && lvl.includes(crNameAr))
+    );
+  });
+
+  if (matchedCustom) {
+    const cap = Math.max(1, Number(matchedCustom.capacity) || 4);
+    return {
+      minCap: 1,
+      maxCap: cap,
+      idealCap: cap,
+      levelNameAr: matchedCustom.nameAr || matchedCustom.name,
+      levelNameEn: matchedCustom.name || matchedCustom.nameAr,
+    };
+  }
 
   // Level 0: Top Management / Executives / General Managers / Corporate Directors / VIP
   // Highest entitlement: Single room / Private Suite / Deluxe accommodation
@@ -114,13 +142,57 @@ export function getLevelTargetCapacity(
     };
   }
 
+  // Level 5: Extra capacity (default 5 beds)
+  if (
+    lvl === "5" ||
+    lvl === "level 5" ||
+    lvl.includes("خامس") ||
+    lvl.includes("مستوى 5") ||
+    lvl.includes("درجة 5")
+  ) {
+    return {
+      minCap: 1,
+      maxCap: l5Cap,
+      idealCap: l5Cap,
+      levelNameAr: "عمال ومعاونون (المستوى 5 - سعة 5)",
+      levelNameEn: "Support Staff (Level 5 - 5 Beds)",
+    };
+  }
+
+  // Level 6: High capacity shared accommodation (default 6 beds)
+  if (
+    lvl === "6" ||
+    lvl === "level 6" ||
+    lvl.includes("سادس") ||
+    lvl.includes("مستوى 6") ||
+    lvl.includes("درجة 6")
+  ) {
+    return {
+      minCap: 1,
+      maxCap: l6Cap,
+      idealCap: l6Cap,
+      levelNameAr: "سكن جماعي مكثف (المستوى 6 - سعة 6)",
+      levelNameEn: "Intensive Shared (Level 6 - 6 Beds)",
+    };
+  }
+
   // Level 4 / General Workers: Shared Rooms / Line Staff
   return {
     minCap: 1,
     maxCap: l4Cap,
     idealCap: l4Cap,
-    levelNameAr: lvl === "4" || lvl === "level 4" ? "عمال وخدمات (المستوى 4)" : (lvl ? `مستوى ${lvl}` : "طاقم العمل (المستوى 4)"),
-    levelNameEn: lvl === "4" || lvl === "level 4" ? "General Workers (Level 4)" : (lvl ? `Level ${lvl}` : "General Staff (Level 4)"),
+    levelNameAr:
+      lvl === "4" || lvl === "level 4"
+        ? "عمال وخدمات (المستوى 4)"
+        : lvl
+        ? `مستوى ${lvl}`
+        : "طاقم العمل (المستوى 4)",
+    levelNameEn:
+      lvl === "4" || lvl === "level 4"
+        ? "General Workers (Level 4)"
+        : lvl
+        ? `Level ${lvl}`
+        : "General Staff (Level 4)",
   };
 }
 

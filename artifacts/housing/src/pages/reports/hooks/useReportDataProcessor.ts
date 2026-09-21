@@ -1884,6 +1884,9 @@ export function useReportDataProcessor({
         const l2Cap = Number(policySettings?.policyLevel2Capacity) || 2;
         const l3Cap = Number(policySettings?.policyLevel3Capacity) || 3;
         const l4Cap = Number(policySettings?.policyLevel4Capacity) || 4;
+        const l5Cap = Number(policySettings?.policyLevel5Capacity) || 5;
+        const l6Cap = Number(policySettings?.policyLevel6Capacity) || 6;
+        const customRules: any[] = Array.isArray(policySettings?.customLevelRules) ? policySettings.customLevelRules : [];
         const clusterEnabled = policySettings?.policyDepartmentClustering ?? true;
         const strictSegregation = policySettings?.policyStrictDepartmentSegregation ?? false;
 
@@ -1916,7 +1919,16 @@ export function useReportDataProcessor({
 
           let maxAllowedCap = l4Cap;
           let levelCategory = ar ? "الدرجة الرابعة (عمال/خدمات)" : "Level 4 (General Staff)";
-          if (
+          const matchedCustom = customRules.find((cr: any) => {
+            const crName = String(cr.name || "").trim().toLowerCase();
+            const crNameAr = String(cr.nameAr || "").trim().toLowerCase();
+            return (crName && lvl === crName) || (crNameAr && lvl === crNameAr) || (crName && lvl.includes(crName));
+          });
+
+          if (matchedCustom) {
+            maxAllowedCap = Number(matchedCustom.capacity) || 4;
+            levelCategory = ar ? (matchedCustom.nameAr || matchedCustom.name) : (matchedCustom.name || matchedCustom.nameAr);
+          } else if (
             lvl === "0" ||
             lvl === "level 0" ||
             lvl === "vip" ||
@@ -1939,6 +1951,12 @@ export function useReportDataProcessor({
           } else if (lvl === "3" || lvl === "level 3" || lvl.includes("فني") || lvl.includes("specialist") || lvl.includes("senior")) {
             maxAllowedCap = l3Cap;
             levelCategory = ar ? "الدرجة الثالثة (فني/تخصصي)" : "Level 3 (Senior/Staff)";
+          } else if (lvl === "5" || lvl === "level 5" || lvl.includes("خامس") || lvl.includes("level 5") || lvl.includes("5")) {
+            maxAllowedCap = l5Cap;
+            levelCategory = ar ? "الدرجة الخامسة (عمال معاونون)" : "Level 5 (Support Staff)";
+          } else if (lvl === "6" || lvl === "level 6" || lvl.includes("سادس") || lvl.includes("level 6") || lvl.includes("6")) {
+            maxAllowedCap = l6Cap;
+            levelCategory = ar ? "الدرجة السادسة (تسكين مكثف)" : "Level 6 (Intensive Shared)";
           }
 
           // Check A: Capacity Exceeded

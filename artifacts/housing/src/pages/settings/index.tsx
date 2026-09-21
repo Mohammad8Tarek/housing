@@ -95,9 +95,14 @@ export default function Settings() {
         policyLevel2Capacity: (settings as any).policyLevel2Capacity ?? 2,
         policyLevel3Capacity: (settings as any).policyLevel3Capacity ?? 3,
         policyLevel4Capacity: (settings as any).policyLevel4Capacity ?? 4,
+        policyLevel5Capacity: (settings as any).policyLevel5Capacity ?? 5,
+        policyLevel6Capacity: (settings as any).policyLevel6Capacity ?? 6,
         policyLevel0AllowEntire: (settings as any).policyLevel0AllowEntire ?? true,
         policyLevel1AllowEntire: (settings as any).policyLevel1AllowEntire ?? true,
         policyLevel2AllowEntire: (settings as any).policyLevel2AllowEntire ?? false,
+        policyLevel5AllowEntire: (settings as any).policyLevel5AllowEntire ?? false,
+        policyLevel6AllowEntire: (settings as any).policyLevel6AllowEntire ?? false,
+        customLevelRules: Array.isArray((settings as any).customLevelRules) ? (settings as any).customLevelRules : [],
         policyDepartmentClustering: (settings as any).policyDepartmentClustering ?? true,
         policyStrictDepartmentSegregation: (settings as any).policyStrictDepartmentSegregation ?? false,
         visitMaxNights: (settings as any).visitMaxNights ?? 7,
@@ -244,6 +249,7 @@ export default function Settings() {
           <TabsContent value="policies">
             <form onSubmit={handleSubmit} className="space-y-4">
               <PoliciesSection
+                propertyId={selectedPropertyId ?? undefined}
                 language={language}
                 isLoading={isLoading}
                 propertyName={
@@ -306,6 +312,7 @@ export default function Settings() {
                           parentLabel="Department"
                           extraLabel="Level"
                           enablePagination={true}
+                          customLevelRules={form.watch("customLevelRules") || (settings as any)?.customLevelRules || []}
                         />
                       )}
                     </CardContent>

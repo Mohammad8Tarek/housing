@@ -1294,6 +1294,17 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ADD COLUMN IF NOT EXISTS policy_level_0_allow_entire BOOLEAN NOT NULL DEFAULT true;
     `,
   },
+  {
+    name: "public.settings.policy_levels_5_6_and_custom",
+    q: `
+      ALTER TABLE public.settings
+        ADD COLUMN IF NOT EXISTS policy_level_5_capacity INTEGER NOT NULL DEFAULT 5,
+        ADD COLUMN IF NOT EXISTS policy_level_6_capacity INTEGER NOT NULL DEFAULT 6,
+        ADD COLUMN IF NOT EXISTS policy_level_5_allow_entire BOOLEAN NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS policy_level_6_allow_entire BOOLEAN NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS custom_level_rules JSONB DEFAULT '[]'::jsonb;
+    `,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -1313,6 +1324,13 @@ const TENANT_MIGRATIONS = [
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_2_capacity INTEGER NOT NULL DEFAULT 2;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_3_capacity INTEGER NOT NULL DEFAULT 3;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_4_capacity INTEGER NOT NULL DEFAULT 4;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_5_capacity INTEGER NOT NULL DEFAULT 5;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_6_capacity INTEGER NOT NULL DEFAULT 6;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_1_allow_entire BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_2_allow_entire BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_5_allow_entire BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_6_allow_entire BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS custom_level_rules JSONB DEFAULT '[]'::jsonb;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_1_allow_entire BOOLEAN NOT NULL DEFAULT true;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_level_2_allow_entire BOOLEAN NOT NULL DEFAULT false;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_department_clustering BOOLEAN NOT NULL DEFAULT true;

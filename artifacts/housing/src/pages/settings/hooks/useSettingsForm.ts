@@ -32,9 +32,25 @@ export const settingsSchema = z.object({
   policyLevel2Capacity: z.coerce.number().min(1).max(10).default(2),
   policyLevel3Capacity: z.coerce.number().min(1).max(10).default(3),
   policyLevel4Capacity: z.coerce.number().min(1).max(10).default(4),
+  policyLevel5Capacity: z.coerce.number().min(1).max(20).default(5),
+  policyLevel6Capacity: z.coerce.number().min(1).max(20).default(6),
   policyLevel0AllowEntire: z.boolean().default(true),
   policyLevel1AllowEntire: z.boolean().default(true),
   policyLevel2AllowEntire: z.boolean().default(false),
+  policyLevel5AllowEntire: z.boolean().default(false),
+  policyLevel6AllowEntire: z.boolean().default(false),
+  customLevelRules: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        nameAr: z.string().optional(),
+        capacity: z.coerce.number().min(1).max(20),
+        allowEntire: z.boolean().default(false),
+        description: z.string().optional(),
+      })
+    )
+    .default([]),
   policyDepartmentClustering: z.boolean().default(true),
   policyStrictDepartmentSegregation: z.boolean().default(false),
 
@@ -112,9 +128,14 @@ export function useSettingsForm() {
       policyLevel2Capacity: 2,
       policyLevel3Capacity: 3,
       policyLevel4Capacity: 4,
+      policyLevel5Capacity: 5,
+      policyLevel6Capacity: 6,
       policyLevel0AllowEntire: true,
       policyLevel1AllowEntire: true,
       policyLevel2AllowEntire: false,
+      policyLevel5AllowEntire: false,
+      policyLevel6AllowEntire: false,
+      customLevelRules: [],
       policyDepartmentClustering: true,
       policyStrictDepartmentSegregation: false,
       visitMaxNights: 7,

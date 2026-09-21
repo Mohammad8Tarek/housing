@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -26,6 +27,22 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   ShieldAlert,
   Users,
   Clock,
@@ -37,24 +54,145 @@ import {
   Printer,
   Sparkles,
   HeartHandshake,
+  Plus,
+  Trash2,
+  Pencil,
+  Briefcase,
+  Layers,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
 } from "lucide-react";
 import { useFormContext } from "react-hook-form";
 import type { SettingsFormData } from "../hooks/useSettingsForm";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
+import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
+import { toast } from "sonner";
 
 interface PoliciesSectionProps {
+  propertyId?: number;
   language: string;
   isLoading: boolean;
   propertyName?: string;
 }
 
 export function PoliciesSection({
+  propertyId,
   language,
   isLoading,
   propertyName,
 }: PoliciesSectionProps) {
   const form = useFormContext<SettingsFormData>();
   const ar = language === "ar";
+
+  // Fetch job titles to map against custom rules
+  const { data: existingJobTitles = [] } = useLookupValues(
+    propertyId,
+    LOOKUP_CATEGORIES.JOB_TITLE,
+    true
+  );
+
+  const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [ruleForm, setRuleForm] = useState<{
+    name: string;
+    nameAr: string;
+    capacity: number;
+    allowEntire: boolean;
+    description: string;
+  }>({
+    name: "",
+    nameAr: "",
+    capacity: 5,
+    allowEntire: false,
+    description: "",
+  });
+
+  const customRules: any[] = form.watch("customLevelRules") || [];
+
+  const handleOpenAddRule = (presetName?: string, presetCap?: number) => {
+    setEditingRuleId(null);
+    setRuleForm({
+      name: presetName || "",
+      nameAr: presetName ? (presetName === "Level 5" ? "المستوى 5 (سكن عمال 5 أفراد)" : presetName === "Level 6" ? "المستوى 6 (سكن جماعي 6 أفراد)" : "") : "",
+      capacity: presetCap || 5,
+      allowEntire: false,
+      description: "",
+    });
+    setIsRuleModalOpen(true);
+  };
+
+  const handleOpenEditRule = (rule: any) => {
+    setEditingRuleId(rule.id);
+    setRuleForm({
+      name: rule.name || "",
+      nameAr: rule.nameAr || "",
+      capacity: Number(rule.capacity) || 5,
+      allowEntire: Boolean(rule.allowEntire),
+      description: rule.description || "",
+    });
+    setIsRuleModalOpen(true);
+  };
+
+  const handleSaveRule = () => {
+    const trimmedName = ruleForm.name.trim();
+    if (!trimmedName) {
+      toast.error(ar ? "يرجى كتابة اسم أو كود الدرجة (مثل Level 5)" : "Rule code/name is required");
+      return;
+    }
+    const currentList = [...(form.getValues("customLevelRules") || [])];
+
+    if (editingRuleId) {
+      const idx = currentList.findIndex((r: any) => r.id === editingRuleId);
+      if (idx !== -1) {
+        currentList[idx] = {
+          ...currentList[idx],
+          name: trimmedName,
+          nameAr: ruleForm.nameAr.trim(),
+          capacity: Number(ruleForm.capacity) || 5,
+          allowEntire: ruleForm.allowEntire,
+          description: ruleForm.description.trim(),
+        };
+      }
+    } else {
+      currentList.push({
+        id: `rule_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        name: trimmedName,
+        nameAr: ruleForm.nameAr.trim(),
+        capacity: Number(ruleForm.capacity) || 5,
+        allowEntire: ruleForm.allowEntire,
+        description: ruleForm.description.trim(),
+      });
+    }
+
+    form.setValue("customLevelRules", currentList, { shouldDirty: true, shouldValidate: true });
+    setIsRuleModalOpen(false);
+    toast.success(
+      editingRuleId
+        ? (ar ? "تم تعديل قاعدة الاستحقاق بنجاح" : "Entitlement rule updated")
+        : (ar ? "تمت إضافة قاعدة الاستحقاق بنجاح" : "New entitlement rule created")
+    );
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    const currentList = [...(form.getValues("customLevelRules") || [])];
+    const updated = currentList.filter((r: any) => r.id !== ruleId);
+    form.setValue("customLevelRules", updated, { shouldDirty: true, shouldValidate: true });
+    toast.success(ar ? "تم حذف قاعدة الاستحقاق" : "Rule deleted");
+  };
+
+  const getLinkedTitlesForRule = (ruleName: string, ruleNameAr?: string) => {
+    const qName = ruleName.trim().toLowerCase();
+    const qNameAr = (ruleNameAr || "").trim().toLowerCase();
+    return existingJobTitles.filter((jt: any) => {
+      const extra = String(jt.extraValue || "").trim().toLowerCase();
+      return (
+        extra === qName ||
+        (qNameAr && extra === qNameAr) ||
+        (qName && extra.includes(qName))
+      );
+    });
+  };
 
   const handleExportPolicyPdf = () => {
     const values = form.getValues();
@@ -109,6 +247,23 @@ export function PoliciesSection({
                 <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel4Capacity} ${ar ? "أفراد" : "persons"}</td>
                 <td style="padding: 8px; border: 1px solid #cbd5e1;">${ar ? "تسكين مشترك" : "Shared Only"}</td>
               </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة الخامسة (Level 5 - سعة 5 أفراد)" : "Level 5 (5-Bed Shared)"}</strong></td>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel5Capacity || 5} ${ar ? "أفراد" : "persons"}</td>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel5AllowEntire ? (ar ? "مسموح" : "Allowed") : (ar ? "تسكين مشترك" : "Shared Only")}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة السادسة (Level 6 - سعة 6 أفراد)" : "Level 6 (6-Bed Shared)"}</strong></td>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel6Capacity || 6} ${ar ? "أفراد" : "persons"}</td>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel6AllowEntire ? (ar ? "مسموح" : "Allowed") : (ar ? "تسكين مشترك" : "Shared Only")}</td>
+              </tr>
+              ${(values.customLevelRules || []).map((rule: any) => `
+                <tr style="background-color: #f8fafc;">
+                  <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${rule.nameAr || rule.name}</strong> <span style="font-size:10px; color:#64748b;">(${rule.name})</span></td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1;">${rule.capacity} ${ar ? "أفراد" : "persons"}</td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1;">${rule.allowEntire ? (ar ? "مسموح (غرفة كاملة)" : "Allowed (Entire Room)") : (ar ? "تسكين مشترك" : "Shared Only")}</td>
+                </tr>
+              `).join("")}
             </tbody>
           </table>
           <p style="margin-top: 8px; font-size: 12px; color: #475569;">
@@ -255,7 +410,7 @@ export function PoliciesSection({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <FormField
               control={form.control}
               name="policyLevel0Capacity"
@@ -269,7 +424,7 @@ export function PoliciesSection({
                     <Input type="number" min={1} max={5} {...field} className="bg-background" />
                   </FormControl>
                   <FormDescription className="text-[11px] text-amber-900/80 dark:text-amber-300/80 font-medium">
-                    {ar ? "القيادات العليا والمدراء العموم / VIP (فردي/جناح - 1 فرد)" : "Top Execs / GM / VIP (default 1)"}
+                    {ar ? "القيادات العليا والمدراء العموم / VIP (1 فرد)" : "Top Execs / GM / VIP (default 1)"}
                   </FormDescription>
                 </FormItem>
               )}
@@ -282,13 +437,13 @@ export function PoliciesSection({
                 <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
                   <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
                     <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-300 text-[10px]">Level 1</Badge>
-                    {ar ? "سعة غرفة الدرجة الأولى" : "Level 1 Capacity"}
+                    {ar ? "الدرجة الأولى" : "Level 1"}
                   </FormLabel>
                   <FormControl>
                     <Input type="number" min={1} max={10} {...field} />
                   </FormControl>
                   <FormDescription className="text-[11px]">
-                    {ar ? "مدراء العموم ورؤساء القطاعات (عادة 1 فرد)" : "Executive / GMs (default 1)"}
+                    {ar ? "مدراء العموم والقطاعات (1 فرد)" : "Executive / GMs (default 1)"}
                   </FormDescription>
                 </FormItem>
               )}
@@ -301,13 +456,13 @@ export function PoliciesSection({
                 <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
                   <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
                     <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-300 text-[10px]">Level 2</Badge>
-                    {ar ? "سعة غرفة الدرجة الثانية" : "Level 2 Capacity"}
+                    {ar ? "الدرجة الثانية" : "Level 2"}
                   </FormLabel>
                   <FormControl>
                     <Input type="number" min={1} max={10} {...field} />
                   </FormControl>
                   <FormDescription className="text-[11px]">
-                    {ar ? "مدراء الأقسام والمساعدون (عادة 2 فرد)" : "Department Heads (default 2)"}
+                    {ar ? "مدراء الأقسام (عادة 2)" : "Department Heads (default 2)"}
                   </FormDescription>
                 </FormItem>
               )}
@@ -320,13 +475,13 @@ export function PoliciesSection({
                 <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
                   <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
                     <Badge variant="outline" className="bg-indigo-500/10 text-indigo-700 border-indigo-300 text-[10px]">Level 3</Badge>
-                    {ar ? "سعة غرفة الدرجة الثالثة" : "Level 3 Capacity"}
+                    {ar ? "الدرجة الثالثة" : "Level 3"}
                   </FormLabel>
                   <FormControl>
                     <Input type="number" min={1} max={10} {...field} />
                   </FormControl>
                   <FormDescription className="text-[11px]">
-                    {ar ? "المشرفون والموظفون (عادة 2 إلى 3)" : "Supervisors/Staff (default 3)"}
+                    {ar ? "المشرفون (عادة 3)" : "Supervisors/Staff (default 3)"}
                   </FormDescription>
                 </FormItem>
               )}
@@ -339,13 +494,51 @@ export function PoliciesSection({
                 <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
                   <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
                     <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-300 text-[10px]">Level 4</Badge>
-                    {ar ? "سعة غرفة الدرجة الرابعة" : "Level 4 Capacity"}
+                    {ar ? "الدرجة الرابعة" : "Level 4"}
                   </FormLabel>
                   <FormControl>
                     <Input type="number" min={1} max={10} {...field} />
                   </FormControl>
                   <FormDescription className="text-[11px]">
-                    {ar ? "العمال والخدمات المعاونة (عادة 4)" : "Line Staff/Workers (default 4)"}
+                    {ar ? "العمال والخدمات (عادة 4)" : "Workers (default 4)"}
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="policyLevel5Capacity"
+              render={({ field }) => (
+                <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
+                  <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
+                    <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-300 text-[10px]">Level 5</Badge>
+                    {ar ? "الدرجة الخامسة" : "Level 5"}
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" min={1} max={15} {...field} />
+                  </FormControl>
+                  <FormDescription className="text-[11px]">
+                    {ar ? "غرف خماسية (عادة 5)" : "5-Bed rooms (default 5)"}
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="policyLevel6Capacity"
+              render={({ field }) => (
+                <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
+                  <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
+                    <Badge variant="outline" className="bg-cyan-500/10 text-cyan-700 border-cyan-300 text-[10px]">Level 6</Badge>
+                    {ar ? "الدرجة السادسة" : "Level 6"}
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" min={1} max={15} {...field} />
+                  </FormControl>
+                  <FormDescription className="text-[11px]">
+                    {ar ? "غرف سداسية (عادة 6)" : "6-Bed rooms (default 6)"}
                   </FormDescription>
                 </FormItem>
               )}
@@ -468,7 +661,177 @@ export function PoliciesSection({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="policyLevel5AllowEntire"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
+                  <div className="space-y-0.5 pe-4">
+                    <FormLabel className="text-xs font-bold">
+                      {ar ? "السماح بحجز غرفة كاملة (Level 5 Entire Room)" : "Allow Entire Room for Level 5"}
+                    </FormLabel>
+                    <FormDescription className="text-[11px]">
+                      {ar
+                        ? "إتاحة حجز الغرفة بالكامل لموظفي الدرجة الخامسة في حالات الاستثناء"
+                        : "Allow booking entire room for Level 5 staff"}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="policyLevel6AllowEntire"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
+                  <div className="space-y-0.5 pe-4">
+                    <FormLabel className="text-xs font-bold">
+                      {ar ? "السماح بحجز غرفة كاملة (Level 6 Entire Room)" : "Allow Entire Room for Level 6"}
+                    </FormLabel>
+                    <FormDescription className="text-[11px]">
+                      {ar
+                        ? "إتاحة حجز الغرفة بالكامل لموظفي الدرجة السادسة في حالات الاستثناء"
+                        : "Allow booking entire room for Level 6 staff"}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom Job Level Rules Card */}
+      <Card className="border-primary/20 shadow-sm">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="w-4 h-4 text-primary" />
+              {ar
+                ? "قواعد ومستويات الاستحقاق المخصصة (Custom Job Level Rules)"
+                : "Custom Job Level Rules & Capacity"}
+            </CardTitle>
+            <CardDescription>
+              {ar
+                ? "يمكنك إنشاء مستويات وقواعد استحقاق جديدة بحسب مسميات الوظائف (مثلاً: درجات لغرف 5 أفراد، 6 أفراد، أو فرق عمل خاصة)"
+                : "Create custom entitlement rules and capacity levels linked to job titles (e.g. 5 or 6-bed rooms, team leads)"}
+            </CardDescription>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => handleOpenAddRule()}
+            className="gap-1.5 text-xs font-semibold self-start sm:self-auto bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="w-4 h-4" />
+            {ar ? "إضافة مستوى / قاعدة جديدة" : "Add Custom Rule"}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {(!form.watch("customLevelRules") || form.watch("customLevelRules").length === 0) ? (
+            <div className="text-center py-8 border border-dashed rounded-lg bg-muted/20 text-muted-foreground">
+              <Layers className="w-8 h-8 mx-auto mb-2 opacity-50 text-primary" />
+              <p className="text-sm font-medium">
+                {ar ? "لا توجد قواعد مستويات مخصصة مضافة حالياً" : "No custom level rules created yet"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {ar
+                  ? "المستويات الأساسية (Level 0 حتى Level 6) تعمل تلقائياً. يمكنك إضافة قواعد إضافية هنا لربطها بالمسميات الوظيفية."
+                  : "Standard levels (Level 0 through Level 6) work automatically. Add extra custom rules here to link with job titles."}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="font-bold text-xs">{ar ? "كود / اسم المستوى" : "Level Code / Name"}</TableHead>
+                    <TableHead className="font-bold text-xs">{ar ? "الاسم العربي" : "Arabic Label"}</TableHead>
+                    <TableHead className="font-bold text-xs text-center">{ar ? "السعة القصوى للغرفة" : "Max Room Capacity"}</TableHead>
+                    <TableHead className="font-bold text-xs text-center">{ar ? "حجز غرفة كاملة" : "Entire Room"}</TableHead>
+                    <TableHead className="font-bold text-xs text-center">{ar ? "الوظائف المرتبطة" : "Linked Job Titles"}</TableHead>
+                    <TableHead className="font-bold text-xs">{ar ? "الوصف" : "Description"}</TableHead>
+                    <TableHead className="font-bold text-xs text-end w-24">{ar ? "الإجراءات" : "Actions"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {form.watch("customLevelRules").map((rule: any) => {
+                    const linked = getLinkedTitlesForRule(rule.name, rule.nameAr);
+                    return (
+                      <TableRow key={rule.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="font-semibold text-xs text-primary">
+                          <Badge variant="outline" className="font-mono bg-primary/5 text-primary border-primary/30">
+                            {rule.name}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-medium">{rule.nameAr || "—"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="font-bold text-xs">
+                            {rule.capacity} {ar ? "أفراد" : "beds"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {rule.allowEntire ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-300 text-[10px]">
+                              {ar ? "مسموح" : "Allowed"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground text-[10px]">
+                              {ar ? "مشترك" : "Shared"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className="text-[11px]"
+                            title={linked.map((j: any) => j.value).join(", ")}
+                          >
+                            {linked.length} {ar ? "وظيفة" : "titles"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={rule.description}>
+                          {rule.description || "—"}
+                        </TableCell>
+                        <TableCell className="text-end">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-primary"
+                              onClick={() => handleOpenEditRule(rule)}
+                              title={ar ? "تعديل" : "Edit"}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                              onClick={() => handleDeleteRule(rule.id)}
+                              title={ar ? "حذف" : "Delete"}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </TabsContent>
@@ -900,6 +1263,116 @@ export function PoliciesSection({
       </Card>
     </TabsContent>
   </Tabs>
-</div>
+
+    {/* Custom Level Rule Dialog Modal */}
+    <Dialog open={isRuleModalOpen} onOpenChange={setIsRuleModalOpen}>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="w-4 h-4 text-primary" />
+            {editingRuleId
+              ? (ar ? "تعديل قاعدة استحقاق الغرف والدرجة" : "Edit Entitlement Rule")
+              : (ar ? "إضافة قاعدة استحقاق ودرجة وظيفية جديدة" : "Add New Job Level Entitlement Rule")}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {ar
+              ? "حدد كود المستوى وسعة استيعاب الغرف لربطه مع المسميات الوظيفية واقتراحات التسكين الذكي"
+              : "Specify level code, room capacity, and privileges to link with job titles and recommender"}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">
+                {ar ? "كود / اسم المستوى" : "Level Code / Identifier"} <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                placeholder={ar ? "مثال: Level 5 أو Level 6" : "e.g. Level 5, Level 6"}
+                value={ruleForm.name}
+                onChange={(e) => setRuleForm((prev) => ({ ...prev, name: e.target.value }))}
+                className="h-9 text-xs font-semibold"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                {ar ? "يُكتب في خانة 'الدرجة' بالمسمى الوظيفي" : "Enter this in Job Title 'Level'"}
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">{ar ? "الاسم العربي" : "Arabic Label"}</label>
+              <Input
+                placeholder={ar ? "مثال: الدرجة 5 (سكن 5 أفراد)" : "e.g. Grade 5"}
+                value={ruleForm.nameAr}
+                onChange={(e) => setRuleForm((prev) => ({ ...prev, nameAr: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 items-center">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">
+                {ar ? "الحد الأقصى لسعة الغرفة" : "Max Room Capacity"} <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={ruleForm.capacity}
+                onChange={(e) => setRuleForm((prev) => ({ ...prev, capacity: Number(e.target.value) || 1 }))}
+                className="h-9 text-xs font-bold text-center"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                {ar ? "عدد الأفراد المسموح بهم بالغرفة" : "Allowed persons per room"}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20 mt-3">
+              <div className="space-y-0.5 pe-2">
+                <label className="text-xs font-semibold block">{ar ? "حجز غرفة كاملة" : "Allow Entire Room"}</label>
+                <span className="text-[10px] text-muted-foreground">{ar ? "استحقاق فردي مستقل" : "Single occupancy"}</span>
+              </div>
+              <Switch
+                checked={ruleForm.allowEntire}
+                onCheckedChange={(checked) => setRuleForm((prev) => ({ ...prev, allowEntire: checked }))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold">{ar ? "الوصف / ملاحظات الاستحقاق" : "Description / Notes"}</label>
+            <Textarea
+              placeholder={ar ? "أية تفاصيل إضافية عن سياسة استحقاق هذه الفئة..." : "Additional details on room entitlement..."}
+              value={ruleForm.description}
+              onChange={(e) => setRuleForm((prev) => ({ ...prev, description: e.target.value }))}
+              rows={2}
+              className="text-xs resize-none"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsRuleModalOpen(false)}
+            className="text-xs"
+          >
+            {ar ? "إلغاء" : "Cancel"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleSaveRule}
+            className="text-xs font-semibold gap-1.5"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            {ar ? "حفظ القاعدة" : "Save Rule"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
   );
 }

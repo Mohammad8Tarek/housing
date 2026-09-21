@@ -5,6 +5,7 @@ import {
   integer,
   timestamp,
   boolean,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -67,9 +68,14 @@ export const settingsTable = pgTable("settings", {
   policyLevel2Capacity: integer("policy_level_2_capacity").notNull().default(2),
   policyLevel3Capacity: integer("policy_level_3_capacity").notNull().default(3),
   policyLevel4Capacity: integer("policy_level_4_capacity").notNull().default(4),
+  policyLevel5Capacity: integer("policy_level_5_capacity").notNull().default(5),
+  policyLevel6Capacity: integer("policy_level_6_capacity").notNull().default(6),
   policyLevel0AllowEntire: boolean("policy_level_0_allow_entire").notNull().default(true),
   policyLevel1AllowEntire: boolean("policy_level_1_allow_entire").notNull().default(true),
   policyLevel2AllowEntire: boolean("policy_level_2_allow_entire").notNull().default(false),
+  policyLevel5AllowEntire: boolean("policy_level_5_allow_entire").notNull().default(false),
+  policyLevel6AllowEntire: boolean("policy_level_6_allow_entire").notNull().default(false),
+  customLevelRules: jsonb("custom_level_rules").default([]),
   policyDepartmentClustering: boolean("policy_department_clustering").notNull().default(true),
   policyStrictDepartmentSegregation: boolean("policy_strict_department_segregation").notNull().default(false),
 

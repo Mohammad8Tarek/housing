@@ -1595,9 +1595,14 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_2_capacity" INTEGER DEFAULT 2;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_3_capacity" INTEGER DEFAULT 3;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_4_capacity" INTEGER DEFAULT 4;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_5_capacity" INTEGER DEFAULT 5;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_6_capacity" INTEGER DEFAULT 6;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_0_allow_entire" BOOLEAN DEFAULT true;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_1_allow_entire" BOOLEAN DEFAULT true;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_2_allow_entire" BOOLEAN DEFAULT false;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_5_allow_entire" BOOLEAN DEFAULT false;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_6_allow_entire" BOOLEAN DEFAULT false;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "custom_level_rules" JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_department_clustering" BOOLEAN DEFAULT true;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_strict_department_segregation" BOOLEAN DEFAULT false;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_max_nights" INTEGER DEFAULT 7;
