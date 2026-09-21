@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Bed, Building, Clock, AlertTriangle, CheckCircle2, Eye, PackageCheck } from "lucide-react";
+import { Bed, Building, Clock, AlertTriangle, CheckCircle2, Eye, PackageCheck, DoorClosed, Building2, Layers, User, Star } from "lucide-react";
 import { roomStatusBadge, getRoomStatusLabel } from "@/pages/housing/utils";
 import { SortableHead } from "@/components/ui/sortable-head";
 
@@ -346,12 +346,15 @@ export function ReportTable({
             {/* 8. MAINTENANCE HEADERS */}
             {activeTab === "maintenance" && (
               <>
-                {H("roomNumber", ar ? "الغرفة والمبنى" : "Room & Building")}
+                {H("roomNumber", ar ? "الغرفة" : "Room No")}
+                {H("buildingName", ar ? "المبنى والدور" : "Building & Floor")}
+                {H("reportedBy", ar ? "مقدم البلاغ (الطالب)" : "Reported By")}
                 {H("category", ar ? "الفئة" : "Category")}
-                {H("problemType", ar ? "وصف المشكلة" : "Problem Details")}
+                {H("problemType", ar ? "نوع المشكلة" : "Problem Details")}
                 {H("priority", ar ? "الأولوية" : "Priority")}
                 {H("assignedTo", ar ? "الفني المعين" : "Assigned To")}
                 {H("reportedAt", ar ? "تاريخ البلاغ" : "Reported At")}
+                {H("rating", ar ? "التقييم (الريت)" : "Rating & Feedback")}
                 {H("status", ar ? "الحالة" : "Status")}
               </>
             )}
@@ -1161,27 +1164,91 @@ export function ReportTable({
                 {activeTab === "maintenance" && (
                   <>
                     <TableCell>
-                      <span className="font-bold text-primary">{row.roomNumber}</span>
-                      <p className="text-[11px] text-muted-foreground">{row.buildingName}</p>
+                      <span className="font-bold text-primary flex items-center gap-1">
+                        <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
+                        {row.roomNumber}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-xs font-semibold capitalize">{row.category}</TableCell>
-                    <TableCell className="text-xs max-w-xs truncate">{row.problemType}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                          <Building2 className="w-3 h-3 text-sky-600 shrink-0" />
+                          {row.buildingName}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Layers className="w-3 h-3 text-amber-600 shrink-0" />
+                          {row.floorName}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 font-medium text-xs text-foreground">
+                        <User className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="truncate max-w-[160px]" title={row.reportedBy}>{row.reportedBy}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs font-semibold capitalize">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                        row.rawCategory === "housekeeping" || String(row.category).includes("نظافة")
+                          ? "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200"
+                          : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200"
+                      }`}>
+                        {row.category}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs max-w-xs truncate" title={row.problemType}>
+                      {row.problemType}
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
                         className={
-                          row.priority === "Urgent" || row.priority === "High"
-                            ? "bg-rose-50 text-rose-700 border-rose-200 text-xs"
-                            : "text-xs"
+                          row.priority === "Urgent" || row.priority === "عاجلة" || row.rawPriority?.toLowerCase() === "urgent"
+                            ? "bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold"
+                            : row.priority === "High" || row.priority === "عالية"
+                              ? "bg-orange-50 text-orange-700 border-orange-200 text-xs font-semibold"
+                              : "text-xs"
                         }
                       >
                         {row.priority}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs">{row.assignedTo}</TableCell>
-                    <TableCell className="text-xs">{row.reportedAt}</TableCell>
+                    <TableCell className="text-xs font-medium">{row.assignedTo}</TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">{row.reportedAt}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs capitalize">{row.status}</Badge>
+                      {row.rating != null && row.rating > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-3.5 h-3.5 ${
+                                    star <= row.rating
+                                      ? "text-amber-500 fill-amber-500"
+                                      : "text-slate-200 dark:text-slate-700"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs font-bold text-foreground font-mono">
+                              {row.rating}/5
+                            </span>
+                          </div>
+                          {row.ratingComment && (
+                            <p className="text-[10px] text-muted-foreground italic truncate max-w-[150px]" title={row.ratingComment}>
+                              "{row.ratingComment}"
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground italic">
+                          {ar ? "لم يتم التقييم" : "Not rated"}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs capitalize font-medium">{row.status}</Badge>
                     </TableCell>
                   </>
                 )}

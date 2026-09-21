@@ -271,12 +271,16 @@ export function useReportExport({
       case "maintenance":
         return data.map((m: any) => ({
           [ar ? "رقم الغرفة" : "Room No"]: m.roomNumber,
-          [ar ? "المبنى" : "Building"]: m.buildingName,
+          [ar ? "المبنى" : "Building"]: m.buildingName || "—",
+          [ar ? "الدور" : "Floor"]: m.floorName || "—",
+          [ar ? "مقدم البلاغ" : "Reported By"]: m.reportedBy || "—",
           [ar ? "الفئة" : "Category"]: translateMaintenanceCategory(m.category, ar),
           [ar ? "وصف المشكلة" : "Problem Details"]: m.problemType,
           [ar ? "الأولوية" : "Priority"]: translateMaintenancePriority(m.priority, ar),
           [ar ? "الفني المعين" : "Assigned To"]: m.assignedTo,
           [ar ? "تاريخ البلاغ" : "Reported Date"]: m.reportedAt,
+          [ar ? "التقييم" : "Rating"]: m.rating ? `${m.rating}/5 ★` : (ar ? "لم يتم التقييم" : "Not rated"),
+          [ar ? "ملاحظات التقييم" : "Rating Comments"]: m.ratingComment || "—",
           [ar ? "الحالة" : "Status"]: translateMaintenanceStatus(m.status, ar),
         }));
 

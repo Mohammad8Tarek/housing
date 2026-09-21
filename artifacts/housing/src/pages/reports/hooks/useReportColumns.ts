@@ -200,11 +200,14 @@ export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
   maintenance: [
     { key: "roomNumber", label: "Room No", labelAr: "رقم الغرفة", fixed: true },
     { key: "buildingName", label: "Building", labelAr: "المبنى" },
+    { key: "floorName", label: "Floor", labelAr: "الدور / الطابق" },
+    { key: "reportedBy", label: "Reported By", labelAr: "مقدم البلاغ", fixed: true },
     { key: "category", label: "Category", labelAr: "الفئة" },
     { key: "problemType", label: "Problem Details", labelAr: "وصف المشكلة" },
     { key: "priority", label: "Priority", labelAr: "الأولوية" },
     { key: "assignedTo", label: "Assigned To", labelAr: "الفني المعين" },
     { key: "reportedAt", label: "Reported Date", labelAr: "تاريخ البلاغ" },
+    { key: "rating", label: "Rating & Feedback", labelAr: "التقييم (الريت)" },
     { key: "status", label: "Status", labelAr: "الحالة" },
   ],
   equipment_inventory: [

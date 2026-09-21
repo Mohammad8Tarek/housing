@@ -83,7 +83,7 @@ export const REPORT_TAB_CONFIG: Record<
   expiring_contracts: { showKpis: false, showSignatures: false },
   reservations: { showKpis: false, showSignatures: false },
   hostings: { showKpis: false, showSignatures: false },
-  maintenance: { showKpis: false, showSignatures: false },
+  maintenance: { showKpis: true, showSignatures: true },
   equipment_inventory: { showKpis: false, showSignatures: false },
   arrivals_manifest: { showKpis: false, showSignatures: false },
   departures_manifest: { showKpis: false, showSignatures: false },
@@ -1040,13 +1040,27 @@ export function generateAutoKpis(
     let openCount = 0;
     let inProgress = 0;
     let resolved = 0;
+    let totalRatingsSum = 0;
+    let ratedCount = 0;
 
     rows.forEach((r) => {
       const st = String(r["الحالة"] ?? r["Status"] ?? "").toLowerCase();
       if (st.includes("مفتوح") || st.includes("قيد الانتظار") || st.includes("open")) openCount++;
       if (st.includes("تنفيذ") || st.includes("progress")) inProgress++;
-      if (st.includes("مكتمل") || st.includes("تم") || st.includes("resolved")) resolved++;
+      if (st.includes("مكتمل") || st.includes("تم") || st.includes("resolved") || st.includes("مغلق") || st.includes("closed")) resolved++;
+
+      const rateStr = String(r["التقييم"] ?? r["Rating"] ?? r["الريت"] ?? "");
+      const match = rateStr.match(/([\d.]+)/);
+      if (match) {
+        const rating = parseFloat(match[1]);
+        if (!isNaN(rating) && rating > 0) {
+          totalRatingsSum += rating;
+          ratedCount++;
+        }
+      }
     });
+
+    const avgRating = ratedCount > 0 ? (totalRatingsSum / ratedCount).toFixed(1) : "—";
 
     return [
       {
@@ -1072,6 +1086,12 @@ export function generateAutoKpis(
         labelAr: "تم الإنجاز والإصلاح",
         value: resolved,
         color: "green",
+      },
+      {
+        label: "Avg Quality Rating",
+        labelAr: "متوسط تقييم الخدمة (الريت)",
+        value: avgRating !== "—" ? `${avgRating} ★ (${ratedCount})` : (ar ? "لا يوجد تقييمات" : "No ratings"),
+        color: "gold",
       },
     ];
   }

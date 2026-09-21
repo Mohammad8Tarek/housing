@@ -1208,17 +1208,29 @@ export function useReportDataProcessor({
           })
           .map((m: any) => {
             const room = roomMap[m.roomId] || {};
+            const bName = m.buildingName || buildingMap[room.buildingId] || "—";
+            const fNum = m.floorNumber || (room.floorId ? floorMap[room.floorId] : null);
+            const fName = fNum ? (String(fNum).toLowerCase().includes("floor") || String(fNum).includes("دور") ? fNum : (ar ? `الدور ${fNum}` : `Floor ${fNum}`)) : "—";
+            const reporter = m.reportedBy ? (ar ? (hasArabicCharacters(m.reportedBy) ? m.reportedBy : transliterateFullName(m.reportedBy, "ar")) : m.reportedBy) : (ar ? "غير محدد" : "Unspecified");
+
             return {
               id: m.id,
-              roomNumber: room.roomNumber || `#${m.roomId}`,
-              buildingName: buildingMap[room.buildingId] || "—",
+              roomNumber: m.roomNumber || room.roomNumber || `#${m.roomId}`,
+              buildingName: bName,
+              floorName: fName,
               category: ar ? translateMaintenanceCategory(m.category, true) : (m.category || "General"),
+              rawCategory: m.category || "maintenance",
               problemType: m.problemType || "—",
               priority: ar ? translateMaintenancePriority(m.priority, true) : (m.priority || "Normal"),
-              reportedBy: m.reportedBy ? (ar ? (hasArabicCharacters(m.reportedBy) ? m.reportedBy : transliterateFullName(m.reportedBy, "ar")) : m.reportedBy) : "—",
-              assignedTo: m.assignedToName ? (ar ? (hasArabicCharacters(m.assignedToName) ? m.assignedToName : transliterateFullName(m.assignedToName, "ar")) : m.assignedToName) : "—",
+              rawPriority: m.priority || "Normal",
+              reportedBy: reporter,
+              assignedTo: m.workerName || m.assignedToName ? (ar ? (hasArabicCharacters(m.workerName || m.assignedToName) ? (m.workerName || m.assignedToName) : transliterateFullName(m.workerName || m.assignedToName, "ar")) : (m.workerName || m.assignedToName)) : (m.assignedTo || "—"),
               reportedAt: formatDate(m.reportedAt, "—"),
+              rawReportedAt: m.reportedAt,
               status: ar ? translateMaintenanceStatus(m.status, true) : (m.status || "open"),
+              rawStatus: m.status || "open",
+              rating: m.rating != null ? Number(m.rating) : null,
+              ratingComment: m.ratingComment || null,
               cost: m.cost ? `${m.cost} EGP` : "—",
             };
           });
@@ -1226,11 +1238,14 @@ export function useReportDataProcessor({
         return applySearchAndDate(list, "reportedAt", (m) => [
           m.roomNumber,
           m.buildingName,
+          m.floorName,
+          m.reportedBy,
           m.category,
           m.problemType,
           m.priority,
           m.assignedTo,
           m.status,
+          m.ratingComment || "",
         ]);
       }
 

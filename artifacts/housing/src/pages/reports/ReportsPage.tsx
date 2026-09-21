@@ -27,6 +27,7 @@ import { VacantRoomsOperationalMatrix } from "./components/VacantRoomsOperationa
 import { InHouseGroupedRoomsView } from "./components/InHouseGroupedRoomsView";
 import { ServiceRatingsTab } from "./components/ServiceRatingsTab";
 import { HousingMapReportTab } from "./components/HousingMapReportTab";
+import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTrackReportRibbon";
 
 export default function Reports() {
   const { activePropertyId } = useProperty();
@@ -357,6 +358,16 @@ export default function Reports() {
             rooms={data.rooms}
             roomTypes={data.configuredRoomTypes}
           />
+
+          {filters.activeTab === "maintenance" && (
+            <MaintenanceDualTrackReportRibbon
+              ar={ar}
+              propertyId={numericPropertyId}
+              filterCategory={filters.filterCategory}
+              setFilterCategory={filters.setFilterCategory}
+              ticketsData={data.maintenance}
+            />
+          )}
 
           {filters.activeTab === "housekeeping_sheet" && (
             <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-sky-900 dark:text-sky-200">

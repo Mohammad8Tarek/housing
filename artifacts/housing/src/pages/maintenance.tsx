@@ -760,6 +760,9 @@ export default function Tickets() {
         "—",
       [ar ? "الغرفة" : "Room"]:
         `${ar ? "الغرفة" : "Room"} ${req.roomNumber || (roomMap[req.roomId] ?? req.roomId)}`,
+      [ar ? "المبنى" : "Building"]: req.buildingName || "—",
+      [ar ? "الدور" : "Floor"]: req.floorNumber ? `${ar ? "الدور " : "Floor "}${req.floorNumber}` : "—",
+      [ar ? "مقدم البلاغ" : "Reported By"]: req.reportedBy || "—",
       [ar ? "النزيل المقيم" : "Occupant"]: roomOccupantMap[req.roomId] || "—",
       [ar ? "القسم / النوع" : "Type"]: ar
         ? (CATEGORIES_AR[req.category] ?? req.category)
@@ -807,6 +810,9 @@ export default function Tickets() {
         properties?.find((p: any) => p.id === req.propertyId)?.name ||
         "—",
       [ar ? "الغرفة" : "Room"]: req.roomNumber || (roomMap[req.roomId] ?? req.roomId),
+      [ar ? "المبنى" : "Building"]: req.buildingName || "—",
+      [ar ? "الدور" : "Floor"]: req.floorNumber ? `${ar ? "الدور " : "Floor "}${req.floorNumber}` : "—",
+      [ar ? "مقدم البلاغ" : "Reported By"]: req.reportedBy || "—",
       [ar ? "النوع" : "Category"]: ar
         ? (CATEGORIES_AR[req.category] ?? req.category)
         : req.category,
@@ -1861,8 +1867,8 @@ export default function Tickets() {
                     </TableHead>
                   )}
                   {(isVisible("room_person") || isVisible("name")) && (
-                    <TableHead className="font-semibold min-w-[170px]">
-                      {ar ? "الغرفة والنزيل" : "ROOM & RESIDENT"}
+                    <TableHead className="font-semibold min-w-[210px]">
+                      {ar ? "الغرفة والمبنى والدور" : "ROOM, BUILDING & FLOOR"}
                     </TableHead>
                   )}
                   {isVisible("problem") && (
@@ -1941,15 +1947,33 @@ export default function Tickets() {
 
                     {(isVisible("room_person") || isVisible("name")) && (
                       <TableCell className="text-xs font-medium">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-bold text-foreground flex items-center gap-1.5">
-                            <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
-                            {ar ? "الغرفة" : "Room"} {req.roomNumber || roomMap[req.roomId] || req.roomId}
-                          </span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-foreground flex items-center gap-1">
+                              <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
+                              {ar ? "الغرفة" : "Room"} {req.roomNumber || roomMap[req.roomId] || req.roomId}
+                            </span>
+                            {(req.buildingName || req.floorNumber) && (
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {req.buildingName && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-medium" title={ar ? "المبنى" : "Building"}>
+                                    <Building2 className="w-3 h-3 shrink-0 text-sky-600 dark:text-sky-400" />
+                                    <span>{req.buildingName}</span>
+                                  </span>
+                                )}
+                                {req.floorNumber && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 text-[11px] font-medium" title={ar ? "الدور / الطابق" : "Floor"}>
+                                    <Layers className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />
+                                    <span>{ar ? `الدور ${req.floorNumber}` : `Floor ${req.floorNumber}`}</span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           {roomOccupantMap[req.roomId] ? (
                             <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
                               <User className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="truncate max-w-[150px]">{roomOccupantMap[req.roomId]}</span>
+                              <span className="truncate max-w-[170px]">{roomOccupantMap[req.roomId]}</span>
                             </span>
                           ) : (
                             <span className="text-[10px] text-slate-400 italic">

@@ -3,6 +3,8 @@ import {
   db,
   maintenanceTable,
   roomsTable,
+  buildingsTable,
+  floorsTable,
   propertiesTable,
   profilesTable,
   workersTable,
@@ -370,6 +372,10 @@ router.get(
                   .select({
                     id: maintenanceTable.id,
                     parentId: maintenanceTable.parentId,
+                    buildingId: roomsTable.buildingId,
+                    buildingName: buildingsTable.name,
+                    floorId: roomsTable.floorId,
+                    floorNumber: floorsTable.floorNumber,
                     roomId: maintenanceTable.roomId,
                     roomNumber: roomsTable.roomNumber,
                     category: maintenanceTable.category,
@@ -397,6 +403,8 @@ router.get(
                   })
                   .from(maintenanceTable)
                   .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+                  .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+                  .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
                   .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
                   .where(whereClause)
                   .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
@@ -472,6 +480,10 @@ router.get(
           .select({
             id: maintenanceTable.id,
             parentId: maintenanceTable.parentId,
+            buildingId: roomsTable.buildingId,
+            buildingName: buildingsTable.name,
+            floorId: roomsTable.floorId,
+            floorNumber: floorsTable.floorNumber,
             roomId: maintenanceTable.roomId,
             roomNumber: roomsTable.roomNumber,
             category: maintenanceTable.category,
@@ -499,6 +511,8 @@ router.get(
           })
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
           .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
           .where(whereClause)
           .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
@@ -560,6 +574,10 @@ router.get(
               .select({
                 id: maintenanceTable.id,
                 parentId: maintenanceTable.parentId,
+                buildingId: roomsTable.buildingId,
+                buildingName: buildingsTable.name,
+                floorId: roomsTable.floorId,
+                floorNumber: floorsTable.floorNumber,
                 roomId: maintenanceTable.roomId,
                 roomNumber: roomsTable.roomNumber,
                 problemType: maintenanceTable.problemType,
@@ -587,6 +605,8 @@ router.get(
               })
               .from(maintenanceTable)
               .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
               .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
               .where(eq(maintenanceTable.id, id))
               .limit(1);

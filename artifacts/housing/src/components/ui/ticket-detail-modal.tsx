@@ -46,6 +46,7 @@ import {
   Building2,
   Phone,
   Star,
+  Layers,
 } from "lucide-react";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
@@ -462,6 +463,22 @@ export default function TicketDetailModal({
                           <p className="font-semibold text-foreground text-sm">
                             {displayName}
                           </p>
+                          {(ticket.buildingName || ticket.floorNumber) && (
+                            <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap">
+                              {ticket.buildingName && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 font-medium">
+                                  <Building2 className="w-3 h-3 text-sky-600" />
+                                  <span>{ar ? `المبنى: ${ticket.buildingName}` : `Building: ${ticket.buildingName}`}</span>
+                                </span>
+                              )}
+                              {ticket.floorNumber && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 font-medium">
+                                  <Layers className="w-3 h-3 text-amber-600" />
+                                  <span>{ar ? `الدور ${ticket.floorNumber}` : `Floor ${ticket.floorNumber}`}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div>
