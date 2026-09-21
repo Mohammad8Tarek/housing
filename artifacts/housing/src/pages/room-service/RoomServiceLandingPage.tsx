@@ -252,10 +252,12 @@ export default function RoomServiceLandingPage() {
   return (
     <div
       dir={ar ? "rtl" : "ltr"}
-      className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col items-center justify-start p-3 sm:p-6"
+      className="fixed inset-0 z-50 h-full w-full overflow-y-auto overflow-x-hidden overscroll-contain bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-3 sm:p-6"
+      style={{ WebkitOverflowScrolling: "touch" }}
     >
-      {/* Top Bar with Language Toggle */}
-      <div className="w-full max-w-lg flex items-center justify-between pb-3">
+      <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-start pb-28">
+        {/* Top Bar with Language Toggle */}
+        <div className="w-full flex items-center justify-between pb-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
             SH
@@ -649,6 +651,7 @@ export default function RoomServiceLandingPage() {
           </p>
         </div>
       )}
+      </div>
     </div>
   );
 }
