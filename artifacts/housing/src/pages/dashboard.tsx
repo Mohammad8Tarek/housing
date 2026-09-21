@@ -78,6 +78,7 @@ import { DailyOperationsHub } from "./dashboard/components/DailyOperationsHub";
 import { QuickAssistBar } from "./dashboard/components/QuickAssistTab";
 import { useDashboardWidgets } from "./dashboard/hooks/useDashboardWidgets";
 import { DashboardCustomizeDialog } from "./dashboard/components/DashboardCustomizeDialog";
+import { TicketsDualTrackHub } from "./dashboard/components/TicketsDualTrackHub";
 
 function AnimatedNumber({ value }: { value: string | number }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -1026,6 +1027,13 @@ export default function Dashboard() {
           />
         ) : null;
 
+        const ticketsHubNode = isWidgetVisible("tickets_dual_hub") ? (
+          <TicketsDualTrackHub
+            propertyId={activePropertyId}
+            buildNavHref={buildNavHref}
+          />
+        ) : null;
+
         const hasAnyContent = Boolean(
           donutNode ||
           deptNode ||
@@ -1033,7 +1041,8 @@ export default function Dashboard() {
           chartsNode ||
           matrixNode ||
           operationsHubNode ||
-          housekeepingNode
+          housekeepingNode ||
+          ticketsHubNode
         );
 
         if (!hasAnyContent) {
@@ -1076,6 +1085,7 @@ export default function Dashboard() {
                 )}
                 {chartsNode}
                 {matrixNode}
+                {ticketsHubNode}
                 {operationsHubNode}
                 {housekeepingNode}
               </div>
@@ -1084,6 +1094,7 @@ export default function Dashboard() {
             {/* Mode 2: Operations Focus Mode */}
             {dashboardViewMode === "operations" && (
               <div className="space-y-6">
+                {ticketsHubNode}
                 {operationsHubNode}
                 {(housekeepingNode || donutNode) && (
                   <div className="grid gap-5 md:grid-cols-2">
@@ -1100,6 +1111,7 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {chartsNode}
                 {matrixNode}
+                {ticketsHubNode}
                 {(deptNode || donutNode || genderNode) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {deptNode}
@@ -1113,6 +1125,7 @@ export default function Dashboard() {
             {/* Mode 4: Compact High-Density View */}
             {dashboardViewMode === "compact" && (
               <div className="space-y-5">
+                {ticketsHubNode}
                 {(chartsNode || deptNode) && (
                   <div className="grid gap-5 lg:grid-cols-2">
                     {chartsNode}

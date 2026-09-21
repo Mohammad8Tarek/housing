@@ -833,6 +833,114 @@ router.get(
   },
 );
 
+// ─── GET /dashboard/tickets-overview (Dual-track Maintenance & Housekeeping with Ratings) ─
+router.get(
+  "/dashboard/tickets-overview",
+  requirePermission("dashboard", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ success: false, message: "propertyId is required" });
+      return;
+    }
+
+    try {
+      const data = await withTenant(propertyId, async (tenantDb) => {
+        // Fetch all tickets with room and building info
+        const allTickets = await safeSelect(() =>
+          tenantDb
+            .select({
+              id: maintenanceTable.id,
+              roomId: maintenanceTable.roomId,
+              category: maintenanceTable.category,
+              problemType: maintenanceTable.problemType,
+              description: maintenanceTable.description,
+              status: maintenanceTable.status,
+              priority: maintenanceTable.priority,
+              reportedBy: maintenanceTable.reportedBy,
+              reportedAt: maintenanceTable.reportedAt,
+              resolvedAt: maintenanceTable.resolvedAt,
+              rating: maintenanceTable.rating,
+              ratingComment: maintenanceTable.ratingComment,
+              ratedAt: maintenanceTable.ratedAt,
+              roomNumber: roomsTable.roomNumber,
+              buildingName: buildingsTable.name,
+            })
+            .from(maintenanceTable)
+            .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+            .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+            .orderBy(desc(maintenanceTable.reportedAt))
+        );
+
+        const mntTickets = allTickets.filter(
+          (t) => (t.category || "maintenance").toLowerCase() !== "housekeeping"
+        );
+        const hskTickets = allTickets.filter(
+          (t) => (t.category || "").toLowerCase() === "housekeeping"
+        );
+
+        function calcTrackStats(tickets: typeof allTickets) {
+          const total = tickets.length;
+          let open = 0;
+          let approved = 0;
+          let done = 0;
+          let urgent = 0;
+          let sumRating = 0;
+          let ratedCount = 0;
+          let satisfiedCount = 0;
+
+          for (const t of tickets) {
+            const st = (t.status || "open").toLowerCase();
+            const pr = (t.priority || "medium").toLowerCase();
+
+            if (st === "open") open++;
+            else if (st === "in_progress" || st === "pending") approved++;
+            else if (st === "resolved" || st === "closed" || st === "completed") done++;
+
+            if (pr === "urgent" && st !== "closed" && st !== "resolved" && st !== "completed") urgent++;
+
+            if (typeof t.rating === "number" && t.rating > 0) {
+              sumRating += t.rating;
+              ratedCount++;
+              if (t.rating >= 4) satisfiedCount++;
+            }
+          }
+
+          const completionRate = total > 0 ? Math.round((done / total) * 100) : 0;
+          const avgRating = ratedCount > 0 ? Math.round((sumRating / ratedCount) * 10) / 10 : 0;
+          const satisfactionRate = ratedCount > 0 ? Math.round((satisfiedCount / ratedCount) * 100) : 0;
+
+          return {
+            total,
+            open,
+            approved,
+            done,
+            urgent,
+            completionRate,
+            ratingStats: {
+              avgRating,
+              totalRated: ratedCount,
+              satisfactionRate,
+            },
+          };
+        }
+
+        return {
+          maintenance: calcTrackStats(mntTickets),
+          housekeeping: calcTrackStats(hskTickets),
+          recentMaintenance: mntTickets.slice(0, 8),
+          recentHousekeeping: hskTickets.slice(0, 8),
+        };
+      });
+
+      res.json({ success: true, data });
+    } catch (err: any) {
+      console.error("[DashboardTicketsOverview] Error:", err);
+      res.status(500).json({ success: false, message: err.message || "Failed to load tickets overview" });
+    }
+  },
+);
+
 // ─── GET /dashboard/recent-activity ──────────────────────────────────────
 router.get(
   "/dashboard/recent-activity",

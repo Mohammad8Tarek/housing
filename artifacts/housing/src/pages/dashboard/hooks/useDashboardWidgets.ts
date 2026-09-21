@@ -26,6 +26,7 @@ export type DashboardWidgetId =
   | "kpi_arrivals"
   | "readiness_tracker"
   | "capacity_ribbon"
+  | "tickets_dual_hub"
   | "donut_analytics"
   | "department_list"
   | "gender_demographics"
@@ -167,6 +168,18 @@ export const DASHBOARD_WIDGETS_REGISTRY: DashboardWidgetMeta[] = [
     requiredModule: "housekeeping",
     requiredAction: "view",
     icon: CheckCircle2,
+    defaultVisible: true,
+  },
+  {
+    id: "tickets_dual_hub",
+    labelAr: "مركز بلاغات الصيانة والهاوس كيبنج المزدوج مع التقييمات",
+    labelEn: "Maintenance & Housekeeping Dual-Track Hub with Ratings",
+    descAr: "إحصائيات التذاكر (مفتوحة، معتمدة، منجزة، عاجلة) ونسب الرضا والتقييمات",
+    descEn: "Dual-track ticket stats (open, approved, done, urgent), satisfaction rate, and star ratings",
+    category: "operations",
+    requiredModule: "maintenance",
+    requiredAction: "view",
+    icon: Wrench,
     defaultVisible: true,
   },
   // Analytics
