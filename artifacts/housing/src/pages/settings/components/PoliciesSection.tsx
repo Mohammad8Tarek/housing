@@ -597,19 +597,19 @@ export function PoliciesSection({
           <div>
             <h4 className="text-xs font-bold text-primary flex items-center gap-1.5 mb-3">
               <UserCheck className="w-3.5 h-3.5" />
-              {ar ? "مسؤولو الموارد البشرية (HR Contacts)" : "HR Contacts"}
+              {ar ? "إدارة الموارد البشرية (HR Management)" : "HR Management"}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* HR Contact 1 */}
+              {/* HR Manager */}
               <div className="p-3.5 border rounded-lg bg-card space-y-3">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase">{ar ? "المسؤول 1" : "Contact 1"}</span>
+                <span className="text-[11px] font-bold text-primary uppercase">{ar ? "مدير الموارد البشرية" : "HR Manager"}</span>
                 <FormField
                   control={form.control}
                   name="hrContact1Name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-[11px] font-medium">{ar ? "الاسم" : "Name"}</FormLabel>
-                      <FormControl><Input placeholder={ar ? "اسم مسؤول الموارد البشرية" : "Full Name"} {...field} /></FormControl>
+                      <FormControl><Input placeholder={ar ? "اسم مدير الموارد البشرية" : "HR Manager Name"} {...field} /></FormControl>
                     </FormItem>
                   )}
                 />
@@ -647,16 +647,16 @@ export function PoliciesSection({
                 />
               </div>
 
-              {/* HR Contact 2 */}
+              {/* Assistant HR Manager */}
               <div className="p-3.5 border rounded-lg bg-card space-y-3">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase">{ar ? "المسؤول 2" : "Contact 2"}</span>
+                <span className="text-[11px] font-bold text-primary uppercase">{ar ? "مساعد مدير الموارد البشرية" : "Assistant HR Manager"}</span>
                 <FormField
                   control={form.control}
                   name="hrContact2Name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-[11px] font-medium">{ar ? "الاسم" : "Name"}</FormLabel>
-                      <FormControl><Input placeholder={ar ? "اسم المنسق أو المساعد" : "Full Name"} {...field} /></FormControl>
+                      <FormControl><Input placeholder={ar ? "اسم مساعد مدير الموارد البشرية" : "Assistant HR Manager Name"} {...field} /></FormControl>
                     </FormItem>
                   )}
                 />
@@ -667,7 +667,7 @@ export function PoliciesSection({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-[11px] font-medium">{ar ? "المسمى الوظيفي" : "Title"}</FormLabel>
-                        <FormControl><Input placeholder="HR Coordinator" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Assistant HR Manager" {...field} /></FormControl>
                       </FormItem>
                     )}
                   />
@@ -700,21 +700,21 @@ export function PoliciesSection({
 
           {/* Housing Managers */}
           <div>
-            <h4 className="text-xs font-bold text-primary flex items-center gap-1.5 mb-3">
+            <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mb-3">
               <Building className="w-3.5 h-3.5" />
-              {ar ? "مسؤولو إدارة السكن (Housing Managers)" : "Housing Management"}
+              {ar ? "إدارة السكن (Housing Management)" : "Housing Management"}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Housing Manager 1 */}
+              {/* Housing Manager */}
               <div className="p-3.5 border rounded-lg bg-card space-y-3">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase">{ar ? "مدير السكن 1" : "Housing Manager 1"}</span>
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase">{ar ? "مدير السكن" : "Housing Manager"}</span>
                 <FormField
                   control={form.control}
                   name="housingManager1Name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-[11px] font-medium">{ar ? "الاسم" : "Name"}</FormLabel>
-                      <FormControl><Input placeholder={ar ? "اسم مدير السكن" : "Full Name"} {...field} /></FormControl>
+                      <FormControl><Input placeholder={ar ? "اسم مدير السكن" : "Housing Manager Name"} {...field} /></FormControl>
                     </FormItem>
                   )}
                 />
@@ -752,16 +752,16 @@ export function PoliciesSection({
                 />
               </div>
 
-              {/* Housing Manager 2 */}
+              {/* Assistant Housing Manager */}
               <div className="p-3.5 border rounded-lg bg-card space-y-3">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase">{ar ? "مدير السكن 2" : "Housing Manager 2"}</span>
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase">{ar ? "مساعد مدير السكن" : "Assistant Housing Manager"}</span>
                 <FormField
                   control={form.control}
                   name="housingManager2Name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-[11px] font-medium">{ar ? "الاسم" : "Name"}</FormLabel>
-                      <FormControl><Input placeholder={ar ? "اسم مساعد مدير السكن" : "Full Name"} {...field} /></FormControl>
+                      <FormControl><Input placeholder={ar ? "اسم مساعد مدير السكن" : "Assistant Housing Manager Name"} {...field} /></FormControl>
                     </FormItem>
                   )}
                 />

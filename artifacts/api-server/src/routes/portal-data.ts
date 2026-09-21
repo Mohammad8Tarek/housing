@@ -837,8 +837,8 @@ router.get("/support-contacts", async (req, res): Promise<void> => {
     {
       id: "hr_1",
       category: "hr",
-      roleAr: "مسؤول الموارد البشرية 1",
-      roleEn: "HR Coordinator 1",
+      roleAr: "مدير الموارد البشرية",
+      roleEn: "HR Manager",
       name: prop?.hrContact1Name || settings?.hrContact1Name || "",
       title: prop?.hrContact1Title || settings?.hrContact1Title || "",
       phone: prop?.hrContact1Phone || settings?.hrContact1Phone || "",
@@ -847,8 +847,8 @@ router.get("/support-contacts", async (req, res): Promise<void> => {
     {
       id: "hr_2",
       category: "hr",
-      roleAr: "مسؤول الموارد البشرية 2",
-      roleEn: "HR Coordinator 2",
+      roleAr: "مساعد مدير الموارد البشرية",
+      roleEn: "Assistant HR Manager",
       name: prop?.hrContact2Name || settings?.hrContact2Name || "",
       title: prop?.hrContact2Title || settings?.hrContact2Title || "",
       phone: prop?.hrContact2Phone || settings?.hrContact2Phone || "",
@@ -857,8 +857,8 @@ router.get("/support-contacts", async (req, res): Promise<void> => {
     {
       id: "mgr_1",
       category: "housing",
-      roleAr: "مدير السكن 1",
-      roleEn: "Housing Manager 1",
+      roleAr: "مدير السكن",
+      roleEn: "Housing Manager",
       name: prop?.housingManager1Name || settings?.housingManager1Name || "",
       title: prop?.housingManager1Title || settings?.housingManager1Title || "",
       phone: prop?.housingManager1Phone || settings?.housingManager1Phone || "",
@@ -867,8 +867,8 @@ router.get("/support-contacts", async (req, res): Promise<void> => {
     {
       id: "mgr_2",
       category: "housing",
-      roleAr: "مدير السكن 2",
-      roleEn: "Housing Manager 2",
+      roleAr: "مساعد مدير السكن",
+      roleEn: "Assistant Housing Manager",
       name: prop?.housingManager2Name || settings?.housingManager2Name || "",
       title: prop?.housingManager2Title || settings?.housingManager2Title || "",
       phone: prop?.housingManager2Phone || settings?.housingManager2Phone || "",

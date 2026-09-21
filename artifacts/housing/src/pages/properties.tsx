@@ -501,22 +501,22 @@ const closeDialog = () => {
       Name: p.name,
       Code: p.code,
       "Display Name": p.displayName ?? "",
-      "HR 1 Name": p.hrContact1Name ?? "",
-      "HR 1 Title": p.hrContact1Title ?? "",
-      "HR 1 Phone": p.hrContact1Phone ?? "",
-      "HR 1 Email": p.hrContact1Email ?? "",
-      "HR 2 Name": p.hrContact2Name ?? "",
-      "HR 2 Title": p.hrContact2Title ?? "",
-      "HR 2 Phone": p.hrContact2Phone ?? "",
-      "HR 2 Email": p.hrContact2Email ?? "",
-      "Housing Mgr 1 Name": p.housingManager1Name ?? "",
-      "Housing Mgr 1 Title": p.housingManager1Title ?? "",
-      "Housing Mgr 1 Phone": p.housingManager1Phone ?? "",
-      "Housing Mgr 1 Email": p.housingManager1Email ?? "",
-      "Housing Mgr 2 Name": p.housingManager2Name ?? "",
-      "Housing Mgr 2 Title": p.housingManager2Title ?? "",
-      "Housing Mgr 2 Phone": p.housingManager2Phone ?? "",
-      "Housing Mgr 2 Email": p.housingManager2Email ?? "",
+      "HR Manager Name": p.hrContact1Name ?? "",
+      "HR Manager Title": p.hrContact1Title ?? "",
+      "HR Manager Phone": p.hrContact1Phone ?? "",
+      "HR Manager Email": p.hrContact1Email ?? "",
+      "Assistant HR Manager Name": p.hrContact2Name ?? "",
+      "Assistant HR Manager Title": p.hrContact2Title ?? "",
+      "Assistant HR Manager Phone": p.hrContact2Phone ?? "",
+      "Assistant HR Manager Email": p.hrContact2Email ?? "",
+      "Housing Manager Name": p.housingManager1Name ?? "",
+      "Housing Manager Title": p.housingManager1Title ?? "",
+      "Housing Manager Phone": p.housingManager1Phone ?? "",
+      "Housing Manager Email": p.housingManager1Email ?? "",
+      "Assistant Housing Manager Name": p.housingManager2Name ?? "",
+      "Assistant Housing Manager Title": p.housingManager2Title ?? "",
+      "Assistant Housing Manager Phone": p.housingManager2Phone ?? "",
+      "Assistant Housing Manager Email": p.housingManager2Email ?? "",
       Language: p.defaultLanguage ?? "",
       Status: p.status ?? "",
     }));
@@ -590,12 +590,12 @@ const closeDialog = () => {
                 )}
                 {isPropVisible("hrContacts") && (
                   <TableHead className="font-semibold">
-                    {ar ? "مسؤولو الموارد البشرية" : "HR Contacts"}
+                    {ar ? "إدارة الموارد البشرية" : "HR Management"}
                   </TableHead>
                 )}
                 {isPropVisible("housingManagers") && (
                   <TableHead className="font-semibold">
-                    {ar ? "إدارة السكن" : "Housing Managers"}
+                    {ar ? "إدارة السكن" : "Housing Management"}
                   </TableHead>
                 )}
                 {isPropVisible("language") && (
@@ -680,7 +680,7 @@ const closeDialog = () => {
                             <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-primary/5 border border-primary/15 text-xs">
                               <div className="min-w-0 flex-1">
                                 <div className="font-semibold truncate text-[11px] text-foreground">
-                                  {(prop as any).hrContact1Name || (ar ? "مسؤول HR 1" : "HR Contact 1")}
+                                  {(prop as any).hrContact1Name || (ar ? "مدير الموارد البشرية" : "HR Manager")}
                                 </div>
                                 {(prop as any).hrContact1Title && (
                                   <div className="text-[10px] text-muted-foreground truncate">
@@ -725,7 +725,7 @@ const closeDialog = () => {
                             <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-muted/50 border text-xs">
                               <div className="min-w-0 flex-1">
                                 <div className="font-semibold truncate text-[11px] text-foreground">
-                                  {(prop as any).hrContact2Name || (ar ? "مسؤول HR 2" : "HR Contact 2")}
+                                  {(prop as any).hrContact2Name || (ar ? "مساعد مدير الموارد البشرية" : "Assistant HR Manager")}
                                 </div>
                                 {(prop as any).hrContact2Title && (
                                   <div className="text-[10px] text-muted-foreground truncate">
@@ -779,7 +779,7 @@ const closeDialog = () => {
                             <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs">
                               <div className="min-w-0 flex-1">
                                 <div className="font-semibold truncate text-[11px] text-foreground">
-                                  {(prop as any).housingManager1Name || (ar ? "مدير السكن 1" : "Housing Manager 1")}
+                                  {(prop as any).housingManager1Name || (ar ? "مدير السكن" : "Housing Manager")}
                                 </div>
                                 {(prop as any).housingManager1Title && (
                                   <div className="text-[10px] text-muted-foreground truncate">
@@ -824,7 +824,7 @@ const closeDialog = () => {
                             <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-muted/50 border text-xs">
                               <div className="min-w-0 flex-1">
                                 <div className="font-semibold truncate text-[11px] text-foreground">
-                                  {(prop as any).housingManager2Name || (ar ? "مدير السكن 2" : "Housing Manager 2")}
+                                  {(prop as any).housingManager2Name || (ar ? "مساعد مدير السكن" : "Assistant Housing Manager")}
                                 </div>
                                 {(prop as any).housingManager2Title && (
                                   <div className="text-[10px] text-muted-foreground truncate">
@@ -1416,8 +1416,8 @@ const closeDialog = () => {
                 <Users className="w-5 h-5 text-primary shrink-0" />
                 <span className="leading-relaxed">
                   {ar
-                    ? "تسجيل وتعديل مسؤولي الموارد البشرية وإدارة السكن المعتمدين لهذا العقار. تظهر هذه البيانات تلقائياً في بوابة الموظفين والتواصل السريع."
-                    : "Official HR Coordinators and Housing Managers for this property. These contacts are automatically displayed in the Resident Portal for instant resident support."}
+                    ? "تسجيل وتعديل بيانات إدارة الموارد البشرية وإدارة السكن (مدير الموارد البشرية، مساعد مدير الموارد البشرية، مدير السكن، مساعد مدير السكن). تظهر هذه البيانات تلقائياً في بوابة الموظفين والتواصل السريع."
+                    : "Official HR & Housing Management contacts (HR Manager, Assistant HR Manager, Housing Manager, Assistant Housing Manager). These contacts are automatically displayed in the Resident Portal for instant resident support."}
                 </span>
               </div>
 
@@ -1425,21 +1425,21 @@ const closeDialog = () => {
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" />
-                  {ar ? "مسؤولو الموارد البشرية (HR Contacts)" : "HR Coordinators"}
+                  {ar ? "إدارة الموارد البشرية (HR Management)" : "HR Management"}
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* HR 1 */}
+                  {/* HR Manager */}
                   <div className="p-3.5 rounded-xl border bg-card/60 space-y-2.5 shadow-2xs">
                     <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-primary/10 text-primary inline-block">
-                      {ar ? "مسؤول HR 1" : "HR Contact 1"}
+                      {ar ? "مدير الموارد البشرية" : "HR Manager"}
                     </span>
                     <div className="space-y-1">
                       <Label className="text-[11px] font-semibold">{ar ? "الاسم" : "Name"}</Label>
                       <Input
                         value={form.hrContact1Name}
                         onChange={(e) => setForm(f => ({ ...f, hrContact1Name: e.target.value }))}
-                        placeholder={ar ? "مثال: أحمد محمود" : "Full Name"}
+                        placeholder={ar ? "اسم مدير الموارد البشرية" : "HR Manager Name"}
                         className="h-8 text-xs"
                       />
                     </div>
@@ -1448,7 +1448,7 @@ const closeDialog = () => {
                       <Input
                         value={form.hrContact1Title}
                         onChange={(e) => setForm(f => ({ ...f, hrContact1Title: e.target.value }))}
-                        placeholder="HR Coordinator"
+                        placeholder="HR Manager"
                         className="h-8 text-xs"
                       />
                     </div>
@@ -1466,23 +1466,23 @@ const closeDialog = () => {
                       <Input
                         value={form.hrContact1Email}
                         onChange={(e) => setForm(f => ({ ...f, hrContact1Email: e.target.value }))}
-                        placeholder="hr1@sunrise-resorts.com"
+                        placeholder="hr.manager@sunrise-resorts.com"
                         className="h-8 text-xs"
                       />
                     </div>
                   </div>
 
-                  {/* HR 2 */}
+                  {/* Assistant HR Manager */}
                   <div className="p-3.5 rounded-xl border bg-card/60 space-y-2.5 shadow-2xs">
                     <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-primary/10 text-primary inline-block">
-                      {ar ? "مسؤول HR 2" : "HR Contact 2"}
+                      {ar ? "مساعد مدير الموارد البشرية" : "Assistant HR Manager"}
                     </span>
                     <div className="space-y-1">
                       <Label className="text-[11px] font-semibold">{ar ? "الاسم" : "Name"}</Label>
                       <Input
                         value={form.hrContact2Name}
                         onChange={(e) => setForm(f => ({ ...f, hrContact2Name: e.target.value }))}
-                        placeholder={ar ? "مثال: سارة علي" : "Full Name"}
+                        placeholder={ar ? "اسم مساعد مدير الموارد البشرية" : "Assistant HR Manager Name"}
                         className="h-8 text-xs"
                       />
                     </div>
@@ -1491,7 +1491,7 @@ const closeDialog = () => {
                       <Input
                         value={form.hrContact2Title}
                         onChange={(e) => setForm(f => ({ ...f, hrContact2Title: e.target.value }))}
-                        placeholder="HR Specialist"
+                        placeholder="Assistant HR Manager"
                         className="h-8 text-xs"
                       />
                     </div>
@@ -1509,7 +1509,7 @@ const closeDialog = () => {
                       <Input
                         value={form.hrContact2Email}
                         onChange={(e) => setForm(f => ({ ...f, hrContact2Email: e.target.value }))}
-                        placeholder="hr2@sunrise-resorts.com"
+                        placeholder="asst.hr@sunrise-resorts.com"
                         className="h-8 text-xs"
                       />
                     </div>
@@ -1521,21 +1521,21 @@ const closeDialog = () => {
               <div className="space-y-3 pt-2 border-t">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5" />
-                  {ar ? "إدارة السكن (Housing Managers)" : "Housing Managers"}
+                  {ar ? "إدارة السكن (Housing Management)" : "Housing Management"}
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Manager 1 */}
+                  {/* Housing Manager */}
                   <div className="p-3.5 rounded-xl border bg-card/60 space-y-2.5 shadow-2xs">
                     <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 inline-block">
-                      {ar ? "مدير السكن 1" : "Housing Manager 1"}
+                      {ar ? "مدير السكن" : "Housing Manager"}
                     </span>
                     <div className="space-y-1">
                       <Label className="text-[11px] font-semibold">{ar ? "الاسم" : "Name"}</Label>
                       <Input
                         value={form.housingManager1Name}
                         onChange={(e) => setForm(f => ({ ...f, housingManager1Name: e.target.value }))}
-                        placeholder={ar ? "مثال: محمود فؤاد" : "Full Name"}
+                        placeholder={ar ? "اسم مدير السكن" : "Housing Manager Name"}
                         className="h-8 text-xs"
                       />
                     </div>
@@ -1562,23 +1562,23 @@ const closeDialog = () => {
                       <Input
                         value={form.housingManager1Email}
                         onChange={(e) => setForm(f => ({ ...f, housingManager1Email: e.target.value }))}
-                        placeholder="housing1@sunrise-resorts.com"
+                        placeholder="housing.manager@sunrise-resorts.com"
                         className="h-8 text-xs"
                       />
                     </div>
                   </div>
 
-                  {/* Manager 2 */}
+                  {/* Assistant Housing Manager */}
                   <div className="p-3.5 rounded-xl border bg-card/60 space-y-2.5 shadow-2xs">
                     <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 inline-block">
-                      {ar ? "مدير السكن 2" : "Housing Manager 2"}
+                      {ar ? "مساعد مدير السكن" : "Assistant Housing Manager"}
                     </span>
                     <div className="space-y-1">
                       <Label className="text-[11px] font-semibold">{ar ? "الاسم" : "Name"}</Label>
                       <Input
                         value={form.housingManager2Name}
                         onChange={(e) => setForm(f => ({ ...f, housingManager2Name: e.target.value }))}
-                        placeholder={ar ? "مثال: هاني عادل" : "Full Name"}
+                        placeholder={ar ? "اسم مساعد مدير السكن" : "Assistant Housing Manager Name"}
                         className="h-8 text-xs"
                       />
                     </div>
@@ -1605,7 +1605,7 @@ const closeDialog = () => {
                       <Input
                         value={form.housingManager2Email}
                         onChange={(e) => setForm(f => ({ ...f, housingManager2Email: e.target.value }))}
-                        placeholder="housing2@sunrise-resorts.com"
+                        placeholder="asst.housing@sunrise-resorts.com"
                         className="h-8 text-xs"
                       />
                     </div>

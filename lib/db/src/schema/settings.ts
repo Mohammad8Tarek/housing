@@ -92,7 +92,7 @@ export const settingsTable = pgTable("settings", {
   hrContact1Email: text("hr_contact_1_email").default(""),
 
   hrContact2Name: text("hr_contact_2_name").default(""),
-  hrContact2Title: text("hr_contact_2_title").default("HR Coordinator"),
+  hrContact2Title: text("hr_contact_2_title").default("Assistant HR Manager"),
   hrContact2Phone: text("hr_contact_2_phone").default(""),
   hrContact2Email: text("hr_contact_2_email").default(""),
 

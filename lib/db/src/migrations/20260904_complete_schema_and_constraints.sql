@@ -1613,7 +1613,7 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_1_phone" TEXT DEFAULT '';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_1_email" TEXT DEFAULT '';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_name" TEXT DEFAULT '';
-    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_title" TEXT DEFAULT 'HR Coordinator';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_title" TEXT DEFAULT 'Assistant HR Manager';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_phone" TEXT DEFAULT '';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hr_contact_2_email" TEXT DEFAULT '';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_1_name" TEXT DEFAULT '';
