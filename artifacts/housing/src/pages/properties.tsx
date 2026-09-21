@@ -432,14 +432,26 @@ const closeDialog = () => {
     },
     {
       key: "hrContacts",
-      label: "HR Contacts",
-      labelAr: "مسؤولو الموارد البشرية",
+      label: "HR Management",
+      labelAr: "إدارة الموارد البشرية",
       defaultVisible: true,
     },
     {
       key: "housingManagers",
-      label: "Housing Managers",
+      label: "Housing Management",
       labelAr: "إدارة السكن",
+      defaultVisible: true,
+    },
+    {
+      key: "phone",
+      label: "Phone Number",
+      labelAr: "رقم التليفون",
+      defaultVisible: true,
+    },
+    {
+      key: "email",
+      label: "Email",
+      labelAr: "البريد الإلكتروني",
       defaultVisible: true,
     },
     {
@@ -598,6 +610,16 @@ const closeDialog = () => {
                     {ar ? "إدارة السكن" : "Housing Management"}
                   </TableHead>
                 )}
+                {isPropVisible("phone") && (
+                  <TableHead className="font-semibold">
+                    {ar ? "رقم التليفون" : "Phone Number"}
+                  </TableHead>
+                )}
+                {isPropVisible("email") && (
+                  <TableHead className="font-semibold">
+                    {ar ? "البريد الإلكتروني" : "Email"}
+                  </TableHead>
+                )}
                 {isPropVisible("language") && (
                   <TableHead className="font-semibold">
                     {ar ? "اللغة" : "Language"}
@@ -687,6 +709,18 @@ const closeDialog = () => {
                                     {(prop as any).hrContact1Title}
                                   </div>
                                 )}
+                                {(prop as any).hrContact1Phone && (
+                                  <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 dir-ltr">
+                                    <Phone className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                    <span>{(prop as any).hrContact1Phone}</span>
+                                  </div>
+                                )}
+                                {(prop as any).hrContact1Email && (
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 truncate dir-ltr" title={(prop as any).hrContact1Email}>
+                                    <Mail className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                    <span className="truncate">{(prop as any).hrContact1Email}</span>
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
                                 {(prop as any).hrContact1Phone && (
@@ -730,6 +764,18 @@ const closeDialog = () => {
                                 {(prop as any).hrContact2Title && (
                                   <div className="text-[10px] text-muted-foreground truncate">
                                     {(prop as any).hrContact2Title}
+                                  </div>
+                                )}
+                                {(prop as any).hrContact2Phone && (
+                                  <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 dir-ltr">
+                                    <Phone className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                    <span>{(prop as any).hrContact2Phone}</span>
+                                  </div>
+                                )}
+                                {(prop as any).hrContact2Email && (
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 truncate dir-ltr" title={(prop as any).hrContact2Email}>
+                                    <Mail className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                    <span className="truncate">{(prop as any).hrContact2Email}</span>
                                   </div>
                                 )}
                               </div>
@@ -786,6 +832,18 @@ const closeDialog = () => {
                                     {(prop as any).housingManager1Title}
                                   </div>
                                 )}
+                                {(prop as any).housingManager1Phone && (
+                                  <div className="text-[10px] font-mono text-amber-700 dark:text-amber-300 flex items-center gap-1 dir-ltr">
+                                    <Phone className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                    <span>{(prop as any).housingManager1Phone}</span>
+                                  </div>
+                                )}
+                                {(prop as any).housingManager1Email && (
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 truncate dir-ltr" title={(prop as any).housingManager1Email}>
+                                    <Mail className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                    <span className="truncate">{(prop as any).housingManager1Email}</span>
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
                                 {(prop as any).housingManager1Phone && (
@@ -831,6 +889,18 @@ const closeDialog = () => {
                                     {(prop as any).housingManager2Title}
                                   </div>
                                 )}
+                                {(prop as any).housingManager2Phone && (
+                                  <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 dir-ltr">
+                                    <Phone className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                    <span>{(prop as any).housingManager2Phone}</span>
+                                  </div>
+                                )}
+                                {(prop as any).housingManager2Email && (
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 truncate dir-ltr" title={(prop as any).housingManager2Email}>
+                                    <Mail className="w-2.5 h-2.5 opacity-60 shrink-0" />
+                                    <span className="truncate">{(prop as any).housingManager2Email}</span>
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
                                 {(prop as any).housingManager2Phone && (
@@ -866,6 +936,236 @@ const closeDialog = () => {
                             </div>
                           )}
                           {!((prop as any).housingManager1Name || (prop as any).housingManager1Phone || (prop as any).housingManager2Name || (prop as any).housingManager2Phone) && (
+                            <span className="italic text-gray-400 text-xs">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isPropVisible("phone") && (
+                      <TableCell className="min-w-[170px] max-w-xs">
+                        <div className="space-y-1">
+                          {(prop as any).hrContact1Phone && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-primary/5 border border-primary/15 text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] text-muted-foreground block font-medium truncate">
+                                  {ar ? "مدير الموارد البشرية" : "HR Manager"}
+                                </span>
+                                <span className="font-mono text-[11px] font-semibold text-foreground dir-ltr inline-block">
+                                  {(prop as any).hrContact1Phone}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <a
+                                  href={`tel:${(prop as any).hrContact1Phone}`}
+                                  className="p-1 rounded hover:bg-primary/20 text-primary transition-colors"
+                                  title={ar ? "اتصال" : "Call"}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                </a>
+                                <a
+                                  href={`https://wa.me/${String((prop as any).hrContact1Phone).replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1 rounded hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+                                  title="WhatsApp"
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                          {(prop as any).hrContact2Phone && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-muted/50 border text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] text-muted-foreground block font-medium truncate">
+                                  {ar ? "مساعد مدير الموارد البشرية" : "Asst HR Manager"}
+                                </span>
+                                <span className="font-mono text-[11px] font-semibold text-foreground dir-ltr inline-block">
+                                  {(prop as any).hrContact2Phone}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <a
+                                  href={`tel:${(prop as any).hrContact2Phone}`}
+                                  className="p-1 rounded hover:bg-primary/20 text-primary transition-colors"
+                                  title={ar ? "اتصال" : "Call"}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                </a>
+                                <a
+                                  href={`https://wa.me/${String((prop as any).hrContact2Phone).replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1 rounded hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+                                  title="WhatsApp"
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                          {(prop as any).housingManager1Phone && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] text-amber-700 dark:text-amber-300 block font-medium truncate">
+                                  {ar ? "مدير السكن" : "Housing Manager"}
+                                </span>
+                                <span className="font-mono text-[11px] font-semibold text-foreground dir-ltr inline-block">
+                                  {(prop as any).housingManager1Phone}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <a
+                                  href={`tel:${(prop as any).housingManager1Phone}`}
+                                  className="p-1 rounded hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition-colors"
+                                  title={ar ? "اتصال" : "Call"}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                </a>
+                                <a
+                                  href={`https://wa.me/${String((prop as any).housingManager1Phone).replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1 rounded hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+                                  title="WhatsApp"
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                          {(prop as any).housingManager2Phone && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-muted/50 border text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] text-muted-foreground block font-medium truncate">
+                                  {ar ? "مساعد مدير السكن" : "Asst Housing Mgr"}
+                                </span>
+                                <span className="font-mono text-[11px] font-semibold text-foreground dir-ltr inline-block">
+                                  {(prop as any).housingManager2Phone}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <a
+                                  href={`tel:${(prop as any).housingManager2Phone}`}
+                                  className="p-1 rounded hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition-colors"
+                                  title={ar ? "اتصال" : "Call"}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                </a>
+                                <a
+                                  href={`https://wa.me/${String((prop as any).housingManager2Phone).replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1 rounded hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+                                  title="WhatsApp"
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                          {!((prop as any).hrContact1Phone || (prop as any).hrContact2Phone || (prop as any).housingManager1Phone || (prop as any).housingManager2Phone) && (
+                            <span className="italic text-gray-400 text-xs">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isPropVisible("email") && (
+                      <TableCell className="min-w-[190px] max-w-xs">
+                        <div className="space-y-1">
+                          {(prop as any).hrContact1Email && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-primary/5 border border-primary/15 text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] text-muted-foreground block font-medium truncate">
+                                  {ar ? "مدير الموارد البشرية" : "HR Manager"}
+                                </span>
+                                <a
+                                  href={`mailto:${(prop as any).hrContact1Email}`}
+                                  className="text-[11px] font-medium text-foreground hover:text-primary truncate block dir-ltr"
+                                  title={(prop as any).hrContact1Email}
+                                >
+                                  {(prop as any).hrContact1Email}
+                                </a>
+                              </div>
+                              <a
+                                href={`mailto:${(prop as any).hrContact1Email}`}
+                                className="p-1 rounded hover:bg-blue-500/20 text-blue-600 shrink-0 transition-colors"
+                                title={(prop as any).hrContact1Email}
+                              >
+                                <Mail className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                          {(prop as any).hrContact2Email && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-muted/50 border text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] text-muted-foreground block font-medium truncate">
+                                  {ar ? "مساعد مدير الموارد البشرية" : "Asst HR Manager"}
+                                </span>
+                                <a
+                                  href={`mailto:${(prop as any).hrContact2Email}`}
+                                  className="text-[11px] font-medium text-foreground hover:text-primary truncate block dir-ltr"
+                                  title={(prop as any).hrContact2Email}
+                                >
+                                  {(prop as any).hrContact2Email}
+                                </a>
+                              </div>
+                              <a
+                                href={`mailto:${(prop as any).hrContact2Email}`}
+                                className="p-1 rounded hover:bg-blue-500/20 text-blue-600 shrink-0 transition-colors"
+                                title={(prop as any).hrContact2Email}
+                              >
+                                <Mail className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                          {(prop as any).housingManager1Email && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] text-amber-700 dark:text-amber-300 block font-medium truncate">
+                                  {ar ? "مدير السكن" : "Housing Manager"}
+                                </span>
+                                <a
+                                  href={`mailto:${(prop as any).housingManager1Email}`}
+                                  className="text-[11px] font-medium text-foreground hover:text-amber-600 truncate block dir-ltr"
+                                  title={(prop as any).housingManager1Email}
+                                >
+                                  {(prop as any).housingManager1Email}
+                                </a>
+                              </div>
+                              <a
+                                href={`mailto:${(prop as any).housingManager1Email}`}
+                                className="p-1 rounded hover:bg-blue-500/20 text-blue-600 shrink-0 transition-colors"
+                                title={(prop as any).housingManager1Email}
+                              >
+                                <Mail className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                          {(prop as any).housingManager2Email && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-muted/50 border text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] text-muted-foreground block font-medium truncate">
+                                  {ar ? "مساعد مدير السكن" : "Asst Housing Mgr"}
+                                </span>
+                                <a
+                                  href={`mailto:${(prop as any).housingManager2Email}`}
+                                  className="text-[11px] font-medium text-foreground hover:text-primary truncate block dir-ltr"
+                                  title={(prop as any).housingManager2Email}
+                                >
+                                  {(prop as any).housingManager2Email}
+                                </a>
+                              </div>
+                              <a
+                                href={`mailto:${(prop as any).housingManager2Email}`}
+                                className="p-1 rounded hover:bg-blue-500/20 text-blue-600 shrink-0 transition-colors"
+                                title={(prop as any).housingManager2Email}
+                              >
+                                <Mail className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                          {!((prop as any).hrContact1Email || (prop as any).hrContact2Email || (prop as any).housingManager1Email || (prop as any).housingManager2Email) && (
                             <span className="italic text-gray-400 text-xs">—</span>
                           )}
                         </div>
