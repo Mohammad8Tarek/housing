@@ -59,6 +59,9 @@ const CreateHostingRequest = lazy(
 const HostingRequestDetail = lazy(
   () => import("@/pages/hosting-requests/HostingRequestDetail"),
 );
+const RoomServiceLandingPage = lazy(
+  () => import("@/pages/room-service/RoomServiceLandingPage"),
+);
 
 // Profile Portal Pages (Moved to standalone app)
 
@@ -266,6 +269,11 @@ function Router() {
         {/* 1. Login is always non-prefixed */}
         <Route path="/login">
           <Login />
+        </Route>
+
+        {/* Public Room Service via Door QR Code */}
+        <Route path="/room-service">
+          <RoomServiceLandingPage />
         </Route>
 
         {/* 2. Root redirects to active property home */}

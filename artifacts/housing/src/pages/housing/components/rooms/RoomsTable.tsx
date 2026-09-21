@@ -1,4 +1,4 @@
-import { Home, Users, Pencil, Trash2 } from "lucide-react";
+import { Home, Users, Pencil, Trash2, QrCode } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ type Props = {
   filteredRoomsTab: any[];
   onEditRoom: (r: any) => void;
   onDeleteRoom: (r: any) => void;
+  onViewQr?: (r: any) => void;
   selectedRoomIds: Set<number>;
   onToggleRoom: (id: number) => void;
   onToggleAll: () => void;
@@ -31,6 +32,7 @@ export function RoomsTable({
   filteredRoomsTab,
   onEditRoom,
   onDeleteRoom,
+  onViewQr,
   selectedRoomIds,
   onToggleRoom,
   onToggleAll,
@@ -155,6 +157,17 @@ export function RoomsTable({
                 </td>
                 <td className="p-3">
                   <div className="flex items-center gap-1 justify-end">
+                    {onViewQr && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => onViewQr(r)}
+                        title={ar ? "رمز الـ QR وبطاقة الباب" : "Room QR Code & Door Placard"}
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                     <PermissionGate module="housing" action="edit">
                       <Button
                         variant="ghost"

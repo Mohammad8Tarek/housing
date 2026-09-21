@@ -48,6 +48,7 @@ import portalScheduleRouter from "./portal-schedule.js";
 import pushNotificationsRouter from "./push-notifications.js";
 import portalFoodTransportRouter from "./portal-food-transport.js";
 import portalChatRouter from "./portal-chat.js";
+import roomServicePublicRouter from "./room-service-public.js";
 
 const router: IRouter = Router();
 
@@ -56,6 +57,9 @@ router.use(healthRouter);
 // ✅ loginRateLimit properly applied BEFORE the auth handler
 router.post("/auth/login", loginRateLimit);
 router.use(authRouter);
+
+// Public QR Room Service routes (no login required for residents scanning door QR)
+router.use(roomServicePublicRouter);
 
 // Profile portal routes use their own portal session. Admin-only portal
 // maintenance actions add permission checks inside portal-auth.ts.
@@ -75,6 +79,10 @@ router.use("/portal-chat", portalRateLimit, portalChatRouter);
 router.use(gateRouter);
 
 router.use((req, res, next) => {
+  // Allow public room service endpoints
+  if (req.path.startsWith("/public/")) {
+    return next();
+  }
   // Allow HR sync webhook endpoints that authenticate via x-api-key
   if (req.path.startsWith("/hr-sync") && req.headers["x-api-key"]) {
     return next();

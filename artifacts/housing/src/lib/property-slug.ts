@@ -24,6 +24,7 @@ export const RESERVED_FIRST_SEGMENTS = new Set([
   "settings",
   "activity-log",
   "hosting-requests",
+  "room-service",
   "api",
   "assets",
   "favicon.ico",

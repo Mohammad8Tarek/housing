@@ -1,9 +1,11 @@
 import { RoomImportWizard } from "../import/RoomImportWizard";
 import { downloadRoomImportTemplate } from "@/lib/room-importer-engine";
-import { Search, Plus, FileDown, Trash2 } from "lucide-react";
+import { Search, Plus, FileDown, Trash2, QrCode } from "lucide-react";
 import * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { useState } from "react";
+import { RoomQrModal } from "./RoomQrModal";
+import { RoomQrBatchPrintDialog } from "./RoomQrBatchPrintDialog";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
@@ -97,6 +99,8 @@ export function RoomsTab({
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [qrModalRoom, setQrModalRoom] = useState<any | null>(null);
+  const [batchQrModalOpen, setBatchQrModalOpen] = useState(false);
 
   const invalidateAllHousingQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["buildings"] });
@@ -478,6 +482,16 @@ export function RoomsTab({
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setBatchQrModalOpen(true)}
+            className="gap-1.5 text-xs font-semibold h-9"
+            title={ar ? "طباعة ملصقات QR للغرف" : "Print Room QR Stickers"}
+          >
+            <QrCode className="w-3.5 h-3.5 text-indigo-600" />
+            {ar ? "طباعة ملصقات QR" : "Print QR Stickers"}
+          </Button>
+
           <PermissionGate module="housing" action="export">
             <Button
               variant="outline"
@@ -503,6 +517,17 @@ export function RoomsTab({
           <span className="text-sm font-semibold text-primary">
             {selectedRoomIds.size} {ar ? "غرفة محددة" : "rooms selected"}
           </span>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs font-semibold h-8 bg-background border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setBatchQrModalOpen(true)}
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            {ar ? `طباعة QR للمحدد (${selectedRoomIds.size})` : `Print QR for Selected (${selectedRoomIds.size})`}
+          </Button>
+
           <PermissionGate module="housing" action="delete">
             <Button
               variant="destructive"
@@ -567,6 +592,7 @@ export function RoomsTab({
         filteredRoomsTab={rData}
         onEditRoom={openEditRoom}
         onDeleteRoom={setDeleteRoom}
+        onViewQr={(r) => setQrModalRoom(r)}
         selectedRoomIds={selectedRoomIds}
         onToggleRoom={(id) =>
           setSelectedRoomIds((prev) => {
@@ -624,6 +650,33 @@ export function RoomsTab({
         setDeleteRoom={setDeleteRoom}
         confirmDeleteRoom={confirmDeleteRoom}
         isDeleting={deleteRoomMut.isPending}
+      />
+
+      <RoomQrModal
+        open={!!qrModalRoom}
+        onOpenChange={(open) => !open && setQrModalRoom(null)}
+        room={qrModalRoom}
+        propertyId={propertyId}
+        propertyName={
+          properties.find((p: any) => p.id === propertyId)?.displayName ||
+          properties.find((p: any) => p.id === propertyId)?.name ||
+          ""
+        }
+      />
+
+      <RoomQrBatchPrintDialog
+        open={batchQrModalOpen}
+        onOpenChange={setBatchQrModalOpen}
+        rooms={allPropertyRooms}
+        buildings={buildings}
+        floors={floors}
+        propertyId={propertyId}
+        propertyName={
+          properties.find((p: any) => p.id === propertyId)?.displayName ||
+          properties.find((p: any) => p.id === propertyId)?.name ||
+          ""
+        }
+        selectedRoomIds={selectedRoomIds.size > 0 ? selectedRoomIds : undefined}
       />
     </div>
   );
