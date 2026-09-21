@@ -34,6 +34,8 @@ import {
   Clock,
   Layers,
   Info,
+  Fingerprint,
+  Timer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
@@ -759,33 +761,64 @@ export function WhatsAppSettingsSection({
             </div>
           )}
 
-          {/* Anti-Ban Shield Card */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-            <div className="p-3 rounded-xl bg-card border flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div className="text-xs">
-                <div className="font-semibold">{ar ? "فحص تسجيل الرقم" : "Pre-Validation"}</div>
-                <div className="text-muted-foreground">{ar ? "التحقق المسبق قبل الإرسال لمنع أي حظر" : "Verified against WA servers"}</div>
-              </div>
+          {/* Advanced Anti-Ban Protection Suite */}
+          <div className="pt-2 space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+              <span className="font-bold text-foreground flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                {ar ? "منظومة الحماية الذكية المتقدمة ضد الحظر (Anti-Ban Engine)" : "Smart Anti-Ban Protection Suite"}
+              </span>
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] py-0 px-2 font-mono">
+                {ar ? "نشط وتلقائي 100%" : "100% Automated & Active"}
+              </Badge>
             </div>
-            <div className="p-3 rounded-xl bg-card border flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-4 h-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div className="text-xs space-y-0.5">
+                  <div className="font-semibold text-foreground">{ar ? "فحص تسجيل الرقم" : "Pre-Validation"}</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    {ar ? "فحص مسبق مع سيرفرات واتساب لتجنب مراسلة أرقام ملغية" : "Verified with WhatsApp servers before dispatch"}
+                  </div>
+                </div>
               </div>
-              <div className="text-xs">
-                <div className="font-semibold">{ar ? "محاكاة الكتابة البشرية" : "Human Simulation"}</div>
-                <div className="text-muted-foreground">{ar ? "حالة Typing... لثوانٍ واقعية" : "Natural delay and presence"}</div>
+
+              <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div className="text-xs space-y-0.5">
+                  <div className="font-semibold text-foreground">{ar ? "فواصل عشوائية (5-9s)" : "Random Jitter (5-9s)"}</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    {ar ? "تأخير بشري متغير وكتابة Typing تحاكي السلوك البشري" : "Simulates human typing & variable delay per msg"}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="p-3 rounded-xl bg-card border flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
-                <RefreshCw className="w-4 h-4" />
+
+              <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Timer className="w-4 h-4" />
+                </div>
+                <div className="text-xs space-y-0.5">
+                  <div className="font-semibold text-foreground">{ar ? "استراحة تبريد كل 15 رسالة" : "Batch Cooldown (15 msgs)"}</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    {ar ? "توقف أمان (40-60 ثانية) تلقائياً لتهدئة الحساب ومنع الحظر" : "Auto 40-60s cooling pause every 15 msgs sent"}
+                  </div>
+                </div>
               </div>
-              <div className="text-xs">
-                <div className="font-semibold">{ar ? "طابور بفواصل عشوائية" : "Jitter Queue"}</div>
-                <div className="text-muted-foreground">{ar ? "فواصل 4-8 ثوانٍ تمنع كشف البوتات" : "Anti-spam rate limiting"}</div>
+
+              <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Fingerprint className="w-4 h-4" />
+                </div>
+                <div className="text-xs space-y-0.5">
+                  <div className="font-semibold text-foreground">{ar ? "بصمة وهاش فريد لكل رسالة" : "Unique Hash Fingerprint"}</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    {ar ? "تشفير بحروف غير مرئية يمنع خوارزميات السبام من مطابقة النصوص" : "Invisible zero-width hash prevents bulk duplicate flags"}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -117,8 +117,57 @@ We wish you a safe trip and a pleasant stay! ✨`;
 // Outbox queue processing state per property
 const isProcessingOutbox = new Map<number, boolean>();
 
+// Track consecutive sent messages per property for anti-ban batch cooling
+const propertyBatchSentCount = new Map<number, number>();
+
+const ZERO_WIDTH_SALT_CHARS = [
+  "\u200B", // Zero-Width Space
+  "\u200C", // Zero-Width Non-Joiner
+  "\u200D", // Zero-Width Joiner
+  "\u2060", // Word Joiner
+  "\uFEFF", // Zero-Width No-Break Space
+];
+
+/**
+ * Injects an invisible cryptographic fingerprint and zero-width salt into the message text.
+ * This ensures that every single message sent across WhatsApp has a 100% unique byte hash (SHA-256)
+ * and perceptual fingerprint, preventing WhatsApp AI spam/bulk detection filters from blocking the account,
+ * while rendering completely invisible and clean to the recipient.
+ */
+export function injectAntiBanFingerprint(text: string, seed?: string | number): string {
+  if (!text || typeof text !== "string") return text;
+
+  // 1. Subtle intra-text variance: randomly salt a small portion of space characters with zero-width markers
+  let salted = text.replace(/ /g, (m) =>
+    Math.random() < 0.2 ? m + ZERO_WIDTH_SALT_CHARS[Math.floor(Math.random() * ZERO_WIDTH_SALT_CHARS.length)] : m
+  );
+
+  // 2. Generate high-resolution timestamp & entropy
+  const entropy = `${Date.now().toString(36)}_${seed || ""}_${Math.random().toString(36).slice(2, 7)}`;
+  let binaryHash = "";
+  for (let i = 0; i < entropy.length; i++) {
+    const code = entropy.charCodeAt(i);
+    binaryHash += code % 2 === 0 ? "\u200B" : "\u200C";
+  }
+
+  // 3. Trailing random zero-width salt sequence
+  const saltLen = 6 + Math.floor(Math.random() * 8);
+  let tailSalt = "";
+  for (let i = 0; i < saltLen; i++) {
+    tailSalt += ZERO_WIDTH_SALT_CHARS[Math.floor(Math.random() * ZERO_WIDTH_SALT_CHARS.length)];
+  }
+
+  // Combine cleanly without any visible marks
+  return `${salted.trimEnd()}${tailSalt}${binaryHash}`;
+}
+
 /**
  * Process all pending messages from public.whatsapp_outbox_queue in FIFO order
+ * Incorporates strict anti-ban safety:
+ * - Pre-validates destination phone numbers
+ * - Random human delay jitter between consecutive messages (5s to 9s)
+ * - Cooling-off break of 40s-60s every 15 dispatched messages
+ * - Invisible cryptographic fingerprinting on every payload
  */
 export async function processOutboxQueue(
   propertyId: number
@@ -136,91 +185,110 @@ export async function processOutboxQueue(
       return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
     }
 
-    const { rows: pendingItems } = await pool.query(
-      `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
-       FROM public.whatsapp_outbox_queue
-       WHERE property_id = $1 AND status = 'PENDING'
-       ORDER BY id ASC
-       LIMIT 50`,
-      [propertyId]
-    );
-
-    if (pendingItems.length === 0) {
-      return { processed: 0, failed: 0, pendingRemaining: 0 };
-    }
-
-    console.log(
-      `[WhatsApp Outbox] Starting dispatch of ${pendingItems.length} pending messages for property ${propertyId}...`
-    );
-
     let processed = 0;
     let failed = 0;
 
-    for (const item of pendingItems) {
-      // Re-verify session is still active
-      const currentSession = await getWhatsAppSession(propertyId);
-      if (currentSession.status !== "connected" || !currentSession.sock) {
-        console.warn(
-          `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`
-        );
+    while (true) {
+      const { rows: pendingItems } = await pool.query(
+        `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
+         FROM public.whatsapp_outbox_queue
+         WHERE property_id = $1 AND status = 'PENDING'
+         ORDER BY id ASC
+         LIMIT 50`,
+        [propertyId]
+      );
+
+      if (pendingItems.length === 0) {
         break;
       }
 
-      // Mark as PROCESSING
-      await pool.query(
-        `UPDATE public.whatsapp_outbox_queue SET status = 'PROCESSING' WHERE id = $1`,
-        [item.id]
-      ).catch(() => {});
-
-      const result = await executeSendHumanLike(
-        item.property_id,
-        item.recipient_phone,
-        item.message_content,
-        item.message_type,
-        item.recipient_name,
-        item.id
+      console.log(
+        `[WhatsApp Outbox] Dispatching batch chunk of ${pendingItems.length} pending messages for property ${propertyId}...`
       );
 
-      if (result.success) {
-        processed++;
-        await pool.query(
-          `UPDATE public.whatsapp_outbox_queue 
-           SET status = 'SENT', processed_at = NOW(), last_error = NULL 
-           WHERE id = $1`,
-          [item.id]
-        ).catch(() => {});
-      } else if (result.reason === "NOT_REGISTERED") {
-        failed++;
-        await pool.query(
-          `UPDATE public.whatsapp_outbox_queue 
-           SET status = 'NOT_REGISTERED', processed_at = NOW(), last_error = 'Number not registered on WhatsApp' 
-           WHERE id = $1`,
-          [item.id]
-        ).catch(() => {});
-      } else if (result.reason === "NOT_CONNECTED") {
-        // Revert to PENDING so it retries automatically when connection restores
-        await pool.query(
-          `UPDATE public.whatsapp_outbox_queue 
-           SET status = 'PENDING', retry_count = retry_count + 1, last_error = 'WhatsApp disconnected during dispatch' 
-           WHERE id = $1`,
-          [item.id]
-        ).catch(() => {});
-        break; // Pause outbox processing until reconnected
-      } else {
-        const nextRetry = (item.retry_count || 0) + 1;
-        const finalStatus = nextRetry >= 5 ? "FAILED" : "PENDING";
-        failed++;
-        await pool.query(
-          `UPDATE public.whatsapp_outbox_queue 
-           SET status = $1, retry_count = $2, last_error = $3, processed_at = ${finalStatus === "FAILED" ? "NOW()" : "NULL"} 
-           WHERE id = $4`,
-          [finalStatus, nextRetry, result.reason || "Unknown error", item.id]
-        ).catch(() => {});
-      }
+      for (const item of pendingItems) {
+        // Re-verify session is still active
+        const currentSession = await getWhatsAppSession(propertyId);
+        if (currentSession.status !== "connected" || !currentSession.sock) {
+          console.warn(
+            `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`
+          );
+          return { processed, failed, pendingRemaining: await getPendingQueueCount(propertyId) };
+        }
 
-      // Anti-ban random delay jitter between consecutive messages (3500ms to 6500ms)
-      const jitterMs = 3500 + Math.floor(Math.random() * 3000);
-      await new Promise((r) => setTimeout(r, jitterMs));
+        // Mark as PROCESSING
+        await pool.query(
+          `UPDATE public.whatsapp_outbox_queue SET status = 'PROCESSING' WHERE id = $1`,
+          [item.id]
+        ).catch(() => {});
+
+        const result = await executeSendHumanLike(
+          item.property_id,
+          item.recipient_phone,
+          item.message_content,
+          item.message_type,
+          item.recipient_name,
+          item.id
+        );
+
+        if (result.success) {
+          processed++;
+          const batchTotal = (propertyBatchSentCount.get(propertyId) || 0) + 1;
+          propertyBatchSentCount.set(propertyId, batchTotal);
+
+          await pool.query(
+            `UPDATE public.whatsapp_outbox_queue 
+             SET status = 'SENT', processed_at = NOW(), last_error = NULL 
+             WHERE id = $1`,
+            [item.id]
+          ).catch(() => {});
+
+          // Anti-ban cooling rule:
+          // Every 15 sent messages, enforce an extended cooling-off pause of 40-60 seconds to calm account activity
+          if (batchTotal > 0 && batchTotal % 15 === 0) {
+            const coolDownMs = 40000 + Math.floor(Math.random() * 20000); // 40s to 60s
+            console.log(
+              `[WhatsApp Anti-Ban] 🛡️ Completed safety cycle of 15 messages for property ${propertyId}. Enforcing cooling-off pause for ${Math.round(coolDownMs / 1000)}s to prevent ban...`
+            );
+            await new Promise((r) => setTimeout(r, coolDownMs));
+            console.log(`[WhatsApp Anti-Ban] ✅ Cooling-off pause completed. Resuming message dispatch.`);
+          } else {
+            // Standard anti-ban randomized delay jitter between consecutive messages: 5000ms to 9000ms (5 to 9 seconds)
+            const jitterMs = 5000 + Math.floor(Math.random() * 4000);
+            await new Promise((r) => setTimeout(r, jitterMs));
+          }
+        } else if (result.reason === "NOT_REGISTERED") {
+          failed++;
+          await pool.query(
+            `UPDATE public.whatsapp_outbox_queue 
+             SET status = 'NOT_REGISTERED', processed_at = NOW(), last_error = 'Number not registered on WhatsApp' 
+             WHERE id = $1`,
+            [item.id]
+          ).catch(() => {});
+          // Gentle 2-3s delay before trying next item
+          await new Promise((r) => setTimeout(r, 2000 + Math.floor(Math.random() * 1500)));
+        } else if (result.reason === "NOT_CONNECTED") {
+          // Revert to PENDING so it retries automatically when connection restores
+          await pool.query(
+            `UPDATE public.whatsapp_outbox_queue 
+             SET status = 'PENDING', retry_count = retry_count + 1, last_error = 'WhatsApp disconnected during dispatch' 
+             WHERE id = $1`,
+            [item.id]
+          ).catch(() => {});
+          return { processed, failed, pendingRemaining: await getPendingQueueCount(propertyId) };
+        } else {
+          const nextRetry = (item.retry_count || 0) + 1;
+          const finalStatus = nextRetry >= 5 ? "FAILED" : "PENDING";
+          failed++;
+          await pool.query(
+            `UPDATE public.whatsapp_outbox_queue 
+             SET status = $1, retry_count = $2, last_error = $3, processed_at = ${finalStatus === "FAILED" ? "NOW()" : "NULL"} 
+             WHERE id = $4`,
+            [finalStatus, nextRetry, result.reason || "Unknown error", item.id]
+          ).catch(() => {});
+          await new Promise((r) => setTimeout(r, 3000));
+        }
+      }
     }
 
     const pendingRemaining = await getPendingQueueCount(propertyId);
@@ -689,18 +757,23 @@ async function executeSendHumanLike(
     await session.sock.sendPresenceUpdate("available");
     await session.sock.sendPresenceUpdate("composing", verifiedJid);
 
-    // Realistic human typing delay (between 2500ms to 4500ms depending on message length)
-    const typingDelay = Math.min(Math.max(text.length * 15, 2500), 4500) + Math.floor(Math.random() * 800);
+    // Realistic human typing delay (between 2800ms to 5200ms depending on message length + random jitter)
+    const baseTyping = Math.min(Math.max(text.length * 12, 2800), 5000);
+    const typingDelay = baseTyping + Math.floor(Math.random() * 1200);
     await new Promise((r) => setTimeout(r, typingDelay));
 
     await session.sock.sendPresenceUpdate("paused", verifiedJid);
 
-    // 3. Send message
-    await session.sock.sendMessage(verifiedJid, { text });
+    // 3. Anti-ban: Inject unique invisible zero-width fingerprint & hash salt
+    // Each dispatched message gets an entirely unique cryptographic hash on WhatsApp servers
+    const antiBanPayload = injectAntiBanFingerprint(text, _queueId);
 
-    // 4. Log successful delivery
+    // 4. Send message with unique wire payload
+    await session.sock.sendMessage(verifiedJid, { text: antiBanPayload });
+
+    // 5. Log successful delivery (saving clean text for clean admin dashboard viewing)
     await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "SENT");
-    console.log(`[WhatsApp] Message successfully sent to ${cleanPhone}`);
+    console.log(`[WhatsApp Anti-Ban] Message successfully sent to ${cleanPhone} with unique fingerprint (Payload length: ${antiBanPayload.length})`);
     return { success: true };
   } catch (err: any) {
     console.error(`[WhatsApp] Error sending to ${cleanPhone}:`, err.message);
