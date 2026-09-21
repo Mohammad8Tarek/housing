@@ -134,6 +134,61 @@ export function generateReportPDF(
       fillColor: BRAND.rowAlt,
     },
 
+    // ── Dynamic cell color overrides ──
+    didParseCell: (cellData) => {
+      if (cellData.section !== 'body') return;
+      const col = columns.filter(c => !c.hiddenInPdf)[cellData.column.index];
+      if (!col) return;
+
+      // 1. Contract Expirations: Days Left color coding
+      if (col.key === 'daysRemaining') {
+        const days = Number(cellData.cell.raw);
+        if (isNaN(days) || days < 0) {
+          cellData.cell.styles.textColor = [220, 38, 38];
+          cellData.cell.styles.fontStyle = 'bold';
+        } else if (days < 30) {
+          cellData.cell.styles.fillColor = [254, 226, 226];
+          cellData.cell.styles.textColor = [185, 28, 28];
+          cellData.cell.styles.fontStyle = 'bold';
+        } else if (days < 90) {
+          cellData.cell.styles.fillColor = [254, 243, 199];
+          cellData.cell.styles.textColor = [146, 64, 14];
+        } else {
+          cellData.cell.styles.textColor = [21, 128, 61];
+        }
+      }
+
+      // 2. Maintenance & Policy: Priority / Risk Level
+      if (col.key === 'priority' || col.key === 'riskLevel') {
+        const val = String(cellData.cell.raw ?? '').toLowerCase();
+        const COLOR_MAP: Record<string, [[number, number, number], [number, number, number]]> = {
+          critical: [[254, 226, 226], [185, 28, 28]],
+          high:     [[254, 226, 226], [185, 28, 28]],
+          urgent:   [[254, 226, 226], [185, 28, 28]],
+          medium:   [[254, 243, 199], [146, 64, 14]],
+          normal:   [[240, 253, 244], [21, 128, 61]],
+          low:      [[240, 253, 244], [21, 128, 61]],
+        };
+        const entry = COLOR_MAP[val];
+        if (entry) {
+          cellData.cell.styles.fillColor = entry[0];
+          cellData.cell.styles.textColor = entry[1];
+          cellData.cell.styles.fontStyle = val === 'critical' || val === 'urgent' ? 'bold' : 'normal';
+        }
+      }
+
+      // 3. Service Quality: Average Rating
+      if (col.key === 'avgRating') {
+        const rating = Number(cellData.cell.raw);
+        if (!isNaN(rating)) {
+          if (rating >= 4.5)      cellData.cell.styles.textColor = [21, 128, 61];
+          else if (rating >= 3.5) cellData.cell.styles.textColor = [146, 64, 14];
+          else                    cellData.cell.styles.textColor = [185, 28, 28];
+          cellData.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+
     // ── Status cell coloring ──
     didDrawCell: (cellData) => {
       if (cellData.section !== 'body') return;
