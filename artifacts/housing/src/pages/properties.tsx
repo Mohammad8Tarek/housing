@@ -61,6 +61,10 @@ import {
   UserPlus,
   Upload,
   X,
+  Users,
+  Phone,
+  Mail,
+  MessageCircle,
 } from "lucide-react";
 import { useRef } from "react";
 import {
@@ -81,6 +85,22 @@ type PropertyForm = {
   adminUsername: string;
   adminPassword: string;
   logo: string;
+  hrContact1Name: string;
+  hrContact1Title: string;
+  hrContact1Phone: string;
+  hrContact1Email: string;
+  hrContact2Name: string;
+  hrContact2Title: string;
+  hrContact2Phone: string;
+  hrContact2Email: string;
+  housingManager1Name: string;
+  housingManager1Title: string;
+  housingManager1Phone: string;
+  housingManager1Email: string;
+  housingManager2Name: string;
+  housingManager2Title: string;
+  housingManager2Phone: string;
+  housingManager2Email: string;
 };
 
 const EMPTY_FORM: PropertyForm = {
@@ -94,6 +114,22 @@ const EMPTY_FORM: PropertyForm = {
   adminUsername: "",
   adminPassword: "",
   logo: "",
+  hrContact1Name: "",
+  hrContact1Title: "",
+  hrContact1Phone: "",
+  hrContact1Email: "",
+  hrContact2Name: "",
+  hrContact2Title: "",
+  hrContact2Phone: "",
+  hrContact2Email: "",
+  housingManager1Name: "",
+  housingManager1Title: "",
+  housingManager1Phone: "",
+  housingManager1Email: "",
+  housingManager2Name: "",
+  housingManager2Title: "",
+  housingManager2Phone: "",
+  housingManager2Email: "",
 };
 
 const statusColor = (s: string) =>
@@ -297,6 +333,22 @@ const closeDialog = () => {
       adminUsername: "",
       adminPassword: "",
       logo: prop.logo ?? "",
+      hrContact1Name: prop.hrContact1Name ?? "",
+      hrContact1Title: prop.hrContact1Title ?? "",
+      hrContact1Phone: prop.hrContact1Phone ?? "",
+      hrContact1Email: prop.hrContact1Email ?? "",
+      hrContact2Name: prop.hrContact2Name ?? "",
+      hrContact2Title: prop.hrContact2Title ?? "",
+      hrContact2Phone: prop.hrContact2Phone ?? "",
+      hrContact2Email: prop.hrContact2Email ?? "",
+      housingManager1Name: prop.housingManager1Name ?? "",
+      housingManager1Title: prop.housingManager1Title ?? "",
+      housingManager1Phone: prop.housingManager1Phone ?? "",
+      housingManager1Email: prop.housingManager1Email ?? "",
+      housingManager2Name: prop.housingManager2Name ?? "",
+      housingManager2Title: prop.housingManager2Title ?? "",
+      housingManager2Phone: prop.housingManager2Phone ?? "",
+      housingManager2Email: prop.housingManager2Email ?? "",
     });
     setEditingId(prop.id);
     setActiveTab("general");
@@ -337,6 +389,22 @@ const closeDialog = () => {
       defaultLanguage: form.defaultLanguage,
       primaryColor: form.primaryColor,
       logo: form.logo || undefined,
+      hrContact1Name: form.hrContact1Name || null,
+      hrContact1Title: form.hrContact1Title || null,
+      hrContact1Phone: form.hrContact1Phone || null,
+      hrContact1Email: form.hrContact1Email || null,
+      hrContact2Name: form.hrContact2Name || null,
+      hrContact2Title: form.hrContact2Title || null,
+      hrContact2Phone: form.hrContact2Phone || null,
+      hrContact2Email: form.hrContact2Email || null,
+      housingManager1Name: form.housingManager1Name || null,
+      housingManager1Title: form.housingManager1Title || null,
+      housingManager1Phone: form.housingManager1Phone || null,
+      housingManager1Email: form.housingManager1Email || null,
+      housingManager2Name: form.housingManager2Name || null,
+      housingManager2Title: form.housingManager2Title || null,
+      housingManager2Phone: form.housingManager2Phone || null,
+      housingManager2Email: form.housingManager2Email || null,
     };
 
     if (form.adminUsername && form.adminPassword) {
@@ -363,12 +431,24 @@ const closeDialog = () => {
       defaultVisible: true,
     },
     {
+      key: "hrContacts",
+      label: "HR Contacts",
+      labelAr: "مسؤولو الموارد البشرية",
+      defaultVisible: true,
+    },
+    {
+      key: "housingManagers",
+      label: "Housing Managers",
+      labelAr: "إدارة السكن",
+      defaultVisible: true,
+    },
+    {
       key: "language",
       label: "Language",
       labelAr: "اللغة",
-      defaultVisible: true,
+      defaultVisible: false,
     },
-    { key: "color", label: "Color", labelAr: "اللون", defaultVisible: true },
+    { key: "color", label: "Color", labelAr: "اللون", defaultVisible: false },
     { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
     {
       key: "actions",
@@ -421,6 +501,22 @@ const closeDialog = () => {
       Name: p.name,
       Code: p.code,
       "Display Name": p.displayName ?? "",
+      "HR 1 Name": p.hrContact1Name ?? "",
+      "HR 1 Title": p.hrContact1Title ?? "",
+      "HR 1 Phone": p.hrContact1Phone ?? "",
+      "HR 1 Email": p.hrContact1Email ?? "",
+      "HR 2 Name": p.hrContact2Name ?? "",
+      "HR 2 Title": p.hrContact2Title ?? "",
+      "HR 2 Phone": p.hrContact2Phone ?? "",
+      "HR 2 Email": p.hrContact2Email ?? "",
+      "Housing Mgr 1 Name": p.housingManager1Name ?? "",
+      "Housing Mgr 1 Title": p.housingManager1Title ?? "",
+      "Housing Mgr 1 Phone": p.housingManager1Phone ?? "",
+      "Housing Mgr 1 Email": p.housingManager1Email ?? "",
+      "Housing Mgr 2 Name": p.housingManager2Name ?? "",
+      "Housing Mgr 2 Title": p.housingManager2Title ?? "",
+      "Housing Mgr 2 Phone": p.housingManager2Phone ?? "",
+      "Housing Mgr 2 Email": p.housingManager2Email ?? "",
       Language: p.defaultLanguage ?? "",
       Status: p.status ?? "",
     }));
@@ -490,6 +586,16 @@ const closeDialog = () => {
                 {isPropVisible("displayname") && (
                   <TableHead className="font-semibold">
                     {ar ? "اسم العرض" : "Display Name"}
+                  </TableHead>
+                )}
+                {isPropVisible("hrContacts") && (
+                  <TableHead className="font-semibold">
+                    {ar ? "مسؤولو الموارد البشرية" : "HR Contacts"}
+                  </TableHead>
+                )}
+                {isPropVisible("housingManagers") && (
+                  <TableHead className="font-semibold">
+                    {ar ? "إدارة السكن" : "Housing Managers"}
                   </TableHead>
                 )}
                 {isPropVisible("language") && (
@@ -565,6 +671,204 @@ const closeDialog = () => {
                     {isPropVisible("displayname") && (
                       <TableCell className="text-muted-foreground">
                         {prop.displayName || "—"}
+                      </TableCell>
+                    )}
+                    {isPropVisible("hrContacts") && (
+                      <TableCell className="max-w-xs">
+                        <div className="space-y-1">
+                          {((prop as any).hrContact1Name || (prop as any).hrContact1Phone) && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-primary/5 border border-primary/15 text-xs">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold truncate text-[11px] text-foreground">
+                                  {(prop as any).hrContact1Name || (ar ? "مسؤول HR 1" : "HR Contact 1")}
+                                </div>
+                                {(prop as any).hrContact1Title && (
+                                  <div className="text-[10px] text-muted-foreground truncate">
+                                    {(prop as any).hrContact1Title}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {(prop as any).hrContact1Phone && (
+                                  <>
+                                    <a
+                                      href={`tel:${(prop as any).hrContact1Phone}`}
+                                      className="p-1 rounded hover:bg-primary/20 text-primary transition-colors"
+                                      title={ar ? "اتصال" : "Call"}
+                                    >
+                                      <Phone className="w-3 h-3" />
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${String((prop as any).hrContact1Phone).replace(/\D/g, "")}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-1 rounded hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+                                      title="WhatsApp"
+                                    >
+                                      <MessageCircle className="w-3 h-3" />
+                                    </a>
+                                  </>
+                                )}
+                                {(prop as any).hrContact1Email && (
+                                  <a
+                                    href={`mailto:${(prop as any).hrContact1Email}`}
+                                    className="p-1 rounded hover:bg-blue-500/20 text-blue-600 transition-colors"
+                                    title={(prop as any).hrContact1Email}
+                                  >
+                                    <Mail className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {((prop as any).hrContact2Name || (prop as any).hrContact2Phone) && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-muted/50 border text-xs">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold truncate text-[11px] text-foreground">
+                                  {(prop as any).hrContact2Name || (ar ? "مسؤول HR 2" : "HR Contact 2")}
+                                </div>
+                                {(prop as any).hrContact2Title && (
+                                  <div className="text-[10px] text-muted-foreground truncate">
+                                    {(prop as any).hrContact2Title}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {(prop as any).hrContact2Phone && (
+                                  <>
+                                    <a
+                                      href={`tel:${(prop as any).hrContact2Phone}`}
+                                      className="p-1 rounded hover:bg-primary/20 text-primary transition-colors"
+                                      title={ar ? "اتصال" : "Call"}
+                                    >
+                                      <Phone className="w-3 h-3" />
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${String((prop as any).hrContact2Phone).replace(/\D/g, "")}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-1 rounded hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+                                      title="WhatsApp"
+                                    >
+                                      <MessageCircle className="w-3 h-3" />
+                                    </a>
+                                  </>
+                                )}
+                                {(prop as any).hrContact2Email && (
+                                  <a
+                                    href={`mailto:${(prop as any).hrContact2Email}`}
+                                    className="p-1 rounded hover:bg-blue-500/20 text-blue-600 transition-colors"
+                                    title={(prop as any).hrContact2Email}
+                                  >
+                                    <Mail className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {!((prop as any).hrContact1Name || (prop as any).hrContact1Phone || (prop as any).hrContact2Name || (prop as any).hrContact2Phone) && (
+                            <span className="italic text-gray-400 text-xs">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isPropVisible("housingManagers") && (
+                      <TableCell className="max-w-xs">
+                        <div className="space-y-1">
+                          {((prop as any).housingManager1Name || (prop as any).housingManager1Phone) && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold truncate text-[11px] text-foreground">
+                                  {(prop as any).housingManager1Name || (ar ? "مدير السكن 1" : "Housing Manager 1")}
+                                </div>
+                                {(prop as any).housingManager1Title && (
+                                  <div className="text-[10px] text-muted-foreground truncate">
+                                    {(prop as any).housingManager1Title}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {(prop as any).housingManager1Phone && (
+                                  <>
+                                    <a
+                                      href={`tel:${(prop as any).housingManager1Phone}`}
+                                      className="p-1 rounded hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition-colors"
+                                      title={ar ? "اتصال" : "Call"}
+                                    >
+                                      <Phone className="w-3 h-3" />
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${String((prop as any).housingManager1Phone).replace(/\D/g, "")}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-1 rounded hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+                                      title="WhatsApp"
+                                    >
+                                      <MessageCircle className="w-3 h-3" />
+                                    </a>
+                                  </>
+                                )}
+                                {(prop as any).housingManager1Email && (
+                                  <a
+                                    href={`mailto:${(prop as any).housingManager1Email}`}
+                                    className="p-1 rounded hover:bg-blue-500/20 text-blue-600 transition-colors"
+                                    title={(prop as any).housingManager1Email}
+                                  >
+                                    <Mail className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {((prop as any).housingManager2Name || (prop as any).housingManager2Phone) && (
+                            <div className="flex items-center justify-between gap-1.5 p-1 px-2 rounded-md bg-muted/50 border text-xs">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold truncate text-[11px] text-foreground">
+                                  {(prop as any).housingManager2Name || (ar ? "مدير السكن 2" : "Housing Manager 2")}
+                                </div>
+                                {(prop as any).housingManager2Title && (
+                                  <div className="text-[10px] text-muted-foreground truncate">
+                                    {(prop as any).housingManager2Title}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {(prop as any).housingManager2Phone && (
+                                  <>
+                                    <a
+                                      href={`tel:${(prop as any).housingManager2Phone}`}
+                                      className="p-1 rounded hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition-colors"
+                                      title={ar ? "اتصال" : "Call"}
+                                    >
+                                      <Phone className="w-3 h-3" />
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${String((prop as any).housingManager2Phone).replace(/\D/g, "")}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-1 rounded hover:bg-emerald-500/20 text-emerald-600 transition-colors"
+                                      title="WhatsApp"
+                                    >
+                                      <MessageCircle className="w-3 h-3" />
+                                    </a>
+                                  </>
+                                )}
+                                {(prop as any).housingManager2Email && (
+                                  <a
+                                    href={`mailto:${(prop as any).housingManager2Email}`}
+                                    className="p-1 rounded hover:bg-blue-500/20 text-blue-600 transition-colors"
+                                    title={(prop as any).housingManager2Email}
+                                  >
+                                    <Mail className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {!((prop as any).housingManager1Name || (prop as any).housingManager1Phone || (prop as any).housingManager2Name || (prop as any).housingManager2Phone) && (
+                            <span className="italic text-gray-400 text-xs">—</span>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                     {isPropVisible("language") && (
@@ -681,7 +985,7 @@ const closeDialog = () => {
         }}
       >
         <DialogContent
-          className="max-w-xl max-h-[90vh] overflow-y-auto"
+          className="max-w-3xl max-h-[90vh] overflow-y-auto"
           srTitle={
             editingId
               ? ar
@@ -706,7 +1010,7 @@ const closeDialog = () => {
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger
                 value="general"
                 className="gap-1.5 text-xs font-semibold uppercase tracking-wider"
@@ -727,6 +1031,13 @@ const closeDialog = () => {
               >
                 <Shield className="w-3.5 h-3.5" />
                 {ar ? "إدارة" : "ADMIN"}
+              </TabsTrigger>
+              <TabsTrigger
+                value="contacts"
+                className="gap-1.5 text-xs font-semibold uppercase tracking-wider"
+              >
+                <Users className="w-3.5 h-3.5" />
+                {ar ? "التواصل" : "CONTACTS"}
               </TabsTrigger>
               <TabsTrigger
                 value="housing_config"
@@ -1095,6 +1406,210 @@ const closeDialog = () => {
                         : "If left blank, you can add users later from the User Management page."}
                     </p>
                   )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* ── CONTACTS TAB (KEY HR & HOUSING MANAGERS) ── */}
+            <TabsContent value="contacts" className="space-y-4 mt-4">
+              <div className="p-3.5 bg-primary/5 rounded-xl border border-primary/20 text-xs text-muted-foreground flex items-center gap-2.5">
+                <Users className="w-5 h-5 text-primary shrink-0" />
+                <span className="leading-relaxed">
+                  {ar
+                    ? "تسجيل وتعديل مسؤولي الموارد البشرية وإدارة السكن المعتمدين لهذا العقار. تظهر هذه البيانات تلقائياً في بوابة الموظفين والتواصل السريع."
+                    : "Official HR Coordinators and Housing Managers for this property. These contacts are automatically displayed in the Resident Portal for instant resident support."}
+                </span>
+              </div>
+
+              {/* HR Contacts Grid */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  {ar ? "مسؤولو الموارد البشرية (HR Contacts)" : "HR Coordinators"}
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* HR 1 */}
+                  <div className="p-3.5 rounded-xl border bg-card/60 space-y-2.5 shadow-2xs">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-primary/10 text-primary inline-block">
+                      {ar ? "مسؤول HR 1" : "HR Contact 1"}
+                    </span>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "الاسم" : "Name"}</Label>
+                      <Input
+                        value={form.hrContact1Name}
+                        onChange={(e) => setForm(f => ({ ...f, hrContact1Name: e.target.value }))}
+                        placeholder={ar ? "مثال: أحمد محمود" : "Full Name"}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "المسمى الوظيفي" : "Title"}</Label>
+                      <Input
+                        value={form.hrContact1Title}
+                        onChange={(e) => setForm(f => ({ ...f, hrContact1Title: e.target.value }))}
+                        placeholder="HR Coordinator"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "رقم الهاتف / واتساب" : "Phone / WhatsApp"}</Label>
+                      <Input
+                        value={form.hrContact1Phone}
+                        onChange={(e) => setForm(f => ({ ...f, hrContact1Phone: e.target.value }))}
+                        placeholder="+20 100 000 0000"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "البريد الإلكتروني" : "Email"}</Label>
+                      <Input
+                        value={form.hrContact1Email}
+                        onChange={(e) => setForm(f => ({ ...f, hrContact1Email: e.target.value }))}
+                        placeholder="hr1@sunrise-resorts.com"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* HR 2 */}
+                  <div className="p-3.5 rounded-xl border bg-card/60 space-y-2.5 shadow-2xs">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-primary/10 text-primary inline-block">
+                      {ar ? "مسؤول HR 2" : "HR Contact 2"}
+                    </span>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "الاسم" : "Name"}</Label>
+                      <Input
+                        value={form.hrContact2Name}
+                        onChange={(e) => setForm(f => ({ ...f, hrContact2Name: e.target.value }))}
+                        placeholder={ar ? "مثال: سارة علي" : "Full Name"}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "المسمى الوظيفي" : "Title"}</Label>
+                      <Input
+                        value={form.hrContact2Title}
+                        onChange={(e) => setForm(f => ({ ...f, hrContact2Title: e.target.value }))}
+                        placeholder="HR Specialist"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "رقم الهاتف / واتساب" : "Phone / WhatsApp"}</Label>
+                      <Input
+                        value={form.hrContact2Phone}
+                        onChange={(e) => setForm(f => ({ ...f, hrContact2Phone: e.target.value }))}
+                        placeholder="+20 100 000 0000"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "البريد الإلكتروني" : "Email"}</Label>
+                      <Input
+                        value={form.hrContact2Email}
+                        onChange={(e) => setForm(f => ({ ...f, hrContact2Email: e.target.value }))}
+                        placeholder="hr2@sunrise-resorts.com"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Housing Managers Grid */}
+              <div className="space-y-3 pt-2 border-t">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5" />
+                  {ar ? "إدارة السكن (Housing Managers)" : "Housing Managers"}
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Manager 1 */}
+                  <div className="p-3.5 rounded-xl border bg-card/60 space-y-2.5 shadow-2xs">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 inline-block">
+                      {ar ? "مدير السكن 1" : "Housing Manager 1"}
+                    </span>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "الاسم" : "Name"}</Label>
+                      <Input
+                        value={form.housingManager1Name}
+                        onChange={(e) => setForm(f => ({ ...f, housingManager1Name: e.target.value }))}
+                        placeholder={ar ? "مثال: محمود فؤاد" : "Full Name"}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "المسمى الوظيفي" : "Title"}</Label>
+                      <Input
+                        value={form.housingManager1Title}
+                        onChange={(e) => setForm(f => ({ ...f, housingManager1Title: e.target.value }))}
+                        placeholder="Housing Manager"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "رقم الهاتف / واتساب" : "Phone / WhatsApp"}</Label>
+                      <Input
+                        value={form.housingManager1Phone}
+                        onChange={(e) => setForm(f => ({ ...f, housingManager1Phone: e.target.value }))}
+                        placeholder="+20 100 000 0000"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "البريد الإلكتروني" : "Email"}</Label>
+                      <Input
+                        value={form.housingManager1Email}
+                        onChange={(e) => setForm(f => ({ ...f, housingManager1Email: e.target.value }))}
+                        placeholder="housing1@sunrise-resorts.com"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Manager 2 */}
+                  <div className="p-3.5 rounded-xl border bg-card/60 space-y-2.5 shadow-2xs">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 inline-block">
+                      {ar ? "مدير السكن 2" : "Housing Manager 2"}
+                    </span>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "الاسم" : "Name"}</Label>
+                      <Input
+                        value={form.housingManager2Name}
+                        onChange={(e) => setForm(f => ({ ...f, housingManager2Name: e.target.value }))}
+                        placeholder={ar ? "مثال: هاني عادل" : "Full Name"}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "المسمى الوظيفي" : "Title"}</Label>
+                      <Input
+                        value={form.housingManager2Title}
+                        onChange={(e) => setForm(f => ({ ...f, housingManager2Title: e.target.value }))}
+                        placeholder="Assistant Housing Manager"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "رقم الهاتف / واتساب" : "Phone / WhatsApp"}</Label>
+                      <Input
+                        value={form.housingManager2Phone}
+                        onChange={(e) => setForm(f => ({ ...f, housingManager2Phone: e.target.value }))}
+                        placeholder="+20 100 000 0000"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">{ar ? "البريد الإلكتروني" : "Email"}</Label>
+                      <Input
+                        value={form.housingManager2Email}
+                        onChange={(e) => setForm(f => ({ ...f, housingManager2Email: e.target.value }))}
+                        placeholder="housing2@sunrise-resorts.com"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>

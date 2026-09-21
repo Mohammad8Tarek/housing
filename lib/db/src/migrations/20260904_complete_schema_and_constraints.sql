@@ -2415,5 +2415,23 @@ We wish you a safe trip and a pleasant stay! ✨',
   CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_prop ON public.ws_sessions(property_id);
   CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_active ON public.ws_sessions(is_active);
 
+  -- Add Key HR & Housing Contacts to public.properties
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_1_name TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_1_title TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_1_phone TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_1_email TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_2_name TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_2_title TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_2_phone TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_2_email TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_1_name TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_1_title TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_1_phone TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_1_email TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_2_name TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_2_title TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_2_phone TEXT;
+  ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_2_email TEXT;
+
   RAISE NOTICE '>>> All schemas, tables, and constraints migrated successfully!';
 END $$;

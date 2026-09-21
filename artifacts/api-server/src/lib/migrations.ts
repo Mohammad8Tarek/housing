@@ -1264,6 +1264,28 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     name: "public.assignments.check_out_reason",
     q: "ALTER TABLE public.assignments ADD COLUMN IF NOT EXISTS check_out_reason TEXT",
   },
+  {
+    name: "public.properties.hr_and_housing_contacts",
+    q: `
+      ALTER TABLE public.properties
+        ADD COLUMN IF NOT EXISTS hr_contact_1_name TEXT,
+        ADD COLUMN IF NOT EXISTS hr_contact_1_title TEXT,
+        ADD COLUMN IF NOT EXISTS hr_contact_1_phone TEXT,
+        ADD COLUMN IF NOT EXISTS hr_contact_1_email TEXT,
+        ADD COLUMN IF NOT EXISTS hr_contact_2_name TEXT,
+        ADD COLUMN IF NOT EXISTS hr_contact_2_title TEXT,
+        ADD COLUMN IF NOT EXISTS hr_contact_2_phone TEXT,
+        ADD COLUMN IF NOT EXISTS hr_contact_2_email TEXT,
+        ADD COLUMN IF NOT EXISTS housing_manager_1_name TEXT,
+        ADD COLUMN IF NOT EXISTS housing_manager_1_title TEXT,
+        ADD COLUMN IF NOT EXISTS housing_manager_1_phone TEXT,
+        ADD COLUMN IF NOT EXISTS housing_manager_1_email TEXT,
+        ADD COLUMN IF NOT EXISTS housing_manager_2_name TEXT,
+        ADD COLUMN IF NOT EXISTS housing_manager_2_title TEXT,
+        ADD COLUMN IF NOT EXISTS housing_manager_2_phone TEXT,
+        ADD COLUMN IF NOT EXISTS housing_manager_2_email TEXT
+    `,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======

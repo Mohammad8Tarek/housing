@@ -202,14 +202,40 @@ router.post(
         }
       }
 
-      // Create default settings (inside the new schema)
+      // Create default settings (inside the new schema) with contacts if present
       try {
         await pool.query(
           `
-        INSERT INTO "${schemaName}".settings (system_name, primary_color, default_language)
-        VALUES ($1, $2, $3)
+        INSERT INTO "${schemaName}".settings (
+          system_name, primary_color, default_language,
+          hr_contact_1_name, hr_contact_1_title, hr_contact_1_phone, hr_contact_1_email,
+          hr_contact_2_name, hr_contact_2_title, hr_contact_2_phone, hr_contact_2_email,
+          housing_manager_1_name, housing_manager_1_title, housing_manager_1_phone, housing_manager_1_email,
+          housing_manager_2_name, housing_manager_2_title, housing_manager_2_phone, housing_manager_2_email
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       `,
-          [property.name, property.primaryColor, property.defaultLanguage],
+          [
+            property.name,
+            property.primaryColor,
+            property.defaultLanguage,
+            property.hrContact1Name || null,
+            property.hrContact1Title || null,
+            property.hrContact1Phone || null,
+            property.hrContact1Email || null,
+            property.hrContact2Name || null,
+            property.hrContact2Title || null,
+            property.hrContact2Phone || null,
+            property.hrContact2Email || null,
+            property.housingManager1Name || null,
+            property.housingManager1Title || null,
+            property.housingManager1Phone || null,
+            property.housingManager1Email || null,
+            property.housingManager2Name || null,
+            property.housingManager2Title || null,
+            property.housingManager2Phone || null,
+            property.housingManager2Email || null,
+          ],
         );
       } catch (e: any) {
         console.warn(
@@ -343,6 +369,53 @@ router.patch(
         await ensurePropertyAdmin(adminUsername, adminPassword, params.data.id);
       } catch (userErr: any) {
         console.error("[Properties] Error setting up admin user on update:", userErr?.message || userErr);
+      }
+    }
+
+    // Sync updated contacts to tenant schema settings if schema exists
+    if (updated.schemaName) {
+      try {
+        await pool.query(
+          `
+          UPDATE "${updated.schemaName}".settings SET
+            hr_contact_1_name = COALESCE($1, hr_contact_1_name),
+            hr_contact_1_title = COALESCE($2, hr_contact_1_title),
+            hr_contact_1_phone = COALESCE($3, hr_contact_1_phone),
+            hr_contact_1_email = COALESCE($4, hr_contact_1_email),
+            hr_contact_2_name = COALESCE($5, hr_contact_2_name),
+            hr_contact_2_title = COALESCE($6, hr_contact_2_title),
+            hr_contact_2_phone = COALESCE($7, hr_contact_2_phone),
+            hr_contact_2_email = COALESCE($8, hr_contact_2_email),
+            housing_manager_1_name = COALESCE($9, housing_manager_1_name),
+            housing_manager_1_title = COALESCE($10, housing_manager_1_title),
+            housing_manager_1_phone = COALESCE($11, housing_manager_1_phone),
+            housing_manager_1_email = COALESCE($12, housing_manager_1_email),
+            housing_manager_2_name = COALESCE($13, housing_manager_2_name),
+            housing_manager_2_title = COALESCE($14, housing_manager_2_title),
+            housing_manager_2_phone = COALESCE($15, housing_manager_2_phone),
+            housing_manager_2_email = COALESCE($16, housing_manager_2_email)
+        `,
+          [
+            propData.hrContact1Name !== undefined ? propData.hrContact1Name : null,
+            propData.hrContact1Title !== undefined ? propData.hrContact1Title : null,
+            propData.hrContact1Phone !== undefined ? propData.hrContact1Phone : null,
+            propData.hrContact1Email !== undefined ? propData.hrContact1Email : null,
+            propData.hrContact2Name !== undefined ? propData.hrContact2Name : null,
+            propData.hrContact2Title !== undefined ? propData.hrContact2Title : null,
+            propData.hrContact2Phone !== undefined ? propData.hrContact2Phone : null,
+            propData.hrContact2Email !== undefined ? propData.hrContact2Email : null,
+            propData.housingManager1Name !== undefined ? propData.housingManager1Name : null,
+            propData.housingManager1Title !== undefined ? propData.housingManager1Title : null,
+            propData.housingManager1Phone !== undefined ? propData.housingManager1Phone : null,
+            propData.housingManager1Email !== undefined ? propData.housingManager1Email : null,
+            propData.housingManager2Name !== undefined ? propData.housingManager2Name : null,
+            propData.housingManager2Title !== undefined ? propData.housingManager2Title : null,
+            propData.housingManager2Phone !== undefined ? propData.housingManager2Phone : null,
+            propData.housingManager2Email !== undefined ? propData.housingManager2Email : null,
+          ],
+        );
+      } catch (e: any) {
+        console.warn("[Properties] Sync to tenant settings skipped:", e?.message || e);
       }
     }
 
