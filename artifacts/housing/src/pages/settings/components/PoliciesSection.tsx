@@ -20,6 +20,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
   ShieldAlert,
   Users,
   Clock,
@@ -198,13 +204,50 @@ export function PoliciesSection({
         </Button>
       </div>
 
-      {/* 1. Room Allocation & Level Entitlements */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+      {/* Policies Internal Tabs */}
+      <Tabs defaultValue="allocation" className="w-full space-y-4">
+        <TabsList className="grid grid-cols-2 lg:grid-cols-4 h-auto p-1.5 bg-muted/60 border rounded-xl gap-1.5 shadow-xs">
+          <TabsTrigger
+            value="allocation"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs rounded-lg transition-all"
+          >
             <Building className="w-4 h-4 text-primary" />
-            {ar ? "1. سياسة استحقاق السكن والدرجات الوظيفية (Allocation Rules)" : "1. Job Level Entitlements & Department Rules"}
-          </CardTitle>
+            <span>{ar ? "استحقاق الغرف والدرجات" : "Room & Level Allocation"}</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="family_visits"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold data-[state=active]:bg-background data-[state=active]:text-pink-600 data-[state=active]:shadow-xs rounded-lg transition-all"
+          >
+            <HeartHandshake className="w-4 h-4 text-pink-500" />
+            <span>{ar ? "الزيارات العائلية" : "Family Visits"}</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="rules"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold data-[state=active]:bg-background data-[state=active]:text-amber-600 data-[state=active]:shadow-xs rounded-lg transition-all"
+          >
+            <Clock className="w-4 h-4 text-amber-500" />
+            <span>{ar ? "المواعيد واللوائح" : "Rules & Curfew"}</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="contacts"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-semibold data-[state=active]:bg-background data-[state=active]:text-indigo-600 data-[state=active]:shadow-xs rounded-lg transition-all"
+          >
+            <UserCheck className="w-4 h-4 text-indigo-500" />
+            <span>{ar ? "مسؤولو السكن والـ HR" : "Key Contacts & Admin"}</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab 1: Allocation Rules & Level Entitlements */}
+        <TabsContent value="allocation" className="space-y-4 focus-visible:outline-none">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Building className="w-4 h-4 text-primary" />
+                {ar ? "1. سياسة استحقاق السكن والدرجات الوظيفية (Allocation Rules)" : "1. Job Level Entitlements & Department Rules"}
+              </CardTitle>
           <CardDescription>
             {ar
               ? "تحديد سعة الغرف المسموحة لكل درجة وظيفية وضوابط تسكين الأقسام المشتركة"
@@ -428,8 +471,10 @@ export function PoliciesSection({
           </div>
         </CardContent>
       </Card>
+    </TabsContent>
 
-      {/* 2. Family Visit Policy */}
+    {/* Tab 2: Family Visit Policy */}
+    <TabsContent value="family_visits" className="space-y-4 focus-visible:outline-none">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -541,8 +586,10 @@ export function PoliciesSection({
           />
         </CardContent>
       </Card>
+    </TabsContent>
 
-      {/* 3. Housing Rules & Curfew */}
+    {/* Tab 3: Housing Rules & Curfew */}
+    <TabsContent value="rules" className="space-y-4 focus-visible:outline-none">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -625,8 +672,10 @@ export function PoliciesSection({
           />
         </CardContent>
       </Card>
+    </TabsContent>
 
-      {/* 4. HR Contacts & Housing Managers */}
+    {/* Tab 4: Key Contacts & Housing Management */}
+    <TabsContent value="contacts" className="space-y-4 focus-visible:outline-none">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -849,6 +898,8 @@ export function PoliciesSection({
           </div>
         </CardContent>
       </Card>
-    </div>
+    </TabsContent>
+  </Tabs>
+</div>
   );
 }
