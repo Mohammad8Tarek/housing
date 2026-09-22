@@ -238,15 +238,16 @@ export default function Dashboard() {
     refetchInterval: 15000,
   });
 
-  const ribbonSummary = housingBreakdown?.summary || {
-    totalBuildings: occupancy?.length ?? 0,
-    totalFloors: 0,
-    totalRooms: stats?.totalRooms ?? 0,
-    occupiedRooms: stats?.occupiedRooms ?? 0,
-    totalBeds: stats?.totalBeds ?? 0,
-    occupiedBeds: stats?.occupiedBeds ?? 0,
-    availableBeds: stats?.availableBeds ?? 0,
-    bedOccupancyRate: stats?.bedOccupancyRate ?? 0,
+  const rawSummary = housingBreakdown?.summary || housingBreakdown?.housing;
+  const ribbonSummary = {
+    totalBuildings: rawSummary?.totalBuildings ?? stats?.totalBuildings ?? occupancy?.length ?? 0,
+    totalFloors: rawSummary?.totalFloors ?? stats?.totalFloors ?? 0,
+    totalRooms: rawSummary?.totalRooms ?? stats?.totalRooms ?? 0,
+    occupiedRooms: rawSummary?.occupiedRooms ?? stats?.occupiedRooms ?? 0,
+    totalBeds: rawSummary?.totalBeds ?? rawSummary?.totalCapacity ?? stats?.totalBeds ?? 0,
+    occupiedBeds: rawSummary?.occupiedBeds ?? stats?.occupiedBeds ?? 0,
+    availableBeds: rawSummary?.availableBeds ?? rawSummary?.vacantBeds ?? stats?.availableBeds ?? 0,
+    bedOccupancyRate: rawSummary?.bedOccupancyRate ?? stats?.bedOccupancyRate ?? 0,
   };
 
   const totals = allStats?.totals;

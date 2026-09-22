@@ -94,6 +94,7 @@ router.get(
                 openMaintenance,
                 upcomingReservations,
                 totalBuildings,
+                totalFloors,
               ] = await Promise.all([
                 safeCount(() => tenantDb.select({ count: count() }).from(profilesTable)),
                 safeCount(() =>
@@ -109,6 +110,7 @@ router.get(
                     .where(statusEq(reservationsTable.status, "upcoming")),
                 ),
                 safeCount(() => tenantDb.select({ count: count() }).from(buildingsTable)),
+                safeCount(() => tenantDb.select({ count: count() }).from(floorsTable)),
               ]);
 
               const roomCapacityMap = new Map<number, number>();
@@ -157,6 +159,7 @@ router.get(
                 openMaintenance,
                 upcomingReservations,
                 totalBuildings,
+                totalFloors,
               };
             });
             return { ...p, ...stats };
@@ -177,6 +180,7 @@ router.get(
               openMaintenance: 0,
               upcomingReservations: 0,
               totalBuildings: 0,
+              totalFloors: 0,
             };
           }
         },
@@ -196,6 +200,7 @@ router.get(
         openMaintenance: acc.openMaintenance + p.openMaintenance,
         upcomingReservations: acc.upcomingReservations + p.upcomingReservations,
         totalBuildings: acc.totalBuildings + p.totalBuildings,
+        totalFloors: acc.totalFloors + (p.totalFloors || 0),
       }),
       {
         totalRooms: 0,
@@ -209,6 +214,7 @@ router.get(
         openMaintenance: 0,
         upcomingReservations: 0,
         totalBuildings: 0,
+        totalFloors: 0,
       },
     );
 
@@ -275,6 +281,7 @@ router.get(
         upcomingReservations,
         totalReservations,
         totalBuildings,
+        totalFloors,
       ] = await Promise.all([
         safeCount(() => tenantDb.select({ count: count() }).from(profilesTable)),
         safeCount(() =>
@@ -303,6 +310,7 @@ router.get(
         ),
         safeCount(() => tenantDb.select({ count: count() }).from(reservationsTable)),
         safeCount(() => tenantDb.select({ count: count() }).from(buildingsTable)),
+        safeCount(() => tenantDb.select({ count: count() }).from(floorsTable)),
       ]);
 
       const roomCapacityMap = new Map<number, number>();
@@ -369,6 +377,7 @@ router.get(
         upcomingReservations,
         totalReservations,
         totalBuildings,
+        totalFloors,
       };
     });
 
@@ -645,25 +654,30 @@ router.get(
             ? Math.round((totalHousingOccupiedRooms / totalHousingRooms) * 1000) / 10
             : 0;
 
+        const housingSummary = {
+          propertyId,
+          propertyName:
+            propertyRow?.displayName || propertyRow?.name || "Sunrise Housing",
+          propertyCode: propertyRow?.code || "",
+          totalBuildings: buildings.length,
+          totalFloors: floors.length,
+          totalRooms: totalHousingRooms,
+          occupiedRooms: totalHousingOccupiedRooms,
+          availableRooms: Math.max(0, totalHousingRooms - totalHousingOccupiedRooms),
+          totalCapacity: totalHousingCapacity,
+          totalBeds: totalHousingCapacity,
+          occupiedBeds: totalHousingOccupiedBeds,
+          availableBeds: totalHousingVacantBeds,
+          vacantBeds: totalHousingVacantBeds,
+          bedOccupancyRate,
+          roomOccupancyRate,
+          totalProfiles: profiles.length,
+          activeAssignments: assignments.length,
+        };
+
         return {
-          housing: {
-            propertyId,
-            propertyName:
-              propertyRow?.displayName || propertyRow?.name || "Sunrise Housing",
-            propertyCode: propertyRow?.code || "",
-            totalBuildings: buildings.length,
-            totalFloors: floors.length,
-            totalRooms: totalHousingRooms,
-            occupiedRooms: totalHousingOccupiedRooms,
-            availableRooms: Math.max(0, totalHousingRooms - totalHousingOccupiedRooms),
-            totalCapacity: totalHousingCapacity,
-            occupiedBeds: totalHousingOccupiedBeds,
-            vacantBeds: totalHousingVacantBeds,
-            bedOccupancyRate,
-            roomOccupancyRate,
-            totalProfiles: profiles.length,
-            activeAssignments: assignments.length,
-          },
+          housing: housingSummary,
+          summary: housingSummary,
           buildings: enrichedBuildings.sort((a, b) => a.name.localeCompare(b.name)),
         };
       });
