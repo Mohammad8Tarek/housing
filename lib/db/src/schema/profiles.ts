@@ -36,6 +36,7 @@ export const profilesTable = pgTable("profiles", {
   vacationEndDate: text("vacation_end_date"),
   vacationNotes: text("vacation_notes").default(""),
   contractEndDate: text("contract_end_date"),
+  previousProfileId: text("previous_profile_id").default(""),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

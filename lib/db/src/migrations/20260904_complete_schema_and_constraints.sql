@@ -438,6 +438,8 @@ BEGIN
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "last_sync_at" TIMESTAMPTZ;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "auto_checkout_on_departure" BOOLEAN DEFAULT true;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "auto_vacation_sync" BOOLEAN DEFAULT true;
+    ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "target_property_ids" JSONB DEFAULT '[]'::jsonb;
+    ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "sources" JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
 
@@ -1082,7 +1084,8 @@ BEGIN
       "employment_type" TEXT DEFAULT 'INTERNAL'::text,
       "company_name" TEXT,
       "contract_end_date" TEXT,
-      "id_documents" JSONB DEFAULT '[]'::jsonb
+      "id_documents" JSONB DEFAULT '[]'::jsonb,
+      "previous_profile_id" TEXT DEFAULT ''::text
     );
 
     -- Ensure all columns exist
@@ -1121,6 +1124,7 @@ BEGIN
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "company_name" TEXT;
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "contract_end_date" TEXT;
     ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "id_documents" JSONB DEFAULT '[]'::jsonb;
+    ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "previous_profile_id" TEXT DEFAULT ''::text;
 
     -- --------------------------------------------------------
     -- Table: properties

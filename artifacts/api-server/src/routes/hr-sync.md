@@ -1,79 +1,81 @@
-# HR System Integration — API Documentation
+# Sunrise Housing — HR System Integration & Multi-Source Synchronization Runbook
+# دليل الربط والتكامل الشامل مع أنظمة الموارد البشرية (HR Sync API)
 
-## Overview
+## 1. Overview (نظرة عامة)
 
-The Sunrise Housing system can **push** and **pull** employee data from an external HR system. It supports:
-1. **Full Profile Ingestion:** Importing and updating 25+ fields including Arabic names, national IDs, dates of birth, departments, job titles, contracts, photos, and emergency contacts.
-2. **Vacation Automation:** Real-time synchronization of employee vacations, updating profile status to `VACATION`, recording in `profile_vacations`, and transitioning the room to `occupied_vacation` while keeping the bed reserved.
-3. **Departure & Clearance Auto-Checkout with Alarms:** Automatic room checkout when an employee leaves or is terminated in HR, transitioning the room to `dirty` for cleaning and broadcasting high-priority alarms to housing staff.
+The Sunrise Staff Housing Management System provides an enterprise-grade integration bridge with external HR systems (e.g. Oracle HRMS, SAP SuccessFactors, MenaITech, or custom HR Solutions). It supports both **Pull (استيراد دوري)** and **Push Webhooks (إرسال فوري)**.
 
-Integration is configured per-property via **Settings → HR Sync**.
-
----
-
-## Authentication
-
-### Pull (Housing → HR)
-Configured in Settings → HR Sync:
-- **API URL** — the HR system's employee list endpoint (e.g. `https://hr.company.com/api/employees`)
-- **API Key** — sent as `Authorization: Bearer <api_key>` header
-
-### Push (HR → Housing Webhooks)
-External HR system pushes data to:
-```
-POST /api/hr-sync/receive
-POST /api/hr-sync/notify-vacation
-POST /api/hr-sync/notify-departure
-```
-**Header:** `x-api-key: <HR_SYNC_API_KEY>`
+### Key Capabilities (المزايا الرئيسية):
+1. **Multi-Database & Multi-Hotel Connections (ربط عدة قواعد بيانات وفنادق):**
+   - Connect multiple HR APIs simultaneously (e.g. Al-Taj Hotel, White Hills Hotel, and Al-Marafe Hotel, all housing staff at the same location or distributed across properties).
+2. **Selective Operations (مزامنة مخصصة بدون موظفين):**
+   - **`movements_only` (إجازات وتصفيات فقط):** Sync leaves, returns, and departure checkouts without creating or touching employee profile records.
+   - **`lookups_only` (مسميات وأقسام فقط):** Automatically parse incoming departments, job titles, levels, and companies and register them in `lookup_values`.
+   - **`full` (مزامنة شاملة):** Full synchronization of profiles, lookups, and movements.
+3. **Casual-to-Permanent Transition (`Casual -> Permanent` ترقية العمالة المؤقتة):**
+   - When a temporary/casual employee (e.g. ID `CAS-1042`) is officially hired with a permanent ID (e.g. `EMP-8802`), the system matches them automatically by **National ID (الرقم القومي)**.
+   - Upgrades `profileId` to the new ID, records `previousProfileId`, switches employment type to `INTERNAL`, and **preserves the active room and bed assignment 100% intact without any eviction or checkout!**
+4. **Executive / Job Level & Department Filters (فلاتر سكن القيادات):**
+   - Restrict imported profiles for specific executive housing properties (e.g. allow only Level 0 Management, Level 1 Dept Heads, and Level 2 Supervisors, while skipping lower levels).
+   - Filter by specific departments or require `housingEligible: true`.
+5. **Vacation & Departure Automation:**
+   - Real-time room status transitions: `occupied_vacation` on leave, automatic checkout and `dirty` room status on departure/clearance with instant WebSocket broadcast alarms.
 
 ---
 
-## Webhook Endpoints
+## 2. Authentication (المصادقة والتأمين)
+
+### Webhook & Push Security (HR → Housing)
+Requests sent from the external HR system to Housing Webhooks must include the `x-api-key` header:
+```http
+x-api-key: sunrise-hr-secret-2026
+```
+*(Configurable via `HR_SYNC_API_KEY` in `artifacts/api-server/.env`).*
+
+### Pull Security (Housing → HR)
+When Housing pulls data from external HR endpoints, it attaches the configured Bearer token:
+```http
+Authorization: Bearer <CONFIGURED_API_KEY>
+```
+
+---
+
+## 3. Webhook Endpoints Reference (نقاط الاتصال)
 
 ### 1. `POST /api/hr-sync/receive`
-Pushes complete employee profiles from HR into the housing system. Creates new profiles or updates existing ones by `profileId` / `employeeId`.
+Pushes employee profiles from HR into Housing. Supports filtering options and automatic Casual upgrade.
+
+#### Headers
+```http
+Content-Type: application/json
+x-api-key: sunrise-hr-secret-2026
+```
 
 #### Request Body
 ```json
 {
   "propertyId": 1,
+  "syncProfiles": true,
+  "allowedLevels": ["0", "1", "2"],
   "profiles": [
     {
-      "profileId": "EMP1001",
-      "firstName": "أحمد",
-      "lastName": "السيد",
-      "thirdName": "محمود",
-      "fourthName": "علي",
-      "nationalId": "29001011234567",
-      "nationality": "Egyptian",
-      "dateOfBirth": "1990-01-01",
-      "gender": "male",
-      "department": "Food & Beverage",
-      "jobTitle": "Chef de Partie",
-      "level": "Supervisor",
-      "hireDate": "2022-03-01",
-      "contractEndDate": "2026-12-31",
+      "profileId": "EMP-5001",
+      "nationalId": "29604101402233",
+      "firstName": "محمود",
+      "lastName": "فتحي",
+      "department": "الأغذية والمشروبات",
+      "jobTitle": "مضيف أغذية ومشروبات دائم",
+      "level": "2",
       "employmentType": "INTERNAL",
-      "companyName": "Sunrise",
-      "phone": "01012345678",
-      "email": "ahmed.ali@sunrise-resorts.com",
-      "emergencyContact": "01234567890 (Brother)",
-      "address": "Cairo, Egypt",
+      "companyName": "فندق التاج",
       "status": "ACTIVE",
-      "vacationStartDate": null,
-      "vacationEndDate": null,
-      "photoUrl": "https://...",
-      "idImage": "https://..."
+      "gender": "M",
+      "phone": "01044445555",
+      "housingEligible": true
     }
   ]
 }
 ```
-
-#### Status Normalization:
-- **Active:** `"ACTIVE"`, `"active"`, `"working"`, `"مباشر"`, `"على رأس العمل"`
-- **Vacation:** `"VACATION"`, `"on_leave"`, `"leave"`, `"annual_leave"`, `"إجازة"`, `"اجازة"`
-- **Departure:** `"DEPARTED"`, `"terminated"`, `"resigned"`, `"inactive"`, `"left"`, `"تصفية"`, `"مستقيل"`, `"مفصول"`
 
 #### Response
 ```json
@@ -83,7 +85,9 @@ Pushes complete employee profiles from HR into the housing system. Creates new p
     "received": 1,
     "created": 0,
     "updated": 1,
+    "casualUpgrades": 1,
     "departedAutoCheckouts": 0,
+    "lookupsAdded": 1,
     "errors": 0
   }
 }
@@ -92,94 +96,76 @@ Pushes complete employee profiles from HR into the housing system. Creates new p
 ---
 
 ### 2. `POST /api/hr-sync/notify-vacation`
-Notifies the housing system that an employee has started or returned from vacation.
+Notifies that an employee has departed on leave or returned from leave.
 
-#### Request Body (Vacation Start)
+#### Body (Vacation Start)
 ```json
 {
   "propertyId": 1,
-  "profileId": "EMP1001",
+  "profileId": "EMP-5001",
   "type": "START",
-  "startDate": "2026-09-15",
-  "endDate": "2026-09-30",
-  "notes": "Annual vacation"
+  "startDate": "2026-09-25",
+  "endDate": "2026-10-05",
+  "notes": "إجازة سنوية اعتيادية"
 }
 ```
 
-#### Request Body (Vacation Return)
+#### Body (Vacation Return)
 ```json
 {
   "propertyId": 1,
-  "profileId": "EMP1001",
+  "profileId": "EMP-5001",
   "type": "RETURN"
-}
-```
-
-#### Actions Triggered:
-- **START:** Sets profile status to `VACATION`, creates record in `profile_vacations`, updates room to `occupied_vacation` if all occupants are on vacation, and preserves bed reservation.
-- **RETURN:** Restores profile status to `ACTIVE`, marks vacation as completed, restores room status to `occupied`, and broadcasts live WebSocket event.
-
-#### Response
-```json
-{
-  "success": true,
-  "message": "Employee vacation recorded successfully",
-  "profile": {
-    "profileId": "EMP1001",
-    "status": "VACATION",
-    "vacationStartDate": "2026-09-15",
-    "vacationEndDate": "2026-09-30"
-  }
 }
 ```
 
 ---
 
 ### 3. `POST /api/hr-sync/notify-departure`
-Notifies that an employee has left, resigned, or had final clearance (تصفية).
+Notifies of employee resignation, termination, or clearance (تصفية).
 
-#### Request Body
+#### Body
 ```json
 {
   "propertyId": 1,
-  "profileId": "EMP1001",
-  "departureDate": "2026-09-12",
-  "reason": "Final clearance / Resignation"
+  "profileId": "MAR-410",
+  "departureDate": "2026-09-22",
+  "reason": "إنهاء تعاقد وتصفية مستحقات"
 }
 ```
 
-#### Actions Triggered:
-1. Marks profile status as `DEPARTED`.
-2. Locates active room assignment.
-3. Automatically completes checkout (`CHECKED_OUT`), records checkout date and reason.
-4. Decrements room occupancy and transitions room status to **`dirty`** (or `occupied_dirty` if roommates remain) per architectural Rule 5.
-5. Emits **High-Priority Alarm Alert** via WebSocket and records in notification bell and activity logs.
+#### Automatic Actions:
+1. Profile marked as `DEPARTED`.
+2. Locates active room assignment and bed.
+3. Completes checkout, decrements occupancy, and transitions room status to `dirty`.
+4. Emits high-priority live broadcast notification to Housing Operations.
 
-#### Response
+---
+
+### 4. `POST /api/hr-sync/test-connection`
+Tests latency and parses sample records from any target HR API URL.
+
+#### Body
 ```json
 {
-  "success": true,
-  "message": "Profile marked as departed and automatically checked out from Room 204",
-  "profile": {
-    "profileId": "EMP1001",
-    "status": "DEPARTED"
-  },
-  "autoCheckout": {
-    "assignmentId": 42,
-    "roomId": 15,
-    "roomNumber": "204",
-    "bedNumber": 1,
-    "checkOutDate": "2026-09-12"
-  }
+  "apiUrl": "https://hr-system.com/api/employees",
+  "apiKey": "optional_token"
 }
 ```
 
 ---
 
-### 4. `GET /api/hr-sync/profiles/:profileId`
-Returns complete profile and current room assignment data for the HR system.
+### 5. `GET /api/hr-sync/mock-feed`
+Built-in sandbox feed returning realistic demo employee records for all 3 hotels (Al-Taj, White Hills, Al-Marafe).
+
+- `GET /api/hr-sync/mock-feed?hotel=al_taj` — Al-Taj Hotel executives & casual worker.
+- `GET /api/hr-sync/mock-feed?hotel=al_taj&test_casual_upgrade=true` — Upgraded permanent employee matching the casual worker's National ID!
+- `GET /api/hr-sync/mock-feed?hotel=white_hills` — White Hills employees with active vacation.
+- `GET /api/hr-sync/mock-feed?hotel=al_marafe` — Al-Marafe employees with departed employee.
 
 ---
 
-### 5. `POST /api/hr-sync/sync`
-Triggered via UI "Sync Now" button or scheduled cron. Pulls from the configured `api_url`, applies field mapping, and runs the batch ingestion process.
+## 4. Architectural Rules & Compliance
+- **Rule 1 (Zero Data Loss):** Idempotent migrations with `ADD COLUMN IF NOT EXISTS`.
+- **Rule 2 (Dual-Layer RBAC):** Endpoints guarded with `requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"])`.
+- **Rule 5 (Room Lifecycle):** Automatic synchronization between HR status, profile state, and room cleanliness state.

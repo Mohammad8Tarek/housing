@@ -9,6 +9,8 @@ import {
   roomsTable,
   buildingsTable,
   propertiesTable,
+  lookupValuesTable,
+  profilePortalAccountsTable,
 } from "@workspace/db";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { z } from "zod";
@@ -19,13 +21,47 @@ import { getTenantId, su } from "../lib/request-utils.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { enrichProfileBilingual } from "../lib/bilingual-translator.js";
 
+export interface HrSourceConfig {
+  id: string;
+  name: string;
+  apiUrl: string;
+  apiKey?: string;
+  targetPropertyIds?: number[];
+  syncProfiles?: boolean;
+  allowedLevels?: string[];
+  allowedDepartments?: string[];
+  housingEligibleOnly?: boolean;
+  autoCheckoutOnDeparture?: boolean;
+  autoVacationSync?: boolean;
+  isActive?: boolean;
+  lastSyncAt?: string | null;
+}
+
+const HrSourceConfigSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  apiUrl: z.string(),
+  apiKey: z.string().optional().nullable(),
+  targetPropertyIds: z.array(z.number()).optional().default([]),
+  syncProfiles: z.boolean().optional().default(true),
+  allowedLevels: z.array(z.string()).optional().default([]),
+  allowedDepartments: z.array(z.string()).optional().default([]),
+  housingEligibleOnly: z.boolean().optional().default(false),
+  autoCheckoutOnDeparture: z.boolean().optional().default(true),
+  autoVacationSync: z.boolean().optional().default(true),
+  isActive: z.boolean().optional().default(true),
+  lastSyncAt: z.string().optional().nullable(),
+});
+
 const HrSyncConfigSchema = z.object({
-  apiUrl: z.string().url().optional().nullable(),
+  apiUrl: z.string().optional().nullable(),
   apiKey: z.string().optional().nullable(),
   fieldMapping: z.record(z.string()).optional().nullable(),
   isActive: z.boolean().optional(),
   autoCheckoutOnDeparture: z.boolean().optional(),
   autoVacationSync: z.boolean().optional(),
+  targetPropertyIds: z.array(z.number()).optional().default([]),
+  sources: z.array(HrSourceConfigSchema).optional().default([]),
 });
 
 const router: Router = Router();
@@ -512,17 +548,132 @@ async function syncEmployeeAccommodationLifecycle({
 }
 
 // ============================================================================
+// Helper: Auto-register unique departments, job titles, levels, companies
+// ============================================================================
+export async function autoRegisterLookups(
+  tenantDb: any,
+  rawEmployees: any[],
+  propertyId: number,
+): Promise<{ added: number }> {
+  let added = 0;
+  try {
+    const existing = await tenantDb.select().from(lookupValuesTable);
+    const existingSet = new Set<string>();
+    for (const item of existing) {
+      const cat = String(item.category || "").trim().toLowerCase();
+      const val = String(item.value || "").trim().toLowerCase();
+      const pVal = String(item.parentValue || "").trim().toLowerCase();
+      existingSet.add(`${cat}:${val}:${pVal}`);
+      existingSet.add(`${cat}:${val}`);
+    }
+
+    for (const emp of rawEmployees) {
+      // 1. Department
+      const dept = String(emp.department || "").trim();
+      const deptAr = String(emp.departmentAr || dept).trim();
+      if (dept && !existingSet.has(`department:${dept.toLowerCase()}`)) {
+        existingSet.add(`department:${dept.toLowerCase()}`);
+        try {
+          await tenantDb.insert(lookupValuesTable).values({
+            category: "department",
+            value: dept,
+            valueAr: deptAr,
+            parentValue: null,
+            sortOrder: 0,
+            disabled: false,
+          });
+          added++;
+        } catch {}
+      }
+
+      // 2. Job Title
+      const title = String(emp.jobTitle || "").trim();
+      const titleAr = String(emp.jobTitleAr || title).trim();
+      const parentDept = dept || null;
+      const titleKey = `job_title:${title.toLowerCase()}:${(parentDept || "").toLowerCase()}`;
+      if (title && !existingSet.has(titleKey) && !existingSet.has(`job_title:${title.toLowerCase()}`)) {
+        existingSet.add(titleKey);
+        existingSet.add(`job_title:${title.toLowerCase()}`);
+        try {
+          await tenantDb.insert(lookupValuesTable).values({
+            category: "job_title",
+            value: title,
+            valueAr: titleAr,
+            parentValue: parentDept,
+            extraValue: emp.level ? String(emp.level).trim() : null,
+            sortOrder: 0,
+            disabled: false,
+          });
+          added++;
+        } catch {}
+      }
+
+      // 3. Level
+      const lvl = emp.level !== undefined && emp.level !== null ? String(emp.level).trim() : "";
+      if (lvl && !existingSet.has(`job_level:${lvl.toLowerCase()}`)) {
+        existingSet.add(`job_level:${lvl.toLowerCase()}`);
+        try {
+          await tenantDb.insert(lookupValuesTable).values({
+            category: "job_level",
+            value: lvl,
+            valueAr: `المستوى ${lvl}`,
+            parentValue: null,
+            sortOrder: parseInt(lvl, 10) || 0,
+            disabled: false,
+          });
+          added++;
+        } catch {}
+      }
+
+      // 4. Company
+      const comp = String(emp.companyName || "").trim();
+      if (comp && !existingSet.has(`company:${comp.toLowerCase()}`)) {
+        existingSet.add(`company:${comp.toLowerCase()}`);
+        try {
+          await tenantDb.insert(lookupValuesTable).values({
+            category: "company",
+            value: comp,
+            valueAr: comp,
+            parentValue: null,
+            sortOrder: 0,
+            disabled: false,
+          });
+          added++;
+        } catch {}
+      }
+    }
+
+    if (added > 0) {
+      broadcastToProperty(propertyId, { module: "settings", action: "updated" });
+    }
+  } catch (err: any) {
+    console.warn("[HrSync] autoRegisterLookups notice:", err?.message);
+  }
+  return { added };
+}
+
+// ============================================================================
 // Core batch processor for receive/sync
 // ============================================================================
-async function processReceive(
+export async function processReceive(
   propertyId: number,
   profiles: any[],
   req?: any,
   mapping: Record<string, string> = {},
+  options: {
+    syncProfiles?: boolean;
+    allowedLevels?: string[];
+    allowedDepartments?: string[];
+    housingEligibleOnly?: boolean;
+    scope?: "full" | "movements_only" | "lookups_only";
+    sourceName?: string;
+  } = {},
 ) {
   let created = 0,
     updated = 0,
     departedAutoCheckouts = 0,
+    casualUpgrades = 0,
+    lookupsAdded = 0,
     errors: string[] = [];
 
   // Fetch sync config options
@@ -534,12 +685,52 @@ async function processReceive(
     configRes?.rows?.[0]?.auto_checkout_on_departure ?? true;
   const autoVacationSync = configRes?.rows?.[0]?.auto_vacation_sync ?? true;
 
+  const rawProfiles = Array.isArray(profiles) ? profiles : [];
+
   await withTenant(propertyId, async (tenantDb) => {
-    // Extract & normalize all incoming employee objects
-    const normalizedProfiles = profiles
+    // 1. Initial field mapping and normalization
+    let normalizedProfiles = rawProfiles
       .map((p) => extractProfileFields(p, mapping))
       .filter((p) => Boolean(p.profileId));
 
+    // 2. Housing eligible filter
+    if (options.housingEligibleOnly) {
+      normalizedProfiles = normalizedProfiles.filter((p) => {
+        const raw = rawProfiles.find((rp: any) =>
+          String(rp.profileId || rp.employeeId || rp.emp_id || rp.id || "").trim() === p.profileId
+        );
+        if (!raw) return true;
+        if (raw.housingEligible === false || raw.isHousingEligible === false || raw.housing_eligible === false) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // 3. Allowed Levels filter (e.g. only Levels 0, 1, 2 for executive housing)
+    if (options.allowedLevels && options.allowedLevels.length > 0) {
+      const allowedSet = new Set(options.allowedLevels.map((l) => String(l).trim()));
+      normalizedProfiles = normalizedProfiles.filter((p) => allowedSet.has(String(p.level).trim()));
+    }
+
+    // 4. Allowed Departments filter
+    if (options.allowedDepartments && options.allowedDepartments.length > 0) {
+      const deptSet = new Set(options.allowedDepartments.map((d) => String(d).trim().toLowerCase()));
+      normalizedProfiles = normalizedProfiles.filter((p) => deptSet.has(String(p.department).trim().toLowerCase()));
+    }
+
+    // 5. Auto-register lookup values (departments, job titles, levels, companies)
+    const lookupRes = await autoRegisterLookups(tenantDb, normalizedProfiles, propertyId);
+    lookupsAdded = lookupRes.added;
+
+    // If scope is lookups_only, return immediately after autoRegisterLookups
+    if (options.scope === "lookups_only") {
+      return;
+    }
+
+    const syncProfiles = options.syncProfiles !== false && options.scope !== "movements_only";
+
+    // 6. Query existing profiles by profileId
     const empIds = normalizedProfiles.map((p) => p.profileId);
     const existingRows =
       empIds.length > 0
@@ -552,32 +743,61 @@ async function processReceive(
       existingRows.map((e: any) => [e.profileId, e]),
     );
 
+    // 7. For profiles not found by profileId, query by nationalId (Casual -> Permanent transition)
+    const unmatchedNationalIds = normalizedProfiles
+      .filter((p) => Boolean(p.nationalId) && !existingMap.has(p.profileId))
+      .map((p) => p.nationalId);
+
+    const existingByNidMap = new Map<string, any>();
+    if (unmatchedNationalIds.length > 0) {
+      const byNidRows = await tenantDb
+        .select()
+        .from(profilesTable)
+        .where(inArray(profilesTable.nationalId, unmatchedNationalIds));
+      for (const row of byNidRows) {
+        if (row.nationalId) {
+          existingByNidMap.set(String(row.nationalId).trim(), row);
+        }
+      }
+    }
+
     for (const emp of normalizedProfiles) {
       try {
-        const existing = existingMap.get(emp.profileId);
+        let existing = existingMap.get(emp.profileId);
+        let isCasualUpgrade = false;
+        let oldProfileId = "";
+
+        // Check if existing profile matches by nationalId (Casual to Permanent transition)
+        if (!existing && emp.nationalId) {
+          const matchedByNid = existingByNidMap.get(emp.nationalId);
+          if (matchedByNid) {
+            existing = matchedByNid;
+            isCasualUpgrade = true;
+            oldProfileId = matchedByNid.profileId;
+          }
+        }
 
         if (existing) {
           const previousStatus = existing.status;
 
-          const enrichedUpdate = enrichProfileBilingual({
-            firstName: emp.firstName || existing.firstName,
-            lastName: emp.lastName || existing.lastName,
-            thirdName: emp.thirdName || existing.thirdName,
-            fourthName: emp.fourthName || existing.fourthName,
-            firstNameAr: existing.firstNameAr,
-            lastNameAr: existing.lastNameAr,
-            thirdNameAr: existing.thirdNameAr,
-            fourthNameAr: existing.fourthNameAr,
-            department: emp.department || existing.department,
-            departmentAr: existing.departmentAr,
-            jobTitle: emp.jobTitle || existing.jobTitle,
-            jobTitleAr: existing.jobTitleAr,
-          });
+          // If syncProfiles is enabled OR this is a casual-to-permanent upgrade:
+          if (syncProfiles || isCasualUpgrade) {
+            const enrichedUpdate = enrichProfileBilingual({
+              firstName: emp.firstName || existing.firstName,
+              lastName: emp.lastName || existing.lastName,
+              thirdName: emp.thirdName || existing.thirdName,
+              fourthName: emp.fourthName || existing.fourthName,
+              firstNameAr: existing.firstNameAr,
+              lastNameAr: existing.lastNameAr,
+              thirdNameAr: existing.thirdNameAr,
+              fourthNameAr: existing.fourthNameAr,
+              department: emp.department || existing.department,
+              departmentAr: existing.departmentAr,
+              jobTitle: emp.jobTitle || existing.jobTitle,
+              jobTitleAr: existing.jobTitleAr,
+            });
 
-          // Update profile with all fields
-          await tenantDb
-            .update(profilesTable)
-            .set({
+            const updateData: any = {
               firstName: emp.firstName || existing.firstName,
               lastName: emp.lastName || existing.lastName,
               thirdName: emp.thirdName || existing.thirdName,
@@ -603,7 +823,7 @@ async function processReceive(
               emergencyContact:
                 emp.emergencyContact || existing.emergencyContact,
               contractEndDate: emp.contractEndDate ?? existing.contractEndDate,
-              employmentType: emp.employmentType || existing.employmentType,
+              employmentType: emp.employmentType || (isCasualUpgrade ? "INTERNAL" : existing.employmentType),
               companyName: emp.companyName || existing.companyName,
               photoUrl: emp.photoUrl || existing.photoUrl,
               idImage: emp.idImage || existing.idImage,
@@ -619,8 +839,44 @@ async function processReceive(
                 emp.vacationNotes !== undefined
                   ? emp.vacationNotes
                   : existing.vacationNotes,
-            })
-            .where(eq(profilesTable.profileId, emp.profileId));
+            };
+
+            // If Casual -> Permanent transition:
+            if (isCasualUpgrade) {
+              updateData.profileId = emp.profileId;
+              updateData.previousProfileId = oldProfileId;
+              casualUpgrades++;
+
+              // Update portal account with new employee code if exists
+              try {
+                await tenantDb
+                  .update(profilePortalAccountsTable)
+                  .set({ profileId: emp.profileId })
+                  .where(eq(profilePortalAccountsTable.profileId, oldProfileId));
+              } catch {}
+
+              const s = su(req);
+              await logActivity({
+                req,
+                propertyId,
+                username: s?.username || "hr-sync",
+                userId: s?.userId || 0,
+                userRole: s?.userRole || "system",
+                action: `ترقية موظف من عمالة مؤقتة / Casual (${oldProfileId}) إلى كود دائم (${emp.profileId}) برقم قومي ${emp.nationalId} مع الحفاظ الكامل على التسكين والغرفة الحالية`,
+                actionType: "UPDATE",
+                module: "hr_sync",
+                entityType: "profile",
+                entityId: existing.id,
+              });
+            }
+
+            await tenantDb
+              .update(profilesTable)
+              .set(updateData)
+              .where(eq(profilesTable.id, existing.id));
+
+            updated++;
+          }
 
           // Run accommodation & vacation/departure lifecycle
           const checkout = await syncEmployeeAccommodationLifecycle({
@@ -638,8 +894,7 @@ async function processReceive(
           });
 
           if (checkout) departedAutoCheckouts++;
-          updated++;
-        } else {
+        } else if (syncProfiles) {
           // Insert new profile with all fields and full bilingual auto-translation
           const rawInsert = {
             profileId: emp.profileId,
@@ -678,16 +933,20 @@ async function processReceive(
 
           if (
             emp.status === "VACATION" &&
-            emp.vacationStartDate &&
-            emp.vacationEndDate
+            autoVacationSync &&
+            emp.vacationStartDate
           ) {
             await tenantDb.insert(profileVacationsTable).values({
               profileId: inserted.id,
               startDate: emp.vacationStartDate,
-              endDate: emp.vacationEndDate,
+              endDate: emp.vacationEndDate || null,
               notes: emp.vacationNotes || "Synced from HR system",
               status: "ACTIVE",
-            });
+            }).catch(() => {});
+          }
+
+          if (inserted && inserted.profileId) {
+            await ensureProfilePortalAccount(propertyId, inserted.profileId, inserted.id).catch(() => {});
           }
 
           created++;
@@ -698,37 +957,15 @@ async function processReceive(
     }
   });
 
-  // Ensure portal accounts
-  for (const emp of profiles) {
-    const pId = emp.profileId || emp.employeeId || emp.emp_id;
-    if (pId) {
-      try {
-        await ensureProfilePortalAccount(propertyId, String(pId));
-      } catch {}
-    }
-  }
-
-  // Log sync result
-  await pool.query(
-    `INSERT INTO public.hr_sync_log (property_id, sync_type, status, records_processed, records_created, records_updated, errors, started_at, completed_at)
-     VALUES ($1, 'push', $2, $3, $4, $5, $6, NOW() - interval '1 second', NOW())`,
-    [
-      propertyId,
-      errors.length > 0 ? "completed_with_errors" : "completed",
-      profiles.length,
-      created,
-      updated,
-      errors.length > 0 ? errors.slice(0, 10).join("; ") : null,
-    ],
-  );
-
   return {
     success: true,
     stats: {
-      received: profiles.length,
+      received: rawProfiles.length,
       created,
       updated,
       departedAutoCheckouts,
+      casualUpgrades,
+      lookupsAdded,
       errors: errors.length,
     },
     errors: errors.length > 0 ? errors : undefined,
@@ -762,12 +999,20 @@ router.get(
           isActive: false,
           autoCheckoutOnDeparture: true,
           autoVacationSync: true,
+          targetPropertyIds: [propertyId],
+          sources: [],
           lastSyncAt: null,
         },
       });
       return;
     }
     const row = configRes.rows[0];
+    const rawSources: HrSourceConfig[] = Array.isArray(row.sources) ? row.sources : [];
+    const safeSources = rawSources.map((s) => ({
+      ...s,
+      apiKey: s.apiKey ? "••••••" : "",
+    }));
+
     res.json({
       success: true,
       config: {
@@ -778,6 +1023,8 @@ router.get(
         isActive: row.is_active || false,
         autoCheckoutOnDeparture: row.auto_checkout_on_departure ?? true,
         autoVacationSync: row.auto_vacation_sync ?? true,
+        targetPropertyIds: Array.isArray(row.target_property_ids) && row.target_property_ids.length > 0 ? row.target_property_ids : [propertyId],
+        sources: safeSources,
         lastSyncAt: row.last_sync_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -814,24 +1061,45 @@ router.put(
       isActive,
       autoCheckoutOnDeparture,
       autoVacationSync,
+      targetPropertyIds,
+      sources,
     } = parsed.data;
 
-    const existing = await pool.query(
-      `SELECT id FROM public.hr_sync_config WHERE property_id = $1`,
+    const existingRes = await pool.query(
+      `SELECT id, api_key, sources FROM public.hr_sync_config WHERE property_id = $1`,
       [propertyId],
     );
+    const existing = existingRes?.rows?.[0];
 
-    if (existing?.rows?.[0]) {
+    let finalApiKey = apiKey;
+    if (apiKey === "••••••" || (apiKey && apiKey.startsWith("•••"))) {
+      finalApiKey = existing?.api_key || "";
+    }
+
+    const existingSources: HrSourceConfig[] = Array.isArray(existing?.sources) ? existing.sources : [];
+    const existingKeyMap = new Map(existingSources.map((s) => [s.id, s.apiKey || ""]));
+
+    const finalSources = (sources || []).map((s: HrSourceConfig) => {
+      let key = s.apiKey;
+      if (key === "••••••" || (key && key.startsWith("•••"))) {
+        key = existingKeyMap.get(s.id) || "";
+      }
+      return {
+        ...s,
+        apiKey: key,
+      };
+    });
+
+    if (existing) {
       const updates: any = { updated_at: new Date() };
       if (apiUrl !== undefined) updates.api_url = apiUrl;
-      if (apiKey !== undefined) updates.api_key = apiKey;
-      if (fieldMapping !== undefined)
-        updates.field_mapping = JSON.stringify(fieldMapping);
+      if (finalApiKey !== undefined) updates.api_key = finalApiKey;
+      if (fieldMapping !== undefined) updates.field_mapping = JSON.stringify(fieldMapping);
       if (isActive !== undefined) updates.is_active = isActive;
-      if (autoCheckoutOnDeparture !== undefined)
-        updates.auto_checkout_on_departure = autoCheckoutOnDeparture;
-      if (autoVacationSync !== undefined)
-        updates.auto_vacation_sync = autoVacationSync;
+      if (autoCheckoutOnDeparture !== undefined) updates.auto_checkout_on_departure = autoCheckoutOnDeparture;
+      if (autoVacationSync !== undefined) updates.auto_vacation_sync = autoVacationSync;
+      if (targetPropertyIds !== undefined) updates.target_property_ids = JSON.stringify(targetPropertyIds);
+      if (sources !== undefined) updates.sources = JSON.stringify(finalSources);
 
       const setClauses = Object.entries(updates)
         .map(([k, v], i) => `${k} = $${i + 2}`)
@@ -843,16 +1111,21 @@ router.put(
       );
     } else {
       await pool.query(
-        `INSERT INTO public.hr_sync_config (property_id, api_url, api_key, field_mapping, is_active, auto_checkout_on_departure, auto_vacation_sync, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+        `INSERT INTO public.hr_sync_config (
+           property_id, api_url, api_key, field_mapping, is_active, 
+           auto_checkout_on_departure, auto_vacation_sync, target_property_ids, sources, updated_at
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
         [
           propertyId,
           apiUrl || "",
-          apiKey || "",
+          finalApiKey || "",
           JSON.stringify(fieldMapping || {}),
           isActive || false,
           autoCheckoutOnDeparture ?? true,
           autoVacationSync ?? true,
+          JSON.stringify(targetPropertyIds || [propertyId]),
+          JSON.stringify(finalSources),
         ],
       );
     }
@@ -864,7 +1137,7 @@ router.put(
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `تحديث إعدادات ربط HR`,
+      action: `تحديث إعدادات ربط HR والمصادر المتعددة`,
       actionType: "UPDATE",
       module: "hr_sync",
       entityType: "hr_sync_config",
@@ -877,22 +1150,25 @@ router.put(
 
 // ============================================================================
 // POST /api/hr-sync/receive — Receive profile data pushed from HR system
-// Body: { propertyId, profiles: [...] }
+// Body: { propertyId, profiles: [...], mapping?: {...}, ...options }
 // ============================================================================
 router.post("/receive", async (req, res): Promise<void> => {
   const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
   const providedKey = String(req.headers["x-api-key"] || "").trim();
-  if (expectedKey) {
-    if (providedKey !== expectedKey) {
-      console.warn("[HR_SYNC_AUTH_FAIL]", { expectedKey, providedKey });
-      res.status(401).json({ success: false, error: "Unauthorized" });
+  const isAdmin = Boolean((req as any).session?.userId);
+  if (!isAdmin) {
+    if (expectedKey) {
+      if (providedKey !== expectedKey) {
+        console.warn("[HR_SYNC_AUTH_FAIL]", { expectedKey, providedKey });
+        res.status(401).json({ success: false, error: "Unauthorized" });
+        return;
+      }
+    } else if (process.env.NODE_ENV === "production") {
+      res.status(403).json({
+        error: "HR_SYNC_API_KEY not configured — webhook access denied in production",
+      });
       return;
     }
-  } else if (process.env.NODE_ENV === "production") {
-    res.status(403).json({
-      error: "HR_SYNC_API_KEY not configured — webhook access denied in production",
-    });
-    return;
   }
 
   const propertyId =
@@ -911,7 +1187,16 @@ router.post("/receive", async (req, res): Promise<void> => {
     return;
   }
 
-  const result = await processReceive(propertyId, profiles, req);
+  const mapping = req.body?.mapping || {};
+  const options = {
+    syncProfiles: req.body?.syncProfiles !== false,
+    allowedLevels: req.body?.allowedLevels || [],
+    allowedDepartments: req.body?.allowedDepartments || [],
+    housingEligibleOnly: req.body?.housingEligibleOnly || false,
+    scope: req.body?.scope || "full",
+  };
+
+  const result = await processReceive(propertyId, profiles, req, mapping, options);
 
   const s = su(req);
   await logActivity({
@@ -920,7 +1205,7 @@ router.post("/receive", async (req, res): Promise<void> => {
     username: s?.username || "hr-webhook",
     userId: s?.userId || 0,
     userRole: s?.userRole || "system",
-    action: `استقبال بيانات موظفين من HR (Push) — تم إنشاء ${result.stats.created} وتحديث ${result.stats.updated} وإخلاء ${result.stats.departedAutoCheckouts}`,
+    action: `استقبال بيانات موظفين من HR (Push) — تم إنشاء ${result.stats.created} وتحديث ${result.stats.updated} وترقية ${result.stats.casualUpgrades} مؤقتين وإخلاء ${result.stats.departedAutoCheckouts} وتسجيل ${result.stats.lookupsAdded} مسميات`,
     actionType: "SYNC",
     module: "hr_sync",
     entityType: "profile",
@@ -943,96 +1228,483 @@ router.post(
       return;
     }
 
+    const { sourceId, scope = "full" } = req.body || {};
+
     const configResult = await pool.query(
-      `SELECT * FROM public.hr_sync_config WHERE property_id = $1 AND is_active = true`,
+      `SELECT * FROM public.hr_sync_config WHERE property_id = $1`,
       [propertyId],
     );
     const config = configResult?.rows?.[0];
     if (!config) {
       res.status(400).json({
-        error: "HR sync not configured or not active for this property",
+        error: "HR sync not configured for this property",
       });
       return;
     }
 
-    if (!config.api_url) {
-      res.status(400).json({ error: "API URL not configured" });
+    const configuredSources: HrSourceConfig[] = Array.isArray(config.sources) ? config.sources : [];
+
+    let sourcesToRun: HrSourceConfig[] = [];
+    if (sourceId) {
+      const found = configuredSources.find((s) => s.id === sourceId);
+      if (found) {
+        sourcesToRun = [found];
+      } else {
+        res.status(404).json({ error: `المصدر المحدد '${sourceId}' غير مسجل في النظام` });
+        return;
+      }
+    } else if (configuredSources.length > 0) {
+      sourcesToRun = configuredSources.filter((s) => {
+        if (!s.isActive) return false;
+        if (!s.targetPropertyIds || s.targetPropertyIds.length === 0) return true;
+        return s.targetPropertyIds.includes(propertyId);
+      });
+    } else if (config.api_url && config.is_active) {
+      sourcesToRun = [
+        {
+          id: "default",
+          name: "Default HR API",
+          apiUrl: config.api_url,
+          apiKey: config.api_key,
+          syncProfiles: true,
+          autoCheckoutOnDeparture: config.auto_checkout_on_departure ?? true,
+          autoVacationSync: config.auto_vacation_sync ?? true,
+          isActive: true,
+        },
+      ];
+    }
+
+    if (sourcesToRun.length === 0) {
+      res.status(400).json({
+        error: "لا توجد مصادر HR نشطة مخصصة لهذا السكن حالياً",
+      });
       return;
     }
 
     const logEntry = await pool.query(
       `INSERT INTO public.hr_sync_log (property_id, sync_type, status, started_at)
-     VALUES ($1, 'pull', 'in_progress', NOW()) RETURNING id`,
-      [propertyId],
+       VALUES ($1, $2, 'in_progress', NOW()) RETURNING id`,
+      [propertyId, scope === "lookups_only" ? "lookups" : scope === "movements_only" ? "movements" : "pull"],
     );
     const logId = logEntry?.rows?.[0]?.id;
 
+    let totalReceived = 0;
+    let totalCreated = 0;
+    let totalUpdated = 0;
+    let totalDepartedCheckouts = 0;
+    let totalCasualUpgrades = 0;
+    let totalLookupsAdded = 0;
+    let errors: string[] = [];
+    let sourceResults: any[] = [];
+
+    const port = process.env.PORT || 4000;
+
+    for (const source of sourcesToRun) {
+      try {
+        let fetchUrl = source.apiUrl.trim();
+        if (fetchUrl.startsWith("/")) {
+          fetchUrl = `http://localhost:${port}${fetchUrl}`;
+        }
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (source.apiKey && !source.apiKey.startsWith("•••")) {
+          headers["Authorization"] = `Bearer ${source.apiKey}`;
+          headers["x-api-key"] = source.apiKey;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
+        const response = await fetch(fetchUrl, {
+          headers,
+          signal: controller.signal as any,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`[${source.name}] HR API returned ${response.status}: ${response.statusText}`);
+        }
+
+        const data = (await response.json()) as any;
+        const profiles = Array.isArray(data)
+          ? data
+          : data.profiles || data.employees || data.data || [];
+
+        const mapping = config.field_mapping || {};
+        const sourceRes = await processReceive(
+          propertyId,
+          profiles,
+          req,
+          mapping,
+          {
+            syncProfiles: source.syncProfiles !== false,
+            allowedLevels: source.allowedLevels || [],
+            allowedDepartments: source.allowedDepartments || [],
+            housingEligibleOnly: source.housingEligibleOnly || false,
+            scope,
+            sourceName: source.name,
+          },
+        );
+
+        totalReceived += sourceRes.stats?.received || 0;
+        totalCreated += sourceRes.stats?.created || 0;
+        totalUpdated += sourceRes.stats?.updated || 0;
+        totalDepartedCheckouts += sourceRes.stats?.departedAutoCheckouts || 0;
+        totalCasualUpgrades += sourceRes.stats?.casualUpgrades || 0;
+        totalLookupsAdded += sourceRes.stats?.lookupsAdded || 0;
+        if (sourceRes.errors && sourceRes.errors.length > 0) {
+          errors.push(...sourceRes.errors);
+        }
+
+        sourceResults.push({
+          sourceId: source.id,
+          sourceName: source.name,
+          stats: sourceRes.stats,
+        });
+
+        source.lastSyncAt = new Date().toISOString();
+      } catch (err: any) {
+        errors.push(`[${source.name}] ${err.message}`);
+        sourceResults.push({
+          sourceId: source.id,
+          sourceName: source.name,
+          error: err.message,
+        });
+      }
+    }
+
+    if (configuredSources.length > 0) {
+      await pool.query(
+        `UPDATE public.hr_sync_config SET sources = $1, last_sync_at = NOW(), updated_at = NOW() WHERE property_id = $2`,
+        [JSON.stringify(configuredSources), propertyId],
+      );
+    } else {
+      await pool.query(
+        `UPDATE public.hr_sync_config SET last_sync_at = NOW(), updated_at = NOW() WHERE property_id = $1`,
+        [propertyId],
+      );
+    }
+
+    await pool.query(
+      `UPDATE public.hr_sync_log 
+       SET status = $1, records_processed = $2, records_created = $3, records_updated = $4, errors = $5, completed_at = NOW()
+       WHERE id = $6`,
+      [
+        errors.length > 0 ? (totalReceived > 0 ? "completed_with_errors" : "failed") : "completed",
+        totalReceived,
+        totalCreated,
+        totalUpdated,
+        errors.slice(0, 10).join("; ") || null,
+        logId,
+      ],
+    );
+
+    const s = su(req);
+    await logActivity({
+      req,
+      propertyId,
+      username: s?.username || "hr-sync",
+      userId: s?.userId || 0,
+      userRole: s?.userRole || "system",
+      action: `مزامنة HR (${scope}) لـ ${sourcesToRun.length} مصادر — تم إنشاء ${totalCreated}، وتحديث ${totalUpdated}، وترقية ${totalCasualUpgrades} عمالة مؤقتة، وإخلاء ${totalDepartedCheckouts}، وتسجيل ${totalLookupsAdded} مسميات وأقسام`,
+      actionType: "SYNC",
+      module: "hr_sync",
+      entityType: "profile",
+      entityId: propertyId,
+    });
+
+    res.json({
+      success: true,
+      stats: {
+        sourcesRun: sourcesToRun.length,
+        received: totalReceived,
+        created: totalCreated,
+        updated: totalUpdated,
+        departedAutoCheckouts: totalDepartedCheckouts,
+        casualUpgrades: totalCasualUpgrades,
+        lookupsAdded: totalLookupsAdded,
+        errors: errors.length,
+      },
+      sourceResults,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  },
+);
+
+// ============================================================================
+// POST /api/hr-sync/test-connection — Test reachability & sample payload of an HR URL
+// ============================================================================
+router.post(
+  "/test-connection",
+  requireAnyPermission(["hr_sync", "view"], ["settings", "view"]),
+  async (req, res): Promise<void> => {
+    const { apiUrl, apiKey } = req.body || {};
+    if (!apiUrl) {
+      res.status(400).json({ success: false, error: "apiUrl مطلوب لاختبار الرابط" });
+      return;
+    }
+
+    const startTime = Date.now();
     try {
+      const port = process.env.PORT || 4000;
+      let targetUrl = String(apiUrl).trim();
+      if (targetUrl.startsWith("/")) {
+        targetUrl = `http://localhost:${port}${targetUrl}`;
+      }
+
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (config.api_key) headers["Authorization"] = `Bearer ${config.api_key}`;
+      if (apiKey && !apiKey.startsWith("•••")) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+        headers["x-api-key"] = apiKey;
+      }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000);
-      const response = await fetch(config.api_url, {
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(targetUrl, {
         headers,
         signal: controller.signal as any,
       });
       clearTimeout(timeoutId);
+      const latencyMs = Date.now() - startTime;
 
-      if (!response.ok)
-        throw new Error(
-          `HR API returned ${response.status}: ${response.statusText}`,
-        );
+      if (!response.ok) {
+        res.status(400).json({
+          success: false,
+          error: `استجابة غير صالحة من الـ API: HTTP ${response.status} ${response.statusText}`,
+          latencyMs,
+        });
+        return;
+      }
 
       const data = (await response.json()) as any;
-      const profiles = Array.isArray(data)
+      const rawList = Array.isArray(data)
         ? data
         : data.profiles || data.employees || data.data || [];
 
-      if (!Array.isArray(profiles) || profiles.length === 0) {
-        throw new Error("No profiles data received from HR API");
-      }
-
-      const mapping = config.field_mapping || {};
-      const receiveRes = await processReceive(
-        propertyId,
-        profiles,
-        req,
-        mapping,
-      );
-
-      // Update sync log
-      await pool.query(
-        `UPDATE public.hr_sync_log SET status = $1, records_processed = $2, records_created = $3, records_updated = $4, errors = $5, completed_at = NOW()
-       WHERE id = $6`,
-        [
-          (receiveRes.errors?.length ?? 0) > 0 ? "completed_with_errors" : "completed",
-          receiveRes.stats?.received || 0,
-          receiveRes.stats?.created || 0,
-          receiveRes.stats?.updated || 0,
-          receiveRes.errors?.slice(0, 10).join("; ") || null,
-          logId,
-        ],
-      );
-
-      // Update last sync timestamp
-      await pool.query(
-        `UPDATE public.hr_sync_config SET last_sync_at = NOW(), updated_at = NOW() WHERE id = $1`,
-        [config.id],
-      );
-
-      res.json(receiveRes);
+      res.json({
+        success: true,
+        latencyMs,
+        count: Array.isArray(rawList) ? rawList.length : 0,
+        sample: Array.isArray(rawList) ? rawList.slice(0, 3) : [],
+        message: `الاتصال ناجح (${latencyMs}ms) — تم العثور على ${Array.isArray(rawList) ? rawList.length : 0} سجل موظف`,
+      });
     } catch (err: any) {
-      await pool.query(
-        `UPDATE public.hr_sync_log SET status = 'failed', errors = $1, completed_at = NOW() WHERE id = $2`,
-        [err.message, logId],
-      );
-      res.status(500).json({ success: false, error: "Sync failed: " + err.message });
+      res.status(400).json({
+        success: false,
+        error: err.name === "AbortError" ? "انتهت مهلة الاتصال (Timeout 15s)" : err.message,
+        latencyMs: Date.now() - startTime,
+      });
     }
   },
 );
+
+// ============================================================================
+// GET /api/hr-sync/mock-feed — Realistic Mock API feed for testing multi-hotel sync
+// ============================================================================
+router.get("/mock-feed", (req, res): void => {
+  const hotel = String(req.query.hotel || "all").toLowerCase();
+  const testUpgrade = req.query.test_casual_upgrade === "true";
+
+  const allRecords = [
+    // --- فندق التاج (Al-Taj Hotel - Property 1) ---
+    {
+      profileId: "TAJ-101",
+      firstName: "طارق",
+      lastName: "السيد",
+      nationalId: "28503120102345",
+      nationality: "مصري",
+      department: "الإدارة العامة",
+      jobTitle: "مدير عام الفندق",
+      level: "0",
+      phone: "01011112222",
+      address: "شرم الشيخ",
+      gender: "M",
+      hireDate: "2019-01-15",
+      employmentType: "INTERNAL",
+      companyName: "فندق التاج",
+      hotel: "al_taj",
+      status: "ACTIVE",
+      housingEligible: true,
+    },
+    {
+      profileId: "TAJ-204",
+      firstName: "سارة",
+      lastName: "منصور",
+      nationalId: "29107150109876",
+      nationality: "مصرية",
+      department: "الموارد البشرية",
+      jobTitle: "مدير الموارد البشرية",
+      level: "1",
+      phone: "01022223333",
+      address: "شرم الشيخ",
+      gender: "F",
+      hireDate: "2020-05-10",
+      employmentType: "INTERNAL",
+      companyName: "فندق التاج",
+      hotel: "al_taj",
+      status: "ACTIVE",
+      housingEligible: true,
+    },
+    {
+      profileId: "TAJ-305",
+      firstName: "حسام",
+      lastName: "إبراهيم",
+      nationalId: "29206140107788",
+      nationality: "مصري",
+      department: "المكاتب الأمامية",
+      jobTitle: "مشرف مكاتب أمامية",
+      level: "2",
+      phone: "01033334444",
+      address: "شرم الشيخ",
+      gender: "M",
+      hireDate: "2021-08-01",
+      employmentType: "INTERNAL",
+      companyName: "فندق التاج",
+      hotel: "al_taj",
+      status: "ACTIVE",
+      housingEligible: true,
+    },
+    // Casual / Temporary worker (which will become permanent when testUpgrade is true)
+    testUpgrade
+      ? {
+          profileId: "EMP-8802",
+          firstName: "محمود",
+          lastName: "فتحي",
+          nationalId: "29604101402233",
+          nationality: "مصري",
+          department: "الأغذية والمشروبات",
+          jobTitle: "مضيف أغذية ومشروبات دائم",
+          level: "2",
+          phone: "01044445555",
+          address: "شرم الشيخ",
+          gender: "M",
+          hireDate: "2026-09-01",
+          employmentType: "INTERNAL",
+          companyName: "فندق التاج",
+          hotel: "al_taj",
+          status: "ACTIVE",
+          housingEligible: true,
+        }
+      : {
+          profileId: "CAS-1042",
+          firstName: "محمود",
+          lastName: "فتحي",
+          nationalId: "29604101402233",
+          nationality: "مصري",
+          department: "الأغذية والمشروبات",
+          jobTitle: "عامل خدمات مؤقت (Casual)",
+          level: "4",
+          phone: "01044445555",
+          address: "شرم الشيخ",
+          gender: "M",
+          hireDate: "2026-06-01",
+          employmentType: "CASUAL",
+          companyName: "فندق التاج",
+          hotel: "al_taj",
+          status: "ACTIVE",
+          housingEligible: true,
+        },
+
+    // --- فندق وايت هيلز (White Hills Hotel) ---
+    {
+      profileId: "WH-201",
+      firstName: "رشا",
+      lastName: "كمال",
+      nationalId: "28911050106655",
+      nationality: "مصرية",
+      department: "الإشراف الداخلي",
+      jobTitle: "مدير الإشراف الداخلي",
+      level: "1",
+      phone: "01155556666",
+      address: "شرم الشيخ",
+      gender: "F",
+      hireDate: "2018-11-20",
+      employmentType: "INTERNAL",
+      companyName: "فندق وايت هيلز",
+      hotel: "white_hills",
+      status: "ACTIVE",
+      housingEligible: true,
+    },
+    {
+      profileId: "WH-305",
+      firstName: "كريم",
+      lastName: "عادل",
+      nationalId: "29302190105544",
+      nationality: "مصري",
+      department: "الأمن والحراسة",
+      jobTitle: "مشرف أمن أول",
+      level: "2",
+      phone: "01166667777",
+      address: "شرم الشيخ",
+      gender: "M",
+      hireDate: "2022-03-15",
+      employmentType: "INTERNAL",
+      companyName: "فندق وايت هيلز",
+      hotel: "white_hills",
+      status: "VACATION",
+      vacationStartDate: "2026-09-20",
+      vacationEndDate: "2026-09-30",
+      vacationNotes: "إجازة سنوية اعتيادية",
+      housingEligible: true,
+    },
+
+    // --- فندق المرافئ (Al-Marafe Hotel) ---
+    {
+      profileId: "MAR-301",
+      firstName: "أشرف",
+      lastName: "سليمان",
+      nationalId: "28807180103322",
+      nationality: "مصري",
+      department: "المطبخ والأغذية",
+      jobTitle: "رئيس طهاة تنفيذي",
+      level: "1",
+      phone: "01277778888",
+      address: "شرم الشيخ",
+      gender: "M",
+      hireDate: "2017-04-10",
+      employmentType: "INTERNAL",
+      companyName: "فندق المرافئ",
+      hotel: "al_marafe",
+      status: "ACTIVE",
+      housingEligible: true,
+    },
+    {
+      profileId: "MAR-410",
+      firstName: "هشام",
+      lastName: "خالد",
+      nationalId: "29408220106677",
+      nationality: "مصري",
+      department: "الصيانة والهندسة",
+      jobTitle: "فني تكييف وتبريد",
+      level: "3",
+      phone: "01288889999",
+      address: "شرم الشيخ",
+      gender: "M",
+      hireDate: "2023-01-10",
+      employmentType: "INTERNAL",
+      companyName: "فندق المرافئ",
+      hotel: "al_marafe",
+      status: "DEPARTED",
+      departureDate: "2026-09-22",
+      departureReason: "إنهاء تعاقد وتصفية مستحقات من الـ HR",
+      housingEligible: true,
+    },
+  ];
+
+  let filtered = allRecords;
+  if (hotel === "al_taj") {
+    filtered = allRecords.filter((r) => r.hotel === "al_taj");
+  } else if (hotel === "white_hills") {
+    filtered = allRecords.filter((r) => r.hotel === "white_hills");
+  } else if (hotel === "al_marafe") {
+    filtered = allRecords.filter((r) => r.hotel === "al_marafe");
+  }
+
+  res.json(filtered);
+});
 
 // ============================================================================
 // POST /api/hr-sync/notify-vacation — Direct Vacation Start or Return Webhook
@@ -1324,17 +1996,20 @@ router.get(
 // ============================================================================
 router.get("/profiles/:profileId", async (req, res): Promise<void> => {
   const expectedKey = process.env["HR_SYNC_API_KEY"];
-  if (expectedKey) {
-    const providedKey = req.headers["x-api-key"];
-    if (providedKey !== expectedKey) {
-      res.status(401).json({ success: false, error: "Unauthorized" });
+  const providedKey = req.headers["x-api-key"];
+  const isAdmin = Boolean((req as any).session?.userId);
+  if (!isAdmin) {
+    if (expectedKey) {
+      if (providedKey !== expectedKey) {
+        res.status(401).json({ success: false, error: "Unauthorized" });
+        return;
+      }
+    } else if (process.env.NODE_ENV === "production") {
+      res.status(403).json({
+        error: "HR_SYNC_API_KEY not configured — access denied in production",
+      });
       return;
     }
-  } else if (process.env.NODE_ENV === "production") {
-    res.status(403).json({
-      error: "HR_SYNC_API_KEY not configured — access denied in production",
-    });
-    return;
   }
 
   const propertyId = getTenantId(req);

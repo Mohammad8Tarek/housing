@@ -83,8 +83,8 @@ router.use((req, res, next) => {
   if (req.path.startsWith("/public/")) {
     return next();
   }
-  // Allow HR sync webhook endpoints that authenticate via x-api-key
-  if (req.path.startsWith("/hr-sync") && req.headers["x-api-key"]) {
+  // Allow HR sync webhook endpoints that authenticate via x-api-key, and mock feed for testing
+  if (req.path.startsWith("/hr-sync") && (req.headers["x-api-key"] || req.path.startsWith("/hr-sync/mock-feed"))) {
     return next();
   }
   // Allow gate routes which handle their own dual auth (admin session / portal session)

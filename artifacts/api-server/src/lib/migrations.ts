@@ -54,6 +54,14 @@ const MIGRATIONS = [
     name: "public.hr_sync_config.auto_vacation_sync",
     q: `ALTER TABLE public.hr_sync_config ADD COLUMN IF NOT EXISTS "auto_vacation_sync" BOOLEAN DEFAULT true;`,
   },
+  {
+    name: "public.hr_sync_config.target_property_ids",
+    q: `ALTER TABLE public.hr_sync_config ADD COLUMN IF NOT EXISTS "target_property_ids" JSONB DEFAULT '[]'::jsonb;`,
+  },
+  {
+    name: "public.hr_sync_config.sources",
+    q: `ALTER TABLE public.hr_sync_config ADD COLUMN IF NOT EXISTS "sources" JSONB DEFAULT '[]'::jsonb;`,
+  },
   // Existing column additions
   {
     name: "profiles.photo_url",
@@ -1326,6 +1334,10 @@ const TENANT_MIGRATIONS = [
     name: "tenant.assignments.check_out_reason",
     q: "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS check_out_reason TEXT",
   },
+  {
+    name: "tenant.profiles.previous_profile_id",
+    q: "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS previous_profile_id TEXT DEFAULT '';",
+  },
 
   // === Settings: Policies, Rules & Contacts ===
   {
@@ -2517,6 +2529,10 @@ We wish you a safe trip and a pleasant stay! ✨';`,
   {
     name: "tenant.settings.job_level_policies",
     q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS job_level_policies JSONB DEFAULT '[]'::jsonb;`,
+  },
+  {
+    name: "tenant.profiles.previous_profile_id",
+    q: `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS previous_profile_id TEXT DEFAULT '';`,
   },
 ];
 
