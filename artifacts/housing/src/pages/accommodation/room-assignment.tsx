@@ -173,8 +173,8 @@ export default function RoomAssignment() {
   });
 
   const { data: allProfilesData } = useListProfiles(
-    { propertyId: effectiveTargetPropId, limit: 1000 },
-    { query: { enabled: !!effectiveTargetPropId } }
+    { propertyId: effectiveTargetPropId, limit: 1000 } as any,
+    { query: { queryKey: ["/api/profiles", effectiveTargetPropId], enabled: !!effectiveTargetPropId } as any }
   );
   const profilesList = (allProfilesData as any)?.profiles || (allProfilesData as any)?.data || [];
 
@@ -526,7 +526,7 @@ export default function RoomAssignment() {
       const r = recommendation.bestRoom;
       const opts = getBedOptions(r.roomType, r.capacity);
       if (opts.length > 0) {
-        setSelectedBed(opts[0]);
+        setSelectedBed(String(opts[0]));
       }
     }
   }, [selectedProfile?.id, recommendation?.bestRoom?.id, selectedRoomId]);

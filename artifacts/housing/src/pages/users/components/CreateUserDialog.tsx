@@ -103,6 +103,7 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
     setForm({
       username: "",
       email: "",
+      nationalId: "",
       phone: "",
       password: "",
       role: "manager",

@@ -189,10 +189,11 @@ export function ServiceRatingsTab({
           }));
 
     await printLuxuryReport({
+      title: ar ? "تقرير تقييمات الخدمات وجودة الصيانة" : "Service Quality & Maintenance Ratings Report",
       activeTab: "service_ratings",
       rows: printRows,
       properties,
-      activePropertyId,
+      activePropertyId: activePropertyId ?? undefined,
       language: ar ? "ar" : "en",
     });
   };

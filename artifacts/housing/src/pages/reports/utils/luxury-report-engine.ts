@@ -580,7 +580,6 @@ export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = 
   "violation type": { ar: "نوع المخالفة", en: "Violation Type" },
   violationdetails: { ar: "تفاصيل المخالفة والسياسة", en: "Policy Details" },
   "violation details": { ar: "تفاصيل المخالفة والسياسة", en: "Policy Details" },
-  severity: { ar: "مستوى الأهمية", en: "Severity" },
   approvalstatus: { ar: "حالة الاعتماد", en: "Approval Status" },
   "approval status": { ar: "حالة الاعتماد", en: "Approval Status" },
   approvedby: { ar: "المعتمد للطلب", en: "Approved By" },

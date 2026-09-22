@@ -392,6 +392,7 @@ export function ManagerFlashTab({
     `;
 
     await printLuxuryReport({
+      title: ar ? "تقرير المدير اليومي الشامل (Flash Report)" : "Executive Manager Flash Report",
       activeTab: "manager_flash",
       rows,
       properties,
@@ -417,7 +418,7 @@ export function ManagerFlashTab({
           labelAr: "الأسِرّة المشغولة",
           value: metrics.occupiedBeds,
           color: "blue",
-          subtext: `${metrics.occRate}% ${ar ? "نسبة الإشغال الكلية" : "Occupancy Rate"}`,
+          subtext: `${metrics.occupancyRate}% ${ar ? "نسبة الإشغال الكلية" : "Occupancy Rate"}`,
         },
         {
           label: "Vacant Beds",
@@ -429,15 +430,15 @@ export function ManagerFlashTab({
         {
           label: "Dirty Rooms (HK)",
           labelAr: "غرف متسخة (HK)",
-          value: metrics.dirtyRooms,
-          color: metrics.dirtyRooms > 0 ? "orange" : "green",
+          value: metrics.vacantDirty + metrics.occupiedDirty,
+          color: (metrics.vacantDirty + metrics.occupiedDirty) > 0 ? "orange" : "green",
           subtext: ar ? "تحتاج لتجهيز" : "Pending HK",
         },
         {
           label: "Open Maintenance",
           labelAr: "بلاغات صيانة مفتوحة",
-          value: metrics.openMaintenance,
-          color: metrics.openMaintenance > 0 ? "red" : "green",
+          value: metrics.openTickets,
+          color: metrics.openTickets > 0 ? "red" : "green",
           subtext: ar ? "قيد الإصلاح" : "In Progress",
         },
       ],

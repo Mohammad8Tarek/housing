@@ -177,7 +177,7 @@ export default function Reports() {
   // ── Smart Report Export (jsPDF + AutoTable column system) ──
   const smartDef = SMART_REPORT_TABS[filters.activeTab];
   const activeProperty = data.properties?.find((p: any) => String(p.id) === String(activePropertyId));
-  const propertyLabel = activeProperty ? (ar ? activeProperty.nameAr || activeProperty.name : activeProperty.name) : undefined;
+  const propertyLabel = activeProperty ? (ar ? (activeProperty as any).nameAr || activeProperty.name : activeProperty.name) : undefined;
 
   const smartExport = useSmartReportExport({
     columns: smartDef?.columns ?? [],

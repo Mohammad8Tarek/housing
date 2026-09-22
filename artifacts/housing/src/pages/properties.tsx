@@ -181,7 +181,7 @@ export default function Properties() {
 
   const { data: properties, isLoading } = useListProperties();
   const { data: allUsersRes } = useListUsers({ limit: 1000 } as any);
-  const allUsers: any[] = allUsersRes?.data || [];
+  const allUsers: any[] = Array.isArray(allUsersRes) ? allUsersRes : ((allUsersRes as any)?.data || []);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getListPropertiesQueryKey() });

@@ -121,7 +121,7 @@ export function ExportToolbar({
     );
   }
 
-  if (activeTab === "occupancy_forecast") {
+  if ((activeTab as string) === "occupancy_forecast") {
     return (
       <div className="flex items-center gap-2">
         {columnChooserElement}
@@ -147,7 +147,7 @@ export function ExportToolbar({
     );
   }
 
-  if (activeTab === "analytics") {
+  if ((activeTab as string) === "analytics") {
     return (
       <Button
         variant="outline"

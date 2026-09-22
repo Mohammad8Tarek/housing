@@ -351,16 +351,17 @@ export default function ReservationsPage() {
   }, []);
 
   const { langDialogOpen, openDialog, handleSelect, handleCancel } = usePrintLanguage();
+  const currentPropId = typeof activePropertyId === "number" ? activePropertyId : undefined;
 
   const { data: _resWrapper, isLoading } = useListReservations(
-    { propertyId: activePropertyId ?? undefined, page: currentPage, limit: pageSize, search: debouncedSearch, status: statusFilter === "all" ? undefined : statusFilter } as any,
-    { query: { queryKey: ["listReservations", activePropertyId, currentPage, pageSize, debouncedSearch, statusFilter], enabled: !!activePropertyId, staleTime: 0, placeholderData: (prev: any) => prev } },
+    { propertyId: currentPropId, page: currentPage, limit: pageSize, search: debouncedSearch, status: statusFilter === "all" ? undefined : statusFilter } as any,
+    { query: { queryKey: ["listReservations", currentPropId, currentPage, pageSize, debouncedSearch, statusFilter], enabled: !!currentPropId, staleTime: 0, placeholderData: (prev: any) => prev } },
   );
-  const reservations = _resWrapper?.data || _resWrapper || [];
-  const paginationTotal = _resWrapper?.pagination?.total || 0;
+  const reservations: any[] = (_resWrapper as any)?.data || (Array.isArray(_resWrapper) ? _resWrapper : []);
+  const paginationTotal = (_resWrapper as any)?.pagination?.total || 0;
 
-  const { data: _rData } = useListRooms({ propertyId: activePropertyId, limit: 1000 }, { query: { enabled: !!activePropertyId, staleTime: 30000 } });
-  const rooms = _rData?.data || [];
+  const { data: _rData } = useListRooms({ propertyId: currentPropId, limit: 1000 } as any, { query: { queryKey: ["/api/rooms", currentPropId], enabled: !!currentPropId, staleTime: 30000 } as any });
+  const rooms: any[] = Array.isArray(_rData) ? _rData : ((_rData as any)?.data || []);
 
   useEffect(() => {
     try {
@@ -379,9 +380,9 @@ export default function ReservationsPage() {
       }
     } catch {}
   }, [rooms]);
-  const { data: _bData } = useListBuildings({ propertyId: activePropertyId }, { query: { enabled: !!activePropertyId, staleTime: 300000 } });
-  const buildings = _bData?.data || [];
-  const { data: _fData } = useListFloors({ propertyId: activePropertyId }, { query: { enabled: !!activePropertyId, staleTime: 300000 } });
+  const { data: _bData } = useListBuildings({ propertyId: currentPropId } as any, { query: { queryKey: ["/api/buildings", currentPropId], enabled: !!currentPropId, staleTime: 300000 } as any });
+  const buildings: any[] = Array.isArray(_bData) ? _bData : ((_bData as any)?.data || []);
+  const { data: _fData } = useListFloors({ propertyId: currentPropId } as any, { query: { queryKey: ["/api/floors", currentPropId], enabled: !!currentPropId, staleTime: 300000 } as any });
   const floors = Array.isArray(_fData)
     ? _fData
     : (((_fData as any)?.data as any[]) || []);
@@ -393,8 +394,8 @@ export default function ReservationsPage() {
   }, [rooms]);
 
   const { data: _profData } = useListProfiles(
-    { propertyId: activePropertyId, limit: 1000 },
-    { query: { enabled: !!activePropertyId, staleTime: 60000 } }
+    { propertyId: currentPropId, limit: 1000 } as any,
+    { query: { queryKey: ["/api/profiles", currentPropId], enabled: !!currentPropId, staleTime: 60000 } as any }
   );
   const profilesList = (_profData as any)?.profiles || (_profData as any)?.data || [];
 
@@ -423,15 +424,15 @@ export default function ReservationsPage() {
   );
 
   const { data: _aData } = useListAssignments(
-    { propertyId: activePropertyId, limit: 5000 } as any,
-    { query: { enabled: !!activePropertyId, staleTime: 30000 } }
+    { propertyId: currentPropId, limit: 5000 } as any,
+    { query: { queryKey: ["/api/assignments", currentPropId], enabled: !!currentPropId, staleTime: 30000 } as any }
   );
   const allAssignments = Array.isArray(_aData)
     ? _aData
     : (((_aData as any)?.data as any[]) || []);
 
   const { data: _pData } = useListProperties();
-  const allProperties = _pData?.data || _pData || [];
+  const allProperties: any[] = Array.isArray(_pData) ? _pData : ((_pData as any)?.data || []);
 
   useEffect(() => {
     // Default search to "all" so cross-property employees are discovered immediately by name/code
@@ -448,11 +449,11 @@ export default function ReservationsPage() {
       (selectedProfile.propertyName && activeProp?.name && selectedProfile.propertyName.trim().toLowerCase() !== activeProp?.name.trim().toLowerCase())
     )
   );
-  const { data: departmentValues = [] } = useLookupValues(activePropertyId, LOOKUP_CATEGORIES.DEPARTMENT);
-  const { data: jobTitleValues = [] } = useLookupValues(activePropertyId, LOOKUP_CATEGORIES.JOB_TITLE);
-  const { data: nationalityValues = [] } = useLookupValues(activePropertyId, LOOKUP_CATEGORIES.NATIONALITY);
+  const { data: departmentValues = [] } = useLookupValues(currentPropId, LOOKUP_CATEGORIES.DEPARTMENT);
+  const { data: jobTitleValues = [] } = useLookupValues(currentPropId, LOOKUP_CATEGORIES.JOB_TITLE);
+  const { data: nationalityValues = [] } = useLookupValues(currentPropId, LOOKUP_CATEGORIES.NATIONALITY);
 
-  const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
+  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
   const floorMap = Object.fromEntries(floors.map((f) => [f.id, { name: f.name, number: f.floorNumber }]));
 
   const filteredJobTitles = useMemo(() => {
@@ -586,7 +587,7 @@ export default function ReservationsPage() {
       const r = recommendation.bestRoom;
       const opts = getBedOptions(r.roomType, r.capacity);
       if (opts.length > 0) {
-        setSelectedBed(opts[0]);
+        setSelectedBed(String(opts[0]));
       }
     }
   }, [profileForRecommend, recommendation?.bestRoom?.id, selectedRoomId]);
@@ -635,11 +636,11 @@ export default function ReservationsPage() {
         nationality: res.nationality,
       },
       rooms: checkinRooms,
-      assignments,
-      profiles,
+      assignments: allAssignments,
+      profiles: profilesList,
       policySettings: settings || {},
     });
-  }, [checkinDialog.open, checkinDialog.reservation, checkinRooms, assignments, profiles, settings]);
+  }, [checkinDialog.open, checkinDialog.reservation, checkinRooms, allAssignments, profilesList, settings]);
 
   const filteredCheckinRooms = useMemo(() => {
     const list = checkinRooms.filter((r: any) => !checkinRoomSearch.trim() || r.roomNumber?.toLowerCase().includes(checkinRoomSearch.toLowerCase()));
@@ -651,14 +652,15 @@ export default function ReservationsPage() {
   }, [checkinRooms, checkinRoomSearch, checkinRecommendations]);
 
   const invalidate = () => {
+    const numPropId = typeof activePropertyId === "number" ? activePropertyId : undefined;
     queryClient.invalidateQueries({ queryKey: ["listReservations"] });
-    queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey({ propertyId: activePropertyId }) });
+    queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey({ propertyId: numPropId }) });
     queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
-    queryClient.invalidateQueries({ queryKey: getListRoomsQueryKey({ propertyId: activePropertyId }) });
-    queryClient.invalidateQueries({ queryKey: getListAssignmentsQueryKey({ propertyId: activePropertyId }) });
+    queryClient.invalidateQueries({ queryKey: getListRoomsQueryKey({ propertyId: numPropId }) });
+    queryClient.invalidateQueries({ queryKey: getListAssignmentsQueryKey({ propertyId: numPropId }) });
     queryClient.invalidateQueries({ queryKey: ["/api/assignments"] });
     queryClient.invalidateQueries({ queryKey: ["/api/assignments/in-house"] });
-    queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey({ propertyId: activePropertyId }) });
+    queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey({ propertyId: numPropId }) });
     queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey() });
     queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
   };
@@ -1122,7 +1124,7 @@ export default function ReservationsPage() {
   ) => {
     setSelectedProfile({
       id: res.profileId || 0,
-      propertyId: activePropertyId!,
+      propertyId: typeof activePropertyId === "number" ? activePropertyId : (res.propertyId || 0),
       propertyName: null,
       profileId: res.profileCode || `RES-${res.id}`,
       firstName: res.firstName,
@@ -1162,15 +1164,15 @@ export default function ReservationsPage() {
             nationality: res.nationality,
           },
           room: chosenRoom,
-          assignments,
-          profiles,
+          assignments: allAssignments,
+          profiles: profilesList,
           policySettings: settings || {},
         });
 
         if (
           !compliance.compliant &&
           compliance.violations.length > 0 &&
-          settings?.policyRequireExceptionApproval
+          (settings as any)?.policyRequireExceptionApproval
         ) {
           setResPolicyModal({
             open: true,
@@ -1214,15 +1216,15 @@ export default function ReservationsPage() {
           nationality: res.nationality,
         },
         room: chosenRoom,
-        assignments,
-        profiles,
+        assignments: allAssignments,
+        profiles: profilesList,
         policySettings: settings || {},
       });
 
       if (
         !compliance.compliant &&
         compliance.violations.length > 0 &&
-        settings?.policyRequireExceptionApproval
+        (settings as any)?.policyRequireExceptionApproval
       ) {
         setResPolicyModal({
           open: true,
@@ -1738,7 +1740,7 @@ export default function ReservationsPage() {
       </div>
 
       {paginationTotal > 0 && (
-        <DataPagination total={paginationTotal} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }} ar={ar} />
+        <DataPagination total={paginationTotal} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }} />
       )}
 
       {/* NEW RESERVATION / ASSIGNMENT DIALOG */}
@@ -2300,7 +2302,7 @@ export default function ReservationsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>
-                    {buildings.map((b) => (
+                    {buildings.map((b: any) => (
                       <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -3269,10 +3271,9 @@ export default function ReservationsPage() {
               <KeyManagementPanel
                 assignmentId={lastAssignment?.id || lastAssignment?.data?.id}
                 roomId={lastAssignment?.roomId || lastAssignment?.data?.roomId}
-                propertyId={activePropertyId}
+                propertyId={typeof activePropertyId === "number" ? activePropertyId : Number(activePropertyId) || 0}
                 checkInDate={checkInDate}
                 checkOutDate={expectedCheckOut || selectedProfile?.contractEndDate || (newForm.employmentType === "INTERNAL" ? newForm.contractEndDate : undefined)}
-                ar={ar}
               />
             )}
             <div className="flex justify-between">

@@ -2321,8 +2321,8 @@ export function useReportDataProcessor({
           })
           .map((r: any) => {
             const bName = buildingMap[r.buildingId] || "—";
-            const fNum = roomFloorNum(r);
-            const fName = fNum ? (String(fNum).toLowerCase().includes("floor") || String(fNum).includes("دور") ? fNum : (ar ? `الدور ${fNum}` : `Floor ${fNum}`)) : "—";
+            const fNum = r.floorNumber ?? (r.floorId ? floorMap[r.floorId] : null);
+            const fName = fNum ? (String(fNum).toLowerCase().includes("floor") || String(fNum).includes("دور") ? fNum : (ar ? `الدور ${fNum}` : `Floor ${fNum}`)) : (r.floorId ? (floorMap[r.floorId] || "—") : "—");
             const roomAssigns = assignments.filter((a: any) => a.roomId === r.id && ["ACTIVE", "VACATION", "OCCUPIED_VACATION"].includes(String(a.status).toUpperCase()));
             const occupantsList = roomAssigns.map((a: any, idx: number) => {
               const p = empMap[a.profileId] || {};
