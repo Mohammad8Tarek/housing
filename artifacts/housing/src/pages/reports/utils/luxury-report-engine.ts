@@ -57,6 +57,7 @@ export interface LuxuryReportOptions {
   customSectionsHtml?: string;
   customBottomSectionsHtml?: string;
   autoPrint?: boolean;
+  singlePage?: boolean;
 }
 
 // ----------------------------------------------------------------------------
@@ -1984,6 +1985,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     customSectionsHtml,
     customBottomSectionsHtml,
     autoPrint = true,
+    singlePage,
   } = opts;
 
   const isArabic = opts.language === "ar" || opts.language === undefined;
@@ -2105,6 +2107,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Determine Orientation: Automatically enforce Landscape if >= 5 columns or explicitly requested
   const orientation = opts.orientation || (colCount >= 5 ? "landscape" : "portrait");
+  const isSinglePage = singlePage ?? (tableRows.length === 0 && Boolean(customSectionsHtml));
 
   // High-legibility, bold typography scaled by orientation and column density
   let baseFontSizePt = 9.8;
@@ -2423,6 +2426,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
+    @page {
+      size: A4 ${orientation};
+      margin: 0mm !important;
+      marks: none;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
@@ -2476,22 +2484,21 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
     .btn {
       padding: 6px 14px;
-      border-radius: 6px;
-      font-weight: 700;
       font-size: 8.5pt;
-      cursor: pointer;
-      font-family: inherit;
+      font-weight: 700;
+      border-radius: 6px;
       border: none;
-      transition: all 0.2s ease;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: all 0.15s ease;
+      font-family: inherit;
     }
     .btn-primary {
       background: #0284c7;
       color: #ffffff;
-      border: 1px solid #38bdf8;
+      box-shadow: 0 2px 6px rgba(2,132,199,0.35);
     }
     .btn-primary:hover {
       background: #0369a1;
@@ -2535,6 +2542,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       position: relative;
       box-sizing: border-box;
       overflow-x: hidden; /* STRICT CONTAINMENT: mathematically prevents table blowout beyond A4 */
+    }
+    .sheet.single-page {
+      height: ${orientation === "landscape" ? "210mm" : "297mm"};
+      max-height: ${orientation === "landscape" ? "210mm" : "297mm"};
+      min-height: ${orientation === "landscape" ? "210mm" : "297mm"};
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
     }
 
     /* Opera PMS Header Layout with Dual Logos */
@@ -2761,36 +2777,39 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
 
     /* Signatures Block */
+    /* Signatures Block */
     .sig-section {
-      margin-top: 18px;
-      padding-top: 12px;
-      border-top: 1px dashed #cbd5e1;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1.5px dashed #cbd5e1;
       page-break-inside: avoid;
     }
     .sig-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      gap: 14px;
     }
     .sig-card {
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      padding: 8px 10px;
-      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: #f8fafc;
       text-align: center;
+      min-height: 80px;
     }
     .sig-role {
-      font-weight: 700;
-      font-size: 8pt;
-      color: #000000;
-      margin-bottom: 22px;
+      font-weight: 800;
+      font-size: 8.5pt;
+      color: #0F2A44;
+      margin-bottom: 30px;
     }
     .sig-line {
-      border-top: 1px dashed #94a3b8;
-      margin: 0 12px 6px;
+      border-top: 1.5px dashed #94a3b8;
+      margin: 0 10px 4px;
     }
     .sig-date {
-      font-size: 7pt;
+      font-size: 7.2pt;
+      font-weight: 600;
       color: #64748b;
     }
 
@@ -2801,8 +2820,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       align-items: flex-end;
       font-size: 7pt;
       color: #000000;
-      margin-top: 14px;
-      padding-top: 6px;
+      margin-top: 6px;
+      padding-top: 4px;
       line-height: 1.35;
     }
     .opera-footer-left {
@@ -2839,10 +2858,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     @media print {
       @page {
         size: A4 ${orientation};
-        margin: 4mm 5mm 5mm 5mm !important;
+        margin: 0mm !important;
+        marks: none;
       }
       html, body {
         width: 100% !important;
+        height: 100% !important;
         background: #ffffff !important;
         color: #000000 !important;
         font-size: ${printFontSizePt}pt !important;
@@ -2854,13 +2875,28 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       .sheet {
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 2mm 3mm !important;
+        padding: 8mm 10mm !important;
         width: 100% !important;
         max-width: 100% !important;
         min-height: auto !important;
         height: auto !important;
         overflow: visible !important;
         border-radius: 0 !important;
+      }
+      .sheet.single-page {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: ${orientation === "landscape" ? "210mm" : "297mm"} !important;
+        max-height: ${orientation === "landscape" ? "210mm" : "297mm"} !important;
+        min-height: ${orientation === "landscape" ? "210mm" : "297mm"} !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        overflow: hidden !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        padding: 8mm 10mm !important;
+        box-sizing: border-box !important;
       }
       table.opera-table {
         width: 100% !important;
@@ -2927,11 +2963,18 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         padding-top: 6px !important;
       }
       .sig-role {
-        margin-bottom: 14px !important;
+        margin-bottom: 24px !important;
       }
       .opera-footer {
         page-break-inside: avoid !important;
         margin-top: 6px !important;
+      }
+      .sheet.single-page .sig-role {
+        margin-bottom: 30px !important;
+      }
+      .sheet.single-page .sig-card {
+        min-height: 80px !important;
+        padding: 8px 12px !important;
       }
     }
   </style>
@@ -2962,7 +3005,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   </div>
 
   <div class="sheet-wrapper">
-    <div class="sheet" id="printSheet">
+    <div class="sheet ${isSinglePage ? "single-page" : ""}" id="printSheet">
       <!-- Opera Header Layout with Dual Logos (System Logo on Left, Property Logo on Right) -->
       <div class="opera-header">
         <!-- Left: System Logo / System Brand -->
@@ -3075,12 +3118,20 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         sheet.style.width = "210mm";
         sheet.style.maxWidth = "210mm";
         sheet.style.minHeight = "297mm";
+        if (sheet.classList.contains("single-page")) {
+          sheet.style.height = "297mm";
+          sheet.style.maxHeight = "297mm";
+        }
         if (orientBtn) orientBtn.innerHTML = "📄 ${isArabic ? 'رأسي (انقر للأفقي)' : 'Portrait (Click for Landscape)'}";
         if (metaOrient) metaOrient.innerHTML = "${isArabic ? 'رأسي (Portrait)' : 'Portrait'}";
       } else {
         sheet.style.width = "297mm";
         sheet.style.maxWidth = "297mm";
         sheet.style.minHeight = "210mm";
+        if (sheet.classList.contains("single-page")) {
+          sheet.style.height = "210mm";
+          sheet.style.maxHeight = "210mm";
+        }
         if (orientBtn) orientBtn.innerHTML = "📄 ${isArabic ? 'أفقي (انقر للرأسي)' : 'Landscape (Click for Portrait)'}";
         if (metaOrient) metaOrient.innerHTML = "${isArabic ? 'أفقي (Landscape)' : 'Landscape'}";
       }
@@ -3088,7 +3139,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       if (existingStyle) existingStyle.remove();
       const styleEl = document.createElement("style");
       styleEl.id = "dynamicPageOrientation";
-      styleEl.innerHTML = "@page { size: A4 " + currentOrientation + " !important; }";
+      styleEl.innerHTML = "@page { size: A4 " + currentOrientation + " !important; margin: 0mm !important; marks: none; }";
       document.head.appendChild(styleEl);
     }
 
@@ -3121,6 +3172,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         if (btn) btn.innerHTML = "✍️ ${isArabic ? 'التوقيعات: مخفية' : 'Signatures: Hidden'}";
       }
     }
+
+    const reportFullDocTitle = document.title;
+    window.onbeforeprint = function() {
+      document.title = "";
+    };
+    window.onafterprint = function() {
+      document.title = reportFullDocTitle;
+    };
 
     ${autoPrint ? `
     document.fonts.ready.then(function() {
