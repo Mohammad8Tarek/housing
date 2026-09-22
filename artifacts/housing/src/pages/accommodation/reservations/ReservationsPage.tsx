@@ -65,7 +65,7 @@ import * as XLSX from "xlsx";
 import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
-  Building, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
+  Building, Building2, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
   Phone, CreditCard, AlertCircle, Lock, AlertTriangle, Ban, Check, ArrowRightLeft,
   MessageSquare, Send, Loader2,
 } from "lucide-react";
