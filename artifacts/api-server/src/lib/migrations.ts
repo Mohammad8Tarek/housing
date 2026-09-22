@@ -2480,6 +2480,16 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_prop ON ws_sessions(property_id);
     CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_active ON ws_sessions(is_active);`,
   },
+  {
+    name: "tenant.policy_exceptions_and_advanced_policies",
+    q: `ALTER TABLE assignments ADD COLUMN IF NOT EXISTS has_policy_exception BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE assignments ADD COLUMN IF NOT EXISTS policy_exception_reason TEXT;
+        ALTER TABLE assignments ADD COLUMN IF NOT EXISTS policy_approved_by TEXT;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_strict_gender_segregation BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_strict_family_segregation BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_adaptive_learning BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_require_exception_approval BOOLEAN NOT NULL DEFAULT true;`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {

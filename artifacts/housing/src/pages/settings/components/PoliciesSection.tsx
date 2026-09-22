@@ -62,7 +62,14 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
+  FileSpreadsheet,
+  Upload,
+  Download,
+  Bot,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useFormContext } from "react-hook-form";
 import type { SettingsFormData } from "../hooks/useSettingsForm";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
@@ -194,6 +201,350 @@ export function PoliciesSection({
     });
   };
 
+  // ─── Excel Template Export & Import States ──────────────────────────────────
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFileName, setImportFileName] = useState("");
+  const [importData, setImportData] = useState<{
+    levelCapacities: any[];
+    customRules: any[];
+    generalPolicies: any[];
+  } | null>(null);
+
+  const handleExportExcelTemplate = () => {
+    const values = form.getValues();
+
+    // 1. Level Capacities Sheet
+    const levelCapacities = [
+      {
+        "Level Key": "policyLevel0Capacity",
+        "Level Name (Ar)": "الدرجة صفر (إدارة عليا / VIP)",
+        "Level Name (En)": "Level 0 (Top Executive / VIP)",
+        "Max Capacity (Beds)": Number(values.policyLevel0Capacity) || 1,
+        "Allow Entire Room": values.policyLevel0AllowEntire ? "YES" : "NO",
+        "Notes": "غرفة فردية أو جناح مستقل للقيادات",
+      },
+      {
+        "Level Key": "policyLevel1Capacity",
+        "Level Name (Ar)": "الدرجة الأولى (مدراء العموم)",
+        "Level Name (En)": "Level 1 (Department Heads / GMs)",
+        "Max Capacity (Beds)": Number(values.policyLevel1Capacity) || 1,
+        "Allow Entire Room": values.policyLevel1AllowEntire ? "YES" : "NO",
+        "Notes": "غرفة فردية مستقلة لمدراء الإدارات",
+      },
+      {
+        "Level Key": "policyLevel2Capacity",
+        "Level Name (Ar)": "الدرجة الثانية (المشرفون)",
+        "Level Name (En)": "Level 2 (Supervisory / Assistants)",
+        "Max Capacity (Beds)": Number(values.policyLevel2Capacity) || 2,
+        "Allow Entire Room": values.policyLevel2AllowEntire ? "YES" : "NO",
+        "Notes": "سكن إشرافي ثنائي أو استثنائي",
+      },
+      {
+        "Level Key": "policyLevel3Capacity",
+        "Level Name (Ar)": "الدرجة الثالثة (الموظفون والفنيون)",
+        "Level Name (En)": "Level 3 (Staff / Technicians)",
+        "Max Capacity (Beds)": Number(values.policyLevel3Capacity) || 3,
+        "Allow Entire Room": "NO",
+        "Notes": "سكن ثلاثي مشترك للموظفين",
+      },
+      {
+        "Level Key": "policyLevel4Capacity",
+        "Level Name (Ar)": "الدرجة الرابعة (العمال والخدمات)",
+        "Level Name (En)": "Level 4 (Workers / Line Staff)",
+        "Max Capacity (Beds)": Number(values.policyLevel4Capacity) || 4,
+        "Allow Entire Room": "NO",
+        "Notes": "سكن رباعي مشترك للعمال",
+      },
+      {
+        "Level Key": "policyLevel5Capacity",
+        "Level Name (Ar)": "الدرجة الخامسة (سكن خماسي)",
+        "Level Name (En)": "Level 5 (5-Bed Shared)",
+        "Max Capacity (Beds)": Number(values.policyLevel5Capacity) || 5,
+        "Allow Entire Room": values.policyLevel5AllowEntire ? "YES" : "NO",
+        "Notes": "سكن خماسي مشترك",
+      },
+      {
+        "Level Key": "policyLevel6Capacity",
+        "Level Name (Ar)": "الدرجة السادسة (سكن سداسي)",
+        "Level Name (En)": "Level 6 (6-Bed Shared)",
+        "Max Capacity (Beds)": Number(values.policyLevel6Capacity) || 6,
+        "Allow Entire Room": values.policyLevel6AllowEntire ? "YES" : "NO",
+        "Notes": "سكن مكثف سداسي مشترك",
+      },
+    ];
+
+    // 2. Custom Rules Sheet
+    const customRulesList = (values.customLevelRules || []).map((cr: any) => ({
+      "Rule ID": cr.id,
+      "Rule Name (En)": cr.name,
+      "Rule Name (Ar)": cr.nameAr || cr.name,
+      "Max Capacity (Beds)": Number(cr.capacity) || 5,
+      "Allow Entire Room": cr.allowEntire ? "YES" : "NO",
+      "Description": cr.description || "",
+    }));
+
+    // 3. General & Advanced Policies Sheet
+    const generalPolicies = [
+      {
+        "Setting Key": "policyStrictGenderSegregation",
+        "Policy Name (Ar)": "سياسة فصل الجنسين الصارمة",
+        "Policy Name (En)": "Strict Gender Segregation",
+        "Value (YES/NO/Number)": values.policyStrictGenderSegregation ? "YES" : "NO",
+        "Description": "منع الاختلاط نهائياً في الغرف أو الأجنحة",
+      },
+      {
+        "Setting Key": "policyStrictFamilySegregation",
+        "Policy Name (Ar)": "سياسة سكن العائلات الصارمة",
+        "Policy Name (En)": "Strict Family Segregation",
+        "Value (YES/NO/Number)": values.policyStrictFamilySegregation ? "YES" : "NO",
+        "Description": "حظر العزاب في أجنحة العائلات والعكس",
+      },
+      {
+        "Setting Key": "policyAdaptiveLearning",
+        "Policy Name (Ar)": "التعلم السلوكي الذكي لتوزيع الأقسام",
+        "Policy Name (En)": "AI Adaptive Department Learning",
+        "Value (YES/NO/Number)": values.policyAdaptiveLearning ? "YES" : "NO",
+        "Description": "التعرف الذكي على قطاعات الأقسام وترشيح زملاء العمل معاً",
+      },
+      {
+        "Setting Key": "policyRequireExceptionApproval",
+        "Policy Name (Ar)": "إلزامية اعتماد استثناءات التسكين",
+        "Policy Name (En)": "Require Exception Approval Workflow",
+        "Value (YES/NO/Number)": values.policyRequireExceptionApproval ? "YES" : "NO",
+        "Description": "إلزام تسجيل مسوغ إداري ومسؤول معتمد عند مخالفة أي سياسة",
+      },
+      {
+        "Setting Key": "policyDepartmentClustering",
+        "Policy Name (Ar)": "التجميع التلقائي حسب القسم",
+        "Policy Name (En)": "Auto Department Clustering",
+        "Value (YES/NO/Number)": values.policyDepartmentClustering ? "YES" : "NO",
+        "Description": "تفضيل جمع موظفي القسم الواحد في غرف واحدة",
+      },
+      {
+        "Setting Key": "policyStrictDepartmentSegregation",
+        "Policy Name (Ar)": "فصل الأقسام الصارم",
+        "Policy Name (En)": "Strict Department Segregation",
+        "Value (YES/NO/Number)": values.policyStrictDepartmentSegregation ? "YES" : "NO",
+        "Description": "منع خلط الأقسام نهائياً في نفس الغرفة",
+      },
+      {
+        "Setting Key": "visitMaxNights",
+        "Policy Name (Ar)": "الحد الأقصى لليالي الزيارة العائلية",
+        "Policy Name (En)": "Max Nights Per Family Visit",
+        "Value (YES/NO/Number)": values.visitMaxNights ?? 7,
+        "Description": "أقصى عدد ليالٍ مسموح للزيارة الواحدة",
+      },
+      {
+        "Setting Key": "visitMaxVisitsPerYear",
+        "Policy Name (Ar)": "أقصى عدد زيارات عائلية سنوياً",
+        "Policy Name (En)": "Max Family Visits Per Year",
+        "Value (YES/NO/Number)": values.visitMaxVisitsPerYear ?? 2,
+        "Description": "الحد الأقصى للزيارات العائلية في السنة",
+      },
+      {
+        "Setting Key": "visitMinServiceMonths",
+        "Policy Name (Ar)": "الحد الأدنى لخدمة الموظف (بالشهور)",
+        "Policy Name (En)": "Min Service Months for Visit Eligibility",
+        "Value (YES/NO/Number)": values.visitMinServiceMonths ?? 6,
+        "Description": "الحد الأدنى لأقدمية الموظف لاستحقاق الزيارة",
+      },
+      {
+        "Setting Key": "visitCooldownDays",
+        "Policy Name (Ar)": "فترة التهدئة الفاصلة بين الزيارات (أيام)",
+        "Policy Name (En)": "Visit Cooldown Days",
+        "Value (YES/NO/Number)": values.visitCooldownDays ?? 90,
+        "Description": "المدة الإلزامية الفاصلة بين زيارتين متتاليتين",
+      },
+      {
+        "Setting Key": "visitRequireNationalId",
+        "Policy Name (Ar)": "إلزامية الرقم القومي للمرافقين",
+        "Policy Name (En)": "Mandatory National ID for Companions",
+        "Value (YES/NO/Number)": values.visitRequireNationalId ? "YES" : "NO",
+        "Description": "اشتراط إدخال الرقم القومي لإصدار تصريح الزيارة",
+      },
+      {
+        "Setting Key": "curfewEnabled",
+        "Policy Name (Ar)": "تفعيل موعد إغلاق البوابات (Curfew)",
+        "Policy Name (En)": "Housing Curfew Active",
+        "Value (YES/NO/Number)": values.curfewEnabled ? "YES" : "NO",
+        "Description": "تفعيل وقت غلق البوابات الرسمية",
+      },
+      {
+        "Setting Key": "curfewTime",
+        "Policy Name (Ar)": "وقت موعد الإغلاق (ساعة:دقيقة)",
+        "Policy Name (En)": "Curfew Time (HH:MM)",
+        "Value (YES/NO/Number)": values.curfewTime || "23:00",
+        "Description": "توقيت الإغلاق الليلي لبوابات السكن",
+      },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const wsLevels = XLSX.utils.json_to_sheet(levelCapacities);
+    const wsCustom = XLSX.utils.json_to_sheet(
+      customRulesList.length
+        ? customRulesList
+        : [
+            {
+              "Rule ID": "rule_kitchen",
+              "Rule Name (En)": "Kitchen Staff",
+              "Rule Name (Ar)": "طاقم المطبخ",
+              "Max Capacity (Beds)": 4,
+              "Allow Entire Room": "NO",
+              "Description": "قاعدة استحقاق سكن خاصة لطاقم المطبخ",
+            },
+          ]
+    );
+    const wsGeneral = XLSX.utils.json_to_sheet(generalPolicies);
+
+    XLSX.utils.book_append_sheet(wb, wsLevels, "LevelCapacities");
+    XLSX.utils.book_append_sheet(wb, wsCustom, "CustomRules");
+    XLSX.utils.book_append_sheet(wb, wsGeneral, "GeneralPolicies");
+
+    XLSX.writeFile(wb, `Housing_Policy_Template_${new Date().toISOString().split("T")[0]}.xlsx`);
+    toast.success(
+      ar ? "تم تصدير نموذج إكسيل للسياسات بنجاح" : "Housing policies template exported successfully"
+    );
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+
+        let levelCapacities: any[] = [];
+        if (wb.SheetNames.includes("LevelCapacities")) {
+          levelCapacities = XLSX.utils.sheet_to_json(wb.Sheets["LevelCapacities"]);
+        }
+
+        let customRulesData: any[] = [];
+        if (wb.SheetNames.includes("CustomRules")) {
+          customRulesData = XLSX.utils.sheet_to_json(wb.Sheets["CustomRules"]);
+        }
+
+        let generalPoliciesData: any[] = [];
+        if (wb.SheetNames.includes("GeneralPolicies")) {
+          generalPoliciesData = XLSX.utils.sheet_to_json(wb.Sheets["GeneralPolicies"]);
+        }
+
+        setImportData({
+          levelCapacities,
+          customRules: customRulesData,
+          generalPolicies: generalPoliciesData,
+        });
+      } catch (err: any) {
+        toast.error(
+          ar
+            ? "فشل قراءة ملف الإكسيل. يرجى التأكد من تطابق الهيكل."
+            : "Failed to parse Excel file. Check format."
+        );
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleConfirmImport = () => {
+    if (!importData) return;
+
+    let appliedCount = 0;
+
+    // 1. Apply Level Capacities
+    for (const row of importData.levelCapacities) {
+      const key = row["Level Key"] || row["key"] || row["Key"];
+      const cap = Number(row["Max Capacity (Beds)"] || row["capacity"] || row["Capacity"]);
+      const allowEnt = String(row["Allow Entire Room"] || "").toUpperCase().trim();
+      const isEntire =
+        allowEnt === "YES" || allowEnt === "TRUE" || allowEnt === "نعم" || allowEnt === "1";
+
+      if (key && !isNaN(cap) && cap > 0) {
+        form.setValue(key as any, cap, { shouldDirty: true, shouldValidate: true });
+        appliedCount++;
+      }
+
+      if (key === "policyLevel0Capacity") {
+        form.setValue("policyLevel0AllowEntire", isEntire, { shouldDirty: true });
+      } else if (key === "policyLevel1Capacity") {
+        form.setValue("policyLevel1AllowEntire", isEntire, { shouldDirty: true });
+      } else if (key === "policyLevel2Capacity") {
+        form.setValue("policyLevel2AllowEntire", isEntire, { shouldDirty: true });
+      } else if (key === "policyLevel5Capacity") {
+        form.setValue("policyLevel5AllowEntire", isEntire, { shouldDirty: true });
+      } else if (key === "policyLevel6Capacity") {
+        form.setValue("policyLevel6AllowEntire", isEntire, { shouldDirty: true });
+      }
+    }
+
+    // 2. Apply Custom Rules
+    if (importData.customRules && importData.customRules.length > 0) {
+      const parsedRules = importData.customRules.map((r: any, idx: number) => {
+        const id = r["Rule ID"] || r["id"] || `imported_rule_${Date.now()}_${idx}`;
+        const name = r["Rule Name (En)"] || r["name"] || `Rule ${idx + 1}`;
+        const nameAr = r["Rule Name (Ar)"] || r["nameAr"] || name;
+        const capacity = Number(r["Max Capacity (Beds)"] || r["capacity"]) || 5;
+        const allowEnt = String(r["Allow Entire Room"] || "").toUpperCase().trim();
+        const allowEntire =
+          allowEnt === "YES" || allowEnt === "TRUE" || allowEnt === "نعم" || allowEnt === "1";
+        const description = r["Description"] || r["description"] || "";
+        return { id, name, nameAr, capacity, allowEntire, description };
+      });
+      form.setValue("customLevelRules", parsedRules, { shouldDirty: true, shouldValidate: true });
+      appliedCount += parsedRules.length;
+    }
+
+    // 3. Apply General & Advanced Policies
+    for (const row of importData.generalPolicies) {
+      const key = row["Setting Key"] || row["key"] || row["Key"];
+      const rawVal = row["Value (YES/NO/Number)"] ?? row["Value"] ?? row["value"];
+      if (key && rawVal !== undefined) {
+        const strVal = String(rawVal).toUpperCase().trim();
+        const boolVal =
+          strVal === "YES" || strVal === "TRUE" || strVal === "نعم" || strVal === "1";
+
+        if (
+          key === "policyStrictGenderSegregation" ||
+          key === "policyStrictFamilySegregation" ||
+          key === "policyAdaptiveLearning" ||
+          key === "policyRequireExceptionApproval" ||
+          key === "policyDepartmentClustering" ||
+          key === "policyStrictDepartmentSegregation" ||
+          key === "visitRequireNationalId" ||
+          key === "curfewEnabled"
+        ) {
+          form.setValue(key as any, boolVal, { shouldDirty: true, shouldValidate: true });
+          appliedCount++;
+        } else if (
+          key === "visitMaxNights" ||
+          key === "visitMaxVisitsPerYear" ||
+          key === "visitMinServiceMonths" ||
+          key === "visitCooldownDays"
+        ) {
+          const numVal = Number(rawVal);
+          if (!isNaN(numVal)) {
+            form.setValue(key as any, numVal, { shouldDirty: true, shouldValidate: true });
+            appliedCount++;
+          }
+        } else if (key === "curfewTime") {
+          form.setValue("curfewTime", String(rawVal), { shouldDirty: true });
+          appliedCount++;
+        }
+      }
+    }
+
+    toast.success(
+      ar
+        ? `تم استيراد ${appliedCount} إعداداً من السياسات بنجاح. انقر على 'حفظ الإعدادات' بالأسفل لتثبيت التغييرات.`
+        : `Imported ${appliedCount} policy settings successfully. Click 'Save Settings' below to persist changes.`
+    );
+    setIsImportModalOpen(false);
+    setImportData(null);
+    setImportFileName("");
+  };
+
   const handleExportPolicyPdf = () => {
     const values = form.getValues();
     const propName = propertyName || (ar ? "سكن موظفي صن رايز" : "Sunrise Staff Housing");
@@ -299,6 +650,26 @@ export function PoliciesSection({
           ${values.housingPolicyText ? `<div style="background:#fffbeb; padding:12px; border-left:4px solid #f59e0b; font-size:12px; white-space:pre-wrap; margin-top:8px;">${values.housingPolicyText}</div>` : ""}
         </div>
 
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #0F2A44; border-bottom: 2px solid #C9A24D; padding-bottom: 6px; font-size: 16px;">
+            ${ar ? "4. سياسة فصل الجنسين وسكن العائلات الصارمة" : "4. Strict Gender & Family Segregation"}
+          </h3>
+          <ul style="font-size: 12px; color: #334155; margin: 8px 0; padding-${ar ? "right" : "left"}: 20px;">
+            <li><strong>${ar ? "فصل الجنسين الصارم:" : "Strict Gender Segregation:"}</strong> ${values.policyStrictGenderSegregation ? `<span style="color:#16a34a; font-weight:bold;">${ar ? "مفعل وصارم (يُمنع منعاً باتاً خلط الذكور والإناث بالغرفة المشتركة أو الأجنحة المخصصة)" : "Active & Enforced (Strictly prohibits mixed gender shared housing)"}</span>` : (ar ? "تنبيهي فقط" : "Advisory")}</li>
+            <li><strong>${ar ? "سكن العائلات المستقل:" : "Family Accommodation Segregation:"}</strong> ${values.policyStrictFamilySegregation ? `<span style="color:#16a34a; font-weight:bold;">${ar ? "مفعل وصارم (حظر تسكين العزاب في أجنحة العائلات)" : "Active & Enforced (Bachelors barred from family suites)"}</span>` : (ar ? "تنبيهي فقط" : "Advisory")}</li>
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #0F2A44; border-bottom: 2px solid #C9A24D; padding-bottom: 6px; font-size: 16px;">
+            ${ar ? "5. الحوكمة واعتماد الاستثناءات الإدارية والتعلم الذكي" : "5. Governance, Exception Approvals & AI Learning"}
+          </h3>
+          <ul style="font-size: 12px; color: #334155; margin: 8px 0; padding-${ar ? "right" : "left"}: 20px;">
+            <li><strong>${ar ? "حوكمة واعتماد استثناءات التسكين:" : "Exception Approval Governance:"}</strong> ${values.policyRequireExceptionApproval ? `<span style="color:#0284c7; font-weight:bold;">${ar ? "إلزامي (يتطلب تسجيل سبب إداري ومسؤول معتمد رسمياً لأي مخالفة)" : "Mandatory (Requires formal approval and reason logged)"}</span>` : (ar ? "اختياري" : "Optional")}</li>
+            <li><strong>${ar ? "الذكاء الاصطناعي والتعلم السلوكي للأقسام:" : "AI Adaptive Department Learning:"}</strong> ${values.policyAdaptiveLearning ? `<span style="color:#0284c7; font-weight:bold;">${ar ? "مفعل (يتعلم النظام سلوكياً توزيع الأقسام والمناطق المفضلة)" : "Active (System learns departmental territorial sectors)"}</span>` : (ar ? "معطل" : "Disabled")}</li>
+          </ul>
+        </div>
+
         <div style="margin-top: 30px; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
           <h4 style="color: #0F2A44; font-size: 14px; margin-bottom: 12px;">${ar ? "مسؤولو التواصل والإبلاغ عن المخالفات والطوارئ" : "Emergency & Key Contact Persons"}</h4>
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 11px;">
@@ -335,7 +706,7 @@ export function PoliciesSection({
 
   return (
     <div className="space-y-6">
-      {/* Header with Export Action */}
+      {/* Header with Export & Import Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-muted/40 p-4 rounded-xl border">
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2">
@@ -348,15 +719,38 @@ export function PoliciesSection({
               : "The system enforces these rules automatically during room allocations, matching, and violation audits"}
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={handleExportPolicyPdf}
-          variant="outline"
-          className="gap-2 border-primary/30 hover:bg-primary/5 text-primary font-semibold text-xs shadow-sm"
-        >
-          <Printer className="w-4 h-4" />
-          {ar ? "تصدير وثيقة سياسة السكن (PDF)" : "Export Policy Document (PDF)"}
-        </Button>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            type="button"
+            onClick={handleExportExcelTemplate}
+            variant="outline"
+            className="gap-1.5 border-emerald-600/40 hover:bg-emerald-50 text-emerald-700 dark:text-emerald-300 font-semibold text-xs shadow-xs"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            {ar ? "تصدير نموذج إكسيل" : "Export Excel Template"}
+          </Button>
+
+          <Button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            variant="outline"
+            className="gap-1.5 border-blue-600/40 hover:bg-blue-50 text-blue-700 dark:text-blue-300 font-semibold text-xs shadow-xs"
+          >
+            <Upload className="w-4 h-4 text-blue-600" />
+            {ar ? "استيراد من إكسيل" : "Import from Excel"}
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handleExportPolicyPdf}
+            variant="outline"
+            className="gap-1.5 border-primary/30 hover:bg-primary/5 text-primary font-semibold text-xs shadow-xs"
+          >
+            <Printer className="w-4 h-4" />
+            {ar ? "وثيقة السياسات (PDF)" : "Export Policy PDF"}
+          </Button>
+        </div>
       </div>
 
       {/* Policies Internal Tabs */}
@@ -697,6 +1091,98 @@ export function PoliciesSection({
                       {ar
                         ? "إتاحة حجز الغرفة بالكامل لموظفي الدرجة السادسة في حالات الاستثناء"
                         : "Allow booking entire room for Level 6 staff"}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="policyStrictGenderSegregation"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-pink-50/50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
+                  <div className="space-y-0.5 pe-4">
+                    <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-pink-900 dark:text-pink-300">
+                      <ShieldAlert className="w-3.5 h-3.5 text-pink-600" />
+                      {ar ? "سياسة فصل الجنسين الصارمة (Strict Gender Segregation)" : "Strict Gender Segregation"}
+                    </FormLabel>
+                    <FormDescription className="text-[11px] text-pink-950/70 dark:text-pink-300/70">
+                      {ar
+                        ? "منع منعاً باتاً تسكين موظف وموظفة في نفس الغرفة المشتركة أو حجز غرفة مخصصة للجنس الآخر"
+                        : "Strictly prohibit mixed-gender shared accommodation or cross-gender wing allocation"}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="policyStrictFamilySegregation"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800">
+                  <div className="space-y-0.5 pe-4">
+                    <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-indigo-900 dark:text-indigo-300">
+                      <HeartHandshake className="w-3.5 h-3.5 text-indigo-600" />
+                      {ar ? "سياسة سكن العائلات الصارمة (Strict Family Segregation)" : "Strict Family Segregation"}
+                    </FormLabel>
+                    <FormDescription className="text-[11px] text-indigo-950/70 dark:text-indigo-300/70">
+                      {ar
+                        ? "حظر تسكين الموظفين العزاب في أجنحة العائلات، وحظر تسكين عائلة في غرفة مشتركة مع عزاب إلا باستثناء معتمد"
+                        : "Strictly reserve family suites for families; bachelors require approved exception"}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="policyAdaptiveLearning"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                  <div className="space-y-0.5 pe-4">
+                    <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-blue-900 dark:text-blue-300">
+                      <Bot className="w-3.5 h-3.5 text-blue-600" />
+                      {ar ? "التعلم الذكي لتوزيع الأقسام (AI Adaptive Territory Learning)" : "AI Adaptive Department Learning"}
+                    </FormLabel>
+                    <FormDescription className="text-[11px] text-blue-950/70 dark:text-blue-300/70">
+                      {ar
+                        ? "يتعلم محرك التسكين سلوكياً قطاعات الأقسام (Housekeeping / F&B / مطبخ) ويرشح الغرف التي تجمع زملاء القسم تلقائياً"
+                        : "Engine learns department territories dynamically and clusters colleagues together automatically"}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="policyRequireExceptionApproval"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                  <div className="space-y-0.5 pe-4">
+                    <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                      {ar ? "حوكمة واعتماد استثناءات التسكين (Approval Workflow)" : "Require Exception Approval Workflow"}
+                    </FormLabel>
+                    <FormDescription className="text-[11px] text-amber-950/70 dark:text-amber-300/70">
+                      {ar
+                        ? "إلزامية فتح نموذج تسجيل رسمي لتسجيل المسوغ الإداري والجهة المعتمدة عند أي مخالفة لسياسات السكن"
+                        : "Mandates formal approval dialog and logs justification & approving party for any policy override"}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -1369,6 +1855,123 @@ export function PoliciesSection({
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             {ar ? "حفظ القاعدة" : "Save Rule"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Import Policies from Excel Dialog */}
+    <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base font-bold text-primary">
+            <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+            {ar ? "استيراد وتحديث السياسات من ملف إكسيل" : "Import Policies from Excel"}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {ar
+              ? "قم برفع ملف الإكسيل المطابق للنموذج المعتمد لتحديث سعات الدرجات والقواعد المخصصة والسياسات العامة تلقائياً."
+              : "Upload an Excel workbook formatted like the official template to import level capacities, custom rules, and policies."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* File Upload Zone */}
+          <div className="border-2 border-dashed rounded-xl p-6 text-center space-y-2 hover:bg-muted/30 transition-colors bg-muted/10">
+            <Upload className="w-8 h-8 mx-auto text-muted-foreground/60" />
+            <div className="space-y-1">
+              <p className="text-xs font-semibold">
+                {importFileName ||
+                  (ar
+                    ? "اختر ملف إكسيل (.xlsx أو .xls)"
+                    : "Choose Excel file (.xlsx or .xls)")}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {ar
+                  ? "يمكنك استخدام زر 'تصدير نموذج إكسيل' لتعبئة البيانات المطلوبة"
+                  : "You can download the template using the 'Export Excel Template' button"}
+              </p>
+            </div>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              id="policy-excel-upload"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs mt-2"
+              onClick={() =>
+                document.getElementById("policy-excel-upload")?.click()
+              }
+            >
+              <Upload className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+              {ar ? "تصفح الملفات..." : "Browse files..."}
+            </Button>
+          </div>
+
+          {/* Preview Summary */}
+          {importData && (
+            <div className="rounded-xl border bg-muted/30 p-3.5 space-y-2 text-xs">
+              <span className="font-bold flex items-center gap-1.5 text-foreground">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                {ar ? "ملخص البيانات المكتشفة في الملف:" : "Detected Excel Content:"}
+              </span>
+              <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                <div className="p-2 rounded-lg bg-background border">
+                  <span className="text-[10px] text-muted-foreground block">
+                    {ar ? "سعات الدرجات" : "Level Capacities"}
+                  </span>
+                  <span className="font-bold text-sm text-primary">
+                    {importData.levelCapacities.length}
+                  </span>
+                </div>
+                <div className="p-2 rounded-lg bg-background border">
+                  <span className="text-[10px] text-muted-foreground block">
+                    {ar ? "قواعد مخصصة" : "Custom Rules"}
+                  </span>
+                  <span className="font-bold text-sm text-primary">
+                    {importData.customRules.length}
+                  </span>
+                </div>
+                <div className="p-2 rounded-lg bg-background border">
+                  <span className="text-[10px] text-muted-foreground block">
+                    {ar ? "سياسات عامة" : "General Policies"}
+                  </span>
+                  <span className="font-bold text-sm text-primary">
+                    {importData.generalPolicies.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setIsImportModalOpen(false);
+              setImportData(null);
+              setImportFileName("");
+            }}
+          >
+            {ar ? "إلغاء" : "Cancel"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!importData}
+            onClick={handleConfirmImport}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            {ar ? "تطبيق السياسات على الإعدادات" : "Apply to Settings"}
           </Button>
         </DialogFooter>
       </DialogContent>

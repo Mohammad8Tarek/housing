@@ -257,6 +257,37 @@ export function recommendBestRooms({
 
   const target = getLevelTargetCapacity(profileLevel, policySettings);
 
+  // ── Adaptive Spatial Territory Learning (تعلم قطاعات الأقسام الذكي) ────────
+  const adaptiveEnabled = policySettings?.policyAdaptiveLearning !== false;
+  const deptBuildingDensity = new Map<string, Map<number, number>>();
+  const deptFloorDensity = new Map<string, Map<number, number>>();
+
+  if (adaptiveEnabled && profileDept) {
+    for (const a of assignments) {
+      if (a.status === "ACTIVE") {
+        const occProfile = profileMap.get(a.profileId);
+        const dept = (occProfile?.department || "").toLowerCase().trim();
+        if (dept) {
+          const occRoom = rooms.find((rm) => rm.id === a.roomId);
+          if (occRoom) {
+            const bId = occRoom.buildingId ?? (occRoom as any).building_id;
+            const fId = occRoom.floorId ?? (occRoom as any).floor_id;
+            if (bId != null) {
+              if (!deptBuildingDensity.has(dept)) deptBuildingDensity.set(dept, new Map());
+              const bMap = deptBuildingDensity.get(dept)!;
+              bMap.set(bId, (bMap.get(bId) || 0) + 1);
+            }
+            if (fId != null) {
+              if (!deptFloorDensity.has(dept)) deptFloorDensity.set(dept, new Map());
+              const fMap = deptFloorDensity.get(dept)!;
+              fMap.set(fId, (fMap.get(fId) || 0) + 1);
+            }
+          }
+        }
+      }
+    }
+  }
+
   const {
     preferredView = "",
     preferredBedType = "",
@@ -283,23 +314,32 @@ export function recommendBestRooms({
 
     let score = 50; // base score for having an open bed
 
-    // 1. Gender Compatibility Check
+    // 1. Gender Compatibility Check (with Strict Segregation Support)
     const roomGender = (r.gender || "").toLowerCase();
     const existingOccupants = (activeAssignmentsByRoom[r.id] || []).map((a) =>
       profileMap.get(a.profileId)
     ).filter(Boolean);
 
+    const strictGender = policySettings?.policyStrictGenderSegregation !== false;
+
     if (profileGender) {
       if (roomGender && roomGender !== "any" && roomGender !== "all") {
-        if (roomGender !== profileGender) continue; // Incompatible gender
-        score += 20;
+        if (roomGender !== profileGender) {
+          if (strictGender) continue; // Incompatible gender strictly rejected
+          score -= 100;
+        } else {
+          score += 20;
+        }
       }
       // Check existing roommates genders
       const hasConflictingGender = existingOccupants.some((occ) => {
         const occG = (occ.gender || "").toLowerCase();
         return occG && occG !== profileGender;
       });
-      if (hasConflictingGender) continue; // Cannot mix genders
+      if (hasConflictingGender) {
+        if (strictGender) continue; // Cannot mix genders under strict policy
+        score -= 150;
+      }
     }
 
     // 2. Capacity & Level Matching
@@ -330,29 +370,44 @@ export function recommendBestRooms({
       score -= 10; // Needs housekeeping
     }
 
-    // 4. Department Harmony & Clustering Policy
+    // 4. Department Harmony, Clustering Policy & Adaptive Learning
     const clusterEnabled = policySettings?.policyDepartmentClustering ?? true;
     const strictSegregation = policySettings?.policyStrictDepartmentSegregation ?? false;
 
-    if (profileDept && existingOccupants.length > 0) {
-      const sameDeptCount = existingOccupants.filter(
-        (o) => (o.department || "").toLowerCase() === profileDept
-      ).length;
-      const diffDeptCount = existingOccupants.filter(
-        (o) => (o.department || "").toLowerCase() !== profileDept && (o.department || "").trim() !== ""
-      ).length;
+    if (profileDept) {
+      if (existingOccupants.length > 0) {
+        const sameDeptCount = existingOccupants.filter(
+          (o) => (o.department || "").toLowerCase().trim() === profileDept
+        ).length;
+        const diffDeptCount = existingOccupants.filter(
+          (o) => (o.department || "").toLowerCase().trim() !== profileDept && (o.department || "").trim() !== ""
+        ).length;
 
-      if (strictSegregation && diffDeptCount > 0) {
-        // Disqualify room if strict segregation is turned on
-        continue;
-      }
+        if (strictSegregation && diffDeptCount > 0) {
+          // Disqualify room if strict segregation is turned on
+          continue;
+        }
 
-      if (clusterEnabled && sameDeptCount > 0) {
-        score += 65; // High priority boost to cluster colleagues together!
-        matchReasonAr += ` • مطابقة القسم (${profile?.department}) مع زملاء الغرفة`;
-        matchReasonEn += ` • Department match (${profile?.department}) with roommates`;
-      } else if (clusterEnabled && diffDeptCount > 0) {
-        score -= 25; // Prefer rooms with same department or empty rooms
+        if (sameDeptCount > 0) {
+          const adaptiveBoost = adaptiveEnabled ? 80 : 65;
+          score += adaptiveBoost; // High priority boost to cluster colleagues together!
+          matchReasonAr += ` • 🤖 تطابق ذكي: توافق مع زملاء من قسم (${profile?.department}) [تعلم سلوكي]`;
+          matchReasonEn += ` • 🤖 Smart match: Colleagues from department (${profile?.department}) [Adaptive AI]`;
+        } else if (clusterEnabled && diffDeptCount > 0) {
+          score -= 30; // Prefer rooms with same department or empty rooms
+        }
+      } else if (adaptiveEnabled) {
+        // Room is vacant: Check spatial sector affinity for this department!
+        const bId = r.buildingId ?? (r as any).building_id;
+        const fId = r.floorId ?? (r as any).floor_id;
+        const bCount = (bId != null && deptBuildingDensity.get(profileDept)?.get(bId)) || 0;
+        const fCount = (fId != null && deptFloorDensity.get(profileDept)?.get(fId)) || 0;
+
+        if (fCount >= 2 || bCount >= 4) {
+          score += 45;
+          matchReasonAr += ` • 🤖 قطاع مفضل لقسم (${profile?.department}) في المبنى/الدور [تعلم مكاني]`;
+          matchReasonEn += ` • 🤖 Preferred spatial sector for (${profile?.department}) [AI Learned]`;
+        }
       }
     }
 
@@ -670,6 +725,64 @@ export function checkPolicyCompliance({
         code: "STRICT_DEPT_VIOLATION",
         messageAr: `مخالفة سياسة فصل الأقسام: الغرفة تضم نزلاء من أقسام أخرى (${diffDeptOccupants.map((o: any) => o.department).join(", ")})`,
         messageEn: `Department segregation violation: Room contains occupants from other departments (${diffDeptOccupants.map((o: any) => o.department).join(", ")})`,
+      });
+    }
+  }
+
+  // 4. Strict Gender Segregation Check
+  const strictGender = policySettings?.policyStrictGenderSegregation !== false;
+  const profileGender = (profile.gender || "").trim().toLowerCase();
+  if (strictGender && profileGender) {
+    const roomGender = (room.gender || "").trim().toLowerCase();
+    if (roomGender && roomGender !== "any" && roomGender !== "all" && roomGender !== profileGender) {
+      violations.push({
+        code: "GENDER_ROOM_MISMATCH",
+        messageAr: `مخالفة سياسة فصل الجنسين الصارمة: الغرفة مخصصة لـ (${roomGender === "female" ? "الإناث" : "الذكور"}) بينما الموظف (${profileGender === "female" ? "أنثى" : "ذكر"})`,
+        messageEn: `Strict gender segregation violation: Room is designated for (${roomGender}) while employee is (${profileGender})`,
+      });
+    }
+
+    const conflictingRoommates = existingRoommates.filter((rm: any) => {
+      const g = (rm.gender || "").trim().toLowerCase();
+      return g && g !== profileGender;
+    });
+    if (conflictingRoommates.length > 0) {
+      violations.push({
+        code: "GENDER_ROOMMATE_MISMATCH",
+        messageAr: `مخالفة سياسة فصل الجنسين الصارمة: لا يجوز تسكين موظف وموظفة في نفس الغرفة المشتركة نهائياً`,
+        messageEn: `Strict gender segregation violation: Mixed-gender shared accommodation is strictly prohibited`,
+      });
+    }
+  }
+
+  // 5. Strict Family Segregation Check
+  const strictFamily = policySettings?.policyStrictFamilySegregation !== false;
+  if (strictFamily) {
+    const roomCls = (room.classification || room.roomType || "").toLowerCase();
+    const isFamilyRoom =
+      roomCls.includes("family") ||
+      roomCls.includes("عائل") ||
+      roomCls.includes("suite") ||
+      roomCls.includes("جناح");
+    const isFamilyEmp = Boolean(
+      profile.isFamily === true ||
+      (profile.guestType || "").toLowerCase() === "family" ||
+      (profile.jobTitle || profile.title || "").toLowerCase().includes("عائل")
+    );
+
+    if (!isFamilyEmp && isFamilyRoom && !isEntireRoom) {
+      violations.push({
+        code: "FAMILY_ROOM_RESERVED",
+        messageAr: `مخالفة سياسة سكن العائلات الصارمة: هذه الغرفة/الجناح مخصص لسكن العائلات فقط ولا يجوز تسكين أفراد بها إلا باستثناء إداري`,
+        messageEn: `Strict family segregation violation: This room/suite is reserved for families; single staff requires approved exception`,
+      });
+    }
+
+    if (isFamilyEmp && existingRoommates.length > 0) {
+      violations.push({
+        code: "FAMILY_SHARED_VIOLATION",
+        messageAr: `مخالفة سياسة سكن العائلات: لا يمكن تسكين عائلة في غرفة مشتركة مع موظفين آخرين`,
+        messageEn: `Family housing policy violation: Families cannot be placed in shared accommodation with other staff`,
       });
     }
   }

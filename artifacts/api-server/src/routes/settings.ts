@@ -109,6 +109,10 @@ router.patch(
         "customLevelRules",
         "policyDepartmentClustering",
         "policyStrictDepartmentSegregation",
+        "policyStrictGenderSegregation",
+        "policyStrictFamilySegregation",
+        "policyAdaptiveLearning",
+        "policyRequireExceptionApproval",
         // ─── Family Visit Policy ─────────────────────────────────────
         "visitMaxNights",
         "visitMaxVisitsPerYear",

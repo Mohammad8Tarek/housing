@@ -168,11 +168,12 @@ BEGIN
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "expected_check_out_date" TEXT;
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "check_out_date" TEXT;
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "notes" TEXT DEFAULT ''::text;
-    ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'ACTIVE'::text;
-    ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "contract_end_date" TEXT;
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "is_entire_room" BOOLEAN DEFAULT false;
     ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "check_out_reason" TEXT;
+    ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "has_policy_exception" BOOLEAN DEFAULT false;
+    ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "policy_exception_reason" TEXT;
+    ALTER TABLE "assignments" ADD COLUMN IF NOT EXISTS "policy_approved_by" TEXT;
 
     -- --------------------------------------------------------
     -- Table: buildings
@@ -1605,6 +1606,10 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "custom_level_rules" JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_department_clustering" BOOLEAN DEFAULT true;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_strict_department_segregation" BOOLEAN DEFAULT false;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_strict_gender_segregation" BOOLEAN DEFAULT true;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_strict_family_segregation" BOOLEAN DEFAULT true;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_adaptive_learning" BOOLEAN DEFAULT true;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_require_exception_approval" BOOLEAN DEFAULT true;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_max_nights" INTEGER DEFAULT 7;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_max_visits_per_year" INTEGER DEFAULT 2;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "visit_min_service_months" INTEGER DEFAULT 6;

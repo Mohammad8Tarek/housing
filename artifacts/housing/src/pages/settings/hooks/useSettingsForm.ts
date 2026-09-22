@@ -53,6 +53,10 @@ export const settingsSchema = z.object({
     .default([]),
   policyDepartmentClustering: z.boolean().default(true),
   policyStrictDepartmentSegregation: z.boolean().default(false),
+  policyStrictGenderSegregation: z.boolean().default(true),
+  policyStrictFamilySegregation: z.boolean().default(true),
+  policyAdaptiveLearning: z.boolean().default(true),
+  policyRequireExceptionApproval: z.boolean().default(true),
 
   // ─── Family Visit Policy ──────────────────────────────────────────
   visitMaxNights: z.coerce.number().min(1).max(60).default(7),
@@ -138,6 +142,10 @@ export function useSettingsForm() {
       customLevelRules: [],
       policyDepartmentClustering: true,
       policyStrictDepartmentSegregation: false,
+      policyStrictGenderSegregation: true,
+      policyStrictFamilySegregation: true,
+      policyAdaptiveLearning: true,
+      policyRequireExceptionApproval: true,
       visitMaxNights: 7,
       visitMaxVisitsPerYear: 2,
       visitMinServiceMonths: 6,

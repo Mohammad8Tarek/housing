@@ -78,6 +78,10 @@ export const settingsTable = pgTable("settings", {
   customLevelRules: jsonb("custom_level_rules").default([]),
   policyDepartmentClustering: boolean("policy_department_clustering").notNull().default(true),
   policyStrictDepartmentSegregation: boolean("policy_strict_department_segregation").notNull().default(false),
+  policyStrictGenderSegregation: boolean("policy_strict_gender_segregation").notNull().default(true),
+  policyStrictFamilySegregation: boolean("policy_strict_family_segregation").notNull().default(true),
+  policyAdaptiveLearning: boolean("policy_adaptive_learning").notNull().default(true),
+  policyRequireExceptionApproval: boolean("policy_require_exception_approval").notNull().default(true),
 
   // ─── Family Visit Policy ──────────────────────────────────────────
   visitMaxNights: integer("visit_max_nights").notNull().default(7),

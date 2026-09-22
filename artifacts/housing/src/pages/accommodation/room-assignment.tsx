@@ -65,6 +65,7 @@ import {
   Loader2,
   ArrowRight,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import {
@@ -72,7 +73,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import KeyManagementPanel from "@/components/KeyManagementPanel";
 import { generateHousingLetterPdf } from "@/lib/pdf-utils";
@@ -182,6 +186,8 @@ export default function RoomAssignment() {
   const [customPhone, setCustomPhone] = useState("");
   const [policyOverride, setPolicyOverride] = useState<boolean>(false);
   const [policyOverrideReason, setPolicyOverrideReason] = useState<string>("");
+  const [policyApprovedBy, setPolicyApprovedBy] = useState<string>("");
+  const [policyExceptionModalOpen, setPolicyExceptionModalOpen] = useState<boolean>(false);
   const isCrossProperty = Boolean(
     selectedProfile &&
     (
@@ -721,11 +727,8 @@ export default function RoomAssignment() {
     }
 
     if (!policyCheck.compliant && !policyOverride) {
-      toast.error(
-        ar
-          ? `مخالفة سياسة التسكين: ${policyCheck.violations.map((v) => v.messageAr).join(" | ")}. يرجى تفعيل الاستثناء الإداري للمتابعة.`
-          : `Policy violation: ${policyCheck.violations.map((v) => v.messageEn).join(" | ")}. Please enable policy override.`
-      );
+      // If policy exceptions require approval, prompt user with the formal approval modal
+      setPolicyExceptionModalOpen(true);
       return;
     }
 
@@ -738,13 +741,17 @@ export default function RoomAssignment() {
     executeAssignment();
   };
 
-  const executeAssignment = (archiveOverride?: boolean) => {
+  const executeAssignment = (archiveOverride?: boolean, exceptionData?: { reason?: string; approvedBy?: string }) => {
     if (!selectedProfile || !selectedRoomId) return;
     const finalArchive = archiveOverride !== undefined ? archiveOverride : archiveSourceProfile;
     const finalTransferType = finalArchive ? "PERMANENT" : "TASK_FORCE";
 
-    const finalNotes = policyOverride && policyOverrideReason
-      ? `${notes ? notes + " | " : ""}[استثناء سياسة: ${policyOverrideReason}]`
+    const effReason = exceptionData?.reason || policyOverrideReason;
+    const effApprovedBy = exceptionData?.approvedBy || policyApprovedBy;
+    const isException = policyOverride || Boolean(exceptionData?.reason || exceptionData?.approvedBy);
+
+    const finalNotes = isException && effReason
+      ? `${notes ? notes + " | " : ""}[استثناء سياسة: ${effReason}${effApprovedBy ? ` | المعتمد: ${effApprovedBy}` : ""}]`
       : (notes || undefined);
 
     createMutation.mutate({
@@ -759,6 +766,9 @@ export default function RoomAssignment() {
         bedNumber: isEntireRoom ? (selectedBed ? parseInt(selectedBed) : 1) : (selectedBed ? parseInt(selectedBed) : (selectedRoom?.capacity === 1 ? 1 : undefined)),
         isEntireRoom: isEntireRoom,
         notes: finalNotes,
+        hasPolicyException: isException || undefined,
+        policyExceptionReason: isException ? effReason : undefined,
+        policyApprovedBy: isException ? effApprovedBy : undefined,
         sourcePropertyId: selectedProfile.propertyId,
         transferType: isCrossProperty ? finalTransferType : undefined,
         archiveSourceProfile: isCrossProperty ? finalArchive : undefined,
@@ -767,6 +777,7 @@ export default function RoomAssignment() {
       } as any,
     });
     setCrossPropertyModalOpen(false);
+    setPolicyExceptionModalOpen(false);
   };
 
   const handleConfirmVacationOverride = () => {
@@ -2055,6 +2066,64 @@ export default function RoomAssignment() {
             />
           </div>
 
+          {/* Policy Compliance & Exception Notice */}
+          {!policyCheck.compliant && (
+            <div
+              className={`p-4 rounded-xl border-2 space-y-3 transition-all ${
+                policyOverride
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100"
+                  : "bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-100"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
+                <div className="flex items-start gap-2.5">
+                  {policyOverride ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <span className="font-bold text-sm block">
+                      {policyOverride
+                        ? (ar ? "تم اعتماد الاستثناء الإداري للسياسة" : "Policy Exception Approved")
+                        : (ar ? "تنبيه: التسكين يتعارض مع سياسات السكن المعتمدة" : "Notice: Allocation Conflicts with Housing Policy")}
+                    </span>
+                    <ul className="text-xs list-disc list-inside mt-1 space-y-1">
+                      {policyCheck.violations.map((v, idx) => (
+                        <li key={idx} className="font-medium text-amber-900 dark:text-amber-300">
+                          {ar ? v.messageAr : v.messageEn}
+                        </li>
+                      ))}
+                    </ul>
+                    {policyOverride && policyOverrideReason && (
+                      <p className="text-xs mt-2 text-emerald-800 dark:text-emerald-300 bg-emerald-100/60 dark:bg-emerald-900/40 p-2 rounded-md font-medium">
+                        <strong>{ar ? "سبب الاستثناء:" : "Reason:"}</strong> {policyOverrideReason}
+                        {policyApprovedBy && ` — ${ar ? "المعتمد:" : "Approved by:"} ${policyApprovedBy}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant={policyOverride ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => setPolicyExceptionModalOpen(true)}
+                  className={`text-xs shrink-0 ${
+                    policyOverride
+                      ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50"
+                      : "bg-amber-600 hover:bg-amber-700 text-white"
+                  }`}
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+                  {policyOverride
+                    ? (ar ? "تعديل الاستثناء" : "Edit Exception")
+                    : (ar ? "طلب اعتماد استثناء" : "Approve Exception")}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <Button
             className="w-full"
             onClick={handleSubmit}
@@ -2384,6 +2453,163 @@ export default function RoomAssignment() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Policy Exception Approval Dialog */}
+      <Dialog
+        open={policyExceptionModalOpen}
+        onOpenChange={setPolicyExceptionModalOpen}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <ShieldAlert className="w-5 h-5" />
+              {ar ? "اعتماد استثناء إداري لسياسة التسكين" : "Approve Housing Policy Exception"}
+            </DialogTitle>
+            <DialogDescription>
+              {ar
+                ? "يتعارض هذا التسكين مع السياسات المعتمدة (فصل الجنسين / سكن العائلات / سعة الدرجة / فصل الأقسام). يتطلب إتمام العملية تسجيلاً رسمياً لمسوغات الاستثناء والجهة المعتمدة."
+                : "This allocation deviates from approved housing policies. Completing it requires recording justification and authorizing authority."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* List of violations */}
+            <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg space-y-1.5 text-xs text-amber-950 dark:text-amber-100">
+              <span className="font-bold block flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                {ar ? "المخالفات المرصودة آلياً:" : "Detected Policy Violations:"}
+              </span>
+              <ul className="list-disc list-inside space-y-1">
+                {policyCheck.violations.map((v, i) => (
+                  <li key={i} className="font-medium">
+                    {ar ? v.messageAr : v.messageEn}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Authorizing Authority */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">
+                {ar ? "المعتمد للطلب / الجهة المصرحة بالاستثناء *" : "Authorizing Authority *"}
+              </label>
+              <Input
+                placeholder={
+                  ar
+                    ? "مثال: مدير السكن / مدير الموارد البشرية / المدير العام"
+                    : "e.g. Housing Manager / HR Director / General Manager"
+                }
+                value={policyApprovedBy}
+                onChange={(e) => setPolicyApprovedBy(e.target.value)}
+              />
+              <div className="flex gap-1.5 flex-wrap pt-1">
+                {[
+                  ar ? "مدير السكن" : "Housing Manager",
+                  ar ? "مدير الموارد البشرية" : "HR Director",
+                  ar ? "المدير العام" : "General Manager",
+                ].map((preset) => (
+                  <Button
+                    key={preset}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-[11px] h-7 px-2"
+                    onClick={() => setPolicyApprovedBy(preset)}
+                  >
+                    {preset}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Justification / Reason */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">
+                {ar ? "مسوغات الاستثناء والسبب الإداري *" : "Administrative Justification & Reason *"}
+              </label>
+              <Textarea
+                placeholder={
+                  ar
+                    ? "يرجى كتابة سبب التسكين الاستثنائي ومبررات الإدارة..."
+                    : "Please state justification and operational background..."
+                }
+                value={policyOverrideReason}
+                onChange={(e) => setPolicyOverrideReason(e.target.value)}
+                rows={3}
+              />
+              <div className="flex gap-1.5 flex-wrap pt-1">
+                {[
+                  ar ? "ظرف تشغيلي طارئ / Task Force" : "Operational Urgency / Task Force",
+                  ar ? "موافقة المدير العام المسبقة" : "Prior GM Approval",
+                  ar ? "عدم توفر غرف شاغرة بديلة" : "No Alternative Vacant Rooms",
+                  ar ? "ترقية استثنائية مؤقتة" : "Temporary Exception Promotion",
+                ].map((reasonChip) => (
+                  <Button
+                    key={reasonChip}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-[11px] h-7 px-2"
+                    onClick={() => setPolicyOverrideReason(reasonChip)}
+                  >
+                    {reasonChip}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPolicyExceptionModalOpen(false)}
+            >
+              {ar ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              type="button"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              onClick={() => {
+                if (!policyApprovedBy.trim()) {
+                  toast.error(
+                    ar
+                      ? "يرجى تحديد الجهة المعتمدة للاستثناء"
+                      : "Please specify authorizing authority",
+                  );
+                  return;
+                }
+                if (!policyOverrideReason.trim()) {
+                  toast.error(
+                    ar
+                      ? "يرجى كتابة سبب الاستثناء الإداري"
+                      : "Please enter exception justification",
+                  );
+                  return;
+                }
+                setPolicyOverride(true);
+                toast.success(
+                  ar
+                    ? "تم تسجيل الاستثناء الإداري بنجاح"
+                    : "Policy exception recorded",
+                );
+                setPolicyExceptionModalOpen(false);
+                if (isCrossProperty) {
+                  setCrossPropertyModalOpen(true);
+                } else {
+                  executeAssignment(undefined, {
+                    reason: policyOverrideReason,
+                    approvedBy: policyApprovedBy,
+                  });
+                }
+              }}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+              {ar ? "اعتماد الاستثناء وإتمام التسكين" : "Approve & Complete Assignment"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

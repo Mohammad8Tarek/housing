@@ -1982,6 +1982,22 @@ export function useReportDataProcessor({
             levelCategory = ar ? "الدرجة السادسة (تسكين مكثف)" : "Level 6 (Intensive Shared)";
           }
 
+          const isApprovedException = Boolean(
+            (a as any).hasPolicyException ||
+            (a.notes && (a.notes.includes("استثناء") || a.notes.includes("override")))
+          );
+          const exceptionApprover =
+            (a as any).policyApprovedBy ||
+            (a.notes?.match(/المعتمد:\s*([^\]|]+)/)?.[1]?.trim()) ||
+            (isApprovedException ? (ar ? "إدارة السكن" : "Housing Admin") : "—");
+          const exceptionReasonText =
+            (a as any).policyExceptionReason ||
+            a.notes ||
+            (ar ? "لا يوجد تصريح مسجل" : "No override noted");
+          const approvalStatusText = isApprovedException
+            ? (ar ? "معتمد رسمياً" : "Approved")
+            : (ar ? "غير معتمد / مخالفة" : "Unapproved");
+
           // Check A: Capacity Exceeded
           if (roomCap > maxAllowedCap) {
             exceptions.push({
@@ -2000,7 +2016,9 @@ export function useReportDataProcessor({
                 ? `المقيم من ${levelCategory} ومسكن بغرفة سعتها (${roomCap} أفراد) والحد الأقصى للسياسة (${maxAllowedCap} فرد)`
                 : `Resident is ${levelCategory} in a room of ${roomCap} beds (policy max: ${maxAllowedCap})`,
               severity: ar ? "مرتفعة" : "High",
-              overrideReason: a.notes?.includes("استثناء") || a.notes?.includes("override") ? a.notes : (ar ? "لا يوجد تصريح مسجل" : "No override noted"),
+              approvalStatus: approvalStatusText,
+              approvedBy: exceptionApprover,
+              overrideReason: exceptionReasonText,
             });
           }
 
@@ -2033,7 +2051,9 @@ export function useReportDataProcessor({
                   ? `الغرفة تضم أقساماً مختلفة: قسم (${emp.department}) مع قسم (${diffDeptRoommates.map((d: any) => d.department).join(", ")})`
                   : `Room contains mixed departments: (${emp.department}) with (${diffDeptRoommates.map((d: any) => d.department).join(", ")})`,
                 severity: strictSegregation ? (ar ? "حرجة" : "Critical") : (ar ? "متوسطة" : "Medium"),
-                overrideReason: a.notes?.includes("استثناء") || a.notes?.includes("override") ? a.notes : (ar ? "لا يوجد تصريح مسجل" : "No override noted"),
+                approvalStatus: approvalStatusText,
+                approvedBy: exceptionApprover,
+                overrideReason: exceptionReasonText,
               });
             }
           }
@@ -2077,7 +2097,93 @@ export function useReportDataProcessor({
                   ? `حجز غرفة متعددة الأسرة (${roomCap} سرير) بالكامل لشخص واحد غير مصرح له في السياسة`
                   : `Entire multi-bed room (${roomCap} beds) reserved by a single occupant not entitled in policy`,
                 severity: ar ? "مرتفعة" : "High",
-                overrideReason: a.notes || (ar ? "لا يوجد تصريح مسجل" : "No override noted"),
+                approvalStatus: approvalStatusText,
+                approvedBy: exceptionApprover,
+                overrideReason: exceptionReasonText,
+              });
+            }
+          }
+
+          // Check D: Strict Gender Segregation Check
+          const strictGender = policySettings?.policyStrictGenderSegregation !== false;
+          const empGender = (emp.gender || "").trim().toLowerCase();
+          const roomGender = (room.gender || "").trim().toLowerCase();
+          if (strictGender && empGender) {
+            let genderViolation = false;
+            let genderDetails = "";
+            if (roomGender && roomGender !== "any" && roomGender !== "all" && roomGender !== empGender) {
+              genderViolation = true;
+              genderDetails = ar
+                ? `المقيم (${empGender === "female" ? "أنثى" : "ذكر"}) مسكن بغرفة مخصصة لـ (${roomGender === "female" ? "الإناث" : "الذكور"})`
+                : `Resident (${empGender}) assigned to (${roomGender}) room`;
+            }
+            const conflictingRoommates = roommates.filter((rm: any) => {
+              const g = (rm.gender || "").trim().toLowerCase();
+              return g && g !== empGender;
+            });
+            if (conflictingRoommates.length > 0) {
+              genderViolation = true;
+              genderDetails = ar
+                ? `تسكين مشترك مختلط: تضم الغرفة ذكوراً وإناثاً (${conflictingRoommates.map((r: any) => r.firstName || r.name).join(", ")})`
+                : `Mixed gender sharing: Room houses opposite genders`;
+            }
+
+            if (genderViolation) {
+              exceptions.push({
+                id: `gender_${a.id}`,
+                profileName: getProfileDisplayName(emp, ar) || "—",
+                profileCode: emp.profileId || emp.code || "—",
+                nationalId: emp.nationalId || "—",
+                jobLevel: emp.level || levelCategory,
+                department: getProfileDisplayDepartment(emp, ar) || "—",
+                roomNumber: room.roomNumber || "—",
+                buildingName: bName,
+                roomCapacity: roomCap,
+                currentOccupancy: roomOcc,
+                violationType: ar ? "مخالفة فصل الجنسين الصارمة" : "Strict Gender Mixing Violation",
+                violationDetails: genderDetails,
+                severity: ar ? "حرجة" : "Critical",
+                approvalStatus: approvalStatusText,
+                approvedBy: exceptionApprover,
+                overrideReason: exceptionReasonText,
+              });
+            }
+          }
+
+          // Check E: Strict Family Segregation Check
+          const strictFamily = policySettings?.policyStrictFamilySegregation !== false;
+          if (strictFamily) {
+            const roomCls = (room.classification || room.roomType || "").toLowerCase();
+            const isFamilyRoom =
+              roomCls.includes("family") ||
+              roomCls.includes("عائل") ||
+              roomCls.includes("suite");
+            const isFamilyEmp = Boolean(
+              emp.isFamily === true ||
+              (emp.guestType || "").toLowerCase() === "family" ||
+              (emp.jobTitle || emp.title || "").toLowerCase().includes("عائل")
+            );
+
+            if (!isFamilyEmp && isFamilyRoom && !a.isEntireRoom) {
+              exceptions.push({
+                id: `family_${a.id}`,
+                profileName: getProfileDisplayName(emp, ar) || "—",
+                profileCode: emp.profileId || emp.code || "—",
+                nationalId: emp.nationalId || "—",
+                jobLevel: emp.level || levelCategory,
+                department: getProfileDisplayDepartment(emp, ar) || "—",
+                roomNumber: room.roomNumber || "—",
+                buildingName: bName,
+                roomCapacity: roomCap,
+                currentOccupancy: roomOcc,
+                violationType: ar ? "مخالفة سكن العائلات الصارمة" : "Strict Family Room Violation",
+                violationDetails: ar
+                  ? "تسكين موظف فردي (أعزب) في جناح مخصص للعائلات بدون استثناء إداري مصرح"
+                  : "Single resident assigned to family suite without approved exception",
+                severity: ar ? "مرتفعة" : "High",
+                approvalStatus: approvalStatusText,
+                approvedBy: exceptionApprover,
+                overrideReason: exceptionReasonText,
               });
             }
           }
@@ -2123,6 +2229,9 @@ export function useReportDataProcessor({
           i.buildingName,
           i.violationType,
           i.violationDetails,
+          i.approvedBy,
+          i.approvalStatus,
+          i.overrideReason,
         ]);
       }
 

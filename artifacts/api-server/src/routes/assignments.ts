@@ -780,6 +780,10 @@ router.post(
         }
       }
 
+      const hasPolicyException = Boolean((req.body as any)?.hasPolicyException);
+      const policyExceptionReason = typeof (req.body as any)?.policyExceptionReason === "string" ? (req.body as any).policyExceptionReason.trim() : null;
+      const policyApprovedBy = typeof (req.body as any)?.policyApprovedBy === "string" ? (req.body as any).policyApprovedBy.trim() : null;
+
       let finalNotes = parsed.data.notes || "";
       if (crossPropertyNoteTag) {
         finalNotes = `${crossPropertyNoteTag} ${finalNotes}`.trim();
@@ -790,6 +794,9 @@ router.post(
       if (isTemporaryVacationOverride) {
         finalNotes = `[تسكين مؤقت بديل إجازة بتصريح الإدارة] ${finalNotes}`.trim();
       }
+      if (hasPolicyException) {
+        finalNotes = `[استثناء سياسة السكن معتمد من: ${policyApprovedBy || "الإدارة"}] ${policyExceptionReason ? `(المبرر: ${policyExceptionReason})` : ""} ${finalNotes}`.trim();
+      }
 
       const [assignment] = await tenantDb
         .insert(assignmentsTable)
@@ -798,6 +805,9 @@ router.post(
           profileId: resolvedProfileId,
           bedNumber: isEntireRoomRequested ? (parsed.data.bedNumber || 1) : (parsed.data.bedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
+          hasPolicyException,
+          policyExceptionReason,
+          policyApprovedBy,
           notes: finalNotes,
           expectedCheckOutDate: expectedCheckOut || undefined,
           status: "ACTIVE",
