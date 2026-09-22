@@ -80,6 +80,8 @@ import type { SettingsFormData, JobLevelPolicy } from "../hooks/useSettingsForm"
 import { DEFAULT_JOB_LEVEL_POLICIES } from "../hooks/useSettingsForm";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
+import { useProperty } from "@/context/PropertyContext";
+import { useGetSettings } from "@workspace/api-client-react";
 import { toast } from "sonner";
 
 export interface SignatureStepItem {
@@ -143,6 +145,11 @@ export function PoliciesSection({
 }: PoliciesSectionProps) {
   const form = useFormContext<SettingsFormData>();
   const ar = language === "ar";
+  const { properties, activeProperty } = useProperty();
+  const currentPropId = propertyId ?? (typeof activeProperty?.id === "number" ? activeProperty.id : 1);
+  const { data: settingsData } = useGetSettings({
+    path: { propertyId: String(currentPropId) },
+  });
 
   // Fetch job titles to map against custom rules
   const { data: existingJobTitles = [] } = useLookupValues(
@@ -684,29 +691,46 @@ export function PoliciesSection({
 
   const handleExportPolicyPdf = () => {
     const values = form.getValues();
-    const propName = propertyName || (ar ? "سكن موظفي صن رايز" : "Sunrise Staff Housing");
+    const resolvedPropObj = properties.find((p) => p.id === (propertyId ?? activeProperty?.id));
+    const propName = propertyName || resolvedPropObj?.displayName || resolvedPropObj?.name || (ar ? "سكن موظفي صن رايز" : "Sunrise Staff Housing");
 
     const policyContentHtml = `
-      <div style="font-family: inherit; line-height: 1.8; color: #1e293b; padding: 10px 0;">
-        <div style="background: linear-gradient(135deg, #0F2A44 0%, #1e3a5f 100%); color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
-          <h2 style="margin: 0 0 8px 0; color: #C9A24D; font-size: 20px; font-weight: bold;">
-            ${ar ? "وثيقة ولائحة سياسات السكن الرسمية" : "Official Housing Policy & Code of Conduct"}
-          </h2>
-          <p style="margin: 0; font-size: 13px; opacity: 0.9;">
-            ${propName} — ${ar ? "تطبق على كافة النزلاء والمقيمين بالسكن" : "Applicable to all housing residents"}
-          </p>
+      <div style="font-family: inherit; line-height: 1.35; color: #1e293b; padding: 0;">
+        <!-- Preamble Bar -->
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-inline-start: 4px solid #C9A24D; padding: 6px 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #0F2A44;">
+              ${ar ? "📜 وثيقة ولائحة سياسات السكن الرسمية وضوابط الإقامة المعتمدة" : "📜 Official Operational Regulations & Housing Code of Conduct"}
+            </span>
+            <div style="font-size: 9.5px; color: #475569; margin-top: 1px;">
+              ${ar
+                ? "لائحة مرجعية ملزمة إدارياً وقانونياً لكافة النزلاء والمقيمين بالسكن والعاملين والشركات والمتعاقدين والضيوف المصرح لهم بالإقامة."
+                : "Official reference document binding for all housing residents, employees, contractors, and authorized visitors."
+              }
+            </div>
+          </div>
+          <div style="display: flex; gap: 4px; flex-shrink: 0;">
+            <span style="font-size: 9px; background: #e2e8f0; color: #0F2A44; padding: 2px 6px; border-radius: 3px; font-weight: 700;">${propName}</span>
+            <span style="font-size: 9px; background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 3px; font-weight: 700;">${ar ? "سارية ومعتمدة" : "Enforced"}</span>
+          </div>
         </div>
 
-        <div style="margin-bottom: 24px;">
-          <h3 style="color: #0F2A44; border-bottom: 2px solid #C9A24D; padding-bottom: 6px; font-size: 16px;">
-            ${ar ? "1. استحقاق السكن وتوزيع الغرف حسب الدرجة الوظيفية" : "1. Room Allocation & Job Level Entitlements"}
-          </h3>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px;">
+        <!-- 1. استحقاق السكن وتوزيع الغرف حسب الدرجة الوظيفية -->
+        <div style="margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #C9A24D; padding-bottom: 2px; margin-bottom: 4px;">
+            <h3 style="color: #0F2A44; font-size: 11px; font-weight: bold; margin: 0;">
+              ${ar ? "1. استحقاق السكن وتوزيع الغرف حسب الدرجة الوظيفية (Allocation & Entitlements)" : "1. Room Allocation & Job Level Entitlements"}
+            </h3>
+            <span style="font-size: 9px; color: #64748b;">
+              ${values.policyDepartmentClustering ? (ar ? "✓ توحيد الأقسام مفعل" : "✓ Dept Clustering Active") : ""}
+            </span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
             <thead>
               <tr style="background-color: #f1f5f9; color: #0F2A44; border: 1px solid #cbd5e1;">
-                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: start;">${ar ? "الدرجة الوظيفية" : "Job Level"}</th>
-                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: start;">${ar ? "الحد الأقصى للأفراد بالغرفة" : "Max Room Capacity"}</th>
-                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: start;">${ar ? "إمكانية حجز غرفة كاملة (Single)" : "Entire Room Allowance"}</th>
+                <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: start;">${ar ? "الدرجة الوظيفية" : "Job Level"}</th>
+                <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: start;">${ar ? "الحد الأقصى للأفراد بالغرفة" : "Max Room Capacity"}</th>
+                <th style="padding: 3px 6px; border: 1px solid #cbd5e1; text-align: start;">${ar ? "إمكانية حجز غرفة كاملة (Single)" : "Entire Room Allowance"}</th>
               </tr>
             </thead>
             <tbody>
@@ -715,86 +739,105 @@ export function PoliciesSection({
                 : DEFAULT_JOB_LEVEL_POLICIES
               ).map((lvl: any) => `
                 <tr style="background-color: ${lvl.levelKey === "0" ? "#fffbeb" : "inherit"};">
-                  <td style="padding: 8px; border: 1px solid #cbd5e1;">
+                  <td style="padding: 2.5px 6px; border: 1px solid #cbd5e1;">
                     <strong style="color: ${lvl.levelKey === "0" ? "#b45309" : "inherit"};">${ar ? (lvl.nameAr || lvl.name) : (lvl.name || lvl.nameAr)}</strong>
-                    <span style="font-size:10px; color:#64748b; margin-${ar ? "right" : "left"}: 4px;">(${lvl.levelKey ? `Level ${lvl.levelKey}` : ""})</span>
+                    <span style="font-size: 8.5px; color:#64748b; margin-${ar ? "right" : "left"}: 4px;">(${lvl.levelKey ? `Level ${lvl.levelKey}` : ""})</span>
                   </td>
-                  <td style="padding: 8px; border: 1px solid #cbd5e1;">${(lvl.allowedCapacities || [1]).join(" ، ")} ${ar ? "سرير بالغرفة" : "beds in room"}</td>
-                  <td style="padding: 8px; border: 1px solid #cbd5e1;">${lvl.allowEntire ? (ar ? "مسموح (غرفة كاملة)" : "Allowed (Entire Room)") : (ar ? "تسكين مشترك" : "Shared Only")}</td>
+                  <td style="padding: 2.5px 6px; border: 1px solid #cbd5e1;">${(lvl.allowedCapacities || [1]).join(" ، ")} ${ar ? "سرير بالغرفة" : "beds in room"}</td>
+                  <td style="padding: 2.5px 6px; border: 1px solid #cbd5e1;">${lvl.allowEntire ? (ar ? "مسموح (غرفة كاملة)" : "Allowed (Entire Room)") : (ar ? "تسكين مشترك" : "Shared Only")}</td>
                 </tr>
               `).join("")}
             </tbody>
           </table>
-          <p style="margin-top: 8px; font-size: 12px; color: #475569;">
-            * ${ar ? "سياسة توحيد الأقسام بالغرف (Department Clustering): " : "Department Clustering Policy: "}
-            <strong>${values.policyDepartmentClustering ? (ar ? "مفعلة (يقوم النظام تلقائياً باختيار غرف من نفس القسم)" : "Enabled (Auto-match roommates from same department)") : (ar ? "معطلة" : "Disabled")}</strong>
-            ${values.policyStrictDepartmentSegregation ? `<br />* <span style="color:#b91c1c; font-weight:bold;">${ar ? "تنبيه صارم: يُمنع نهائياً تسكين أقسام مختلفة في نفس الغرفة." : "Strict segregation: Different departments in the same room are strictly prohibited."}</span>` : ""}
-          </p>
+          ${values.policyStrictDepartmentSegregation ? `
+            <div style="font-size: 8.5px; color: #b91c1c; font-weight: bold; margin-top: 2px;">
+              * ${ar ? "تنبيه صارم: يُمنع نهائياً تسكين أقسام مختلفة في نفس الغرفة." : "Strict segregation: Different departments in the same room are strictly prohibited."}
+            </div>` : ""}
         </div>
 
-        <div style="margin-bottom: 24px;">
-          <h3 style="color: #0F2A44; border-bottom: 2px solid #C9A24D; padding-bottom: 6px; font-size: 16px;">
-            ${ar ? "2. سياسة وضوابط الزيارات العائلية" : "2. Family Visit Policy & Rules"}
-          </h3>
-          <ul style="font-size: 12px; color: #334155; margin: 8px 0; padding-${ar ? "right" : "left"}: 20px;">
-            <li><strong>${ar ? "الحد الأقصى لليالي الزيارة الواحدة:" : "Max nights per visit:"}</strong> ${values.visitMaxNights} ${ar ? "ليالي" : "nights"}</li>
-            <li><strong>${ar ? "الحد الأقصى لعدد الزيارات المسموح بها سنوياً:" : "Max visits per year:"}</strong> ${values.visitMaxVisitsPerYear} ${ar ? "زيارات" : "visits"}</li>
-            <li><strong>${ar ? "الحد الأدنى لخدمة الموظف قبل استحقاق الزيارة:" : "Min service before eligibility:"}</strong> ${values.visitMinServiceMonths} ${ar ? "أشهر" : "months"}</li>
-            <li><strong>${ar ? "فترة التهدئة الفاصلة بين زيارة وأخرى:" : "Cooldown period between visits:"}</strong> ${values.visitCooldownDays} ${ar ? "يوماً" : "days"}</li>
-            <li><strong>${ar ? "إلزامية الرقم القومي / إثبات الهوية لكافة المرافقين:" : "Mandatory National ID for companions:"}</strong> ${values.visitRequireNationalId ? (ar ? "إلزامي لكافة الأفراد والمرافقين" : "Mandatory for all companions") : (ar ? "اختياري" : "Optional")}</li>
-          </ul>
-          ${values.familyVisitPolicyText ? `<div style="background:#f8fafc; padding:12px; border-left:4px solid #C9A24D; font-size:12px; white-space:pre-wrap; margin-top:8px;">${values.familyVisitPolicyText}</div>` : ""}
+        <!-- 2-Column Grid for Policies (Sections 2, 3, 4, 5) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+          <!-- Left Column -->
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- 2. سياسة وضوابط الزيارات العائلية -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 8px;">
+              <h4 style="color: #0F2A44; font-size: 10.5px; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin: 0 0 4px 0;">
+                ${ar ? "2. سياسة وضوابط الزيارات العائلية" : "2. Family Visit Policy & Rules"}
+              </h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px 6px; font-size: 9px; color: #334155;">
+                <div>• ${ar ? "الحد الأقصى لليالي:" : "Max nights:"} <strong>${values.visitMaxNights} ${ar ? "ليالي" : "n"}</strong></div>
+                <div>• ${ar ? "الحد الأقصى سنوياً:" : "Max visits/yr:"} <strong>${values.visitMaxVisitsPerYear} ${ar ? "مرات" : "v"}</strong></div>
+                <div>• ${ar ? "الحد الأدنى للخدمة:" : "Min service:"} <strong>${values.visitMinServiceMonths} ${ar ? "أشهر" : "m"}</strong></div>
+                <div>• ${ar ? "فترة التهدئة:" : "Cooldown:"} <strong>${values.visitCooldownDays} ${ar ? "يوماً" : "d"}</strong></div>
+                <div style="grid-column: span 2;">• ${ar ? "إثبات هوية المرافقين:" : "Companions ID:"} <strong>${values.visitRequireNationalId ? (ar ? "إلزامي لكافة الأفراد" : "Mandatory for all") : (ar ? "اختياري" : "Optional")}</strong></div>
+              </div>
+              ${values.familyVisitPolicyText ? `<div style="background:#f8fafc; padding:3px 6px; border-left:2px solid #C9A24D; font-size:8.5px; margin-top:4px; max-height:40px; overflow:hidden;">${values.familyVisitPolicyText}</div>` : ""}
+            </div>
+
+            <!-- 4. سياسة فصل الجنسين وسكن العائلات الصارمة -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 8px;">
+              <h4 style="color: #0F2A44; font-size: 10.5px; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin: 0 0 4px 0;">
+                ${ar ? "4. فصل الجنسين وسكن العائلات الصارم" : "4. Strict Gender & Family Segregation"}
+              </h4>
+              <div style="font-size: 9px; color: #334155; display: flex; flex-direction: column; gap: 2px;">
+                <div>• ${ar ? "فصل الجنسين:" : "Gender Segregation:"} <strong>${values.policyStrictGenderSegregation ? `<span style="color:#16a34a;">${ar ? "مفعل وصارم (حظر الخلط)" : "Enforced (Strict)"}</span>` : (ar ? "تنبيهي" : "Advisory")}</strong></div>
+                <div>• ${ar ? "سكن العائلات:" : "Family Suites:"} <strong>${values.policyStrictFamilySegregation ? `<span style="color:#16a34a;">${ar ? "مفعل وصارم (حظر العزاب)" : "Enforced (Strict)"}</span>` : (ar ? "تنبيهي" : "Advisory")}</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- 3. لائحة السكن ومواعيد الإغلاق -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 8px;">
+              <h4 style="color: #0F2A44; font-size: 10.5px; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin: 0 0 4px 0;">
+                ${ar ? "3. لائحة السكن ومواعيد الإغلاق (Curfew)" : "3. Housing Rules & Curfew"}
+              </h4>
+              <div style="font-size: 9px; color: #334155; margin-bottom: 2px;">
+                • ${ar ? "إغلاق البوابات (Curfew):" : "Curfew Policy:"}
+                ${values.curfewEnabled ? `<strong style="color:#b91c1c;">${ar ? `مفعل — الساعة ${values.curfewTime}` : `Enabled at ${values.curfewTime}`}</strong>` : `<strong>${ar ? "مفتوح على مدار الساعة" : "Open 24/7"}</strong>`}
+              </div>
+              ${values.housingRulesText ? `<div style="background:#f8fafc; padding:3px 6px; border-left:2px solid #0F2A44; font-size:8.5px; max-height:40px; overflow:hidden;">${values.housingRulesText}</div>` : ""}
+              ${values.housingPolicyText ? `<div style="background:#fffbeb; padding:3px 6px; border-left:2px solid #f59e0b; font-size:8.5px; margin-top:3px; max-height:35px; overflow:hidden;">${values.housingPolicyText}</div>` : ""}
+            </div>
+
+            <!-- 5. الحوكمة واعتماد الاستثناءات الإدارية والتعلم الذكي -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 8px;">
+              <h4 style="color: #0F2A44; font-size: 10.5px; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin: 0 0 4px 0;">
+                ${ar ? "5. الحوكمة واعتماد الاستثناءات والذكاء الاصطناعي" : "5. Governance & AI Adaptive Learning"}
+              </h4>
+              <div style="font-size: 9px; color: #334155; display: flex; flex-direction: column; gap: 2px;">
+                <div>• ${ar ? "اعتماد الاستثناءات:" : "Exception Approvals:"} <strong>${values.policyRequireExceptionApproval ? `<span style="color:#0284c7;">${ar ? "إلزامي ومسجل رسمياً" : "Mandatory Logged"}</span>` : (ar ? "اختياري" : "Optional")}</strong></div>
+                <div>• ${ar ? "التعلم الذكي للأقسام:" : "AI Adaptive Learning:"} <strong>${values.policyAdaptiveLearning ? `<span style="color:#0284c7;">${ar ? "مفعل (تسكين ذكي)" : "Active"}</span>` : (ar ? "معطل" : "Disabled")}</strong></div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div style="margin-bottom: 24px;">
-          <h3 style="color: #0F2A44; border-bottom: 2px solid #C9A24D; padding-bottom: 6px; font-size: 16px;">
-            ${ar ? "3. لائحة السكن ومواعيد الإغلاق (Curfew & Housing Rules)" : "3. Housing Rules & Curfew"}
-          </h3>
-          <p style="font-size: 12px; color: #334155; margin: 6px 0;">
-            <strong>${ar ? "موعد إغلاق بوابات السكن (Curfew):" : "Curfew Policy:"}</strong>
-            ${values.curfewEnabled ? `<span style="color:#b91c1c; font-weight:bold;">${ar ? `مفعل — الساعة ${values.curfewTime}` : `Enabled at ${values.curfewTime}`}</span>` : (ar ? "غير محدد / حر" : "Open / No Curfew")}
-          </p>
-          ${values.housingRulesText ? `<div style="background:#f8fafc; padding:12px; border-left:4px solid #0F2A44; font-size:12px; white-space:pre-wrap; margin-top:8px;">${values.housingRulesText}</div>` : ""}
-          ${values.housingPolicyText ? `<div style="background:#fffbeb; padding:12px; border-left:4px solid #f59e0b; font-size:12px; white-space:pre-wrap; margin-top:8px;">${values.housingPolicyText}</div>` : ""}
-        </div>
-
-        <div style="margin-bottom: 24px;">
-          <h3 style="color: #0F2A44; border-bottom: 2px solid #C9A24D; padding-bottom: 6px; font-size: 16px;">
-            ${ar ? "4. سياسة فصل الجنسين وسكن العائلات الصارمة" : "4. Strict Gender & Family Segregation"}
-          </h3>
-          <ul style="font-size: 12px; color: #334155; margin: 8px 0; padding-${ar ? "right" : "left"}: 20px;">
-            <li><strong>${ar ? "فصل الجنسين الصارم:" : "Strict Gender Segregation:"}</strong> ${values.policyStrictGenderSegregation ? `<span style="color:#16a34a; font-weight:bold;">${ar ? "مفعل وصارم (يُمنع منعاً باتاً خلط الذكور والإناث بالغرفة المشتركة أو الأجنحة المخصصة)" : "Active & Enforced (Strictly prohibits mixed gender shared housing)"}</span>` : (ar ? "تنبيهي فقط" : "Advisory")}</li>
-            <li><strong>${ar ? "سكن العائلات المستقل:" : "Family Accommodation Segregation:"}</strong> ${values.policyStrictFamilySegregation ? `<span style="color:#16a34a; font-weight:bold;">${ar ? "مفعل وصارم (حظر تسكين العزاب في أجنحة العائلات)" : "Active & Enforced (Bachelors barred from family suites)"}</span>` : (ar ? "تنبيهي فقط" : "Advisory")}</li>
-          </ul>
-        </div>
-
-        <div style="margin-bottom: 24px;">
-          <h3 style="color: #0F2A44; border-bottom: 2px solid #C9A24D; padding-bottom: 6px; font-size: 16px;">
-            ${ar ? "5. الحوكمة واعتماد الاستثناءات الإدارية والتعلم الذكي" : "5. Governance, Exception Approvals & AI Learning"}
-          </h3>
-          <ul style="font-size: 12px; color: #334155; margin: 8px 0; padding-${ar ? "right" : "left"}: 20px;">
-            <li><strong>${ar ? "حوكمة واعتماد استثناءات التسكين:" : "Exception Approval Governance:"}</strong> ${values.policyRequireExceptionApproval ? `<span style="color:#0284c7; font-weight:bold;">${ar ? "إلزامي (يتطلب تسجيل سبب إداري ومسؤول معتمد رسمياً لأي مخالفة)" : "Mandatory (Requires formal approval and reason logged)"}</span>` : (ar ? "اختياري" : "Optional")}</li>
-            <li><strong>${ar ? "الذكاء الاصطناعي والتعلم السلوكي للأقسام:" : "AI Adaptive Department Learning:"}</strong> ${values.policyAdaptiveLearning ? `<span style="color:#0284c7; font-weight:bold;">${ar ? "مفعل (يتعلم النظام سلوكياً توزيع الأقسام والمناطق المفضلة)" : "Active (System learns departmental territorial sectors)"}</span>` : (ar ? "معطل" : "Disabled")}</li>
-          </ul>
-        </div>
-
-        <div style="margin-top: 30px; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
-          <h4 style="color: #0F2A44; font-size: 14px; margin-bottom: 12px;">${ar ? "مسؤولو التواصل والإبلاغ عن المخالفات والطوارئ" : "Emergency & Key Contact Persons"}</h4>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 11px;">
-            ${values.hrContact1Name ? `<div style="background:#f1f5f9; padding:8px; border-radius:4px;"><strong>${values.hrContact1Title || (ar ? "مدير الموارد البشرية" : "HR Manager")}:</strong> ${values.hrContact1Name} | ${values.hrContact1Phone} | ${values.hrContact1Email}</div>` : ""}
-            ${values.hrContact2Name ? `<div style="background:#f1f5f9; padding:8px; border-radius:4px;"><strong>${values.hrContact2Title || (ar ? "منسق الموارد البشرية" : "HR Coordinator")}:</strong> ${values.hrContact2Name} | ${values.hrContact2Phone} | ${values.hrContact2Email}</div>` : ""}
-            ${values.housingManager1Name ? `<div style="background:#f1f5f9; padding:8px; border-radius:4px;"><strong>${values.housingManager1Title || (ar ? "مدير السكن" : "Housing Manager")}:</strong> ${values.housingManager1Name} | ${values.housingManager1Phone} | ${values.housingManager1Email}</div>` : ""}
-            ${values.housingManager2Name ? `<div style="background:#f1f5f9; padding:8px; border-radius:4px;"><strong>${values.housingManager2Title || (ar ? "مساعد مدير السكن" : "Assistant Housing Manager")}:</strong> ${values.housingManager2Name} | ${values.housingManager2Phone} | ${values.housingManager2Email}</div>` : ""}
+        <!-- 6. مسؤولو التواصل والطوارئ (Horizontal Strip) -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 5px 8px; margin-bottom: 4px;">
+          <div style="color: #0F2A44; font-size: 9.5px; font-weight: bold; margin-bottom: 3px;">
+            ${ar ? "📞 مسؤولو التواصل والإبلاغ عن المخالفات والطوارئ بالسكن" : "📞 Emergency & Housing Operations Key Contacts"}
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 8.5px;">
+            ${values.hrContact1Name ? `<div style="background:#ffffff; padding:3px 5px; border-radius:3px; border:1px solid #e2e8f0;"><strong>${values.hrContact1Title || (ar ? "مدير HR" : "HR Mgr")}:</strong> ${values.hrContact1Name}<br/><span style="color:#64748b;">${values.hrContact1Phone || ""}</span></div>` : ""}
+            ${values.hrContact2Name ? `<div style="background:#ffffff; padding:3px 5px; border-radius:3px; border:1px solid #e2e8f0;"><strong>${values.hrContact2Title || (ar ? "منسق HR" : "HR Coord")}:</strong> ${values.hrContact2Name}<br/><span style="color:#64748b;">${values.hrContact2Phone || ""}</span></div>` : ""}
+            ${values.housingManager1Name ? `<div style="background:#ffffff; padding:3px 5px; border-radius:3px; border:1px solid #e2e8f0;"><strong>${values.housingManager1Title || (ar ? "مدير السكن" : "Housing Mgr")}:</strong> ${values.housingManager1Name}<br/><span style="color:#64748b;">${values.housingManager1Phone || ""}</span></div>` : ""}
+            ${values.housingManager2Name ? `<div style="background:#ffffff; padding:3px 5px; border-radius:3px; border:1px solid #e2e8f0;"><strong>${values.housingManager2Title || (ar ? "مساعد مدير السكن" : "Asst Mgr")}:</strong> ${values.housingManager2Name}<br/><span style="color:#64748b;">${values.housingManager2Phone || ""}</span></div>` : ""}
           </div>
         </div>
       </div>
     `;
 
     printLuxuryReport({
-      title: ar ? "لائحة وسياسات السكن الرسمية" : "Official Housing Policy & Code of Conduct",
-      titleAr: "لائحة وسياسات السكن الرسمية",
+      title: ar ? "وثيقة ولائحة سياسات السكن الرسمية" : "Official Housing Policy & Code of Conduct",
+      titleAr: "وثيقة ولائحة سياسات السكن الرسمية",
       subtitle: propName,
       subtitleAr: propName,
+      propId: currentPropId,
+      activePropertyId: currentPropId,
+      properties: properties,
+      settings: (settingsData || {}) as any,
       language: ar ? "ar" : "en",
       orientation: "portrait",
       showKpis: false,

@@ -2060,7 +2060,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Resolve property name & logo (PRESERVING SYSTEM LOGO STRICTLY)
   const propObj = properties.find((p: any) => p.id === (propId ?? activePropertyId));
-  const propName = propObj?.name || (isArabic ? "سكن منتجعات وفنادق صن رايز" : "Sunrise Resorts Staff Housing");
+  const propName = (isArabic ? (opts.subtitleAr || opts.subtitle) : (opts.subtitle || opts.subtitleAr))
+    || propObj?.displayName
+    || propObj?.name
+    || (isArabic ? "سكن منتجعات وفنادق صن رايز" : "Sunrise Resorts Staff Housing");
 
   // Convert both property and system logos to base64 DataURLs if available
   const sysLogo = settings?.systemLogo ? await loadImgDataUrl(settings.systemLogo) : null;
@@ -2073,10 +2076,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     : (opts.title || defaultTabInfo?.en || "Staff Housing Operations Report");
   const operaCode = REPORT_OPERA_CODES[activeTab || ""] || (activeTab ? activeTab.replace(/[^a-z0-9_]/gi, "").toLowerCase() : "gibyroom");
 
-  // Opera standard date & time (e.g. 16-09-26, 01:44)
+  // Opera standard date & time (e.g. 2026-09-22, 21:20)
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
-  const operaDateStr = `${String(now.getFullYear()).slice(-2)}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const operaDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   const operaTimeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const issueDateFormatted = isArabic
     ? now.toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -2918,8 +2921,18 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       /* Hide hardcoded page indicator — browser print dialog handles page numbering */
       .opera-page-indicator { display: none !important; }
       /* Keep signatures and footer together — never split across pages */
-      .sig-section { page-break-inside: avoid !important; }
-      .opera-footer { page-break-inside: avoid !important; }
+      .sig-section {
+        page-break-inside: avoid !important;
+        margin-top: 8px !important;
+        padding-top: 6px !important;
+      }
+      .sig-role {
+        margin-bottom: 14px !important;
+      }
+      .opera-footer {
+        page-break-inside: avoid !important;
+        margin-top: 6px !important;
+      }
     }
   </style>
 </head>
@@ -2957,8 +2970,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           ${sysLogo
             ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
             : `<div class="opera-fallback-brand">
-                <span>RESORTS & CRUISES</span>
-                <span class="opera-fallback-badge">STAFF HOUSING</span>
+                <span style="font-weight: 900; font-size: 11pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
+                <span class="opera-fallback-badge" style="letter-spacing: 1px;">RESORTS & CRUISES</span>
                </div>`
           }
         </div>
@@ -2979,8 +2992,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           ${propLogo
             ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
             : `<div class="opera-fallback-brand right-brand">
-                <span>SUNRISE</span>
-                <span class="opera-fallback-badge">${propName.toUpperCase()}</span>
+                <span style="font-weight: 800; font-size: 9.5pt; color: #0F2A44;">${propName}</span>
+                <span class="opera-fallback-badge" style="letter-spacing: 0.5px;">${isArabic ? "سكن الموظفين" : "STAFF HOUSING"}</span>
                </div>`
           }
           <div class="opera-meta-datetime">
@@ -2999,11 +3012,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       <!-- Custom Injected Sections if any -->
       ${customSectionsHtml || ""}
 
-      <!-- Opera Data Table -->
+      <!-- Opera Data Table (rendered only when tabular rows/headers exist) -->
+      ${(tableRows.length > 0 || headers.length > 0) ? `
       <table class="opera-table">
         ${theadHtml}
         ${tbodyHtml}
-      </table>
+      </table>` : ""}
 
       <!-- Custom Bottom Injected Sections if any (e.g. Demographics, Nationalities, Departments) -->
       ${customBottomSectionsHtml || ""}
