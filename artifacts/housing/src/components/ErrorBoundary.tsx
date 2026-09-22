@@ -34,6 +34,23 @@ export class ErrorBoundary extends Component<Props, State> {
       error,
       info.componentStack,
     );
+
+    // Auto-heal stale chunk load errors caused by new deployments/builds
+    const errorMessage = error?.message || "";
+    const isChunkLoadFailed =
+      error?.name === "ChunkLoadError" ||
+      /loading dynamically imported module/i.test(errorMessage) ||
+      /failed to fetch dynamically imported module/i.test(errorMessage) ||
+      /disallowed MIME type/i.test(errorMessage);
+
+    if (isChunkLoadFailed) {
+      const now = Date.now();
+      const lastReload = Number(sessionStorage.getItem("sunrise_last_chunk_reload") || 0);
+      if (now - lastReload > 10000) {
+        sessionStorage.setItem("sunrise_last_chunk_reload", String(now));
+        window.location.reload();
+      }
+    }
   }
 
   handleReset = () => {

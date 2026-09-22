@@ -23,5 +23,16 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 setBaseUrl(getApiBaseUrl());
 installApiFetchInterceptor();
 
+// Auto-heal stale chunk load errors on new builds/deployments
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  const now = Date.now();
+  const lastReload = Number(sessionStorage.getItem("sunrise_last_chunk_reload") || 0);
+  if (now - lastReload > 10000) {
+    sessionStorage.setItem("sunrise_last_chunk_reload", String(now));
+    window.location.reload();
+  }
+});
+
 createRoot(document.getElementById("root")!).render(<App />);
 registerServiceWorker();
