@@ -62,6 +62,22 @@ const MIGRATIONS = [
     name: "public.hr_sync_config.sources",
     q: `ALTER TABLE public.hr_sync_config ADD COLUMN IF NOT EXISTS "sources" JSONB DEFAULT '[]'::jsonb;`,
   },
+  {
+    name: "public.custom_report_templates",
+    q: `CREATE TABLE IF NOT EXISTS public.custom_report_templates (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER,
+      name TEXT NOT NULL,
+      name_en TEXT,
+      data_source TEXT NOT NULL DEFAULT 'in_house',
+      columns JSONB NOT NULL DEFAULT '[]'::jsonb,
+      filters JSONB NOT NULL DEFAULT '{}'::jsonb,
+      layout_options JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_by INTEGER,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    );`,
+  },
   // Existing column additions
   {
     name: "profiles.photo_url",
@@ -2534,6 +2550,22 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     name: "tenant.profiles.previous_profile_id",
     q: `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS previous_profile_id TEXT DEFAULT '';`,
   },
+  {
+    name: "tenant.custom_report_templates",
+    q: `CREATE TABLE IF NOT EXISTS custom_report_templates (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER,
+      name TEXT NOT NULL,
+      name_en TEXT,
+      data_source TEXT NOT NULL DEFAULT 'in_house',
+      columns JSONB NOT NULL DEFAULT '[]'::jsonb,
+      filters JSONB NOT NULL DEFAULT '{}'::jsonb,
+      layout_options JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_by INTEGER,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    );`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {
@@ -2735,6 +2767,7 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "whatsapp_outbox_queue",
     "room_import_jobs",
     "ws_sessions",
+    "custom_report_templates",
   ];
 
   const TABLES_WITH_PROPERTY_ID = new Set([
@@ -2751,6 +2784,7 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "whatsapp_delivery_logs",
     "whatsapp_outbox_queue",
     "ws_sessions",
+    "custom_report_templates",
   ]);
 
   const client = await pool.connect();

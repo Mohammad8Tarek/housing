@@ -33,3 +33,4 @@ export * from "./room_inventory";
 export * from "./whatsapp";
 export * from "./workers";
 export * from "./gate_logs";
+export * from "./reports";

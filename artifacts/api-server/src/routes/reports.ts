@@ -11,6 +11,7 @@ import {
   profileVacationsTable,
   buildingsTable,
   floorsTable,
+  customReportTemplatesTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, desc, sql, count } from "drizzle-orm";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
@@ -518,6 +519,781 @@ router.get("/", requirePermission("reports", "view"), async (req, res, next) => 
           };
         }),
       { data: [], pagination: { total: 0, page, limit } }
+    );
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── CUSTOM REPORT BUILDER & CONFIGURATION ────────────────────────────────
+
+// 1. GET /custom/templates - List saved templates
+// @ts-ignore
+router.get("/custom/templates", requirePermission("reports", "view"), async (req, res, next) => {
+  try {
+    const propertyId = getTenantId(req);
+    const result = await withTableFallback(
+      async () => {
+        if (propertyId) {
+          return await withTenant(propertyId, async (tenantDb) => {
+            return await tenantDb
+              .select()
+              .from(customReportTemplatesTable)
+              .orderBy(desc(customReportTemplatesTable.updatedAt), desc(customReportTemplatesTable.id));
+          });
+        } else {
+          return await db
+            .select()
+            .from(customReportTemplatesTable)
+            .orderBy(desc(customReportTemplatesTable.updatedAt), desc(customReportTemplatesTable.id));
+        }
+      },
+      []
+    );
+    res.json({ success: true, templates: result || [] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 2. POST /custom/templates - Create template
+// @ts-ignore
+router.post("/custom/templates", requirePermission("reports", "create"), async (req, res, next) => {
+  try {
+    const propertyId = getTenantId(req);
+    const { name, nameEn, dataSource, columns, filters, layoutOptions } = req.body;
+    if (!name || !dataSource) {
+      return res.status(400).json({ success: false, message: "Name and dataSource are required" });
+    }
+
+    const payload = {
+      propertyId: propertyId ? Number(propertyId) : null,
+      name,
+      nameEn: nameEn || null,
+      dataSource,
+      columns: columns || [],
+      filters: filters || {},
+      layoutOptions: layoutOptions || {},
+      createdBy: (req as any).user?.id || null,
+    };
+
+    const result = await withTableFallback(
+      async () => {
+        if (propertyId) {
+          return await withTenant(propertyId, async (tenantDb) => {
+            const [inserted] = await tenantDb
+              .insert(customReportTemplatesTable)
+              .values(payload)
+              .returning();
+            return inserted;
+          });
+        } else {
+          const [inserted] = await db
+            .insert(customReportTemplatesTable)
+            .values(payload)
+            .returning();
+          return inserted;
+        }
+      },
+      null
+    );
+
+    res.json({ success: true, template: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 3. PUT /custom/templates/:id - Update template
+// @ts-ignore
+router.put("/custom/templates/:id", requirePermission("reports", "edit"), async (req, res, next) => {
+  try {
+    const propertyId = getTenantId(req);
+    const id = Number(req.params.id);
+    const { name, nameEn, dataSource, columns, filters, layoutOptions } = req.body;
+
+    const payload: any = {
+      updatedAt: new Date(),
+    };
+    if (name !== undefined) payload.name = name;
+    if (nameEn !== undefined) payload.nameEn = nameEn;
+    if (dataSource !== undefined) payload.dataSource = dataSource;
+    if (columns !== undefined) payload.columns = columns;
+    if (filters !== undefined) payload.filters = filters;
+    if (layoutOptions !== undefined) payload.layoutOptions = layoutOptions;
+
+    const result = await withTableFallback(
+      async () => {
+        if (propertyId) {
+          return await withTenant(propertyId, async (tenantDb) => {
+            const [updated] = await tenantDb
+              .update(customReportTemplatesTable)
+              .set(payload)
+              .where(eq(customReportTemplatesTable.id, id))
+              .returning();
+            return updated;
+          });
+        } else {
+          const [updated] = await db
+            .update(customReportTemplatesTable)
+            .set(payload)
+            .where(eq(customReportTemplatesTable.id, id))
+            .returning();
+          return updated;
+        }
+      },
+      null
+    );
+
+    res.json({ success: true, template: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 4. DELETE /custom/templates/:id - Delete template
+// @ts-ignore
+router.delete("/custom/templates/:id", requirePermission("reports", "delete"), async (req, res, next) => {
+  try {
+    const propertyId = getTenantId(req);
+    const id = Number(req.params.id);
+
+    await withTableFallback(
+      async () => {
+        if (propertyId) {
+          await withTenant(propertyId, async (tenantDb) => {
+            await tenantDb
+              .delete(customReportTemplatesTable)
+              .where(eq(customReportTemplatesTable.id, id));
+          });
+        } else {
+          await db
+            .delete(customReportTemplatesTable)
+            .where(eq(customReportTemplatesTable.id, id));
+        }
+      },
+      null
+    );
+
+    res.json({ success: true, message: "Template deleted" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 5. POST /custom/query - Dynamic Report Query Engine
+// @ts-ignore
+router.post("/custom/query", requirePermission("reports", "view"), async (req, res, next) => {
+  try {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      return res.status(400).json({ success: false, message: "propertyId required" });
+    }
+
+    const {
+      dataSource = "in_house",
+      columns = [],
+      filters = {},
+      page = 1,
+      limit = 20,
+      sortBy,
+      sortOrder = "asc",
+      fetchAll = false,
+    } = req.body;
+
+    const result = await withTableFallback(
+      async () =>
+        withTenant(propertyId, async (tenantDb) => {
+          let rows: any[] = [];
+          let totalCount = 0;
+          let stats: any = {};
+
+          const search = ((filters.search as string) || "").trim().toLowerCase();
+          const buildingId = filters.buildingId && filters.buildingId !== "all" ? Number(filters.buildingId) : undefined;
+          const floorId = filters.floorId && filters.floorId !== "all" ? Number(filters.floorId) : undefined;
+          const department = filters.department && filters.department !== "all" ? String(filters.department).trim() : undefined;
+          const jobLevel = filters.jobLevel && filters.jobLevel !== "all" ? String(filters.jobLevel).trim() : undefined;
+          const gender = filters.gender && filters.gender !== "all" ? String(filters.gender).trim().toUpperCase() : undefined;
+          const status = filters.status && filters.status !== "all" ? String(filters.status).trim() : undefined;
+          const dateFrom = filters.dateFrom ? String(filters.dateFrom).trim() : undefined;
+          const dateTo = filters.dateTo ? String(filters.dateTo).trim() : undefined;
+
+          // ─── SOURCE: IN-HOUSE ───────────────────────────────────────────
+          if (dataSource === "in_house") {
+            const rawRows = await tenantDb
+              .select({
+                id: assignmentsTable.id,
+                assignmentId: assignmentsTable.id,
+                profileId: profilesTable.id,
+                employeeId: profilesTable.employeeId,
+                name: profilesTable.name,
+                firstNameAr: profilesTable.firstNameAr,
+                lastNameAr: profilesTable.lastNameAr,
+                jobTitle: profilesTable.jobTitle,
+                jobTitleAr: profilesTable.jobTitleAr,
+                department: profilesTable.department,
+                departmentAr: profilesTable.departmentAr,
+                jobLevel: profilesTable.jobLevel,
+                gender: profilesTable.gender,
+                phone: profilesTable.phone,
+                nationalId: profilesTable.nationalId,
+                company: profilesTable.company,
+                nationality: profilesTable.nationality,
+                profileStatus: profilesTable.status,
+                buildingId: roomsTable.buildingId,
+                buildingName: buildingsTable.name,
+                floorId: roomsTable.floorId,
+                floorNumber: floorsTable.number,
+                roomId: roomsTable.id,
+                roomNumber: roomsTable.roomNumber,
+                roomType: roomsTable.roomType,
+                bedNumber: assignmentsTable.bedNumber,
+                isEntireRoom: assignmentsTable.isEntireRoom,
+                status: assignmentsTable.status,
+                startDate: assignmentsTable.startDate,
+                endDate: assignmentsTable.endDate,
+                checkInDate: assignmentsTable.checkInDate,
+                checkOutDate: assignmentsTable.checkOutDate,
+                notes: assignmentsTable.notes,
+                createdAt: assignmentsTable.createdAt,
+              })
+              .from(assignmentsTable)
+              .innerJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+              .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
+              .orderBy(desc(assignmentsTable.id));
+
+            let filtered = rawRows.filter((r) => {
+              if (status) {
+                if ((r.status || "").toUpperCase() !== status.toUpperCase()) return false;
+              } else {
+                // Default to ACTIVE
+                if ((r.status || "").toUpperCase() !== "ACTIVE") return false;
+              }
+              if (buildingId && r.buildingId !== buildingId) return false;
+              if (floorId && r.floorId !== floorId) return false;
+              if (department && (r.department || "").toLowerCase() !== department.toLowerCase()) return false;
+              if (jobLevel && String(r.jobLevel ?? "") !== String(jobLevel)) return false;
+              if (gender && (r.gender || "").toUpperCase() !== gender) return false;
+
+              if (dateFrom) {
+                const itemDate = r.checkInDate || r.startDate;
+                if (itemDate && new Date(itemDate) < new Date(dateFrom)) return false;
+              }
+              if (dateTo) {
+                const itemDate = r.checkInDate || r.startDate;
+                if (itemDate && new Date(itemDate) > new Date(dateTo)) return false;
+              }
+
+              if (search) {
+                const haystack = [
+                  r.name,
+                  r.firstNameAr,
+                  r.lastNameAr,
+                  r.employeeId,
+                  r.nationalId,
+                  r.phone,
+                  r.roomNumber,
+                  r.buildingName,
+                  r.department,
+                  r.jobTitle,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase();
+                if (!haystack.includes(search)) return false;
+              }
+              return true;
+            });
+
+            // Map computed fields
+            rows = filtered.map((r, idx) => {
+              const checkIn = r.checkInDate || r.startDate;
+              let days = 0;
+              if (checkIn) {
+                const start = new Date(checkIn).getTime();
+                const end = r.checkOutDate || r.endDate ? new Date(r.checkOutDate || r.endDate).getTime() : Date.now();
+                days = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
+              }
+              return {
+                index: idx + 1,
+                ...r,
+                daysInHouse: days,
+                stayDuration: `${days} يوم`,
+              };
+            });
+
+            stats = {
+              totalRecords: rows.length,
+              activeCount: rows.filter((r) => r.status === "ACTIVE").length,
+              distinctBuildings: new Set(rows.map((r) => r.buildingName).filter(Boolean)).size,
+              distinctRooms: new Set(rows.map((r) => r.roomNumber).filter(Boolean)).size,
+              distinctDepartments: new Set(rows.map((r) => r.department).filter(Boolean)).size,
+            };
+          }
+
+          // ─── SOURCE: PROFILES ───────────────────────────────────────────
+          else if (dataSource === "profiles") {
+            const rawProfiles = await tenantDb
+              .select()
+              .from(profilesTable)
+              .orderBy(profilesTable.employeeId);
+
+            // Fetch active assignments for profiles to display their room
+            const activeAssignments = await tenantDb
+              .select({
+                profileId: assignmentsTable.profileId,
+                roomNumber: roomsTable.roomNumber,
+                buildingName: buildingsTable.name,
+                buildingId: roomsTable.buildingId,
+                floorId: roomsTable.floorId,
+                bedNumber: assignmentsTable.bedNumber,
+              })
+              .from(assignmentsTable)
+              .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .where(eq(assignmentsTable.status, "ACTIVE"));
+
+            const assignmentMap = new Map<number, any>();
+            activeAssignments.forEach((a) => {
+              if (a.profileId) assignmentMap.set(a.profileId, a);
+            });
+
+            let filtered = rawProfiles.filter((p) => {
+              const currentAssign = assignmentMap.get(p.id);
+              if (status && (p.status || "").toUpperCase() !== status.toUpperCase()) return false;
+              if (department && (p.department || "").toLowerCase() !== department.toLowerCase()) return false;
+              if (jobLevel && String(p.jobLevel ?? "") !== String(jobLevel)) return false;
+              if (gender && (p.gender || "").toUpperCase() !== gender) return false;
+              if (buildingId && currentAssign?.buildingId !== buildingId) return false;
+              if (floorId && currentAssign?.floorId !== floorId) return false;
+
+              if (search) {
+                const haystack = [
+                  p.name,
+                  p.firstNameAr,
+                  p.lastNameAr,
+                  p.employeeId,
+                  p.nationalId,
+                  p.phone,
+                  p.department,
+                  p.jobTitle,
+                  p.company,
+                  currentAssign?.roomNumber,
+                  currentAssign?.buildingName,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase();
+                if (!haystack.includes(search)) return false;
+              }
+              return true;
+            });
+
+            rows = filtered.map((p, idx) => {
+              const currentAssign = assignmentMap.get(p.id);
+              return {
+                index: idx + 1,
+                ...p,
+                roomNumber: currentAssign?.roomNumber || "غير مسكن",
+                buildingName: currentAssign?.buildingName || "—",
+                bedNumber: currentAssign?.bedNumber || "—",
+                isHoused: !!currentAssign,
+              };
+            });
+
+            stats = {
+              totalRecords: rows.length,
+              housedCount: rows.filter((r) => r.isHoused).length,
+              unhousedCount: rows.filter((r) => !r.isHoused).length,
+              distinctDepartments: new Set(rows.map((r) => r.department).filter(Boolean)).size,
+            };
+          }
+
+          // ─── SOURCE: ROOMS ──────────────────────────────────────────────
+          else if (dataSource === "rooms") {
+            const rawRooms = await tenantDb
+              .select({
+                id: roomsTable.id,
+                roomNumber: roomsTable.roomNumber,
+                buildingId: roomsTable.buildingId,
+                buildingName: buildingsTable.name,
+                floorId: roomsTable.floorId,
+                floorNumber: floorsTable.number,
+                roomType: roomsTable.roomType,
+                capacity: roomsTable.capacity,
+                occupiedBeds: roomsTable.occupiedBeds,
+                status: roomsTable.status,
+                cleanlinessStatus: roomsTable.cleanlinessStatus,
+                genderPolicy: roomsTable.genderPolicy,
+                notes: roomsTable.notes,
+              })
+              .from(roomsTable)
+              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
+              .orderBy(buildingsTable.name, roomsTable.roomNumber);
+
+            let filtered = rawRooms.filter((r) => {
+              if (buildingId && r.buildingId !== buildingId) return false;
+              if (floorId && r.floorId !== floorId) return false;
+              if (status && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (filters.cleanlinessStatus && filters.cleanlinessStatus !== "all" && (r.cleanlinessStatus || "").toLowerCase() !== String(filters.cleanlinessStatus).toLowerCase()) return false;
+              if (filters.roomType && filters.roomType !== "all" && (r.roomType || "").toLowerCase() !== String(filters.roomType).toLowerCase()) return false;
+
+              if (search) {
+                const haystack = [
+                  r.roomNumber,
+                  r.buildingName,
+                  r.roomType,
+                  r.status,
+                  r.cleanlinessStatus,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase();
+                if (!haystack.includes(search)) return false;
+              }
+              return true;
+            });
+
+            rows = filtered.map((r, idx) => {
+              const cap = r.capacity || 0;
+              const occ = r.occupiedBeds || 0;
+              const vac = Math.max(0, cap - occ);
+              const pct = cap > 0 ? Math.round((occ / cap) * 100) : 0;
+              return {
+                index: idx + 1,
+                ...r,
+                vacantBeds: vac,
+                occupancyPct: `${pct}%`,
+              };
+            });
+
+            const totalCap = rows.reduce((acc, r) => acc + (r.capacity || 0), 0);
+            const totalOcc = rows.reduce((acc, r) => acc + (r.occupiedBeds || 0), 0);
+            const totalVac = rows.reduce((acc, r) => acc + (r.vacantBeds || 0), 0);
+
+            stats = {
+              totalRooms: rows.length,
+              totalCapacity: totalCap,
+              totalOccupied: totalOcc,
+              totalVacant: totalVac,
+              overallOccupancyPct: totalCap > 0 ? `${Math.round((totalOcc / totalCap) * 100)}%` : "0%",
+            };
+          }
+
+          // ─── SOURCE: RESERVATIONS ───────────────────────────────────────
+          else if (dataSource === "reservations") {
+            const rawRes = await tenantDb
+              .select({
+                id: reservationsTable.id,
+                guestName: reservationsTable.guestName,
+                employeeId: reservationsTable.employeeId,
+                department: reservationsTable.department,
+                jobTitle: reservationsTable.jobTitle,
+                checkInDate: reservationsTable.checkInDate,
+                checkOutDate: reservationsTable.checkOutDate,
+                status: reservationsTable.status,
+                roomType: reservationsTable.roomType,
+                bookingSource: reservationsTable.bookingSource,
+                notes: reservationsTable.notes,
+                roomId: reservationsTable.roomId,
+                roomNumber: roomsTable.roomNumber,
+                buildingId: roomsTable.buildingId,
+                buildingName: buildingsTable.name,
+                createdAt: reservationsTable.createdAt,
+              })
+              .from(reservationsTable)
+              .leftJoin(roomsTable, eq(reservationsTable.roomId, roomsTable.id))
+              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .orderBy(desc(reservationsTable.id));
+
+            let filtered = rawRes.filter((r) => {
+              if (status && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (buildingId && r.buildingId !== buildingId) return false;
+              if (department && (r.department || "").toLowerCase() !== department.toLowerCase()) return false;
+              if (dateFrom && r.checkInDate && new Date(r.checkInDate) < new Date(dateFrom)) return false;
+              if (dateTo && r.checkInDate && new Date(r.checkInDate) > new Date(dateTo)) return false;
+
+              if (search) {
+                const haystack = [
+                  r.guestName,
+                  r.employeeId,
+                  r.department,
+                  r.jobTitle,
+                  r.roomNumber,
+                  r.buildingName,
+                  r.status,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase();
+                if (!haystack.includes(search)) return false;
+              }
+              return true;
+            });
+
+            rows = filtered.map((r, idx) => {
+              let nights = 0;
+              if (r.checkInDate && r.checkOutDate) {
+                const s = new Date(r.checkInDate).getTime();
+                const e = new Date(r.checkOutDate).getTime();
+                nights = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)));
+              }
+              return {
+                index: idx + 1,
+                ...r,
+                nights,
+              };
+            });
+
+            stats = {
+              totalReservations: rows.length,
+              pendingCount: rows.filter((r) => (r.status || "").toLowerCase() === "pending").length,
+              confirmedCount: rows.filter((r) => (r.status || "").toLowerCase() === "confirmed").length,
+              cancelledCount: rows.filter((r) => (r.status || "").toLowerCase() === "cancelled").length,
+            };
+          }
+
+          // ─── SOURCE: MAINTENANCE ────────────────────────────────────────
+          else if (dataSource === "maintenance") {
+            const rawMnt = await tenantDb
+              .select({
+                id: maintenanceTable.id,
+                ticketNumber: maintenanceTable.id,
+                category: maintenanceTable.category,
+                problemType: maintenanceTable.problemType,
+                description: maintenanceTable.description,
+                status: maintenanceTable.status,
+                priority: maintenanceTable.priority,
+                reportedBy: maintenanceTable.reportedBy,
+                reportedAt: maintenanceTable.reportedAt,
+                assignedTo: maintenanceTable.assignedTo,
+                workerId: maintenanceTable.workerId,
+                workerName: workersTable.name,
+                resolvedAt: maintenanceTable.resolvedAt,
+                rating: maintenanceTable.rating,
+                ratingComment: maintenanceTable.ratingComment,
+                roomId: maintenanceTable.roomId,
+                roomNumber: roomsTable.roomNumber,
+                buildingId: roomsTable.buildingId,
+                buildingName: buildingsTable.name,
+              })
+              .from(maintenanceTable)
+              .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
+              .orderBy(desc(maintenanceTable.id));
+
+            let filtered = rawMnt.filter((r) => {
+              if (status && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (filters.priority && filters.priority !== "all" && (r.priority || "").toLowerCase() !== String(filters.priority).toLowerCase()) return false;
+              if (filters.category && filters.category !== "all" && (r.category || "").toLowerCase() !== String(filters.category).toLowerCase()) return false;
+              if (buildingId && r.buildingId !== buildingId) return false;
+              if (dateFrom && r.reportedAt && new Date(r.reportedAt) < new Date(dateFrom)) return false;
+              if (dateTo && r.reportedAt && new Date(r.reportedAt) > new Date(dateTo)) return false;
+
+              if (search) {
+                const haystack = [
+                  String(r.id),
+                  r.problemType,
+                  r.description,
+                  r.category,
+                  r.roomNumber,
+                  r.buildingName,
+                  r.reportedBy,
+                  r.workerName,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase();
+                if (!haystack.includes(search)) return false;
+              }
+              return true;
+            });
+
+            rows = filtered.map((r, idx) => ({
+              index: idx + 1,
+              ...r,
+            }));
+
+            stats = {
+              totalTickets: rows.length,
+              pendingCount: rows.filter((r) => ["pending", "open", "in_progress"].includes((r.status || "").toLowerCase())).length,
+              resolvedCount: rows.filter((r) => ["resolved", "closed", "completed"].includes((r.status || "").toLowerCase())).length,
+              urgentCount: rows.filter((r) => (r.priority || "").toLowerCase() === "urgent").length,
+            };
+          }
+
+          // ─── SOURCE: VACATIONS ──────────────────────────────────────────
+          else if (dataSource === "vacations") {
+            const rawVac = await tenantDb
+              .select({
+                id: profileVacationsTable.id,
+                profileId: profileVacationsTable.profileId,
+                startDate: profileVacationsTable.startDate,
+                endDate: profileVacationsTable.endDate,
+                actualReturnDate: profileVacationsTable.actualReturnDate,
+                notes: profileVacationsTable.notes,
+                status: profileVacationsTable.status,
+                createdAt: profileVacationsTable.createdAt,
+                employeeId: profilesTable.employeeId,
+                name: profilesTable.name,
+                department: profilesTable.department,
+                jobTitle: profilesTable.jobTitle,
+                phone: profilesTable.phone,
+                nationalId: profilesTable.nationalId,
+              })
+              .from(profileVacationsTable)
+              .innerJoin(profilesTable, eq(profileVacationsTable.profileId, profilesTable.id))
+              .orderBy(desc(profileVacationsTable.id));
+
+            let filtered = rawVac.filter((r) => {
+              if (status && (r.status || "").toUpperCase() !== status.toUpperCase()) return false;
+              if (department && (r.department || "").toLowerCase() !== department.toLowerCase()) return false;
+              if (dateFrom && r.startDate && new Date(r.startDate) < new Date(dateFrom)) return false;
+              if (dateTo && r.startDate && new Date(r.startDate) > new Date(dateTo)) return false;
+
+              if (search) {
+                const haystack = [
+                  r.name,
+                  r.employeeId,
+                  r.department,
+                  r.jobTitle,
+                  r.phone,
+                  r.status,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase();
+                if (!haystack.includes(search)) return false;
+              }
+              return true;
+            });
+
+            rows = filtered.map((r, idx) => ({
+              index: idx + 1,
+              ...r,
+            }));
+
+            stats = {
+              totalVacations: rows.length,
+              activeVacations: rows.filter((r) => (r.status || "").toUpperCase() === "ACTIVE").length,
+              returnedVacations: rows.filter((r) => (r.status || "").toUpperCase() === "RETURNED").length,
+              overdueVacations: rows.filter((r) => (r.status || "").toUpperCase() === "OVERDUE").length,
+            };
+          }
+
+          // ─── SOURCE: HOSTINGS ───────────────────────────────────────────
+          else if (dataSource === "hostings") {
+            const rawHost = await tenantDb
+              .select({
+                id: hostingsTable.id,
+                profileId: hostingsTable.profileId,
+                guestName: hostingsTable.guestName,
+                relation: hostingsTable.relation,
+                nationalId: hostingsTable.nationalId,
+                startDate: hostingsTable.startDate,
+                endDate: hostingsTable.endDate,
+                status: hostingsTable.status,
+                hostingType: hostingsTable.hostingType,
+                roomId: hostingsTable.roomId,
+                roomNumber: roomsTable.roomNumber,
+                buildingName: buildingsTable.name,
+                buildingId: roomsTable.buildingId,
+                employeeId: profilesTable.employeeId,
+                hostName: profilesTable.name,
+                department: profilesTable.department,
+                createdAt: hostingsTable.createdAt,
+              })
+              .from(hostingsTable)
+              .leftJoin(profilesTable, eq(hostingsTable.profileId, profilesTable.id))
+              .leftJoin(roomsTable, eq(hostingsTable.roomId, roomsTable.id))
+              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .orderBy(desc(hostingsTable.id));
+
+            let filtered = rawHost.filter((r) => {
+              if (status && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (buildingId && r.buildingId !== buildingId) return false;
+              if (department && (r.department || "").toLowerCase() !== department.toLowerCase()) return false;
+              if (dateFrom && r.startDate && new Date(r.startDate) < new Date(dateFrom)) return false;
+              if (dateTo && r.startDate && new Date(r.startDate) > new Date(dateTo)) return false;
+
+              if (search) {
+                const haystack = [
+                  r.guestName,
+                  r.hostName,
+                  r.employeeId,
+                  r.nationalId,
+                  r.relation,
+                  r.roomNumber,
+                  r.buildingName,
+                  r.department,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase();
+                if (!haystack.includes(search)) return false;
+              }
+              return true;
+            });
+
+            rows = filtered.map((r, idx) => ({
+              index: idx + 1,
+              ...r,
+            }));
+
+            stats = {
+              totalHostings: rows.length,
+              activeCount: rows.filter((r) => (r.status || "").toLowerCase() === "active").length,
+              approvedCount: rows.filter((r) => (r.status || "").toLowerCase() === "approved").length,
+            };
+          }
+
+          // Optional sorting
+          if (sortBy) {
+            rows.sort((a, b) => {
+              let valA = a[sortBy] ?? "";
+              let valB = b[sortBy] ?? "";
+              if (typeof valA === "string") valA = valA.toLowerCase();
+              if (typeof valB === "string") valB = valB.toLowerCase();
+              if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+              if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+              return 0;
+            });
+          }
+
+          totalCount = rows.length;
+
+          // Pagination
+          let paginatedRows = rows;
+          if (!fetchAll) {
+            const offset = (Number(page) - 1) * Number(limit);
+            paginatedRows = rows.slice(offset, offset + Number(limit));
+          }
+
+          return {
+            success: true,
+            data: paginatedRows,
+            total: totalCount,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(totalCount / Number(limit)) || 1,
+            stats,
+          };
+        }),
+      {
+        success: false,
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+        stats: {},
+      }
     );
 
     res.json(result);

@@ -2222,6 +2222,23 @@ BEGIN
     CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_prop ON "ws_sessions"("property_id");
     CREATE INDEX IF NOT EXISTS idx_tenant_ws_sessions_active ON "ws_sessions"("is_active");
 
+    -- --------------------------------------------------------
+    -- Table: custom_report_templates (per tenant)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "custom_report_templates" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER,
+      "name" TEXT NOT NULL,
+      "name_en" TEXT,
+      "data_source" TEXT NOT NULL DEFAULT 'in_house',
+      "columns" JSONB NOT NULL DEFAULT '[]'::jsonb,
+      "filters" JSONB NOT NULL DEFAULT '{}'::jsonb,
+      "layout_options" JSONB NOT NULL DEFAULT '{}'::jsonb,
+      "created_by" INTEGER,
+      "created_at" TIMESTAMPTZ DEFAULT now(),
+      "updated_at" TIMESTAMPTZ DEFAULT now()
+    );
+
   END LOOP;
 
   -- Reset search path back to public
@@ -2438,6 +2455,23 @@ We wish you a safe trip and a pleasant stay! ✨',
   CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_user ON public.ws_sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_prop ON public.ws_sessions(property_id);
   CREATE INDEX IF NOT EXISTS idx_public_ws_sessions_active ON public.ws_sessions(is_active);
+
+  -- --------------------------------------------------------
+  -- Table: public.custom_report_templates
+  -- --------------------------------------------------------
+  CREATE TABLE IF NOT EXISTS public.custom_report_templates (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER,
+    name TEXT NOT NULL,
+    name_en TEXT,
+    data_source TEXT NOT NULL DEFAULT 'in_house',
+    columns JSONB NOT NULL DEFAULT '[]'::jsonb,
+    filters JSONB NOT NULL DEFAULT '{}'::jsonb,
+    layout_options JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_by INTEGER,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  );
 
   -- Add Key HR & Housing Contacts to public.properties
   ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS hr_contact_1_name TEXT;

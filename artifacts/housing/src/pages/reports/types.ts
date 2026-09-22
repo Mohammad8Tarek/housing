@@ -26,7 +26,8 @@ export type Tab =
   | "water_distribution"
   | "police_report"
   | "vacations"
-  | "policy_exceptions";
+  | "policy_exceptions"
+  | "configuration";
 
 export interface TabConfig {
   id: Tab;

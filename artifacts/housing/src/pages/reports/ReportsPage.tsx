@@ -15,7 +15,10 @@ import { useReportColumns } from "./hooks/useReportColumns";
 import { useSmartReportExport } from "@/hooks/useSmartReportExport";
 import { SMART_REPORT_TABS } from "@/config/reportDefinitions";
 
-import { ClipboardCheck, AlertOctagon, Palmtree } from "lucide-react";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { ClipboardCheck, AlertOctagon, Palmtree, SlidersHorizontal } from "lucide-react";
+import ReportConfigurationPage from "./ReportConfigurationPage";
 import { ExportToolbar } from "./components/ExportToolbar";
 import { StatsCards } from "./components/StatsCards";
 import { TabsNav } from "./components/TabsNav";
@@ -30,7 +33,7 @@ import { HousingMapReportTab } from "./components/HousingMapReportTab";
 import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTrackReportRibbon";
 
 export default function Reports() {
-  const { activePropertyId } = useProperty();
+  const { activePropertyId, propertySlug } = useProperty();
   const { language } = useLanguage();
   const { can } = usePermission();
   const ar = language === "ar";
@@ -204,7 +207,17 @@ export default function Reports() {
             {ar ? "مركز التقارير الشاملة" : "Comprehensive Reports"}
           </h1>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <Link href={`/${propertySlug || "all"}/reports/configuration`}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border-primary/30 flex items-center gap-2 font-bold shadow-xs rounded-xl h-9"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span>{ar ? "كنفجريشن ريبورت (تقرير مخصص)" : "Configuration Report"}</span>
+            </Button>
+          </Link>
           <ExportToolbar
             canExportReports={canExportReports}
             activeTab={filters.activeTab}
@@ -303,8 +316,14 @@ export default function Reports() {
         />
       )}
 
+      {/* Configuration Report (Custom Builder) */}
+      {filters.activeTab === "configuration" && (
+        <ReportConfigurationPage />
+      )}
+
       {/* Other Tabs: Data Table & Filters */}
-      {filters.activeTab !== "analytics" &&
+      {filters.activeTab !== "configuration" &&
+        filters.activeTab !== "analytics" &&
         filters.activeTab !== "manager_flash" &&
         filters.activeTab !== "occupancy_forecast" &&
         filters.activeTab !== "service_ratings" &&
