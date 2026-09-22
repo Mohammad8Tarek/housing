@@ -35,6 +35,7 @@ import {
   Clock,
   Settings2,
   Users,
+  FileBarChart2,
 } from "lucide-react";
 
 // Components
@@ -595,34 +596,18 @@ export default function ReportConfigurationPage() {
 
   return (
     <div className="space-y-6 pb-16 animate-in fade-in duration-300">
-      {/* ─── Top Bar / Header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border rounded-2xl p-4 md:p-6 shadow-xs">
+      {/* ─── Header — matches Reports page style ──────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href={`/${propertySlug || "all"}/reports`}>
-            <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" title={ar ? "العودة للتقارير" : "Back to Reports"}>
-              {ar ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
-            </Button>
-          </Link>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl md:text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
-                <SlidersHorizontal className="w-6 h-6 text-primary" />
-                {ar ? "كنفجريشن ريبورت (مُنشئ التقارير المخصصة)" : "Configuration Report (Custom Builder)"}
-              </h1>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
-                {ar ? "تحكم كامل" : "Full Control"}
-              </Badge>
-            </div>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">
-              {ar
-                ? "صمم تقريرك الخاص على مزاجك: اختر مصدر البيانات، حدد الأعمدة، طبق الفلاتر، واحفظ النموذج أو صدره فوراً PDF وإكسيل."
-                : "Build tailored reports to your exact preference: pick data source, choose columns, apply multi-level filters, and export."}
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <SlidersHorizontal className="w-6 h-6 text-primary" />
+            {ar ? "كنفجريشن ريبورت (مُنشئ التقارير المخصصة)" : "Configuration Report (Custom Builder)"}
+          </h1>
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
+            {ar ? "تحكم كامل" : "Full Control"}
+          </Badge>
         </div>
-
-        {/* Global Toolbar Actions */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="flex gap-2 flex-wrap items-center">
           <Button
             variant="outline"
             size="sm"
@@ -662,6 +647,24 @@ export default function ReportConfigurationPage() {
             <span className="text-xs">{ar ? "تصفير" : "Reset"}</span>
           </Button>
         </div>
+      </div>
+
+      {/* ─── Navigation Tabs — matching Reports page TabsNav ────────────── */}
+      <div className="flex gap-1 bg-muted/40 rounded-lg p-1 flex-wrap">
+        <Link href={`/${propertySlug || "all"}/reports`}>
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-background/50"
+          >
+            <FileBarChart2 className="w-4 h-4 text-amber-500" />
+            {ar ? "مركز التقارير الشاملة" : "All Reports"}
+          </button>
+        </Link>
+        <button
+          className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all bg-background text-foreground shadow-sm border"
+        >
+          <SlidersHorizontal className="w-4 h-4 text-primary" />
+          {ar ? "كنفجريشن ريبورت (تقرير مخصص)" : "Configuration Report"}
+        </button>
       </div>
 
       {/* ─── Step 1: Select Data Source (7 Core Engines) ───────────────────── */}
