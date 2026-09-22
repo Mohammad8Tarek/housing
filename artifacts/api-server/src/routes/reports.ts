@@ -946,7 +946,7 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
             };
           }
 
-          // ─── SOURCE: ROOMS ──────────────────────────────────────────────
+          // ─── SOURCE: ROOMS (with In-House Occupants Mix Data) ───────────
           else if (dataSource === "rooms") {
             const rawRooms = await tenantDb
               .select({
@@ -971,14 +971,56 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
               .orderBy(buildingsTable.name, roomsTable.roomNumber);
 
+            // Fetch active assignments for in-house mix data
+            const activeAssignments = await tenantDb
+              .select({
+                roomId: assignmentsTable.roomId,
+                bedNumber: assignmentsTable.bedNumber,
+                checkInDate: assignmentsTable.checkInDate,
+                profileId: profilesTable.id,
+                employeeId: profilesTable.profileId,
+                firstName: profilesTable.firstName,
+                lastName: profilesTable.lastName,
+                firstNameAr: profilesTable.firstNameAr,
+                lastNameAr: profilesTable.lastNameAr,
+                jobTitle: profilesTable.jobTitle,
+                jobTitleAr: profilesTable.jobTitleAr,
+                department: profilesTable.department,
+                departmentAr: profilesTable.departmentAr,
+                phone: profilesTable.phone,
+                nationality: profilesTable.nationality,
+              })
+              .from(assignmentsTable)
+              .innerJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+              .where(eq(assignmentsTable.status, "ACTIVE"));
+
+            const roomAssignMap = new Map<number, any[]>();
+            activeAssignments.forEach((a) => {
+              if (a.roomId) {
+                if (!roomAssignMap.has(a.roomId)) roomAssignMap.set(a.roomId, []);
+                roomAssignMap.get(a.roomId)!.push(a);
+              }
+            });
+
             let filtered = rawRooms.filter((r) => {
+              const assigns = roomAssignMap.get(r.id) || [];
               if (buildingId && r.buildingId !== buildingId) return false;
               if (floorId && r.floorId !== floorId) return false;
               if (status && status !== "all" && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
               if (filters.gender && filters.gender !== "all" && (r.gender || "").toLowerCase() !== String(filters.gender).toLowerCase()) return false;
               if (filters.roomType && filters.roomType !== "all" && (r.roomType || "").toLowerCase() !== String(filters.roomType).toLowerCase()) return false;
+              if (department && department !== "all") {
+                const hasDept = assigns.some((a) => (a.department || "").toLowerCase() === department.toLowerCase());
+                if (!hasDept) return false;
+              }
 
               if (search) {
+                const occNames = assigns.map((a) => [a.firstName, a.lastName].filter(Boolean).join(" ")).join(" ");
+                const occDepts = assigns.map((a) => a.department || "").join(" ");
+                const occJobs = assigns.map((a) => a.jobTitle || "").join(" ");
+                const occIds = assigns.map((a) => a.employeeId || "").join(" ");
+                const occPhones = assigns.map((a) => a.phone || "").join(" ");
+
                 const haystack = [
                   r.roomNumber,
                   r.buildingName,
@@ -987,6 +1029,11 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                   r.gender,
                   r.bedType,
                   r.view,
+                  occNames,
+                  occDepts,
+                  occJobs,
+                  occIds,
+                  occPhones,
                 ]
                   .filter(Boolean)
                   .join(" ")
@@ -997,10 +1044,52 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
             });
 
             rows = filtered.map((r, idx) => {
+              const assigns = roomAssignMap.get(r.id) || [];
               const cap = r.capacity || 0;
-              const occ = r.currentOccupancy || 0;
+              const occ = assigns.length || r.currentOccupancy || 0;
               const vac = Math.max(0, cap - occ);
               const pct = cap > 0 ? Math.round((occ / cap) * 100) : 0;
+
+              const occupantNames = assigns
+                .map((a) => [a.firstName, a.lastName].filter(Boolean).join(" "))
+                .filter(Boolean)
+                .join("، ") || "—";
+
+              const occupantDetails = assigns
+                .map((a) => {
+                  const n = [a.firstName, a.lastName].filter(Boolean).join(" ");
+                  return a.bedNumber ? `${n} (سرير ${a.bedNumber})` : n;
+                })
+                .filter(Boolean)
+                .join(" | ") || "—";
+
+              const occupantDepartments = Array.from(
+                new Set(assigns.map((a) => a.department).filter(Boolean)),
+              ).join("، ") || "—";
+
+              const occupantJobTitles = Array.from(
+                new Set(assigns.map((a) => a.jobTitle).filter(Boolean)),
+              ).join("، ") || "—";
+
+              const occupantEmployeeIds = assigns
+                .map((a) => a.employeeId)
+                .filter(Boolean)
+                .join("، ") || "—";
+
+              const occupantPhones = assigns
+                .map((a) => a.phone)
+                .filter(Boolean)
+                .join("، ") || "—";
+
+              const occupantNationalities = Array.from(
+                new Set(assigns.map((a) => a.nationality).filter(Boolean)),
+              ).join("، ") || "—";
+
+              const occupantCheckInDates = assigns
+                .map((a) => a.checkInDate)
+                .filter(Boolean)
+                .join("، ") || "—";
+
               return {
                 index: idx + 1,
                 ...r,
@@ -1009,6 +1098,17 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                 occupancyPct: `${pct}%`,
                 cleanlinessStatus: r.status === "dirty" ? "dirty" : "clean",
                 genderPolicy: r.gender || "all",
+                // Mixed Resident Data
+                occupants: assigns,
+                occupantCount: assigns.length,
+                occupantNames,
+                occupantDetails,
+                occupantDepartments,
+                occupantJobTitles,
+                occupantEmployeeIds,
+                occupantPhones,
+                occupantNationalities,
+                occupantCheckInDates,
               };
             });
 
@@ -1022,6 +1122,8 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               totalOccupied: totalOcc,
               totalVacant: totalVac,
               overallOccupancyPct: totalCap > 0 ? `${Math.round((totalOcc / totalCap) * 100)}%` : "0%",
+              occupiedRoomsCount: rows.filter((r) => (r.occupiedBeds || 0) > 0).length,
+              vacantRoomsCount: rows.filter((r) => (r.occupiedBeds || 0) === 0).length,
             };
           }
 

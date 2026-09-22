@@ -176,6 +176,16 @@ export const SOURCE_COLUMNS: Record<DataSourceType, CustomColumnDef[]> = {
     { key: "cleanlinessStatus", label: "Cleanliness Status", labelAr: "حالة النظافة", category: "Operational Status", categoryAr: "الحالة التشغيلية والنظافة", type: "status", defaultSelected: true },
     { key: "genderPolicy", label: "Gender Policy", labelAr: "سياسة النوع", category: "Operational Status", categoryAr: "الحالة التشغيلية والنظافة", type: "text", defaultSelected: false },
     { key: "notes", label: "Notes", labelAr: "ملاحظات", category: "Operational Status", categoryAr: "الحالة التشغيلية والنظافة", type: "text", defaultSelected: false },
+
+    // Mixed Resident & Occupant Data (خلطة الساكنين والمقيمين)
+    { key: "occupantDetails", label: "Occupants & Beds", labelAr: "المقيمين مع الأسرة", category: "Resident Info (Mix)", categoryAr: "خلطة بيانات المقيمين", type: "badge", defaultSelected: true },
+    { key: "occupantNames", label: "Occupants Names", labelAr: "أسماء الساكنين", category: "Resident Info (Mix)", categoryAr: "خلطة بيانات المقيمين", type: "text", defaultSelected: false },
+    { key: "occupantDepartments", label: "Occupant Departments", labelAr: "أقسام المقيمين", category: "Resident Info (Mix)", categoryAr: "خلطة بيانات المقيمين", type: "badge", defaultSelected: true },
+    { key: "occupantJobTitles", label: "Occupant Job Titles", labelAr: "وظائف المقيمين", category: "Resident Info (Mix)", categoryAr: "خلطة بيانات المقيمين", type: "text", defaultSelected: false },
+    { key: "occupantEmployeeIds", label: "Occupant Employee IDs", labelAr: "الرقم الوظيفي للساكنين", category: "Resident Info (Mix)", categoryAr: "خلطة بيانات المقيمين", type: "text", defaultSelected: false },
+    { key: "occupantPhones", label: "Occupant Phones", labelAr: "هواتف المقيمين", category: "Resident Info (Mix)", categoryAr: "خلطة بيانات المقيمين", type: "text", defaultSelected: false },
+    { key: "occupantCheckInDates", label: "Check-in Dates", labelAr: "تواريخ التسكين", category: "Resident Info (Mix)", categoryAr: "خلطة بيانات المقيمين", type: "text", defaultSelected: false },
+    { key: "occupantNationalities", label: "Occupant Nationalities", labelAr: "جنسيات المقيمين", category: "Resident Info (Mix)", categoryAr: "خلطة بيانات المقيمين", type: "text", defaultSelected: false },
   ],
 
   reservations: [

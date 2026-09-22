@@ -34,6 +34,7 @@ import {
   Info,
   Clock,
   Settings2,
+  Users,
 } from "lucide-react";
 
 // Components
@@ -1182,7 +1183,25 @@ export default function ReportConfigurationPage() {
                           const val = row[col.key];
                           return (
                             <td key={col.key} className="py-2.5 px-3.5 border-e border-border/50 whitespace-nowrap">
-                              {col.type === "badge" ? (
+                              {col.key === "occupantDetails" ? (
+                                val && val !== "—" ? (
+                                  <div className="flex flex-wrap items-center gap-1.5 min-w-[200px] max-w-[380px] whitespace-normal">
+                                    {String(val).split(" | ").map((item, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300/40 shadow-xs"
+                                      >
+                                        <Users className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <span>{item}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] text-muted-foreground/70 bg-muted/20 font-normal">
+                                    {ar ? "شاغرة (بدون ساكن)" : "Vacant"}
+                                  </Badge>
+                                )
+                              ) : col.type === "badge" ? (
                                 <Badge variant="outline" className="text-[11px] font-semibold bg-background">
                                   {val || "—"}
                                 </Badge>
