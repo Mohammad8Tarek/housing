@@ -68,6 +68,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import {
   Dialog,
   DialogContent,
@@ -2124,25 +2125,27 @@ export default function RoomAssignment() {
             </div>
           )}
 
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={
-              createMutation.isPending ||
-              !selectedProfile ||
-              !selectedRoomId ||
-              (!!selectedRoom &&
-                selectedRoom.currentOccupancy >= selectedRoom.capacity)
-            }
-          >
-            {createMutation.isPending
-              ? ar
-                ? "جاري التعيين..."
-                : "Assigning..."
-              : ar
-                ? "تعيين الغرفة"
-                : "Assign Room"}
-          </Button>
+          <PermissionGate module="accommodation" action="create">
+            <Button
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={
+                createMutation.isPending ||
+                !selectedProfile ||
+                !selectedRoomId ||
+                (!!selectedRoom &&
+                  selectedRoom.currentOccupancy >= selectedRoom.capacity)
+              }
+            >
+              {createMutation.isPending
+                ? ar
+                  ? "جاري التعيين..."
+                  : "Assigning..."
+                : ar
+                  ? "تعيين الغرفة"
+                  : "Assign Room"}
+            </Button>
+          </PermissionGate>
         </CardContent>
       </Card>
 

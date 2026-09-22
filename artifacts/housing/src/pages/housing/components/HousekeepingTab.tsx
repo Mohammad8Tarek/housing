@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
+import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";
@@ -69,6 +70,7 @@ export function HousekeepingTab({
   const [floorFilter, setFloorFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const debouncedSearch = useDebounce(search, 300);
 
   // Loading state for updating rooms
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -179,8 +181,8 @@ export function HousekeepingTab({
       }
 
       // Search filter
-      if (search.trim()) {
-        const q = search.trim().toLowerCase();
+      if (debouncedSearch.trim()) {
+        const q = debouncedSearch.trim().toLowerCase();
         const matchNumber = (r.roomNumber || "").toLowerCase().includes(q);
         const matchType = (r.roomType || "").toLowerCase().includes(q);
         if (!matchNumber && !matchType) return false;
@@ -193,7 +195,7 @@ export function HousekeepingTab({
     statusFilter,
     buildingFilter,
     floorFilter,
-    search,
+    debouncedSearch,
   ]);
 
   // Pagination state
@@ -205,7 +207,7 @@ export function HousekeepingTab({
   const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   // Reset page & selection when filters change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
     setSelectedRoomIds(new Set());
   }, [filteredRooms]);

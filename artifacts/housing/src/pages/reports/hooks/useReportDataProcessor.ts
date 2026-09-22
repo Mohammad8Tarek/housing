@@ -2214,6 +2214,8 @@ export function useReportDataProcessor({
                   ? `مدة الزيارة (${days} ليالٍ) تجاوزت الحد الأقصى المسموح (${maxNights} ليالٍ)`
                   : `Visit length (${days} nights) exceeded max allowed (${maxNights} nights)`,
                 severity: ar ? "مرتفعة" : "High",
+                approvalStatus: ar ? "معتمد (تجاوز مدة)" : "Approved (Overstay)",
+                approvedBy: h.approvedBy || "—",
                 overrideReason: h.notes || (ar ? "طلب استضافة معتمد" : "Approved hosting request"),
               });
             }

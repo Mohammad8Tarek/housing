@@ -728,15 +728,17 @@ export function RoomDetailsDialog({
                       </Button>
                     )}
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDeleteInventory(item.id)}
-                      title={ar ? "حذف" : "Delete"}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    <PermissionGate anyPermission={[["inventory", "delete"], ["housing", "delete"]]}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteInventory(item.id)}
+                        title={ar ? "حذف" : "Delete"}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </div>
               ))}

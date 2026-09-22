@@ -13,6 +13,14 @@ export type RecommendationResult = {
   badgeLabelEn: string;
 };
 
+export function normalizeGender(g?: string | null): "M" | "F" | "" {
+  if (!g) return "";
+  const s = String(g).trim().toLowerCase();
+  if (s === "m" || s === "male" || s === "ذكر" || s === "رجال") return "M";
+  if (s === "f" || s === "female" || s === "أنثى" || s === "سيدات" || s === "إناث") return "F";
+  return "";
+}
+
 export function getLevelTargetCapacity(
   levelRaw: string | number | null | undefined,
   policySettings?: any,
@@ -251,7 +259,7 @@ export function recommendBestRooms({
   }
 
   const profileLevel = profile?.level;
-  const profileGender = (profile?.gender || "").toLowerCase();
+  const profileGender = normalizeGender(profile?.gender);
   const profileDept = (profile?.department || "").toLowerCase();
   const profileNat = (profile?.nationality || "").toLowerCase();
 
@@ -315,7 +323,8 @@ export function recommendBestRooms({
     let score = 50; // base score for having an open bed
 
     // 1. Gender Compatibility Check (with Strict Segregation Support)
-    const roomGender = (r.gender || "").toLowerCase();
+    const rawRoomGender = (r.gender || "").toLowerCase();
+    const roomGender = normalizeGender(r.gender);
     const existingOccupants = (activeAssignmentsByRoom[r.id] || []).map((a) =>
       profileMap.get(a.profileId)
     ).filter(Boolean);
@@ -323,7 +332,7 @@ export function recommendBestRooms({
     const strictGender = policySettings?.policyStrictGenderSegregation !== false;
 
     if (profileGender) {
-      if (roomGender && roomGender !== "any" && roomGender !== "all") {
+      if (roomGender && rawRoomGender !== "any" && rawRoomGender !== "all") {
         if (roomGender !== profileGender) {
           if (strictGender) continue; // Incompatible gender strictly rejected
           score -= 100;
@@ -333,7 +342,7 @@ export function recommendBestRooms({
       }
       // Check existing roommates genders
       const hasConflictingGender = existingOccupants.some((occ) => {
-        const occG = (occ.gender || "").toLowerCase();
+        const occG = normalizeGender(occ.gender);
         return occG && occG !== profileGender;
       });
       if (hasConflictingGender) {
@@ -731,19 +740,20 @@ export function checkPolicyCompliance({
 
   // 4. Strict Gender Segregation Check
   const strictGender = policySettings?.policyStrictGenderSegregation !== false;
-  const profileGender = (profile.gender || "").trim().toLowerCase();
+  const profileGender = normalizeGender(profile.gender);
   if (strictGender && profileGender) {
-    const roomGender = (room.gender || "").trim().toLowerCase();
-    if (roomGender && roomGender !== "any" && roomGender !== "all" && roomGender !== profileGender) {
+    const rawRoomGender = (room.gender || "").trim().toLowerCase();
+    const roomGender = normalizeGender(room.gender);
+    if (roomGender && rawRoomGender !== "any" && rawRoomGender !== "all" && roomGender !== profileGender) {
       violations.push({
         code: "GENDER_ROOM_MISMATCH",
-        messageAr: `مخالفة سياسة فصل الجنسين الصارمة: الغرفة مخصصة لـ (${roomGender === "female" ? "الإناث" : "الذكور"}) بينما الموظف (${profileGender === "female" ? "أنثى" : "ذكر"})`,
-        messageEn: `Strict gender segregation violation: Room is designated for (${roomGender}) while employee is (${profileGender})`,
+        messageAr: `مخالفة سياسة فصل الجنسين الصارمة: الغرفة مخصصة لـ (${roomGender === "F" ? "الإناث" : "الذكور"}) بينما الموظف (${profileGender === "F" ? "أنثى" : "ذكر"})`,
+        messageEn: `Strict gender segregation violation: Room is designated for (${roomGender === "F" ? "Female" : "Male"}) while employee is (${profileGender === "F" ? "Female" : "Male"})`,
       });
     }
 
     const conflictingRoommates = existingRoommates.filter((rm: any) => {
-      const g = (rm.gender || "").trim().toLowerCase();
+      const g = normalizeGender(rm.gender);
       return g && g !== profileGender;
     });
     if (conflictingRoommates.length > 0) {

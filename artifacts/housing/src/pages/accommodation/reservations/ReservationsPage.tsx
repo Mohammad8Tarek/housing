@@ -1688,18 +1688,22 @@ export default function ReservationsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-56 shadow-lg">
                             {res.status === "UPCOMING" && (
-                              <DropdownMenuItem onClick={() => handleStartCheckin(res)} className="cursor-pointer font-medium text-emerald-600">
-                                <CheckCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />{ar ? "تسكين" : "Check-In"}
-                              </DropdownMenuItem>
+                              <PermissionGate module="accommodation" action="create">
+                                <DropdownMenuItem onClick={() => handleStartCheckin(res)} className="cursor-pointer font-medium text-emerald-600">
+                                  <CheckCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />{ar ? "تسكين" : "Check-In"}
+                                </DropdownMenuItem>
+                              </PermissionGate>
                             )}
                             {res.status === "UPCOMING" && (
-                              <DropdownMenuItem
-                                onClick={() => handleOpenWhatsAppDialog(res)}
-                                className="cursor-pointer font-medium text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50"
-                              >
-                                <MessageSquare className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />
-                                {ar ? "إرسال تأكيد الحجز (واتساب)" : "Send WhatsApp Confirmation"}
-                              </DropdownMenuItem>
+                              <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenWhatsAppDialog(res)}
+                                  className="cursor-pointer font-medium text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50"
+                                >
+                                  <MessageSquare className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />
+                                  {ar ? "إرسال تأكيد الحجز (واتساب)" : "Send WhatsApp Confirmation"}
+                                </DropdownMenuItem>
+                              </PermissionGate>
                             )}
                             <PermissionGate module="accommodation" action="edit">
                               <DropdownMenuItem onClick={() => openEdit(res)} className="cursor-pointer">

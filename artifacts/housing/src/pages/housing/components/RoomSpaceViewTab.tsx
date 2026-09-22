@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataPagination } from "@/components/DataPagination";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import {
   ROOM_STATUS_OPTIONS,
   roomStatusBadge,
@@ -343,7 +344,7 @@ export function RoomSpaceViewTab({
                             <>
                               <span>•</span>
                               <span className="capitalize">
-                                {room.gender === "male" ? (ar ? "رجال" : "Male") : (ar ? "سيدات" : "Female")}
+                                {(room.gender === "male" || room.gender === "M") ? (ar ? "رجال" : "Male") : (ar ? "سيدات" : "Female")}
                               </span>
                             </>
                           )}
@@ -424,24 +425,28 @@ export function RoomSpaceViewTab({
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => handleQuickReserve(room.id, bedNum, e)}
-                                className="h-7 px-2 text-[11px] font-bold border-blue-400 text-blue-700 dark:text-blue-300 hover:bg-blue-600 hover:text-white transition-colors"
-                                title={ar ? "إنشاء حجز لملف جديد" : "Create reservation for new profile"}
-                              >
-                                <CalendarDays className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                                {ar ? "حجز" : "Reserve"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => handleQuickAssign(room.id, bedNum, e)}
-                                className="h-7 px-2 text-[11px] font-bold border-emerald-400 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white transition-colors"
-                              >
-                                + {ar ? "تسكين" : "Assign"}
-                              </Button>
+                              <PermissionGate module="accommodation" action="create">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => handleQuickReserve(room.id, bedNum, e)}
+                                  className="h-7 px-2 text-[11px] font-bold border-blue-400 text-blue-700 dark:text-blue-300 hover:bg-blue-600 hover:text-white transition-colors"
+                                  title={ar ? "إنشاء حجز لملف جديد" : "Create reservation for new profile"}
+                                >
+                                  <CalendarDays className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                                  {ar ? "حجز" : "Reserve"}
+                                </Button>
+                              </PermissionGate>
+                              <PermissionGate module="accommodation" action="create">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => handleQuickAssign(room.id, bedNum, e)}
+                                  className="h-7 px-2 text-[11px] font-bold border-emerald-400 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white transition-colors"
+                                >
+                                  + {ar ? "تسكين" : "Assign"}
+                                </Button>
+                              </PermissionGate>
                             </div>
                           </div>
                         );

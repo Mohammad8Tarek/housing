@@ -179,7 +179,7 @@ export function HousingPage() {
         "نوع الأسرة": r.bedType ?? "",
         "حالة الغرفة التشغيلية": stObj.ar,
         "حالة النظافة": r.cleanlinessStatus === "dirty" ? "تحتاج تنظيف" : "نظيفة",
-        "تخصيص الجنس": r.gender === "female" ? "إناث" : r.gender === "male" ? "ذكور" : "مشترك / غير محدد",
+        "تخصيص الجنس": (r.gender === "female" || r.gender === "F") ? "إناث" : (r.gender === "male" || r.gender === "M") ? "ذكور" : "مشترك / غير محدد",
         "إطلالة الغرفة": r.view ?? "",
         "باب فاصل / متصلة": r.separatorDoor ? "نعم" : "لا",
         "المساحة (م2)": r.size || (r.sizeSqm ? `${r.sizeSqm}m²` : ""),
@@ -229,7 +229,7 @@ export function HousingPage() {
         "إجمالي الطاقة الاستيعابية": bCapacity,
         "الإشغال الفعلي": bOcc,
         "نسبة الإشغال": `${bRate}%`,
-        "التخصيص": b.gender === "female" ? "إناث" : b.gender === "male" ? "ذكور" : "مشترك",
+        "التخصيص": (b.gender === "female" || b.gender === "F") ? "إناث" : (b.gender === "male" || b.gender === "M") ? "ذكور" : "مشترك",
         "ملاحظات": b.notes ?? b.description ?? "",
       } : {
         "Building Name": b.name ?? "",

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   useListMaintenance,
   useUpdateMaintenance,
@@ -27,6 +28,7 @@ import {
   Trash,
   Lock,
   Star,
+  Loader2,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { differenceInMinutes, differenceInHours } from "date-fns";
@@ -76,7 +78,13 @@ function formatDuration(startedAt, resolvedAt, reportedAt) {
 export default function MaintenanceDetails() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
-  const goBack = () => window.history.back();
+  const goBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setLocation("/maintenance");
+    }
+  };
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -90,8 +98,24 @@ export default function MaintenanceDetails() {
   const canEditHsk = isSuperAdmin || can("housekeeping", "edit");
   const canEditTicket = isSuperAdmin || (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
 
+  // Direct fetch for single ticket by ID to guarantee resolution regardless of pagination
+  const {
+    data: singleTicketData,
+    isLoading: isSingleLoading,
+    refetch: refetchTicket,
+  } = useQuery({
+    queryKey: ["maintenance-detail", id, activePropertyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/maintenance/${id}?propertyId=${activePropertyId || ""}`);
+      if (!res.ok) throw new Error("Failed to fetch maintenance ticket");
+      const json = await res.json();
+      return json.data || json;
+    },
+    enabled: !!id,
+  });
+
   const { data: _allTicketsWrapper } = useListMaintenance({
-    query: { enabled: !!activePropertyId },
+    query: { enabled: !!activePropertyId && !singleTicketData },
   });
   const allTickets = _allTicketsWrapper?.data || [];
 
@@ -104,7 +128,8 @@ export default function MaintenanceDetails() {
   const updateMutation = useUpdateMaintenance({
     mutation: {
       onSuccess: () => {
-        toast.success(ar ? "تم التحديث" : "Updated successfully");
+        toast.success(ar ? "تم التحديث بنجاح" : "Updated successfully");
+        refetchTicket();
       },
       onError: (e) =>
         toast.error(ar ? "خطأ" : "Error", {
@@ -114,11 +139,41 @@ export default function MaintenanceDetails() {
   });
 
   useEffect(() => {
-    if (allTickets) {
+    if (singleTicketData) {
+      setTicket(singleTicketData);
+    } else if (allTickets.length > 0) {
       const found = allTickets.find((t) => t.id === parseInt(id));
-      setTicket(found);
+      if (found) setTicket(found);
     }
-  }, [allTickets, id]);
+  }, [singleTicketData, allTickets, id]);
+
+  const handleAddComment = () => {
+    if (!comment.trim() || !ticket) return;
+    const now = new Date();
+    const timeStr = now.toLocaleDateString(ar ? "ar-EG" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const entry = `[${timeStr}] ${comment.trim()}`;
+    const newNotes = ticket.notes ? `${ticket.notes}\n\n${entry}` : entry;
+
+    updateMutation.mutate(
+      {
+        id: ticket.id,
+        data: { notes: newNotes },
+      },
+      {
+        onSuccess: () => {
+          setComment("");
+          setTicket((prev: any) => (prev ? { ...prev, notes: newNotes } : prev));
+          toast.success(ar ? "تمت إضافة الملاحظة بنجاح" : "Note added successfully");
+        },
+      }
+    );
+  };
 
   if (!ticket) {
     return (
@@ -128,8 +183,20 @@ export default function MaintenanceDetails() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             {ar ? "عودة" : "Back"}
           </Button>
-          <div className="text-center text-gray-500">
-            {ar ? "جاري التحميل..." : "Loading..."}
+          <div className="text-center text-gray-500 py-16">
+            {isSingleLoading ? (
+              <div className="flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm font-medium">{ar ? "جاري تحميل تفاصيل البلاغ..." : "Loading ticket details..."}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-3">
+                <p className="font-semibold text-rose-600">{ar ? "لم يتم العثور على البلاغ المطلوب" : "Ticket not found"}</p>
+                <Button variant="outline" onClick={() => setLocation("/maintenance")}>
+                  {ar ? "الانتقال لجدول الصيانة" : "Go to Maintenance"}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -255,6 +322,17 @@ export default function MaintenanceDetails() {
                   </p>
                   <p className="text-sm text-gray-700">{ticket.description}</p>
                 </div>
+                {ticket.notes && (
+                  <div className="col-span-2 pt-3 border-t">
+                    <p className="text-xs text-gray-500 mb-1 font-semibold flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                      <span>{ar ? "سجل الملاحظات والتعليقات الإدارية" : "Administrative Notes & Comments Log"}</span>
+                    </p>
+                    <div className="bg-muted/40 p-3 rounded-lg text-xs whitespace-pre-line text-foreground border leading-relaxed">
+                      {ticket.notes}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -506,9 +584,15 @@ export default function MaintenanceDetails() {
                         {ar ? "حل" : "Resolve"}
                       </Button>
                     )}
-                    <Button onClick={() => setComment("")} variant="outline">
+                    <Button
+                      onClick={handleAddComment}
+                      variant="default"
+                      disabled={!comment.trim() || updateMutation.isPending}
+                    >
                       <MessageSquare className="w-4 h-4 mr-2" />
-                      {ar ? "تعليق" : "Comment"}
+                      {updateMutation.isPending
+                        ? (ar ? "جاري الحفظ..." : "Saving...")
+                        : (ar ? "حفظ الملاحظة" : "Add Note")}
                     </Button>
                   </div>
                 </div>

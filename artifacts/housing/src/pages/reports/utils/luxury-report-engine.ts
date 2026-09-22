@@ -574,6 +574,19 @@ export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = 
   "2nd issue (2nd half)": { ar: "الصرف الثاني (النصف الثاني)", en: "2nd Issue (2nd Half)" },
   residentsignature: { ar: "توقيع المستلم", en: "Resident Signature" },
   "resident signature": { ar: "توقيع المستلم", en: "Resident Signature" },
+
+  // Policy Exceptions & Governance
+  violationtype: { ar: "نوع المخالفة", en: "Violation Type" },
+  "violation type": { ar: "نوع المخالفة", en: "Violation Type" },
+  violationdetails: { ar: "تفاصيل المخالفة والسياسة", en: "Policy Details" },
+  "violation details": { ar: "تفاصيل المخالفة والسياسة", en: "Policy Details" },
+  severity: { ar: "مستوى الأهمية", en: "Severity" },
+  approvalstatus: { ar: "حالة الاعتماد", en: "Approval Status" },
+  "approval status": { ar: "حالة الاعتماد", en: "Approval Status" },
+  approvedby: { ar: "المعتمد للطلب", en: "Approved By" },
+  "approved by": { ar: "المعتمد للطلب", en: "Approved By" },
+  overridereason: { ar: "سبب ومسوغات الاستثناء", en: "Override Reason" },
+  "override reason": { ar: "سبب ومسوغات الاستثناء", en: "Override Reason" },
 };
 
 export function translateReportHeader(header: string, isArabic: boolean): string {
