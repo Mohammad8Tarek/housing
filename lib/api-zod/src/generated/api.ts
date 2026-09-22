@@ -133,6 +133,7 @@ export const CreatePropertyBody = zod.object({
   "housingManager2Title": zod.string().nullish(),
   "housingManager2Phone": zod.string().nullish(),
   "housingManager2Email": zod.string().nullish(),
+  "assignedUserIds": zod.array(zod.number()).optional(),
 })
 
 
@@ -205,6 +206,7 @@ export const UpdatePropertyBody = zod.object({
   "housingManager2Title": zod.string().nullish(),
   "housingManager2Phone": zod.string().nullish(),
   "housingManager2Email": zod.string().nullish(),
+  "assignedUserIds": zod.array(zod.number()).optional(),
 })
 
 export const UpdatePropertyResponse = zod.object({

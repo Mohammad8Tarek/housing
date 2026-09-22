@@ -74,8 +74,10 @@ export interface CreatePropertyBody {
   logo?: string | null;
   primaryColor: string;
   defaultLanguage: string;
-  adminUsername: string;
-  adminPassword: string;
+  adminUsername?: string;
+  adminPassword?: string;
+  assignedUserIds?: number[];
+  [key: string]: any;
 }
 
 export interface UpdatePropertyBody {
@@ -88,6 +90,10 @@ export interface UpdatePropertyBody {
   primaryColor?: string;
   defaultLanguage?: string;
   status?: string;
+  adminUsername?: string;
+  adminPassword?: string;
+  assignedUserIds?: number[];
+  [key: string]: any;
 }
 
 export interface Building {

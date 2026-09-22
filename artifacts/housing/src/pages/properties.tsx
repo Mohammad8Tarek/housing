@@ -15,6 +15,7 @@ import {
   useCreateProperty,
   useUpdateProperty,
   useDeleteProperty,
+  useListUsers,
   getListPropertiesQueryKey,
 } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -59,6 +60,11 @@ import {
   Eye,
   EyeOff,
   UserPlus,
+  UserCheck,
+  Search,
+  Check,
+  CheckSquare,
+  Square,
   Upload,
   X,
   Users,
@@ -168,7 +174,14 @@ export default function Properties() {
   const housingFileInputRef = useRef<HTMLInputElement>(null);
   const logoFileRef = useRef<HTMLInputElement>(null);
 
+  // User Assignment Mode state for property creation/editing
+  const [userAssignMode, setUserAssignMode] = useState<"assign_existing" | "create_new" | "none">("assign_existing");
+  const [selectedExistingUserIds, setSelectedExistingUserIds] = useState<number[]>([]);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+
   const { data: properties, isLoading } = useListProperties();
+  const { data: allUsersRes } = useListUsers({ limit: 1000 } as any);
+  const allUsers: any[] = allUsersRes?.data || [];
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getListPropertiesQueryKey() });
@@ -305,12 +318,15 @@ export default function Properties() {
     reader.readAsBinaryString(f);
   };
 
-const closeDialog = () => {
+  const closeDialog = () => {
     setIsOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
     setActiveTab("general");
     setShowAdminPass(false);
+    setUserAssignMode("assign_existing");
+    setSelectedExistingUserIds([]);
+    setUserSearchQuery("");
     setHousingConfigFile(null);
     setHousingConfigParsedRows([]);
     setHousingConfigStats(null);
@@ -320,6 +336,9 @@ const closeDialog = () => {
     setForm(EMPTY_FORM);
     setEditingId(null);
     setActiveTab("general");
+    setUserAssignMode("assign_existing");
+    setSelectedExistingUserIds([]);
+    setUserSearchQuery("");
     setIsOpen(true);
   };
 
@@ -354,6 +373,12 @@ const closeDialog = () => {
     });
     setEditingId(prop.id);
     setActiveTab(initialTab);
+    setUserAssignMode("assign_existing");
+    const currentAssigned = (allUsers || [])
+      .filter((u: any) => (u.propertyIds || []).includes(prop.id) || u.propertyId === prop.id)
+      .map((u: any) => u.id);
+    setSelectedExistingUserIds(currentAssigned);
+    setUserSearchQuery("");
     setIsOpen(true);
   };
 
@@ -367,19 +392,21 @@ const closeDialog = () => {
       return;
     }
 
-    // Validate admin user fields: if one is filled, both must be filled
-    if (!editingId && (form.adminUsername || form.adminPassword)) {
-      if (!form.adminUsername.trim()) {
-        toast.error(ar ? "اسم المستخدم مطلوب" : "Admin username is required");
-        return;
-      }
-      if (!form.adminPassword.trim() || form.adminPassword.length < 6) {
-        toast.error(
-          ar
-            ? "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل"
-            : "Password must be at least 6 characters",
-        );
-        return;
+    // Validate admin user fields if creating new
+    if (userAssignMode === "create_new") {
+      if (form.adminUsername || form.adminPassword) {
+        if (!form.adminUsername.trim()) {
+          toast.error(ar ? "اسم المستخدم مطلوب" : "Admin username is required");
+          return;
+        }
+        if (!form.adminPassword.trim() || form.adminPassword.length < 6) {
+          toast.error(
+            ar
+              ? "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل"
+              : "Password must be at least 6 characters",
+          );
+          return;
+        }
       }
     }
 
@@ -409,9 +436,13 @@ const closeDialog = () => {
       housingManager2Email: form.housingManager2Email || null,
     };
 
-    if (form.adminUsername && form.adminPassword) {
-      payload.adminUsername = form.adminUsername;
+    if (userAssignMode === "create_new" && form.adminUsername && form.adminPassword) {
+      payload.adminUsername = form.adminUsername.trim();
       payload.adminPassword = form.adminPassword;
+    } else if (userAssignMode === "assign_existing") {
+      if (selectedExistingUserIds.length > 0) {
+        payload.assignedUserIds = selectedExistingUserIds;
+      }
     }
 
     if (editingId) {
@@ -973,7 +1004,7 @@ const closeDialog = () => {
                 className="gap-1.5 text-xs font-semibold uppercase tracking-wider"
               >
                 <Shield className="w-3.5 h-3.5" />
-                {ar ? "إدارة" : "ADMIN"}
+                {ar ? "المستخدمين" : "USERS"}
               </TabsTrigger>
               <TabsTrigger
                 value="contacts"
@@ -1252,105 +1283,350 @@ const closeDialog = () => {
                 </div>
               </div>
 
-              {/* Create admin user section */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="px-4 py-3 bg-muted/40 border-b flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-[#C9A24D]" />
-                  <p className="text-sm font-semibold">
-                    {editingId
-                      ? ar
-                        ? "إضافة مستخدم جديد للعقار"
-                        : "Add New User to Property"
-                      : ar
-                        ? "إنشاء مستخدم مسؤول (اختياري)"
-                        : "Create Admin User (Optional)"}
-                  </p>
-                </div>
-                <div className="p-4 space-y-3">
-                  {editingId && (
-                    <p className="text-xs text-muted-foreground">
-                      {ar
-                        ? "يمكنك إنشاء مستخدم جديد لهذا العقار هنا، أو من صفحة إدارة المستخدمين."
-                        : "You can create a new user for this property here, or from the User Management page."}
-                    </p>
-                  )}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      {ar ? "اسم المستخدم" : "USERNAME"}
-                      {!editingId && (
-                        <span className="text-muted-foreground font-normal normal-case tracking-normal ml-1">
-                          ({ar ? "اختياري" : "optional"})
+              {/* Mode Selection Cards */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {ar ? "طريقة تعيين وإدارة المستخدمين للعقار" : "USER ASSIGNMENT METHOD"}
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Option 1: Assign Existing Users */}
+                  <div
+                    onClick={() => setUserAssignMode("assign_existing")}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                      userAssignMode === "assign_existing"
+                        ? "border-primary bg-primary/5 shadow-xs"
+                        : "border-border hover:border-primary/40 bg-card"
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-lg shrink-0 ${
+                        userAssignMode === "assign_existing"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <UserCheck className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-sm text-foreground">
+                          {ar ? "تعيين مستخدم حالي" : "Assign Existing User"}
                         </span>
-                      )}
-                    </Label>
-                    <Input
-                      placeholder={
-                        ar ? "مثال: manager.sunrise" : "e.g. manager.sunrise"
-                      }
-                      value={form.adminUsername}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          adminUsername: e.target.value,
-                        }))
-                      }
-                      autoComplete="off"
-                    />
-                    {form.adminUsername.trim().toLowerCase() === "admin" && (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        <Badge variant="secondary" className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          {ar ? "مستحسن" : "Recommended"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                         {ar
-                          ? "ملاحظة: حساب 'admin' موجود مسبقاً، وسيتم منحه صلاحية إدارة هذا الفرع الجديد تلقائياً."
-                          : "Note: 'admin' account already exists and will be granted access to this new property."}
+                          ? "اختيار مسؤولين أو مشرفين مسجلين مسبقاً بالنظام ومنحهم حق الوصول لهذا العقار."
+                          : "Select existing users and grant them access to this property with their current passwords."}
                       </p>
-                    )}
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      {ar ? "كلمة المرور" : "PASSWORD"}
-                      {!editingId && (
-                        <span className="text-muted-foreground font-normal normal-case tracking-normal ml-1">
-                          ({ar ? "اختياري" : "optional"})
-                        </span>
+
+                  {/* Option 2: Create New User */}
+                  <div
+                    onClick={() => setUserAssignMode("create_new")}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                      userAssignMode === "create_new"
+                        ? "border-primary bg-primary/5 shadow-xs"
+                        : "border-border hover:border-primary/40 bg-card"
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-lg shrink-0 ${
+                        userAssignMode === "create_new"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <UserPlus className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-bold text-sm text-foreground">
+                        {ar ? "إنشاء مستخدم مسؤول جديد" : "Create New Admin User"}
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        {ar
+                          ? "إنشاء حساب مستخدم وكلمة مرور جديدة مخصصة لإدارة هذا العقار تحديداً."
+                          : "Create a brand new username and password dedicated for this property."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* View 1: Assign Existing Users */}
+              {userAssignMode === "assign_existing" && (
+                <div className="border rounded-xl overflow-hidden bg-card space-y-0">
+                  <div className="p-3.5 bg-muted/40 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary" />
+                      <span className="font-bold text-xs uppercase tracking-wider">
+                        {ar ? "قائمة المستخدمين المتاحين بالنظام" : "AVAILABLE SYSTEM USERS"}
+                      </span>
+                      <Badge variant="outline" className="text-[11px] font-mono">
+                        {selectedExistingUserIds.length} {ar ? "محدد" : "selected"}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {selectedExistingUserIds.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => setSelectedExistingUserIds([])}
+                        >
+                          {ar ? "إلغاء التحديد" : "Clear selection"}
+                        </Button>
                       )}
-                    </Label>
-                    <div className="relative">
+                      <div className="relative w-full sm:w-48">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder={ar ? "بحث بالاسم أو الكود..." : "Search users..."}
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                          className="h-8 text-xs pl-8 pr-3"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selected Users Chips */}
+                  {selectedExistingUserIds.length > 0 && (
+                    <div className="p-3 bg-primary/5 border-b flex flex-wrap gap-1.5 items-center">
+                      <span className="text-xs font-semibold text-muted-foreground mr-1">
+                        {ar ? "المستخدمون المعينون:" : "Assigned Users:"}
+                      </span>
+                      {selectedExistingUserIds.map((uid) => {
+                        const u = allUsers.find((user: any) => user.id === uid);
+                        if (!u) return null;
+                        return (
+                          <Badge
+                            key={uid}
+                            variant="secondary"
+                            className="text-xs gap-1 py-1 px-2.5 bg-background border shadow-2xs"
+                          >
+                            <span className="font-semibold text-foreground">
+                              {u.displayName || u.username}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              (@{u.username})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedExistingUserIds((prev) => prev.filter((id) => id !== uid));
+                              }}
+                              className="ml-1 hover:text-rose-500 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Users Scrollable List */}
+                  <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                    {(() => {
+                      const filtered = (allUsers || []).filter((u: any) => {
+                        if (!userSearchQuery.trim()) return true;
+                        const q = userSearchQuery.toLowerCase().trim();
+                        return (
+                          (u.username || "").toLowerCase().includes(q) ||
+                          (u.displayName || "").toLowerCase().includes(q) ||
+                          (u.email || "").toLowerCase().includes(q) ||
+                          (u.department || "").toLowerCase().includes(q) ||
+                          (u.roles || []).some((r: string) => r.toLowerCase().includes(q))
+                        );
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="p-8 text-center text-xs text-muted-foreground">
+                            {userSearchQuery.trim()
+                              ? (ar ? "لا يوجد مستخدم يطابق البحث" : "No users match search query")
+                              : (ar ? "لا يوجد مستخدمون مسجلون بعد" : "No users registered yet")}
+                          </div>
+                        );
+                      }
+
+                      return filtered.map((u: any) => {
+                        const isChecked = selectedExistingUserIds.includes(u.id);
+                        const isAlreadyInProp = editingId
+                          ? (u.propertyIds || []).includes(editingId) || u.propertyId === editingId
+                          : false;
+
+                        return (
+                          <div
+                            key={u.id}
+                            onClick={() => {
+                              setSelectedExistingUserIds((prev) =>
+                                prev.includes(u.id)
+                                  ? prev.filter((id) => id !== u.id)
+                                  : [...prev, u.id]
+                              );
+                            }}
+                            className={`p-3 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+                              isChecked ? "bg-primary/5" : "hover:bg-muted/40"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                  setSelectedExistingUserIds((prev) =>
+                                    checked
+                                      ? [...new Set([...prev, u.id])]
+                                      : prev.filter((id) => id !== u.id)
+                                  );
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-xs text-foreground truncate">
+                                    {u.displayName || u.username}
+                                  </span>
+                                  <span className="font-mono text-[11px] text-muted-foreground">
+                                    @{u.username}
+                                  </span>
+                                  {isAlreadyInProp && (
+                                    <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
+                                      {ar ? "معين حالياً" : "Currently Assigned"}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                                  {u.department && <span>{u.department}</span>}
+                                  {u.department && <span>•</span>}
+                                  <span>
+                                    {ar
+                                      ? `لديه وصول لـ ${(u.propertyIds || []).length || 1} فرع/عقار`
+                                      : `Access to ${(u.propertyIds || []).length || 1} properties`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {(u.roles || []).map((r: string) => (
+                                <Badge
+                                  key={r}
+                                  variant="secondary"
+                                  className="text-[10px] capitalize font-medium"
+                                >
+                                  {r.replace("_", " ")}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  <div className="p-3 bg-muted/20 border-t text-xs text-muted-foreground flex items-center gap-2">
+                    <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>
+                      {ar
+                        ? "المستخدمون المحددون سيتم منحهم صلاحية الوصول لهذا العقار فور الحفظ دون الحاجة لتغيير كلمات المرور."
+                        : "Selected users will be granted access to this property immediately without requiring password changes."}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* View 2: Create New Admin User */}
+              {userAssignMode === "create_new" && (
+                <div className="border rounded-xl overflow-hidden bg-card">
+                  <div className="px-4 py-3 bg-muted/40 border-b flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-semibold">
+                      {editingId
+                        ? ar
+                          ? "إضافة مستخدم جديد للعقار"
+                          : "Add New User to Property"
+                        : ar
+                          ? "إنشاء مستخدم مسؤول جديد"
+                          : "Create New Admin User"}
+                    </p>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {ar ? "اسم المستخدم" : "USERNAME"}
+                        <span className="text-red-500 ml-1">*</span>
+                      </Label>
                       <Input
-                        type="password"
                         placeholder={
-                          ar ? "الحد الأدنى 6 أحرف" : "Minimum 6 characters"
+                          ar ? "مثال: manager.sunrise" : "e.g. manager.sunrise"
                         }
-                        value={form.adminPassword}
+                        value={form.adminUsername}
                         onChange={(e) =>
                           setForm((f) => ({
                             ...f,
-                            adminPassword: e.target.value,
+                            adminUsername: e.target.value,
                           }))
                         }
                         autoComplete="off"
-                        className="pr-10"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowAdminPass((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showAdminPass ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
+                      {form.adminUsername.trim().toLowerCase() === "admin" && (
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                          {ar
+                            ? "ملاحظة: حساب 'admin' موجود مسبقاً، وسيتم منحه صلاحية إدارة هذا الفرع الجديد تلقائياً."
+                            : "Note: 'admin' account already exists and will be granted access to this new property."}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                  {!editingId && (
-                    <p className="text-xs text-muted-foreground">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {ar ? "كلمة المرور" : "PASSWORD"}
+                        <span className="text-red-500 ml-1">*</span>
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type={showAdminPass ? "text" : "password"}
+                          placeholder={
+                            ar ? "الحد الأدنى 6 أحرف" : "Minimum 6 characters"
+                          }
+                          value={form.adminPassword}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              adminPassword: e.target.value,
+                            }))
+                          }
+                          autoComplete="off"
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminPass((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showAdminPass ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-1">
                       {ar
-                        ? "إذا تركته فارغاً، يمكنك إضافة مستخدمين لاحقاً من صفحة إدارة المستخدمين."
-                        : "If left blank, you can add users later from the User Management page."}
+                        ? "سيتم إنشاء هذا الحساب ومنحه دور المسؤول (Admin) مع صلاحيات إدارة هذا العقار."
+                        : "This account will be created with Admin role and granted full access to this property."}
                     </p>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
             </TabsContent>
 
             {/* ── CONTACTS TAB (KEY HR & HOUSING MANAGERS) ── */}

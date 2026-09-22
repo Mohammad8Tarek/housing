@@ -71,6 +71,56 @@ async function ensurePropertyAdmin(
   }
 }
 
+/**
+ * Canonical assignment of existing users to a property (used by create AND update).
+ */
+async function assignExistingUsersToProperty(
+  userIdsOrUsernames: (number | string)[],
+  propertyId: number,
+): Promise<string[]> {
+  if (!Array.isArray(userIdsOrUsernames) || userIdsOrUsernames.length === 0) return [];
+  const assignedUsernames: string[] = [];
+
+  for (const item of userIdsOrUsernames) {
+    try {
+      let existingUser: any = null;
+      if (typeof item === "number" || /^\d+$/.test(String(item).trim())) {
+        const [u] = await db
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.id, Number(item)))
+          .limit(1);
+        existingUser = u;
+      } else {
+        const [u] = await db
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.username, String(item).trim()))
+          .limit(1);
+        existingUser = u;
+      }
+
+      if (existingUser) {
+        const curIds = (existingUser.propertyIds || []).map(Number);
+        const newIds = curIds.includes(propertyId) ? curIds : [...curIds, propertyId];
+        await db
+          .update(usersTable)
+          .set({
+            propertyIds: newIds,
+            propertyId: existingUser.propertyId ?? propertyId,
+          })
+          .where(eq(usersTable.id, existingUser.id));
+
+        assignedUsernames.push(existingUser.username);
+      }
+    } catch (err: any) {
+      console.error(`[Properties] Error assigning user ${item} to property ${propertyId}:`, err);
+    }
+  }
+
+  return assignedUsernames;
+}
+
 router.get("/properties", requireAuth, async (req, res): Promise<void> => {
   const authUser = (req as any).authUser;
   const properties = await db
@@ -199,6 +249,31 @@ router.post(
           await ensurePropertyAdmin(adminUsername, adminPassword, property.id);
         } catch (userErr: any) {
           console.error("[Properties] Error setting up admin user:", userErr?.message || userErr);
+        }
+      }
+
+      // Assign existing user(s) to this new property (without needing password)
+      const rawAssigned = (parsed.data as any)?.assignedUserIds ?? req.body?.assignedUserIds ?? req.body?.assignedUserId;
+      const assignedUserIds: (number | string)[] = Array.isArray(rawAssigned)
+        ? rawAssigned
+        : rawAssigned !== undefined && rawAssigned !== null && rawAssigned !== ""
+        ? [rawAssigned]
+        : [];
+
+      if (assignedUserIds.length > 0) {
+        try {
+          const assignedNames = await assignExistingUsersToProperty(assignedUserIds, property.id);
+          if (assignedNames.length > 0) {
+            await logActivity({
+              category: "properties",
+              action: "ASSIGN_USERS",
+              description: `Assigned existing users (${assignedNames.join(", ")}) to property "${property.name}"`,
+              metadata: { propertyId: property.id, users: assignedNames },
+              ...su(req),
+            });
+          }
+        } catch (userErr: any) {
+          console.error("[Properties] Error assigning existing users:", userErr?.message || userErr);
         }
       }
 
@@ -369,6 +444,31 @@ router.patch(
         await ensurePropertyAdmin(adminUsername, adminPassword, params.data.id);
       } catch (userErr: any) {
         console.error("[Properties] Error setting up admin user on update:", userErr?.message || userErr);
+      }
+    }
+
+    // Assign existing user(s) to this property on update
+    const rawAssigned = (parsed.data as any)?.assignedUserIds ?? req.body?.assignedUserIds ?? req.body?.assignedUserId;
+    const assignedUserIds: (number | string)[] = Array.isArray(rawAssigned)
+      ? rawAssigned
+      : rawAssigned !== undefined && rawAssigned !== null && rawAssigned !== ""
+      ? [rawAssigned]
+      : [];
+
+    if (assignedUserIds.length > 0) {
+      try {
+        const assignedNames = await assignExistingUsersToProperty(assignedUserIds, params.data.id);
+        if (assignedNames.length > 0) {
+          await logActivity({
+            category: "properties",
+            action: "ASSIGN_USERS",
+            description: `Assigned existing users (${assignedNames.join(", ")}) to property "${updated.name}"`,
+            metadata: { propertyId: params.data.id, users: assignedNames },
+            ...su(req),
+          });
+        }
+      } catch (userErr: any) {
+        console.error("[Properties] Error assigning existing users on update:", userErr?.message || userErr);
       }
     }
 
