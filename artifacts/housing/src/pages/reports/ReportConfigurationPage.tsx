@@ -36,6 +36,7 @@ import {
   Settings2,
   Users,
   FileBarChart2,
+  FileText,
 } from "lucide-react";
 
 // Components
@@ -1113,9 +1114,9 @@ export default function ReportConfigurationPage() {
               onClick={handleExportPDF}
               disabled={isLoading || !reportRows.length}
               size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs flex items-center gap-1.5"
+              className="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl shadow-xs flex items-center gap-1.5"
             >
-              <Printer className="w-4 h-4" />
+              <FileText className="w-4 h-4" />
               <span>{ar ? "تصدير PDF فاخر" : "Export Luxury PDF"}</span>
             </Button>
 
