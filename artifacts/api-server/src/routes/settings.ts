@@ -119,6 +119,7 @@ router.patch(
         "visitMinServiceMonths",
         "visitCooldownDays",
         "visitRequireNationalId",
+        "hostingRequestSignaturePolicy",
         // ─── Housing Rules & Regulations ─────────────────────────────
         "curfewEnabled",
         "curfewTime",

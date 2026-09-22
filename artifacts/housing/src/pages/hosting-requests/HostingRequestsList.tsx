@@ -92,31 +92,45 @@ export default function HostingRequestsList() {
   };
 
   const getPendingRole = (request: any) => {
-    if (request.pendingOn) {
-      const roleMap: Record<string, Record<string, string>> = {
-        housing_manager: { en: "Housing Manager", ar: "مدير السكن" },
-        hr_manager: { en: "HR Manager", ar: "مدير الموارد البشرية" },
-        accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
-      };
-      return roleMap[request.pendingOn]?.[language] ?? request.pendingOn;
-    }
-
     if (
       request.status !== "in_signing" ||
       !Array.isArray(request.approval_steps)
-    )
+    ) {
+      if (request.pendingOn) {
+        const roleMap: Record<string, Record<string, string>> = {
+          housing_manager: { en: "Housing Manager", ar: "مدير السكن" },
+          hr_manager: { en: "HR Manager", ar: "مدير الموارد البشرية" },
+          accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
+          general_manager: { en: "General Manager", ar: "المدير العام" },
+          security_manager: { en: "Security Manager", ar: "مدير الأمن" },
+          super_admin: { en: "Super Admin", ar: "مسؤول النظام" },
+        };
+        return roleMap[request.pendingOn]?.[language] ?? request.pendingOn;
+      }
       return null;
+    }
 
     const stepOrder = request.current_step_order ?? request.currentStepOrder;
     const step = request.approval_steps.find(
       (s: any) => s.stepOrder === stepOrder,
     );
-    if (!step) return null;
+    if (!step) {
+      if (request.pendingOn) {
+        return request.pendingOn;
+      }
+      return null;
+    }
+
+    if (ar && step.labelAr) return step.labelAr;
+    if (!ar && step.labelEn) return step.labelEn;
 
     const roleMap: Record<string, Record<string, string>> = {
       housing_manager: { en: "Housing Manager", ar: "مدير السكن" },
       hr_manager: { en: "HR Manager", ar: "مدير الموارد البشرية" },
       accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
+      general_manager: { en: "General Manager", ar: "المدير العام" },
+      security_manager: { en: "Security Manager", ar: "مدير الأمن" },
+      super_admin: { en: "Super Admin", ar: "مسؤول النظام" },
     };
     return roleMap[step.roleRequired]?.[language] ?? step.roleRequired;
   };

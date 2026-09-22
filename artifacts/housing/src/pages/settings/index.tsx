@@ -114,6 +114,7 @@ export default function Settings() {
         visitMinServiceMonths: (settings as any).visitMinServiceMonths ?? 6,
         visitCooldownDays: (settings as any).visitCooldownDays ?? 90,
         visitRequireNationalId: (settings as any).visitRequireNationalId ?? true,
+        hostingRequestSignaturePolicy: Array.isArray((settings as any).hostingRequestSignaturePolicy) ? (settings as any).hostingRequestSignaturePolicy : [],
         curfewEnabled: (settings as any).curfewEnabled ?? false,
         curfewTime: (settings as any).curfewTime ?? "23:00",
         housingRulesText: (settings as any).housingRulesText ?? "",

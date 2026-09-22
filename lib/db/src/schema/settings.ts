@@ -89,6 +89,7 @@ export const settingsTable = pgTable("settings", {
   visitMinServiceMonths: integer("visit_min_service_months").notNull().default(6),
   visitCooldownDays: integer("visit_cooldown_days").notNull().default(90),
   visitRequireNationalId: boolean("visit_require_national_id").notNull().default(true),
+  hostingRequestSignaturePolicy: jsonb("hosting_request_signature_policy").default([]),
 
   // ─── Housing Rules & Documentation ─────────────────────────────────
   curfewEnabled: boolean("curfew_enabled").notNull().default(false),

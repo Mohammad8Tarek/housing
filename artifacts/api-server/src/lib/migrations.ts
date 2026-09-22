@@ -1305,6 +1305,14 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ADD COLUMN IF NOT EXISTS custom_level_rules JSONB DEFAULT '[]'::jsonb;
     `,
   },
+  {
+    name: "public.hosting_request_approval_steps.labels_and_policy",
+    q: `
+      ALTER TABLE public.hosting_request_approval_steps ADD COLUMN IF NOT EXISTS label_en TEXT;
+      ALTER TABLE public.hosting_request_approval_steps ADD COLUMN IF NOT EXISTS label_ar TEXT;
+      ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS hosting_request_signature_policy JSONB DEFAULT '[]'::jsonb;
+    `,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2497,6 +2505,10 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         CREATE INDEX IF NOT EXISTS idx_rooms_building_status ON rooms(building_id, status);
         CREATE INDEX IF NOT EXISTS idx_reservations_room_status ON reservations(room_id, status);
         CREATE INDEX IF NOT EXISTS idx_assignments_policy_exception ON assignments(has_policy_exception);`,
+  },
+  {
+    name: "tenant.settings.hosting_request_signature_policy",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS hosting_request_signature_policy JSONB DEFAULT '[]'::jsonb;`,
   },
 ];
 

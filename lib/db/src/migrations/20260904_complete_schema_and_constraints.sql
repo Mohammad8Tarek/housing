@@ -313,6 +313,8 @@ BEGIN
     ALTER TABLE "hosting_request_approval_steps" ADD COLUMN IF NOT EXISTS "signature_image_url_snapshot" TEXT;
     ALTER TABLE "hosting_request_approval_steps" ADD COLUMN IF NOT EXISTS "comment" TEXT;
     ALTER TABLE "hosting_request_approval_steps" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE "hosting_request_approval_steps" ADD COLUMN IF NOT EXISTS "label_en" TEXT;
+    ALTER TABLE "hosting_request_approval_steps" ADD COLUMN IF NOT EXISTS "label_ar" TEXT;
 
     -- --------------------------------------------------------
     -- Table: hosting_requests
@@ -1636,6 +1638,7 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_2_title" TEXT DEFAULT 'Assistant Housing Manager';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_2_phone" TEXT DEFAULT '';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_manager_2_email" TEXT DEFAULT '';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "hosting_request_signature_policy" JSONB DEFAULT '[]'::jsonb;
 
     -- --------------------------------------------------------
     -- Table: survey_item_responses

@@ -64,6 +64,17 @@ export const settingsSchema = z.object({
   visitMinServiceMonths: z.coerce.number().min(0).max(60).default(6),
   visitCooldownDays: z.coerce.number().min(0).max(365).default(90),
   visitRequireNationalId: z.boolean().default(true),
+  hostingRequestSignaturePolicy: z
+    .array(
+      z.object({
+        stepOrder: z.coerce.number(),
+        roleRequired: z.string(),
+        labelAr: z.string(),
+        labelEn: z.string(),
+        isMandatory: z.boolean().default(true),
+      })
+    )
+    .default([]),
 
   // ─── Housing Rules & Documentation ─────────────────────────────────
   curfewEnabled: z.boolean().default(false),

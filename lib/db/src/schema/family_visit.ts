@@ -85,6 +85,8 @@ export const familyVisitApprovalStepsTable = pgTable(
       .references(() => familyVisitRequestsTable.id, { onDelete: "cascade" }),
     stepOrder: integer("step_order").notNull(),
     roleRequired: varchar("role_required", { length: 50 }).notNull(),
+    labelEn: text("label_en"),
+    labelAr: text("label_ar"),
 
     status: varchar("status", { length: 30 }).notNull().default("pending"),
 

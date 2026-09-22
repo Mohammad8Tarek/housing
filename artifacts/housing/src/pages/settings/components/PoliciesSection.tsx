@@ -68,6 +68,10 @@ import {
   Bot,
   ShieldCheck,
   AlertTriangle,
+  ArrowUp,
+  ArrowDown,
+  RotateCcw,
+  FileCheck,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFormContext } from "react-hook-form";
@@ -75,6 +79,52 @@ import type { SettingsFormData } from "../hooks/useSettingsForm";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { toast } from "sonner";
+
+export interface SignatureStepItem {
+  id?: string;
+  stepOrder: number;
+  roleRequired: string;
+  labelAr: string;
+  labelEn: string;
+  description?: string;
+}
+
+export const DEFAULT_SIGNATURE_POLICY: SignatureStepItem[] = [
+  {
+    id: "step_1",
+    stepOrder: 1,
+    roleRequired: "housing_manager",
+    labelAr: "مدير السكن",
+    labelEn: "Housing Manager",
+    description: "مراجعة وتسكين الطلب وتحديد الغرفة الملائمة",
+  },
+  {
+    id: "step_2",
+    stepOrder: 2,
+    roleRequired: "hr_manager",
+    labelAr: "مدير الموارد البشرية",
+    labelEn: "Human Resources Manager",
+    description: "اعتماد الأهلية والتحقق من صلة القرابة ورصيد الزيارات",
+  },
+  {
+    id: "step_3",
+    stepOrder: 3,
+    roleRequired: "accounts_manager",
+    labelAr: "المدير المالي / الحسابات",
+    labelEn: "Accounts / Finance Manager",
+    description: "الاعتماد المالي واحتساب الرسوم إن وجدت",
+  },
+];
+
+export const PREDEFINED_ROLES = [
+  { key: "housing_manager", ar: "مدير السكن", en: "Housing Manager" },
+  { key: "hr_manager", ar: "مدير الموارد البشرية", en: "Human Resources Manager" },
+  { key: "accounts_manager", ar: "المدير المالي / الحسابات", en: "Accounts / Finance Manager" },
+  { key: "general_manager", ar: "المدير العام", en: "General Manager" },
+  { key: "security_manager", ar: "مدير الأمن", en: "Security Manager" },
+  { key: "super_admin", ar: "مسؤول النظام", en: "System Administrator" },
+  { key: "custom", ar: "وظيفة مخصصة...", en: "Custom Job Title..." },
+];
 
 interface PoliciesSectionProps {
   propertyId?: number;
@@ -98,6 +148,129 @@ export function PoliciesSection({
     LOOKUP_CATEGORIES.JOB_TITLE,
     true
   );
+
+  // ── Signature Workflow Builder State & Handlers ──
+  const [isStepModalOpen, setIsStepModalOpen] = useState(false);
+  const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
+  const [stepForm, setStepForm] = useState<{
+    roleRequired: string;
+    labelAr: string;
+    labelEn: string;
+    description: string;
+  }>({
+    roleRequired: "housing_manager",
+    labelAr: "",
+    labelEn: "",
+    description: "",
+  });
+
+  const rawSignaturePolicy: SignatureStepItem[] = form.watch("hostingRequestSignaturePolicy") || [];
+  const currentSignaturePolicy: SignatureStepItem[] =
+    rawSignaturePolicy.length > 0 ? rawSignaturePolicy : DEFAULT_SIGNATURE_POLICY;
+
+  const handleOpenAddStep = () => {
+    setEditingStepIndex(null);
+    setStepForm({
+      roleRequired: "housing_manager",
+      labelAr: "مدير السكن",
+      labelEn: "Housing Manager",
+      description: "",
+    });
+    setIsStepModalOpen(true);
+  };
+
+  const handleOpenEditStep = (idx: number) => {
+    const item = currentSignaturePolicy[idx];
+    if (!item) return;
+    setEditingStepIndex(idx);
+    setStepForm({
+      roleRequired: item.roleRequired,
+      labelAr: item.labelAr,
+      labelEn: item.labelEn,
+      description: item.description || "",
+    });
+    setIsStepModalOpen(true);
+  };
+
+  const handleSaveStep = () => {
+    const trimmedRole = stepForm.roleRequired.trim().toLowerCase().replace(/[\s-]+/g, "_");
+    const trimmedAr = stepForm.labelAr.trim();
+    const trimmedEn = stepForm.labelEn.trim() || trimmedAr;
+
+    if (!trimmedRole || !trimmedAr) {
+      toast.error(ar ? "يرجى ملء المسمى بالعربية والوظيفة المطلوبة" : "Please specify Arabic title and required role");
+      return;
+    }
+
+    const updated = [...currentSignaturePolicy];
+    if (editingStepIndex !== null && editingStepIndex >= 0 && editingStepIndex < updated.length) {
+      updated[editingStepIndex] = {
+        ...updated[editingStepIndex],
+        roleRequired: trimmedRole,
+        labelAr: trimmedAr,
+        labelEn: trimmedEn,
+        description: stepForm.description.trim(),
+      };
+    } else {
+      updated.push({
+        id: `step_${Date.now()}`,
+        stepOrder: updated.length + 1,
+        roleRequired: trimmedRole,
+        labelAr: trimmedAr,
+        labelEn: trimmedEn,
+        description: stepForm.description.trim(),
+      });
+    }
+
+    const normalized = updated.map((s, i) => ({
+      ...s,
+      stepOrder: i + 1,
+    }));
+
+    form.setValue("hostingRequestSignaturePolicy", normalized, { shouldDirty: true, shouldValidate: true });
+    setIsStepModalOpen(false);
+    toast.success(
+      editingStepIndex !== null
+        ? (ar ? "تم تعديل خطوة الاعتماد" : "Signature step updated")
+        : (ar ? "تمت إضافة خطوة الاعتماد بنجاح" : "Signature step added")
+    );
+  };
+
+  const handleMoveStepUp = (idx: number) => {
+    if (idx <= 0) return;
+    const updated = [...currentSignaturePolicy];
+    const temp = updated[idx];
+    updated[idx] = updated[idx - 1];
+    updated[idx - 1] = temp;
+    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1 }));
+    form.setValue("hostingRequestSignaturePolicy", normalized, { shouldDirty: true, shouldValidate: true });
+  };
+
+  const handleMoveStepDown = (idx: number) => {
+    if (idx >= currentSignaturePolicy.length - 1) return;
+    const updated = [...currentSignaturePolicy];
+    const temp = updated[idx];
+    updated[idx] = updated[idx + 1];
+    updated[idx + 1] = temp;
+    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1 }));
+    form.setValue("hostingRequestSignaturePolicy", normalized, { shouldDirty: true, shouldValidate: true });
+  };
+
+  const handleDeleteStep = (idx: number) => {
+    if (currentSignaturePolicy.length <= 1) {
+      toast.error(ar ? "يجب الإبقاء على خطوة اعتماد واحدة على الأقل" : "At least one signature step is required");
+      return;
+    }
+    const updated = currentSignaturePolicy.filter((_, i) => i !== idx);
+    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1 }));
+    form.setValue("hostingRequestSignaturePolicy", normalized, { shouldDirty: true, shouldValidate: true });
+    toast.success(ar ? "تم حذف خطوة الاعتماد" : "Step deleted");
+  };
+
+  const handleResetWorkflow = () => {
+    form.setValue("hostingRequestSignaturePolicy", DEFAULT_SIGNATURE_POLICY, { shouldDirty: true, shouldValidate: true });
+    toast.success(ar ? "تمت استعادة المسار الافتراضي (3 خطوات)" : "Reset to default 3-step workflow");
+  };
 
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
@@ -1435,6 +1608,134 @@ export function PoliciesSection({
           />
         </CardContent>
       </Card>
+
+      {/* Signature & Approval Workflow Card */}
+      <Card className="border-pink-500/20 shadow-sm">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base text-pink-700 dark:text-pink-400">
+              <FileCheck className="w-5 h-5 text-pink-600" />
+              {ar
+                ? "مسار واعتمادات طلبات السكن والاستضافة (Signature & Approval Workflow)"
+                : "Hosting & Visit Approval Workflow"}
+            </CardTitle>
+            <CardDescription>
+              {ar
+                ? "تحديد تسلسل التوقيعات المطلوبة لطلبات السكن والاستضافة والزيارات العائلية الخاصة بهذا العقار، وإعادة ترتيبها أو إضافة جهات اعتماد جديدة"
+                : "Configure the required signature chain, reorder approval stages, or add new approval roles for this property"}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleResetWorkflow}
+              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              {ar ? "استعادة الافتراضي" : "Reset Default"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleOpenAddStep}
+              className="gap-1.5 text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white"
+            >
+              <Plus className="w-4 h-4" />
+              {ar ? "إضافة خطوة اعتماد" : "Add Approval Step"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead className="w-16 font-bold text-xs text-center">{ar ? "الترتيب" : "Order"}</TableHead>
+                  <TableHead className="font-bold text-xs">{ar ? "المسمى العربي" : "Arabic Title"}</TableHead>
+                  <TableHead className="font-bold text-xs">{ar ? "المسمى الإنجليزي" : "English Title"}</TableHead>
+                  <TableHead className="font-bold text-xs">{ar ? "الوظيفة / الصلاحية المطلوبة" : "Required Role"}</TableHead>
+                  <TableHead className="font-bold text-xs">{ar ? "ملاحظات المسار" : "Description"}</TableHead>
+                  <TableHead className="font-bold text-xs text-end w-36">{ar ? "الإجراءات والترتيب" : "Actions"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentSignaturePolicy.map((step, idx) => (
+                  <TableRow key={step.id || `step_${idx}`} className="hover:bg-muted/30">
+                    <TableCell className="text-center font-bold">
+                      <Badge variant="outline" className="h-6 w-6 rounded-full p-0 flex items-center justify-center bg-pink-50 text-pink-700 border-pink-300">
+                        {step.stepOrder}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold text-sm">
+                      {step.labelAr}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {step.labelEn}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-mono text-[11px] bg-muted">
+                        {step.roleRequired}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {step.description || "-"}
+                    </TableCell>
+                    <TableCell className="text-end">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          disabled={idx === 0}
+                          onClick={() => handleMoveStepUp(idx)}
+                          title={ar ? "تقديم الخطوة لأعلى" : "Move Up"}
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          disabled={idx === currentSignaturePolicy.length - 1}
+                          onClick={() => handleMoveStepDown(idx)}
+                          title={ar ? "تأخير الخطوة لأسفل" : "Move Down"}
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => handleOpenEditStep(idx)}
+                          title={ar ? "تعديل" : "Edit"}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                          disabled={currentSignaturePolicy.length <= 1}
+                          onClick={() => handleDeleteStep(idx)}
+                          title={ar ? "حذف" : "Delete"}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </TabsContent>
 
     {/* Tab 3: Housing Rules & Curfew */}
@@ -1855,6 +2156,160 @@ export function PoliciesSection({
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             {ar ? "حفظ القاعدة" : "Save Rule"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Signature Step Edit/Add Modal */}
+    <Dialog open={isStepModalOpen} onOpenChange={setIsStepModalOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <FileCheck className="w-5 h-5 text-pink-600" />
+            {editingStepIndex !== null
+              ? (ar ? "تعديل خطوة الاعتماد" : "Edit Signature Step")
+              : (ar ? "إضافة خطوة اعتماد جديدة" : "Add Approval Step")}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {ar
+              ? "حدد الوظيفة المطلوبة للتوقيع والمسمى الرسمي الذي سيظهر في استمارة الاعتماد"
+              : "Select the required approval role and the official title shown on vouchers"}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Quick Preset Selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">
+              {ar ? "اختر من الوظائف الشائعة أو القائمة:" : "Quick Preset Role:"}
+            </label>
+            <select
+              className="w-full h-9 px-3 rounded-md border text-xs bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              value={
+                PREDEFINED_ROLES.some((r) => r.key === stepForm.roleRequired)
+                  ? stepForm.roleRequired
+                  : "custom"
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "custom") {
+                  setStepForm((prev) => ({ ...prev, roleRequired: "" }));
+                } else {
+                  const preset = PREDEFINED_ROLES.find((r) => r.key === val);
+                  if (preset) {
+                    setStepForm((prev) => ({
+                      ...prev,
+                      roleRequired: preset.key,
+                      labelAr: preset.ar,
+                      labelEn: preset.en,
+                    }));
+                  }
+                }
+              }}
+            >
+              <optgroup label={ar ? "الأدوار القياسية" : "Standard Roles"}>
+                {PREDEFINED_ROLES.map((r) => (
+                  <option key={r.key} value={r.key}>
+                    {ar ? `${r.ar} (${r.en})` : `${r.en} (${r.ar})`}
+                  </option>
+                ))}
+              </optgroup>
+              {existingJobTitles && existingJobTitles.length > 0 && (
+                <optgroup label={ar ? "المسميات المسجلة بالنظام" : "Lookup Job Titles"}>
+                  {existingJobTitles.map((jt: any) => (
+                    <option key={jt.id || jt.value} value={jt.value}>
+                      {ar ? jt.labelAr || jt.label : jt.label}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </div>
+
+          {/* Role Required Code */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">
+              {ar ? "كود / مفتاح الوظيفة (Role Key):" : "Role Key (System Identifier):"}
+            </label>
+            <Input
+              placeholder="e.g. housing_manager, general_manager"
+              value={stepForm.roleRequired}
+              onChange={(e) =>
+                setStepForm((prev) => ({ ...prev, roleRequired: e.target.value }))
+              }
+              className="font-mono text-xs"
+            />
+            <span className="text-[10px] text-muted-foreground block">
+              {ar
+                ? "يجب أن يطابق كود الدور أو المسمى الوظيفي للمستخدمين المصرح لهم بالتوقيع"
+                : "Must match the user's role or job title identifier to allow signing"}
+            </span>
+          </div>
+
+          {/* Arabic Title */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">
+              {ar ? "المسمى الرسمي بالعربية:" : "Official Title (Arabic):"}
+            </label>
+            <Input
+              placeholder="مثال: مدير السكن / مدير الموارد البشرية"
+              value={stepForm.labelAr}
+              onChange={(e) =>
+                setStepForm((prev) => ({ ...prev, labelAr: e.target.value }))
+              }
+              className="text-xs"
+            />
+          </div>
+
+          {/* English Title */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">
+              {ar ? "المسمى الرسمي بالإنجليزية:" : "Official Title (English):"}
+            </label>
+            <Input
+              placeholder="e.g. Housing Manager / HR Manager"
+              value={stepForm.labelEn}
+              onChange={(e) =>
+                setStepForm((prev) => ({ ...prev, labelEn: e.target.value }))
+              }
+              className="text-xs"
+            />
+          </div>
+
+          {/* Description / Instructions */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">
+              {ar ? "ملاحظات وتوجيهات الخطوة (اختياري):" : "Step Notes / Guidance (Optional):"}
+            </label>
+            <Input
+              placeholder={ar ? "مثال: مراجعة المستندات والأهلية..." : "e.g. Review documents and eligibility..."}
+              value={stepForm.description}
+              onChange={(e) =>
+                setStepForm((prev) => ({ ...prev, description: e.target.value }))
+              }
+              className="text-xs"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsStepModalOpen(false)}
+          >
+            {ar ? "إلغاء" : "Cancel"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleSaveStep}
+            className="bg-pink-600 hover:bg-pink-700 text-white font-bold gap-1.5"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            {ar ? "حفظ الخطوة" : "Save Step"}
           </Button>
         </DialogFooter>
       </DialogContent>

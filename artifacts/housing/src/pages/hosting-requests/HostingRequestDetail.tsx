@@ -32,12 +32,17 @@ import {
   Users,
   Edit,
   Trash2,
+  Printer,
 } from "lucide-react";
+import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 
 const stepRoles: Record<string, Record<string, string>> = {
   housing_manager: { en: "Housing Manager", ar: "مدير السكن" },
   hr_manager: { en: "HR Manager", ar: "مدير الموارد البشرية" },
   accounts_manager: { en: "Accounts Manager", ar: "مدير الحسابات" },
+  general_manager: { en: "General Manager", ar: "المدير العام" },
+  security_manager: { en: "Security Manager", ar: "مدير الأمن" },
+  super_admin: { en: "Super Admin", ar: "مسؤول النظام" },
 };
 
 function approvalRoleKey(value: unknown): string {
@@ -338,7 +343,9 @@ export default function HostingRequestDetail() {
   const userRoles = user?.roles || [];
   const isAuthorizedToSign =
     Boolean(requiredRoleKey) &&
-    (approvalRoleKey(currentUserJobTitle) === requiredRoleKey ||
+    (isSystemAdmin ||
+      user?.role === "super_admin" ||
+      approvalRoleKey(currentUserJobTitle) === requiredRoleKey ||
       userRoles.some((r: string) => approvalRoleKey(r) === requiredRoleKey));
   const userCanAct = currentStep?.status === "pending" && isAuthorizedToSign;
 
@@ -415,6 +422,111 @@ export default function HostingRequestDetail() {
           : "قيد التوقيع",
   };
 
+  const handlePrintVoucher = () => {
+    if (!request) return;
+    const reqStatusText =
+      request.status === "approved"
+        ? (ar ? "معتمد رسمياً" : "Officially Approved")
+        : request.status === "rejected"
+          ? (ar ? "مرفوض" : "Rejected")
+          : (ar ? "قيد التوقيع والاعتماد" : "Under Signature Workflow");
+
+    const companions = Array.isArray(request.companions) ? request.companions : [];
+
+    const voucherHtml = `
+      <div style="font-family: inherit; color: #1e293b;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <div>
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">${ar ? "اسم الموظف المستضيف" : "Hosting Employee"}</div>
+            <div style="font-size: 14px; font-weight: bold; color: #0f172a;">${request.profileName || request.user_id || "-"}</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">${ar ? "الوظيفة / القسم" : "Job Title / Department"}</div>
+            <div style="font-size: 13px; font-weight: 600; color: #334155;">${request.profileJobTitle || "-"} - ${request.profileDepartment || "-"}</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">${ar ? "فترة الاستضافة المطلوبة" : "Stay Period"}</div>
+            <div style="font-size: 13px; font-weight: 600; color: #0284c7;">${formatDate(request.fromDate)} ➔ ${formatDate(request.toDate)} (${request.daysCount || "-"} ${ar ? "أيام" : "days"})</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">${ar ? "حالة الطلب" : "Request Status"}</div>
+            <div style="font-size: 13px; font-weight: bold; color: ${request.status === "approved" ? "#16a34a" : request.status === "rejected" ? "#dc2626" : "#d97706"};">${reqStatusText}</div>
+          </div>
+        </div>
+
+        ${companions.length > 0 ? `
+          <div style="margin-bottom: 24px;">
+            <h4 style="font-size: 13px; font-weight: bold; color: #0F2A44; margin-bottom: 8px; border-bottom: 1.5px solid #C9A24D; padding-bottom: 4px;">
+              ${ar ? "بيانات المرافقين والضيوف" : "Registered Family Companions & Guests"}
+            </h4>
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: ${ar ? "right" : "left"};">
+              <thead>
+                <tr style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+                  <th style="padding: 6px 10px;">#</th>
+                  <th style="padding: 6px 10px;">${ar ? "الاسم الكامل" : "Full Name"}</th>
+                  <th style="padding: 6px 10px;">${ar ? "صلة القرابة" : "Relationship"}</th>
+                  <th style="padding: 6px 10px;">${ar ? "الرقم القومي / الجواز" : "National ID / Passport"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${companions.map((c: any, i: number) => `
+                  <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 6px 10px; color: #64748b;">${i + 1}</td>
+                    <td style="padding: 6px 10px; font-weight: 600;">${c.name || c.companionName || "-"}</td>
+                    <td style="padding: 6px 10px;">${c.relation || c.relationship || "-"}</td>
+                    <td style="padding: 6px 10px; font-family: monospace;">${c.nationalId || c.national_id || "-"}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : ""}
+
+        <div style="margin-top: 24px;">
+          <h4 style="font-size: 13px; font-weight: bold; color: #0F2A44; margin-bottom: 12px; border-bottom: 1.5px solid #C9A24D; padding-bottom: 4px;">
+            ${ar ? "سجل التوقيعات والاعتمادات الرسمية (Signature Policy Workflow)" : "Official Approval & Signature Chain"}
+          </h4>
+          <div style="display: grid; grid-template-columns: repeat(${Math.min(steps.length, 3)}, 1fr); gap: 12px;">
+            ${steps.map((s: any) => {
+              const roleTitle = ar
+                ? (s.labelAr || stepRoles[s.roleRequired]?.ar || s.roleRequired)
+                : (s.labelEn || stepRoles[s.roleRequired]?.en || s.roleRequired);
+              const isSigned = Boolean(s.signedAt || s.signatureImageUrlSnapshot);
+              return `
+                <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: ${isSigned ? "#f0fdf4" : "#ffffff"}; text-align: center;">
+                  <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">${ar ? `الخطوة ${s.stepOrder}` : `Step ${s.stepOrder}`}</div>
+                  <div style="font-size: 12px; font-weight: bold; color: #0F2A44; margin: 4px 0;">${roleTitle}</div>
+                  <div style="font-size: 11px; color: #334155; min-height: 18px;">${s.signerName || (isSigned ? s.signed_by_user_id : (ar ? "قيد الانتظار" : "Pending"))}</div>
+                  <div style="height: 60px; margin: 8px 0; display: flex; align-items: center; justify-content: center;">
+                    ${s.signatureImageUrlSnapshot ? `
+                      <img src="${s.signatureImageUrlSnapshot}" style="max-height: 55px; max-width: 120px; object-fit: contain;" alt="signature" />
+                    ` : `
+                      <span style="font-size: 10px; color: #94a3b8; border: 1px dashed #cbd5e1; padding: 8px 12px; border-radius: 4px;">${ar ? "بانتظار الاعتماد" : "Awaiting Signature"}</span>
+                    `}
+                  </div>
+                  <div style="font-size: 9px; color: #64748b;">${s.signedAt ? new Date(s.signedAt).toLocaleDateString(ar ? "ar-EG" : "en-GB") : "-"}</div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+    `;
+
+    printLuxuryReport({
+      title: ar ? "استمارة واعتمادات طلب الاستضافة" : "Family Hosting Request & Approval Voucher",
+      titleAr: "استمارة واعتمادات طلب الاستضافة",
+      subtitle: `${ar ? "رقم الطلب:" : "Request #"} ${request.requestNumber || requestId}`,
+      subtitleAr: `رقم الطلب: ${request.requestNumber || requestId}`,
+      language: ar ? "ar" : "en",
+      orientation: "portrait",
+      showKpis: false,
+      showSignatures: false,
+      rows: [],
+      customSectionsHtml: voucherHtml,
+    });
+  };
+
   return (
     <div className="relative min-h-[calc(100vh-6rem)] p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
       {/* Background Glow Effects */}
@@ -453,6 +565,16 @@ export default function HostingRequestDetail() {
         </div>
 
         <div className="relative flex flex-col md:flex-row gap-3 items-end md:items-center">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handlePrintVoucher}
+            className="rounded-full shadow-sm hover:shadow transition-all gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+          >
+            <Printer className="w-4 h-4" />
+            {ar ? "طباعة الاستمارة" : "Print Voucher"}
+          </Button>
           <div className="flex items-center gap-2 bg-background/50 p-1.5 pr-4 rounded-full border shadow-sm">
             <div
               className={`w-2 h-2 rounded-full ${request.status === "approved" ? "bg-emerald-500 animate-pulse" : request.status === "rejected" ? "bg-red-500" : "bg-amber-500 animate-pulse"}`}
@@ -861,8 +983,9 @@ export default function HostingRequestDetail() {
                   ) : (
                     steps.map((step: any, idx: number) => {
                       const roleName =
-                        stepRoles[step.roleRequired]?.[language] ??
-                        step.roleRequired;
+                        ar
+                          ? (step.labelAr || stepRoles[step.roleRequired]?.ar || step.roleRequired)
+                          : (step.labelEn || stepRoles[step.roleRequired]?.en || step.roleRequired);
                       const { signed, rejected, returned, active } =
                         getStepState(step);
 

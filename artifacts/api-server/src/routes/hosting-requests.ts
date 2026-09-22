@@ -19,6 +19,66 @@ export const STEP_ROLES: Record<number, string> = {
   3: "accounts_manager",
 };
 
+export interface SignatureStepPolicyItem {
+  stepOrder: number;
+  roleRequired: string;
+  labelAr: string;
+  labelEn: string;
+  isMandatory?: boolean;
+}
+
+export const DEFAULT_SIGNATURE_POLICY: SignatureStepPolicyItem[] = [
+  {
+    stepOrder: 1,
+    roleRequired: "housing_manager",
+    labelAr: "مدير السكن",
+    labelEn: "Housing Manager",
+    isMandatory: true,
+  },
+  {
+    stepOrder: 2,
+    roleRequired: "hr_manager",
+    labelAr: "مدير الموارد البشرية",
+    labelEn: "Human Resources Manager",
+    isMandatory: true,
+  },
+  {
+    stepOrder: 3,
+    roleRequired: "accounts_manager",
+    labelAr: "المدير المالي / الحسابات",
+    labelEn: "Accounts / Finance Manager",
+    isMandatory: true,
+  },
+];
+
+export async function getPropertySignaturePolicy(
+  propertyId?: number | null,
+): Promise<SignatureStepPolicyItem[]> {
+  if (!propertyId) return DEFAULT_SIGNATURE_POLICY;
+  try {
+    const propRes = await pool.query(
+      "SELECT schema_name FROM public.properties WHERE id = $1 LIMIT 1",
+      [propertyId],
+    );
+    const schema = propRes.rows[0]?.schema_name;
+    if (schema && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schema)) {
+      const sRes = await pool.query(
+        `SELECT hosting_request_signature_policy FROM "${schema}".settings LIMIT 1`,
+      );
+      const policy = sRes.rows[0]?.hosting_request_signature_policy;
+      if (Array.isArray(policy) && policy.length > 0) {
+        return policy;
+      }
+    }
+  } catch (err: any) {
+    logger.warn(
+      { err: err.message, propertyId },
+      "Could not fetch property signature policy, falling back to default",
+    );
+  }
+  return DEFAULT_SIGNATURE_POLICY;
+}
+
 const CreateFamilyVisitBody = z.object({
   hotelId: z.number().optional(),
   visitHotelId: z.number().optional(),
@@ -256,6 +316,8 @@ async function getRequestWithSteps(
           'stepOrder', fas.step_order,
           'roleRequired', fas.role_required,
           'status', fas.status,
+          'labelAr', fas.label_ar,
+          'labelEn', fas.label_en,
           'signedByUserId', fas.signed_by_user_id,
           'signedAt', fas.signed_at,
           'signatureImageUrlSnapshot', fas.signature_image_url_snapshot,
@@ -474,13 +536,18 @@ router.post(
         throw err;
       }
 
-      // Create 3 approval steps
-      for (let step = 1; step <= 3; step++) {
+      // Create approval steps based on the property's configured signature policy
+      const targetHotelId = hotelId || user.propertyId;
+      const signaturePolicy = await getPropertySignaturePolicy(targetHotelId);
+
+      for (let i = 0; i < signaturePolicy.length; i++) {
+        const item = signaturePolicy[i];
+        const stepOrder = item.stepOrder || (i + 1);
         await pool.query(
           `INSERT INTO public.hosting_request_approval_steps
-          (request_id, step_order, role_required, status)
-         VALUES ($1, $2, $3, 'pending')`,
-          [requestId, step, STEP_ROLES[step]],
+          (request_id, step_order, role_required, label_ar, label_en, status)
+         VALUES ($1, $2, $3, $4, $5, 'pending')`,
+          [requestId, stepOrder, item.roleRequired, item.labelAr || null, item.labelEn || null],
         );
       }
 
@@ -498,8 +565,10 @@ router.post(
         details: `Created request ${requestNumber}`,
       });
 
-      // Notify the first-step approver (housing_manager)
-      const firstRole = STEP_ROLES[1];
+      // Notify the first-step approver
+      const firstStepItem = signaturePolicy[0];
+      const firstRole = firstStepItem?.roleRequired || "housing_manager";
+      const firstRoleLabel = firstStepItem?.labelAr || firstRole;
       const firstRoleUsers = await pool.query(
         `SELECT id, username FROM public.users WHERE property_id = $1 AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
         [user.propertyId, firstRole],
@@ -511,9 +580,9 @@ router.post(
           action: "created",
           data: {
             title: "New family visit request",
-            message: `Request ${requestNumber} is waiting for your approval as ${firstRole}.`,
+            message: `Request ${requestNumber} is waiting for your approval as ${firstStepItem?.labelEn || firstRole}.`,
             titleAr: "طلب زيارة عائلية جديد",
-            messageAr: `الطلب ${requestNumber} ينتظر موافقتك كـ ${firstRole}.`,
+            messageAr: `الطلب ${requestNumber} ينتظر موافقتك كـ ${firstRoleLabel}.`,
             entityId: requestId,
             targetUserId: row.id,
           },
@@ -621,7 +690,8 @@ router.get(
         json_agg(
           json_build_object(
             'id', fas.id, 'stepOrder', fas.step_order, 'roleRequired', fas.role_required,
-            'status', fas.status, 'signedByUserId', fas.signed_by_user_id,
+            'status', fas.status, 'labelAr', fas.label_ar, 'labelEn', fas.label_en,
+            'signedByUserId', fas.signed_by_user_id,
             'signedAt', fas.signed_at, 'signatureImageUrlSnapshot', fas.signature_image_url_snapshot,
             'comment', fas.comment
           ) ORDER BY fas.step_order
@@ -977,7 +1047,29 @@ router.post(
         }
 
         stepOrder = request.current_step_order;
-        requiredRole = STEP_ROLES[stepOrder];
+
+        // Check step exists, is pending, and get its required role
+        const stepRes = await client.query(
+          "SELECT id, status, role_required, label_ar, label_en FROM public.hosting_request_approval_steps WHERE request_id = $1 AND step_order = $2",
+          [requestId, stepOrder],
+        );
+        if (stepRes.rows.length === 0) {
+          await client.query("ROLLBACK");
+          res
+            .status(400)
+            .json({ success: false, message: "Approval step not found" });
+          return;
+        }
+        if (stepRes.rows[0].status !== "pending") {
+          await client.query("ROLLBACK");
+          res.status(400).json({
+            success: false,
+            message: "This step has already been signed",
+          });
+          return;
+        }
+
+        requiredRole = stepRes.rows[0].role_required;
 
         const hasRole = userMatchesApprovalRole(user, requiredRole);
         if (!hasRole) {
@@ -1044,27 +1136,6 @@ router.post(
         }
         const signatureUrl = sigRes.rows[0].signature_image_url;
 
-        // Check step is pending (no double-sign)
-        const stepRes = await client.query(
-          "SELECT id, status FROM public.hosting_request_approval_steps WHERE request_id = $1 AND step_order = $2",
-          [requestId, stepOrder],
-        );
-        if (stepRes.rows.length === 0) {
-          await client.query("ROLLBACK");
-          res
-            .status(400)
-            .json({ success: false, message: "Approval step not found" });
-          return;
-        }
-        if (stepRes.rows[0].status !== "pending") {
-          await client.query("ROLLBACK");
-          res.status(400).json({
-            success: false,
-            message: "This step has already been signed",
-          });
-          return;
-        }
-
         if (await hasAlreadyActedOnRequest(client, requestId, user.userId)) {
           await client.query("ROLLBACK");
           res.status(409).json({
@@ -1083,7 +1154,13 @@ router.post(
           [user.userId, signatureUrl, comment ?? null, stepRes.rows[0].id],
         );
 
-        if (stepOrder >= 3) {
+        // Check if there is a next step
+        const nextStepRes = await client.query(
+          "SELECT step_order, role_required, label_ar, label_en FROM public.hosting_request_approval_steps WHERE request_id = $1 AND step_order > $2 ORDER BY step_order ASC LIMIT 1",
+          [requestId, stepOrder],
+        );
+
+        if (nextStepRes.rows.length === 0) {
           // Final step — mark request approved
           await client.query(
             "UPDATE public.hosting_requests SET status = 'approved', updated_at = NOW() WHERE id = $1",
@@ -1091,7 +1168,7 @@ router.post(
           );
         } else {
           // Move to next step
-          nextStepOrder = stepOrder + 1;
+          nextStepOrder = nextStepRes.rows[0].step_order;
           await client.query(
             "UPDATE public.hosting_requests SET current_step_order = $1, updated_at = NOW() WHERE id = $2",
             [nextStepOrder, requestId],
@@ -1149,7 +1226,14 @@ router.post(
 
       // If there's a next step, notify the users whose role matches
       if (nextStepOrder) {
-        const nextRole = STEP_ROLES[nextStepOrder];
+        const nextStepRow = await pool.query(
+          "SELECT role_required, label_ar, label_en FROM public.hosting_request_approval_steps WHERE request_id = $1 AND step_order = $2",
+          [requestId, nextStepOrder],
+        );
+        const nextRole = nextStepRow.rows[0]?.role_required || STEP_ROLES[nextStepOrder] || "admin";
+        const nextRoleLabelAr = nextStepRow.rows[0]?.label_ar || nextRole;
+        const nextRoleLabelEn = nextStepRow.rows[0]?.label_en || nextRole;
+
         // Search across all properties the current user manages (cross-property support)
         const propertyIdsForQuery = user.isSystemAdmin
           ? null
@@ -1177,9 +1261,9 @@ router.post(
             action: "created",
             data: {
               title: "Pending your signature",
-              message: `Request ${request.request_number} is waiting for your approval as ${nextRole}.`,
+              message: `Request ${request.request_number} is waiting for your approval as ${nextRoleLabelEn}.`,
               titleAr: "في انتظار توقيعك",
-              messageAr: `الطلب ${request.request_number} ينتظر توقيعك كـ ${nextRole}.`,
+              messageAr: `الطلب ${request.request_number} ينتظر توقيعك كـ ${nextRoleLabelAr}.`,
               entityId: requestId,
               targetUserId: row.id,
             },
@@ -1335,7 +1419,11 @@ router.post(
         }
 
         stepOrder = request.current_step_order;
-        requiredRole = STEP_ROLES[stepOrder];
+        const currentStepRes = await client.query(
+          "SELECT role_required FROM public.hosting_request_approval_steps WHERE request_id = $1 AND step_order = $2",
+          [requestId, stepOrder],
+        );
+        requiredRole = currentStepRes.rows[0]?.role_required || STEP_ROLES[stepOrder] || "admin";
 
         const hasRole = userMatchesApprovalRole(user, requiredRole);
         if (!hasRole) {
