@@ -81,7 +81,11 @@ export default function ReportConfigurationPage() {
   const canExport = can("reports", "export");
   const canEdit = can("reports", "edit") || can("reports", "create");
 
-  const effectivePropId = activePropertyId || propertyId;
+  const effectivePropId = useMemo(() => {
+    if (activePropertyId && activePropertyId !== "all") return Number(activePropertyId);
+    if (properties && properties.length > 0) return properties[0].id;
+    return undefined;
+  }, [activePropertyId, properties]);
 
   // ─── 1. State: Data Source & Columns ──────────────────────────────────────
   const [selectedSource, setSelectedSource] = useState<DataSourceType>("in_house");

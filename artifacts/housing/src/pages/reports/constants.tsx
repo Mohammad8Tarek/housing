@@ -30,12 +30,6 @@ import { TabConfig } from "./types";
 
 export const TABS: TabConfig[] = [
   {
-    id: "configuration",
-    label: "Configuration Report (Custom)",
-    labelAr: "كنفجريشن ريبورت (تقرير مخصص)",
-    icon: <SlidersHorizontal className="w-4 h-4 text-primary font-bold" />,
-  },
-  {
     id: "manager_flash",
     label: "Morning Operations Report",
     labelAr: "التقرير الصباحي الشامل",

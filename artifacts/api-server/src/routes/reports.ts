@@ -7,6 +7,7 @@ import {
   maintenanceTable,
   reservationsTable,
   hostingsTable,
+  hostingCompanionsTable,
   workersTable,
   profileVacationsTable,
   buildingsTable,
@@ -704,9 +705,10 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
     } = req.body;
 
     const result = await withTableFallback(
-      async () =>
-        withTenant(propertyId, async (tenantDb) => {
-          let rows: any[] = [];
+      async () => {
+        try {
+          return await withTenant(propertyId, async (tenantDb) => {
+            let rows: any[] = [];
           let totalCount = 0;
           let stats: any = {};
 
@@ -727,34 +729,34 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                 id: assignmentsTable.id,
                 assignmentId: assignmentsTable.id,
                 profileId: profilesTable.id,
-                employeeId: profilesTable.employeeId,
-                name: profilesTable.name,
+                employeeId: profilesTable.profileId,
+                firstName: profilesTable.firstName,
+                lastName: profilesTable.lastName,
                 firstNameAr: profilesTable.firstNameAr,
                 lastNameAr: profilesTable.lastNameAr,
                 jobTitle: profilesTable.jobTitle,
                 jobTitleAr: profilesTable.jobTitleAr,
                 department: profilesTable.department,
                 departmentAr: profilesTable.departmentAr,
-                jobLevel: profilesTable.jobLevel,
+                jobLevel: profilesTable.level,
                 gender: profilesTable.gender,
                 phone: profilesTable.phone,
                 nationalId: profilesTable.nationalId,
-                company: profilesTable.company,
+                company: profilesTable.companyName,
                 nationality: profilesTable.nationality,
                 profileStatus: profilesTable.status,
                 buildingId: roomsTable.buildingId,
                 buildingName: buildingsTable.name,
                 floorId: roomsTable.floorId,
-                floorNumber: floorsTable.number,
+                floorNumber: floorsTable.floorNumber,
                 roomId: roomsTable.id,
                 roomNumber: roomsTable.roomNumber,
                 roomType: roomsTable.roomType,
                 bedNumber: assignmentsTable.bedNumber,
                 isEntireRoom: assignmentsTable.isEntireRoom,
                 status: assignmentsTable.status,
-                startDate: assignmentsTable.startDate,
-                endDate: assignmentsTable.endDate,
                 checkInDate: assignmentsTable.checkInDate,
+                expectedCheckOutDate: assignmentsTable.expectedCheckOutDate,
                 checkOutDate: assignmentsTable.checkOutDate,
                 notes: assignmentsTable.notes,
                 createdAt: assignmentsTable.createdAt,
@@ -767,30 +769,30 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               .orderBy(desc(assignmentsTable.id));
 
             let filtered = rawRows.filter((r) => {
-              if (status) {
+              if (status && status !== "all") {
                 if ((r.status || "").toUpperCase() !== status.toUpperCase()) return false;
-              } else {
-                // Default to ACTIVE
+              } else if (!filters.status || filters.status === "active") {
                 if ((r.status || "").toUpperCase() !== "ACTIVE") return false;
               }
               if (buildingId && r.buildingId !== buildingId) return false;
               if (floorId && r.floorId !== floorId) return false;
               if (department && (r.department || "").toLowerCase() !== department.toLowerCase()) return false;
-              if (jobLevel && String(r.jobLevel ?? "") !== String(jobLevel)) return false;
+              if (jobLevel && String(r.jobLevel ?? "").toLowerCase() !== String(jobLevel).toLowerCase()) return false;
               if (gender && (r.gender || "").toUpperCase() !== gender) return false;
 
               if (dateFrom) {
-                const itemDate = r.checkInDate || r.startDate;
+                const itemDate = r.checkInDate;
                 if (itemDate && new Date(itemDate) < new Date(dateFrom)) return false;
               }
               if (dateTo) {
-                const itemDate = r.checkInDate || r.startDate;
+                const itemDate = r.checkInDate;
                 if (itemDate && new Date(itemDate) > new Date(dateTo)) return false;
               }
 
+              const fullName = [r.firstName, r.lastName].filter(Boolean).join(" ");
               if (search) {
                 const haystack = [
-                  r.name,
+                  fullName,
                   r.firstNameAr,
                   r.lastNameAr,
                   r.employeeId,
@@ -811,16 +813,20 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
 
             // Map computed fields
             rows = filtered.map((r, idx) => {
-              const checkIn = r.checkInDate || r.startDate;
+              const checkIn = r.checkInDate;
               let days = 0;
               if (checkIn) {
                 const start = new Date(checkIn).getTime();
-                const end = r.checkOutDate || r.endDate ? new Date(r.checkOutDate || r.endDate).getTime() : Date.now();
+                const end = r.checkOutDate || r.expectedCheckOutDate ? new Date(r.checkOutDate || r.expectedCheckOutDate).getTime() : Date.now();
                 days = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
               }
+              const fullName = [r.firstName, r.lastName].filter(Boolean).join(" ");
               return {
                 index: idx + 1,
                 ...r,
+                name: fullName,
+                startDate: r.checkInDate,
+                endDate: r.checkOutDate || r.expectedCheckOutDate,
                 daysInHouse: days,
                 stayDuration: `${days} يوم`,
               };
@@ -838,9 +844,30 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
           // ─── SOURCE: PROFILES ───────────────────────────────────────────
           else if (dataSource === "profiles") {
             const rawProfiles = await tenantDb
-              .select()
+              .select({
+                id: profilesTable.id,
+                profileId: profilesTable.profileId,
+                firstName: profilesTable.firstName,
+                lastName: profilesTable.lastName,
+                firstNameAr: profilesTable.firstNameAr,
+                lastNameAr: profilesTable.lastNameAr,
+                jobTitle: profilesTable.jobTitle,
+                jobTitleAr: profilesTable.jobTitleAr,
+                department: profilesTable.department,
+                departmentAr: profilesTable.departmentAr,
+                level: profilesTable.level,
+                gender: profilesTable.gender,
+                phone: profilesTable.phone,
+                nationalId: profilesTable.nationalId,
+                companyName: profilesTable.companyName,
+                nationality: profilesTable.nationality,
+                status: profilesTable.status,
+                hireDate: profilesTable.hireDate,
+                contractEndDate: profilesTable.contractEndDate,
+                createdAt: profilesTable.createdAt,
+              })
               .from(profilesTable)
-              .orderBy(profilesTable.employeeId);
+              .orderBy(desc(profilesTable.id));
 
             // Fetch active assignments for profiles to display their room
             const activeAssignments = await tenantDb
@@ -864,24 +891,25 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
 
             let filtered = rawProfiles.filter((p) => {
               const currentAssign = assignmentMap.get(p.id);
-              if (status && (p.status || "").toUpperCase() !== status.toUpperCase()) return false;
+              if (status && status !== "all" && (p.status || "").toUpperCase() !== status.toUpperCase()) return false;
               if (department && (p.department || "").toLowerCase() !== department.toLowerCase()) return false;
-              if (jobLevel && String(p.jobLevel ?? "") !== String(jobLevel)) return false;
+              if (jobLevel && String(p.level ?? "").toLowerCase() !== String(jobLevel).toLowerCase()) return false;
               if (gender && (p.gender || "").toUpperCase() !== gender) return false;
               if (buildingId && currentAssign?.buildingId !== buildingId) return false;
               if (floorId && currentAssign?.floorId !== floorId) return false;
 
+              const fullName = [p.firstName, p.lastName].filter(Boolean).join(" ");
               if (search) {
                 const haystack = [
-                  p.name,
+                  fullName,
                   p.firstNameAr,
                   p.lastNameAr,
-                  p.employeeId,
+                  p.profileId,
                   p.nationalId,
                   p.phone,
                   p.department,
                   p.jobTitle,
-                  p.company,
+                  p.companyName,
                   currentAssign?.roomNumber,
                   currentAssign?.buildingName,
                 ]
@@ -895,9 +923,14 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
 
             rows = filtered.map((p, idx) => {
               const currentAssign = assignmentMap.get(p.id);
+              const fullName = [p.firstName, p.lastName].filter(Boolean).join(" ");
               return {
                 index: idx + 1,
                 ...p,
+                name: fullName,
+                employeeId: p.profileId,
+                jobLevel: p.level,
+                company: p.companyName,
                 roomNumber: currentAssign?.roomNumber || "غير مسكن",
                 buildingName: currentAssign?.buildingName || "—",
                 bedNumber: currentAssign?.bedNumber || "—",
@@ -922,7 +955,7 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                 buildingId: roomsTable.buildingId,
                 buildingName: buildingsTable.name,
                 floorId: roomsTable.floorId,
-                floorNumber: floorsTable.number,
+                floorNumber: floorsTable.floorNumber,
                 roomType: roomsTable.roomType,
                 capacity: roomsTable.capacity,
                 occupiedBeds: roomsTable.occupiedBeds,
@@ -939,7 +972,7 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
             let filtered = rawRooms.filter((r) => {
               if (buildingId && r.buildingId !== buildingId) return false;
               if (floorId && r.floorId !== floorId) return false;
-              if (status && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (status && status !== "all" && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
               if (filters.cleanlinessStatus && filters.cleanlinessStatus !== "all" && (r.cleanlinessStatus || "").toLowerCase() !== String(filters.cleanlinessStatus).toLowerCase()) return false;
               if (filters.roomType && filters.roomType !== "all" && (r.roomType || "").toLowerCase() !== String(filters.roomType).toLowerCase()) return false;
 
@@ -990,15 +1023,22 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
             const rawRes = await tenantDb
               .select({
                 id: reservationsTable.id,
-                guestName: reservationsTable.guestName,
-                employeeId: reservationsTable.employeeId,
+                firstName: reservationsTable.firstName,
+                lastName: reservationsTable.lastName,
+                profileCode: reservationsTable.profileCode,
+                guestIdCardNumber: reservationsTable.guestIdCardNumber,
+                guestPhone: reservationsTable.guestPhone,
                 department: reservationsTable.department,
                 jobTitle: reservationsTable.jobTitle,
+                level: reservationsTable.level,
+                gender: reservationsTable.gender,
+                nationality: reservationsTable.nationality,
+                companyName: reservationsTable.companyName,
                 checkInDate: reservationsTable.checkInDate,
                 checkOutDate: reservationsTable.checkOutDate,
                 status: reservationsTable.status,
                 roomType: reservationsTable.roomType,
-                bookingSource: reservationsTable.bookingSource,
+                bedNumber: reservationsTable.bedNumber,
                 notes: reservationsTable.notes,
                 roomId: reservationsTable.roomId,
                 roomNumber: roomsTable.roomNumber,
@@ -1012,18 +1052,21 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               .orderBy(desc(reservationsTable.id));
 
             let filtered = rawRes.filter((r) => {
-              if (status && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (status && status !== "all" && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
               if (buildingId && r.buildingId !== buildingId) return false;
               if (department && (r.department || "").toLowerCase() !== department.toLowerCase()) return false;
               if (dateFrom && r.checkInDate && new Date(r.checkInDate) < new Date(dateFrom)) return false;
               if (dateTo && r.checkInDate && new Date(r.checkInDate) > new Date(dateTo)) return false;
 
+              const guestName = [r.firstName, r.lastName].filter(Boolean).join(" ");
               if (search) {
                 const haystack = [
-                  r.guestName,
-                  r.employeeId,
+                  guestName,
+                  r.profileCode,
                   r.department,
                   r.jobTitle,
+                  r.guestPhone,
+                  r.guestIdCardNumber,
                   r.roomNumber,
                   r.buildingName,
                   r.status,
@@ -1043,9 +1086,17 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                 const e = new Date(r.checkOutDate).getTime();
                 nights = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)));
               }
+              const guestName = [r.firstName, r.lastName].filter(Boolean).join(" ");
               return {
                 index: idx + 1,
                 ...r,
+                guestName,
+                name: guestName,
+                employeeId: r.profileCode,
+                jobLevel: r.level,
+                company: r.companyName,
+                phone: r.guestPhone,
+                nationalId: r.guestIdCardNumber,
                 nights,
               };
             });
@@ -1089,7 +1140,7 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               .orderBy(desc(maintenanceTable.id));
 
             let filtered = rawMnt.filter((r) => {
-              if (status && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (status && status !== "all" && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
               if (filters.priority && filters.priority !== "all" && (r.priority || "").toLowerCase() !== String(filters.priority).toLowerCase()) return false;
               if (filters.category && filters.category !== "all" && (r.category || "").toLowerCase() !== String(filters.category).toLowerCase()) return false;
               if (buildingId && r.buildingId !== buildingId) return false;
@@ -1140,8 +1191,9 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                 notes: profileVacationsTable.notes,
                 status: profileVacationsTable.status,
                 createdAt: profileVacationsTable.createdAt,
-                employeeId: profilesTable.employeeId,
-                name: profilesTable.name,
+                employeeId: profilesTable.profileId,
+                firstName: profilesTable.firstName,
+                lastName: profilesTable.lastName,
                 department: profilesTable.department,
                 jobTitle: profilesTable.jobTitle,
                 phone: profilesTable.phone,
@@ -1152,14 +1204,15 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               .orderBy(desc(profileVacationsTable.id));
 
             let filtered = rawVac.filter((r) => {
-              if (status && (r.status || "").toUpperCase() !== status.toUpperCase()) return false;
+              if (status && status !== "all" && (r.status || "").toUpperCase() !== status.toUpperCase()) return false;
               if (department && (r.department || "").toLowerCase() !== department.toLowerCase()) return false;
               if (dateFrom && r.startDate && new Date(r.startDate) < new Date(dateFrom)) return false;
               if (dateTo && r.startDate && new Date(r.startDate) > new Date(dateTo)) return false;
 
+              const fullName = [r.firstName, r.lastName].filter(Boolean).join(" ");
               if (search) {
                 const haystack = [
-                  r.name,
+                  fullName,
                   r.employeeId,
                   r.department,
                   r.jobTitle,
@@ -1174,10 +1227,14 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               return true;
             });
 
-            rows = filtered.map((r, idx) => ({
-              index: idx + 1,
-              ...r,
-            }));
+            rows = filtered.map((r, idx) => {
+              const fullName = [r.firstName, r.lastName].filter(Boolean).join(" ");
+              return {
+                index: idx + 1,
+                ...r,
+                name: fullName,
+              };
+            });
 
             stats = {
               totalVacations: rows.length,
@@ -1193,19 +1250,21 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               .select({
                 id: hostingsTable.id,
                 profileId: hostingsTable.profileId,
-                guestName: hostingsTable.guestName,
-                relation: hostingsTable.relation,
-                nationalId: hostingsTable.nationalId,
-                startDate: hostingsTable.startDate,
-                endDate: hostingsTable.endDate,
-                status: hostingsTable.status,
                 hostingType: hostingsTable.hostingType,
+                guestsCount: hostingsTable.guestsCount,
+                startDate: hostingsTable.expectedFrom,
+                endDate: hostingsTable.expectedTo,
+                actualCheckIn: hostingsTable.actualCheckIn,
+                actualCheckOut: hostingsTable.actualCheckOut,
+                status: hostingsTable.status,
+                notes: hostingsTable.notes,
                 roomId: hostingsTable.roomId,
                 roomNumber: roomsTable.roomNumber,
                 buildingName: buildingsTable.name,
                 buildingId: roomsTable.buildingId,
-                employeeId: profilesTable.employeeId,
-                hostName: profilesTable.name,
+                employeeId: profilesTable.profileId,
+                firstName: profilesTable.firstName,
+                lastName: profilesTable.lastName,
                 department: profilesTable.department,
                 createdAt: hostingsTable.createdAt,
               })
@@ -1215,20 +1274,28 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
               .orderBy(desc(hostingsTable.id));
 
+            const companions = await tenantDb.select().from(hostingCompanionsTable);
+            const compMap = new Map<number, any>();
+            companions.forEach((c) => {
+              if (!compMap.has(c.hostingId)) compMap.set(c.hostingId, c);
+            });
+
             let filtered = rawHost.filter((r) => {
-              if (status && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (status && status !== "all" && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
               if (buildingId && r.buildingId !== buildingId) return false;
               if (department && (r.department || "").toLowerCase() !== department.toLowerCase()) return false;
               if (dateFrom && r.startDate && new Date(r.startDate) < new Date(dateFrom)) return false;
               if (dateTo && r.startDate && new Date(r.startDate) > new Date(dateTo)) return false;
 
+              const hostName = [r.firstName, r.lastName].filter(Boolean).join(" ");
+              const comp = compMap.get(r.id);
               if (search) {
                 const haystack = [
-                  r.guestName,
-                  r.hostName,
+                  comp?.name,
+                  hostName,
                   r.employeeId,
-                  r.nationalId,
-                  r.relation,
+                  comp?.idNumber,
+                  comp?.relation,
                   r.roomNumber,
                   r.buildingName,
                   r.department,
@@ -1241,10 +1308,17 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               return true;
             });
 
-            rows = filtered.map((r, idx) => ({
-              index: idx + 1,
-              ...r,
-            }));
+            rows = filtered.map((r, idx) => {
+              const comp = compMap.get(r.id);
+              return {
+                index: idx + 1,
+                ...r,
+                hostName: [r.firstName, r.lastName].filter(Boolean).join(" "),
+                guestName: comp?.name || "ضيف",
+                relation: comp?.relation || "—",
+                nationalId: comp?.idNumber || "—",
+              };
+            });
 
             stats = {
               totalHostings: rows.length,
@@ -1284,7 +1358,12 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
             totalPages: Math.ceil(totalCount / Number(limit)) || 1,
             stats,
           };
-        }),
+        });
+      } catch (err) {
+        console.error("[POST /api/reports/custom/query error]:", err);
+        throw err;
+      }
+    },
       {
         success: false,
         data: [],

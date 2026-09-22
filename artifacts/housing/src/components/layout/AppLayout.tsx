@@ -453,16 +453,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return true;
   });
 
-  const isActive = (href: string) => {
+  const isActive = (href: string, exact: boolean = false) => {
     const fullHref = buildNavHref(href);
-    const currentSubPath = location.replace(/^\/[^/]+/, "");
+    const cleanLocation = location.split("?")[0].replace(/\/$/, "");
+    const cleanFullHref = fullHref.replace(/\/$/, "");
+    const currentSubPath = cleanLocation.replace(/^\/[^/]+/, "") || "/";
+    const cleanHref = href.replace(/\/$/, "");
+
+    if (
+      cleanLocation === cleanFullHref ||
+      cleanLocation === cleanHref ||
+      currentSubPath === cleanHref
+    ) {
+      return true;
+    }
+
+    if (exact || href === "/reports") {
+      return false;
+    }
+
     return (
-      location === fullHref ||
-      location === href ||
-      currentSubPath === href ||
-      (href !== "/" &&
-        (location.startsWith(fullHref + "/") ||
-          currentSubPath.startsWith(href + "/")))
+      cleanHref !== "" &&
+      cleanHref !== "/" &&
+      (cleanLocation.startsWith(cleanFullHref + "/") ||
+        currentSubPath.startsWith(cleanHref + "/"))
     );
   };
 
@@ -498,7 +512,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {visibleNavItems.map((item, idx) => {
           if (item.subItems) {
             const groupKey = item.subItems[0]?.href.split("/")[1] || String(idx);
-            const isGroupActive = item.subItems.some((s) => isActive(s.href));
+            const isGroupActive = item.subItems.some((s) => isActive(s.href, true));
             const open = openGroups[groupKey] ?? isGroupActive;
             return (
               <div key={idx} className="mb-1">
@@ -534,7 +548,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     className={`${ar ? "mr-6 pr-3 border-r-2" : "ml-6 pl-3 border-l-2"} border-border/40 flex flex-col gap-1`}
                   >
                     {item.subItems.map((sub, sIdx) => {
-                      const active = isActive(sub.href);
+                      const active = isActive(sub.href, true);
                       return (
                         <Link
                           key={sIdx}
