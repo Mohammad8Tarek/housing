@@ -50,6 +50,8 @@ import {
   useDeleteLookupValue,
   type LookupValue,
 } from "@/hooks/use-lookup-values";
+import type { JobLevelPolicy } from "../hooks/useSettingsForm";
+import { DEFAULT_JOB_LEVEL_POLICIES } from "../hooks/useSettingsForm";
 
 interface LookupSectionProps {
   propertyId: number;
@@ -62,6 +64,7 @@ interface LookupSectionProps {
   extraLabel?: string;
   enablePagination?: boolean;
   customLevelRules?: any[];
+  jobLevelPolicies?: JobLevelPolicy[];
 }
 
 export function LookupSection({
@@ -75,18 +78,25 @@ export function LookupSection({
   extraLabel,
   enablePagination,
   customLevelRules,
+  jobLevelPolicies,
 }: LookupSectionProps) {
   const { language } = useLanguage();
   const ar = language === "ar";
 
+  const currentLevelPolicies: JobLevelPolicy[] = (jobLevelPolicies && jobLevelPolicies.length > 0)
+    ? jobLevelPolicies
+    : DEFAULT_JOB_LEVEL_POLICIES;
+
   const suggestedLevels = [
-    { value: "Level 0", label: ar ? "Level 0 - الإدارة العليا / VIP (سعة 1)" : "Level 0 - Executive / VIP (Cap 1)" },
-    { value: "Level 1", label: ar ? "Level 1 - المدراء ورؤساء القطاعات (سعة 1)" : "Level 1 - GMs / Execs (Cap 1)" },
-    { value: "Level 2", label: ar ? "Level 2 - مدراء الأقسام والمساعدون (سعة 2)" : "Level 2 - Dept Heads (Cap 2)" },
-    { value: "Level 3", label: ar ? "Level 3 - المشرفون والموظفون (سعة 3)" : "Level 3 - Supervisors / Staff (Cap 3)" },
-    { value: "Level 4", label: ar ? "Level 4 - العمال والخدمات المعاونة (سعة 4)" : "Level 4 - Workers (Cap 4)" },
-    { value: "Level 5", label: ar ? "Level 5 - غرف خماسية (سعة 5)" : "Level 5 - 5-Bed (Cap 5)" },
-    { value: "Level 6", label: ar ? "Level 6 - غرف سداسية (سعة 6)" : "Level 6 - 6-Bed (Cap 6)" },
+    ...currentLevelPolicies.map((lvl) => {
+      const caps = (lvl.allowedCapacities || [1]).sort((a, b) => a - b).join("، ");
+      const name = ar ? (lvl.nameAr || lvl.name) : (lvl.name || lvl.nameAr);
+      const isL0 = lvl.levelKey === "0" || lvl.id === "level_0";
+      return {
+        value: isL0 ? "Level 0" : `Level ${lvl.levelKey}`,
+        label: `${isL0 ? "Level 0" : `Level ${lvl.levelKey}`} - ${name} (${caps} ${ar ? "سرير" : "beds"})`,
+      };
+    }),
     ...(customLevelRules || []).map((r: any) => ({
       value: r.name,
       label: `${r.name} - ${r.nameAr || ""} (${r.capacity} ${ar ? "أفراد" : "beds"})`,

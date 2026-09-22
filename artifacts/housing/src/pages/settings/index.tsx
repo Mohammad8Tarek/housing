@@ -321,6 +321,7 @@ export default function Settings() {
                           extraLabel="Level"
                           enablePagination={true}
                           customLevelRules={form.watch("customLevelRules") || (settings as any)?.customLevelRules || []}
+                          jobLevelPolicies={form.watch("jobLevelPolicies") || (settings as any)?.jobLevelPolicies || []}
                         />
                       )}
                     </CardContent>
