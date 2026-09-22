@@ -347,6 +347,9 @@ export interface CrossPropertyTransferParams {
   transferReason?: string;
   isEntireRoom?: boolean;
   isTemporaryVacationOverride?: boolean;
+  hasPolicyException?: boolean;
+  policyExceptionReason?: string;
+  policyApprovedBy?: string;
   archiveSourceProfile?: boolean;
   req: any;
 }
@@ -364,6 +367,9 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
     transferReason,
     isEntireRoom: reqEntireRoom,
     isTemporaryVacationOverride,
+    hasPolicyException,
+    policyExceptionReason,
+    policyApprovedBy,
     archiveSourceProfile = true,
     req,
   } = params;
@@ -600,6 +606,9 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
         isEntireRoom: isEntireRoomRequested,
         checkInDate: nowStr,
         expectedCheckOutDate: oldAssignment.expectedCheckOutDate,
+        hasPolicyException: hasPolicyException !== undefined ? Boolean(hasPolicyException) : Boolean(oldAssignment.hasPolicyException),
+        policyExceptionReason: policyExceptionReason || oldAssignment.policyExceptionReason || null,
+        policyApprovedBy: policyApprovedBy || oldAssignment.policyApprovedBy || null,
         notes: finalNotes,
         status: "ACTIVE",
       })

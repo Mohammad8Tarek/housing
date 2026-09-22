@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "verify:imports": "node ../../scripts/verify-jsx-imports.mjs",
+    "build": "node ../../scripts/verify-jsx-imports.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run"

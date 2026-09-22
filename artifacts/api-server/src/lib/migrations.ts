@@ -2490,6 +2490,14 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_adaptive_learning BOOLEAN NOT NULL DEFAULT true;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS policy_require_exception_approval BOOLEAN NOT NULL DEFAULT true;`,
   },
+  {
+    name: "tenant.composite_performance_indexes",
+    q: `CREATE INDEX IF NOT EXISTS idx_assignments_room_status ON assignments(room_id, status);
+        CREATE INDEX IF NOT EXISTS idx_assignments_profile_status ON assignments(profile_id, status);
+        CREATE INDEX IF NOT EXISTS idx_rooms_building_status ON rooms(building_id, status);
+        CREATE INDEX IF NOT EXISTS idx_reservations_room_status ON reservations(room_id, status);
+        CREATE INDEX IF NOT EXISTS idx_assignments_policy_exception ON assignments(has_policy_exception);`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {

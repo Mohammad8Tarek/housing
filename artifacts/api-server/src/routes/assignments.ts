@@ -1119,6 +1119,9 @@ router.post(
         transferReason: parsed.data.transferReason,
         isEntireRoom: Boolean((req.body as any)?.isEntireRoom),
         isTemporaryVacationOverride,
+        hasPolicyException: Boolean((req.body as any)?.hasPolicyException),
+        policyExceptionReason: (req.body as any)?.policyExceptionReason || null,
+        policyApprovedBy: (req.body as any)?.policyApprovedBy || null,
         archiveSourceProfile: (req.body as any)?.archiveSourceProfile !== undefined
           ? Boolean((req.body as any)?.archiveSourceProfile)
           : true,
@@ -1350,6 +1353,11 @@ router.post(
           bedNumber: isEntireRoomRequested ? (parsed.data.newBedNumber || 1) : (parsed.data.newBedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
           checkInDate: nowStr,
+          hasPolicyException: (req.body as any)?.hasPolicyException !== undefined
+            ? Boolean((req.body as any)?.hasPolicyException)
+            : assignment.hasPolicyException,
+          policyExceptionReason: (req.body as any)?.policyExceptionReason || assignment.policyExceptionReason || null,
+          policyApprovedBy: (req.body as any)?.policyApprovedBy || assignment.policyApprovedBy || null,
           notes: [
             assignment.notes,
             `تم النقل من الغرفة ${oldRoom?.roomNumber || assignment.roomId} إلى الغرفة ${newRoom.roomNumber}`,

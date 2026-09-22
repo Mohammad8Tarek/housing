@@ -1999,12 +1999,16 @@ BEGIN
       CREATE INDEX IF NOT EXISTS idx_assignments_profile ON assignments(profile_id);
       CREATE INDEX IF NOT EXISTS idx_assignments_room ON assignments(room_id);
       CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
+      CREATE INDEX IF NOT EXISTS idx_assignments_room_status ON assignments(room_id, status);
+      CREATE INDEX IF NOT EXISTS idx_assignments_profile_status ON assignments(profile_id, status);
+      CREATE INDEX IF NOT EXISTS idx_assignments_policy_exception ON assignments(has_policy_exception);
     END IF;
 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'reservations') THEN
       CREATE INDEX IF NOT EXISTS idx_reservations_room_id ON reservations(room_id);
       CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
       CREATE INDEX IF NOT EXISTS idx_reservations_check_in ON reservations(check_in_date);
+      CREATE INDEX IF NOT EXISTS idx_reservations_room_status ON reservations(room_id, status);
     END IF;
 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'maintenance') THEN

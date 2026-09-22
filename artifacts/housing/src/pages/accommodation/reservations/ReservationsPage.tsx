@@ -1,5 +1,8 @@
-// @ts-nocheck
-import { recommendBestRooms } from "@/lib/room-recommender";
+import { recommendBestRooms, checkPolicyCompliance } from "@/lib/room-recommender";
+import {
+  PolicyExceptionApprovalModal,
+  type PolicyViolationItem,
+} from "@/components/PolicyExceptionApprovalModal";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import {
@@ -156,6 +159,11 @@ export default function ReservationsPage() {
   const [keyPromptOpen, setKeyPromptOpen] = useState(false);
   const [lastAssignment, setLastAssignment] = useState<any>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [resPolicyModal, setResPolicyModal] = useState<{
+    open: boolean;
+    violations: PolicyViolationItem[];
+    pendingAction?: (approval: { approvedBy: string; reason: string }) => void;
+  }>({ open: false, violations: [] });
 
   // WhatsApp reservation confirmation dialog state
   const [whatsAppDialog, setWhatsAppDialog] = useState<{
@@ -613,7 +621,34 @@ export default function ReservationsPage() {
   const isMultiBed = bedOptions.length > 1;
 
   const checkinRooms = rooms.filter((r: any) => !["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase()));
-  const filteredCheckinRooms = checkinRooms.filter((r: any) => !checkinRoomSearch.trim() || r.roomNumber?.toLowerCase().includes(checkinRoomSearch.toLowerCase()));
+
+  const checkinRecommendations = useMemo(() => {
+    if (!checkinDialog.open || !checkinDialog.reservation || rooms.length === 0) {
+      return { bestRoom: null, scoredRooms: [], recommendedMap: {} as Record<number, any> };
+    }
+    const res = checkinDialog.reservation;
+    return recommendBestRooms({
+      profile: {
+        level: res.level,
+        gender: res.gender,
+        department: res.department,
+        nationality: res.nationality,
+      },
+      rooms: checkinRooms,
+      assignments,
+      profiles,
+      policySettings: settings || {},
+    });
+  }, [checkinDialog.open, checkinDialog.reservation, checkinRooms, assignments, profiles, settings]);
+
+  const filteredCheckinRooms = useMemo(() => {
+    const list = checkinRooms.filter((r: any) => !checkinRoomSearch.trim() || r.roomNumber?.toLowerCase().includes(checkinRoomSearch.toLowerCase()));
+    return list.sort((a: any, b: any) => {
+      const scoreA = checkinRecommendations.recommendedMap[a.id]?.score ?? 0;
+      const scoreB = checkinRecommendations.recommendedMap[b.id]?.score ?? 0;
+      return scoreB - scoreA;
+    });
+  }, [checkinRooms, checkinRoomSearch, checkinRecommendations]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["listReservations"] });
@@ -1080,33 +1115,75 @@ export default function ReservationsPage() {
     setCrossPropertyModalOpen(false);
   };
 
+  const executeCheckinOperation = (
+    res: any,
+    targetRoomId: number,
+    approval?: { approvedBy: string; reason: string },
+  ) => {
+    setSelectedProfile({
+      id: res.profileId || 0,
+      propertyId: activePropertyId!,
+      propertyName: null,
+      profileId: res.profileCode || `RES-${res.id}`,
+      firstName: res.firstName,
+      lastName: res.lastName,
+      nationalId: res.guestIdCardNumber || "",
+      jobTitle: res.jobTitle || null,
+      department: res.department || null,
+      nationality: res.nationality || null,
+      phone: res.guestPhone || null,
+      level: res.level || null,
+      status: "ACTIVE",
+      gender: res.gender || null,
+    });
+
+    checkinMutation.mutate({
+      id: res.id,
+      data: {
+        roomId: targetRoomId,
+        actualCheckInDate: new Date().toISOString(),
+        hasPolicyException: Boolean(approval),
+        policyApprovedBy: approval?.approvedBy,
+        policyExceptionReason: approval?.reason,
+      } as any,
+    });
+    setCheckinDialog({ open: false, id: null });
+  };
+
   const handleStartCheckin = (res: any) => {
     if (res.roomId) {
-      // Room was already chosen during reservation creation: Check-in immediately!
-      setSelectedProfile({
-        id: res.profileId || 0,
-        propertyId: activePropertyId!,
-        propertyName: null,
-        profileId: res.profileCode || `RES-${res.id}`,
-        firstName: res.firstName,
-        lastName: res.lastName,
-        nationalId: res.guestIdCardNumber || "",
-        jobTitle: res.jobTitle || null,
-        department: res.department || null,
-        nationality: res.nationality || null,
-        phone: res.guestPhone || null,
-        level: res.level || null,
-        status: "ACTIVE",
-        gender: res.gender || null,
-      });
+      const chosenRoom = rooms.find((r: any) => r.id === Number(res.roomId));
+      if (chosenRoom) {
+        const compliance = checkPolicyCompliance({
+          profile: {
+            level: res.level,
+            gender: res.gender,
+            department: res.department,
+            nationality: res.nationality,
+          },
+          room: chosenRoom,
+          assignments,
+          profiles,
+          policySettings: settings || {},
+        });
 
-      checkinMutation.mutate({
-        id: res.id,
-        data: {
-          roomId: Number(res.roomId),
-          actualCheckInDate: new Date().toISOString(),
-        },
-      });
+        if (
+          !compliance.compliant &&
+          compliance.violations.length > 0 &&
+          settings?.policyRequireExceptionApproval
+        ) {
+          setResPolicyModal({
+            open: true,
+            violations: compliance.violations,
+            pendingAction: (approval) => {
+              executeCheckinOperation(res, Number(res.roomId), approval);
+            },
+          });
+          return;
+        }
+      }
+
+      executeCheckinOperation(res, Number(res.roomId));
     } else {
       // No room was assigned yet: open room picker dialog
       setCheckinRoomId("");
@@ -1124,29 +1201,41 @@ export default function ReservationsPage() {
       toast.error(ar ? "الرجاء اختيار غرفة" : "Please select a room");
       return;
     }
-    if (checkinDialog.reservation) {
-      const res = checkinDialog.reservation;
-      setSelectedProfile({
-        id: res.profileId || 0,
-        propertyId: activePropertyId!,
-        propertyName: null,
-        profileId: res.profileCode || `RES-${res.id}`,
-        firstName: res.firstName,
-        lastName: res.lastName,
-        nationalId: res.guestIdCardNumber || "",
-        jobTitle: res.jobTitle || null,
-        department: res.department || null,
-        nationality: res.nationality || null,
-        phone: res.guestPhone || null,
-        level: res.level || null,
-        status: "ACTIVE",
-        gender: res.gender || null,
+    const res = checkinDialog.reservation;
+    const targetRoomId = parseInt(checkinRoomId);
+    const chosenRoom = rooms.find((r: any) => r.id === targetRoomId);
+
+    if (chosenRoom && res) {
+      const compliance = checkPolicyCompliance({
+        profile: {
+          level: res.level,
+          gender: res.gender,
+          department: res.department,
+          nationality: res.nationality,
+        },
+        room: chosenRoom,
+        assignments,
+        profiles,
+        policySettings: settings || {},
       });
+
+      if (
+        !compliance.compliant &&
+        compliance.violations.length > 0 &&
+        settings?.policyRequireExceptionApproval
+      ) {
+        setResPolicyModal({
+          open: true,
+          violations: compliance.violations,
+          pendingAction: (approval) => {
+            executeCheckinOperation(res, targetRoomId, approval);
+          },
+        });
+        return;
+      }
     }
-    checkinMutation.mutate({
-      id: checkinDialog.id,
-      data: { roomId: parseInt(checkinRoomId), actualCheckInDate: new Date().toISOString() },
-    });
+
+    executeCheckinOperation(res, targetRoomId);
   };
 
   const filteredEditRooms = useMemo(() => {
@@ -2603,51 +2692,83 @@ export default function ReservationsPage() {
               {filteredCheckinRooms.map((r: any) => {
                 const isEntireReserved = entireRoomOccupiedSet.has(r.id);
                 const isFull = (r.currentOccupancy ?? 0) >= (r.capacity ?? 1) || isEntireReserved;
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    disabled={isFull}
-                    onClick={() => {
-                      if (!isFull) setCheckinRoomId(String(r.id));
-                    }}
-                    className={`w-full flex items-center justify-between p-3 border-2 rounded-lg text-sm text-left rtl:text-right transition-all ${
-                      isFull
-                        ? "opacity-50 cursor-not-allowed bg-muted/30 border-border"
-                        : checkinRoomId === String(r.id)
-                        ? "border-primary bg-primary/5 cursor-pointer"
-                        : "border-border hover:border-primary/50 cursor-pointer"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <BedDouble className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <div>
-                        <p className="font-medium">
-                          {ar ? "غرفة" : "Room"} {r.roomNumber}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {buildingMap[r.buildingId] || "—"} • {r.roomType || "—"} • {r.currentOccupancy ?? 0}/{r.capacity ?? 1}
-                        </p>
-                      </div>
-                    </div>
-                    {isFull ? (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/20">
-                        {ar ? "مكتملة (ساكنة)" : "Full"}
-                      </span>
-                    ) : checkinRoomId === String(r.id) ? (
-                      <CheckCircle className="w-4 h-4 text-primary ml-auto rtl:ml-0 rtl:mr-auto" />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setCheckinDialog({ open: false, id: null })}>{ar ? "إلغاء" : "Cancel"}</Button>
-              <Button onClick={handleCheckin} disabled={!checkinRoomId || checkinMutation.isPending}>{checkinMutation.isPending ? (ar ? "جاري التسكين..." : "...") : (ar ? "تسكين" : "Check-In")}</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+                    const rec = checkinRecommendations.recommendedMap[r.id];
+                    const isConflict = rec && rec.score < 0;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        disabled={isFull}
+                        onClick={() => {
+                          if (!isFull) setCheckinRoomId(String(r.id));
+                        }}
+                        className={`w-full flex items-center justify-between p-3 border-2 rounded-lg text-sm text-left rtl:text-right transition-all ${
+                          isFull
+                            ? "opacity-50 cursor-not-allowed bg-muted/30 border-border"
+                            : checkinRoomId === String(r.id)
+                            ? "border-primary bg-primary/5 cursor-pointer"
+                            : "border-border hover:border-primary/50 cursor-pointer"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <BedDouble className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium">
+                                {ar ? "غرفة" : "Room"} {r.roomNumber}
+                              </p>
+                              {rec?.badgeLabelAr && (
+                                <Badge className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 text-[10px] px-1.5 py-0 font-medium">
+                                  🤖 {ar ? rec.badgeLabelAr : rec.badgeLabelEn}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {buildingMap[r.buildingId] || "—"} • {r.roomType || "—"} • {r.currentOccupancy ?? 0}/{r.capacity ?? 1}
+                            </p>
+                            {isConflict && (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium mt-0.5">
+                                <AlertTriangle className="w-3 h-3" />
+                                {ar ? "تعارض مع سياسات التسكين" : "Policy conflict"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {isFull ? (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/20">
+                            {ar ? "مكتملة (ساكنة)" : "Full"}
+                          </span>
+                        ) : checkinRoomId === String(r.id) ? (
+                          <CheckCircle className="w-4 h-4 text-primary ml-auto rtl:ml-0 rtl:mr-auto" />
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setCheckinDialog({ open: false, id: null })}>{ar ? "إلغاء" : "Cancel"}</Button>
+                  <Button onClick={handleCheckin} disabled={!checkinRoomId || checkinMutation.isPending}>{checkinMutation.isPending ? (ar ? "جاري التسكين..." : "...") : (ar ? "تسكين" : "Check-In")}</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Reservation Policy Exception Approval Modal */}
+          <PolicyExceptionApprovalModal
+            open={resPolicyModal.open}
+            onOpenChange={(open) =>
+              setResPolicyModal((prev) => ({ ...prev, open }))
+            }
+            titleAr="اعتماد استثناء لتسكين الحجز خارج السياسات"
+            titleEn="Approve Policy Exception for Reservation Check-In"
+            violations={resPolicyModal.violations}
+            isLoading={checkinMutation.isPending}
+            onConfirm={(approval) => {
+              const action = resPolicyModal.pendingAction;
+              setResPolicyModal({ open: false, violations: [] });
+              if (action) action(approval);
+            }}
+          />
 
       {/* WHATSAPP RESERVATION CONFIRMATION DIALOG */}
       <Dialog

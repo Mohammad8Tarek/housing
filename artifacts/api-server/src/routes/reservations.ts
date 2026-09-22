@@ -769,6 +769,9 @@ router.post(
             checkInDate: String(cin),
             expectedCheckOutDate: current.checkOutDate || null,
             status: "ACTIVE",
+            hasPolicyException: Boolean((req.body as any)?.hasPolicyException),
+            policyExceptionReason: (req.body as any)?.policyExceptionReason || null,
+            policyApprovedBy: (req.body as any)?.policyApprovedBy || null,
             notes: `حجز رقم #${current.id}${current.notes ? ` - ${current.notes}` : ""}`,
           })
           .returning();

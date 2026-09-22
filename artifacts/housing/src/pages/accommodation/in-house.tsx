@@ -71,9 +71,15 @@ import {
   Layers,
   MessageSquare,
   Send,
+  AlertTriangle,
   Radio,
   QrCode,
 } from "lucide-react";
+import { recommendBestRooms, checkPolicyCompliance } from "@/lib/room-recommender";
+import {
+  PolicyExceptionApprovalModal,
+  type PolicyViolationItem,
+} from "@/components/PolicyExceptionApprovalModal";
 import { GatePassModal } from "./GatePassModal";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
 import {
@@ -199,6 +205,10 @@ export default function InHouse() {
   const [transferPropertyId, setTransferPropertyId] = useState<string>("");
   const [transferArchiveSource, setTransferArchiveSource] = useState<boolean>(true);
   const [profileEmpId, setProfileEmpId] = useState<number | null>(null);
+  const [transferPolicyModal, setTransferPolicyModal] = useState<{
+    open: boolean;
+    violations: PolicyViolationItem[];
+  }>({ open: false, violations: [] });
 
   // Re-issue key state
   const [reissueDialog, setReissueDialog] = useState<{
@@ -719,22 +729,44 @@ export default function InHouse() {
     targetBuildings.map((b) => [b.id, b.name]),
   );
 
+  const transferRecommendations = useMemo(() => {
+    if (!transferDialog.open || !transferDialog.emp || targetRooms.length === 0) {
+      return { bestRoom: null, scoredRooms: [], recommendedMap: {} as Record<number, any> };
+    }
+    return recommendBestRooms({
+      profile: transferDialog.emp,
+      rooms: targetRooms,
+      assignments: targetAssignments,
+      profiles: [],
+      policySettings: settings || {},
+    });
+  }, [transferDialog.open, transferDialog.emp, targetRooms, targetAssignments, settings]);
+
   const transferableRooms = targetRooms.filter(
     (r) =>
       r.status?.toLowerCase() !== "maintenance" &&
       (r.currentOccupancy ?? 0) < (r.capacity ?? 1),
   );
 
-  const filteredTransferRooms = transferableRooms.filter((r) => {
-    if (!roomSearch.trim()) return true;
-    const q = roomSearch.toLowerCase();
-    const b = targetBuildingMap[r.buildingId] ?? "";
-    return (
-      r.roomNumber?.toLowerCase().includes(q) ||
-      b.toLowerCase().includes(q) ||
-      r.roomType?.toLowerCase().includes(q)
-    );
-  });
+  const filteredTransferRooms = useMemo(() => {
+    const list = transferableRooms.filter((r) => {
+      if (!roomSearch.trim()) return true;
+      const q = roomSearch.toLowerCase();
+      const b = targetBuildingMap[r.buildingId] ?? "";
+      return (
+        r.roomNumber?.toLowerCase().includes(q) ||
+        b.toLowerCase().includes(q) ||
+        r.roomType?.toLowerCase().includes(q)
+      );
+    });
+
+    // Sort by AI recommender score descending so highest matching rooms appear first
+    return list.sort((a, b) => {
+      const scoreA = transferRecommendations.recommendedMap[a.id]?.score ?? 0;
+      const scoreB = transferRecommendations.recommendedMap[b.id]?.score ?? 0;
+      return scoreB - scoreA;
+    });
+  }, [transferableRooms, roomSearch, targetBuildingMap, transferRecommendations]);
 
   // Row selection helpers
   const pagedIds = assignments.map((a) => a.id);
@@ -971,7 +1003,7 @@ export default function InHouse() {
     });
   };
 
-  const handleTransfer = () => {
+  const handleTransfer = (policyException?: { approvedBy: string; reason: string }) => {
     if (!transferDialog.id || !transferRoomId) {
       toast.error(ar ? "الرجاء اختيار غرفة" : "Please select a room");
       return;
@@ -980,6 +1012,34 @@ export default function InHouse() {
       toast.error(ar ? "الرجاء اختيار سرير" : "Please select a bed");
       return;
     }
+
+    // Check policy compliance if exception not yet approved
+    if (!policyException && selectedTargetRoom && transferDialog.emp) {
+      const compliance = checkPolicyCompliance({
+        profile: transferDialog.emp,
+        room: selectedTargetRoom,
+        assignments: targetAssignments,
+        profiles: [],
+        policySettings: settings || {},
+      });
+
+      if (!compliance.compliant && compliance.violations.length > 0) {
+        if (settings?.policyRequireExceptionApproval) {
+          setTransferPolicyModal({
+            open: true,
+            violations: compliance.violations,
+          });
+          return;
+        } else {
+          toast.warning(
+            ar
+              ? "تنبيه: التسكين يخالف بعض السياسات المحددة"
+              : "Warning: Transfer conflicts with housing policies",
+          );
+        }
+      }
+    }
+
     const targetPropId = transferPropertyId ? parseInt(transferPropertyId) : undefined;
     const isCross = Boolean(targetPropId && targetPropId !== Number(activePropertyId));
     transferMutation.mutate({
@@ -993,6 +1053,9 @@ export default function InHouse() {
         transferReason: transferReason || undefined,
         targetPropertyId: targetPropId,
         archiveSourceProfile: isCross ? transferArchiveSource : undefined,
+        hasPolicyException: Boolean(policyException),
+        policyApprovedBy: policyException?.approvedBy,
+        policyExceptionReason: policyException?.reason,
       } as any,
     });
   };
@@ -2450,6 +2513,8 @@ export default function InHouse() {
                     const isSelected = transferRoomId === String(r.id);
                     const available =
                       (r.capacity ?? 1) - (r.currentOccupancy ?? 0);
+                    const rec = transferRecommendations.recommendedMap[r.id];
+                    const isConflict = rec && rec.score < 0;
                     return (
                       <button
                         key={r.id}
@@ -2459,20 +2524,33 @@ export default function InHouse() {
                         }}
                         className={`w-full text-left px-3 py-2.5 flex items-center justify-between border-b last:border-0 transition-colors ${isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"}`}
                       >
-                        <div>
-                          <span className="font-mono font-semibold">
-                            {r.roomNumber}
-                          </span>
-                          {building && (
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              {building}
+                        <div className="flex flex-col text-left gap-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono font-semibold">
+                              {r.roomNumber}
+                            </span>
+                            {building && (
+                              <span className="text-xs text-muted-foreground">
+                                {building}
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {r.roomType}
+                            </span>
+                            {rec?.badgeLabelAr && (
+                              <Badge className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 text-[10px] px-1.5 py-0 font-medium">
+                                🤖 {ar ? rec.badgeLabelAr : rec.badgeLabelEn}
+                              </Badge>
+                            )}
+                          </div>
+                          {isConflict && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium">
+                              <AlertTriangle className="w-3 h-3" />
+                              {ar ? "تحذير: مخالفة سياسة التسكين" : "Warning: Conflicts with policy"}
                             </span>
                           )}
-                          <span className="ml-2 text-xs text-muted-foreground capitalize">
-                            {r.roomType}
-                          </span>
                         </div>
-                        <Badge variant="outline" className="text-xs ml-2">
+                        <Badge variant="outline" className="text-xs ml-2 shrink-0">
                           <BedDouble className="w-3 h-3 mr-1" />
                           {available}/{r.capacity}
                         </Badge>
@@ -2630,6 +2708,22 @@ export default function InHouse() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Transfer Policy Exception Approval Modal */}
+      <PolicyExceptionApprovalModal
+        open={transferPolicyModal.open}
+        onOpenChange={(open) =>
+          setTransferPolicyModal((prev) => ({ ...prev, open }))
+        }
+        titleAr="اعتماد استثناء لنقل الموظف لغرفة تخالف السياسات"
+        titleEn="Approve Policy Exception for Room Move"
+        violations={transferPolicyModal.violations}
+        isLoading={transferMutation.isPending}
+        onConfirm={(approval) => {
+          setTransferPolicyModal({ open: false, violations: [] });
+          handleTransfer(approval);
+        }}
+      />
 
       {/* Re-issue Key Dialog */}
       <Dialog
