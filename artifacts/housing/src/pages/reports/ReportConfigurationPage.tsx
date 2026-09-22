@@ -42,6 +42,7 @@ import {
 // Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataPagination } from "@/components/DataPagination";
@@ -459,7 +460,7 @@ export default function ReportConfigurationPage() {
         activeColumns.forEach((col) => {
           const headerName = ar ? col.labelAr : col.label;
           let val = r[col.key];
-          if (col.type === "date" && val) {
+          if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) {
             val = formatDate(val);
           } else if (val === true) {
             val = ar ? "نعم" : "Yes";
@@ -552,7 +553,7 @@ export default function ReportConfigurationPage() {
       const rows2D = fullRows.map((r, idx) => {
         return activeColumns.map((col) => {
           let val = r[col.key];
-          if (col.type === "date" && val) return formatDate(val);
+          if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) return formatDate(val);
           if (val === true) return ar ? "نعم" : "Yes";
           if (val === false) return ar ? "لا" : "No";
           if (val === null || val === undefined || val === "") return "—";
@@ -1000,28 +1001,29 @@ export default function ReportConfigurationPage() {
           {/* Date From */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">{ar ? "من تاريخ" : "From Date"}</Label>
-            <Input
-              type="date"
+            <DateInput
               value={dateFrom}
-              onChange={(e) => {
-                setDateFrom(e.target.value);
+              onChange={(iso) => {
+                setDateFrom(iso);
                 setPage(1);
               }}
-              className="h-9 text-xs"
+              placeholder={ar ? "يوم / شهر / سنة" : "DD/MM/YYYY"}
+              className="h-9 text-xs bg-background"
             />
           </div>
 
           {/* Date To */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">{ar ? "إلى تاريخ" : "To Date"}</Label>
-            <Input
-              type="date"
+            <DateInput
               value={dateTo}
-              onChange={(e) => {
-                setDateTo(e.target.value);
+              onChange={(iso) => {
+                setDateTo(iso);
                 setPage(1);
               }}
-              className="h-9 text-xs"
+              min={dateFrom}
+              placeholder={ar ? "يوم / شهر / سنة" : "DD/MM/YYYY"}
+              className="h-9 text-xs bg-background"
             />
           </div>
         </div>
@@ -1228,7 +1230,9 @@ export default function ReportConfigurationPage() {
                                 <span>{val ? (ar ? "نعم" : "Yes") : (ar ? "لا" : "No")}</span>
                               ) : (
                                 <span className={col.type === "id" ? "font-mono font-bold" : ""}>
-                                  {val !== undefined && val !== null && val !== "" ? String(val) : "—"}
+                                  {val !== undefined && val !== null && val !== "" ? (
+                                    typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val) ? formatDate(val) : String(val)
+                                  ) : "—"}
                                 </span>
                               )}
                             </td>
