@@ -958,10 +958,12 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                 floorNumber: floorsTable.floorNumber,
                 roomType: roomsTable.roomType,
                 capacity: roomsTable.capacity,
-                occupiedBeds: roomsTable.occupiedBeds,
+                currentOccupancy: roomsTable.currentOccupancy,
                 status: roomsTable.status,
-                cleanlinessStatus: roomsTable.cleanlinessStatus,
-                genderPolicy: roomsTable.genderPolicy,
+                gender: roomsTable.gender,
+                view: roomsTable.view,
+                bedType: roomsTable.bedType,
+                classification: roomsTable.classification,
                 notes: roomsTable.notes,
               })
               .from(roomsTable)
@@ -973,7 +975,7 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               if (buildingId && r.buildingId !== buildingId) return false;
               if (floorId && r.floorId !== floorId) return false;
               if (status && status !== "all" && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
-              if (filters.cleanlinessStatus && filters.cleanlinessStatus !== "all" && (r.cleanlinessStatus || "").toLowerCase() !== String(filters.cleanlinessStatus).toLowerCase()) return false;
+              if (filters.gender && filters.gender !== "all" && (r.gender || "").toLowerCase() !== String(filters.gender).toLowerCase()) return false;
               if (filters.roomType && filters.roomType !== "all" && (r.roomType || "").toLowerCase() !== String(filters.roomType).toLowerCase()) return false;
 
               if (search) {
@@ -982,7 +984,9 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                   r.buildingName,
                   r.roomType,
                   r.status,
-                  r.cleanlinessStatus,
+                  r.gender,
+                  r.bedType,
+                  r.view,
                 ]
                   .filter(Boolean)
                   .join(" ")
@@ -994,14 +998,17 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
 
             rows = filtered.map((r, idx) => {
               const cap = r.capacity || 0;
-              const occ = r.occupiedBeds || 0;
+              const occ = r.currentOccupancy || 0;
               const vac = Math.max(0, cap - occ);
               const pct = cap > 0 ? Math.round((occ / cap) * 100) : 0;
               return {
                 index: idx + 1,
                 ...r,
+                occupiedBeds: occ,
                 vacantBeds: vac,
                 occupancyPct: `${pct}%`,
+                cleanlinessStatus: r.status === "dirty" ? "dirty" : "clean",
+                genderPolicy: r.gender || "all",
               };
             });
 
