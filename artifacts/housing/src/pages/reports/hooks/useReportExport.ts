@@ -630,32 +630,20 @@ export function useReportExport({
   const handleExportAnalyticsPDF = async () => {
     if (!canExportReports) return;
     const isArabic = ar; // Direct language mode — zero popup prompting!
-    if (isArabic) {
-      printArabicAnalyticsReport({
-        analytics,
-        stats,
-        rooms,
-        profiles,
-        buildings,
-        floors,
-        evalStats,
-        properties,
-        propId,
-        activePropertyId,
-        settings,
-      });
-    } else {
-      exportAnalyticsPDF(
-        analytics,
-        rooms,
-        profiles,
-        evalStats,
-        properties,
-        propId,
-        activePropertyId,
-        settings,
-      );
-    }
+    printArabicAnalyticsReport({
+      analytics,
+      stats,
+      rooms,
+      profiles,
+      buildings,
+      floors,
+      evalStats,
+      properties,
+      propId,
+      activePropertyId,
+      settings,
+      language: isArabic ? "ar" : "en",
+    });
   };
 
   return {
