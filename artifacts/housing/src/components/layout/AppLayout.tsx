@@ -169,9 +169,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { language, setLanguage, dir } = useLanguage();
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [accommodationOpen, setAccommodationOpen] = useState(
-    location.includes("/accommodation"),
-  );
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    accommodation: location.includes("/accommodation"),
+    reports: location.includes("/reports"),
+  });
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   // Per-user seen IDs — different users on same browser get separate state
@@ -389,10 +390,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       permissionModules: ["maintenance", "housekeeping"] as Module[],
     },
     {
-      href: "/reports",
       label: ar ? "التقارير" : "Reports",
       icon: FileBarChart,
       permissionModule: "reports",
+      subItems: [
+        {
+          href: "/reports",
+          label: ar ? "مركز التقارير الشاملة" : "All Reports",
+        },
+        {
+          href: "/reports/configuration",
+          label: ar ? "كنفجريشن ريبورت (تقرير مخصص)" : "Configuration Report",
+        },
+      ],
     },
     {
       href: "/gate-scanner",
@@ -487,12 +497,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </p>
         {visibleNavItems.map((item, idx) => {
           if (item.subItems) {
+            const groupKey = item.subItems[0]?.href.split("/")[1] || String(idx);
             const isGroupActive = item.subItems.some((s) => isActive(s.href));
-            const open = accommodationOpen || isGroupActive;
+            const open = openGroups[groupKey] ?? isGroupActive;
             return (
               <div key={idx} className="mb-1">
                 <button
-                  onClick={() => setAccommodationOpen((o) => !o)}
+                  onClick={() =>
+                    setOpenGroups((prev) => ({
+                      ...prev,
+                      [groupKey]: !open,
+                    }))
+                  }
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
                     isGroupActive
                       ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold shadow-sm"

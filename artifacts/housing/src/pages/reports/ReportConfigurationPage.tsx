@@ -69,6 +69,7 @@ import {
 } from "./config/customReportConfig";
 import { exportExcel } from "./utils/export";
 import { printLuxuryReport, ReportKpiCard } from "./utils/luxury-report-engine";
+import { formatDate } from "@/lib/date-utils";
 
 export default function ReportConfigurationPage() {
   const { propertyId, propertySlug, properties, activePropertyId } = useProperty();
@@ -451,9 +452,15 @@ export default function ReportConfigurationPage() {
         activeColumns.forEach((col) => {
           const headerName = ar ? col.labelAr : col.label;
           let val = r[col.key];
-          if (val === true) val = ar ? "نعم" : "Yes";
-          if (val === false) val = ar ? "لا" : "No";
-          if (val === null || val === undefined) val = "—";
+          if (col.type === "date" && val) {
+            val = formatDate(val);
+          } else if (val === true) {
+            val = ar ? "نعم" : "Yes";
+          } else if (val === false) {
+            val = ar ? "لا" : "No";
+          } else if (val === null || val === undefined) {
+            val = "—";
+          }
           rowObj[headerName] = val;
         });
         return rowObj;
@@ -538,6 +545,7 @@ export default function ReportConfigurationPage() {
       const rows2D = fullRows.map((r, idx) => {
         return activeColumns.map((col) => {
           let val = r[col.key];
+          if (col.type === "date" && val) return formatDate(val);
           if (val === true) return ar ? "نعم" : "Yes";
           if (val === false) return ar ? "لا" : "No";
           if (val === null || val === undefined || val === "") return "—";
@@ -1174,6 +1182,8 @@ export default function ReportConfigurationPage() {
                                 <Badge variant="outline" className="text-[11px] font-semibold bg-background">
                                   {val || "—"}
                                 </Badge>
+                              ) : col.type === "date" ? (
+                                <span className="font-mono text-xs">{val ? formatDate(val) : "—"}</span>
                               ) : col.type === "status" ? (
                                 <Badge
                                   className={`text-[11px] font-bold ${

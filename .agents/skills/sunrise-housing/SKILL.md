@@ -73,6 +73,12 @@ description: >-
   2. Terminate prior active accommodation via `checkoutPreviousAssignment: true`.
   3. Backend logic lives in `artifacts/api-server/src/routes/assignments.ts` (lines 418-472) & `artifacts/api-server/src/lib/cross-property-service.ts`.
 
+### Rule 7: Egyptian & Hospitality Date Format Standard (Day/Month/Year — DD/MM/YYYY)
+- **Always format dates as Day-Month-Year (`DD/MM/YYYY` or `DD-MM-YYYY`)**.
+- **Never format dates as Month-Day-Year (`MM/DD/YYYY`)**.
+- Use `formatDate(date)` from `@/lib/date-utils` (which aliases `@workspace/dates` `formatDMY`) across all UI tables, cards, filters, exports, reports, headers, and logs.
+- When generating filenames for exports, use `getExportFileName` with `${prefix}_${DD}-${MM}-${YYYY}.${ext}`.
+
 ---
 
 ## 3. Standard Verification & Deployment Procedure
