@@ -1606,6 +1606,7 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_5_allow_entire" BOOLEAN DEFAULT false;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_6_allow_entire" BOOLEAN DEFAULT false;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "custom_level_rules" JSONB DEFAULT '[]'::jsonb;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "job_level_policies" JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_department_clustering" BOOLEAN DEFAULT true;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_strict_department_segregation" BOOLEAN DEFAULT false;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_strict_gender_segregation" BOOLEAN DEFAULT true;

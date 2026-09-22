@@ -107,6 +107,7 @@ router.patch(
         "policyLevel5AllowEntire",
         "policyLevel6AllowEntire",
         "customLevelRules",
+        "jobLevelPolicies",
         "policyDepartmentClustering",
         "policyStrictDepartmentSegregation",
         "policyStrictGenderSegregation",

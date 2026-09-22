@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -75,7 +76,8 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFormContext } from "react-hook-form";
-import type { SettingsFormData } from "../hooks/useSettingsForm";
+import type { SettingsFormData, JobLevelPolicy } from "../hooks/useSettingsForm";
+import { DEFAULT_JOB_LEVEL_POLICIES } from "../hooks/useSettingsForm";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { toast } from "sonner";
@@ -374,6 +376,104 @@ export function PoliciesSection({
     });
   };
 
+  // ─── Dynamic Level Policy States & Handlers ────────────────────────────────
+  const [isAddLevelOpen, setIsAddLevelOpen] = useState(false);
+  const [newLevelKey, setNewLevelKey] = useState("");
+  const [newLevelNameEn, setNewLevelNameEn] = useState("");
+  const [newLevelNameAr, setNewLevelNameAr] = useState("");
+  const [newLevelCapacities, setNewLevelCapacities] = useState<number[]>([2, 3]);
+  const [newLevelAllowEntire, setNewLevelAllowEntire] = useState(false);
+  const [newLevelDescription, setNewLevelDescription] = useState("");
+
+  const handleToggleCapacity = (levelId: string, bedNumber: number) => {
+    const current = (form.getValues("jobLevelPolicies") && form.getValues("jobLevelPolicies").length > 0)
+      ? form.getValues("jobLevelPolicies")
+      : DEFAULT_JOB_LEVEL_POLICIES;
+
+    const updated = current.map((item: JobLevelPolicy) => {
+      if (item.id !== levelId) return item;
+      const exists = item.allowedCapacities.includes(bedNumber);
+      let newCapacities: number[];
+      if (exists) {
+        if (item.allowedCapacities.length <= 1) {
+          toast.error(ar ? "يجب اختيار سعة سرير واحدة على الأقل" : "At least one bed capacity must be selected");
+          return item;
+        }
+        newCapacities = item.allowedCapacities.filter((c) => c !== bedNumber);
+      } else {
+        newCapacities = [...item.allowedCapacities, bedNumber].sort((a, b) => a - b);
+      }
+      return { ...item, allowedCapacities: newCapacities };
+    });
+    form.setValue("jobLevelPolicies", updated, { shouldDirty: true, shouldValidate: true });
+  };
+
+  const handleToggleAllowEntire = (levelId: string, val: boolean) => {
+    const current = (form.getValues("jobLevelPolicies") && form.getValues("jobLevelPolicies").length > 0)
+      ? form.getValues("jobLevelPolicies")
+      : DEFAULT_JOB_LEVEL_POLICIES;
+
+    const updated = current.map((item: JobLevelPolicy) => {
+      if (item.id !== levelId) return item;
+      return { ...item, allowEntire: val };
+    });
+    form.setValue("jobLevelPolicies", updated, { shouldDirty: true, shouldValidate: true });
+  };
+
+  const handleDeleteLevel = (levelId: string) => {
+    const current = (form.getValues("jobLevelPolicies") && form.getValues("jobLevelPolicies").length > 0)
+      ? form.getValues("jobLevelPolicies")
+      : DEFAULT_JOB_LEVEL_POLICIES;
+
+    if (current.length <= 1) {
+      toast.error(ar ? "يجب الإبقاء على مستوى واحد على الأقل في النظام" : "Must keep at least one level in the system");
+      return;
+    }
+    const updated = current.filter((item: JobLevelPolicy) => item.id !== levelId);
+    form.setValue("jobLevelPolicies", updated, { shouldDirty: true, shouldValidate: true });
+    toast.success(ar ? "تم حذف المستوى بنجاح" : "Level removed successfully");
+  };
+
+  const handleAddLevel = () => {
+    if (!newLevelNameEn.trim() && !newLevelNameAr.trim()) {
+      toast.error(ar ? "يرجى كتابة اسم المستوى" : "Please enter level name");
+      return;
+    }
+    if (newLevelCapacities.length === 0) {
+      toast.error(ar ? "يرجى اختيار سعة سرير واحدة على الأقل" : "Please select at least one bed capacity");
+      return;
+    }
+    const current = (form.getValues("jobLevelPolicies") && form.getValues("jobLevelPolicies").length > 0)
+      ? form.getValues("jobLevelPolicies")
+      : DEFAULT_JOB_LEVEL_POLICIES;
+
+    const id = `level_${Date.now()}`;
+    const key = newLevelKey.trim() || String(current.length);
+    const newLevel: JobLevelPolicy = {
+      id,
+      levelKey: key,
+      name: newLevelNameEn.trim() || `Level ${key}`,
+      nameAr: newLevelNameAr.trim() || `المستوى ${key}`,
+      allowedCapacities: [...newLevelCapacities].sort((a, b) => a - b),
+      allowEntire: newLevelAllowEntire,
+      description: newLevelDescription.trim() || undefined,
+    };
+    form.setValue("jobLevelPolicies", [...current, newLevel], { shouldDirty: true, shouldValidate: true });
+    toast.success(ar ? "تم إضافة المستوى الجديد بنجاح" : "New level added successfully");
+    setIsAddLevelOpen(false);
+    setNewLevelKey("");
+    setNewLevelNameEn("");
+    setNewLevelNameAr("");
+    setNewLevelCapacities([2, 3]);
+    setNewLevelAllowEntire(false);
+    setNewLevelDescription("");
+  };
+
+  const handleResetDefaultLevels = () => {
+    form.setValue("jobLevelPolicies", DEFAULT_JOB_LEVEL_POLICIES, { shouldDirty: true, shouldValidate: true });
+    toast.success(ar ? "تم استعادة المستويات الافتراضية (المستويات 0 إلى 4)" : "Default levels restored (Levels 0 through 4)");
+  };
+
   // ─── Excel Template Export & Import States ──────────────────────────────────
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFileName, setImportFileName] = useState("");
@@ -386,65 +486,20 @@ export function PoliciesSection({
   const handleExportExcelTemplate = () => {
     const values = form.getValues();
 
-    // 1. Level Capacities Sheet
-    const levelCapacities = [
-      {
-        "Level Key": "policyLevel0Capacity",
-        "Level Name (Ar)": "الدرجة صفر (إدارة عليا / VIP)",
-        "Level Name (En)": "Level 0 (Top Executive / VIP)",
-        "Max Capacity (Beds)": Number(values.policyLevel0Capacity) || 1,
-        "Allow Entire Room": values.policyLevel0AllowEntire ? "YES" : "NO",
-        "Notes": "غرفة فردية أو جناح مستقل للقيادات",
-      },
-      {
-        "Level Key": "policyLevel1Capacity",
-        "Level Name (Ar)": "الدرجة الأولى (مدراء العموم)",
-        "Level Name (En)": "Level 1 (Department Heads / GMs)",
-        "Max Capacity (Beds)": Number(values.policyLevel1Capacity) || 1,
-        "Allow Entire Room": values.policyLevel1AllowEntire ? "YES" : "NO",
-        "Notes": "غرفة فردية مستقلة لمدراء الإدارات",
-      },
-      {
-        "Level Key": "policyLevel2Capacity",
-        "Level Name (Ar)": "الدرجة الثانية (المشرفون)",
-        "Level Name (En)": "Level 2 (Supervisory / Assistants)",
-        "Max Capacity (Beds)": Number(values.policyLevel2Capacity) || 2,
-        "Allow Entire Room": values.policyLevel2AllowEntire ? "YES" : "NO",
-        "Notes": "سكن إشرافي ثنائي أو استثنائي",
-      },
-      {
-        "Level Key": "policyLevel3Capacity",
-        "Level Name (Ar)": "الدرجة الثالثة (الموظفون والفنيون)",
-        "Level Name (En)": "Level 3 (Staff / Technicians)",
-        "Max Capacity (Beds)": Number(values.policyLevel3Capacity) || 3,
-        "Allow Entire Room": "NO",
-        "Notes": "سكن ثلاثي مشترك للموظفين",
-      },
-      {
-        "Level Key": "policyLevel4Capacity",
-        "Level Name (Ar)": "الدرجة الرابعة (العمال والخدمات)",
-        "Level Name (En)": "Level 4 (Workers / Line Staff)",
-        "Max Capacity (Beds)": Number(values.policyLevel4Capacity) || 4,
-        "Allow Entire Room": "NO",
-        "Notes": "سكن رباعي مشترك للعمال",
-      },
-      {
-        "Level Key": "policyLevel5Capacity",
-        "Level Name (Ar)": "الدرجة الخامسة (سكن خماسي)",
-        "Level Name (En)": "Level 5 (5-Bed Shared)",
-        "Max Capacity (Beds)": Number(values.policyLevel5Capacity) || 5,
-        "Allow Entire Room": values.policyLevel5AllowEntire ? "YES" : "NO",
-        "Notes": "سكن خماسي مشترك",
-      },
-      {
-        "Level Key": "policyLevel6Capacity",
-        "Level Name (Ar)": "الدرجة السادسة (سكن سداسي)",
-        "Level Name (En)": "Level 6 (6-Bed Shared)",
-        "Max Capacity (Beds)": Number(values.policyLevel6Capacity) || 6,
-        "Allow Entire Room": values.policyLevel6AllowEntire ? "YES" : "NO",
-        "Notes": "سكن مكثف سداسي مشترك",
-      },
-    ];
+    // 1. Level Capacities Sheet (Dynamic Job Level Policies)
+    const currentLevels: JobLevelPolicy[] = (values.jobLevelPolicies && values.jobLevelPolicies.length > 0)
+      ? values.jobLevelPolicies
+      : DEFAULT_JOB_LEVEL_POLICIES;
+
+    const levelCapacities = currentLevels.map((lvl) => ({
+      "Level ID": lvl.id,
+      "Level Key": lvl.levelKey,
+      "Level Name (Ar)": lvl.nameAr,
+      "Level Name (En)": lvl.name,
+      "Allowed Capacities (Beds)": (lvl.allowedCapacities || [1]).join(", "),
+      "Allow Entire Room": lvl.allowEntire ? "YES" : "NO",
+      "Notes": lvl.description || "",
+    }));
 
     // 2. Custom Rules Sheet
     const customRulesList = (values.customLevelRules || []).map((cr: any) => ({
@@ -626,30 +681,41 @@ export function PoliciesSection({
 
     let appliedCount = 0;
 
-    // 1. Apply Level Capacities
-    for (const row of importData.levelCapacities) {
-      const key = row["Level Key"] || row["key"] || row["Key"];
-      const cap = Number(row["Max Capacity (Beds)"] || row["capacity"] || row["Capacity"]);
+    // 1. Apply Level Capacities (Dynamic & Legacy)
+    const importedLevels: JobLevelPolicy[] = [];
+    for (const [idx, row] of importData.levelCapacities.entries()) {
+      const key = String(row["Level Key"] || row["key"] || row["Key"] || idx).trim();
+      const rawCaps = String(row["Allowed Capacities (Beds)"] || row["Max Capacity (Beds)"] || row["capacity"] || "1").trim();
+      const parsedCaps = rawCaps
+        .split(/[,،]+/)
+        .map((s) => Number(s.trim()))
+        .filter((n) => !isNaN(n) && n > 0);
+      const caps = parsedCaps.length > 0 ? parsedCaps : [1];
       const allowEnt = String(row["Allow Entire Room"] || "").toUpperCase().trim();
       const isEntire =
         allowEnt === "YES" || allowEnt === "TRUE" || allowEnt === "نعم" || allowEnt === "1";
+      const nameEn = String(row["Level Name (En)"] || row["name"] || `Level ${key}`).trim();
+      const nameAr = String(row["Level Name (Ar)"] || row["nameAr"] || `المستوى ${key}`).trim();
+      const desc = String(row["Notes"] || row["Description"] || "").trim();
 
-      if (key && !isNaN(cap) && cap > 0) {
-        form.setValue(key as any, cap, { shouldDirty: true, shouldValidate: true });
-        appliedCount++;
-      }
+      importedLevels.push({
+        id: String(row["Level ID"] || `level_${key || idx}`),
+        levelKey: key.replace("policyLevel", "").replace("Capacity", "") || key,
+        name: nameEn,
+        nameAr: nameAr,
+        allowedCapacities: caps,
+        allowEntire: isEntire,
+        description: desc || undefined,
+      });
 
-      if (key === "policyLevel0Capacity") {
-        form.setValue("policyLevel0AllowEntire", isEntire, { shouldDirty: true });
-      } else if (key === "policyLevel1Capacity") {
-        form.setValue("policyLevel1AllowEntire", isEntire, { shouldDirty: true });
-      } else if (key === "policyLevel2Capacity") {
-        form.setValue("policyLevel2AllowEntire", isEntire, { shouldDirty: true });
-      } else if (key === "policyLevel5Capacity") {
-        form.setValue("policyLevel5AllowEntire", isEntire, { shouldDirty: true });
-      } else if (key === "policyLevel6Capacity") {
-        form.setValue("policyLevel6AllowEntire", isEntire, { shouldDirty: true });
+      if (key && !isNaN(caps[0])) {
+        form.setValue(key as any, caps[0], { shouldDirty: true, shouldValidate: true });
       }
+      appliedCount++;
+    }
+
+    if (importedLevels.length > 0) {
+      form.setValue("jobLevelPolicies", importedLevels, { shouldDirty: true, shouldValidate: true });
     }
 
     // 2. Apply Custom Rules
@@ -746,41 +812,19 @@ export function PoliciesSection({
               </tr>
             </thead>
             <tbody>
-              <tr style="background-color: #fffbeb;">
-                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong style="color: #b45309;">${ar ? "الدرجة صفر (Level 0 - الإدارة العليا / VIP)" : "Level 0 (Executive / VIP)"}</strong></td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel0Capacity} ${ar ? "فرد (غرفة مستقلة / جناح)" : "person (Single / Suite)"}</td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel0AllowEntire ? (ar ? "مسموح (غرفة كاملة مستقلة)" : "Allowed (Entire Room)") : (ar ? "غير مسموح" : "Not Allowed")}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة الأولى (Level 1 - المدراء)" : "Level 1 (Executive/Managers)"}</strong></td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel1Capacity} ${ar ? "فرد" : "person"}</td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel1AllowEntire ? (ar ? "مسموح (غرفة فردية كاملة)" : "Allowed (Entire Room)") : (ar ? "غير مسموح" : "Not Allowed")}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة الثانية (Level 2 - المشرفين)" : "Level 2 (Supervisors)"}</strong></td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel2Capacity} ${ar ? "أفراد" : "persons"}</td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel2AllowEntire ? (ar ? "مسموح" : "Allowed") : (ar ? "تسكين مشترك فقط" : "Shared Only")}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة الثالثة (Level 3 - الموظفين)" : "Level 3 (Staff)"}</strong></td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel3Capacity} ${ar ? "أفراد" : "persons"}</td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${ar ? "تسكين مشترك" : "Shared Only"}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة الرابعة (Level 4 - العمال)" : "Level 4 (Workers)"}</strong></td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel4Capacity} ${ar ? "أفراد" : "persons"}</td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${ar ? "تسكين مشترك" : "Shared Only"}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة الخامسة (Level 5 - سعة 5 أفراد)" : "Level 5 (5-Bed Shared)"}</strong></td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel5Capacity || 5} ${ar ? "أفراد" : "persons"}</td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel5AllowEntire ? (ar ? "مسموح" : "Allowed") : (ar ? "تسكين مشترك" : "Shared Only")}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${ar ? "الدرجة السادسة (Level 6 - سعة 6 أفراد)" : "Level 6 (6-Bed Shared)"}</strong></td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel6Capacity || 6} ${ar ? "أفراد" : "persons"}</td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${values.policyLevel6AllowEntire ? (ar ? "مسموح" : "Allowed") : (ar ? "تسكين مشترك" : "Shared Only")}</td>
-              </tr>
+              ${((values.jobLevelPolicies && values.jobLevelPolicies.length > 0)
+                ? values.jobLevelPolicies
+                : DEFAULT_JOB_LEVEL_POLICIES
+              ).map((lvl: any) => `
+                <tr style="background-color: ${lvl.levelKey === "0" ? "#fffbeb" : "inherit"};">
+                  <td style="padding: 8px; border: 1px solid #cbd5e1;">
+                    <strong style="color: ${lvl.levelKey === "0" ? "#b45309" : "inherit"};">${ar ? (lvl.nameAr || lvl.name) : (lvl.name || lvl.nameAr)}</strong>
+                    <span style="font-size:10px; color:#64748b; margin-${ar ? "right" : "left"}: 4px;">(${lvl.levelKey ? `Level ${lvl.levelKey}` : ""})</span>
+                  </td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1;">${(lvl.allowedCapacities || [1]).join(" ، ")} ${ar ? "سرير بالغرفة" : "beds in room"}</td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1;">${lvl.allowEntire ? (ar ? "مسموح (غرفة كاملة)" : "Allowed (Entire Room)") : (ar ? "تسكين مشترك" : "Shared Only")}</td>
+                </tr>
+              `).join("")}
               ${(values.customLevelRules || []).map((rule: any) => `
                 <tr style="background-color: #f8fafc;">
                   <td style="padding: 8px; border: 1px solid #cbd5e1;"><strong>${rule.nameAr || rule.name}</strong> <span style="font-size:10px; color:#64748b;">(${rule.name})</span></td>
@@ -965,408 +1009,304 @@ export function PoliciesSection({
         {/* Tab 1: Allocation Rules & Level Entitlements */}
         <TabsContent value="allocation" className="space-y-4 focus-visible:outline-none">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Building className="w-4 h-4 text-primary" />
-                {ar ? "1. سياسة استحقاق السكن والدرجات الوظيفية (Allocation Rules)" : "1. Job Level Entitlements & Department Rules"}
-              </CardTitle>
-          <CardDescription>
-            {ar
-              ? "تحديد سعة الغرف المسموحة لكل درجة وظيفية وضوابط تسكين الأقسام المشتركة"
-              : "Set room capacity per job level and configure department clustering rules"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-            <FormField
-              control={form.control}
-              name="policyLevel0Capacity"
-              render={({ field }) => (
-                <FormItem className="bg-amber-500/10 p-3 rounded-lg border border-amber-300/70 dark:border-amber-700/50">
-                  <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
-                    <Badge variant="outline" className="bg-amber-500 text-white border-amber-600 text-[10px] font-bold">Level 0 ★</Badge>
-                    {ar ? "سعة الإدارة العليا" : "Level 0 Capacity"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={5} {...field} className="bg-background" />
-                  </FormControl>
-                  <FormDescription className="text-[11px] text-amber-900/80 dark:text-amber-300/80 font-medium">
-                    {ar ? "القيادات العليا والمدراء العموم / VIP (1 فرد)" : "Top Execs / GM / VIP (default 1)"}
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Building className="w-4 h-4 text-primary" />
+                  {ar ? "1. سياسة استحقاق السكن والدرجات الوظيفية (Allocation Rules)" : "1. Job Level Entitlements & Department Rules"}
+                </CardTitle>
+                <CardDescription>
+                  {ar
+                    ? "تحديد سعة الغرف المسموحة لكل درجة وظيفية (تخصيص أعداد الأسرة المسموحة بالغرفة) وإمكانية حجز غرفة كاملة"
+                    : "Customize allowed room bed capacities and full-room booking privileges per job level"}
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleResetDefaultLevels}
+                  className="gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {ar ? "استعادة الافتراضي" : "Reset Defaults"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setIsAddLevelOpen(true)}
+                  className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="w-4 h-4" />
+                  {ar ? "إضافة مستوى جديد" : "Add Level"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Dynamic Job Level Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                {((form.watch("jobLevelPolicies") && form.watch("jobLevelPolicies").length > 0)
+                  ? form.watch("jobLevelPolicies")
+                  : DEFAULT_JOB_LEVEL_POLICIES
+                ).map((lvl: JobLevelPolicy, index: number) => {
+                  const isL0 = lvl.levelKey === "0" || lvl.id === "level_0";
+                  const isL1 = lvl.levelKey === "1" || lvl.id === "level_1";
+                  const isL2 = lvl.levelKey === "2" || lvl.id === "level_2";
+                  const isL3 = lvl.levelKey === "3" || lvl.id === "level_3";
+                  const isL4 = lvl.levelKey === "4" || lvl.id === "level_4";
 
-            <FormField
-              control={form.control}
-              name="policyLevel1Capacity"
-              render={({ field }) => (
-                <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
-                  <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-300 text-[10px]">Level 1</Badge>
-                    {ar ? "الدرجة الأولى" : "Level 1"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={10} {...field} />
-                  </FormControl>
-                  <FormDescription className="text-[11px]">
-                    {ar ? "مدراء العموم والقطاعات (1 فرد)" : "Executive / GMs (default 1)"}
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+                  const badgeBg = isL0
+                    ? "bg-amber-500 text-white border-amber-600 font-bold"
+                    : isL1
+                    ? "bg-amber-500/10 text-amber-700 border-amber-300 dark:text-amber-400"
+                    : isL2
+                    ? "bg-blue-500/10 text-blue-700 border-blue-300 dark:text-blue-400"
+                    : isL3
+                    ? "bg-indigo-500/10 text-indigo-700 border-indigo-300 dark:text-indigo-400"
+                    : isL4
+                    ? "bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-400"
+                    : "bg-purple-500/10 text-purple-700 border-purple-300 dark:text-purple-400";
 
-            <FormField
-              control={form.control}
-              name="policyLevel2Capacity"
-              render={({ field }) => (
-                <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
-                  <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
-                    <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-300 text-[10px]">Level 2</Badge>
-                    {ar ? "الدرجة الثانية" : "Level 2"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={10} {...field} />
-                  </FormControl>
-                  <FormDescription className="text-[11px]">
-                    {ar ? "مدراء الأقسام (عادة 2)" : "Department Heads (default 2)"}
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+                  const cardBorder = isL0
+                    ? "border-amber-300/80 bg-amber-500/5 dark:border-amber-700/60"
+                    : "border-border bg-card hover:border-primary/40";
 
-            <FormField
-              control={form.control}
-              name="policyLevel3Capacity"
-              render={({ field }) => (
-                <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
-                  <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
-                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-700 border-indigo-300 text-[10px]">Level 3</Badge>
-                    {ar ? "الدرجة الثالثة" : "Level 3"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={10} {...field} />
-                  </FormControl>
-                  <FormDescription className="text-[11px]">
-                    {ar ? "المشرفون (عادة 3)" : "Supervisors/Staff (default 3)"}
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+                  const sortedCapacities = [...(lvl.allowedCapacities || [1])].sort((a, b) => a - b);
 
-            <FormField
-              control={form.control}
-              name="policyLevel4Capacity"
-              render={({ field }) => (
-                <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
-                  <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-300 text-[10px]">Level 4</Badge>
-                    {ar ? "الدرجة الرابعة" : "Level 4"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={10} {...field} />
-                  </FormControl>
-                  <FormDescription className="text-[11px]">
-                    {ar ? "العمال والخدمات (عادة 4)" : "Workers (default 4)"}
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+                  return (
+                    <div
+                      key={lvl.id || `level_${index}`}
+                      className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between shadow-xs ${cardBorder}`}
+                    >
+                      <div className="space-y-3">
+                        {/* Level Header: Badge + Delete Button */}
+                        <div className="flex items-center justify-between gap-1.5">
+                          <Badge variant="outline" className={`text-[11px] px-2 py-0.5 ${badgeBg}`}>
+                            {isL0 ? "Level 0 ★" : `Level ${lvl.levelKey || index}`}
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteLevel(lvl.id)}
+                            title={ar ? "حذف هذا المستوى" : "Delete level"}
+                            className="h-6 w-6 text-muted-foreground/70 hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
 
-            <FormField
-              control={form.control}
-              name="policyLevel5Capacity"
-              render={({ field }) => (
-                <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
-                  <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
-                    <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-300 text-[10px]">Level 5</Badge>
-                    {ar ? "الدرجة الخامسة" : "Level 5"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={15} {...field} />
-                  </FormControl>
-                  <FormDescription className="text-[11px]">
-                    {ar ? "غرف خماسية (عادة 5)" : "5-Bed rooms (default 5)"}
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+                        {/* Level Title & Subtitle */}
+                        <div>
+                          <div className="text-xs font-bold leading-snug line-clamp-1">
+                            {ar ? lvl.nameAr || lvl.name : lvl.name || lvl.nameAr}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground leading-normal mt-0.5 line-clamp-2">
+                            {lvl.description || (ar ? lvl.name : lvl.nameAr)}
+                          </div>
+                        </div>
 
-            <FormField
-              control={form.control}
-              name="policyLevel6Capacity"
-              render={({ field }) => (
-                <FormItem className="bg-muted/30 p-3.5 rounded-lg border">
-                  <FormLabel className="text-xs font-semibold flex items-center gap-1.5">
-                    <Badge variant="outline" className="bg-cyan-500/10 text-cyan-700 border-cyan-300 text-[10px]">Level 6</Badge>
-                    {ar ? "الدرجة السادسة" : "Level 6"}
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={15} {...field} />
-                  </FormControl>
-                  <FormDescription className="text-[11px]">
-                    {ar ? "غرف سداسية (عادة 6)" : "6-Bed rooms (default 6)"}
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-          </div>
+                        {/* Multi-Capacity Customization */}
+                        <div className="space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-semibold text-muted-foreground">
+                              {ar ? "سعات الأسرة:" : "Bed Capacities:"}
+                            </span>
+                            <span className="font-bold text-primary text-[11px]">
+                              {sortedCapacities.join(" ، ")} {ar ? "سرير" : "beds"}
+                            </span>
+                          </div>
 
-          <Separator />
+                          {/* Capacity Selectable Chips 1..8 */}
+                          <div className="grid grid-cols-4 gap-1">
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map((bed) => {
+                              const isSelected = lvl.allowedCapacities.includes(bed);
+                              return (
+                                <button
+                                  key={bed}
+                                  type="button"
+                                  onClick={() => handleToggleCapacity(lvl.id, bed)}
+                                  className={`text-[11px] font-bold py-1 px-1.5 rounded-md border transition-all flex items-center justify-center gap-0.5 ${
+                                    isSelected
+                                      ? "bg-primary text-primary-foreground border-primary shadow-2xs scale-[1.02]"
+                                      : "bg-background text-muted-foreground hover:bg-muted/70 border-muted/50 hover:text-foreground"
+                                  }`}
+                                  title={`${bed} ${ar ? "سرير بالغرفة" : "beds in room"}`}
+                                >
+                                  {isSelected ? "✓" : ""} {bed}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
 
-          {/* Entire Room Booking & Department Clustering */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="policyDepartmentClustering"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      {ar ? "التجميع التلقائي حسب القسم (Department Clustering)" : "Auto Department Clustering"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px]">
-                      {ar
-                        ? "النظام يختار ويبحث تلقائياً عن الغرف التي يتواجد بها زملاء من نفس القسم (مثل عمال الـ Housekeeping معاً)"
-                        : "Prioritize & auto-recommend rooms housing colleagues from the same department"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                      {/* Footer: Allow Entire Room Switch */}
+                      <div className="mt-3.5 pt-2.5 border-t border-border/60 flex items-center justify-between">
+                        <div className="space-y-0.5 pe-2">
+                          <span className="text-[11px] font-bold block leading-tight">
+                            {ar ? "غرفة كاملة" : "Entire Room"}
+                          </span>
+                          <span className="text-[9.5px] text-muted-foreground block leading-tight">
+                            {lvl.allowEntire ? (ar ? "مسموح (فردي)" : "Allowed") : (ar ? "مشترك فقط" : "Shared")}
+                          </span>
+                        </div>
+                        <Switch
+                          checked={lvl.allowEntire}
+                          onCheckedChange={(val) => handleToggleAllowEntire(lvl.id, val)}
+                          className="scale-85"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-            <FormField
-              control={form.control}
-              name="policyStrictDepartmentSegregation"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
-                      {ar ? "منع خلط الأقسام نهائياً (Strict Segregation)" : "Strict Department Segregation"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px]">
-                      {ar
-                        ? "منع تسكين أي موظف في غرفة بها موظف من قسم آخر وظهور استثناء للمشرف"
-                        : "Disallow mixing employees of different departments in the same room"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+              <Separator />
 
-            <FormField
-              control={form.control}
-              name="policyLevel0AllowEntire"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-amber-500/5 border-amber-300/60 dark:border-amber-700/50">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                      {ar ? "حجز غرفة كاملة للإدارة العليا (Level 0 Entire Room)" : "Allow Entire Room for Level 0"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px]">
-                      {ar
-                        ? "استحقاق حجز الغرفة بالكامل كفردي أو جناح مستقل لقيادات الإدارة العليا"
-                        : "Allow booking full single room/suite for Level 0 executives"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+              {/* Department Clustering & Segregation Policies */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="policyDepartmentClustering"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
+                      <div className="space-y-0.5 pe-4">
+                        <FormLabel className="text-xs font-bold flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          {ar ? "التجميع التلقائي حسب القسم (Department Clustering)" : "Auto Department Clustering"}
+                        </FormLabel>
+                        <FormDescription className="text-[11px]">
+                          {ar
+                            ? "النظام يختار ويبحث تلقائياً عن الغرف التي يتواجد بها زملاء من نفس القسم (مثل عمال الـ Housekeeping معاً)"
+                            : "Prioritize & auto-recommend rooms housing colleagues from the same department"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="policyLevel1AllowEntire"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold">
-                      {ar ? "السماح بحجز غرفة كاملة (Level 1 Entire Room)" : "Allow Entire Room for Level 1"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px]">
-                      {ar
-                        ? "استحقاق حجز الغرفة بالكامل كفردي لمدراء الدرجة الأولى"
-                        : "Allow booking the entire room for Level 1 executives"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="policyStrictDepartmentSegregation"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
+                      <div className="space-y-0.5 pe-4">
+                        <FormLabel className="text-xs font-bold flex items-center gap-1.5">
+                          <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                          {ar ? "منع خلط الأقسام نهائياً (Strict Segregation)" : "Strict Department Segregation"}
+                        </FormLabel>
+                        <FormDescription className="text-[11px]">
+                          {ar
+                            ? "منع تسكين أي موظف في غرفة بها موظف من قسم آخر وظهور استثناء للمشرف"
+                            : "Disallow mixing employees of different departments in the same room"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="policyLevel2AllowEntire"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold">
-                      {ar ? "السماح بحجز غرفة كاملة (Level 2 Entire Room)" : "Allow Entire Room for Level 2"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px]">
-                      {ar
-                        ? "إتاحة حجز الغرفة كاملة لمدراء الدرجة الثانية في حالات الاستثناء"
-                        : "Allow booking the entire room for Level 2 department managers"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="policyStrictGenderSegregation"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-pink-50/50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
+                      <div className="space-y-0.5 pe-4">
+                        <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-pink-900 dark:text-pink-300">
+                          <ShieldAlert className="w-3.5 h-3.5 text-pink-600" />
+                          {ar ? "سياسة فصل الجنسين الصارمة (Strict Gender Segregation)" : "Strict Gender Segregation"}
+                        </FormLabel>
+                        <FormDescription className="text-[11px] text-pink-950/70 dark:text-pink-300/70">
+                          {ar
+                            ? "منع منعاً باتاً تسكين موظف وموظفة في نفس الغرفة المشتركة أو حجز غرفة مخصصة للجنس الآخر"
+                            : "Strictly prohibit mixed-gender shared accommodation or cross-gender wing allocation"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="policyLevel5AllowEntire"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold">
-                      {ar ? "السماح بحجز غرفة كاملة (Level 5 Entire Room)" : "Allow Entire Room for Level 5"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px]">
-                      {ar
-                        ? "إتاحة حجز الغرفة بالكامل لموظفي الدرجة الخامسة في حالات الاستثناء"
-                        : "Allow booking entire room for Level 5 staff"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="policyStrictFamilySegregation"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800">
+                      <div className="space-y-0.5 pe-4">
+                        <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-indigo-900 dark:text-indigo-300">
+                          <HeartHandshake className="w-3.5 h-3.5 text-indigo-600" />
+                          {ar ? "سياسة سكن العائلات الصارمة (Strict Family Segregation)" : "Strict Family Segregation"}
+                        </FormLabel>
+                        <FormDescription className="text-[11px] text-indigo-950/70 dark:text-indigo-300/70">
+                          {ar
+                            ? "حظر تسكين الموظفين العزاب في أجنحة العائلات، وحظر تسكين عائلة في غرفة مشتركة مع عزاب إلا باستثناء معتمد"
+                            : "Strictly reserve family suites for families; bachelors require approved exception"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="policyLevel6AllowEntire"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold">
-                      {ar ? "السماح بحجز غرفة كاملة (Level 6 Entire Room)" : "Allow Entire Room for Level 6"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px]">
-                      {ar
-                        ? "إتاحة حجز الغرفة بالكامل لموظفي الدرجة السادسة في حالات الاستثناء"
-                        : "Allow booking entire room for Level 6 staff"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="policyAdaptiveLearning"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                      <div className="space-y-0.5 pe-4">
+                        <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-blue-900 dark:text-blue-300">
+                          <Bot className="w-3.5 h-3.5 text-blue-600" />
+                          {ar ? "التعلم الذكي لتوزيع الأقسام (AI Adaptive Territory Learning)" : "AI Adaptive Department Learning"}
+                        </FormLabel>
+                        <FormDescription className="text-[11px] text-blue-950/70 dark:text-blue-300/70">
+                          {ar
+                            ? "يتعلم محرك التسكين سلوكياً قطاعات الأقسام (Housekeeping / F&B / مطبخ) ويرشح الغرف التي تجمع زملاء القسم تلقائياً"
+                            : "Engine learns department territories dynamically and clusters colleagues together automatically"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="policyStrictGenderSegregation"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-pink-50/50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-pink-900 dark:text-pink-300">
-                      <ShieldAlert className="w-3.5 h-3.5 text-pink-600" />
-                      {ar ? "سياسة فصل الجنسين الصارمة (Strict Gender Segregation)" : "Strict Gender Segregation"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px] text-pink-950/70 dark:text-pink-300/70">
-                      {ar
-                        ? "منع منعاً باتاً تسكين موظف وموظفة في نفس الغرفة المشتركة أو حجز غرفة مخصصة للجنس الآخر"
-                        : "Strictly prohibit mixed-gender shared accommodation or cross-gender wing allocation"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="policyStrictFamilySegregation"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-indigo-900 dark:text-indigo-300">
-                      <HeartHandshake className="w-3.5 h-3.5 text-indigo-600" />
-                      {ar ? "سياسة سكن العائلات الصارمة (Strict Family Segregation)" : "Strict Family Segregation"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px] text-indigo-950/70 dark:text-indigo-300/70">
-                      {ar
-                        ? "حظر تسكين الموظفين العزاب في أجنحة العائلات، وحظر تسكين عائلة في غرفة مشتركة مع عزاب إلا باستثناء معتمد"
-                        : "Strictly reserve family suites for families; bachelors require approved exception"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="policyAdaptiveLearning"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-blue-900 dark:text-blue-300">
-                      <Bot className="w-3.5 h-3.5 text-blue-600" />
-                      {ar ? "التعلم الذكي لتوزيع الأقسام (AI Adaptive Territory Learning)" : "AI Adaptive Department Learning"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px] text-blue-950/70 dark:text-blue-300/70">
-                      {ar
-                        ? "يتعلم محرك التسكين سلوكياً قطاعات الأقسام (Housekeeping / F&B / مطبخ) ويرشح الغرف التي تجمع زملاء القسم تلقائياً"
-                        : "Engine learns department territories dynamically and clusters colleagues together automatically"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="policyRequireExceptionApproval"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
-                  <div className="space-y-0.5 pe-4">
-                    <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
-                      <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                      {ar ? "حوكمة واعتماد استثناءات التسكين (Approval Workflow)" : "Require Exception Approval Workflow"}
-                    </FormLabel>
-                    <FormDescription className="text-[11px] text-amber-950/70 dark:text-amber-300/70">
-                      {ar
-                        ? "إلزامية فتح نموذج تسجيل رسمي لتسجيل المسوغ الإداري والجهة المعتمدة عند أي مخالفة لسياسات السكن"
-                        : "Mandates formal approval dialog and logs justification & approving party for any policy override"}
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-        </CardContent>
-      </Card>
+                <FormField
+                  control={form.control}
+                  name="policyRequireExceptionApproval"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                      <div className="space-y-0.5 pe-4">
+                        <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
+                          <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                          {ar ? "حوكمة واعتماد استثناءات التسكين (Approval Workflow)" : "Require Exception Approval Workflow"}
+                        </FormLabel>
+                        <FormDescription className="text-[11px] text-amber-950/70 dark:text-amber-300/70">
+                          {ar
+                            ? "إلزامية فتح نموذج تسجيل رسمي لتسجيل المسوغ الإداري والجهة المعتمدة عند أي مخالفة لسياسات السكن"
+                            : "Mandates formal approval dialog and logs justification & approving party for any policy override"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
       {/* Custom Job Level Rules Card */}
       <Card className="border-primary/20 shadow-sm">
@@ -2427,6 +2367,150 @@ export function PoliciesSection({
           >
             <CheckCircle2 className="w-4 h-4" />
             {ar ? "تطبيق السياسات على الإعدادات" : "Apply to Settings"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Add New Level Policy Modal */}
+    <Dialog open={isAddLevelOpen} onOpenChange={setIsAddLevelOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base font-bold text-primary">
+            <Plus className="w-5 h-5 text-primary" />
+            {ar ? "إضافة مستوى وظيفي جديد للسياسات" : "Add New Job Level Policy"}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {ar
+              ? "تحديد كود المستوى، الاسم، وسعات الأسرة المسموحة للغرفة (يمكن اختيار أكثر من سعة)"
+              : "Define level code, title, and customizable allowed bed capacities for accommodation"}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs font-semibold">{ar ? "كود / رقم المستوى" : "Level Key / Code"}</Label>
+              <Input
+                value={newLevelKey}
+                onChange={(e) => setNewLevelKey(e.target.value)}
+                placeholder={ar ? "مثال: 5 أو VIP" : "e.g. 5 or VIP"}
+                className="mt-1 font-mono text-xs"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs font-semibold">{ar ? "الاسم بالعربية" : "Arabic Label"}</Label>
+              <Input
+                value={newLevelNameAr}
+                onChange={(e) => setNewLevelNameAr(e.target.value)}
+                placeholder={ar ? "مثال: المستوى 5 / مشرفين" : "e.g. Supervisors"}
+                className="mt-1 text-xs"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold">{ar ? "الاسم بالإنجليزية" : "English Name"}</Label>
+            <Input
+              value={newLevelNameEn}
+              onChange={(e) => setNewLevelNameEn(e.target.value)}
+              placeholder="e.g. Level 5 / Supervisors"
+              className="mt-1 text-xs"
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold">{ar ? "الوصف أو الملاحظات" : "Description / Notes"}</Label>
+            <Input
+              value={newLevelDescription}
+              onChange={(e) => setNewLevelDescription(e.target.value)}
+              placeholder={ar ? "مثال: متاح سكن ثنائي أو ثلاثي" : "e.g. 2 or 3 bed rooms"}
+              className="mt-1 text-xs"
+            />
+          </div>
+
+          {/* Allowed Bed Capacities Multi-Select */}
+          <div className="space-y-2 p-3 rounded-lg border bg-muted/20">
+            <div className="flex items-center justify-between text-xs">
+              <Label className="font-semibold text-foreground">
+                {ar ? "سعات الأسرة المسموحة بالغرفة:" : "Allowed Bed Capacities:"}
+              </Label>
+              <span className="font-bold text-primary">
+                {[...newLevelCapacities].sort((a, b) => a - b).join(" ، ")} {ar ? "سرير" : "beds"}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {ar
+                ? "انقر لتحديد أو إلغاء تحديد السعات المسموح بها لهذا المستوى (مثل 2 و 3)"
+                : "Click to toggle allowed capacities (e.g. 2 and 3 beds)"}
+            </p>
+            <div className="grid grid-cols-4 gap-1.5 pt-1">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((bed) => {
+                const isSelected = newLevelCapacities.includes(bed);
+                return (
+                  <button
+                    key={bed}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        if (newLevelCapacities.length <= 1) {
+                          toast.error(ar ? "يجب اختيار سعة واحدة على الأقل" : "Select at least one capacity");
+                          return;
+                        }
+                        setNewLevelCapacities(newLevelCapacities.filter((c) => c !== bed));
+                      } else {
+                        setNewLevelCapacities([...newLevelCapacities, bed].sort((a, b) => a - b));
+                      }
+                    }}
+                    className={`text-xs font-bold py-1.5 px-2 rounded-lg border transition-all flex items-center justify-center gap-1 ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-2xs scale-[1.02]"
+                        : "bg-background text-muted-foreground hover:bg-muted border-muted/50 hover:text-foreground"
+                    }`}
+                  >
+                    {isSelected ? "✓" : ""} {bed} {ar ? "سرير" : "beds"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Allow Entire Room Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+            <div className="space-y-0.5 pe-4">
+              <Label className="text-xs font-bold block">
+                {ar ? "السماح بحجز غرفة كاملة (فردي)" : "Allow Full Room Booking (Single)"}
+              </Label>
+              <span className="text-[11px] text-muted-foreground block">
+                {ar
+                  ? "السماح للموظف بحجز غرفة بمفرده حتى لو كانت متعددة الأسرة"
+                  : "Allow booking an entire room exclusively for this level"}
+              </span>
+            </div>
+            <Switch
+              checked={newLevelAllowEntire}
+              onCheckedChange={setNewLevelAllowEntire}
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAddLevelOpen(false)}
+          >
+            {ar ? "إلغاء" : "Cancel"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleAddLevel}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            {ar ? "إضافة المستوى" : "Add Level"}
           </Button>
         </DialogFooter>
       </DialogContent>

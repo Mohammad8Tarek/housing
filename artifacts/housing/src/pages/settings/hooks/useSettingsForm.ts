@@ -8,6 +8,64 @@ import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
+export interface JobLevelPolicy {
+  id: string;
+  levelKey: string;
+  name: string;
+  nameAr: string;
+  allowedCapacities: number[];
+  allowEntire: boolean;
+  description?: string;
+}
+
+export const DEFAULT_JOB_LEVEL_POLICIES: JobLevelPolicy[] = [
+  {
+    id: "level_0",
+    levelKey: "0",
+    name: "Level 0 (Top Executive / VIP)",
+    nameAr: "الدرجة صفر (إدارة عليا / VIP)",
+    allowedCapacities: [1],
+    allowEntire: true,
+    description: "غرفة فردية أو جناح مستقل للقيادات العليا والمدراء العموم",
+  },
+  {
+    id: "level_1",
+    levelKey: "1",
+    name: "Level 1 (Department Heads / GMs)",
+    nameAr: "الدرجة الأولى (مدراء العموم)",
+    allowedCapacities: [1],
+    allowEntire: true,
+    description: "غرفة فردية مستقلة لمدراء الإدارات والقطاعات",
+  },
+  {
+    id: "level_2",
+    levelKey: "2",
+    name: "Level 2 (Supervisory / Assistants)",
+    nameAr: "الدرجة الثانية (المشرفون ورؤساء الأقسام)",
+    allowedCapacities: [1, 2],
+    allowEntire: false,
+    description: "سكن إشرافي ثنائي أو أحادي",
+  },
+  {
+    id: "level_3",
+    levelKey: "3",
+    name: "Level 3 (Staff / Technicians)",
+    nameAr: "الدرجة الثالثة (الموظفون والفنيون)",
+    allowedCapacities: [2, 3],
+    allowEntire: false,
+    description: "سكن مشترك ثنائي أو ثلاثي للموظفين",
+  },
+  {
+    id: "level_4",
+    levelKey: "4",
+    name: "Level 4 (Workers / Line Staff)",
+    nameAr: "الدرجة الرابعة (العمال والخدمات)",
+    allowedCapacities: [3, 4],
+    allowEntire: false,
+    description: "سكن مشترك ثلاثي أو رباعي للعمال والخدمات",
+  },
+];
+
 export const settingsSchema = z.object({
   systemName: z.string().min(1),
   defaultLanguage: z.string(),
@@ -51,6 +109,19 @@ export const settingsSchema = z.object({
       })
     )
     .default([]),
+  jobLevelPolicies: z
+    .array(
+      z.object({
+        id: z.string(),
+        levelKey: z.string(),
+        name: z.string(),
+        nameAr: z.string(),
+        allowedCapacities: z.array(z.coerce.number()).min(1),
+        allowEntire: z.boolean().default(false),
+        description: z.string().optional(),
+      })
+    )
+    .default(DEFAULT_JOB_LEVEL_POLICIES),
   policyDepartmentClustering: z.boolean().default(true),
   policyStrictDepartmentSegregation: z.boolean().default(false),
   policyStrictGenderSegregation: z.boolean().default(true),
@@ -151,6 +222,7 @@ export function useSettingsForm() {
       policyLevel5AllowEntire: false,
       policyLevel6AllowEntire: false,
       customLevelRules: [],
+      jobLevelPolicies: DEFAULT_JOB_LEVEL_POLICIES,
       policyDepartmentClustering: true,
       policyStrictDepartmentSegregation: false,
       policyStrictGenderSegregation: true,
@@ -205,8 +277,30 @@ export function useSettingsForm() {
       toast.error("Select one property first");
       return;
     }
+
+    // Sync legacy level fields from jobLevelPolicies for backwards compatibility
+    const jlps = data.jobLevelPolicies || [];
+    const l0 = jlps.find((p) => p.levelKey === "0" || p.id === "level_0");
+    const l1 = jlps.find((p) => p.levelKey === "1" || p.id === "level_1");
+    const l2 = jlps.find((p) => p.levelKey === "2" || p.id === "level_2");
+    const l3 = jlps.find((p) => p.levelKey === "3" || p.id === "level_3");
+    const l4 = jlps.find((p) => p.levelKey === "4" || p.id === "level_4");
+
+    const payload = {
+      ...data,
+      policyLevel0Capacity: l0?.allowedCapacities?.length ? Math.max(...l0.allowedCapacities) : data.policyLevel0Capacity,
+      policyLevel0AllowEntire: l0 != null ? l0.allowEntire : data.policyLevel0AllowEntire,
+      policyLevel1Capacity: l1?.allowedCapacities?.length ? Math.max(...l1.allowedCapacities) : data.policyLevel1Capacity,
+      policyLevel1AllowEntire: l1 != null ? l1.allowEntire : data.policyLevel1AllowEntire,
+      policyLevel2Capacity: l2?.allowedCapacities?.length ? Math.max(...l2.allowedCapacities) : data.policyLevel2Capacity,
+      policyLevel2AllowEntire: l2 != null ? l2.allowEntire : data.policyLevel2AllowEntire,
+      policyLevel3Capacity: l3?.allowedCapacities?.length ? Math.max(...l3.allowedCapacities) : data.policyLevel3Capacity,
+      policyLevel4Capacity: l4?.allowedCapacities?.length ? Math.max(...l4.allowedCapacities) : data.policyLevel4Capacity,
+      propertyId: selectedPropertyId,
+    };
+
     updateMutation.mutate(
-      { data: { ...data, propertyId: selectedPropertyId } as any },
+      { data: payload as any },
       {
         onSuccess: () => {
           if (data.defaultLanguage === "en" || data.defaultLanguage === "ar") {

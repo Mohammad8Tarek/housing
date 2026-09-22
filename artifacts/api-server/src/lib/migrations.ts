@@ -1313,6 +1313,10 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS hosting_request_signature_policy JSONB DEFAULT '[]'::jsonb;
     `,
   },
+  {
+    name: "public.settings.job_level_policies",
+    q: `ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS job_level_policies JSONB DEFAULT '[]'::jsonb;`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2509,6 +2513,10 @@ We wish you a safe trip and a pleasant stay! ✨';`,
   {
     name: "tenant.settings.hosting_request_signature_policy",
     q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS hosting_request_signature_policy JSONB DEFAULT '[]'::jsonb;`,
+  },
+  {
+    name: "tenant.settings.job_level_policies",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS job_level_policies JSONB DEFAULT '[]'::jsonb;`,
   },
 ];
 

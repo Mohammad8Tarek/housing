@@ -28,6 +28,8 @@ export function getLevelTargetCapacity(
   minCap: number;
   maxCap: number;
   idealCap: number;
+  allowedCapacities: number[];
+  allowEntire: boolean;
   levelNameAr: string;
   levelNameEn: string;
 } {
@@ -41,7 +43,97 @@ export function getLevelTargetCapacity(
   const l5Cap = Number(policySettings?.policyLevel5Capacity) || 5;
   const l6Cap = Number(policySettings?.policyLevel6Capacity) || 6;
 
-  // Check user-defined dynamic custom rules first
+  // 1. Check dynamic jobLevelPolicies first if configured
+  const jobPolicies: any[] = Array.isArray(policySettings?.jobLevelPolicies)
+    ? policySettings.jobLevelPolicies
+    : [];
+
+  if (jobPolicies.length > 0) {
+    const matched = jobPolicies.find((jp: any) => {
+      const key = String(jp.levelKey ?? "").trim().toLowerCase();
+      const name = String(jp.name ?? "").trim().toLowerCase();
+      const nameAr = String(jp.nameAr ?? "").trim().toLowerCase();
+      const id = String(jp.id ?? "").trim().toLowerCase();
+
+      if (key && (lvl === key || lvl === `level ${key}` || lvl === `level_${key}`)) return true;
+      if (id && (lvl === id || lvl === `level_${id}`)) return true;
+      if (name && (lvl === name || lvl.includes(name) || name.includes(lvl))) return true;
+      if (nameAr && (lvl === nameAr || lvl.includes(nameAr) || nameAr.includes(lvl))) return true;
+
+      // Smart keyword heuristics for standard level codes
+      if (key === "0") {
+        if (
+          lvl === "vip" ||
+          lvl.includes("قيادات") ||
+          lvl.includes("عليا") ||
+          lvl.includes("إدارة عليا") ||
+          lvl.includes("chief") ||
+          lvl.includes("controller") ||
+          lvl.includes("gm") ||
+          lvl.includes("general manager") ||
+          lvl.includes("director") ||
+          lvl.includes("cluster")
+        ) return true;
+      }
+      if (key === "1") {
+        if (
+          lvl.includes("مدير إدارة") ||
+          lvl.includes("مدير قسم") ||
+          lvl.includes("مدير فندق") ||
+          lvl.includes("head") ||
+          lvl.includes("hod")
+        ) return true;
+      }
+      if (key === "2") {
+        if (
+          lvl.includes("إشراف") ||
+          lvl.includes("مشرف") ||
+          lvl.includes("supervisor") ||
+          lvl.includes("assistant manager") ||
+          lvl.includes("specialist") ||
+          lvl.includes("نائب")
+        ) return true;
+      }
+      if (key === "3") {
+        if (
+          lvl.includes("فني") ||
+          lvl.includes("technician") ||
+          lvl.includes("senior") ||
+          lvl.includes("officer") ||
+          lvl.includes("موظف")
+        ) return true;
+      }
+      if (key === "4") {
+        if (
+          lvl.includes("عامل") ||
+          lvl.includes("worker") ||
+          lvl.includes("سائق") ||
+          lvl.includes("driver") ||
+          lvl.includes("خدمات")
+        ) return true;
+      }
+      return false;
+    });
+
+    if (matched) {
+      const allowed: number[] = Array.isArray(matched.allowedCapacities) && matched.allowedCapacities.length > 0
+        ? matched.allowedCapacities.map(Number).filter((n: number) => !isNaN(n) && n > 0)
+        : [1];
+      const minCap = Math.min(...allowed);
+      const maxCap = Math.max(...allowed);
+      return {
+        minCap,
+        maxCap,
+        idealCap: allowed[0] || minCap,
+        allowedCapacities: allowed,
+        allowEntire: Boolean(matched.allowEntire),
+        levelNameAr: matched.nameAr || matched.name,
+        levelNameEn: matched.name || matched.nameAr,
+      };
+    }
+  }
+
+  // 2. Check user-defined dynamic custom rules
   const customRules: any[] = Array.isArray(policySettings?.customLevelRules)
     ? policySettings.customLevelRules
     : [];
@@ -62,6 +154,8 @@ export function getLevelTargetCapacity(
       minCap: 1,
       maxCap: cap,
       idealCap: cap,
+      allowedCapacities: [cap],
+      allowEntire: Boolean(matchedCustom.allowEntire),
       levelNameAr: matchedCustom.nameAr || matchedCustom.name,
       levelNameEn: matchedCustom.name || matchedCustom.nameAr,
     };
@@ -87,6 +181,8 @@ export function getLevelTargetCapacity(
       minCap: 1,
       maxCap: l0Cap,
       idealCap: l0Cap,
+      allowedCapacities: [l0Cap],
+      allowEntire: policySettings?.policyLevel0AllowEntire ?? true,
       levelNameAr: "إدارة عليا / قيادات (المستوى 0)",
       levelNameEn: "Executive / Top Management (Level 0)",
     };
@@ -106,6 +202,8 @@ export function getLevelTargetCapacity(
       minCap: 1,
       maxCap: l1Cap,
       idealCap: l1Cap,
+      allowedCapacities: [l1Cap],
+      allowEntire: policySettings?.policyLevel1AllowEntire ?? true,
       levelNameAr: "مدراء أقسام / إدارة وسطى (المستوى 1)",
       levelNameEn: "Department Heads (Level 1)",
     };
@@ -126,6 +224,8 @@ export function getLevelTargetCapacity(
       minCap: 1,
       maxCap: l2Cap,
       idealCap: l2Cap,
+      allowedCapacities: [l2Cap],
+      allowEntire: policySettings?.policyLevel2AllowEntire ?? false,
       levelNameAr: "مستوى إشرافي (المستوى 2)",
       levelNameEn: "Supervisory (Level 2)",
     };
@@ -145,12 +245,14 @@ export function getLevelTargetCapacity(
       minCap: 1,
       maxCap: l3Cap,
       idealCap: l3Cap,
+      allowedCapacities: [l3Cap],
+      allowEntire: false,
       levelNameAr: "موظفون وفنيون (المستوى 3)",
       levelNameEn: "Staff & Technicians (Level 3)",
     };
   }
 
-  // Level 5: Extra capacity (default 5 beds)
+  // Level 5: Extra capacity (legacy fallback)
   if (
     lvl === "5" ||
     lvl === "level 5" ||
@@ -162,12 +264,14 @@ export function getLevelTargetCapacity(
       minCap: 1,
       maxCap: l5Cap,
       idealCap: l5Cap,
+      allowedCapacities: [l5Cap],
+      allowEntire: policySettings?.policyLevel5AllowEntire ?? false,
       levelNameAr: "عمال ومعاونون (المستوى 5 - سعة 5)",
       levelNameEn: "Support Staff (Level 5 - 5 Beds)",
     };
   }
 
-  // Level 6: High capacity shared accommodation (default 6 beds)
+  // Level 6: High capacity shared accommodation (legacy fallback)
   if (
     lvl === "6" ||
     lvl === "level 6" ||
@@ -179,6 +283,8 @@ export function getLevelTargetCapacity(
       minCap: 1,
       maxCap: l6Cap,
       idealCap: l6Cap,
+      allowedCapacities: [l6Cap],
+      allowEntire: policySettings?.policyLevel6AllowEntire ?? false,
       levelNameAr: "سكن جماعي مكثف (المستوى 6 - سعة 6)",
       levelNameEn: "Intensive Shared (Level 6 - 6 Beds)",
     };
@@ -189,6 +295,8 @@ export function getLevelTargetCapacity(
     minCap: 1,
     maxCap: l4Cap,
     idealCap: l4Cap,
+    allowedCapacities: [l4Cap],
+    allowEntire: false,
     levelNameAr:
       lvl === "4" || lvl === "level 4"
         ? "عمال وخدمات (المستوى 4)"
@@ -356,20 +464,24 @@ export function recommendBestRooms({
     let matchReasonAr = "";
     let matchReasonEn = "";
 
-    if (roomCapacity === target.idealCap) {
+    const allowed = Array.isArray(target.allowedCapacities) && target.allowedCapacities.length > 0
+      ? target.allowedCapacities
+      : [target.idealCap];
+
+    if (allowed.includes(roomCapacity)) {
       score += 40;
       levelMatch = true;
-      matchReasonAr = `مطابقة مثالية لسعة الغرفة (${roomCapacity} سرير) مع ${target.levelNameAr}`;
-      matchReasonEn = `Ideal capacity match (${roomCapacity} bed) for ${target.levelNameEn}`;
+      matchReasonAr = `مطابقة معتمدة لسعة الغرفة (${roomCapacity} سرير) مع ${target.levelNameAr}`;
+      matchReasonEn = `Compliant capacity (${roomCapacity} bed) for ${target.levelNameEn}`;
     } else if (roomCapacity >= target.minCap && roomCapacity <= target.maxCap) {
       score += 25;
       levelMatch = true;
       matchReasonAr = `مناسبة لسعة الغرفة (${roomCapacity} سرير) مع ${target.levelNameAr}`;
       matchReasonEn = `Suitable capacity (${roomCapacity} bed) for ${target.levelNameEn}`;
     } else {
-      score -= 15;
-      matchReasonAr = `سعة الغرفة (${roomCapacity} سرير) مختلفة عن المستوى المقترح (${target.idealCap} سرير)`;
-      matchReasonEn = `Capacity (${roomCapacity}) differs from recommended (${target.idealCap})`;
+      score -= 20;
+      matchReasonAr = `سعة الغرفة (${roomCapacity} سرير) غير متوافقة مع السعات المعتمدة للمستوى [${allowed.join("، ")}]`;
+      matchReasonEn = `Capacity (${roomCapacity}) not in allowed capacities [${allowed.join(", ")}]`;
     }
 
     // 3. Room Cleanliness Bonus
@@ -680,7 +792,19 @@ export function checkPolicyCompliance({
   const roomCap = room.capacity || 1;
 
   // 1. Capacity & Level Check
-  if (roomCap > target.maxCap) {
+  const allowed = Array.isArray(target.allowedCapacities) && target.allowedCapacities.length > 0
+    ? target.allowedCapacities
+    : null;
+
+  if (allowed) {
+    if (!allowed.includes(roomCap)) {
+      violations.push({
+        code: "CAPACITY_MISMATCH",
+        messageAr: `سعة الغرفة (${roomCap} سرير) غير مدرجة ضمن السعات المعتمدة لـ ${target.levelNameAr} (${allowed.join(" أو ")} سرير)`,
+        messageEn: `Room capacity (${roomCap}) is not within permitted capacities for ${target.levelNameEn} (${allowed.join(" or ")} beds)`,
+      });
+    }
+  } else if (roomCap > target.maxCap) {
     violations.push({
       code: "CAPACITY_EXCEEDED",
       messageAr: `سعة الغرفة (${roomCap} أفراد) تتجاوز الحد الأقصى المسموح لـ ${target.levelNameAr} (${target.maxCap} أفراد)`,
@@ -707,7 +831,7 @@ export function checkPolicyCompliance({
   const isL2 = !isL0 && !isL1 && (lvl === "2" || lvl === "level 2" || lvl.includes("مشرف") || lvl.includes("supervisor"));
 
   if (isEntireRoom) {
-    const isAllowedEntire = (isL0 && allowL0Entire) || (isL1 && allowL1Entire) || (isL2 && allowL2Entire);
+    const isAllowedEntire = target.allowEntire ?? ((isL0 && allowL0Entire) || (isL1 && allowL1Entire) || (isL2 && allowL2Entire));
     if (!isAllowedEntire) {
       violations.push({
         code: "ENTIRE_ROOM_NOT_ALLOWED",

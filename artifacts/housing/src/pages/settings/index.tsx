@@ -34,7 +34,7 @@ import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { useProperty } from "@/context/PropertyContext";
 import { useAuth } from "@/context/AuthContext";
 
-import { useSettingsForm } from "./hooks/useSettingsForm";
+import { useSettingsForm, DEFAULT_JOB_LEVEL_POLICIES } from "./hooks/useSettingsForm";
 import { GeneralSettings } from "./components/GeneralSettings";
 import { SecuritySettings } from "./components/SecuritySettings";
 import { PoliciesSection } from "./components/PoliciesSection";
@@ -103,6 +103,9 @@ export default function Settings() {
         policyLevel5AllowEntire: (settings as any).policyLevel5AllowEntire ?? false,
         policyLevel6AllowEntire: (settings as any).policyLevel6AllowEntire ?? false,
         customLevelRules: Array.isArray((settings as any).customLevelRules) ? (settings as any).customLevelRules : [],
+        jobLevelPolicies: Array.isArray((settings as any).jobLevelPolicies) && (settings as any).jobLevelPolicies.length > 0
+          ? (settings as any).jobLevelPolicies
+          : DEFAULT_JOB_LEVEL_POLICIES,
         policyDepartmentClustering: (settings as any).policyDepartmentClustering ?? true,
         policyStrictDepartmentSegregation: (settings as any).policyStrictDepartmentSegregation ?? false,
         policyStrictGenderSegregation: (settings as any).policyStrictGenderSegregation ?? true,

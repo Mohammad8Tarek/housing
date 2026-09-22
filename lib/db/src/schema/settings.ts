@@ -76,6 +76,7 @@ export const settingsTable = pgTable("settings", {
   policyLevel5AllowEntire: boolean("policy_level_5_allow_entire").notNull().default(false),
   policyLevel6AllowEntire: boolean("policy_level_6_allow_entire").notNull().default(false),
   customLevelRules: jsonb("custom_level_rules").default([]),
+  jobLevelPolicies: jsonb("job_level_policies").default([]),
   policyDepartmentClustering: boolean("policy_department_clustering").notNull().default(true),
   policyStrictDepartmentSegregation: boolean("policy_strict_department_segregation").notNull().default(false),
   policyStrictGenderSegregation: boolean("policy_strict_gender_segregation").notNull().default(true),

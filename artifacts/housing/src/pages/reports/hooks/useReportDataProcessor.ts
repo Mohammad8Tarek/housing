@@ -1910,6 +1910,7 @@ export function useReportDataProcessor({
         const l5Cap = Number(policySettings?.policyLevel5Capacity) || 5;
         const l6Cap = Number(policySettings?.policyLevel6Capacity) || 6;
         const customRules: any[] = Array.isArray(policySettings?.customLevelRules) ? policySettings.customLevelRules : [];
+        const jobPolicies: any[] = Array.isArray(policySettings?.jobLevelPolicies) ? policySettings.jobLevelPolicies : [];
         const clusterEnabled = policySettings?.policyDepartmentClustering ?? true;
         const strictSegregation = policySettings?.policyStrictDepartmentSegregation ?? false;
 
@@ -1941,45 +1942,93 @@ export function useReportDataProcessor({
           const profileDept = (emp.department || "").trim().toLowerCase();
 
           let maxAllowedCap = l4Cap;
+          let allowedCapacities: number[] | null = null;
+          let allowEntireConfigured: boolean | null = null;
           let levelCategory = ar ? "الدرجة الرابعة (عمال/خدمات)" : "Level 4 (General Staff)";
-          const matchedCustom = customRules.find((cr: any) => {
-            const crName = String(cr.name || "").trim().toLowerCase();
-            const crNameAr = String(cr.nameAr || "").trim().toLowerCase();
-            return (crName && lvl === crName) || (crNameAr && lvl === crNameAr) || (crName && lvl.includes(crName));
-          });
 
-          if (matchedCustom) {
-            maxAllowedCap = Number(matchedCustom.capacity) || 4;
-            levelCategory = ar ? (matchedCustom.nameAr || matchedCustom.name) : (matchedCustom.name || matchedCustom.nameAr);
-          } else if (
-            lvl === "0" ||
-            lvl === "level 0" ||
-            lvl === "vip" ||
-            lvl.includes("قيادات") ||
-            lvl.includes("عليا") ||
-            lvl.includes("إدارة عليا") ||
-            lvl.includes("chief") ||
-            lvl.includes("controller") ||
-            lvl.includes("gm") ||
-            lvl.includes("director")
-          ) {
-            maxAllowedCap = l0Cap;
-            levelCategory = ar ? "الدرجة صفر (إدارة عليا / قيادات)" : "Level 0 (Top Executive / VIP)";
-          } else if (lvl === "1" || lvl === "level 1" || lvl.includes("مدير قسم") || lvl.includes("مدير إدارة") || lvl.includes("head") || lvl.includes("hod")) {
-            maxAllowedCap = l1Cap;
-            levelCategory = ar ? "الدرجة الأولى (مدراء أقسام)" : "Level 1 (Department Heads)";
-          } else if (lvl === "2" || lvl === "level 2" || lvl.includes("مشرف") || lvl.includes("supervisor") || lvl.includes("manager")) {
-            maxAllowedCap = l2Cap;
-            levelCategory = ar ? "الدرجة الثانية (إشرافي/مساعدين)" : "Level 2 (Supervisory)";
-          } else if (lvl === "3" || lvl === "level 3" || lvl.includes("فني") || lvl.includes("specialist") || lvl.includes("senior")) {
-            maxAllowedCap = l3Cap;
-            levelCategory = ar ? "الدرجة الثالثة (فني/تخصصي)" : "Level 3 (Senior/Staff)";
-          } else if (lvl === "5" || lvl === "level 5" || lvl.includes("خامس") || lvl.includes("level 5") || lvl.includes("5")) {
-            maxAllowedCap = l5Cap;
-            levelCategory = ar ? "الدرجة الخامسة (عمال معاونون)" : "Level 5 (Support Staff)";
-          } else if (lvl === "6" || lvl === "level 6" || lvl.includes("سادس") || lvl.includes("level 6") || lvl.includes("6")) {
-            maxAllowedCap = l6Cap;
-            levelCategory = ar ? "الدرجة السادسة (تسكين مكثف)" : "Level 6 (Intensive Shared)";
+          const matchedJob = jobPolicies.length > 0 ? jobPolicies.find((jp: any) => {
+            const key = String(jp.levelKey ?? "").trim().toLowerCase();
+            const name = String(jp.name ?? "").trim().toLowerCase();
+            const nameAr = String(jp.nameAr ?? "").trim().toLowerCase();
+            const id = String(jp.id ?? "").trim().toLowerCase();
+
+            if (key && (lvl === key || lvl === `level ${key}` || lvl === `level_${key}`)) return true;
+            if (id && (lvl === id || lvl === `level_${id}`)) return true;
+            if (name && (lvl === name || lvl.includes(name) || name.includes(lvl))) return true;
+            if (nameAr && (lvl === nameAr || lvl.includes(nameAr) || nameAr.includes(lvl))) return true;
+
+            if (key === "0" && (lvl === "vip" || lvl.includes("قيادات") || lvl.includes("عليا") || lvl.includes("إدارة عليا") || lvl.includes("chief") || lvl.includes("director") || lvl.includes("gm"))) return true;
+            if (key === "1" && (lvl.includes("مدير إدارة") || lvl.includes("مدير قسم") || lvl.includes("مدير فندق") || lvl.includes("head") || lvl.includes("hod"))) return true;
+            if (key === "2" && (lvl.includes("إشراف") || lvl.includes("مشرف") || lvl.includes("supervisor") || lvl.includes("نائب"))) return true;
+            if (key === "3" && (lvl.includes("فني") || lvl.includes("technician") || lvl.includes("senior") || lvl.includes("officer") || lvl.includes("موظف"))) return true;
+            if (key === "4" && (lvl.includes("عامل") || lvl.includes("worker") || lvl.includes("سائق") || lvl.includes("خدمات"))) return true;
+            return false;
+          }) : null;
+
+          if (matchedJob) {
+            allowedCapacities = Array.isArray(matchedJob.allowedCapacities) && matchedJob.allowedCapacities.length > 0
+              ? matchedJob.allowedCapacities.map(Number).filter((n: number) => !isNaN(n) && n > 0)
+              : [1];
+            maxAllowedCap = Math.max(...allowedCapacities);
+            allowEntireConfigured = Boolean(matchedJob.allowEntire);
+            levelCategory = ar ? (matchedJob.nameAr || matchedJob.name) : (matchedJob.name || matchedJob.nameAr);
+          } else {
+            const matchedCustom = customRules.find((cr: any) => {
+              const crName = String(cr.name || "").trim().toLowerCase();
+              const crNameAr = String(cr.nameAr || "").trim().toLowerCase();
+              return (crName && lvl === crName) || (crNameAr && lvl === crNameAr) || (crName && lvl.includes(crName));
+            });
+
+            if (matchedCustom) {
+              maxAllowedCap = Number(matchedCustom.capacity) || 4;
+              allowedCapacities = [maxAllowedCap];
+              allowEntireConfigured = Boolean(matchedCustom.allowEntire);
+              levelCategory = ar ? (matchedCustom.nameAr || matchedCustom.name) : (matchedCustom.name || matchedCustom.nameAr);
+            } else if (
+              lvl === "0" ||
+              lvl === "level 0" ||
+              lvl === "vip" ||
+              lvl.includes("قيادات") ||
+              lvl.includes("عليا") ||
+              lvl.includes("إدارة عليا") ||
+              lvl.includes("chief") ||
+              lvl.includes("controller") ||
+              lvl.includes("gm") ||
+              lvl.includes("director")
+            ) {
+              maxAllowedCap = l0Cap;
+              allowedCapacities = [l0Cap];
+              allowEntireConfigured = policySettings?.policyLevel0AllowEntire ?? true;
+              levelCategory = ar ? "الدرجة صفر (إدارة عليا / قيادات)" : "Level 0 (Top Executive / VIP)";
+            } else if (lvl === "1" || lvl === "level 1" || lvl.includes("مدير قسم") || lvl.includes("مدير إدارة") || lvl.includes("head") || lvl.includes("hod")) {
+              maxAllowedCap = l1Cap;
+              allowedCapacities = [l1Cap];
+              allowEntireConfigured = policySettings?.policyLevel1AllowEntire ?? true;
+              levelCategory = ar ? "الدرجة الأولى (مدراء أقسام)" : "Level 1 (Department Heads)";
+            } else if (lvl === "2" || lvl === "level 2" || lvl.includes("مشرف") || lvl.includes("supervisor") || lvl.includes("manager")) {
+              maxAllowedCap = l2Cap;
+              allowedCapacities = [l2Cap];
+              allowEntireConfigured = policySettings?.policyLevel2AllowEntire ?? false;
+              levelCategory = ar ? "الدرجة الثانية (إشرافي/مساعدين)" : "Level 2 (Supervisory)";
+            } else if (lvl === "3" || lvl === "level 3" || lvl.includes("فني") || lvl.includes("specialist") || lvl.includes("senior")) {
+              maxAllowedCap = l3Cap;
+              allowedCapacities = [l3Cap];
+              allowEntireConfigured = false;
+              levelCategory = ar ? "الدرجة الثالثة (فني/تخصصي)" : "Level 3 (Senior/Staff)";
+            } else if (lvl === "5" || lvl === "level 5" || lvl.includes("خامس") || lvl.includes("level 5") || lvl.includes("5")) {
+              maxAllowedCap = l5Cap;
+              allowedCapacities = [l5Cap];
+              allowEntireConfigured = policySettings?.policyLevel5AllowEntire ?? false;
+              levelCategory = ar ? "الدرجة الخامسة (عمال معاونون)" : "Level 5 (Support Staff)";
+            } else if (lvl === "6" || lvl === "level 6" || lvl.includes("سادس") || lvl.includes("level 6") || lvl.includes("6")) {
+              maxAllowedCap = l6Cap;
+              allowedCapacities = [l6Cap];
+              allowEntireConfigured = policySettings?.policyLevel6AllowEntire ?? false;
+              levelCategory = ar ? "الدرجة السادسة (تسكين مكثف)" : "Level 6 (Intensive Shared)";
+            } else {
+              allowedCapacities = [l4Cap];
+              allowEntireConfigured = false;
+            }
           }
 
           const isApprovedException = Boolean(
@@ -1998,8 +2047,12 @@ export function useReportDataProcessor({
             ? (ar ? "معتمد رسمياً" : "Approved")
             : (ar ? "غير معتمد / مخالفة" : "Unapproved");
 
-          // Check A: Capacity Exceeded
-          if (roomCap > maxAllowedCap) {
+          // Check A: Capacity Exceeded or Mismatched
+          const isCapViolated = allowedCapacities && allowedCapacities.length > 0
+            ? !allowedCapacities.includes(roomCap)
+            : roomCap > maxAllowedCap;
+
+          if (isCapViolated) {
             exceptions.push({
               id: `cap_${a.id}`,
               profileName: getProfileDisplayName(emp, ar) || "—",
@@ -2013,8 +2066,8 @@ export function useReportDataProcessor({
               currentOccupancy: roomOcc,
               violationType: ar ? "تجاوز سعة الدرجة الوظيفية" : "Level Capacity Exceeded",
               violationDetails: ar
-                ? `المقيم من ${levelCategory} ومسكن بغرفة سعتها (${roomCap} أفراد) والحد الأقصى للسياسة (${maxAllowedCap} فرد)`
-                : `Resident is ${levelCategory} in a room of ${roomCap} beds (policy max: ${maxAllowedCap})`,
+                ? `المقيم من ${levelCategory} ومسكن بغرفة سعتها (${roomCap} أفراد) والسعات المعتمدة للسياسة (${(allowedCapacities || [maxAllowedCap]).join(" أو ")} سرير)`
+                : `Resident is ${levelCategory} in a room of ${roomCap} beds (policy allowed: ${(allowedCapacities || [maxAllowedCap]).join(", ")})`,
               severity: ar ? "مرتفعة" : "High",
               approvalStatus: approvalStatusText,
               approvedBy: exceptionApprover,
@@ -2073,13 +2126,15 @@ export function useReportDataProcessor({
               lvl.includes("director");
             const isL1 = !isL0 && (lvl === "1" || lvl === "level 1" || lvl.includes("مدير"));
             const isL2 = !isL0 && !isL1 && (lvl === "2" || lvl === "level 2" || lvl.includes("مشرف") || lvl.includes("supervisor"));
-            const allowEntire = isL0
-              ? (policySettings?.policyLevel0AllowEntire ?? true)
-              : isL1
-              ? (policySettings?.policyLevel1AllowEntire ?? true)
-              : isL2
-              ? (policySettings?.policyLevel2AllowEntire ?? false)
-              : false;
+            const allowEntire = allowEntireConfigured != null
+              ? allowEntireConfigured
+              : (isL0
+                ? (policySettings?.policyLevel0AllowEntire ?? true)
+                : isL1
+                ? (policySettings?.policyLevel1AllowEntire ?? true)
+                : isL2
+                ? (policySettings?.policyLevel2AllowEntire ?? false)
+                : false);
             if (!allowEntire) {
               exceptions.push({
                 id: `entire_${a.id}`,
