@@ -987,16 +987,38 @@ export default function InHouse() {
   const printHousingLetter = async (assignment: any, emp: any) => {
     const chosenAr = ar;
     const room = roomMap[assignment.roomId];
-    const building = room ? buildingMap[room.buildingId] : null;
-    const floorNum = room ? floorMap[room.floorId]?.number : null;
+    const building = assignment?.buildingName || (room ? buildingMap[room.buildingId] : null);
+    const floorNum = assignment?.floorNumber ?? (room ? floorMap[room.floorId]?.number : null);
+    const fallbackProfile = empMap[assignment.profileId] || {};
+    const mergedProfile = {
+      ...fallbackProfile,
+      ...emp,
+      id: emp?.id || fallbackProfile.id || assignment.profileId,
+      profileId: emp?.profileId || fallbackProfile.profileId || assignment.profileCode || assignment.profileId,
+      firstName: emp?.firstName || fallbackProfile.firstName || assignment.profileFirstName,
+      lastName: emp?.lastName || fallbackProfile.lastName || assignment.profileLastName,
+      firstNameAr: emp?.firstNameAr || fallbackProfile.firstNameAr || assignment.profileFirstNameAr,
+      lastNameAr: emp?.lastNameAr || fallbackProfile.lastNameAr || assignment.profileLastNameAr,
+      thirdNameAr: emp?.thirdNameAr || fallbackProfile.thirdNameAr || assignment.profileThirdNameAr,
+      fourthNameAr: emp?.fourthNameAr || fallbackProfile.fourthNameAr || assignment.profileFourthNameAr,
+      nationalId: emp?.nationalId || fallbackProfile.nationalId || assignment.profileNationalId,
+      nationality: emp?.nationality || fallbackProfile.nationality || assignment.profileNationality,
+      department: emp?.department || fallbackProfile.department || assignment.profileDepartment,
+      departmentAr: emp?.departmentAr || fallbackProfile.departmentAr || assignment.profileDepartmentAr,
+      jobTitle: emp?.jobTitle || fallbackProfile.jobTitle || assignment.profileJobTitle || (assignment as any).jobTitle,
+      jobTitleAr: emp?.jobTitleAr || fallbackProfile.jobTitleAr || assignment.profileJobTitleAr,
+      level: emp?.level || fallbackProfile.level || assignment.profileLevel,
+      phone: emp?.phone || fallbackProfile.phone || assignment.profilePhone,
+    };
     await generateHousingLetterPdf({
       isArabic: chosenAr,
-      profile: emp,
+      profile: mergedProfile,
       assignment,
       room,
       building,
       floorNum,
       propName: activeProp?.name || "",
+      propNameAr: (activeProp as any)?.displayName || activeProp?.name || "",
       propAddress: (activeProp as any)?.address || "",
       systemLogoUrl: (settings as any)?.systemLogo,
       propLogoUrl: (activeProp as any)?.logo,
@@ -1563,7 +1585,7 @@ export default function InHouse() {
                             </PermissionGate>
                             <PermissionGate module="accommodation" action="export">
                               <DropdownMenuItem
-                                onClick={() => printHousingLetter(a, emp || { id: a.profileId, firstName: a.profileFirstName, lastName: a.profileLastName })}
+                                onClick={() => printHousingLetter(a, profileObj)}
                               >
                                 <Printer className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
                                 {ar ? "طباعة خطاب السكن" : "Print Housing Letter"}

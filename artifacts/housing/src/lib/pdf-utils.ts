@@ -1,6 +1,9 @@
 // @ts-nocheck
 import { formatDate } from "./date-utils";
 import { printLuxuryReport, REPORT_TAB_TITLES } from "@/pages/reports/utils/luxury-report-engine";
+import { translateDepartment, translateJobTitle } from "./bilingual-hospitality-dict";
+import { transliterateFullName } from "./bilingual-name-engine";
+import { formatNationality } from "./countries";
 export { printLuxuryReport, REPORT_TAB_TITLES };
 /** Shared PDF utility functions for jsPDF exports */
 
@@ -119,10 +122,13 @@ export const generateHousingLetterPdf = async (opts: {
   profile: any;
   assignment: any;
   room: any;
-  building: string | null;
+  building: string | any | null;
+  buildingAr?: string | null;
   floorNum: string | number | null;
   propName: string;
+  propNameAr?: string;
   propAddress: string;
+  propAddressAr?: string;
   systemLogoUrl?: string | null;
   propLogoUrl?: string | null;
 }): Promise<void> => {
@@ -224,9 +230,9 @@ export const generateHousingLetterPdf = async (opts: {
     "Expected Check-out",
   ];
   const infoValues = [
-    `${emp.firstName || ""} ${emp.lastName || ""}`,
-    emp.profileId || "—",
-    emp.profileId || "—",
+    `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || emp.name || "—",
+    emp.profileId || emp.profileCode || "—",
+    emp.nationalId || emp.national_id || "—",
     emp.nationality || "—",
     emp.department || "—",
     emp.jobTitle || "—",
@@ -380,9 +386,9 @@ async function generateArabicHousingLetterPdf(
   opts: any,
   today: string,
 ): Promise<void> {
-  const emp = opts.profile;
-  const assignment = opts.assignment;
-  const room = opts.room;
+  const emp = opts.profile || {};
+  const assignment = opts.assignment || {};
+  const room = opts.room || {};
 
   const sysLogo = opts.systemLogoUrl
     ? await loadImgDataUrl(opts.systemLogoUrl)
@@ -392,11 +398,180 @@ async function generateArabicHousingLetterPdf(
       ? await loadImgDataUrl(opts.propLogoUrl)
       : null;
 
-  const fmtDate = (d: string | Date) => formatDate(d);
-  const floorNum = opts.floorNum;
-  const bldg = opts.building;
-  const propName = opts.propName;
-  const propAddress = opts.propAddress;
+  const fmtDate = (d: string | Date | null | undefined) => (d ? formatDate(d) : "—");
+
+  // 1. Employee Full Name in Arabic
+  const arNameParts = [
+    emp.firstNameAr,
+    emp.thirdNameAr,
+    emp.fourthNameAr,
+    emp.lastNameAr,
+  ].filter(Boolean);
+  let resolvedNameAr = "";
+  if (arNameParts.length > 0) {
+    resolvedNameAr = arNameParts.join(" ");
+  } else if (emp.nameAr && String(emp.nameAr).trim()) {
+    resolvedNameAr = String(emp.nameAr).trim();
+  } else {
+    const enName = [
+      emp.firstName,
+      emp.thirdName,
+      emp.fourthName,
+      emp.lastName,
+    ].filter(Boolean).join(" ") || emp.name || "";
+    if (enName.trim()) {
+      resolvedNameAr = transliterateFullName(enName, "ar") || enName;
+    } else {
+      resolvedNameAr = "—";
+    }
+  }
+
+  // 2. Nationality in Arabic
+  let resolvedNatAr = (emp.nationalityAr || "").trim();
+  if (!resolvedNatAr && emp.nationality) {
+    const fn = formatNationality(emp.nationality, true, false);
+    if (fn && fn.trim().toLowerCase() !== emp.nationality.trim().toLowerCase()) {
+      resolvedNatAr = fn.trim();
+    } else {
+      const q = emp.nationality.trim().toLowerCase();
+      const nMap: Record<string, string> = {
+        egyptian: "مصري",
+        egypt: "مصر",
+        saudi: "سعودي",
+        jordanian: "أردني",
+        syrian: "سوري",
+        lebanese: "لبناني",
+        emirati: "إماراتي",
+        sudanese: "سوداني",
+        yemeni: "يمني",
+        tunisian: "تونسي",
+        moroccan: "مغربي",
+        algerian: "جزائري",
+        palestinian: "فلسطيني",
+        filipino: "فلبيني",
+        philippines: "فلبيني",
+        indian: "هندي",
+        india: "هندي",
+        russian: "روسي",
+        ukrainian: "أوكراني",
+        german: "ألماني",
+        italian: "إيطالي",
+        british: "بريطاني",
+        french: "فرنسي",
+        turkish: "تركي",
+        turkey: "تركي",
+        nepalese: "نيبالي",
+        nepal: "نيبالي",
+        bengali: "بنغالي",
+        bangladeshi: "بنغلاديشي",
+        pakistani: "باكستاني",
+        sri_lankan: "سريلانكي",
+        "sri lankan": "سريلانكي",
+      };
+      resolvedNatAr = nMap[q] || emp.nationality;
+    }
+  }
+  if (!resolvedNatAr) resolvedNatAr = "—";
+
+  // 3. Department in Arabic
+  let resolvedDeptAr = (emp.departmentAr || "").trim();
+  if (!resolvedDeptAr && emp.department) {
+    resolvedDeptAr = translateDepartment(emp.department, "ar") || emp.department;
+  }
+  if (!resolvedDeptAr) resolvedDeptAr = "—";
+
+  // 4. Job Title in Arabic
+  let resolvedJobTitleAr = (emp.jobTitleAr || "").trim();
+  if (!resolvedJobTitleAr && emp.jobTitle) {
+    resolvedJobTitleAr = translateJobTitle(emp.jobTitle, "ar") || emp.jobTitle;
+  }
+  if (!resolvedJobTitleAr) resolvedJobTitleAr = "—";
+
+  // 5. Level / Grade in Arabic
+  const rawLevel = (emp.level || "").trim();
+  let resolvedLevelAr = "—";
+  if (rawLevel && rawLevel !== "—") {
+    const l = rawLevel.toLowerCase();
+    if (l === "staff") resolvedLevelAr = "كادر عام / موظفين";
+    else if (l === "supervisor" || l === "supervisory") resolvedLevelAr = "كادر إشرافي";
+    else if (l === "manager" || l === "management") resolvedLevelAr = "كادر إداري";
+    else if (l === "worker" || l === "line staff") resolvedLevelAr = "كادر تشغيل وعمال";
+    else if (l === "vip") resolvedLevelAr = "كبار الشخصيات (VIP)";
+    else if (l === "1" || l === "level 1") resolvedLevelAr = "الدرجة الأولى (إدارة عليا)";
+    else if (l === "2" || l === "level 2") resolvedLevelAr = "الدرجة الثانية (إشرافي)";
+    else if (l === "3" || l === "level 3") resolvedLevelAr = "الدرجة الثالثة (فنيون وموظفون)";
+    else if (l === "4" || l === "level 4") resolvedLevelAr = "الدرجة الرابعة (عمال وخدمات)";
+    else if (l === "0") resolvedLevelAr = "درجة خاصة";
+    else resolvedLevelAr = rawLevel;
+  }
+
+  // 6. Building in Arabic
+  const rawBuilding = opts.buildingAr || (typeof opts.building === "object" ? (opts.building?.nameAr || opts.building?.name || "") : (opts.building || ""));
+  let resolvedBuildingAr = "—";
+  if (rawBuilding && String(rawBuilding).trim()) {
+    const b = String(rawBuilding).trim();
+    const bLower = b.toLowerCase();
+    if (bLower.includes("tal avenue residents") || bLower.includes("taal avenue residents")) {
+      resolvedBuildingAr = "سكن تال أفينيو";
+    } else if (bLower.includes("tal avenue") || bLower.includes("taal avenue")) {
+      resolvedBuildingAr = "تال أفينيو";
+    } else if (bLower.includes("el waha new") || bLower.includes("elwaha new")) {
+      resolvedBuildingAr = "سكن الواحة الجديدة";
+    } else if (bLower.includes("el waha old") || bLower.includes("elwaha old")) {
+      resolvedBuildingAr = "سكن الواحة القديمة";
+    } else if (bLower.includes("el waha") || bLower.includes("elwaha")) {
+      resolvedBuildingAr = "سكن الواحة";
+    } else if (bLower.startsWith("building ") || bLower.startsWith("bldg ")) {
+      resolvedBuildingAr = b.replace(/^(building|bldg)\s+/i, "مبنى ");
+    } else if (bLower.startsWith("block ")) {
+      resolvedBuildingAr = b.replace(/^block\s+/i, "بلوك ");
+    } else if (bLower.startsWith("villa ")) {
+      resolvedBuildingAr = b.replace(/^villa\s+/i, "فيلا ");
+    } else {
+      resolvedBuildingAr = b;
+    }
+  }
+
+  // 7. Floor in Arabic
+  const rawFloor = opts.floorNum;
+  let resolvedFloorAr = "—";
+  if (rawFloor != null && rawFloor !== "" && rawFloor !== "—") {
+    const f = String(rawFloor).trim().toLowerCase();
+    if (f === "0" || f === "g" || f === "ground") resolvedFloorAr = "الطابق الأرضي";
+    else if (f === "1") resolvedFloorAr = "الطابق الأول";
+    else if (f === "2") resolvedFloorAr = "الطابق الثاني";
+    else if (f === "3") resolvedFloorAr = "الطابق الثالث";
+    else if (f === "4") resolvedFloorAr = "الطابق الرابع";
+    else if (f === "5") resolvedFloorAr = "الطابق الخامس";
+    else if (f === "b" || f === "basement") resolvedFloorAr = "البدروم";
+    else resolvedFloorAr = `طابق ${rawFloor}`;
+  }
+
+  // 8. Property / Branch in Arabic
+  const rawProp = opts.propNameAr || opts.propName || "";
+  let resolvedPropAr = "";
+  if (rawProp && String(rawProp).trim()) {
+    const p = String(rawProp).trim();
+    const pLower = p.toLowerCase();
+    if (pLower.includes("taal resident1") || pLower.includes("tal resident1") || pLower.includes("taal resident 1")) {
+      resolvedPropAr = "سكن تال ريزيدنت 1";
+    } else if (pLower.includes("taal") || pLower.includes("tal")) {
+      resolvedPropAr = p.replace(/taal\s*housing/i, "سكن تال").replace(/taal/i, "تال").replace(/tal/i, "تال");
+    } else if (pLower.includes("el waha new") || pLower.includes("elwaha new")) {
+      resolvedPropAr = "سكن الواحة الجديدة";
+    } else if (pLower.includes("el waha old") || pLower.includes("elwaha old")) {
+      resolvedPropAr = "سكن الواحة القديمة";
+    } else if (pLower.includes("el waha") || pLower.includes("elwaha")) {
+      resolvedPropAr = "سكن الواحة";
+    } else {
+      resolvedPropAr = p;
+    }
+  }
+  const propAddress = opts.propAddressAr || opts.propAddress || "";
+
+  // 9. Room & Bed
+  const roomDisplay = room?.roomNumber || assignment.roomNumber || (assignment.roomId ? String(assignment.roomId) : "—");
+  const bedDisplay = assignment.bedNumber ? `سرير ${assignment.bedNumber}` : (assignment.bed ? `سرير ${assignment.bed}` : "—");
 
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -502,24 +677,24 @@ async function generateArabicHousingLetterPdf(
       ${sysLogo ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" />` : "<div></div>"}
     </div>
     <hr class="gold" />
-    <h1>خطاب سكن</h1>
-    ${propName ? `<div class="sub">الفرع: ${propName}${propAddress ? ` — ${propAddress}` : ""}</div>` : ""}
+    <h1>خطاب تسكين</h1>
+    ${resolvedPropAr ? `<div class="sub">الفرع: ${resolvedPropAr}${propAddress ? ` — ${propAddress}` : ""}</div>` : ""}
     <hr class="gray" />
 
     <table>
       <tr><th style="width:160px">البيان</th><th>القيمة</th></tr>
-      <tr><td>اسم الموظف</td><td>${emp.firstName || ""} ${emp.lastName || ""}</td></tr>
-      <tr><td>كود الموظف</td><td>${emp.profileId || "—"}</td></tr>
-      <tr><td>رقم الهوية</td><td>${emp.nationalId || "—"}</td></tr>
-      <tr><td>الجنسية</td><td>${emp.nationality || "—"}</td></tr>
-      <tr><td>القسم</td><td>${emp.department || "—"}</td></tr>
-      <tr><td>المسمى الوظيفي</td><td>${emp.jobTitle || "—"}</td></tr>
-      <tr><td>الدرجة</td><td>${emp.level || "—"}</td></tr>
-      <tr><td>الهاتف</td><td>${emp.phone || "—"}</td></tr>
-      <tr><td>المبنى</td><td>${bldg || "—"}</td></tr>
-      <tr><td>الدور</td><td>${floorNum ? `طابق ${floorNum}` : "—"}</td></tr>
-      <tr><td>الغرفة</td><td>${room?.roomNumber || String(assignment.roomId)}</td></tr>
-      <tr><td>السرير</td><td>${assignment.bedNumber ? String(assignment.bedNumber) : "—"}</td></tr>
+      <tr><td>اسم الموظف</td><td><strong>${resolvedNameAr}</strong></td></tr>
+      <tr><td>كود الموظف</td><td>${emp.profileId || emp.profileCode || (emp.id ? String(emp.id) : "—")}</td></tr>
+      <tr><td>رقم الهوية</td><td>${emp.nationalId || emp.national_id || "—"}</td></tr>
+      <tr><td>الجنسية</td><td>${resolvedNatAr}</td></tr>
+      <tr><td>القسم</td><td>${resolvedDeptAr}</td></tr>
+      <tr><td>المسمى الوظيفي</td><td>${resolvedJobTitleAr}</td></tr>
+      <tr><td>الدرجة</td><td>${resolvedLevelAr}</td></tr>
+      <tr><td>الهاتف</td><td>${emp.phone || emp.mobile || "—"}</td></tr>
+      <tr><td>المبنى</td><td>${resolvedBuildingAr}</td></tr>
+      <tr><td>الدور</td><td>${resolvedFloorAr}</td></tr>
+      <tr><td>الغرفة</td><td>${roomDisplay}</td></tr>
+      <tr><td>السرير</td><td>${bedDisplay}</td></tr>
       <tr><td>تاريخ الدخول</td><td>${fmtDate(assignment.checkInDate)}</td></tr>
       <tr><td>تاريخ المغادرة المتوقع</td><td>${fmtDate(assignment.expectedCheckOutDate)}</td></tr>
     </table>

@@ -1377,6 +1377,7 @@ export default function ReservationsPage() {
       building,
       floorNum,
       propName: activeProp?.name || "",
+      propNameAr: (activeProp as any)?.displayName || activeProp?.name || "",
       propAddress: (activeProp as any)?.address || "",
       systemLogoUrl: (settings as any)?.systemLogo,
       propLogoUrl: (activeProp as any)?.logo,
@@ -3277,7 +3278,7 @@ export default function ReservationsPage() {
               />
             )}
             <div className="flex justify-between">
-              <Button variant="outline" size="sm" onClick={() => { const p = selectedProfile || (newForm.firstName ? { firstName: newForm.firstName, lastName: newForm.lastName, department: newForm.department, jobTitle: newForm.jobTitle, nationalId: newForm.nationalId } : null); if (p && lastAssignment) printHousingLetter(p, lastAssignment); }} className="gap-2"><Printer className="w-4 h-4" />{ar ? "طباعة خطاب السكن" : "Print Housing Letter"}</Button>
+              <Button variant="outline" size="sm" onClick={() => { const p = selectedProfile || (newForm.firstName ? { firstName: newForm.firstName, lastName: newForm.lastName, firstNameAr: newForm.firstNameAr, lastNameAr: newForm.lastNameAr, department: newForm.department, departmentAr: newForm.departmentAr, jobTitle: newForm.jobTitle, jobTitleAr: newForm.jobTitleAr, nationalId: newForm.nationalId, nationality: newForm.nationality, phone: newForm.phone, level: newForm.level } : null); if (p && lastAssignment) printHousingLetter(p, lastAssignment); }} className="gap-2"><Printer className="w-4 h-4" />{ar ? "طباعة خطاب السكن" : "Print Housing Letter"}</Button>
               <Button onClick={() => { setKeyPromptOpen(false); setLocation("/accommodation/in-house"); }}>{ar ? "عرض المقيمين" : "View In-House"}</Button>
             </div>
           </div>

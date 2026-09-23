@@ -258,6 +258,7 @@ export default function RoomAssignment() {
       building,
       floorNum,
       propName: activeProp?.name || "",
+      propNameAr: (activeProp as any)?.displayName || activeProp?.name || "",
       propAddress: (activeProp as any)?.address || "",
       systemLogoUrl: (settings as any)?.systemLogo,
       propLogoUrl: (activeProp as any)?.logo,
