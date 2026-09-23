@@ -1,5 +1,7 @@
-import pg from "pg";
-import bcrypt from "bcryptjs";
+import { createRequire } from "module";
+const require = createRequire(import.meta.resolve("../lib/db/package.json"));
+const pg = require("pg");
+const bcrypt = require("bcryptjs");
 
 const DB_URL = process.env.DATABASE_URL || "postgresql://postgres:admin123@localhost:5432/staff-housing";
 const API_URL = "http://localhost:4000";

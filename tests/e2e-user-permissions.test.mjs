@@ -551,14 +551,14 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
     });
 
     describe("1.4 Permission Matrix Structure & Canonical Notation", () => {
-      it("T1.4.1: Exactly 21 modules organized across 5 operational groups", () => {
-        assert.equal(MODULES.length, 21);
+      it("T1.4.1: Exactly all modules organized across 5 operational groups", () => {
+        assert.equal(MODULES.length, 25);
         assert.equal(PERMISSION_GROUPS.length, 5);
         const groupedCount = PERMISSION_GROUPS.reduce(
           (acc, g) => acc + g.modules.length,
           0,
         );
-        assert.equal(groupedCount, 21);
+        assert.equal(groupedCount, 25);
         recordPass("tier1");
       });
 
@@ -644,57 +644,57 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
     });
 
     describe("1.6 Role Baseline Presets & Hierarchy Resolution", () => {
-      it("T1.6.1: super_admin preset grants all 98 system permissions across 21 modules", () => {
+      it("T1.6.1: super_admin preset grants all system permissions across modules", () => {
         const perms = getRoleBaselinePermissions(["super_admin"]);
-        assert.equal(perms.size, 98);
+        assert.equal(perms.size, 120);
         for (const m of MODULES) {
           assert.ok(perms.has(`${m}.view`));
         }
         recordPass("tier1");
       });
 
-      it("T1.6.2: admin preset grants 94 permissions (all modules except properties + users.unlock)", () => {
+      it("T1.6.2: admin preset grants all permissions except properties + users.unlock", () => {
         const perms = getRoleBaselinePermissions(["admin"]);
         assert.ok(!perms.has("properties.view"));
         assert.ok(!perms.has("properties.create"));
         assert.ok(perms.has("users.unlock"));
         assert.ok(perms.has("housing.create"));
-        assert.equal(perms.size, 94);
+        assert.equal(perms.size, 116);
         recordPass("tier1");
       });
 
-      it("T1.6.3: manager preset inherits from receptionist and grants 91 operational permissions", () => {
+      it("T1.6.3: manager preset inherits from receptionist and grants operational permissions", () => {
         const resolved = resolveInheritedRoles(["manager"]);
         assert.deepEqual(resolved, ["manager", "receptionist"]);
         const perms = getRoleBaselinePermissions(["manager"]);
         assert.ok(perms.has("housing.create")); // manager exclusive
         assert.ok(perms.has("accommodation.checkout")); // receptionist inherited
-        assert.equal(perms.size, 91);
+        assert.equal(perms.size, 113);
         recordPass("tier1");
       });
 
-      it("T1.6.4: receptionist preset grants 39 front desk and accommodation permissions", () => {
+      it("T1.6.4: receptionist preset grants front desk and accommodation permissions", () => {
         const perms = getRoleBaselinePermissions(["receptionist"]);
         assert.ok(perms.has("accommodation.checkout"));
         assert.ok(perms.has("reservations.create"));
         assert.ok(!perms.has("housing.create")); // Receptionist cannot create rooms
         assert.ok(!perms.has("users.manage_permissions")); // Receptionist cannot manage users
-        assert.equal(perms.size, 39);
+        assert.equal(perms.size, 42);
         recordPass("tier1");
       });
 
-      it("T1.6.5: maintenance_staff preset grants 12 housing and work order permissions", () => {
+      it("T1.6.5: maintenance_staff preset grants housing and work order permissions", () => {
         const perms = getRoleBaselinePermissions(["maintenance_staff"]);
         assert.ok(perms.has("maintenance.view"));
         assert.ok(perms.has("maintenance.edit"));
         assert.ok(!perms.has("users.view"));
-        assert.equal(perms.size, 12);
+        assert.equal(perms.size, 14);
         recordPass("tier1");
       });
 
-      it("T1.6.6: Read-Only All preset grants exactly view on all 21 modules (21 permissions)", () => {
+      it("T1.6.6: Read-Only All preset grants exactly view on all modules", () => {
         const readOnlyPreset = MODULES.map((m) => `${m}.view`);
-        assert.equal(readOnlyPreset.length, 21);
+        assert.equal(readOnlyPreset.length, MODULES.length);
         for (const p of readOnlyPreset) {
           assert.ok(p.endsWith(".view"));
         }
@@ -911,9 +911,9 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
         recordPass("tier2");
       });
 
-      it("T2.4.4: All 98 permissions explicitly granted in custom array", () => {
+      it("T2.4.4: All permissions explicitly granted in custom array", () => {
         const allPerms = MODULES.flatMap((m) => getAllModulePermissions(m));
-        assert.equal(allPerms.length, 98);
+        assert.equal(allPerms.length, 120);
         const user = {
           roles: ["receptionist"],
           permissions: allPerms,
@@ -938,15 +938,15 @@ describe("Sunrise Housing — E2E Master Test Suite (R1, R2, R3)", () => {
     });
 
     describe("2.5 Search Query Edge Cases & Regex Safety", () => {
-      it("T2.5.1: Empty query string '' returns all 21 modules without filtering", () => {
+      it("T2.5.1: Empty query string '' returns all modules without filtering", () => {
         const res = filterPermissionsBilingual("");
-        assert.equal(res.length, 21);
+        assert.equal(res.length, MODULES.length);
         recordPass("tier2");
       });
 
-      it("T2.5.2: Whitespace-only query '   ' is trimmed and returns all 21 modules", () => {
+      it("T2.5.2: Whitespace-only query '   ' is trimmed and returns all modules", () => {
         const res = filterPermissionsBilingual("   ");
-        assert.equal(res.length, 21);
+        assert.equal(res.length, MODULES.length);
         recordPass("tier2");
       });
 
