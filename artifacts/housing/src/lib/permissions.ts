@@ -48,7 +48,13 @@ export type Action =
   | "unlock"
   | "override_single_occupancy"
   | "view_maintenance"
-  | "view_housekeeping";
+  | "view_housekeeping"
+  | "manage_policies"
+  | "manage_organization"
+  | "manage_room_types"
+  | "manage_security"
+  | "manage_email"
+  | "config";
 
 export const ACTIONS: Action[] = [
   "view",
@@ -69,6 +75,12 @@ export const ACTIONS: Action[] = [
   "override_single_occupancy",
   "view_maintenance",
   "view_housekeeping",
+  "manage_policies",
+  "manage_organization",
+  "manage_room_types",
+  "manage_security",
+  "manage_email",
+  "config",
 ];
 
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
@@ -121,7 +133,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "delete",
     "export",
   ],
-  reports: ["view", "export", "audit"],
+  reports: ["view", "export", "audit", "config"],
   users: [
     "view",
     "create",
@@ -132,7 +144,17 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "reset_password",
     "unlock",
   ],
-  settings: ["view", "create", "edit", "delete"],
+  settings: [
+    "view",
+    "create",
+    "edit",
+    "manage_policies",
+    "manage_organization",
+    "manage_room_types",
+    "manage_security",
+    "manage_email",
+    "delete",
+  ],
   activity_log: ["view", "export"],
   properties: ["view", "create", "edit", "delete"],
   documents: ["view", "create", "delete"],
@@ -534,6 +556,30 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   view_housekeeping: {
     en: "View Housekeeping Orders Only",
     ar: "عرض أوردرات الهاوس كيبنج فقط",
+  },
+  manage_policies: {
+    en: "Manage Housing Policies & Rules",
+    ar: "إدارة سياسات ولوائح السكن",
+  },
+  manage_organization: {
+    en: "Manage Departments & Job Titles",
+    ar: "إدارة الأقسام والمسميات الوظيفية",
+  },
+  manage_room_types: {
+    en: "Manage Room Classifications & Bed Types",
+    ar: "إدارة تصنيفات الغرف والأسرة والإطلالات",
+  },
+  manage_security: {
+    en: "Manage Security & Password Policies",
+    ar: "إدارة سياسات الأمان وكلمات المرور",
+  },
+  manage_email: {
+    en: "Manage Email & SMTP Gateway",
+    ar: "إدارة إعدادات خادم البريد (SMTP)",
+  },
+  config: {
+    en: "Configuration Report Generator",
+    ar: "منشئ التقارير المخصصة (الكنفجريشن)",
   },
 };
 

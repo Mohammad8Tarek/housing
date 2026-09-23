@@ -17,7 +17,7 @@ import { SMART_REPORT_TABS } from "@/config/reportDefinitions";
 
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, AlertOctagon, Palmtree } from "lucide-react";
+import { ClipboardCheck, AlertOctagon, Palmtree, SlidersHorizontal } from "lucide-react";
 import { ExportToolbar } from "./components/ExportToolbar";
 import { StatsCards } from "./components/StatsCards";
 import { TabsNav } from "./components/TabsNav";
@@ -207,6 +207,18 @@ export default function Reports() {
           </h1>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
+          {can("reports", "config") && (
+            <Link href={`/${propertySlug || "all"}/reports/configuration`}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/40"
+              >
+                <SlidersHorizontal className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                <span>{ar ? "منشئ التقارير المخصصة" : "Custom Report Builder"}</span>
+              </Button>
+            </Link>
+          )}
           <ExportToolbar
             canExportReports={canExportReports}
             activeTab={filters.activeTab}

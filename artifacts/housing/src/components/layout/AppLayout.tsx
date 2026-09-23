@@ -398,10 +398,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           href: "/reports",
           label: ar ? "مركز التقارير الشاملة" : "All Reports",
         },
-        {
-          href: "/reports/configuration",
-          label: ar ? "كنفجريشن ريبورت (تقرير مخصص)" : "Configuration Report",
-        },
+        ...(can("reports", "config")
+          ? [
+              {
+                href: "/reports/configuration",
+                label: ar ? "كنفجريشن ريبورت (تقرير مخصص)" : "Configuration Report",
+              },
+            ]
+          : []),
       ],
     },
     {

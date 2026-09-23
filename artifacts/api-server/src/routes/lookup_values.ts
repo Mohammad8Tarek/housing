@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, withTenant, lookupValuesTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { getTenantId } from "../lib/request-utils.js";
-import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 
 const router: Router = Router();
@@ -35,7 +35,11 @@ router.get("/lookup-values", requireAuth, async (req, res): Promise<void> => {
 // ─── POST /lookup-values ──────────────────────────────────────────────────────
 router.post(
   "/lookup-values",
-  requirePermission("settings", "create"),
+  requireAnyPermission(
+    ["settings", "create"],
+    ["settings", "manage_organization"],
+    ["settings", "manage_room_types"],
+  ),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     const { category, value, parentValue, extraValue, sortOrder } = req.body;
@@ -65,7 +69,11 @@ router.post(
 // ─── POST /lookup-values/bulk ────────────────────────────────────────────────
 router.post(
   "/lookup-values/bulk",
-  requirePermission("settings", "create"),
+  requireAnyPermission(
+    ["settings", "create"],
+    ["settings", "manage_organization"],
+    ["settings", "manage_room_types"],
+  ),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     const { items } = req.body;
@@ -174,7 +182,11 @@ router.post(
 // ─── PATCH /lookup-values/:id ─────────────────────────────────────────────────
 router.patch(
   "/lookup-values/:id",
-  requirePermission("settings", "edit"),
+  requireAnyPermission(
+    ["settings", "edit"],
+    ["settings", "manage_organization"],
+    ["settings", "manage_room_types"],
+  ),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -237,7 +249,11 @@ router.patch(
 // ─── DELETE /lookup-values/:id ────────────────────────────────────────────────
 router.delete(
   "/lookup-values/:id",
-  requirePermission("settings", "delete"),
+  requireAnyPermission(
+    ["settings", "delete"],
+    ["settings", "manage_organization"],
+    ["settings", "manage_room_types"],
+  ),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

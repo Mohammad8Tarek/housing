@@ -419,7 +419,7 @@ export function EmailSettingsSection({
 
           {/* Action Footer */}
           <div className="flex justify-end pt-2 border-t">
-            <PermissionGate module="settings" action="edit">
+            <PermissionGate anyPermission={[["settings", "manage_email"], ["settings", "edit"]]}>
               <Button
                 type="button"
                 onClick={() => saveMutation.mutate()}
@@ -468,7 +468,7 @@ export function EmailSettingsSection({
                 dir="ltr"
               />
             </div>
-            <PermissionGate module="settings" action="edit">
+            <PermissionGate anyPermission={[["settings", "manage_email"], ["settings", "edit"]]}>
               <Button
                 type="button"
                 variant="secondary"

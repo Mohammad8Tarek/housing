@@ -207,7 +207,7 @@ const APP_ROUTES: AppRouteDef[] = [
   { path: "/housekeeping", module: "housekeeping", component: Housekeeping },
   { path: "/maintenance/:id", modules: ["maintenance", "housekeeping"], component: MaintenanceDetails },
   { path: "/maintenance", modules: ["maintenance", "housekeeping"], component: Maintenance },
-  { path: "/reports/configuration", module: "reports", component: ReportConfiguration },
+  { path: "/reports/configuration", module: "reports", action: "config", component: ReportConfiguration },
   { path: "/reports", module: "reports", component: Reports },
   { path: "/users/:id", module: "users", component: UserDetail },
   { path: "/users", module: "users", component: Users },

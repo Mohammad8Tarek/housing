@@ -50,6 +50,12 @@ export const PERMISSION_ACTIONS = [
   "view_maintenance",
   "view_housekeeping",
   "assign",
+  "manage_policies",
+  "manage_organization",
+  "manage_room_types",
+  "manage_security",
+  "manage_email",
+  "config",
 ] as const;
 
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
@@ -106,7 +112,7 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
     "delete",
     "export",
   ],
-  reports: ["view", "export", "audit"],
+  reports: ["view", "export", "audit", "config"],
   users: [
     "view",
     "create",
@@ -117,7 +123,17 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
     "reset_password",
     "unlock",
   ],
-  settings: ["view", "create", "edit", "delete"],
+  settings: [
+    "view",
+    "create",
+    "edit",
+    "manage_policies",
+    "manage_organization",
+    "manage_room_types",
+    "manage_security",
+    "manage_email",
+    "delete",
+  ],
   activity_log: ["view", "export"],
   properties: ["view", "create", "edit", "delete"],
   documents: ["view", "create", "delete"],

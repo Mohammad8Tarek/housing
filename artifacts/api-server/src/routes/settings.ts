@@ -3,7 +3,7 @@ import { db, withTenant, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { sendTestEmail } from "../lib/email-service.js";
 
 const router: Router = Router();
@@ -53,7 +53,12 @@ router.get("/settings", requireAuth, async (req, res): Promise<void> => {
 
 router.patch(
   "/settings",
-  requirePermission("settings", "edit"),
+  requireAnyPermission(
+    ["settings", "edit"],
+    ["settings", "manage_policies"],
+    ["settings", "manage_security"],
+    ["settings", "manage_email"],
+  ),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -217,7 +222,7 @@ router.patch(
 
 router.post(
   "/settings/email/test",
-  requirePermission("settings", "edit"),
+  requireAnyPermission(["settings", "manage_email"], ["settings", "edit"]),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { FormProvider } from "react-hook-form";
 import { applyBrandColors } from "@/lib/brand-colors";
 import { useLanguage } from "@/context/LanguageContext";
@@ -29,6 +29,7 @@ import {
   HardHat,
   Mail,
   Scale,
+  ShieldAlert,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { useProperty } from "@/context/PropertyContext";
@@ -59,8 +60,20 @@ export default function Settings() {
   } = useSettingsForm();
   const { setLanguage } = useLanguage();
   const { user, isSystemAdmin } = useAuth();
-  const { canView } = usePermission();
+  const { can, canView } = usePermission();
+
+  const canGeneral = can("settings", "view");
+  const canPolicies = can("settings", "manage_policies") || can("settings", "edit");
+  const canOrganization = can("settings", "manage_organization") || can("settings", "edit");
+  const canRoomTypes = can("settings", "manage_room_types") || can("settings", "edit");
+  const canWorkers = canView("workers");
+  const canSecurity = can("settings", "manage_security") || can("settings", "edit");
+  const canHrSync = canView("hr_sync");
+  const canDoorLocks = canView("smart_locks");
+  const canWhatsApp = canView("whatsapp");
   const canManageEmail = Boolean(
+    can("settings", "manage_email") ||
+    can("settings", "edit") ||
     isSystemAdmin ||
     user?.roles?.includes("admin") ||
     user?.roles?.includes("super_admin") ||
@@ -144,6 +157,38 @@ export default function Settings() {
     }
   }, [settings, form]);
 
+  const tabsList = useMemo(() => [
+    { id: "general", labelAr: "عام", labelEn: "General", icon: Image, allowed: canGeneral },
+    { id: "policies", labelAr: "السياسات واللوائح", labelEn: "Policies", icon: Scale, colorClass: "text-amber-600", allowed: canPolicies },
+    { id: "organization", labelAr: "الأقسام والمسميات", labelEn: "Depts & Jobs", icon: Building2, colorClass: "text-blue-500", allowed: canOrganization },
+    { id: "room-types", labelAr: "الغرف والتصنيفات", labelEn: "Rooms & Class", icon: BedDouble, allowed: canRoomTypes },
+    { id: "workers", labelAr: "الفنيين والعمال", labelEn: "Workers", icon: HardHat, colorClass: "text-amber-500", allowed: canWorkers },
+    { id: "security", labelAr: "الأمان", labelEn: "Security", icon: Shield, allowed: canSecurity },
+    { id: "hr-sync", labelAr: "HR", labelEn: "HR Sync", icon: RefreshCw, allowed: canHrSync },
+    { id: "door-locks", labelAr: "الأقفال", labelEn: "Locks", icon: KeyRound, allowed: canDoorLocks },
+    { id: "whatsapp", labelAr: "الواتساب", labelEn: "WhatsApp", icon: MessageSquare, colorClass: "text-emerald-500", allowed: canWhatsApp },
+    { id: "email", labelAr: "البريد الإلكتروني", labelEn: "Email", icon: Mail, colorClass: "text-indigo-500", allowed: canManageEmail },
+  ].filter((t) => t.allowed), [
+    canGeneral,
+    canPolicies,
+    canOrganization,
+    canRoomTypes,
+    canWorkers,
+    canSecurity,
+    canHrSync,
+    canDoorLocks,
+    canWhatsApp,
+    canManageEmail,
+  ]);
+
+  const [activeTab, setActiveTab] = useState<string>(() => tabsList[0]?.id || "general");
+
+  useEffect(() => {
+    if (tabsList.length > 0 && !tabsList.some((t) => t.id === activeTab)) {
+      setActiveTab(tabsList[0].id);
+    }
+  }, [tabsList, activeTab]);
+
   const handleSubmit = form.handleSubmit((data) => {
     updateMutation.mutate(
       { data: { ...data, propertyId: activePropertyId! } as any },
@@ -171,6 +216,22 @@ export default function Settings() {
   const selectedPropertyId =
     typeof activePropertyId === "number" ? activePropertyId : null;
 
+  if (tabsList.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center bg-card border rounded-xl my-6">
+        <ShieldAlert className="w-12 h-12 text-destructive mb-3" />
+        <h2 className="text-lg font-bold text-foreground">
+          {ar ? "لا توجد صلاحية للوصول إلى أقسام الإعدادات" : "No Accessible Settings Modules"}
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {ar
+            ? "حسابك لا يمتلك صلاحية عرض أي قسم من أقسام الإعدادات. يرجى مراجعة مسؤول النظام."
+            : "Your account does not have permission to view any settings tabs. Contact your administrator."}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <FormProvider {...form}>
       <div className="space-y-6 w-full pb-6 px-1">
@@ -180,106 +241,70 @@ export default function Settings() {
           </h1>
         </div>
 
-        <Tabs defaultValue="general" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 md:grid-cols-10 mb-6">
-            <TabsTrigger value="general">
-              <Image className="w-3.5 h-3.5 mr-1.5" />
-              {ar ? "عام" : "General"}
-            </TabsTrigger>
-            <TabsTrigger value="policies">
-              <Scale className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
-              {ar ? "السياسات واللوائح" : "Policies"}
-            </TabsTrigger>
-            <TabsTrigger value="organization">
-              <Building2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
-              {ar ? "الأقسام والمسميات" : "Depts & Jobs"}
-            </TabsTrigger>
-            <TabsTrigger value="room-types">
-              <BedDouble className="w-3.5 h-3.5 mr-1.5" />
-              {ar ? "الغرف والتصنيفات" : "Rooms & Class"}
-            </TabsTrigger>
-            {canView("workers") && (
-              <TabsTrigger value="workers">
-                <HardHat className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-                {ar ? "الفنيين والعمال" : "Workers"}
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="security">
-              <Shield className="w-3.5 h-3.5 mr-1.5" />
-              {ar ? "الأمان" : "Security"}
-            </TabsTrigger>
-            {canView("hr_sync") && (
-              <TabsTrigger value="hr-sync">
-                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "HR" : "HR Sync"}
-              </TabsTrigger>
-            )}
-            {canView("smart_locks") && (
-              <TabsTrigger value="door-locks">
-                <KeyRound className="w-3.5 h-3.5 mr-1.5" />
-                {ar ? "الأقفال" : "Locks"}
-              </TabsTrigger>
-            )}
-            {canView("whatsapp") && (
-              <TabsTrigger value="whatsapp">
-                <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
-                {ar ? "الواتساب" : "WhatsApp"}
-              </TabsTrigger>
-            )}
-            {canManageEmail && (
-              <TabsTrigger value="email">
-                <Mail className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
-                {ar ? "البريد الإلكتروني" : "Email"}
-              </TabsTrigger>
-            )}
+            {tabsList.map((t) => {
+              const Icon = t.icon;
+              return (
+                <TabsTrigger key={t.id} value={t.id}>
+                  <Icon className={`w-3.5 h-3.5 mr-1.5 ${t.colorClass || ""}`} />
+                  {ar ? t.labelAr : t.labelEn}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
-          <TabsContent value="general">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <GeneralSettings
-                activePropertyId={selectedPropertyId}
-                language={language}
-                settings={settings}
-                isLoading={isLoading}
-              />
-              <div className="flex justify-end">
-                <PermissionGate module="settings" action="edit">
-                  <Button type="submit" disabled={updateMutation.isPending}>
-                    {updateMutation.isPending
-                      ? (ar ? "جاري الحفظ..." : "Saving...")
-                      : (ar ? "حفظ الإعدادات" : "Save Settings")}
-                  </Button>
-                </PermissionGate>
-              </div>
-            </form>
-          </TabsContent>
+          {canGeneral && (
+            <TabsContent value="general">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <GeneralSettings
+                  activePropertyId={selectedPropertyId}
+                  language={language}
+                  settings={settings}
+                  isLoading={isLoading}
+                />
+                <div className="flex justify-end">
+                  <PermissionGate module="settings" action="edit">
+                    <Button type="submit" disabled={updateMutation.isPending}>
+                      {updateMutation.isPending
+                        ? (ar ? "جاري الحفظ..." : "Saving...")
+                        : (ar ? "حفظ الإعدادات" : "Save Settings")}
+                    </Button>
+                  </PermissionGate>
+                </div>
+              </form>
+            </TabsContent>
+          )}
 
-          <TabsContent value="policies">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <PoliciesSection
-                propertyId={selectedPropertyId ?? undefined}
-                language={language}
-                isLoading={isLoading}
-                propertyName={
-                  properties?.find((p: any) => p.id === selectedPropertyId)?.displayName ||
-                  properties?.find((p: any) => p.id === selectedPropertyId)?.name
-                }
-              />
-              <div className="flex justify-end">
-                <PermissionGate module="settings" action="edit">
-                  <Button type="submit" disabled={updateMutation.isPending}>
-                    {updateMutation.isPending
-                      ? (ar ? "جاري الحفظ..." : "Saving...")
-                      : (ar ? "حفظ السياسات واللوائح" : "Save Policies & Rules")}
-                  </Button>
-                </PermissionGate>
-              </div>
-            </form>
-          </TabsContent>
+          {canPolicies && (
+            <TabsContent value="policies">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <PoliciesSection
+                  propertyId={selectedPropertyId ?? undefined}
+                  language={language}
+                  isLoading={isLoading}
+                  propertyName={
+                    properties?.find((p: any) => p.id === selectedPropertyId)?.displayName ||
+                    properties?.find((p: any) => p.id === selectedPropertyId)?.name
+                  }
+                />
+                <div className="flex justify-end">
+                  <PermissionGate anyPermission={[["settings", "manage_policies"], ["settings", "edit"]]}>
+                    <Button type="submit" disabled={updateMutation.isPending}>
+                      {updateMutation.isPending
+                        ? (ar ? "جاري الحفظ..." : "Saving...")
+                        : (ar ? "حفظ السياسات واللوائح" : "Save Policies & Rules")}
+                    </Button>
+                  </PermissionGate>
+                </div>
+              </form>
+            </TabsContent>
+          )}
 
-          <TabsContent value="organization">
-            <div className="space-y-4">
-              <Tabs defaultValue="departments" className="w-full">
+          {canOrganization && (
+            <TabsContent value="organization">
+              <div className="space-y-4">
+                <Tabs defaultValue="departments" className="w-full">
                 <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-muted/60 p-1">
                   <TabsTrigger value="departments" className="text-xs font-semibold gap-1.5">
                     <Building2 className="w-3.5 h-3.5 text-primary" />
@@ -330,7 +355,9 @@ export default function Settings() {
               </Tabs>
             </div>
           </TabsContent>
+        )}
 
+        {canRoomTypes && (
           <TabsContent value="room-types">
             <div className="space-y-4">
               <Tabs defaultValue="classifications" className="w-full">
@@ -423,6 +450,7 @@ export default function Settings() {
               </Tabs>
             </div>
           </TabsContent>
+        )}
 
           {canView("workers") && (
             <TabsContent value="workers" className="space-y-4">
@@ -442,20 +470,22 @@ export default function Settings() {
             </TabsContent>
           )}
 
-          <TabsContent value="security">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <SecuritySettings language={language} isLoading={isLoading} />
-              <div className="flex justify-end">
-                <PermissionGate module="settings" action="edit">
-                  <Button type="submit" disabled={updateMutation.isPending}>
-                    {updateMutation.isPending
-                      ? (ar ? "جاري الحفظ..." : "Saving...")
-                      : (ar ? "حفظ إعدادات الأمان" : "Save Security Settings")}
-                  </Button>
-                </PermissionGate>
-              </div>
-            </form>
-          </TabsContent>
+          {canSecurity && (
+            <TabsContent value="security">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <SecuritySettings language={language} isLoading={isLoading} />
+                <div className="flex justify-end">
+                  <PermissionGate anyPermission={[["settings", "manage_security"], ["settings", "edit"]]}>
+                    <Button type="submit" disabled={updateMutation.isPending}>
+                      {updateMutation.isPending
+                        ? (ar ? "جاري الحفظ..." : "Saving...")
+                        : (ar ? "حفظ إعدادات الأمان" : "Save Security Settings")}
+                    </Button>
+                  </PermissionGate>
+                </div>
+              </form>
+            </TabsContent>
+          )}
 
           {canView("hr_sync") && (
             <TabsContent value="hr-sync" className="space-y-4">

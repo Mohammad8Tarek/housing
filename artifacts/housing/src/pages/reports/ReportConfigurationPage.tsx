@@ -38,6 +38,7 @@ import {
   Users,
   FileBarChart2,
   FileText,
+  ShieldAlert,
 } from "lucide-react";
 
 // Components
@@ -83,8 +84,33 @@ export default function ReportConfigurationPage() {
   const queryClient = useQueryClient();
   const ar = language === "ar";
 
+  const canAccessConfig = can("reports", "config");
   const canExport = can("reports", "export");
   const canEdit = can("reports", "edit") || can("reports", "create");
+
+  if (!canAccessConfig) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-6">
+        <div className="w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+          <ShieldAlert className="w-8 h-8 text-destructive" />
+        </div>
+        <div className="space-y-1 max-w-md">
+          <h2 className="text-xl font-bold">{ar ? "غير مصرح بالدخول (403)" : "Access Denied (403)"}</h2>
+          <p className="text-sm text-muted-foreground">
+            {ar
+              ? "ليس لديك صلاحية لاستخدام منشئ ومخصص التقارير (reports.config). يرجى مراجعة مسؤول النظام."
+              : "You do not have permission to access the Custom Report Configuration Generator (reports.config). Contact your administrator."}
+          </p>
+        </div>
+        <Link href={`/${propertySlug || "all"}/reports`}>
+          <Button variant="outline" className="gap-2">
+            {ar ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+            {ar ? "العودة لمركز التقارير" : "Back to Reports"}
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   const effectivePropId = useMemo(() => {
     if (activePropertyId && activePropertyId !== "all") return Number(activePropertyId);
