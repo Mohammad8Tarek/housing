@@ -19,6 +19,7 @@ import {
   portalDocumentsTable,
   portalContactsTable,
   activitiesTable,
+  propertyHousingRatingsTable,
 } from "@workspace/db";
 import {
   eq,
@@ -1410,6 +1411,143 @@ router.post("/activity-attendance", async (req, res): Promise<void> => {
     res
       .status(500)
       .json({ success: false, message: "Failed to update attendance" });
+  }
+});
+
+// ─── GET /api/portal-data/housing-rating-status (Check 7-day cooldown) ───────
+router.get("/housing-rating-status", async (req, res): Promise<void> => {
+  const sess = portalSession(req);
+  if (!sess) {
+    res.status(401).json({ success: false, message: "Not authenticated" });
+    return;
+  }
+
+  try {
+    const profileId = sess.profileDbId;
+    const [latestRating] = await db
+      .select({
+        id: propertyHousingRatingsTable.id,
+        createdAt: propertyHousingRatingsTable.createdAt,
+      })
+      .from(propertyHousingRatingsTable)
+      .where(eq(propertyHousingRatingsTable.profileId, profileId))
+      .orderBy(desc(propertyHousingRatingsTable.createdAt))
+      .limit(1);
+
+    if (!latestRating) {
+      res.json({
+        success: true,
+        eligible: true,
+        lastRatedAt: null,
+      });
+      return;
+    }
+
+    const lastDate = new Date(latestRating.createdAt);
+    const now = new Date();
+    const diffMs = now.getTime() - lastDate.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (diffDays >= 7) {
+      res.json({
+        success: true,
+        eligible: true,
+        lastRatedAt: lastDate.toISOString(),
+        daysSinceLastRating: Math.floor(diffDays),
+      });
+    } else {
+      const nextEligibleDate = new Date(lastDate.getTime() + 7 * 86400000);
+      const daysRemaining = Math.max(1, Math.ceil(7 - diffDays));
+      res.json({
+        success: true,
+        eligible: false,
+        lastRatedAt: lastDate.toISOString(),
+        nextEligibleDate: nextEligibleDate.toISOString(),
+        daysRemaining,
+      });
+    }
+  } catch (err: any) {
+    console.error("Failed to check housing rating status:", err);
+    res.status(500).json({ success: false, message: "Failed to check status" });
+  }
+});
+
+// ─── POST /api/portal-data/housing-rating (Submit anonymous 7-day pulse) ─────
+router.post("/housing-rating", async (req, res): Promise<void> => {
+  const sess = portalSession(req);
+  if (!sess) {
+    res.status(401).json({ success: false, message: "Not authenticated" });
+    return;
+  }
+
+  const { rating, comment } = req.body as {
+    rating: string;
+    comment?: string;
+  };
+
+  const normalizedRating = String(rating || "").trim().toLowerCase();
+  const validRatings = ["satisfied", "neutral", "dissatisfied"];
+  if (!validRatings.includes(normalizedRating)) {
+    res.status(400).json({
+      success: false,
+      message: "التقييم يجب أن يكون: راضي (satisfied) أو متوسط (neutral) أو غير راضي (dissatisfied)",
+    });
+    return;
+  }
+
+  const scoreMap: Record<string, number> = {
+    satisfied: 5,
+    neutral: 3,
+    dissatisfied: 1,
+  };
+  const score = scoreMap[normalizedRating] ?? 3;
+
+  try {
+    const profileId = sess.profileDbId;
+    const propertyId = sess.propertyId;
+
+    // Check 7-day cooldown
+    const [latestRating] = await db
+      .select({
+        id: propertyHousingRatingsTable.id,
+        createdAt: propertyHousingRatingsTable.createdAt,
+      })
+      .from(propertyHousingRatingsTable)
+      .where(eq(propertyHousingRatingsTable.profileId, profileId))
+      .orderBy(desc(propertyHousingRatingsTable.createdAt))
+      .limit(1);
+
+    if (latestRating) {
+      const lastDate = new Date(latestRating.createdAt);
+      const diffDays = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays < 7) {
+        const daysRemaining = Math.max(1, Math.ceil(7 - diffDays));
+        res.status(429).json({
+          success: false,
+          message: `يمكنك إرسال التقييم مرة واحدة كل 7 أيام. متبقي ${daysRemaining} يوم/أيام.`,
+          daysRemaining,
+        });
+        return;
+      }
+    }
+
+    // Insert new anonymous rating record
+    await db.insert(propertyHousingRatingsTable).values({
+      propertyId,
+      profileId,
+      rating: normalizedRating,
+      score,
+      comment: comment ? String(comment).trim().slice(0, 1000) : null,
+      category: "general",
+    });
+
+    res.json({
+      success: true,
+      message: "تم تسجيل تقييمك بنجاح وبسرية تامة! شكراً لمشاركتك في تحسين جودة السكن.",
+    });
+  } catch (err: any) {
+    console.error("Failed to submit housing rating:", err);
+    res.status(500).json({ success: false, message: "فشل إرسال التقييم" });
   }
 });
 

@@ -2491,5 +2491,21 @@ We wish you a safe trip and a pleasant stay! ✨',
   ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_2_phone TEXT;
   ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS housing_manager_2_email TEXT;
 
+  -- --------------------------------------------------------
+  -- Table: public.property_housing_ratings (Automated 7-Day Pulse)
+  -- --------------------------------------------------------
+  CREATE TABLE IF NOT EXISTS public.property_housing_ratings (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
+    profile_id INTEGER NOT NULL,
+    rating TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    comment TEXT,
+    category TEXT NOT NULL DEFAULT 'general',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_prop_housing_ratings_cooldown ON public.property_housing_ratings(profile_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_prop_housing_ratings_prop ON public.property_housing_ratings(property_id, created_at DESC);
+
   RAISE NOTICE '>>> All schemas, tables, and constraints migrated successfully!';
 END $$;

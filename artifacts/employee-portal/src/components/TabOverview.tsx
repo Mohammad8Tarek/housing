@@ -24,6 +24,11 @@ import {
   Download,
   Loader2,
   Star,
+  Smile,
+  Meh,
+  Frown,
+  Lock,
+  HeartHandshake,
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
@@ -139,17 +144,55 @@ export default function TabOverview({
   const [roommates, setRoommates] = useState<any[]>([]);
   const [unratedRequest, setUnratedRequest] = useState<any>(null);
   const [supportContacts, setSupportContacts] = useState<any[]>([]);
+  const [housingRatingStatus, setHousingRatingStatus] = useState<any>(null);
+  const [selectedHousingRating, setSelectedHousingRating] = useState<string>("");
+  const [housingRatingComment, setHousingRatingComment] = useState<string>("");
+  const [isSubmittingRating, setIsSubmittingRating] = useState<boolean>(false);
+  const [ratingSubmittedSuccess, setRatingSubmittedSuccess] = useState<boolean>(false);
+
+  const handleHousingRatingSubmit = async () => {
+    if (!selectedHousingRating) return;
+    setIsSubmittingRating(true);
+    try {
+      const res = await apiFetch("/api/portal-data/housing-rating", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          rating: selectedHousingRating,
+          comment: housingRatingComment.trim() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.success) {
+        setRatingSubmittedSuccess(true);
+        setHousingRatingStatus({ eligible: false });
+      }
+    } catch (err) {
+      console.error("Failed to submit rating:", err);
+    } finally {
+      setIsSubmittingRating(false);
+    }
+  };
 
   useEffect(() => {
     const loadOverviewData = async () => {
       try {
-        const [notifRes, docRes, roomRes, mntRes, contactsRes] = await Promise.all([
+        const [notifRes, docRes, roomRes, mntRes, contactsRes, ratingStatusRes] = await Promise.all([
           apiFetch("/api/portal-notifications/my", { credentials: "include" }),
           apiFetch("/api/portal-data/documents", { credentials: "include" }),
           apiFetch("/api/portal-data/roommates", { credentials: "include" }),
           apiFetch("/api/portal-data/my-maintenance", { credentials: "include" }),
           apiFetch("/api/portal-data/support-contacts", { credentials: "include" }),
+          apiFetch("/api/portal-data/housing-rating-status", { credentials: "include" }),
         ]);
+
+        if (ratingStatusRes.ok) {
+          const rStatus = await ratingStatusRes.json().catch(() => null);
+          if (rStatus?.success) {
+            setHousingRatingStatus(rStatus);
+          }
+        }
 
         if (contactsRes.ok) {
           const cData = await contactsRes.json().catch(() => null);
@@ -242,6 +285,137 @@ export default function TabOverview({
             <Star className="w-3.5 h-3.5 fill-white" />
             <span>{isRtl ? "قيّم الآن" : "Rate Now"}</span>
           </button>
+        </div>
+      )}
+
+      {/* ── 7-DAY ANONYMOUS HOUSING QUALITY PULSE RATING ── */}
+      {(housingRatingStatus?.eligible || ratingSubmittedSuccess) && (
+        <div className="relative overflow-hidden rounded-2xl bg-card border border-primary/20 shadow-md p-4 transition-all">
+          {ratingSubmittedSuccess ? (
+            <div className="flex items-center gap-3 py-2 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="w-6 h-6 shrink-0" />
+              <div>
+                <h4 className="text-xs font-bold text-foreground">
+                  {isRtl ? "تم استلام تقييمك بنجاح، شكراً لك!" : "Thank you! Your rating has been received."}
+                </h4>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {isRtl
+                    ? "تقييمك سري ومجهول الهوية 100% ويساعدنا في تحسين جودة السكن."
+                    : "Your feedback is 100% anonymous and helps improve housing quality."}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <HeartHandshake className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>{isRtl ? "استطلاع جودة السكن الأسبوعي" : "Weekly Housing Quality Pulse"}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+                        {isRtl ? "سري تماماً" : "100% Anonymous"}
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {isRtl
+                        ? "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟"
+                        : "How satisfied are you with housing conditions, cleanliness & services this week?"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Rating Options */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedHousingRating("satisfied")}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
+                    selectedHousingRating === "satisfied"
+                      ? "border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-xs"
+                      : "border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 text-foreground"
+                  )}
+                >
+                  <Smile className={cn("w-6 h-6", selectedHousingRating === "satisfied" ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")} />
+                  <span>{isRtl ? "راضي" : "Satisfied"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedHousingRating("neutral")}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
+                    selectedHousingRating === "neutral"
+                      ? "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-xs"
+                      : "border-border hover:border-amber-500/50 hover:bg-amber-500/5 text-foreground"
+                  )}
+                >
+                  <Meh className={cn("w-6 h-6", selectedHousingRating === "neutral" ? "text-amber-500" : "text-muted-foreground")} />
+                  <span>{isRtl ? "متوسط" : "Neutral"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedHousingRating("dissatisfied")}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
+                    selectedHousingRating === "dissatisfied"
+                      ? "border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300 shadow-xs"
+                      : "border-border hover:border-rose-500/50 hover:bg-rose-500/5 text-foreground"
+                  )}
+                >
+                  <Frown className={cn("w-6 h-6", selectedHousingRating === "dissatisfied" ? "text-rose-500" : "text-muted-foreground")} />
+                  <span>{isRtl ? "غير راضي" : "Dissatisfied"}</span>
+                </button>
+              </div>
+
+              {/* Optional Comment */}
+              <div className="pt-1">
+                <textarea
+                  value={housingRatingComment}
+                  onChange={(e) => setHousingRatingComment(e.target.value)}
+                  placeholder={
+                    isRtl
+                      ? "اكتب أي ملاحظة أو مقترح (اختياري - لن تظهر هويتك لمدير السكن)..."
+                      : "Write your feedback or suggestions (optional - identity remains anonymous)..."
+                  }
+                  rows={2}
+                  className="w-full text-xs rounded-xl border border-input bg-background/50 px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                />
+              </div>
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-muted-foreground/70" />
+                  {isRtl ? "بياناتك محمية وسرية 100%" : "100% Anonymous & Secure"}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={!selectedHousingRating || isSubmittingRating}
+                  onClick={handleHousingRatingSubmit}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs",
+                    !selectedHousingRating || isSubmittingRating
+                      ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95"
+                  )}
+                >
+                  {isSubmittingRating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isRtl ? "إرسال التقييم" : "Submit Rating"}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -27,6 +27,7 @@ export type Tab =
   | "police_report"
   | "vacations"
   | "policy_exceptions"
+  | "housing_ratings"
   | "configuration";
 
 export interface TabConfig {

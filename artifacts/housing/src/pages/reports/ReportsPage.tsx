@@ -30,6 +30,7 @@ import { InHouseGroupedRoomsView } from "./components/InHouseGroupedRoomsView";
 import { ServiceRatingsTab } from "./components/ServiceRatingsTab";
 import { HousingMapReportTab } from "./components/HousingMapReportTab";
 import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTrackReportRibbon";
+import { HousingRatingsTab } from "./components/HousingRatingsTab";
 
 export default function Reports() {
   const { activePropertyId, propertySlug } = useProperty();
@@ -317,12 +318,22 @@ export default function Reports() {
         />
       )}
 
+      {/* Weekly Housing Pulse Ratings Report */}
+      {filters.activeTab === "housing_ratings" && (
+        <HousingRatingsTab
+          ar={ar}
+          activePropertyId={activePropertyId}
+          properties={data.properties}
+        />
+      )}
+
       {/* Other Tabs: Data Table & Filters */}
       {filters.activeTab !== "analytics" &&
         filters.activeTab !== "manager_flash" &&
         filters.activeTab !== "occupancy_forecast" &&
         filters.activeTab !== "service_ratings" &&
-        filters.activeTab !== "housing_map" && (
+        filters.activeTab !== "housing_map" &&
+        filters.activeTab !== "housing_ratings" && (
         <>
           <ReportFilters
             ar={ar}

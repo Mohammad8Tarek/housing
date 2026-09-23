@@ -25,6 +25,7 @@ import {
   Scale,
   Palmtree,
   SlidersHorizontal,
+  HeartHandshake,
 } from "lucide-react";
 import { TabConfig } from "./types";
 
@@ -172,5 +173,11 @@ export const TABS: TabConfig[] = [
     label: "Policy Exceptions & Level Audit",
     labelAr: "تقرير استثناءات ومخالفات السياسة",
     icon: <Scale className="w-4 h-4 text-rose-600" />,
+  },
+  {
+    id: "housing_ratings",
+    label: "Weekly Housing Pulse",
+    labelAr: "استطلاع جودة السكن الأسبوعي",
+    icon: <HeartHandshake className="w-4 h-4 text-emerald-500" />,
   },
 ];
