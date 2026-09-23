@@ -78,7 +78,7 @@ import { printLuxuryReport, ReportKpiCard } from "./utils/luxury-report-engine";
 import { formatDate } from "@/lib/date-utils";
 
 export default function ReportConfigurationPage() {
-  const { propertyId, propertySlug, properties, activePropertyId } = useProperty();
+  const { propertySlug, properties, activePropertyId } = useProperty();
   const { language } = useLanguage();
   const { can } = usePermission();
   const queryClient = useQueryClient();

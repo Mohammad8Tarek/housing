@@ -1984,7 +1984,7 @@ export function useReportDataProcessor({
             allowedCapacities = Array.isArray(matchedJob.allowedCapacities) && matchedJob.allowedCapacities.length > 0
               ? matchedJob.allowedCapacities.map(Number).filter((n: number) => !isNaN(n) && n > 0)
               : [1];
-            maxAllowedCap = Math.max(...allowedCapacities);
+            maxAllowedCap = Math.max(...(allowedCapacities ?? [1]));
             allowEntireConfigured = Boolean(matchedJob.allowEntire);
             levelCategory = ar ? (matchedJob.nameAr || matchedJob.name) : (matchedJob.name || matchedJob.nameAr);
           } else {

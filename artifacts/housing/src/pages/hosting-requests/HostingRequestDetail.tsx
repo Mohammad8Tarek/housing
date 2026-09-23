@@ -344,7 +344,8 @@ export default function HostingRequestDetail() {
   const isAuthorizedToSign =
     Boolean(requiredRoleKey) &&
     (isSystemAdmin ||
-      user?.role === "super_admin" ||
+      userRoles.includes("super_admin") ||
+      (user as any)?.role === "super_admin" ||
       approvalRoleKey(currentUserJobTitle) === requiredRoleKey ||
       userRoles.some((r: string) => approvalRoleKey(r) === requiredRoleKey));
   const userCanAct = currentStep?.status === "pending" && isAuthorizedToSign;

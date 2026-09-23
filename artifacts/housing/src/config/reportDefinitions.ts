@@ -417,6 +417,39 @@ export const HOUSING_MAP_COLUMNS: ReportColumnDef[] = [
   { key: 'occupantsSummary', header: 'Residents & Beds', headerAr: 'المقيمين والنزلاء بالأسرة', type: 'text' },
 ];
 
+// 24. HOUSING RATINGS & QUALITY PULSE
+export const HOUSING_RATINGS_COLUMNS: ReportColumnDef[] = [
+  { key: 'index',        header: '#',           headerAr: '#',                       type: 'index'      },
+  { key: 'propertyName', header: 'Property',    headerAr: 'السكن / الفندق',           type: 'text-short' },
+  { key: 'rating',       header: 'Rating',      headerAr: 'التقييم',                 type: 'status'     },
+  { key: 'score',        header: 'Score (1-5)', headerAr: 'الدرجة',                  type: 'number'     },
+  { key: 'comment',      header: 'Comment',     headerAr: 'الملاحظة / المقترح المكتوب', type: 'text'       },
+  { key: 'createdAt',    header: 'Date',        headerAr: 'تاريخ التقييم',           type: 'date'       },
+];
+
+// 25. ROOM MOVES & BED TRANSFERS
+export const ROOM_MOVES_COLUMNS: ReportColumnDef[] = [
+  { key: 'index',        header: '#',           headerAr: '#',                       type: 'index'      },
+  { key: 'residentName', header: 'Resident',    headerAr: 'اسم الموظف',               type: 'text'       },
+  { key: 'employeeId',   header: 'Staff ID',    headerAr: 'كود الموظف',              type: 'id'         },
+  { key: 'department',   header: 'Department',  headerAr: 'القسم',                   type: 'text-short' },
+  { key: 'oldRoom',      header: 'Old Room',    headerAr: 'الغرفة السابقة',          type: 'text-short' },
+  { key: 'newRoom',      header: 'New Room',    headerAr: 'الغرفة الجديدة',          type: 'text-short' },
+  { key: 'reason',       header: 'Reason',      headerAr: 'سبب النقل',               type: 'text-short' },
+  { key: 'actionBy',     header: 'Action By',   headerAr: 'المنفذ',                  type: 'text-short' },
+  { key: 'date',         header: 'Date & Time', headerAr: 'تاريخ ووقت النقل',        type: 'date'       },
+];
+
+// 26. CONFIGURATION REPORT
+export const CONFIGURATION_COLUMNS: ReportColumnDef[] = [
+  { key: 'index',        header: '#',           headerAr: '#',                       type: 'index'      },
+  { key: 'settingGroup', header: 'Group',       headerAr: 'المجموعة / التصنيف',      type: 'text-short' },
+  { key: 'key',          header: 'Setting Key', headerAr: 'المفتاح الإداري',         type: 'id'         },
+  { key: 'value',        header: 'Value',       headerAr: 'القيمة الحالية',          type: 'text'       },
+  { key: 'description',  header: 'Description', headerAr: 'الوصف والاستخدام',        type: 'text'       },
+  { key: 'updatedAt',    header: 'Updated At',  headerAr: 'آخر تعديل',               type: 'date'       },
+];
+
 
 // ══════════════════════════════════════════════════════════
 // SPECIAL HANDLING — 3 reports need extra care
@@ -803,5 +836,20 @@ export const SMART_REPORT_TABS: Record<Tab, {
     columns: POLICY_EXCEPTIONS_COLUMNS,
     title: 'Policy Exceptions & Level Audit',
     titleAr: 'تقرير استثناءات ومخالفات السياسة',
+  },
+  housing_ratings: {
+    columns: HOUSING_RATINGS_COLUMNS,
+    title: 'Housing Quality Pulse Ratings',
+    titleAr: 'استطلاع تقييم جودة السكن الأسبوعي',
+  },
+  room_moves: {
+    columns: ROOM_MOVES_COLUMNS,
+    title: 'Room Moves & Bed Transfers',
+    titleAr: 'حركات نقل وتغيير الغرف والأسرة',
+  },
+  configuration: {
+    columns: CONFIGURATION_COLUMNS,
+    title: 'System & Policy Configuration',
+    titleAr: 'إعدادات وسياسات النظام الشاملة',
   },
 };

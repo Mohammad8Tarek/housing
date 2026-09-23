@@ -91,6 +91,7 @@ export interface SignatureStepItem {
   labelAr: string;
   labelEn: string;
   description?: string;
+  isMandatory: boolean;
 }
 
 export const DEFAULT_SIGNATURE_POLICY: SignatureStepItem[] = [
@@ -101,6 +102,7 @@ export const DEFAULT_SIGNATURE_POLICY: SignatureStepItem[] = [
     labelAr: "مدير السكن",
     labelEn: "Housing Manager",
     description: "مراجعة وتسكين الطلب وتحديد الغرفة الملائمة",
+    isMandatory: true,
   },
   {
     id: "step_2",
@@ -109,6 +111,7 @@ export const DEFAULT_SIGNATURE_POLICY: SignatureStepItem[] = [
     labelAr: "مدير الموارد البشرية",
     labelEn: "Human Resources Manager",
     description: "اعتماد الأهلية والتحقق من صلة القرابة ورصيد الزيارات",
+    isMandatory: true,
   },
   {
     id: "step_3",
@@ -117,6 +120,7 @@ export const DEFAULT_SIGNATURE_POLICY: SignatureStepItem[] = [
     labelAr: "المدير المالي / الحسابات",
     labelEn: "Accounts / Finance Manager",
     description: "الاعتماد المالي واحتساب الرسوم إن وجدت",
+    isMandatory: true,
   },
 ];
 
@@ -148,8 +152,8 @@ export function PoliciesSection({
   const { properties, activeProperty } = useProperty();
   const currentPropId = propertyId ?? (typeof activeProperty?.id === "number" ? activeProperty.id : 1);
   const { data: settingsData } = useGetSettings({
-    path: { propertyId: String(currentPropId) },
-  });
+    propertyId: Number(currentPropId),
+  } as any);
 
   // Fetch job titles to map against custom rules
   const { data: existingJobTitles = [] } = useLookupValues(
@@ -166,11 +170,13 @@ export function PoliciesSection({
     labelAr: string;
     labelEn: string;
     description: string;
+    isMandatory: boolean;
   }>({
     roleRequired: "housing_manager",
     labelAr: "",
     labelEn: "",
     description: "",
+    isMandatory: true,
   });
 
   const rawSignaturePolicy: SignatureStepItem[] = form.watch("hostingRequestSignaturePolicy") || [];
@@ -184,6 +190,7 @@ export function PoliciesSection({
       labelAr: "مدير السكن",
       labelEn: "Housing Manager",
       description: "",
+      isMandatory: true,
     });
     setIsStepModalOpen(true);
   };
@@ -197,6 +204,7 @@ export function PoliciesSection({
       labelAr: item.labelAr,
       labelEn: item.labelEn,
       description: item.description || "",
+      isMandatory: item.isMandatory ?? true,
     });
     setIsStepModalOpen(true);
   };
@@ -219,6 +227,7 @@ export function PoliciesSection({
         labelAr: trimmedAr,
         labelEn: trimmedEn,
         description: stepForm.description.trim(),
+        isMandatory: stepForm.isMandatory ?? true,
       };
     } else {
       updated.push({
@@ -228,12 +237,14 @@ export function PoliciesSection({
         labelAr: trimmedAr,
         labelEn: trimmedEn,
         description: stepForm.description.trim(),
+        isMandatory: stepForm.isMandatory ?? true,
       });
     }
 
     const normalized = updated.map((s, i) => ({
       ...s,
       stepOrder: i + 1,
+      isMandatory: s.isMandatory ?? true,
     }));
 
     form.setValue("hostingRequestSignaturePolicy", normalized, { shouldDirty: true, shouldValidate: true });
@@ -251,7 +262,7 @@ export function PoliciesSection({
     const temp = updated[idx];
     updated[idx] = updated[idx - 1];
     updated[idx - 1] = temp;
-    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1 }));
+    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1, isMandatory: s.isMandatory ?? true }));
     form.setValue("hostingRequestSignaturePolicy", normalized, { shouldDirty: true, shouldValidate: true });
   };
 
@@ -261,7 +272,7 @@ export function PoliciesSection({
     const temp = updated[idx];
     updated[idx] = updated[idx + 1];
     updated[idx + 1] = temp;
-    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1 }));
+    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1, isMandatory: s.isMandatory ?? true }));
     form.setValue("hostingRequestSignaturePolicy", normalized, { shouldDirty: true, shouldValidate: true });
   };
 
@@ -271,7 +282,7 @@ export function PoliciesSection({
       return;
     }
     const updated = currentSignaturePolicy.filter((_, i) => i !== idx);
-    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1 }));
+    const normalized = updated.map((s, i) => ({ ...s, stepOrder: i + 1, isMandatory: s.isMandatory ?? true }));
     form.setValue("hostingRequestSignaturePolicy", normalized, { shouldDirty: true, shouldValidate: true });
     toast.success(ar ? "تم حذف خطوة الاعتماد" : "Step deleted");
   };
