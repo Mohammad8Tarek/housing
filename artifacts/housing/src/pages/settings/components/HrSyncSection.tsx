@@ -75,18 +75,11 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
 
   const validProperties = useMemo(() => properties.filter((p) => p.id > 0), [properties]);
 
-  const [activeHotelId, setActiveHotelId] = useState<number>(() => {
-    if (typeof propertyId === "number" && propertyId > 0) return propertyId;
-    return validProperties[0]?.id || 1;
-  });
+  const effectiveHotelId =
+    typeof propertyId === "number" && propertyId > 0
+      ? propertyId
+      : validProperties[0]?.id || 1;
 
-  useEffect(() => {
-    if (typeof propertyId === "number" && propertyId > 0) {
-      setActiveHotelId(propertyId);
-    }
-  }, [propertyId]);
-
-  const effectiveHotelId = activeHotelId;
   const currentHotel = useMemo(
     () => validProperties.find((p) => p.id === effectiveHotelId) || validProperties[0],
     [validProperties, effectiveHotelId],
@@ -112,7 +105,6 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
   const [rangeSyncSourceId, setRangeSyncSourceId] = useState<string>("all");
   const [batchRefreshSourceId, setBatchRefreshSourceId] = useState<string>("all");
 
-  const [rangeHotelId, setRangeHotelId] = useState<number>(effectiveHotelId);
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeTo, setRangeTo] = useState("");
   const [isRangeSyncing, setIsRangeSyncing] = useState(false);
@@ -154,7 +146,6 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
 
   useEffect(() => {
     if (effectiveHotelId) {
-      setRangeHotelId(effectiveHotelId);
       loadConfig(effectiveHotelId);
     }
   }, [effectiveHotelId]);
@@ -213,11 +204,6 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
     }
   };
 
-  const handleHotelChange = (newHotelId: number) => {
-    setActiveHotelId(newHotelId);
-    setEsignTestResult(null);
-    loadConfig(newHotelId);
-  };
 
   const saveAllEsignConfigs = async (newSources?: EsignSource[]) => {
     const sourcesToSave = newSources || esignSources;
@@ -388,7 +374,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
       return;
     }
 
-    const targetHotel = validProperties.find((p) => p.id === rangeHotelId) || currentHotel;
+    const targetHotel = currentHotel;
     setIsRangeSyncing(true);
     setRangeSyncResult(null);
     try {
@@ -397,7 +383,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          propertyId: rangeHotelId || effectiveHotelId,
+          propertyId: effectiveHotelId,
           sourceId: rangeSyncSourceId && rangeSyncSourceId !== "all" ? rangeSyncSourceId : undefined,
           fromClockNo: fromNum,
           toClockNo: toNum,
@@ -478,26 +464,16 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
           </div>
         </div>
 
-        {/* Target Hotel Selector Banner */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-muted/50 rounded-xl border border-border/70 mt-3">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="flex items-center gap-1.5 font-bold text-xs text-foreground">
-              <Building2 className="w-4 h-4 text-primary" />
-              <span>{ar ? "الفندق المراد إدارته وضبط ربطه:" : "Active Target Hotel:"}</span>
-            </div>
-            <Select value={String(effectiveHotelId)} onValueChange={(val) => handleHotelChange(Number(val))}>
-              <SelectTrigger className="h-8 text-xs bg-background min-w-[220px] font-semibold shadow-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {validProperties.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)} className="text-xs">
-                    {p.name} {p.code ? `[${p.code}]` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Current Active Property Badge */}
+        <div className="flex items-center gap-2 p-2.5 px-3 bg-muted/40 rounded-xl border border-border/70 mt-3 text-xs">
+          <Building2 className="w-4 h-4 text-primary shrink-0" />
+          <span className="text-muted-foreground">{ar ? "الفندق النشط حالياً:" : "Current Hotel:"}</span>
+          <span className="font-bold text-foreground">{currentHotel?.name || ""}</span>
+          {currentHotel?.code && (
+            <Badge variant="outline" className="font-mono text-[10px] font-bold text-primary border-primary/30 bg-primary/5">
+              {currentHotel.code}
+            </Badge>
+          )}
         </div>
       </CardHeader>
 
@@ -679,38 +655,6 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                 </Select>
               </div>
 
-              {/* Target Hotel for Range Import */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5 text-primary" />
-                    {ar ? "الفندق المستهدف للاستيراد:" : "Target Hotel for Range:"}
-                  </span>
-                  {(() => {
-                    const targetHotelObj = validProperties.find((p) => p.id === rangeHotelId);
-                    return targetHotelObj?.code ? (
-                      <Badge variant="outline" className="text-[10px] font-mono font-bold text-primary border-primary/30">
-                        Code: {targetHotelObj.code}
-                      </Badge>
-                    ) : null;
-                  })()}
-                </div>
-                <Select
-                  value={String(rangeHotelId)}
-                  onValueChange={(val) => setRangeHotelId(Number(val))}
-                >
-                  <SelectTrigger className="h-8 text-xs bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {validProperties.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)} className="text-xs">
-                        {p.name} {p.code ? `[${p.code}]` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <div className="space-y-1">
