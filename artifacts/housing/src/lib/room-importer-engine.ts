@@ -8,6 +8,7 @@ import * as XLSX from "xlsx";
 
 export type SystemFieldKey =
   | "roomNumber"
+  | "classification"
   | "roomType"
   | "capacity"
   | "bedType"
@@ -55,26 +56,42 @@ export const SYSTEM_FIELDS: SystemFieldDef[] = [
     ],
   },
   {
-    key: "roomType",
-    labelAr: "نوع / تصنيف الغرفة",
-    labelEn: "Room Type / Classification",
-    required: true,
-    descriptionAr: "نوع الغرفة كـ Deluxe أو Standard أو Suite (إجباري)",
-    descriptionEn: "Room classification or type (Required)",
+    key: "classification",
+    labelAr: "تصنيف الغرفة",
+    labelEn: "Room Classification",
+    required: false,
+    descriptionAr: "تصنيف الغرفة (مثل Staff, Supervisor, Management, VIP)",
+    descriptionEn: "Room classification (e.g. Staff, Supervisor, Management, VIP)",
     aliases: [
       "room classification",
-      "room type",
-      "room category",
+      "room_classification",
       "classification",
+      "room category",
       "category",
+      "class",
+      "تصنيف الغرفة",
+      "تصنيف",
+      "فئة الغرفة",
+      "الفئة",
+      "الدرجة",
+      "رتبة الغرفة",
+    ],
+  },
+  {
+    key: "roomType",
+    labelAr: "نوع الغرفة",
+    labelEn: "Room Type",
+    required: true,
+    descriptionAr: "نوع الغرفة الهندسي كـ Single أو Double أو Triple أو Suite (إجباري)",
+    descriptionEn: "Physical room type (Single, Double, Triple, Suite) (Required)",
+    aliases: [
+      "room type",
       "roomtype",
       "type",
       "room_type",
       "نوع الغرفة",
-      "تصنيف الغرفة",
-      "التصنيف",
-      "الفئة",
       "النوع",
+      "نوع",
     ],
   },
   {
@@ -287,7 +304,8 @@ export function detectColumnField(headerName: string): SystemFieldKey {
   if (norm.includes("view") || norm.includes("إطلال") || norm.includes("فيو")) return "view";
   if (norm.includes("door") || norm.includes("separat") || norm.includes("connect") || norm.includes("فاصل") || norm.includes("متصل")) return "separatorDoor";
   if (norm.includes("bed") || norm.includes("سرير") || norm.includes("أسرة")) return "bedType";
-  if (norm.includes("class") || norm.includes("type") || norm.includes("category") || norm.includes("صنيف") || norm.includes("نوع")) return "roomType";
+  if (norm.includes("class") || norm.includes("category") || norm.includes("صنيف") || norm.includes("فئة")) return "classification";
+  if (norm.includes("type") || norm.includes("نوع")) return "roomType";
   if (norm.includes("occ") || norm.includes("capac") || norm.includes("pax") || norm.includes("سعة") || norm.includes("إشغال")) return "capacity";
   if (norm.includes("floor") || norm.includes("level") || norm.includes("story") || norm.includes("دور") || norm.includes("طابق")) return "floor";
   if (norm.includes("size") || norm.includes("area") || norm.includes("sqm") || norm.includes("m2") || norm.includes("مساح")) return "size";
@@ -394,6 +412,7 @@ export type ProcessedRow = {
   normalizedRoom: {
     roomNumber: string;
     roomType: string;
+    classification?: string;
     capacity: number;
     bedType: string;
     floor: string;
@@ -451,6 +470,7 @@ export function validateAndNormalizeRows({
 
     // Extract mapped values
     let rawRoomNumber: any = null;
+    let rawClassification: any = null;
     let rawRoomType: any = null;
     let rawCapacity: any = null;
     let rawBedType: any = null;
@@ -465,6 +485,7 @@ export function validateAndNormalizeRows({
     for (const [colName, fieldKey] of Object.entries(columnMapping)) {
       const val = rawRow[colName];
       if (fieldKey === "roomNumber") rawRoomNumber = val;
+      else if (fieldKey === "classification") rawClassification = val;
       else if (fieldKey === "roomType") rawRoomType = val;
       else if (fieldKey === "capacity") rawCapacity = val;
       else if (fieldKey === "bedType") rawBedType = val;
@@ -509,21 +530,26 @@ export function validateAndNormalizeRows({
       seenRoomNumbersInFile.add(lowerKey);
     }
 
-    // 2. Room Type Validation
-    const cleanRoomType = normalizeRoomType(rawRoomType);
-    if (!cleanRoomType || cleanRoomType === "Standard" && !rawRoomType) {
+    // 2. Room Type & Classification Validation
+    const cleanRoomType = rawRoomType ? normalizeRoomType(rawRoomType) : "";
+    const cleanClassification = rawClassification ? String(rawClassification).trim() : "";
+
+    if (!cleanRoomType && !cleanClassification) {
       errors.push({
         rowNumber,
-        column: "Room Type",
+        column: "Room Type / Classification",
         fieldKey: "roomType",
-        value: rawRoomType,
+        value: rawRoomType || rawClassification,
         errorAr: "نوع أو تصنيف الغرفة مفقود",
         errorEn: "Room type/classification is missing",
-        suggestedFixAr: "حدد نوع الغرفة (مثل Deluxe room أو Standard)",
-        suggestedFixEn: "Specify room classification (e.g. Deluxe, Standard)",
+        suggestedFixAr: "حدد نوع الغرفة (مثل Double أو Suite) أو تصنيفها (مثل Deluxe أو Staff)",
+        suggestedFixEn: "Specify room classification or type (e.g. Deluxe, Standard)",
         severity: "error",
       });
     }
+
+    const finalRoomType = cleanRoomType || cleanClassification || "Standard";
+    const finalClassification = cleanClassification || cleanRoomType || "Standard";
 
     // 3. Capacity Validation
     let capacityNum = parseInt(String(rawCapacity ?? ""), 10);
@@ -586,7 +612,8 @@ export function validateAndNormalizeRows({
       originalData: rawRow,
       normalizedRoom: {
         roomNumber: cleanRoomNumber,
-        roomType: cleanRoomType,
+        classification: finalClassification,
+        roomType: finalRoomType,
         capacity: capacityNum,
         bedType: normBedType,
         floor: normFloor,
@@ -643,7 +670,8 @@ export function downloadRoomImportTemplate(
     {
       "NO.": 1,
       "Room Numbers": "201",
-      "Room Classification": "Deluxe room",
+      "Room Classification": "Deluxe",
+      "Room Type": "Double Room",
       "Bed Type": "Twin Bed",
       "Max. Occ.": 3,
       "Floor": "1st",
@@ -656,7 +684,8 @@ export function downloadRoomImportTemplate(
     {
       "NO.": 2,
       "Room Numbers": "202",
-      "Room Classification": "Deluxe room",
+      "Room Classification": "Deluxe",
+      "Room Type": "Double Room",
       "Bed Type": "Twin Bed",
       "Max. Occ.": 3,
       "Floor": "1st",
@@ -669,9 +698,10 @@ export function downloadRoomImportTemplate(
     {
       "NO.": 3,
       "Room Numbers": "203",
-      "Room Classification": "Deluxe room",
+      "Room Classification": "Deluxe",
+      "Room Type": "Single Room",
       "Bed Type": "Queen Bed",
-      "Max. Occ.": 3,
+      "Max. Occ.": 1,
       "Floor": "1st",
       "Rooms View": "Back view",
       "Separator door": "Yes",
@@ -682,9 +712,10 @@ export function downloadRoomImportTemplate(
     {
       "NO.": 4,
       "Room Numbers": "204",
-      "Room Classification": "Deluxe room",
+      "Room Classification": "Deluxe",
+      "Room Type": "Single Room",
       "Bed Type": "Queen Bed",
-      "Max. Occ.": 3,
+      "Max. Occ.": 1,
       "Floor": "1st",
       "Rooms View": "Tal View",
       "Separator door": "Yes",
@@ -695,9 +726,10 @@ export function downloadRoomImportTemplate(
     {
       "NO.": 5,
       "Room Numbers": "205",
-      "Room Classification": "Superior room",
+      "Room Classification": "Superior",
+      "Room Type": "Double Room",
       "Bed Type": "Queen Bed",
-      "Max. Occ.": 3,
+      "Max. Occ.": 2,
       "Floor": "1st",
       "Rooms View": "Tal View",
       "Separator door": "NO",
@@ -708,7 +740,8 @@ export function downloadRoomImportTemplate(
     {
       "NO.": 6,
       "Room Numbers": "206",
-      "Room Classification": "Family suite",
+      "Room Classification": "Family Suite",
+      "Room Type": "Suite",
       "Bed Type": "Twin Bed",
       "Max. Occ.": 4,
       "Floor": "1st",
@@ -736,11 +769,19 @@ export function downloadRoomImportTemplate(
     },
     {
       [colKey]: isAr ? "تصنيف الغرفة (Room Classification)" : "Room Classification",
-      [reqKey]: isAr ? "نعم" : "Yes",
-      [exKey]: "Deluxe room, Superior room, Family suite, Standard",
+      [reqKey]: isAr ? "اختياري" : "Optional",
+      [exKey]: "Deluxe, Superior, Family Suite, Staff, Supervisor",
       [descKey]: isAr
-        ? "تصنيف ونوع الغرفة ومستواها"
-        : "Room classification and category level",
+        ? "تصنيف ومستوى الغرفة الإداري"
+        : "Room classification / tier level",
+    },
+    {
+      [colKey]: isAr ? "نوع الغرفة (Room Type)" : "Room Type",
+      [reqKey]: isAr ? "نعم" : "Yes",
+      [exKey]: "Single Room, Double Room, Triple Room, Suite",
+      [descKey]: isAr
+        ? "نوع الغرفة الهندسي أو المعماري"
+        : "Physical room type structure",
     },
     {
       [colKey]: isAr ? "أقصى سعة إشغال (Max. Occ.)" : "Max. Occ.",
@@ -815,6 +856,7 @@ export function downloadRoomImportTemplate(
     { wch: 6 },
     { wch: 15 },
     { wch: 22 },
+    { wch: 18 },
     { wch: 14 },
     { wch: 12 },
     { wch: 10 },

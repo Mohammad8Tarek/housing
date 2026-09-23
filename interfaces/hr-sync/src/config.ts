@@ -77,10 +77,14 @@ export interface HousingEmployee {
   employeeId: string;
   firstName: string;
   lastName: string;
+  firstNameAr?: string;
+  lastNameAr?: string;
   email?: string;
   phone?: string;
   department?: string;
+  departmentAr?: string;
   jobTitle?: string;
+  jobTitleAr?: string;
   nationality?: string;
   nationalId?: string;
   gender?: string;

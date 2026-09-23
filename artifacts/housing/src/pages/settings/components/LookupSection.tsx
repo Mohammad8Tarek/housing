@@ -42,7 +42,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { DataPagination } from "@/components/DataPagination";
-import { downloadJobTitlesTemplate } from "@/lib/job-title-importer-engine";
+import { downloadLookupTemplate, downloadJobTitlesTemplate } from "@/lib/job-title-importer-engine";
 import { JobTitlesImportDialog } from "./JobTitlesImportDialog";
 import {
   useLookupValues,
@@ -104,6 +104,7 @@ export function LookupSection({
   ];
 
   const [newValue, setNewValue] = useState("");
+  const [newValueAr, setNewValueAr] = useState("");
   const [newCapacity, setNewCapacity] = useState<number>(2);
   const [newExtraValue, setNewExtraValue] = useState("");
   const [selectedParent, setSelectedParent] = useState<string>("__all__");
@@ -112,6 +113,7 @@ export function LookupSection({
   const [pageSize, setPageSize] = useState(10);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editValueAr, setEditValueAr] = useState("");
   const [editParentValue, setEditParentValue] = useState<string>("");
   const [editExtraValue, setEditExtraValue] = useState("");
   const [editCapacity, setEditCapacity] = useState<number>(2);
@@ -176,9 +178,10 @@ export function LookupSection({
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       const matchVal = (v.value || "").toLowerCase().includes(q);
+      const matchValAr = (v.valueAr || "").toLowerCase().includes(q);
       const matchParent = (v.parentValue || "").toLowerCase().includes(q);
       const matchExtra = (v.extraValue || "").toLowerCase().includes(q);
-      return matchVal || matchParent || matchExtra;
+      return matchVal || matchValAr || matchParent || matchExtra;
     }
     return true;
   });
@@ -205,11 +208,13 @@ export function LookupSection({
 
   const handleAdd = async () => {
     const trimmed = newValue.trim();
-    if (!trimmed) return;
+    const trimmedAr = newValueAr.trim();
+    if (!trimmed && !trimmedAr) return;
     try {
       await createMutation.mutateAsync({
         category,
-        value: trimmed,
+        value: trimmed || trimmedAr,
+        valueAr: trimmedAr || undefined,
         extraValue: extraLabel ? (newExtraValue.trim() || undefined) : undefined,
         parentValue: showCapacity
           ? String(newCapacity)
@@ -220,6 +225,7 @@ export function LookupSection({
             : undefined,
       });
       setNewValue("");
+      setNewValueAr("");
       if (showCapacity) setNewCapacity(2);
       if (extraLabel) setNewExtraValue("");
       toast.success(ar ? `تمت إضافة ${currentLabel} بنجاح` : `${label} added successfully`);
@@ -239,7 +245,8 @@ export function LookupSection({
 
   const startEdit = (v: LookupValue) => {
     setEditingId(v.id);
-    setEditValue(v.value);
+    setEditValue(v.value || "");
+    setEditValueAr(v.valueAr || "");
     setEditParentValue(v.parentValue || "");
     setEditExtraValue(v.extraValue || "");
     setEditCapacity(showCapacity && v.parentValue ? Number(v.parentValue) : 2);
@@ -248,16 +255,19 @@ export function LookupSection({
   const cancelEdit = () => {
     setEditingId(null);
     setEditValue("");
+    setEditValueAr("");
     setEditParentValue("");
     setEditExtraValue("");
   };
 
   const saveEdit = async (v: LookupValue) => {
     const trimmed = editValue.trim();
-    if (!trimmed) return;
+    const trimmedAr = editValueAr.trim();
+    if (!trimmed && !trimmedAr) return;
     try {
       const payload: any = {
-        value: trimmed,
+        value: trimmed || trimmedAr,
+        valueAr: trimmedAr || "",
         parentValue: showCapacity
           ? String(editCapacity)
           : (parentCategory ? (editParentValue || null) : (v.parentValue ?? null)),
@@ -324,54 +334,106 @@ export function LookupSection({
         const rows = values.map((v: any) => {
           return ar ? {
             "القسم": v.parentValue || "",
-            "المسمى الوظيفي": v.value || "",
+            "المسمى الوظيفي (EN)": v.value || "",
+            "المسمى الوظيفي (AR)": v.valueAr || "",
             "الدرجة / المستوى": v.extraValue || "",
-            "الحالة": v.isActive === false ? "معطل" : "نشط",
+            "الحالة": v.disabled ? "معطل" : "نشط",
             "ترتيب العرض": v.sortOrder || 0,
           } : {
             "Department": v.parentValue || "",
-            "Job Title": v.value || "",
+            "Job Title (EN)": v.value || "",
+            "Job Title (AR)": v.valueAr || "",
             "Level": v.extraValue || "",
-            "Status": v.isActive === false ? "Inactive" : "Active",
+            "Status": v.disabled ? "Inactive" : "Active",
             "Sort Order": v.sortOrder || 0,
           };
         });
 
         const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 10 }];
         XLSX.utils.book_append_sheet(wb, ws, ar ? "المسميات الوظيفية" : "Job Titles");
         const filename = getExportFileName(ar ? "المسميات_الوظيفية_والأقسام" : "Job_Titles_and_Departments", "xlsx");
         XLSX.writeFile(wb, filename);
       } else if (category === "department") {
         const rows = values.map((v: any) => {
           return ar ? {
-            "اسم القسم": v.value || "",
-            "الحالة": v.isActive === false ? "معطل" : "نشط",
+            "اسم القسم (EN)": v.value || "",
+            "اسم القسم (AR)": v.valueAr || "",
+            "الحالة": v.disabled ? "معطل" : "نشط",
             "ترتيب العرض": v.sortOrder || 0,
           } : {
-            "Department Name": v.value || "",
-            "Status": v.isActive === false ? "Inactive" : "Active",
+            "Department (EN)": v.value || "",
+            "Department (AR)": v.valueAr || "",
+            "Status": v.disabled ? "Inactive" : "Active",
             "Sort Order": v.sortOrder || 0,
           };
         });
 
         const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 12 }];
         XLSX.utils.book_append_sheet(wb, ws, ar ? "الأقسام" : "Departments");
         const filename = getExportFileName(ar ? "أقسام_العمل" : "Departments", "xlsx");
+        XLSX.writeFile(wb, filename);
+      } else if (category === "room_type") {
+        const rows = values.map((v: any) => {
+          return ar ? {
+            "نوع الغرفة (EN)": v.value || "",
+            "نوع الغرفة (AR)": v.valueAr || "",
+            "أقصى سعة أسرة": v.parentValue || v.extraValue || "",
+            "الحالة": v.disabled ? "معطل" : "نشط",
+            "ترتيب العرض": v.sortOrder || 0,
+          } : {
+            "Room Type (EN)": v.value || "",
+            "Room Type (AR)": v.valueAr || "",
+            "Capacity": v.parentValue || v.extraValue || "",
+            "Status": v.disabled ? "Inactive" : "Active",
+            "Sort Order": v.sortOrder || 0,
+          };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 25 }, { wch: 25 }, { wch: 18 }, { wch: 15 }, { wch: 12 }];
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "أنواع الغرف" : "Room Types");
+        const filename = getExportFileName(ar ? "أنواع_الغرف_والسعة" : "Room_Types_and_Capacity", "xlsx");
+        XLSX.writeFile(wb, filename);
+      } else if (category === "room_classification") {
+        const rows = values.map((v: any) => {
+          return ar ? {
+            "تصنيف الغرفة (EN)": v.value || "",
+            "تصنيف الغرفة (AR)": v.valueAr || "",
+            "المستوى المستهدف": v.extraValue || "",
+            "الحالة": v.disabled ? "معطل" : "نشط",
+            "ترتيب العرض": v.sortOrder || 0,
+          } : {
+            "Classification (EN)": v.value || "",
+            "Classification (AR)": v.valueAr || "",
+            "Target Tier": v.extraValue || "",
+            "Status": v.disabled ? "Inactive" : "Active",
+            "Sort Order": v.sortOrder || 0,
+          };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 12 }];
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "تصنيفات الغرف" : "Room Classifications");
+        const filename = getExportFileName(ar ? "تصنيفات_الغرف" : "Room_Classifications", "xlsx");
         XLSX.writeFile(wb, filename);
       } else {
         const rows = values.map((v: any) => {
           const rowObj: Record<string, any> = {};
           if (ar) {
-            rowObj[currentLabel] = v.value || "";
+            rowObj[`${currentLabel} (EN)`] = v.value || "";
+            rowObj[`${currentLabel} (AR)`] = v.valueAr || "";
             if (parentCategory) rowObj[currentParentLabel] = v.parentValue || "";
-            if (showCapacity || extraLabel) rowObj[currentExtraLabel || "السعة"] = v.extraValue || "";
-            rowObj["الحالة"] = v.isActive === false ? "معطل" : "نشط";
+            if (showCapacity || extraLabel) rowObj[currentExtraLabel || "البيان الإضافي"] = v.extraValue || "";
+            rowObj["الحالة"] = v.disabled ? "معطل" : "نشط";
             rowObj["ترتيب العرض"] = v.sortOrder || 0;
           } else {
-            rowObj[currentLabel] = v.value || "";
-            if (parentCategory) rowObj[currentParentLabel] = v.parentValue || "";
-            if (showCapacity || extraLabel) rowObj[currentExtraLabel || "Capacity"] = v.extraValue || "";
-            rowObj["Status"] = v.isActive === false ? "Inactive" : "Active";
+            rowObj[`${label} (EN)`] = v.value || "";
+            rowObj[`${label} (AR)`] = v.valueAr || "";
+            if (parentCategory) rowObj[parentLabel || "Parent"] = v.parentValue || "";
+            if (showCapacity || extraLabel) rowObj[extraLabel || "Extra"] = v.extraValue || "";
+            rowObj["Status"] = v.disabled ? "Inactive" : "Active";
             rowObj["Sort Order"] = v.sortOrder || 0;
           }
           return rowObj;
@@ -389,11 +451,195 @@ export function LookupSection({
     }
   };
 
+  const exportAllLookupsExcel = async () => {
+    try {
+      toast.loading(ar ? "جاري تحضير ملف التصدير الشامل لكافة القوائم..." : "Preparing complete lookups export...", { id: "export-all" });
+      const resp = await fetch("/api/lookup-values", {
+        credentials: "include",
+      });
+      if (!resp.ok) throw new Error(ar ? "فشل جلب البيانات من الخادم" : "Failed to fetch lookup values");
+      const allLookups: any[] = await resp.json();
+
+      if (!allLookups || allLookups.length === 0) {
+        toast.dismiss("export-all");
+        toast.error(ar ? "لا توجد بيانات مسجلة في النظام" : "No lookups found in the system");
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+
+      // 1. Departments Sheet
+      const depts = allLookups.filter((l) => l.category === "department");
+      if (depts.length > 0) {
+        const rows = depts.map((d) => ar ? {
+          "اسم القسم (EN)": d.value || "",
+          "اسم القسم (AR)": d.valueAr || "",
+          "الحالة": d.disabled ? "معطل" : "نشط",
+          "الترتيب": d.sortOrder || 0,
+        } : {
+          "Department (EN)": d.value || "",
+          "Department (AR)": d.valueAr || "",
+          "Status": d.disabled ? "Inactive" : "Active",
+          "Sort Order": d.sortOrder || 0,
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 12 }];
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "الأقسام" : "Departments");
+      }
+
+      // 2. Job Titles Sheet
+      const jobs = allLookups.filter((l) => l.category === "job_title");
+      if (jobs.length > 0) {
+        const rows = jobs.map((j) => ar ? {
+          "القسم": j.parentValue || "",
+          "المسمى الوظيفي (EN)": j.value || "",
+          "المسمى الوظيفي (AR)": j.valueAr || "",
+          "الدرجة / المستوى": j.extraValue || "",
+          "الحالة": j.disabled ? "معطل" : "نشط",
+          "الترتيب": j.sortOrder || 0,
+        } : {
+          "Department": j.parentValue || "",
+          "Job Title (EN)": j.value || "",
+          "Job Title (AR)": j.valueAr || "",
+          "Level": j.extraValue || "",
+          "Status": j.disabled ? "Inactive" : "Active",
+          "Sort Order": j.sortOrder || 0,
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 10 }];
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "المسميات الوظيفية" : "Job Titles");
+      }
+
+      // 3. Room Classifications Sheet
+      const classes = allLookups.filter((l) => l.category === "room_classification");
+      if (classes.length > 0) {
+        const rows = classes.map((c) => ar ? {
+          "تصنيف الغرفة (EN)": c.value || "",
+          "تصنيف الغرفة (AR)": c.valueAr || "",
+          "المستوى المستهدف": c.extraValue || "",
+          "الحالة": c.disabled ? "معطل" : "نشط",
+          "الترتيب": c.sortOrder || 0,
+        } : {
+          "Classification (EN)": c.value || "",
+          "Classification (AR)": c.valueAr || "",
+          "Target Tier": c.extraValue || "",
+          "Status": c.disabled ? "Inactive" : "Active",
+          "Sort Order": c.sortOrder || 0,
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 12 }];
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "تصنيفات الغرف" : "Room Classifications");
+      }
+
+      // 4. Room Types Sheet
+      const rTypes = allLookups.filter((l) => l.category === "room_type");
+      if (rTypes.length > 0) {
+        const rows = rTypes.map((t) => ar ? {
+          "نوع الغرفة (EN)": t.value || "",
+          "نوع الغرفة (AR)": t.valueAr || "",
+          "السعة (أقصى أسرة)": t.parentValue || t.extraValue || "",
+          "الحالة": t.disabled ? "معطل" : "نشط",
+          "الترتيب": t.sortOrder || 0,
+        } : {
+          "Room Type (EN)": t.value || "",
+          "Room Type (AR)": t.valueAr || "",
+          "Capacity": t.parentValue || t.extraValue || "",
+          "Status": t.disabled ? "Inactive" : "Active",
+          "Sort Order": t.sortOrder || 0,
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 25 }, { wch: 25 }, { wch: 18 }, { wch: 15 }, { wch: 12 }];
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "أنواع الغرف" : "Room Types");
+      }
+
+      // 5. Bed Types Sheet
+      const beds = allLookups.filter((l) => l.category === "bed_type");
+      if (beds.length > 0) {
+        const rows = beds.map((b) => ar ? {
+          "نوع السرير (EN)": b.value || "",
+          "نوع السرير (AR)": b.valueAr || "",
+          "الحالة": b.disabled ? "معطل" : "نشط",
+          "الترتيب": b.sortOrder || 0,
+        } : {
+          "Bed Type (EN)": b.value || "",
+          "Bed Type (AR)": b.valueAr || "",
+          "Status": b.disabled ? "Inactive" : "Active",
+          "Sort Order": b.sortOrder || 0,
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 12 }];
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "أنواع الأسرة" : "Bed Types");
+      }
+
+      // 6. Room Views Sheet
+      const views = allLookups.filter((l) => l.category === "room_view");
+      if (views.length > 0) {
+        const rows = views.map((v) => ar ? {
+          "إطلالة الغرفة (EN)": v.value || "",
+          "إطلالة الغرفة (AR)": v.valueAr || "",
+          "الحالة": v.disabled ? "معطل" : "نشط",
+          "الترتيب": v.sortOrder || 0,
+        } : {
+          "Room View (EN)": v.value || "",
+          "Room View (AR)": v.valueAr || "",
+          "Status": v.disabled ? "Inactive" : "Active",
+          "Sort Order": v.sortOrder || 0,
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{ wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 12 }];
+        XLSX.utils.book_append_sheet(wb, ws, ar ? "إطلالات الغرف" : "Room Views");
+      }
+
+      // Master All Lookups Sheet
+      const masterRows = allLookups.map((item) => ar ? {
+        "الفئة (Category)": item.category || "",
+        "القيمة (EN)": item.value || "",
+        "القيمة (AR)": item.valueAr || "",
+        "التابع (Parent)": item.parentValue || "",
+        "البيان الإضافي / السعة": item.extraValue || "",
+        "الحالة": item.disabled ? "معطل" : "نشط",
+        "الترتيب": item.sortOrder || 0,
+      } : {
+        "Category": item.category || "",
+        "Value (EN)": item.value || "",
+        "Value (AR)": item.valueAr || "",
+        "Parent": item.parentValue || "",
+        "Extra / Capacity": item.extraValue || "",
+        "Status": item.disabled ? "Inactive" : "Active",
+        "Sort Order": item.sortOrder || 0,
+      });
+      const wsMaster = XLSX.utils.json_to_sheet(masterRows);
+      wsMaster["!cols"] = [{ wch: 20 }, { wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(wb, wsMaster, ar ? "كافة القوائم" : "All Lookups");
+
+      const filename = getExportFileName(ar ? "كافة_قوائم_وإعدادات_السكن" : "Sunrise_Housing_Lookups_Complete", "xlsx");
+      XLSX.writeFile(wb, filename);
+      toast.dismiss("export-all");
+      toast.success(ar ? "تم تصدير كافة بيانات وقوائم النظام بنجاح!" : "All lookup data exported successfully!");
+    } catch (err: any) {
+      toast.dismiss("export-all");
+      toast.error(ar ? `فشل التصدير: ${err.message}` : `Export failed: ${err.message}`);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{description}</p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
+          <PermissionGate module="settings" action="export">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={exportAllLookupsExcel}
+              className="gap-1.5 text-xs font-semibold h-8 shadow-xs border-primary/30 text-primary hover:bg-primary/5"
+              title={ar ? "تصدير كافة قوائم وبيانات النظام في ملف واحد شامل" : "Export all lookups across all categories to a complete Excel file"}
+            >
+              <FileDown className="w-3.5 h-3.5 text-primary" />
+              {ar ? "تصدير كل البيانات" : "Export All Lookups"}
+            </Button>
+          </PermissionGate>
           <PermissionGate module="settings" action="export">
             <Button
               type="button"
@@ -407,34 +653,30 @@ export function LookupSection({
               {ar ? "تصدير Excel" : "Export Excel"}
             </Button>
           </PermissionGate>
-          {(category === "job_title" || category === "department") && (
-            <>
-              <PermissionGate module="settings" action="export">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadJobTitlesTemplate("xlsx", ar ? "ar" : "en")}
-                  className="gap-1.5 text-xs font-semibold h-8 shadow-xs"
-                  title={ar ? "تحميل نموذج ملف Excel الجاهز للاستيراد" : "Download Excel Import Template"}
-                >
-                  <Download className="w-3.5 h-3.5 text-primary" />
-                  {ar ? "تحميل نموذج Excel" : "Excel Template"}
-                </Button>
-              </PermissionGate>
-              <PermissionGate module="settings" action="create">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setImportDialogOpen(true)}
-                  className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-white shadow-md text-xs h-8"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  {ar ? "استيراد من Excel / CSV" : "Import (Excel / CSV)"}
-                </Button>
-              </PermissionGate>
-            </>
-          )}
+          <PermissionGate module="settings" action="export">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => downloadLookupTemplate(category, "xlsx", ar ? "ar" : "en")}
+              className="gap-1.5 text-xs font-semibold h-8 shadow-xs"
+              title={ar ? "تحميل نموذج ملف Excel الجاهز للاستيراد" : "Download Excel Import Template"}
+            >
+              <Download className="w-3.5 h-3.5 text-primary" />
+              {ar ? "تحميل نموذج Excel" : "Excel Template"}
+            </Button>
+          </PermissionGate>
+          <PermissionGate module="settings" action="create">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setImportDialogOpen(true)}
+              className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-white shadow-md text-xs h-8"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              {ar ? "استيراد من Excel / CSV" : "Import (Excel / CSV)"}
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -478,13 +720,22 @@ export function LookupSection({
               </SelectContent>
             </Select>
           )}
-          <Input
-            placeholder={ar ? `اسم ${currentLabel} الجديد...` : `New ${label}...`}
-            value={newValue}
-            onChange={(e) => setNewValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            className="flex-1 min-w-[200px] h-9 text-sm"
-          />
+          <div className="flex-1 min-w-[280px] flex gap-2">
+            <Input
+              placeholder={ar ? `الاسم بالإنجليزي (EN)...` : `English Name (EN)...`}
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              className="flex-1 h-9 text-xs"
+            />
+            <Input
+              placeholder={ar ? `الاسم بالعربي (AR)...` : `Arabic Name (AR)...`}
+              value={newValueAr}
+              onChange={(e) => setNewValueAr(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              className="flex-1 h-9 text-xs"
+            />
+          </div>
           {extraLabel && (
             <>
               <Input
@@ -524,7 +775,7 @@ export function LookupSection({
           <Button
             type="button"
             onClick={handleAdd}
-            disabled={createMutation.isPending || !newValue.trim()}
+            disabled={createMutation.isPending || (!newValue.trim() && !newValueAr.trim())}
             className="h-9 gap-1.5 px-4 font-semibold text-xs"
           >
             <Plus className="w-4 h-4" /> {ar ? "إضافة" : "Add"}
@@ -585,7 +836,9 @@ export function LookupSection({
           <Table>
             <TableHeader className="bg-muted/60">
               <TableRow>
-                <TableHead className="font-bold text-xs uppercase tracking-wider">{currentLabel}</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-wider">
+                  {ar ? `${currentLabel} (EN / AR)` : `${label} (EN / AR)`}
+                </TableHead>
                 {parentCategory && (
                   <TableHead className="font-bold text-xs uppercase tracking-wider">{currentParentLabel}</TableHead>
                 )}
@@ -621,17 +874,21 @@ export function LookupSection({
                     {isEditing ? (
                       <>
                         <TableCell>
-                          <Input
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEdit(v);
-                              if (e.key === "Escape") cancelEdit();
-                            }}
-                            className="h-8 text-sm"
-                            autoFocus
-                            placeholder={ar ? "المسمى..." : "Name..."}
-                          />
+                          <div className="flex flex-col gap-1.5 min-w-[200px]">
+                            <Input
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="h-7 text-xs"
+                              autoFocus
+                              placeholder={ar ? "الاسم بالإنجليزي (EN)..." : "English name..."}
+                            />
+                            <Input
+                              value={editValueAr}
+                              onChange={(e) => setEditValueAr(e.target.value)}
+                              className="h-7 text-xs"
+                              placeholder={ar ? "الاسم بالعربي (AR)..." : "Arabic name..."}
+                            />
+                          </div>
                         </TableCell>
                         {parentCategory && (
                           <TableCell>
@@ -712,9 +969,16 @@ export function LookupSection({
                     ) : (
                       <>
                         <TableCell className="font-semibold text-sm">
-                          <span className={isDisabled ? "line-through text-muted-foreground" : ""}>
-                            {v.value}
-                          </span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className={isDisabled ? "line-through text-muted-foreground" : "text-foreground font-medium"}>
+                              {v.value}
+                            </span>
+                            {v.valueAr && v.valueAr !== v.value && (
+                              <span className={`text-xs text-muted-foreground ${isDisabled ? "line-through" : ""}`} dir="rtl">
+                                {v.valueAr}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
 
                         {parentCategory && (
@@ -861,14 +1125,18 @@ export function LookupSection({
         cancelText={ar ? "إلغاء" : "Cancel"}
       />
 
-      {/* Job Titles & Departments Import Dialog */}
-      {(category === "job_title" || category === "department") && (
-        <JobTitlesImportDialog
-          propertyId={propertyId}
-          open={importDialogOpen}
-          onOpenChange={setImportDialogOpen}
-        />
-      )}
+      {/* Universal Lookup Import Dialog */}
+      <JobTitlesImportDialog
+        propertyId={propertyId}
+        category={category}
+        categoryLabel={currentLabel}
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["lookup-values", propertyId] });
+          queryClient.invalidateQueries({ queryKey: ["/api/lookup-values"] });
+        }}
+      />
     </div>
   );
 }

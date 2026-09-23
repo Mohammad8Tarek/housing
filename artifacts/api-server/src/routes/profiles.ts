@@ -765,11 +765,17 @@ router.post(
           };
 
           checkField("firstName", p.firstName, existingRecord.firstName, "الاسم الأول");
+          if (p.firstNameAr) checkField("firstNameAr", p.firstNameAr, existingRecord.firstNameAr, "الاسم الأول (عربي)");
           checkField("lastName", p.lastName, existingRecord.lastName, "اسم العائلة");
+          if (p.lastNameAr) checkField("lastNameAr", p.lastNameAr, existingRecord.lastNameAr, "اسم العائلة (عربي)");
           checkField("thirdName", p.thirdName, existingRecord.thirdName, "الاسم الثالث");
+          if (p.thirdNameAr) checkField("thirdNameAr", p.thirdNameAr, existingRecord.thirdNameAr, "الاسم الثالث (عربي)");
           checkField("fourthName", p.fourthName, existingRecord.fourthName, "الاسم الرابع");
+          if (p.fourthNameAr) checkField("fourthNameAr", p.fourthNameAr, existingRecord.fourthNameAr, "الاسم الرابع (عربي)");
           checkField("department", p.department, existingRecord.department, "القسم");
+          if (p.departmentAr) checkField("departmentAr", p.departmentAr, existingRecord.departmentAr, "القسم (عربي)");
           checkField("jobTitle", p.jobTitle, existingRecord.jobTitle, "الوظيفة");
+          if (p.jobTitleAr) checkField("jobTitleAr", p.jobTitleAr, existingRecord.jobTitleAr, "الوظيفة (عربي)");
           checkField("level", p.level, existingRecord.level, "الدرجة");
           checkField("nationality", p.nationality, existingRecord.nationality, "الجنسية");
           if (p.gender && (p.gender === "M" || p.gender === "F") && p.gender !== existingRecord.gender) {
@@ -803,20 +809,20 @@ router.post(
               fourthName: updates.fourthName ?? existingRecord.fourthName,
               department: updates.department ?? existingRecord.department,
               jobTitle: updates.jobTitle ?? existingRecord.jobTitle,
-              firstNameAr: existingRecord.firstNameAr,
-              lastNameAr: existingRecord.lastNameAr,
-              thirdNameAr: existingRecord.thirdNameAr,
-              fourthNameAr: existingRecord.fourthNameAr,
-              departmentAr: existingRecord.departmentAr,
-              jobTitleAr: existingRecord.jobTitleAr,
+              firstNameAr: updates.firstNameAr ?? existingRecord.firstNameAr,
+              lastNameAr: updates.lastNameAr ?? existingRecord.lastNameAr,
+              thirdNameAr: updates.thirdNameAr ?? existingRecord.thirdNameAr,
+              fourthNameAr: updates.fourthNameAr ?? existingRecord.fourthNameAr,
+              departmentAr: updates.departmentAr ?? existingRecord.departmentAr,
+              jobTitleAr: updates.jobTitleAr ?? existingRecord.jobTitleAr,
             };
             const enrichedMerged = enrichProfileBilingual(merged);
-            if (updates.firstName || !existingRecord.firstNameAr) updates.firstNameAr = enrichedMerged.firstNameAr;
-            if (updates.lastName || !existingRecord.lastNameAr) updates.lastNameAr = enrichedMerged.lastNameAr;
-            if (updates.thirdName || !existingRecord.thirdNameAr) updates.thirdNameAr = enrichedMerged.thirdNameAr;
-            if (updates.fourthName || !existingRecord.fourthNameAr) updates.fourthNameAr = enrichedMerged.fourthNameAr;
-            if (updates.department || !existingRecord.departmentAr) updates.departmentAr = enrichedMerged.departmentAr;
-            if (updates.jobTitle || !existingRecord.jobTitleAr) updates.jobTitleAr = enrichedMerged.jobTitleAr;
+            if (!updates.firstNameAr && !existingRecord.firstNameAr && enrichedMerged.firstNameAr) updates.firstNameAr = enrichedMerged.firstNameAr;
+            if (!updates.lastNameAr && !existingRecord.lastNameAr && enrichedMerged.lastNameAr) updates.lastNameAr = enrichedMerged.lastNameAr;
+            if (!updates.thirdNameAr && !existingRecord.thirdNameAr && enrichedMerged.thirdNameAr) updates.thirdNameAr = enrichedMerged.thirdNameAr;
+            if (!updates.fourthNameAr && !existingRecord.fourthNameAr && enrichedMerged.fourthNameAr) updates.fourthNameAr = enrichedMerged.fourthNameAr;
+            if (!updates.departmentAr && !existingRecord.departmentAr && enrichedMerged.departmentAr) updates.departmentAr = enrichedMerged.departmentAr;
+            if (!updates.jobTitleAr && !existingRecord.jobTitleAr && enrichedMerged.jobTitleAr) updates.jobTitleAr = enrichedMerged.jobTitleAr;
 
             rowsToUpdate.push({
               id: existingRecord.id,

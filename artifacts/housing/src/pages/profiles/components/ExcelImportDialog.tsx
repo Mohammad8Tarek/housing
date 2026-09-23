@@ -40,10 +40,16 @@ export interface ProfileImportRow {
   lastName: string;
   thirdName: string;
   fourthName: string;
+  firstNameAr?: string;
+  lastNameAr?: string;
+  thirdNameAr?: string;
+  fourthNameAr?: string;
   employmentType: string;
   companyName: string;
   department: string;
+  departmentAr?: string;
   jobTitle: string;
+  jobTitleAr?: string;
   level: string;
   nationality: string;
   gender: string;
@@ -412,6 +418,18 @@ export function ExcelImportDialog({
       }
     }
 
+    let fnAr = String(r.First_Name_Ar || r.firstNameAr || r.first_name_ar || r["الاسم الأول بالعربي"] || "").trim();
+    let lnAr = String(r.Second_Name_Ar || r.lastNameAr || r.last_name_ar || r["الاسم الثاني بالعربي"] || r["اسم العائلة بالعربي"] || "").trim();
+    let tnAr = String(r.Third_Name_Ar || r.thirdNameAr || r.third_name_ar || r["الاسم الثالث بالعربي"] || "").trim();
+    let fourNAr = String(r.Fourth_Name_Ar || r.fourthNameAr || r.fourth_name_ar || r["الاسم الرابع بالعربي"] || "").trim();
+
+    if (/[\u0600-\u06FF]/.test(fn) && !fnAr) {
+      fnAr = fn;
+      lnAr = ln;
+      tnAr = tn;
+      fourNAr = fourN;
+    }
+
     const rawEmp = r.Employment_Type || r.employmentType || r["نوع التوظيف"] || r["نوع العمل"];
     const empType = parseEmploymentType(rawEmp);
 
@@ -422,14 +440,31 @@ export function ExcelImportDialog({
     const comp = String(
       r.Company_Name || r.companyName || r.Workplace || r.workplace || r["الشركة"] || r["مكان العمل"] || r["جهة العمل"] || "",
     ).trim();
-    let dept = String(r.Department || r.department || r["القسم"] || r["الإدارة"] || "").trim();
-    if (!dept) {
+
+    let dept = String(r.Department || r.department || r.Department_En || r["القسم بالإنجليزي"] || r["القسم"] || r["الإدارة"] || "").trim();
+    let deptAr = String(r.Department_Ar || r.departmentAr || r.department_ar || r["القسم بالعربي"] || r["الإدارة بالعربي"] || "").trim();
+
+    if (/[\u0600-\u06FF]/.test(dept) && !deptAr) {
+      deptAr = dept;
+      dept = "";
+    }
+    if (!dept && !deptAr) {
       dept = empType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "عام" : "General");
+      deptAr = empType === "THIRD_PARTY" ? "طرف ثالث" : "عام";
     }
-    let title = String(r.Job_Title || r.jobTitle || r["الوظيفة"] || r["المسمى الوظيفي"] || "").trim();
-    if (!title) {
-      title = ar ? "موظف" : "Staff";
+
+    let title = String(r.Job_Title || r.jobTitle || r.Job_Title_En || r["المسمى بالإنجليزي"] || r["الوظيفة بالإنجليزي"] || r["الوظيفة"] || r["المسمى الوظيفي"] || "").trim();
+    let titleAr = String(r.Job_Title_Ar || r.jobTitleAr || r.job_title_ar || r["المسمى بالعربي"] || r["الوظيفة بالعربي"] || "").trim();
+
+    if (/[\u0600-\u06FF]/.test(title) && !titleAr) {
+      titleAr = title;
+      title = "";
     }
+    if (!title && !titleAr) {
+      title = empType === "THIRD_PARTY" ? "Third Party Staff" : (ar ? "موظف" : "Staff");
+      titleAr = empType === "THIRD_PARTY" ? "عمالة طرف ثالث" : "موظف";
+    }
+
     const lvl = String(r.Level ?? r.level ?? r["الدرجة"] ?? "").trim() || "—";
     let nat = String(r.Nationality || r.nationality || r["الجنسية"] || "").trim();
     if (!nat) {
@@ -453,10 +488,16 @@ export function ExcelImportDialog({
       lastName: ln || "—",
       thirdName: tn,
       fourthName: fourN,
+      firstNameAr: fnAr,
+      lastNameAr: lnAr,
+      thirdNameAr: tnAr,
+      fourthNameAr: fourNAr,
       employmentType: empType,
       companyName: comp,
       department: dept,
+      departmentAr: deptAr,
       jobTitle: title,
+      jobTitleAr: titleAr,
       level: lvl,
       nationality: nat,
       gender: g,
@@ -535,11 +576,15 @@ export function ExcelImportDialog({
         };
 
         checkDiff("firstName", "الاسم الأول", "First Name", profile.firstName, existing.firstName);
+        if (profile.firstNameAr) checkDiff("firstNameAr", "الاسم الأول (عربي)", "First Name (Ar)", profile.firstNameAr, existing.firstNameAr);
         checkDiff("lastName", "اسم العائلة", "Last Name", profile.lastName, existing.lastName);
+        if (profile.lastNameAr) checkDiff("lastNameAr", "اسم العائلة (عربي)", "Last Name (Ar)", profile.lastNameAr, existing.lastNameAr);
         checkDiff("thirdName", "الاسم الثالث", "Third Name", profile.thirdName, existing.thirdName);
         checkDiff("fourthName", "الاسم الرابع", "Fourth Name", profile.fourthName, existing.fourthName);
         checkDiff("department", "القسم", "Department", profile.department, existing.department);
+        if (profile.departmentAr) checkDiff("departmentAr", "القسم (عربي)", "Department (Ar)", profile.departmentAr, existing.departmentAr);
         checkDiff("jobTitle", "الوظيفة", "Job Title", profile.jobTitle, existing.jobTitle);
+        if (profile.jobTitleAr) checkDiff("jobTitleAr", "الوظيفة (عربي)", "Job Title (Ar)", profile.jobTitleAr, existing.jobTitleAr);
         checkDiff("level", "الدرجة", "Level", profile.level, existing.level);
         checkDiff("nationality", "الجنسية", "Nationality", profile.nationality, existing.nationality);
         if (profile.gender && (profile.gender === "M" || profile.gender === "F") && profile.gender !== existing.gender) {

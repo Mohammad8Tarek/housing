@@ -939,6 +939,126 @@ export function translateJobTitle(title: string | null | undefined, targetLang: 
   }
 }
 
+// ============================================================================
+// Room Categories Translation Dictionaries
+// ============================================================================
+export const ROOM_CLASSIFICATION_EN_TO_AR: Record<string, string> = {
+  standard: "قياسية",
+  deluxe: "ديلوكس",
+  "deluxe room": "غرفة ديلوكس",
+  superior: "سوبيريور",
+  "superior room": "غرفة سوبيريور",
+  "family suite": "جناح عائلي",
+  suite: "جناح",
+  "junior suite": "جناح جونيور",
+  "executive suite": "جناح تنفيذي",
+  staff: "سكن موظفين",
+  supervisor: "سكن مشرفين",
+  management: "سكن إدارة",
+  executive: "تنفيذي",
+  vip: "كبار الشخصيات VIP",
+};
+export const ROOM_CLASSIFICATION_AR_TO_EN: Record<string, string> = Object.fromEntries(
+  Object.entries(ROOM_CLASSIFICATION_EN_TO_AR).map(([en, ar]) => [ar, en.charAt(0).toUpperCase() + en.slice(1)])
+);
+
+export const ROOM_TYPE_EN_TO_AR: Record<string, string> = {
+  single: "غرفة مفردة",
+  "single room": "غرفة مفردة",
+  double: "غرفة مزدوجة",
+  "double room": "غرفة مزدوجة",
+  triple: "غرفة ثلاثية",
+  "triple room": "غرفة ثلاثية",
+  quad: "غرفة رباعية",
+  "quad room": "غرفة رباعية",
+  suite: "جناح",
+  studio: "ستوديو",
+  dormitory: "سكن جماعي",
+  dorm: "سكن جماعي",
+};
+export const ROOM_TYPE_AR_TO_EN: Record<string, string> = Object.fromEntries(
+  Object.entries(ROOM_TYPE_EN_TO_AR).map(([en, ar]) => [ar, en.charAt(0).toUpperCase() + en.slice(1)])
+);
+
+export const BED_TYPE_EN_TO_AR: Record<string, string> = {
+  "single bed": "سرير مفرد",
+  single: "سرير مفرد",
+  "twin bed": "سرير توأم",
+  twin: "سرير توأم",
+  "queen bed": "سرير كوين",
+  queen: "سرير كوين",
+  "king bed": "سرير كينج",
+  king: "سرير كينج",
+  "bunk bed": "سرير بطابقين",
+  bunk: "سرير بطابقين",
+};
+export const BED_TYPE_AR_TO_EN: Record<string, string> = Object.fromEntries(
+  Object.entries(BED_TYPE_EN_TO_AR).map(([en, ar]) => [ar, en.charAt(0).toUpperCase() + en.slice(1)])
+);
+
+export const ROOM_VIEW_EN_TO_AR: Record<string, string> = {
+  "sea view": "إطلالة على البحر",
+  "pool view": "إطلالة على حمام السباحة",
+  "garden view": "إطلالة على الحديقة",
+  "mountain view": "إطلالة جبلية",
+  "back view": "إطلالة خلفية",
+  "tal view": "إطلالة على التل",
+  "street view": "إطلالة على الشارع",
+  "city view": "إطلالة على المدينة",
+  "internal view": "إطلالة داخلية",
+  "lake view": "إطلالة على البحيرة",
+};
+export const ROOM_VIEW_AR_TO_EN: Record<string, string> = Object.fromEntries(
+  Object.entries(ROOM_VIEW_EN_TO_AR).map(([en, ar]) => [ar, en.charAt(0).toUpperCase() + en.slice(1)])
+);
+
+export function translateLookup(
+  category: string,
+  value: string | null | undefined,
+  targetLang: "ar" | "en"
+): string {
+  if (!value || !value.trim()) return "";
+  const cleaned = value.trim();
+  const lower = cleaned.toLowerCase();
+
+  if (category === "department") return translateDepartment(cleaned, targetLang);
+  if (category === "job_title") return translateJobTitle(cleaned, targetLang);
+
+  if (category === "room_classification") {
+    if (targetLang === "ar") {
+      return ROOM_CLASSIFICATION_EN_TO_AR[lower] || cleaned;
+    } else {
+      return ROOM_CLASSIFICATION_AR_TO_EN[cleaned] || cleaned;
+    }
+  }
+
+  if (category === "room_type") {
+    if (targetLang === "ar") {
+      return ROOM_TYPE_EN_TO_AR[lower] || cleaned;
+    } else {
+      return ROOM_TYPE_AR_TO_EN[cleaned] || cleaned;
+    }
+  }
+
+  if (category === "bed_type") {
+    if (targetLang === "ar") {
+      return BED_TYPE_EN_TO_AR[lower] || cleaned;
+    } else {
+      return BED_TYPE_AR_TO_EN[cleaned] || cleaned;
+    }
+  }
+
+  if (category === "room_view") {
+    if (targetLang === "ar") {
+      return ROOM_VIEW_EN_TO_AR[lower] || cleaned;
+    } else {
+      return ROOM_VIEW_AR_TO_EN[cleaned] || cleaned;
+    }
+  }
+
+  return cleaned;
+}
+
 /**
  * Enriches any profile payload with full bidirectional translation:
  * - Fills missing or English-filled Arabic names
@@ -988,20 +1108,34 @@ export function enrichProfileBilingual(profile: Record<string, any>): Record<str
   p.thirdNameAr = tnAr;
   p.fourthNameAr = foAr;
 
-  // Department
-  const dept = String(p.department || "").trim();
+  // Department bilingual enrichment
+  let dept = String(p.department || "").trim();
   let deptAr = String(p.departmentAr || "").trim();
-  if ((!deptAr || hasEnglish(deptAr)) && dept) {
+
+  if (hasArabic(dept) && !deptAr) {
+    deptAr = dept;
+    dept = translateDepartment(deptAr, "en");
+  } else if (!dept && deptAr) {
+    dept = translateDepartment(deptAr, "en");
+  } else if ((!deptAr || hasEnglish(deptAr)) && dept) {
     deptAr = translateDepartment(dept, "ar");
   }
+  p.department = dept;
   p.departmentAr = deptAr;
 
-  // Job Title
-  const job = String(p.jobTitle || "").trim();
+  // Job Title bilingual enrichment
+  let job = String(p.jobTitle || "").trim();
   let jobAr = String(p.jobTitleAr || "").trim();
-  if ((!jobAr || hasEnglish(jobAr)) && job) {
+
+  if (hasArabic(job) && !jobAr) {
+    jobAr = job;
+    job = translateJobTitle(jobAr, "en");
+  } else if (!job && jobAr) {
+    job = translateJobTitle(jobAr, "en");
+  } else if ((!jobAr || hasEnglish(jobAr)) && job) {
     jobAr = translateJobTitle(job, "ar");
   }
+  p.jobTitle = job;
   p.jobTitleAr = jobAr;
 
   return p;

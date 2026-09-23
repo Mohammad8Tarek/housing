@@ -42,6 +42,7 @@ import {
   PlusCircle,
 } from "lucide-react";
 import {
+  downloadLookupTemplate,
   downloadJobTitlesTemplate,
   parseJobTitlesFile,
   type ParseResult,
@@ -52,6 +53,8 @@ import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 interface JobTitlesImportDialogProps {
   propertyId: number;
+  category?: string;
+  categoryLabel?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -59,6 +62,8 @@ interface JobTitlesImportDialogProps {
 
 export function JobTitlesImportDialog({
   propertyId,
+  category = "job_title",
+  categoryLabel,
   open,
   onOpenChange,
   onSuccess,
@@ -77,6 +82,11 @@ export function JobTitlesImportDialog({
   const { data: existingJobTitles = [] } = useLookupValues(
     propertyId,
     LOOKUP_CATEGORIES.JOB_TITLE,
+    true
+  );
+  const { data: existingCategoryLookups = [] } = useLookupValues(
+    propertyId,
+    category,
     true
   );
 
@@ -119,6 +129,8 @@ export function JobTitlesImportDialog({
       const result = await parseJobTitlesFile(file, {
         departments: existingDepartments,
         jobTitles: existingJobTitles,
+        lookupValues: existingCategoryLookups,
+        category,
       });
       setParseResult(result);
       setStep("preview");
@@ -165,34 +177,54 @@ export function JobTitlesImportDialog({
       const batchItems: Array<{
         category: string;
         value: string;
+        valueAr?: string;
         parentValue?: string | null;
         extraValue?: string | null;
       }> = [];
 
-      for (const dept of parseResult.departments) {
-        const norm = dept.trim().toLowerCase();
-        if (norm && !existingDeptNames.has(norm)) {
-          batchItems.push({
-            category: "department",
-            value: dept.trim(),
-            parentValue: null,
-            extraValue: null,
-          });
-          existingDeptNames.add(norm); // prevent in-batch duplicate
+      if (category === "job_title") {
+        for (const dept of parseResult.departments) {
+          const norm = dept.trim().toLowerCase();
+          if (norm && !existingDeptNames.has(norm)) {
+            batchItems.push({
+              category: "department",
+              value: dept.trim(),
+              valueAr: undefined,
+              parentValue: null,
+              extraValue: null,
+            });
+            existingDeptNames.add(norm); // prevent in-batch duplicate
+          }
         }
-      }
 
-      setImportProgress(35);
+        setImportProgress(35);
 
-      // 2. Actionable Job Title rows only (new or updated)
-      for (const row of actionableRows) {
-        if (row.jobTitle) {
-          batchItems.push({
-            category: "job_title",
-            value: row.jobTitle.trim(),
-            parentValue: row.department ? row.department.trim() : null,
-            extraValue: row.level ? row.level.trim() : null,
-          });
+        for (const row of actionableRows) {
+          const titleVal = (row.valueEn || row.jobTitle || row.valueAr || "").trim();
+          if (titleVal || row.valueAr) {
+            batchItems.push({
+              category: "job_title",
+              value: titleVal || row.valueAr!,
+              valueAr: row.valueAr ? row.valueAr.trim() : undefined,
+              parentValue: row.department ? row.department.trim() : null,
+              extraValue: row.level ? row.level.trim() : null,
+            });
+          }
+        }
+      } else {
+        setImportProgress(35);
+
+        for (const row of actionableRows) {
+          const val = (row.valueEn || row.jobTitle || row.valueAr || "").trim();
+          if (val || row.valueAr) {
+            batchItems.push({
+              category,
+              value: val || row.valueAr!,
+              valueAr: row.valueAr ? row.valueAr.trim() : undefined,
+              parentValue: row.department || row.parentValue || (row.capacity ? String(row.capacity) : null),
+              extraValue: row.level || row.extraValue || (row.capacity ? String(row.capacity) : null),
+            });
+          }
         }
       }
 
@@ -263,15 +295,15 @@ export function JobTitlesImportDialog({
             </div>
             <div>
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                <span>{ar ? "استيراد الأقسام والمسميات الوظيفية والدرجات" : "Import Departments, Job Titles & Levels"}</span>
+                <span>{ar ? `استيراد ${categoryLabel || (category === "department" ? "أقسام العمل" : category === "room_type" ? "أنواع الغرف والسعة" : category === "room_classification" ? "تصنيفات الغرف" : category === "bed_type" ? "أنواع الأسرة" : category === "room_view" ? "إطلالات الغرف" : "الأقسام والمسميات الوظيفية")}` : `Import ${categoryLabel || (category === "department" ? "Departments" : category === "room_type" ? "Room Types & Capacity" : category === "room_classification" ? "Room Classifications" : category === "bed_type" ? "Bed Types" : category === "room_view" ? "Room Views" : "Departments & Job Titles")}`}</span>
                 <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                  {ar ? "إنشاء وتحديث ذكي بدون تكرار" : "Smart Create & Update"}
+                  {ar ? "ثنائي اللغة بدون تكرار" : "Bilingual Smart Import"}
                 </Badge>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                 {ar
-                  ? "إنشاء السجلات الجديدة، تحديث درجات المسميات القائمة، ومنع نزول أي سجل مكرر"
-                  : "Creates new records, updates levels for existing titles, and completely prevents duplicates"}
+                  ? "يدعم الإنجليزية والعربية مع إنشاء السجلات الجديدة وتحديث القائم وتخطي المكرر تلقائياً"
+                  : "Supports bilingual English & Arabic, creates new items, updates existing records, and avoids duplicates"}
               </DialogDescription>
             </div>
           </div>
@@ -287,12 +319,12 @@ export function JobTitlesImportDialog({
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                     <Download className="w-4 h-4 text-primary" />
-                    {ar ? "تحميل نموذج ملف الاستيراد الجاهز" : "Download Pre-formatted Import Template"}
+                    {ar ? `تحميل نموذج ملف الاستيراد الجاهز` : "Download Pre-formatted Import Template"}
                   </h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {ar
-                      ? "يحتوي النموذج على الأعمدة الثلاثة المطلوبة (القسم، المسمى الوظيفي، والدرجة Level) مع أمثلة جاهزة تناسب معايير الفنادق والسكن."
-                      : "The template contains the required columns (Department, Job Title, and Level) with sample hospitality positions."}
+                      ? "يحتوي النموذج على الأعمدة المنظمة باللغتين الإنجليزية والعربية مع أمثلة واقعية جاهزة للتعبئة."
+                      : "The template contains pre-formatted bilingual columns with realistic sample data."}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -300,7 +332,7 @@ export function JobTitlesImportDialog({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => downloadJobTitlesTemplate("xlsx", ar ? "ar" : "en")}
+                    onClick={() => downloadLookupTemplate(category, "xlsx", ar ? "ar" : "en")}
                     className="gap-2 font-semibold text-xs h-9 shadow-xs"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
@@ -310,7 +342,7 @@ export function JobTitlesImportDialog({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => downloadJobTitlesTemplate("csv", ar ? "ar" : "en")}
+                    onClick={() => downloadLookupTemplate(category, "csv", ar ? "ar" : "en")}
                     className="gap-1.5 font-semibold text-xs h-9"
                   >
                     CSV
@@ -527,16 +559,29 @@ export function JobTitlesImportDialog({
                   <TableHeader className="bg-muted/60 sticky top-0 z-10">
                     <TableRow>
                       <TableHead className="w-12 text-center text-xs font-bold">#</TableHead>
-                      <TableHead className="text-xs font-bold">{ar ? "القسم" : "Department"}</TableHead>
-                      <TableHead className="text-xs font-bold">{ar ? "المسمى الوظيفي" : "Job Title"}</TableHead>
-                      <TableHead className="text-xs font-bold">{ar ? "الدرجة (Level)" : "Level"}</TableHead>
+                      {category === "job_title" && (
+                        <TableHead className="text-xs font-bold">{ar ? "القسم" : "Department"}</TableHead>
+                      )}
+                      <TableHead className="text-xs font-bold">
+                        {category === "job_title" ? (ar ? "المسمى الوظيفي" : "Job Title") : (ar ? "الاسم (EN)" : "Name (EN)")}
+                      </TableHead>
+                      {category !== "job_title" && (
+                        <TableHead className="text-xs font-bold">{ar ? "الاسم (AR)" : "Name (AR)"}</TableHead>
+                      )}
+                      <TableHead className="text-xs font-bold">
+                        {category === "room_type"
+                          ? (ar ? "السعة" : "Capacity")
+                          : category === "room_classification"
+                          ? (ar ? "المستوى" : "Target Level")
+                          : (ar ? "الدرجة / البيان" : "Level / Extra")}
+                      </TableHead>
                       <TableHead className="text-xs font-bold w-44 text-center">{ar ? "الإجراء المتوقع" : "Action"}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6 text-xs text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center py-6 text-xs text-muted-foreground">
                           {ar ? "لا توجد نتائج مطابقة للبحث أو الفلتر" : "No matching rows found"}
                         </TableCell>
                       </TableRow>
@@ -555,24 +600,29 @@ export function JobTitlesImportDialog({
                           <TableCell className="text-center text-muted-foreground font-mono">
                             {r.index}
                           </TableCell>
-                          <TableCell className="font-semibold text-foreground">
-                            {r.department || (
-                              <span className="text-muted-foreground italic">
-                                {ar ? "(غير محدد)" : "(Not specified)"}
-                              </span>
-                            )}
-                          </TableCell>
+                          {category === "job_title" && (
+                            <TableCell className="font-semibold text-foreground">
+                              {r.department || (
+                                <span className="text-muted-foreground italic">
+                                  {ar ? "(غير محدد)" : "(Not specified)"}
+                                </span>
+                              )}
+                            </TableCell>
+                          )}
                           <TableCell className="font-medium">
-                            {r.jobTitle || (
-                              <span className="text-muted-foreground italic">
-                                {ar ? "(قسم فقط)" : "(Department only)"}
-                              </span>
+                            {r.valueEn || r.jobTitle || (
+                              <span className="text-muted-foreground italic">—</span>
                             )}
                           </TableCell>
+                          {category !== "job_title" && (
+                            <TableCell className="font-medium text-muted-foreground">
+                              {r.valueAr || "—"}
+                            </TableCell>
+                          )}
                           <TableCell>
-                            {r.level ? (
+                            {r.level || r.capacity ? (
                               <Badge variant="outline" className="font-mono text-[10px] bg-muted/40">
-                                {r.level}
+                                {category === "room_type" ? `${r.capacity || r.level} ${ar ? "أفراد" : "beds"}` : (r.level || r.capacity)}
                               </Badge>
                             ) : (
                               <span className="text-muted-foreground">—</span>

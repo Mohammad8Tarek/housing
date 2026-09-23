@@ -4,6 +4,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { getTenantId } from "../lib/request-utils.js";
 import { requireAuth, requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
+import { translateDepartment, translateJobTitle, translateLookup, hasArabic } from "../lib/bilingual-translator.js";
 
 const router: Router = Router();
 
@@ -42,10 +43,22 @@ router.post(
   ),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
-    const { category, value, parentValue, extraValue, sortOrder } = req.body;
-    if (!propertyId || !category || !value) {
+    let { category, value, valueAr, parentValue, extraValue, sortOrder } = req.body;
+    if (!propertyId || !category || (!value && !valueAr)) {
       res.status(400).json({ error: "Missing fields" });
       return;
+    }
+
+    let val = String(value || "").trim();
+    let valAr = String(valueAr || "").trim();
+
+    if (hasArabic(val) && !valAr) {
+      valAr = val;
+      val = translateLookup(category, valAr, "en");
+    } else if (!val && valAr) {
+      val = translateLookup(category, valAr, "en");
+    } else if (!valAr && val) {
+      valAr = translateLookup(category, val, "ar");
     }
 
     const [created] = await withTenant(propertyId, async (tenantDb) => {
@@ -53,7 +66,8 @@ router.post(
         .insert(lookupValuesTable)
         .values({
           category,
-          value,
+          value: val,
+          valueAr: valAr || "",
           parentValue: parentValue ?? null,
           extraValue: extraValue ?? null,
           sortOrder: sortOrder ?? 0,
@@ -103,14 +117,24 @@ router.post(
 
         for (const item of items) {
           const category = String(item.category || "").trim();
-          const value = String(item.value || "").trim();
+          let value = String(item.value || "").trim();
+          let valueAr = String(item.valueAr || "").trim();
           const parentValue = item.parentValue ? String(item.parentValue).trim() : null;
           const extraValue = item.extraValue ? String(item.extraValue).trim() : null;
           const sortOrder = typeof item.sortOrder === "number" ? item.sortOrder : 0;
 
-          if (!category || !value) {
+          if (!category || (!value && !valueAr)) {
             skippedCount++;
             continue;
+          }
+
+          if (hasArabic(value) && !valueAr) {
+            valueAr = value;
+            value = translateLookup(category, valueAr, "en");
+          } else if (!value && valueAr) {
+            value = translateLookup(category, valueAr, "en");
+          } else if (!valueAr && value) {
+            valueAr = translateLookup(category, value, "ar");
           }
 
           const k = `${category.toLowerCase()}:::${value.toLowerCase()}:::${(parentValue || "").toLowerCase()}`;
@@ -127,6 +151,10 @@ router.post(
               updatePayload.extraValue = normExtra;
               needsUpdate = true;
             }
+            if (valueAr && (!existingRow.valueAr || existingRow.valueAr.trim() !== valueAr)) {
+              updatePayload.valueAr = valueAr;
+              needsUpdate = true;
+            }
             if (existingRow.disabled) {
               updatePayload.disabled = false;
               needsUpdate = true;
@@ -138,6 +166,7 @@ router.post(
                 .set(updatePayload)
                 .where(eq(lookupValuesTable.id, existingRow.id));
               if (normExtra !== null) existingRow.extraValue = normExtra;
+              if (valueAr) existingRow.valueAr = valueAr;
               existingRow.disabled = false;
               updatedCount++;
             } else {
@@ -149,6 +178,7 @@ router.post(
               .values({
                 category,
                 value,
+                valueAr: valueAr || "",
                 parentValue,
                 extraValue: normExtra,
                 sortOrder,
@@ -200,10 +230,11 @@ router.patch(
       return;
     }
 
-    const { value, parentValue, extraValue, disabled, sortOrder } = req.body;
+    const { value, valueAr, parentValue, extraValue, disabled, sortOrder } = req.body;
     const updateData: Record<string, any> = {};
 
-    if (value !== undefined) updateData.value = String(value);
+    if (value !== undefined) updateData.value = String(value).trim();
+    if (valueAr !== undefined) updateData.valueAr = String(valueAr).trim();
     if (sortOrder !== undefined)
       updateData.sortOrder = parseInt(String(sortOrder));
     if (extraValue !== undefined) {

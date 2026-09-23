@@ -861,126 +861,199 @@ export function ProfileDialog({
                   </div>
                 </div>
 
-                {/* Department, Job Title, Level */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <FormRow label={ar ? "القسم" : "Department"}>
-                    {departments.length > 0 ? (
-                      <Select
-                        value={form.department}
-                        onValueChange={(v) => {
-                          const matched = departments.find((d) => d.value === v);
-                          const arDept = matched?.valueAr || translateDepartment(v, "ar");
-                          setForm((p) => ({
-                            ...p,
-                            department: v,
-                            departmentAr: arDept || "",
-                            jobTitle: "",
-                            jobTitleAr: "",
-                            level: "",
-                          }));
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue
-                            placeholder={ar ? "اختر القسم..." : "Select dept..."}
+                {/* Department (EN & AR) + Level */}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                    <div className="sm:col-span-2">
+                      <FormRow label={ar ? "القسم (إنجليزي)" : "Department (English)"}>
+                        {departments.length > 0 ? (
+                          <div className="flex gap-1.5">
+                            <Select
+                              value={form.department}
+                              onValueChange={(v) => {
+                                const matched = departments.find((d) => d.value === v);
+                                const arDept = matched?.valueAr || translateDepartment(v, "ar");
+                                setForm((p) => ({
+                                  ...p,
+                                  department: v,
+                                  departmentAr: arDept || p.departmentAr || "",
+                                  jobTitle: "",
+                                  jobTitleAr: "",
+                                  level: "",
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="h-9 flex-1">
+                                <SelectValue
+                                  placeholder={ar ? "اختر القسم..." : "Select dept..."}
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {departments.map((d) => (
+                                  <SelectItem key={d.id} value={d.value}>
+                                    {ar && d.valueAr ? `${d.valueAr} (${d.value})` : d.value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              value={form.department}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                set("department", v);
+                                if (!form.departmentAr) {
+                                  set("departmentAr", translateDepartment(v, "ar"));
+                                }
+                              }}
+                              placeholder={ar ? "أو يدوي" : "Or type..."}
+                              className="h-9 w-24 text-xs shrink-0"
+                            />
+                          </div>
+                        ) : (
+                          <Input
+                            value={form.department}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              set("department", v);
+                              if (!form.departmentAr) {
+                                set("departmentAr", translateDepartment(v, "ar"));
+                              }
+                            }}
+                            placeholder={ar ? "القسم بالإنجليزي" : "Department (EN)"}
+                            className="h-9"
                           />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {departments.map((d) => (
-                            <SelectItem key={d.id} value={d.value}>
-                              {ar && d.valueAr ? `${d.valueAr} (${d.value})` : d.value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        value={form.department}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          set("department", v);
-                          set("departmentAr", translateDepartment(v, "ar"));
-                        }}
-                        placeholder={ar ? "القسم" : "Department"}
-                        className="h-9"
-                      />
-                    )}
-                  </FormRow>
-
-                  <FormRow label={ar ? "المسمى الوظيفي" : "Job Title"}>
-                    {allJobTitles.length > 0 ? (
-                      <Select
-                        value={form.jobTitle}
-                        onValueChange={(v) => {
-                          const jt = allJobTitles.find((t) => t.value === v);
-                          const arTitle = jt?.valueAr || translateJobTitle(v, "ar");
-                          setForm((p) => ({
-                            ...p,
-                            jobTitle: v,
-                            jobTitleAr: arTitle || "",
-                            level: jt?.extraValue || p.level,
-                          }));
-                        }}
-                        disabled={!form.department && departments.length > 0}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue
-                            placeholder={
-                              !form.department && departments.length > 0
-                                ? ar
-                                ? "اختر القسم أولاً"
-                                : "Select dept first"
-                                : ar
-                                ? "اختر..."
-                                : "Select..."
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredJobTitles.map((j) => (
-                            <SelectItem key={j.id} value={j.value}>
-                              {ar && j.valueAr ? `${j.valueAr} (${j.value})` : j.value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        value={form.jobTitle}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          set("jobTitle", v);
-                          set("jobTitleAr", translateJobTitle(v, "ar"));
-                        }}
-                        placeholder={ar ? "المسمى الوظيفي" : "Job Title"}
-                        className="h-9"
-                      />
-                    )}
-                  </FormRow>
-
-                  <FormRow label={ar ? "الدرجة / المستوى" : "Level"}>
-                    <div className="space-y-1 w-full">
-                      <Input
-                        value={form.level}
-                        onChange={(e) => set("level", e.target.value)}
-                        placeholder={ar ? "أول، ثاني..." : "Senior, Junior..."}
-                        disabled={isLevelLocked}
-                        className={`h-9 ${
-                          isLevelLocked
-                            ? "bg-muted/60 font-semibold text-primary cursor-not-allowed"
-                            : ""
-                        }`}
-                      />
-                      {isLevelLocked && (
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
-                          <Lock className="w-3 h-3 text-amber-500" />
-                          {ar
-                            ? "تم قفل الدرجة تلقائياً حسب المسمى الوظيفي"
-                            : "Level locked from selected Job Title"}
-                        </p>
-                      )}
+                        )}
+                      </FormRow>
                     </div>
-                  </FormRow>
+
+                    <div className="sm:col-span-2">
+                      <FormRow label={ar ? "القسم (عربي)" : "Department (Arabic)"}>
+                        <Input
+                          value={form.departmentAr || ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            set("departmentAr", v);
+                            if (!form.department) {
+                              set("department", translateDepartment(v, "en"));
+                            }
+                          }}
+                          placeholder={ar ? "مثال: المكاتب الأمامية" : "e.g. المكاتب الأمامية"}
+                          dir="rtl"
+                          className="h-9"
+                        />
+                      </FormRow>
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <FormRow label={ar ? "الدرجة / المستوى" : "Level"}>
+                        <div className="space-y-1 w-full">
+                          <Input
+                            value={form.level}
+                            onChange={(e) => set("level", e.target.value)}
+                            placeholder={ar ? "أول، ثاني..." : "Senior..."}
+                            disabled={isLevelLocked}
+                            className={`h-9 ${
+                              isLevelLocked
+                                ? "bg-muted/60 font-semibold text-primary cursor-not-allowed"
+                                : ""
+                            }`}
+                          />
+                          {isLevelLocked && (
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
+                              <Lock className="w-3 h-3 text-amber-500 shrink-0" />
+                              {ar ? "مقفل" : "Locked"}
+                            </p>
+                          )}
+                        </div>
+                      </FormRow>
+                    </div>
+                  </div>
+
+                  {/* Job Title (EN & AR) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FormRow label={ar ? "المسمى الوظيفي (إنجليزي)" : "Job Title (English)"}>
+                      {allJobTitles.length > 0 ? (
+                        <div className="flex gap-1.5">
+                          <Select
+                            value={form.jobTitle}
+                            onValueChange={(v) => {
+                              const jt = allJobTitles.find((t) => t.value === v);
+                              const arTitle = jt?.valueAr || translateJobTitle(v, "ar");
+                              setForm((p) => ({
+                                ...p,
+                                jobTitle: v,
+                                jobTitleAr: arTitle || p.jobTitleAr || "",
+                                level: jt?.extraValue || p.level,
+                              }));
+                            }}
+                            disabled={!form.department && departments.length > 0}
+                          >
+                            <SelectTrigger className="h-9 flex-1">
+                              <SelectValue
+                                placeholder={
+                                  !form.department && departments.length > 0
+                                    ? ar
+                                      ? "اختر القسم أولاً"
+                                      : "Select dept first"
+                                    : ar
+                                      ? "اختر المسمى..."
+                                      : "Select job title..."
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {filteredJobTitles.map((j) => (
+                                <SelectItem key={j.id} value={j.value}>
+                                  {ar && j.valueAr ? `${j.valueAr} (${j.value})` : j.value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            value={form.jobTitle}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              set("jobTitle", v);
+                              if (!form.jobTitleAr) {
+                                set("jobTitleAr", translateJobTitle(v, "ar"));
+                              }
+                            }}
+                            placeholder={ar ? "أو يدوي" : "Or type..."}
+                            className="h-9 w-24 text-xs shrink-0"
+                          />
+                        </div>
+                      ) : (
+                        <Input
+                          value={form.jobTitle}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            set("jobTitle", v);
+                            if (!form.jobTitleAr) {
+                              set("jobTitleAr", translateJobTitle(v, "ar"));
+                            }
+                          }}
+                          placeholder={ar ? "المسمى بالإنجليزي" : "Job Title (EN)"}
+                          className="h-9"
+                        />
+                      )}
+                    </FormRow>
+
+                    <FormRow label={ar ? "المسمى الوظيفي (عربي)" : "Job Title (Arabic)"}>
+                      <Input
+                        value={form.jobTitleAr || ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          set("jobTitleAr", v);
+                          if (!form.jobTitle) {
+                            set("jobTitle", translateJobTitle(v, "en"));
+                          }
+                        }}
+                        placeholder={ar ? "مثال: موظف استقبال" : "e.g. موظف استقبال"}
+                        dir="rtl"
+                        className="h-9"
+                      />
+                    </FormRow>
+                  </div>
                 </div>
               </>
             )}
@@ -1147,13 +1220,19 @@ export function ProfileDialog({
                   department:
                     form.employmentType === "THIRD_PARTY"
                       ? "Third Party"
-                      : form.department,
+                      : (form.department?.trim() || translateDepartment(form.departmentAr || "", "en")),
                   departmentAr:
                     form.employmentType === "THIRD_PARTY"
                       ? "طرف ثالث"
-                      : (form.departmentAr || translateDepartment(form.department, "ar")),
-                  jobTitle: form.jobTitle,
-                  jobTitleAr: form.jobTitleAr || translateJobTitle(form.jobTitle, "ar"),
+                      : (form.departmentAr?.trim() || translateDepartment(form.department || "", "ar")),
+                  jobTitle:
+                    form.employmentType === "THIRD_PARTY"
+                      ? (form.jobTitle?.trim() || "Third Party Staff")
+                      : (form.jobTitle?.trim() || translateJobTitle(form.jobTitleAr || "", "en")),
+                  jobTitleAr:
+                    form.employmentType === "THIRD_PARTY"
+                      ? (form.jobTitleAr?.trim() || "عمالة طرف ثالث")
+                      : (form.jobTitleAr?.trim() || translateJobTitle(form.jobTitle || "", "ar")),
                   level:
                     form.employmentType === "THIRD_PARTY"
                       ? (form.level.trim() || "طرف ثالث")

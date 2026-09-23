@@ -40,6 +40,7 @@ async function createLookupValue(data: {
   propertyId: number;
   category: string;
   value: string;
+  valueAr?: string;
   parentValue?: string;
   extraValue?: string;
 }): Promise<LookupValue> {

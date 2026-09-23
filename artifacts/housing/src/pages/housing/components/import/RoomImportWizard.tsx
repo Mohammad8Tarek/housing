@@ -928,6 +928,7 @@ export function RoomImportWizard({
                     <tr>
                       <th className="p-2.5 text-center w-12">#</th>
                       <th className="p-2.5 text-start">{ar ? "رقم الغرفة" : "Room #"}</th>
+                      <th className="p-2.5 text-start">{ar ? "التصنيف" : "Classification"}</th>
                       <th className="p-2.5 text-start">{ar ? "النوع" : "Type"}</th>
                       <th className="p-2.5 text-start">{ar ? "السرير" : "Bed"}</th>
                       <th className="p-2.5 text-center">{ar ? "السعة" : "Occ."}</th>
@@ -940,7 +941,7 @@ export function RoomImportWizard({
                   <tbody className="divide-y">
                     {previewRows.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                        <td colSpan={10} className="p-8 text-center text-muted-foreground">
                           {ar ? "لا توجد صفوف تطابق الفلتر" : "No rows match filter"}
                         </td>
                       </tr>
@@ -960,6 +961,7 @@ export function RoomImportWizard({
                           >
                             <td className="p-2.5 text-center font-mono text-muted-foreground">{row.rowNumber}</td>
                             <td className="p-2.5 font-bold font-mono text-foreground">{r.roomNumber || "—"}</td>
+                            <td className="p-2.5 font-medium">{r.classification || "—"}</td>
                             <td className="p-2.5">{r.roomType || "—"}</td>
                             <td className="p-2.5 text-muted-foreground">{r.bedType || "—"}</td>
                             <td className="p-2.5 text-center font-bold">{r.capacity}</td>

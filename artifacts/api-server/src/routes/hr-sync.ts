@@ -19,8 +19,13 @@ import { logActivity } from "../lib/activity-logger.js";
 import { ensureProfilePortalAccount } from "../lib/portal-accounts.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import {
+  enrichProfileBilingual,
+  translateDepartment,
+  translateJobTitle,
+  hasArabic,
+} from "../lib/bilingual-translator.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { enrichProfileBilingual } from "../lib/bilingual-translator.js";
 
 export interface HrSourceConfig {
   id: string;
@@ -138,35 +143,81 @@ export function extractProfileFields(
 
   const rawProfileId = getVal("profileId", [
     "employeeId",
+    "employee_id",
     "emp_id",
     "empCode",
+    "employeeCode",
+    "employee_code",
+    "clockNumber",
+    "clock_number",
     "code",
     "id",
+    "كود_الموظف",
+    "كود الموظف",
+    "رقم_الملف",
   ]);
   const profileId = rawProfileId ? String(rawProfileId).trim() : "";
 
-  const firstName = getVal("firstName", ["first_name", "first"]) ?? "";
-  const lastName = getVal("lastName", ["last_name", "last"]) ?? "";
+  const firstName = getVal("firstName", ["first_name", "first", "firstNameEn", "first_name_en"]) ?? "";
+  const lastName = getVal("lastName", ["last_name", "last", "lastNameEn", "last_name_en"]) ?? "";
   const thirdName =
-    getVal("thirdName", ["third_name", "father_name", "middle_name"]) ?? "";
+    getVal("thirdName", ["third_name", "father_name", "middle_name", "thirdNameEn"]) ?? "";
   const fourthName =
-    getVal("fourthName", ["fourth_name", "family_name", "grand_father"]) ?? "";
+    getVal("fourthName", ["fourth_name", "family_name", "grand_father", "fourthNameEn"]) ?? "";
+
+  const firstNameAr = getVal("firstNameAr", ["first_name_ar", "firstName_ar", "الاسم_الأول", "الاسم الاول", "الاسم"]) ?? "";
+  const lastNameAr = getVal("lastNameAr", ["last_name_ar", "lastName_ar", "اسم_العائلة", "اسم العائلة", "اللقب"]) ?? "";
+  const thirdNameAr = getVal("thirdNameAr", ["third_name_ar", "thirdName_ar", "اسم_الأب", "اسم الاب", "الاسم الثالث"]) ?? "";
+  const fourthNameAr = getVal("fourthNameAr", ["fourth_name_ar", "fourthName_ar", "اسم_الجد", "اسم الجد", "الاسم الرابع"]) ?? "";
+
   const nationalId =
-    getVal("nationalId", ["national_id", "iqama", "ssn", "nid"]) ?? "";
-  const nationality = getVal("nationality", ["country"]) ?? "";
-  const address = getVal("address", ["street", "residence"]) ?? "";
+    getVal("nationalId", ["national_id", "iqama", "ssn", "nid", "الرقم_القومي", "الرقم القومي", "الهوية"]) ?? "";
+  const nationality = getVal("nationality", ["country", "الجنسية"]) ?? "";
+  const address = getVal("address", ["street", "residence", "العنوان"]) ?? "";
+
   const jobTitle =
-    getVal("jobTitle", ["job_title", "position", "title", "role"]) ?? "";
-  const level = getVal("level", ["grade", "job_level", "jobLevel"]) ?? "";
+    getVal("jobTitle", ["job_title", "position", "title", "role", "job_title_en", "jobTitleEn", "jobTitle_en", "position_en", "positionEn"]) ?? "";
+  const jobTitleAr =
+    getVal("jobTitleAr", [
+      "job_title_ar",
+      "jobTitle_ar",
+      "jobTitleAr",
+      "position_ar",
+      "positionAr",
+      "title_ar",
+      "titleAr",
+      "الوظيفة",
+      "المسمى_الوظيفي",
+      "المسمى الوظيفي",
+      "الوظيفه",
+      "المهنة",
+    ]) ?? "";
+
+  const level = getVal("level", ["grade", "job_level", "jobLevel", "الدرجة", "المستوى"]) ?? "";
   const phone =
-    getVal("phone", ["mobile", "telephone", "phone_number", "phoneNumber"]) ??
+    getVal("phone", ["mobile", "telephone", "phone_number", "phoneNumber", "الهاتف", "الجوال", "الموبايل"]) ??
     "";
-  const department = getVal("department", ["dept", "section"]) ?? "";
+
+  const department = getVal("department", ["dept", "section", "department_en", "departmentEn", "dept_en", "deptEn", "section_en"]) ?? "";
+  const departmentAr = getVal("departmentAr", [
+    "department_ar",
+    "departmentAr",
+    "dept_ar",
+    "deptAr",
+    "section_ar",
+    "sectionAr",
+    "القسم",
+    "الإدارة",
+    "الادارة",
+    "القسم_بالعربية",
+    "الاداره",
+  ]) ?? "";
+
   const hireDate =
-    getVal("hireDate", ["hire_date", "joining_date", "hired_at"]) ??
+    getVal("hireDate", ["hire_date", "joining_date", "hired_at", "تاريخ_التعيين"]) ??
     new Date().toISOString().split("T")[0];
   const dateOfBirth =
-    getVal("dateOfBirth", ["date_of_birth", "birth_date", "dob"]) ?? "";
+    getVal("dateOfBirth", ["date_of_birth", "birth_date", "dob", "تاريخ_الميلاد"]) ?? "";
   const email = getVal("email", ["mail", "email_address"]) ?? "";
   const emergencyContact =
     getVal("emergencyContact", [
@@ -270,13 +321,19 @@ export function extractProfileFields(
     lastName: String(lastName).trim(),
     thirdName: String(thirdName).trim(),
     fourthName: String(fourthName).trim(),
+    firstNameAr: String(firstNameAr).trim(),
+    lastNameAr: String(lastNameAr).trim(),
+    thirdNameAr: String(thirdNameAr).trim(),
+    fourthNameAr: String(fourthNameAr).trim(),
     nationalId: String(nationalId).trim(),
     nationality: String(nationality).trim(),
     address: String(address).trim(),
     jobTitle: String(jobTitle).trim(),
+    jobTitleAr: String(jobTitleAr).trim(),
     level: String(level).trim(),
     phone: String(phone).trim(),
     department: String(department).trim(),
+    departmentAr: String(departmentAr).trim(),
     hireDate: String(hireDate).trim(),
     dateOfBirth: String(dateOfBirth).trim(),
     email: String(email).trim(),
@@ -648,16 +705,26 @@ export async function autoRegisterLookups(
     }
 
     for (const emp of rawEmployees) {
-      // 1. Department
-      const dept = String(emp.department || "").trim();
-      const deptAr = String(emp.departmentAr || dept).trim();
+      // 1. Department bilingual resolution
+      let dept = String(emp.department || "").trim();
+      let deptAr = String(emp.departmentAr || "").trim();
+
+      if (hasArabic(dept) && !deptAr) {
+        deptAr = dept;
+        dept = translateDepartment(deptAr, "en");
+      } else if (!dept && deptAr) {
+        dept = translateDepartment(deptAr, "en");
+      } else if (!deptAr && dept) {
+        deptAr = translateDepartment(dept, "ar");
+      }
+
       if (dept && !existingSet.has(`department:${dept.toLowerCase()}`)) {
         existingSet.add(`department:${dept.toLowerCase()}`);
         try {
           await tenantDb.insert(lookupValuesTable).values({
             category: "department",
             value: dept,
-            valueAr: deptAr,
+            valueAr: deptAr || dept,
             parentValue: null,
             sortOrder: 0,
             disabled: false,
@@ -666,9 +733,19 @@ export async function autoRegisterLookups(
         } catch {}
       }
 
-      // 2. Job Title
-      const title = String(emp.jobTitle || "").trim();
-      const titleAr = String(emp.jobTitleAr || title).trim();
+      // 2. Job Title bilingual resolution
+      let title = String(emp.jobTitle || "").trim();
+      let titleAr = String(emp.jobTitleAr || "").trim();
+
+      if (hasArabic(title) && !titleAr) {
+        titleAr = title;
+        title = translateJobTitle(titleAr, "en");
+      } else if (!title && titleAr) {
+        title = translateJobTitle(titleAr, "en");
+      } else if (!titleAr && title) {
+        titleAr = translateJobTitle(title, "ar");
+      }
+
       const parentDept = dept || null;
       const titleKey = `job_title:${title.toLowerCase()}:${(parentDept || "").toLowerCase()}`;
       if (title && !existingSet.has(titleKey) && !existingSet.has(`job_title:${title.toLowerCase()}`)) {
@@ -678,7 +755,7 @@ export async function autoRegisterLookups(
           await tenantDb.insert(lookupValuesTable).values({
             category: "job_title",
             value: title,
-            valueAr: titleAr,
+            valueAr: titleAr || title,
             parentValue: parentDept,
             extraValue: emp.level ? String(emp.level).trim() : null,
             sortOrder: 0,
@@ -867,14 +944,14 @@ export async function processReceive(
               lastName: emp.lastName || existing.lastName,
               thirdName: emp.thirdName || existing.thirdName,
               fourthName: emp.fourthName || existing.fourthName,
-              firstNameAr: existing.firstNameAr,
-              lastNameAr: existing.lastNameAr,
-              thirdNameAr: existing.thirdNameAr,
-              fourthNameAr: existing.fourthNameAr,
+              firstNameAr: emp.firstNameAr || existing.firstNameAr,
+              lastNameAr: emp.lastNameAr || existing.lastNameAr,
+              thirdNameAr: emp.thirdNameAr || existing.thirdNameAr,
+              fourthNameAr: emp.fourthNameAr || existing.fourthNameAr,
               department: emp.department || existing.department,
-              departmentAr: existing.departmentAr,
+              departmentAr: emp.departmentAr || existing.departmentAr,
               jobTitle: emp.jobTitle || existing.jobTitle,
-              jobTitleAr: existing.jobTitleAr,
+              jobTitleAr: emp.jobTitleAr || existing.jobTitleAr,
             });
 
             const changedFields: string[] = [];
@@ -907,9 +984,9 @@ export async function processReceive(
               fourthNameAr: enrichedUpdate.fourthNameAr || existing.fourthNameAr,
               nationalId: emp.nationalId !== undefined && emp.nationalId !== "" ? emp.nationalId : existing.nationalId,
               nationality: emp.nationality !== undefined && emp.nationality !== "" ? emp.nationality : existing.nationality,
-              jobTitle: emp.jobTitle !== undefined && emp.jobTitle !== "" ? emp.jobTitle : existing.jobTitle,
+              jobTitle: enrichedUpdate.jobTitle || emp.jobTitle || existing.jobTitle,
               jobTitleAr: enrichedUpdate.jobTitleAr || existing.jobTitleAr,
-              department: emp.department !== undefined && emp.department !== "" ? emp.department : existing.department,
+              department: enrichedUpdate.department || emp.department || existing.department,
               departmentAr: enrichedUpdate.departmentAr || existing.departmentAr,
               phone: emp.phone !== undefined && emp.phone !== "" ? emp.phone : existing.phone,
               address: emp.address !== undefined && emp.address !== "" ? emp.address : existing.address,
@@ -1044,10 +1121,16 @@ export async function processReceive(
             lastName: emp.lastName || "",
             thirdName: emp.thirdName || "",
             fourthName: emp.fourthName || "",
+            firstNameAr: emp.firstNameAr || "",
+            lastNameAr: emp.lastNameAr || "",
+            thirdNameAr: emp.thirdNameAr || "",
+            fourthNameAr: emp.fourthNameAr || "",
             nationalId: emp.nationalId || "",
             nationality: emp.nationality || "",
             jobTitle: emp.jobTitle || "",
+            jobTitleAr: emp.jobTitleAr || "",
             department: emp.department || "",
+            departmentAr: emp.departmentAr || "",
             phone: emp.phone || "",
             address: emp.address || "",
             status: emp.status || "UNASSIGNED",

@@ -336,11 +336,29 @@ export function RoomsTab({
     const rows = rData.map((r: any) => {
       const bld = buildings.find((b: any) => b.id === r.buildingId);
       const flr = floors.find((f: any) => f.id === r.floorId);
-      return {
+      return ar ? {
+        "رقم الغرفة": r.roomNumber ?? "",
+        "تصنيف الغرفة": r.classification ?? "",
+        "نوع الغرفة": r.roomType || r.type || "",
+        "نوع السرير": r.bedType ?? "",
+        "السعة": r.capacity ?? 1,
+        "الإشغال الحالي": r.currentOccupancy ?? 0,
+        "الطابق": flr ? `${flr.floorNumber}` : (r.floor ?? ""),
+        "المبنى": bld ? bld.name : (r.building ?? ""),
+        "الحالة": r.status ?? "",
+        "إطلالة الغرفة": r.view ?? "",
+        "باب فاصل": r.separatorDoor ? "نعم" : "لا",
+        "المساحة": r.size || (r.sizeSqm ? `${r.sizeSqm}m2` : ""),
+        "المميزات": Array.isArray(r.featuresList)
+          ? r.featuresList.join(", ")
+          : (typeof r.features === "string" ? r.features : ""),
+        "ملاحظات": r.notes ?? "",
+      } : {
         "Room Number": r.roomNumber ?? "",
-        "Classification/Type": r.classification || r.roomType || r.type || "",
+        "Room Classification": r.classification ?? "",
+        "Room Type": r.roomType || r.type || "",
         "Bed Type": r.bedType ?? "",
-        "Capacity": r.capacity ?? "",
+        "Capacity": r.capacity ?? 1,
         "Current Occupancy": r.currentOccupancy ?? 0,
         "Floor": flr ? `${flr.floorNumber}` : (r.floor ?? ""),
         "Building": bld ? bld.name : (r.building ?? ""),
@@ -357,8 +375,8 @@ export function RoomsTab({
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, "Rooms");
-    XLSX.writeFile(wb, getExportFileName("Rooms", "xlsx"));
+    XLSX.utils.book_append_sheet(wb, ws, ar ? "الغرف" : "Rooms");
+    XLSX.writeFile(wb, getExportFileName(ar ? "الغرف" : "Rooms", "xlsx"));
   };
 
   return (
