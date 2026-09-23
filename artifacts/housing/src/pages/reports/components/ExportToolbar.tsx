@@ -64,7 +64,9 @@ export function ExportToolbar({
     activeTab === "service_ratings" ||
     activeTab === "housing_map" ||
     activeTab === "occupancy_forecast" ||
-    activeTab === "analytics"
+    activeTab === "analytics" ||
+    activeTab === "housing_ratings" ||
+    activeTab === "room_moves"
   ) {
     return null;
   }
