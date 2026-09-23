@@ -40,6 +40,9 @@ export interface NormalizedEsignEmployee {
   email: string;
   emergencyContact: string;
   photoUrl: string;
+  companyName?: string;
+  hotelName?: string;
+  hotelCode?: string;
   raw: any;
 }
 
@@ -245,7 +248,11 @@ function splitFullName(fullName: string): { first: string; second: string; third
 /**
  * Normalize raw employee record from Sunrise e-Signature into standard profile format
  */
-export function normalizeEsignRecord(raw: any): NormalizedEsignEmployee {
+export function normalizeEsignRecord(
+  raw: any,
+  hotel?: { id?: number; name?: string; code?: string },
+  config?: SunriseEsignConfig,
+): NormalizedEsignEmployee {
   const employeeCode = raw.EmployeeCode ?? raw.clock_no ?? raw.clockNumber ?? "";
   const profileId = String(employeeCode).trim();
 
@@ -283,6 +290,18 @@ export function normalizeEsignRecord(raw: any): NormalizedEsignEmployee {
   const nationality = String(raw.nationality_name || raw.ar_nationality_name || raw.CountryName || "Egyptian").trim();
   const nationalId = String(raw.NationalId || raw.national_id || raw.NationalID || profileId).trim();
 
+  // Hotel origin name (worksAt / companyName)
+  const hotelOriginName =
+    hotel?.name ||
+    config?.label ||
+    raw.hotel_name ||
+    raw.hotelName ||
+    raw.company_name ||
+    raw.companyName ||
+    hotel?.code ||
+    config?.hotelCode ||
+    "";
+
   const normalized: NormalizedEsignEmployee = {
     profileId,
     firstName: enSplit.first || arSplit.first,
@@ -309,6 +328,9 @@ export function normalizeEsignRecord(raw: any): NormalizedEsignEmployee {
     email: raw.email || "",
     emergencyContact: raw.emergency_contact || "",
     photoUrl: String(raw.photo || raw.photoUrl || raw.photo_url || raw.avatar || raw.image || raw.ProfileImage || raw.profile_image || "").trim(),
+    companyName: hotelOriginName,
+    hotelName: hotel?.name || config?.label || "",
+    hotelCode: hotel?.code || config?.hotelCode || "",
     raw,
   };
 
@@ -365,7 +387,7 @@ export async function fetchEmployeeByCode(
     return null;
   }
 
-  return normalizeEsignRecord(body.data);
+  return normalizeEsignRecord(body.data, hotel, config);
 }
 
 /**

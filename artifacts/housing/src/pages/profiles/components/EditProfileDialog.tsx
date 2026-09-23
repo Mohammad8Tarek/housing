@@ -793,11 +793,11 @@ export function EditProfileDialog({
               /* Internal Employee Standard Work Information */
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormRow label={ar ? "يعمل لدى / الفندق" : "Works At"}>
+                  <FormRow label={ar ? "أين يعمل / الفندق" : "Works At / Hotel"}>
                     <Input
                       value={form.companyName}
                       onChange={(e) => set("companyName", e.target.value)}
-                      placeholder={ar ? "أدخل اسم الفندق/المكان..." : "Enter hotel/place name..."}
+                      placeholder={ar ? "اسم الفندق التابع له الموظف..." : "Enter hotel or workplace..."}
                     />
                   </FormRow>
 

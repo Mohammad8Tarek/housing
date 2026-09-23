@@ -247,6 +247,12 @@ export function extractProfileFields(
     getVal("companyName", [
       "company_name",
       "company",
+      "hotelName",
+      "hotel_name",
+      "hotel",
+      "hotelCode",
+      "workplace",
+      "worksAt",
       "vendor",
       "contractor",
     ]) ?? "";

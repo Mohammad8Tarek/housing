@@ -778,7 +778,7 @@ export default function ProfileDetail() {
     },
     {
       icon: <Building2 className="w-4 h-4" />,
-      label: emp.employmentType === "THIRD_PARTY" ? (ar ? "اسم الشركة" : "Company Name") : (ar ? "يعمل لدى" : "Works For"),
+      label: emp.employmentType === "THIRD_PARTY" ? (ar ? "اسم الشركة" : "Company Name") : (ar ? "أين يعمل / الفندق" : "Works At / Hotel"),
       value: emp.companyName || (emp.employmentType === "INTERNAL" ? (ar ? "الفندق" : "Hotel") : null),
     },
     {

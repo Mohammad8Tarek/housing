@@ -365,6 +365,7 @@ export function ProfileDialog({
         hireDate: emp.hireDate || prev.hireDate,
         dateOfBirth: emp.dateOfBirth || prev.dateOfBirth,
         contractEndDate: emp.contractEndDate || prev.contractEndDate,
+        companyName: emp.companyName || emp.hotelName || prev.companyName,
       }));
 
       // Mark names as populated
@@ -940,14 +941,14 @@ export function ProfileDialog({
               /* Internal Employee Full Work Information */
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormRow label={ar ? "يعمل لدى / الفندق" : "Works At"}>
+                  <FormRow label={ar ? "أين يعمل / الفندق" : "Works At / Hotel"}>
                     <Input
                       value={form.companyName}
                       onChange={(e) => set("companyName", e.target.value)}
                       placeholder={
                         ar
-                          ? "أدخل اسم الفندق أو الفرع..."
-                          : "Enter hotel or branch name..."
+                          ? "اسم الفندق التابع له الموظف..."
+                          : "Enter hotel or workplace..."
                       }
                       className={errors.companyName ? "border-destructive" : ""}
                     />
