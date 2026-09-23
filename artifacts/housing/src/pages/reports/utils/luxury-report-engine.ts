@@ -2884,12 +2884,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     @media print {
       @page {
         size: A4 ${orientation};
-        margin: 0mm !important;
+        margin: 6mm 4mm !important;
         marks: none;
       }
       html, body {
         width: 100% !important;
-        height: 100% !important;
+        height: auto !important;
         background: #ffffff !important;
         color: #000000 !important;
         font-size: ${printFontSizePt}pt !important;
@@ -2901,7 +2901,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       .sheet {
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 8mm 10mm !important;
+        padding: 4mm 6mm !important;
         width: 100% !important;
         max-width: 100% !important;
         min-height: auto !important;
@@ -2921,6 +2921,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         overflow: hidden !important;
         page-break-after: avoid !important;
         page-break-inside: avoid !important;
+        break-inside: avoid !important;
         padding: 8mm 10mm !important;
         box-sizing: border-box !important;
       }
@@ -2929,6 +2930,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         max-width: 100% !important;
         table-layout: fixed !important;
         font-size: ${printFontSizePt}pt !important;
+        border-collapse: collapse !important;
       }
       col.opera-col-seq,
       table.opera-table th.opera-seq-col,
@@ -2966,18 +2968,31 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         border-bottom: 1px solid #cbd5e1 !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
+      /* Critical: prevent row splitting across pages */
       tr {
         page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      tbody tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
       thead {
         display: table-header-group !important;
+        break-inside: avoid !important;
       }
       tfoot {
         display: table-footer-group !important;
+        break-inside: avoid !important;
+      }
+      /* Ensure table itself allows page breaks between rows but not inside them */
+      table.opera-table tbody {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
       }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       /* Hide hardcoded page indicator — browser print dialog handles page numbering */
@@ -2985,6 +3000,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       /* Keep signatures and footer together — never split across pages */
       .sig-section {
         page-break-inside: avoid !important;
+        break-inside: avoid !important;
         margin-top: 8px !important;
         padding-top: 6px !important;
       }
@@ -2993,7 +3009,16 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
       .opera-footer {
         page-break-inside: avoid !important;
+        break-inside: avoid !important;
         margin-top: 6px !important;
+      }
+      .kpi-grid {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .opera-header {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
       .sheet.single-page .sig-role {
         margin-bottom: 30px !important;
