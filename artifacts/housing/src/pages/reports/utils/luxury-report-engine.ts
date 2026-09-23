@@ -98,6 +98,8 @@ export const REPORT_TAB_CONFIG: Record<
   water_distribution: { showKpis: false, showSignatures: true },
   vacations: { showKpis: true, showSignatures: true },
   policy_exceptions: { showKpis: true, showSignatures: true },
+  housing_ratings: { showKpis: true, showSignatures: false },
+  room_moves: { showKpis: true, showSignatures: false },
 };
 
 // ----------------------------------------------------------------------------
@@ -130,6 +132,8 @@ export const REPORT_OPERA_CODES: Record<string, string> = {
   water_distribution: "water_dist",
   vacations: "vacation_ledger",
   policy_exceptions: "policy_audit",
+  housing_ratings: "housing_pulse",
+  room_moves: "room_move_log",
 };
 
 // ----------------------------------------------------------------------------
@@ -239,6 +243,14 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
   policy_exceptions: {
     ar: "تقرير مخالفات واستثناءات سياسات السكن",
     en: "Housing Policy Exceptions & Audit Report",
+  },
+  housing_ratings: {
+    ar: "تقرير استطلاع جودة السكن الأسبوعي (سري تماماً)",
+    en: "Weekly Housing Quality Pulse Report (Anonymous)",
+  },
+  room_moves: {
+    ar: "كشف حركات نقل وتغيير الغرف والأسرة",
+    en: "Room Moves & Bed Transfers Audit Report",
   },
 };
 

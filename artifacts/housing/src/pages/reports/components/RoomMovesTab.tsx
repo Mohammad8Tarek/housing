@@ -174,16 +174,19 @@ export function RoomMovesTab({
     ]);
 
     printLuxuryReport({
+      activeTab: "room_moves",
       title: ar ? "كشف حركات نقل وتغيير الغرف (Room Moves Report)" : "Room Moves & Transfers Report",
       subtitle: ar
         ? `سجل تدقيق وإدارة انتقالات الموظفين بين الغرف والأسرة - ${propName}`
         : `PMS Room & Bed Movement Audit Trail - ${propName}`,
-      isRtl: ar,
-      kpis: [
-        { label: ar ? "إجمالي حركات النقل" : "Total Moves", value: stats.totalMoves },
-        { label: ar ? "حركات اليوم" : "Today's Moves", value: stats.todayMoves },
-        { label: ar ? "بسبب الصيانة" : "Maintenance", value: stats.reasonsBreakdown?.MAINTENANCE || 0 },
-        { label: ar ? "بسبب الترقية" : "Upgrades", value: stats.reasonsBreakdown?.UPGRADE || 0 },
+      language: ar ? "ar" : "en",
+      properties,
+      activePropertyId: queryPropertyId !== "all" ? queryPropertyId : (activePropertyId ?? undefined),
+      kpiCards: [
+        { label: ar ? "إجمالي حركات النقل" : "Total Moves", value: stats.totalMoves, color: "blue" },
+        { label: ar ? "حركات اليوم" : "Today's Moves", value: stats.todayMoves, color: "green" },
+        { label: ar ? "بسبب الصيانة" : "Maintenance", value: stats.reasonsBreakdown?.MAINTENANCE || 0, color: "red" },
+        { label: ar ? "بسبب الترقية" : "Upgrades", value: stats.reasonsBreakdown?.UPGRADE || 0, color: "orange" },
       ],
       headers: [
         "#",

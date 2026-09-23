@@ -156,16 +156,19 @@ export function HousingRatingsTab({
     ]);
 
     printLuxuryReport({
+      activeTab: "housing_ratings",
       title: ar ? "تقرير استطلاع جودة السكن الأسبوعي (سري تماماً)" : "Weekly Housing Quality Pulse Report (Anonymous)",
       subtitle: ar
         ? `نتائج قياس رضا الموظفين الدوري عن جودة السكن والخدمات - ${propName}`
         : `Periodic staff housing satisfaction metrics & anonymous feedback - ${propName}`,
-      isRtl: ar,
-      kpis: [
-        { label: ar ? "إجمالي التقييمات" : "Total Ratings", value: stats.totalRatings },
-        { label: ar ? "نسبة الرضا العامة" : "Satisfaction Rate", value: `${stats.satisfactionRate}%` },
-        { label: ar ? "متوسط التقييم" : "Average Score", value: `${stats.averageScore} / 5` },
-        { label: ar ? "عدد الملاحظات المكتوبة" : "Written Comments", value: stats.commentsCount },
+      language: ar ? "ar" : "en",
+      properties,
+      activePropertyId: queryPropertyId !== "all" ? queryPropertyId : (activePropertyId ?? undefined),
+      kpiCards: [
+        { label: ar ? "إجمالي التقييمات" : "Total Ratings", value: stats.totalRatings, color: "blue" },
+        { label: ar ? "نسبة الرضا العامة" : "Satisfaction Rate", value: `${stats.satisfactionRate}%`, color: "green" },
+        { label: ar ? "متوسط التقييم" : "Average Score", value: `${stats.averageScore} / 5`, color: "gold" },
+        { label: ar ? "عدد الملاحظات المكتوبة" : "Written Comments", value: stats.commentsCount, color: "purple" },
       ],
       headers: [
         "#",
