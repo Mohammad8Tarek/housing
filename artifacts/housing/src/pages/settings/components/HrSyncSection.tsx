@@ -109,8 +109,8 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
     hotelCode?: string;
   } | null>(null);
 
-  const [rangeSyncSourceId, setRangeSyncSourceId] = useState<string>("");
-  const [batchRefreshSourceId, setBatchRefreshSourceId] = useState<string>("");
+  const [rangeSyncSourceId, setRangeSyncSourceId] = useState<string>("all");
+  const [batchRefreshSourceId, setBatchRefreshSourceId] = useState<string>("all");
 
   const [rangeHotelId, setRangeHotelId] = useState<number>(effectiveHotelId);
   const [rangeFrom, setRangeFrom] = useState("");
@@ -132,10 +132,6 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
     setTimeout(() => setCopiedWebhook(null), 2500);
   };
 
-  useEffect(() => {
-    setRangeHotelId(effectiveHotelId);
-  }, [effectiveHotelId]);
-
   const loadConfig = async (targetId?: number) => {
     const hotelIdToLoad = targetId || effectiveHotelId;
     if (!hotelIdToLoad) return;
@@ -153,6 +149,67 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
       }
     } catch {
       toast.error(ar ? "فشل تحميل إعدادات مزامنة الـ HR" : "Failed to load HR sync settings");
+    }
+  };
+
+  useEffect(() => {
+    if (effectiveHotelId) {
+      setRangeHotelId(effectiveHotelId);
+      loadConfig(effectiveHotelId);
+    }
+  }, [effectiveHotelId]);
+
+  const handleToggleActive = async (val: boolean) => {
+    setIsActive(val);
+    try {
+      await fetch("/api/hr-sync/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          propertyId: effectiveHotelId,
+          isActive: val,
+        }),
+      });
+      toast.success(ar ? "تم تحديث حالة الربط" : "Sync status updated");
+    } catch {
+      toast.error(ar ? "فشل حفظ الحالة" : "Failed to update state");
+    }
+  };
+
+  const handleToggleAutoCheckout = async (val: boolean) => {
+    setAutoCheckoutOnDeparture(val);
+    try {
+      await fetch("/api/hr-sync/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          propertyId: effectiveHotelId,
+          autoCheckoutOnDeparture: val,
+        }),
+      });
+      toast.success(ar ? "تم تحديث إعداد الإخلاء التلقائي" : "Auto checkout setting updated");
+    } catch {
+      toast.error(ar ? "فشل حفظ الإعداد" : "Failed to update setting");
+    }
+  };
+
+  const handleToggleAutoVacation = async (val: boolean) => {
+    setAutoVacationSync(val);
+    try {
+      await fetch("/api/hr-sync/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          propertyId: effectiveHotelId,
+          autoVacationSync: val,
+        }),
+      });
+      toast.success(ar ? "تم تحديث إعداد مزامنة الإجازات" : "Auto vacation setting updated");
+    } catch {
+      toast.error(ar ? "فشل حفظ الإعداد" : "Failed to update setting");
     }
   };
 
@@ -341,7 +398,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         credentials: "include",
         body: JSON.stringify({
           propertyId: rangeHotelId || effectiveHotelId,
-          sourceId: rangeSyncSourceId || undefined,
+          sourceId: rangeSyncSourceId && rangeSyncSourceId !== "all" ? rangeSyncSourceId : undefined,
           fromClockNo: fromNum,
           toClockNo: toNum,
         }),
@@ -378,7 +435,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         credentials: "include",
         body: JSON.stringify({
           propertyId: effectiveHotelId,
-          sourceId: batchRefreshSourceId || undefined,
+          sourceId: batchRefreshSourceId && batchRefreshSourceId !== "all" ? batchRefreshSourceId : undefined,
         }),
       });
       const data = await resp.json();
@@ -446,7 +503,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
 
       <CardContent className="px-0 space-y-6">
         {/* Global Operational Toggles */}
-        <div className="grid gap-4 sm:grid-cols-2 bg-muted/40 p-4 rounded-xl border border-border/50">
+        <div className="grid gap-4 sm:grid-cols-3 bg-muted/40 p-4 rounded-xl border border-border/50">
           <div className="flex items-center justify-between p-2">
             <div className="space-y-0.5">
               <span className="text-sm font-semibold block">
@@ -466,7 +523,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
               <Badge variant={isActive ? "default" : "secondary"}>
                 {isActive ? (ar ? "مفعّل" : "Active") : ar ? "متوقف" : "Disabled"}
               </Badge>
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
+              <Switch checked={isActive} onCheckedChange={handleToggleActive} />
             </div>
           </div>
 
@@ -482,7 +539,23 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
             </div>
             <Switch
               checked={autoCheckoutOnDeparture}
-              onCheckedChange={setAutoCheckoutOnDeparture}
+              onCheckedChange={handleToggleAutoCheckout}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-2 border-t sm:border-t-0 sm:border-l border-border/50 rtl:sm:border-l-0 rtl:sm:border-r">
+            <div className="space-y-0.5">
+              <span className="text-sm font-semibold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                {ar ? "مزامنة الإجازات آلياً:" : "Auto Vacation Sync:"}
+              </span>
+              <p className="text-xs text-muted-foreground">
+                {ar ? "تحديث حالة الغرفة عند خروج/عودة الموظف" : "Sync vacation room status"}
+              </p>
+            </div>
+            <Switch
+              checked={autoVacationSync}
+              onCheckedChange={handleToggleAutoVacation}
             />
           </div>
         </div>
@@ -594,7 +667,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                     <SelectValue placeholder={ar ? 'الكل (تلقائي)' : 'All (Auto)'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="" className="text-xs">
+                    <SelectItem value="all" className="text-xs">
                       {ar ? 'جميع المصادر النشطة (تلقائي)' : 'All Active Sources (Auto)'}
                     </SelectItem>
                     {esignSources.filter(s => s.isActive).map(s => (
@@ -759,7 +832,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                     <SelectValue placeholder={ar ? 'الكل (تلقائي)' : 'All (Auto)'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="" className="text-xs">
+                    <SelectItem value="all" className="text-xs">
                       {ar ? 'جميع المصادر النشطة (تلقائي)' : 'All Active Sources (Auto)'}
                     </SelectItem>
                     {esignSources.filter(s => s.isActive).map(s => (
@@ -996,7 +1069,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingEsignSource?.id.startsWith('src-') 
+              {editingEsignSource?.id?.startsWith('src-') 
                 ? (ar ? 'إضافة مصدر API جديد' : 'Add New API Source') 
                 : (ar ? 'تعديل مصدر API' : 'Edit API Source')}
             </DialogTitle>
