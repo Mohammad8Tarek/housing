@@ -4,6 +4,8 @@ import { logger } from "./logger.js";
 import { enrichProfileBilingual } from "./bilingual-translator.js";
 
 export interface SunriseEsignConfig {
+  id?: string;
+  label?: string;
   baseUrl?: string;
   username?: string;
   password?: string;
@@ -52,9 +54,10 @@ const hotelIdCache = new Map<string, number>();
 const DEFAULT_BASE_URL = "https://signature-backend.sunrise-resorts.com/api";
 
 /**
- * Load Sunrise e-Signature config for a given property (or global)
+ * Load ALL Sunrise e-Signature configs for a property (multi-source support).
+ * Backward-compatible: converts old single-object format to array automatically.
  */
-export async function getEsignConfig(propertyId?: number | null): Promise<SunriseEsignConfig | null> {
+export async function getEsignConfigs(propertyId?: number | null): Promise<SunriseEsignConfig[]> {
   try {
     const client = await pool.connect();
     try {
@@ -65,21 +68,69 @@ export async function getEsignConfig(propertyId?: number | null): Promise<Sunris
           [propertyId],
         );
       }
-      if (!res || res.rows.length === 0 || !res.rows[0]?.esign_config || Object.keys(res.rows[0].esign_config).length === 0) {
+      if (!res || res.rows.length === 0 || !res.rows[0]?.esign_config) {
         res = await client.query(
           "SELECT esign_config FROM public.hr_sync_config WHERE esign_config IS NOT NULL AND esign_config != '{}'::jsonb ORDER BY id ASC LIMIT 1",
         );
       }
       if (res && res.rows.length > 0 && res.rows[0]?.esign_config) {
-        return res.rows[0].esign_config as SunriseEsignConfig;
+        const raw = res.rows[0].esign_config;
+        // Backward compat: old format was single object, new format is array
+        if (Array.isArray(raw)) {
+          return raw as SunriseEsignConfig[];
+        }
+        // Old single-object format → wrap in array
+        if (raw && typeof raw === "object" && (raw.username || raw.hotelCode)) {
+          return [{ id: "default", label: "Default", ...raw }] as SunriseEsignConfig[];
+        }
       }
     } finally {
       client.release();
     }
   } catch (err) {
-    logger.warn({ err }, "[SunriseEsignService] Failed to load esign config from DB");
+    logger.warn({ err }, "[SunriseEsignService] Failed to load esign configs from DB");
   }
-  return null;
+  return [];
+}
+
+/**
+ * Load a single Sunrise e-Signature config for a property (first active source).
+ * Backward-compatible wrapper around getEsignConfigs.
+ */
+export async function getEsignConfig(propertyId?: number | null): Promise<SunriseEsignConfig | null> {
+  const configs = await getEsignConfigs(propertyId);
+  return configs.find((c) => c.isActive !== false) || configs[0] || null;
+}
+
+/**
+ * Load a specific source by its ID from a property's esign configs.
+ */
+export async function getEsignConfigById(propertyId: number, sourceId: string): Promise<SunriseEsignConfig | null> {
+  const configs = await getEsignConfigs(propertyId);
+  return configs.find((c) => c.id === sourceId) || null;
+}
+
+/**
+ * Try to fetch a single employee from ALL active e-Signature sources.
+ * Returns the first match found, or null if none found.
+ */
+export async function fetchEmployeeFromAllSources(
+  propertyId: number,
+  clockNo: string | number,
+): Promise<{ employee: NormalizedEsignEmployee | null; sourceId: string | null }> {
+  const configs = await getEsignConfigs(propertyId);
+  const active = configs.filter((c) => c.isActive !== false && c.username && c.password);
+  for (const cfg of active) {
+    try {
+      const emp = await fetchEmployeeByCode(cfg, clockNo);
+      if (emp) {
+        return { employee: emp, sourceId: cfg.id || "default" };
+      }
+    } catch (err: any) {
+      logger.warn({ err: err?.message, sourceId: cfg.id }, "[EsignMultiLookup] Source failed, trying next...");
+    }
+  }
+  return { employee: null, sourceId: null };
 }
 
 /**

@@ -28,8 +28,11 @@ import {
 import { broadcastToProperty } from "../lib/websocket.js";
 import {
   getEsignConfig,
+  getEsignConfigs,
+  getEsignConfigById,
   testEsignConnection,
   fetchEmployeeByCode,
+  fetchEmployeeFromAllSources,
   SunriseEsignConfig,
 } from "../lib/sunrise-esign-service.js";
 
@@ -1270,6 +1273,7 @@ router.get(
           targetPropertyIds: [propertyId],
           sources: [],
           esignConfig: null,
+          esignConfigs: [],
           lastSyncAt: null,
         },
       });
@@ -1282,11 +1286,22 @@ router.get(
       apiKey: s.apiKey ? "••••••" : "",
     }));
 
-    const rawEsign = (row.esign_config && typeof row.esign_config === "object") ? row.esign_config : {};
-    const safeEsign = Object.keys(rawEsign).length > 0 ? {
-      ...rawEsign,
-      password: rawEsign.password ? "••••••••" : "",
-    } : null;
+    // Multi-source esign: normalize raw to array and mask passwords
+    const rawEsignData = row.esign_config;
+    let esignArr: SunriseEsignConfig[] = [];
+    if (Array.isArray(rawEsignData)) {
+      esignArr = rawEsignData;
+    } else if (rawEsignData && typeof rawEsignData === "object" && (rawEsignData.username || rawEsignData.hotelCode)) {
+      esignArr = [{ id: "default", label: "Default", ...rawEsignData }];
+    }
+
+    const safeEsignConfigs = esignArr.map((c: any) => ({
+      ...c,
+      password: c.password ? "••••••••" : "",
+    }));
+
+    // Backward compat: esignConfig = first source (masked)
+    const safeEsign = safeEsignConfigs.length > 0 ? safeEsignConfigs[0] : null;
 
     res.json({
       success: true,
@@ -1301,6 +1316,7 @@ router.get(
         targetPropertyIds: Array.isArray(row.target_property_ids) && row.target_property_ids.length > 0 ? row.target_property_ids : [propertyId],
         sources: safeSources,
         esignConfig: safeEsign,
+        esignConfigs: safeEsignConfigs,
         lastSyncAt: row.last_sync_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -1367,20 +1383,47 @@ router.put(
       };
     });
 
-    let finalEsignConfig = esignConfig;
-    if (esignConfig && typeof esignConfig === "object") {
-      const existingEsign = (existing?.esign_config && typeof existing.esign_config === "object")
-        ? existing.esign_config
-        : {};
+    // Multi-source esign: accept esignConfigs (array) or esignConfig (single, backward compat)
+    const incomingEsignConfigs: SunriseEsignConfig[] | undefined = Array.isArray(req.body.esignConfigs)
+      ? req.body.esignConfigs
+      : undefined;
+
+    // Load existing esign data for password preservation
+    let existingEsignArr: SunriseEsignConfig[] = [];
+    if (existing?.esign_config) {
+      if (Array.isArray(existing.esign_config)) {
+        existingEsignArr = existing.esign_config;
+      } else if (typeof existing.esign_config === "object" && (existing.esign_config.username || existing.esign_config.hotelCode)) {
+        existingEsignArr = [{ id: "default", label: "Default", ...existing.esign_config }];
+      }
+    }
+    const existingPwdMap = new Map(existingEsignArr.map((c: any) => [c.id || "default", c.password || ""]));
+
+    let finalEsignConfig: any;
+
+    if (incomingEsignConfigs) {
+      // New array format: preserve masked passwords per source
+      finalEsignConfig = incomingEsignConfigs.map((c: any) => {
+        let pwd = c.password;
+        if (pwd === "••••••••" || (typeof pwd === "string" && pwd.startsWith("•••"))) {
+          pwd = existingPwdMap.get(c.id || "default") || "";
+        }
+        return { ...c, password: pwd };
+      });
+    } else if (esignConfig && typeof esignConfig === "object") {
+      // Legacy single object format
+      const existingEsign = existingEsignArr[0] || {};
       let pwd = esignConfig.password;
       if (pwd === "••••••••" || (typeof pwd === "string" && pwd.startsWith("•••"))) {
-        pwd = existingEsign.password || "";
+        pwd = (existingEsign as any).password || "";
       }
-      finalEsignConfig = {
+      finalEsignConfig = [{
+        id: "default",
+        label: "Default",
         ...existingEsign,
         ...esignConfig,
         password: pwd,
-      };
+      }];
     }
 
     if (existing) {
@@ -2433,29 +2476,41 @@ router.get(
         return;
       }
 
-      const config = await getEsignConfig(propertyId);
-      if (!config || !config.username || !config.password) {
-        res.status(400).json({
-          success: false,
-          error: "إعدادات الربط مع سيرفر الموارد البشرية (Sunrise e-Signature) غير مكتملة في هذا الفندق. يرجى تهيئتها من شاشة إعدادات HR Sync أولاً.",
-        });
-        return;
-      }
+      const sourceId = req.query.sourceId ? String(req.query.sourceId).trim() : undefined;
 
-      const employee = await fetchEmployeeByCode(config, clockNo, hotelCodeOverride);
-      if (!employee) {
-        res.json({
-          success: false,
-          notFound: true,
-          message: `لم يتم العثور على أي موظف يحمل الكود (${clockNo}) في قاعدة بيانات الموارد البشرية بالفندق`,
-        });
-        return;
+      if (sourceId) {
+        // Specific source requested
+        const config = await getEsignConfigById(propertyId!, sourceId);
+        if (!config || !config.username || !config.password) {
+          res.status(400).json({
+            success: false,
+            error: `مصدر الربط "${sourceId}" غير موجود أو غير مكتمل البيانات`,
+          });
+          return;
+        }
+        const employee = await fetchEmployeeByCode(config, clockNo, hotelCodeOverride);
+        if (!employee) {
+          res.json({
+            success: false,
+            notFound: true,
+            message: `لم يتم العثور على أي موظف يحمل الكود (${clockNo}) في المصدر "${config.label || sourceId}"`,
+          });
+          return;
+        }
+        res.json({ success: true, employee, sourceId });
+      } else {
+        // Search ALL active sources
+        const { employee, sourceId: foundSourceId } = await fetchEmployeeFromAllSources(propertyId!, clockNo);
+        if (!employee) {
+          res.json({
+            success: false,
+            notFound: true,
+            message: `لم يتم العثور على أي موظف يحمل الكود (${clockNo}) في أي مصدر من مصادر الربط المتاحة`,
+          });
+          return;
+        }
+        res.json({ success: true, employee, sourceId: foundSourceId });
       }
-
-      res.json({
-        success: true,
-        employee,
-      });
     } catch (err: any) {
       console.error("[Esign Lookup Error]", err);
       res.status(400).json({ success: false, error: err?.message || "فشل جلب بيانات الموظف من HR" });
@@ -2498,7 +2553,18 @@ router.post(
         return;
       }
 
-      const config = await getEsignConfig(propertyId);
+      const sourceId = req.body.sourceId ? String(req.body.sourceId).trim() : undefined;
+
+      let config: SunriseEsignConfig | null = null;
+      if (sourceId) {
+        config = await getEsignConfigById(propertyId, sourceId);
+        if (!config) {
+          res.status(400).json({ success: false, error: `مصدر الربط "${sourceId}" غير موجود` });
+          return;
+        }
+      } else {
+        config = await getEsignConfig(propertyId);
+      }
       if (!config || !config.username || !config.password) {
         res.status(400).json({
           success: false,
@@ -2576,7 +2642,18 @@ router.post(
         return;
       }
 
-      const config = await getEsignConfig(propertyId);
+      const sourceId = req.body.sourceId ? String(req.body.sourceId).trim() : undefined;
+
+      let config: SunriseEsignConfig | null = null;
+      if (sourceId) {
+        config = await getEsignConfigById(propertyId, sourceId);
+        if (!config) {
+          res.status(400).json({ success: false, error: `مصدر الربط "${sourceId}" غير موجود` });
+          return;
+        }
+      } else {
+        config = await getEsignConfig(propertyId);
+      }
       if (!config || !config.username || !config.password) {
         res.status(400).json({
           success: false,
