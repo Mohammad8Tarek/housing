@@ -59,6 +59,7 @@ import {
   type Action,
 } from "@/lib/permissions";
 import { roleColor } from "../utils";
+import { usePermission } from "@/hooks/use-permission";
 
 interface PermissionMatrixDialogProps {
   user: any;
@@ -143,6 +144,12 @@ export function PermissionMatrixDialog({
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
+  const { isSuperAdmin: actorIsSuperAdmin, perms: actorPerms, can: actorCan } = usePermission();
+
+  const actorCanGrant = (mod: Module, act: Action) => {
+    if (actorIsSuperAdmin || actorPerms.has("*")) return true;
+    return actorCan(mod, act);
+  };
 
   // Primary role of the target user
   const primaryRole = (user.roles?.[0] || "user").toLowerCase();
@@ -212,6 +219,14 @@ export function PermissionMatrixDialog({
   // - If enabling any sub-action, auto-enable 'view'.
   const toggleAction = (m: Module, a: Action) => {
     const key = permKey(m, a);
+    if (!perms.has(key) && !actorCanGrant(m, a)) {
+      toast.error(
+        ar
+          ? `لا يمكنك منح صلاحية (${ACTION_LABELS[a]?.ar || a}) لأنك لا تملكها`
+          : `You cannot grant (${a}) permission because you do not have it`,
+      );
+      return;
+    }
     setPerms((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
@@ -223,7 +238,7 @@ export function PermissionMatrixDialog({
         }
       } else {
         next.add(key);
-        if (a !== "view" && (MODULE_ACTIONS[m] ?? []).includes("view")) {
+        if (a !== "view" && (MODULE_ACTIONS[m] ?? []).includes("view") && actorCanGrant(m, "view")) {
           next.add(permKey(m, "view"));
         }
       }
@@ -237,7 +252,11 @@ export function PermissionMatrixDialog({
     setPerms((prev) => {
       const next = new Set(prev);
       if (shouldEnable) {
-        modulePerms.forEach((a) => next.add(permKey(m, a)));
+        modulePerms.forEach((a) => {
+          if (actorCanGrant(m, a)) {
+            next.add(permKey(m, a));
+          }
+        });
       } else {
         modulePerms.forEach((a) => next.delete(permKey(m, a)));
       }
@@ -256,7 +275,9 @@ export function PermissionMatrixDialog({
         const acts = MODULE_ACTIONS[m] ?? [];
         acts.forEach((a) => {
           if (shouldEnable) {
-            next.add(permKey(m, a));
+            if (actorCanGrant(m, a)) {
+              next.add(permKey(m, a));
+            }
           } else {
             next.delete(permKey(m, a));
           }
@@ -279,33 +300,74 @@ export function PermissionMatrixDialog({
   // Apply one of the 9 role presets
   const applyRoleDefaults = (roleKey: string) => {
     const defaults = ROLE_DEFAULT_PERMISSIONS[roleKey] ?? [];
-    setPerms(new Set(defaults));
+    let omitted = 0;
+    const allowed = defaults.filter((permStr) => {
+      const parts = permStr.split(".");
+      if (parts.length === 2) {
+        const [m, a] = parts as [Module, Action];
+        const ok = actorCanGrant(m, a);
+        if (!ok) omitted++;
+        return ok;
+      }
+      return true;
+    });
+    setPerms(new Set(allowed));
     const preset = SYSTEM_ROLE_PRESETS.find((r) => r.value === roleKey);
-    toast.info(
-      ar
-        ? `تم تطبيق قالب الدور: ${preset ? preset.labelAr : roleKey}`
-        : `Applied role preset: ${preset ? preset.labelEn : roleKey}`,
-    );
+    if (omitted > 0) {
+      toast.warning(
+        ar
+          ? `تم تطبيق القالب مع استبعاد ${omitted} صلاحية لعدم امتلاكك لها`
+          : `Preset applied; omitted ${omitted} permissions you do not possess`,
+      );
+    } else {
+      toast.info(
+        ar
+          ? `تم تطبيق قالب الدور: ${preset ? preset.labelAr : roleKey}`
+          : `Applied role preset: ${preset ? preset.labelEn : roleKey}`,
+      );
+    }
   };
 
   // Apply default template for current role
   const revertToRoleDefaults = () => {
-    setPerms(new Set(roleDefaults));
-    toast.info(
-      ar
-        ? "تم تطبيق قالب الصلاحيات الافتراضي للدور"
-        : "Applied default role permissions template",
-    );
+    const defaults = Array.from(roleDefaults);
+    let omitted = 0;
+    const allowed = defaults.filter((permStr) => {
+      const parts = permStr.split(".");
+      if (parts.length === 2) {
+        const [m, a] = parts as [Module, Action];
+        const ok = actorCanGrant(m, a);
+        if (!ok) omitted++;
+        return ok;
+      }
+      return true;
+    });
+    setPerms(new Set(allowed));
+    if (omitted > 0) {
+      toast.warning(
+        ar
+          ? `تم استعادة القالب مع استبعاد ${omitted} صلاحية لا تمتلكها`
+          : `Reverted to role defaults; omitted ${omitted} unowned permissions`,
+      );
+    } else {
+      toast.info(
+        ar
+          ? "تم تطبيق قالب الصلاحيات الافتراضي للدور"
+          : "Applied default role permissions template",
+      );
+    }
   };
 
   const selectAll = () => {
-    setPerms(
-      new Set(
-        MODULES.flatMap((m) =>
-          (MODULE_ACTIONS[m] ?? []).map((a) => permKey(m, a)),
-        ),
-      ),
-    );
+    const allAllowed: string[] = [];
+    MODULES.forEach((m) => {
+      (MODULE_ACTIONS[m] ?? []).forEach((a) => {
+        if (actorCanGrant(m, a)) {
+          allAllowed.push(permKey(m, a));
+        }
+      });
+    });
+    setPerms(new Set(allAllowed));
   };
 
   const deselectAll = () => {
@@ -315,12 +377,12 @@ export function PermissionMatrixDialog({
   const applyReadOnlyAll = () => {
     const readOnly = new Set<string>();
     MODULES.forEach((m) => {
-      if ((MODULE_ACTIONS[m] ?? []).includes("view")) {
+      if ((MODULE_ACTIONS[m] ?? []).includes("view") && actorCanGrant(m, "view")) {
         readOnly.add(permKey(m, "view"));
       }
     });
     setPerms(readOnly);
-    toast.info(ar ? "تم تطبيق صلاحيات العرض فقط لكافة الموديولات" : "Applied Read-Only to all modules");
+    toast.info(ar ? "تم تطبيق صلاحيات العرض فقط لكافة الموديولات المتاحة لك" : "Applied Read-Only to all available modules");
   };
 
   // Save handler with zero-permission safeguard (pure RBAC: permissions are explicit)
@@ -928,7 +990,8 @@ export function PermissionMatrixDialog({
                                         a === "view" ||
                                         a === "view_maintenance" ||
                                         a === "view_housekeeping";
-                                      const isActionDisabled = !isViewAction && !status.hasView;
+                                      const canGrant = actorCanGrant(m, a);
+                                      const isActionDisabled = (!isViewAction && !status.hasView) || !canGrant;
                                       const isRoleDefault = roleDefaults.has(key);
                                       const isActionMatch = matchesActionSearch(a, searchQuery);
 
@@ -936,7 +999,20 @@ export function PermissionMatrixDialog({
                                       let statusBadge = null;
                                       let tooltipText = "";
 
-                                      if (isChecked && isRoleDefault) {
+                                      if (!canGrant) {
+                                        statusBadge = (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-[9px] py-0 px-1 font-bold border-amber-300 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center gap-0.5"
+                                          >
+                                            <Lock className="w-2.5 h-2.5 text-amber-600" />
+                                            <span>{ar ? "غير متاحة لك" : "Unowned"}</span>
+                                          </Badge>
+                                        );
+                                        tooltipText = ar
+                                          ? "لا تملك هذه الصلاحية، ولا يمكنك منحها لمستخدمين آخرين"
+                                          : "You do not possess this permission and cannot grant it";
+                                      } else if (isChecked && isRoleDefault) {
                                         statusBadge = (
                                           <Badge
                                             variant="outline"

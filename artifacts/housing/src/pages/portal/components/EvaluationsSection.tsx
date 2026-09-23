@@ -68,13 +68,16 @@ import {
   Palette,
   UtensilsCrossed,
   MessageCircle,
+  HeartHandshake,
 } from "lucide-react";
+import { HousingPulseSection } from "./HousingPulseSection";
 
 export function EvaluationsSection() {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
+  const [subTab, setSubTab] = useState("pulse");
   const [isOpen, setIsOpen] = useState(false);
   const [responsesOpen, setResponsesOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
@@ -235,21 +238,38 @@ export function EvaluationsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-bold">
-            {ar ? "استبيانات الموظفين" : "Profile Surveys"}
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            {ar
-              ? "إنشاء استبيانات وتقييمات يشارك فيها الموظفون"
-              : "Create surveys and evaluations for profiles to rate"}
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setIsOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" /> {ar ? "استبيان جديد" : "New Survey"}
-        </Button>
-      </div>
+      <Tabs value={subTab} onValueChange={setSubTab} className="w-full">
+        <TabsList className="grid w-full max-w-lg grid-cols-2 mb-6">
+          <TabsTrigger value="pulse" className="flex items-center gap-2 text-xs font-semibold">
+            <HeartHandshake className="w-4 h-4 text-emerald-600" />
+            <span>{ar ? "استطلاع نبض السكن الأسبوعي" : "Housing Satisfaction Pulse"}</span>
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2 text-xs font-semibold">
+            <Star className="w-4 h-4 text-amber-500" />
+            <span>{ar ? "نماذج الاستبيانات المخصصة" : "Custom Survey Templates"}</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pulse" className="space-y-6">
+          <HousingPulseSection />
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-bold">
+                {ar ? "استبيانات الموظفين المخصصة" : "Custom Profile Surveys"}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {ar
+                  ? "إنشاء استبيانات وتقييمات مخصصة للأقسام يشارك فيها الموظفون"
+                  : "Create custom department surveys and evaluations for profiles to rate"}
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setIsOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" /> {ar ? "استبيان جديد" : "New Survey"}
+            </Button>
+          </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-4 gap-3">
@@ -708,6 +728,8 @@ export function EvaluationsSection() {
           ) : null}
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

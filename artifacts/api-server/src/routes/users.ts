@@ -22,7 +22,7 @@ import {
   UpdateUserResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requireAuth, requirePermission, hasPermission } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission, hasPermission, loadAuthUser, effectivePermissions, normalizePermission } from "../middlewares/permissions.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
 
@@ -38,6 +38,104 @@ function isSystemAdminRoles(roles: string[]): boolean {
       String(role).trim().toLowerCase(),
     ),
   );
+}
+
+/**
+ * Validates that an actor (the user performing create or update) is not attempting
+ * privilege escalation.
+ * If actor is super_admin or system_admin, they can grant any permission and property.
+ * If actor is NOT super_admin/system_admin:
+ * 1. Actor cannot assign super_admin or system_admin role.
+ * 2. Actor cannot assign propertyIds that actor does not have access to.
+ * 3. Actor cannot assign any permission that actor does not possess in their effective permissions.
+ */
+function validateNoPrivilegeEscalation(
+  actor: any,
+  targetRoles?: string[],
+  targetPropertyIds?: number[],
+  targetPermissions?: string[],
+): { valid: boolean; error?: string; errorEn?: string } {
+  if (!actor) return { valid: false, error: "المستخدم غير مصرح", errorEn: "Unauthenticated" };
+
+  const isActorRoot =
+    actor.isSystemAdmin ||
+    (actor.roles ?? []).some((r: string) =>
+      ["super_admin", "system_admin"].includes(String(r).trim().toLowerCase())
+    );
+
+  // If actor is super_admin or system_admin, they possess unrestricted root authority
+  if (isActorRoot) {
+    return { valid: true };
+  }
+
+  // 1. Role Escalation Check
+  if (targetRoles && Array.isArray(targetRoles)) {
+    const attemptsSystemRole = targetRoles.some((r) =>
+      ["super_admin", "system_admin"].includes(String(r).trim().toLowerCase())
+    );
+    if (attemptsSystemRole) {
+      return {
+        valid: false,
+        error: "لا يمكنك منح دور مدير نظام عام أو تقني لعدم امتلاكك صلاحية الـ Super Admin",
+        errorEn: "You cannot grant Super Admin or System Admin roles",
+      };
+    }
+  }
+
+  // 2. Property Escalation Check
+  if (targetPropertyIds && Array.isArray(targetPropertyIds) && targetPropertyIds.length > 0) {
+    const actorProps = new Set(
+      Array.isArray(actor.propertyIds)
+        ? actor.propertyIds.map(Number)
+        : actor.propertyId
+          ? [Number(actor.propertyId)]
+          : []
+    );
+    const hasGlobalProps = hasPermission(actor, "properties", "view");
+    if (!hasGlobalProps) {
+      const unauthorizedProps = targetPropertyIds.filter((pid) => !actorProps.has(Number(pid)));
+      if (unauthorizedProps.length > 0) {
+        return {
+          valid: false,
+          error: "لا يمكنك تعيين مستخدم لفندق ليس لديك صلاحية وصول عليه",
+          errorEn: "You cannot assign user to properties you cannot access",
+        };
+      }
+    }
+  }
+
+  // 3. Permission Escalation Check
+  if (targetPermissions && Array.isArray(targetPermissions) && targetPermissions.length > 0) {
+    const actorEffective = effectivePermissions(actor);
+    if (actorEffective.has("*")) {
+      return { valid: true };
+    }
+
+    const unownedPerms: string[] = [];
+    for (const rawPerm of targetPermissions) {
+      if (rawPerm === "none") continue;
+      const norm = normalizePermission(rawPerm);
+      if (!norm) continue;
+
+      const hasDirect = actorEffective.has(norm);
+      const hasDot = norm.includes(":") ? actorEffective.has(norm.replace(":", ".")) : false;
+      const hasColon = norm.includes(".") ? actorEffective.has(norm.replace(".", ":")) : false;
+
+      if (!hasDirect && !hasDot && !hasColon) {
+        unownedPerms.push(rawPerm);
+      }
+    }
+
+    if (unownedPerms.length > 0) {
+      return {
+        valid: false,
+        error: `لا يمكنك منح صلاحيات لا تمتلكها شخصياً في حسابك: (${unownedPerms.slice(0, 3).join(", ")}${unownedPerms.length > 3 ? "..." : ""})`,
+        errorEn: `You cannot grant permissions you do not possess: (${unownedPerms.slice(0, 3).join(", ")})`,
+      };
+    }
+  }
+
+  return { valid: true };
 }
 
 /** Standardizes user status to uppercase enum: 'ACTIVE' | 'INACTIVE' | 'LOCKED' */
@@ -366,6 +464,24 @@ router.post(
       return;
     }
     const { password, propertyIds, ...userData } = parsed.data as any;
+
+    const actor = await loadAuthUser(req, res);
+    if (!actor) return;
+
+    const pids: number[] =
+      propertyIds ?? (userData.propertyId ? [userData.propertyId] : []);
+
+    const escalationCheck = validateNoPrivilegeEscalation(
+      actor,
+      userData.roles,
+      pids,
+      userData.permissions
+    );
+    if (!escalationCheck.valid) {
+      res.status(403).json({ error: escalationCheck.error, errorEn: escalationCheck.errorEn });
+      return;
+    }
+
     if (
       isSystemAdminRoles(userData.roles ?? []) &&
       !(req.session as any)?.isSystemAdmin
@@ -385,8 +501,6 @@ router.post(
     }
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    const pids: number[] =
-      propertyIds ?? (userData.propertyId ? [userData.propertyId] : []);
 
     const [user] = await db.transaction(async (tx) => {
       const [created] = await tx
@@ -462,7 +576,21 @@ router.patch(
       return;
     }
 
+    const actor = await loadAuthUser(req, res);
+    if (!actor) return;
+
     const { password, propertyIds, ...updateData } = parsed.data as any;
+
+    const escalationCheck = validateNoPrivilegeEscalation(
+      actor,
+      updateData.roles,
+      Array.isArray(propertyIds) ? propertyIds : undefined,
+      updateData.permissions
+    );
+    if (!escalationCheck.valid) {
+      res.status(403).json({ error: escalationCheck.error, errorEn: escalationCheck.errorEn });
+      return;
+    }
 
     // تحقق من تغيير اسم المستخدم - يجب أن يكون فريداً
     if (updateData.username && updateData.username !== targetUser.username) {
@@ -763,9 +891,18 @@ router.post(
       }
 
       const session = req.session as any;
+      const actor = await loadAuthUser(req, res);
+      if (!actor) return;
+
       let updatedCount = 0;
 
       if (action === "role" && role) {
+        const check = validateNoPrivilegeEscalation(actor, [role]);
+        if (!check.valid) {
+          res.status(403).json({ error: check.error, errorEn: check.errorEn });
+          return;
+        }
+
         for (const id of ids) {
           await db
             .update(usersTable)
@@ -786,6 +923,12 @@ router.post(
           severity: "info",
         });
       } else if (action === "properties" && Array.isArray(propertyIds)) {
+        const check = validateNoPrivilegeEscalation(actor, undefined, propertyIds);
+        if (!check.valid) {
+          res.status(403).json({ error: check.error, errorEn: check.errorEn });
+          return;
+        }
+
         for (const id of ids) {
           await db
             .update(usersTable)

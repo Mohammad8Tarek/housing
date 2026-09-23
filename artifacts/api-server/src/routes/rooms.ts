@@ -341,15 +341,17 @@ router.get(
   requirePermission("housing", "view"),
   async (req, res): Promise<void> => {
     try {
-      const propertyId = getTenantId(req);
-      if (!propertyId) {
-        res.status(400).json({ error: "propertyId is required" });
-        return;
-      }
-
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) {
         res.status(400).json({ error: "Invalid room id" });
+        return;
+      }
+      let propertyId = getTenantId(req);
+      if (!propertyId) {
+        propertyId = (await findPropertyByRoomId(id)) || 0;
+      }
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
         return;
       }
 
@@ -897,9 +899,11 @@ router.patch(
       if (
         !hasPermission(user, "accommodation", "edit") &&
         !hasPermission(user, "housing", "edit") &&
-        !hasPermission(user, "housekeeping", "edit")
+        !hasPermission(user, "housekeeping", "edit") &&
+        !hasPermission(user, "housekeeping", "view") &&
+        !hasPermission(user, "maintenance", "view_housekeeping")
       ) {
-        res.status(403).json({ error: "Permission denied. Requires accommodation:edit, housing:edit, or housekeeping:edit" });
+        res.status(403).json({ error: "Permission denied. Requires accommodation, housing, or housekeeping permission" });
         return;
       }
       next();
@@ -959,9 +963,11 @@ router.patch(
         },
       });
 
-      // Also trigger a property broadcast for realtime UI update
+      // Trigger property broadcasts for realtime UI updates
       const { broadcastToProperty } = await import("../lib/websocket.js");
       broadcastToProperty(propertyId, { module: "rooms", action: "sync" });
+      broadcastToProperty(propertyId, { module: "housekeeping", action: "sync" });
+      broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
 
       res.json({ success: true, room: { ...updated, propertyId } });
     } catch (err: any) {

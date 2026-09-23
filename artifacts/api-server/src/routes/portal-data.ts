@@ -20,6 +20,7 @@ import {
   portalContactsTable,
   activitiesTable,
   propertyHousingRatingsTable,
+  propertyHousingPulseConfigTable,
 } from "@workspace/db";
 import {
   eq,
@@ -1414,7 +1415,7 @@ router.post("/activity-attendance", async (req, res): Promise<void> => {
   }
 });
 
-// ─── GET /api/portal-data/housing-rating-status (Check 7-day cooldown) ───────
+// ─── GET /api/portal-data/housing-rating-status (Check cooldown & load config) ─
 router.get("/housing-rating-status", async (req, res): Promise<void> => {
   const sess = portalSession(req);
   if (!sess) {
@@ -1424,6 +1425,58 @@ router.get("/housing-rating-status", async (req, res): Promise<void> => {
 
   try {
     const profileId = sess.profileDbId;
+    const propertyId = sess.propertyId;
+
+    // Load property pulse configuration
+    let [config] = await db
+      .select()
+      .from(propertyHousingPulseConfigTable)
+      .where(eq(propertyHousingPulseConfigTable.propertyId, propertyId))
+      .limit(1);
+
+    if (!config) {
+      config = {
+        id: 0,
+        propertyId,
+        enabled: true,
+        ratingType: "faces",
+        allowComment: true,
+        commentRequired: false,
+        cooldownDays: 7,
+        titleAr: "استطلاع جودة السكن الأسبوعي",
+        titleEn: "Weekly Housing Quality Pulse",
+        questionAr: "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
+        questionEn:
+          "How satisfied are you with housing conditions, cleanliness & services this week?",
+        forcePromptAfter: null,
+        lastPushedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    const configData = {
+      ratingType: config.ratingType || "faces",
+      allowComment: config.allowComment ?? true,
+      commentRequired: config.commentRequired ?? false,
+      titleAr: config.titleAr,
+      titleEn: config.titleEn,
+      questionAr: config.questionAr,
+      questionEn: config.questionEn,
+    };
+
+    if (!config.enabled) {
+      res.json({
+        success: true,
+        eligible: false,
+        disabled: true,
+        config: configData,
+      });
+      return;
+    }
+
+    const cooldownDays = config.cooldownDays || 7;
+
     const [latestRating] = await db
       .select({
         id: propertyHousingRatingsTable.id,
@@ -1439,31 +1492,52 @@ router.get("/housing-rating-status", async (req, res): Promise<void> => {
         success: true,
         eligible: true,
         lastRatedAt: null,
+        config: configData,
       });
       return;
     }
 
     const lastDate = new Date(latestRating.createdAt);
     const now = new Date();
+
+    // Check if admin pushed a fresh pulse after user's last rating!
+    if (
+      config.forcePromptAfter &&
+      new Date(config.forcePromptAfter) > lastDate
+    ) {
+      res.json({
+        success: true,
+        eligible: true,
+        forced: true,
+        lastRatedAt: lastDate.toISOString(),
+        config: configData,
+      });
+      return;
+    }
+
     const diffMs = now.getTime() - lastDate.getTime();
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
-    if (diffDays >= 7) {
+    if (diffDays >= cooldownDays) {
       res.json({
         success: true,
         eligible: true,
         lastRatedAt: lastDate.toISOString(),
         daysSinceLastRating: Math.floor(diffDays),
+        config: configData,
       });
     } else {
-      const nextEligibleDate = new Date(lastDate.getTime() + 7 * 86400000);
-      const daysRemaining = Math.max(1, Math.ceil(7 - diffDays));
+      const nextEligibleDate = new Date(
+        lastDate.getTime() + cooldownDays * 86400000,
+      );
+      const daysRemaining = Math.max(1, Math.ceil(cooldownDays - diffDays));
       res.json({
         success: true,
         eligible: false,
         lastRatedAt: lastDate.toISOString(),
         nextEligibleDate: nextEligibleDate.toISOString(),
         daysRemaining,
+        config: configData,
       });
     }
   } catch (err: any) {
@@ -1472,7 +1546,7 @@ router.get("/housing-rating-status", async (req, res): Promise<void> => {
   }
 });
 
-// ─── POST /api/portal-data/housing-rating (Submit anonymous 7-day pulse) ─────
+// ─── POST /api/portal-data/housing-rating (Submit anonymous pulse rating) ────
 router.post("/housing-rating", async (req, res): Promise<void> => {
   const sess = portalSession(req);
   if (!sess) {
@@ -1480,33 +1554,59 @@ router.post("/housing-rating", async (req, res): Promise<void> => {
     return;
   }
 
-  const { rating, comment } = req.body as {
-    rating: string;
+  const {
+    rating,
+    score: rawScore,
+    comment,
+  } = req.body as {
+    rating?: string;
+    score?: number;
     comment?: string;
   };
 
-  const normalizedRating = String(rating || "").trim().toLowerCase();
-  const validRatings = ["satisfied", "neutral", "dissatisfied"];
-  if (!validRatings.includes(normalizedRating)) {
+  let normalizedRating = String(rating || "").trim().toLowerCase();
+  let score: number = 3;
+
+  if (rawScore != null && !isNaN(Number(rawScore))) {
+    const num = Math.max(1, Math.min(5, Math.round(Number(rawScore))));
+    score = num;
+    if (
+      !normalizedRating ||
+      !["satisfied", "neutral", "dissatisfied"].includes(normalizedRating)
+    ) {
+      normalizedRating =
+        num >= 4 ? "satisfied" : num === 3 ? "neutral" : "dissatisfied";
+    }
+  } else if (normalizedRating) {
+    const scoreMap: Record<string, number> = {
+      satisfied: 5,
+      neutral: 3,
+      dissatisfied: 1,
+    };
+    score = scoreMap[normalizedRating] ?? 3;
+  } else {
     res.status(400).json({
       success: false,
-      message: "التقييم يجب أن يكون: راضي (satisfied) أو متوسط (neutral) أو غير راضي (dissatisfied)",
+      message:
+        "يرجى تحديد التقييم (راضي أو متوسط أو غير راضي) أو اختيار عدد النجوم من 1 إلى 5",
     });
     return;
   }
-
-  const scoreMap: Record<string, number> = {
-    satisfied: 5,
-    neutral: 3,
-    dissatisfied: 1,
-  };
-  const score = scoreMap[normalizedRating] ?? 3;
 
   try {
     const profileId = sess.profileDbId;
     const propertyId = sess.propertyId;
 
-    // Check 7-day cooldown
+    // Load property pulse configuration
+    const [config] = await db
+      .select()
+      .from(propertyHousingPulseConfigTable)
+      .where(eq(propertyHousingPulseConfigTable.propertyId, propertyId))
+      .limit(1);
+
+    const cooldownDays = config?.cooldownDays || 7;
+
+    // Check cooldown
     const [latestRating] = await db
       .select({
         id: propertyHousingRatingsTable.id,
@@ -1519,15 +1619,21 @@ router.post("/housing-rating", async (req, res): Promise<void> => {
 
     if (latestRating) {
       const lastDate = new Date(latestRating.createdAt);
-      const diffDays = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays < 7) {
-        const daysRemaining = Math.max(1, Math.ceil(7 - diffDays));
-        res.status(429).json({
-          success: false,
-          message: `يمكنك إرسال التقييم مرة واحدة كل 7 أيام. متبقي ${daysRemaining} يوم/أيام.`,
-          daysRemaining,
-        });
-        return;
+      const isForced =
+        config?.forcePromptAfter &&
+        new Date(config.forcePromptAfter) > lastDate;
+      if (!isForced) {
+        const diffDays =
+          (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDays < cooldownDays) {
+          const daysRemaining = Math.max(1, Math.ceil(cooldownDays - diffDays));
+          res.status(429).json({
+            success: false,
+            message: `يمكنك إرسال التقييم مرة واحدة كل ${cooldownDays} أيام. متبقي ${daysRemaining} يوم/أيام.`,
+            daysRemaining,
+          });
+          return;
+        }
       }
     }
 
@@ -1543,7 +1649,8 @@ router.post("/housing-rating", async (req, res): Promise<void> => {
 
     res.json({
       success: true,
-      message: "تم تسجيل تقييمك بنجاح وبسرية تامة! شكراً لمشاركتك في تحسين جودة السكن.",
+      message:
+        "تم تسجيل تقييمك بنجاح وبسرية تامة! شكراً لمشاركتك في تحسين جودة السكن.",
     });
   } catch (err: any) {
     console.error("Failed to submit housing rating:", err);

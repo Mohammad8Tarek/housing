@@ -30,8 +30,8 @@ interface TicketsKanbanBoardProps {
   tickets: any[];
   ar: boolean;
   onSelectTicket: (id: number) => void;
-  onQuickStatusChange: (id: number, newStatus: string) => void;
-  onDeleteTicket?: (id: number) => void;
+  onQuickStatusChange: (id: number, newStatus: string, propertyId?: number) => void;
+  onDeleteTicket?: (id: number, propertyId?: number) => void;
   roomMap: Record<number, string>;
   roomOccupantMap: Record<number, string>;
   properties: any[];
@@ -307,7 +307,7 @@ export function TicketsKanbanBoard({
                             variant="secondary"
                             size="sm"
                             className="h-6 px-2 text-[10px] gap-1 font-semibold hover:bg-primary hover:text-primary-foreground transition-colors"
-                            onClick={() => onQuickStatusChange(ticket.id, col.nextStatus!)}
+                            onClick={() => onQuickStatusChange(ticket.id, col.nextStatus!, ticket.propertyId)}
                             title={ar ? col.nextLabelAr : col.nextLabelEn}
                           >
                             {NextIcon && <NextIcon className="w-3 h-3" />}
@@ -329,19 +329,19 @@ export function TicketsKanbanBoard({
                             {canEdit && (
                               <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => onQuickStatusChange(ticket.id, "open")}>
+                                <DropdownMenuItem onClick={() => onQuickStatusChange(ticket.id, "open", ticket.propertyId)}>
                                   <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
                                   {ar ? "تعيين كـ مفتوحة" : "Set Open"}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onQuickStatusChange(ticket.id, "in_progress")}>
+                                <DropdownMenuItem onClick={() => onQuickStatusChange(ticket.id, "in_progress", ticket.propertyId)}>
                                   <span className="w-2 h-2 rounded-full bg-amber-500 mr-2" />
                                   {ar ? "تعيين كـ قيد التنفيذ" : "Set In Progress"}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onQuickStatusChange(ticket.id, "resolved")}>
+                                <DropdownMenuItem onClick={() => onQuickStatusChange(ticket.id, "resolved", ticket.propertyId)}>
                                   <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
                                   {ar ? "تعيين كـ تم الحل" : "Set Resolved"}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onQuickStatusChange(ticket.id, "closed")}>
+                                <DropdownMenuItem onClick={() => onQuickStatusChange(ticket.id, "closed", ticket.propertyId)}>
                                   <span className="w-2 h-2 rounded-full bg-slate-400 mr-2" />
                                   {ar ? "تعيين كـ مغلقة" : "Set Closed"}
                                 </DropdownMenuItem>
@@ -351,7 +351,7 @@ export function TicketsKanbanBoard({
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => onDeleteTicket(ticket.id)}
+                                  onClick={() => onDeleteTicket(ticket.id, ticket.propertyId)}
                                   className="text-red-600 focus:text-red-600"
                                 >
                                   <Trash className="w-3.5 h-3.5 mr-2" />

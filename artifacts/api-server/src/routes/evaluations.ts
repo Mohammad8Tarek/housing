@@ -1,15 +1,18 @@
 import { Router } from "express";
 import {
+  db,
   withTenant,
   evaluationsTable,
   surveyItemsTable,
   surveyItemResponsesTable,
   portalNotificationsTable,
   profilesTable,
+  assignmentsTable,
+  propertyHousingPulseConfigTable,
 } from "@workspace/db";
 import { eq, desc, sql, isNull, and, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { broadcastToProperty } from "../lib/websocket.js";
+import { broadcastToProperty, broadcastSyncAll } from "../lib/websocket.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
@@ -599,6 +602,307 @@ router.delete(
       });
 
       res.sendStatus(204);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// ─── Housing Pulse (7-Day Survey) Admin Management ──────────────────────────
+
+// GET /api/evaluations/housing-pulse - Get configuration
+// @ts-ignore
+router.get(
+  "/evaluations/housing-pulse",
+  requirePermission("evaluations", "view"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      }
+
+      let [config] = await db
+        .select()
+        .from(propertyHousingPulseConfigTable)
+        .where(eq(propertyHousingPulseConfigTable.propertyId, propertyId))
+        .limit(1);
+
+      if (!config) {
+        const [inserted] = await db
+          .insert(propertyHousingPulseConfigTable)
+          .values({
+            propertyId,
+            enabled: true,
+            ratingType: "faces",
+            allowComment: true,
+            commentRequired: false,
+            cooldownDays: 7,
+            titleAr: "استطلاع جودة السكن الأسبوعي",
+            titleEn: "Weekly Housing Quality Pulse",
+            questionAr: "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
+            questionEn:
+              "How satisfied are you with housing conditions, cleanliness & services this week?",
+          })
+          .returning();
+        config = inserted;
+      }
+
+      return res.json({ success: true, config });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// PUT /api/evaluations/housing-pulse - Update configuration
+// @ts-ignore
+router.put(
+  "/evaluations/housing-pulse",
+  requirePermission("evaluations", "edit"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      }
+
+      const {
+        enabled,
+        ratingType,
+        allowComment,
+        commentRequired,
+        cooldownDays,
+        titleAr,
+        titleEn,
+        questionAr,
+        questionEn,
+      } = req.body;
+
+      const normalizedType = ratingType === "stars" ? "stars" : "faces";
+
+      const [existing] = await db
+        .select({ id: propertyHousingPulseConfigTable.id })
+        .from(propertyHousingPulseConfigTable)
+        .where(eq(propertyHousingPulseConfigTable.propertyId, propertyId))
+        .limit(1);
+
+      let updatedConfig;
+      if (existing) {
+        const [u] = await db
+          .update(propertyHousingPulseConfigTable)
+          .set({
+            enabled: typeof enabled === "boolean" ? enabled : true,
+            ratingType: normalizedType,
+            allowComment:
+              typeof allowComment === "boolean" ? allowComment : true,
+            commentRequired:
+              typeof commentRequired === "boolean" ? commentRequired : false,
+            cooldownDays: Math.max(
+              1,
+              Math.min(365, parseInt(cooldownDays, 10) || 7),
+            ),
+            titleAr: titleAr
+              ? String(titleAr).trim()
+              : "استطلاع جودة السكن الأسبوعي",
+            titleEn: titleEn
+              ? String(titleEn).trim()
+              : "Weekly Housing Quality Pulse",
+            questionAr: questionAr
+              ? String(questionAr).trim()
+              : "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
+            questionEn: questionEn
+              ? String(questionEn).trim()
+              : "How satisfied are you with housing conditions, cleanliness & services this week?",
+            updatedAt: new Date(),
+          })
+          .where(eq(propertyHousingPulseConfigTable.propertyId, propertyId))
+          .returning();
+        updatedConfig = u;
+      } else {
+        const [inserted] = await db
+          .insert(propertyHousingPulseConfigTable)
+          .values({
+            propertyId,
+            enabled: typeof enabled === "boolean" ? enabled : true,
+            ratingType: normalizedType,
+            allowComment:
+              typeof allowComment === "boolean" ? allowComment : true,
+            commentRequired:
+              typeof commentRequired === "boolean" ? commentRequired : false,
+            cooldownDays: Math.max(
+              1,
+              Math.min(365, parseInt(cooldownDays, 10) || 7),
+            ),
+            titleAr: titleAr
+              ? String(titleAr).trim()
+              : "استطلاع جودة السكن الأسبوعي",
+            titleEn: titleEn
+              ? String(titleEn).trim()
+              : "Weekly Housing Quality Pulse",
+            questionAr: questionAr
+              ? String(questionAr).trim()
+              : "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
+            questionEn: questionEn
+              ? String(questionEn).trim()
+              : "How satisfied are you with housing conditions, cleanliness & services this week?",
+          })
+          .returning();
+        updatedConfig = inserted;
+      }
+
+      await logActivity({
+        req,
+        propertyId,
+        username: (req.session as any)?.username ?? "admin",
+        userId: (req.session as any)?.userId,
+        userRole: (req.session as any)?.userRole ?? "admin",
+        action: "تحديث إعدادات استطلاع جودة السكن (Housing Pulse Config)",
+        actionType: "UPDATE",
+        module: "evaluations",
+        entityType: "housing_pulse_config",
+        entityId: updatedConfig.id,
+      });
+
+      return res.json({
+        success: true,
+        config: updatedConfig,
+        message: "تم حفظ إعدادات الاستبيان بنجاح",
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /api/evaluations/housing-pulse/push - Push Survey Now to all active residents ("لو عايز أبوشه النهارده")
+// @ts-ignore
+router.post(
+  "/evaluations/housing-pulse/push",
+  requirePermission("evaluations", "edit"),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      }
+
+      const now = new Date();
+
+      // Upsert pulse config with forcePromptAfter = now
+      const [existing] = await db
+        .select({ id: propertyHousingPulseConfigTable.id })
+        .from(propertyHousingPulseConfigTable)
+        .where(eq(propertyHousingPulseConfigTable.propertyId, propertyId))
+        .limit(1);
+
+      let config;
+      if (existing) {
+        const [u] = await db
+          .update(propertyHousingPulseConfigTable)
+          .set({
+            forcePromptAfter: now,
+            lastPushedAt: now,
+            enabled: true,
+            updatedAt: now,
+          })
+          .where(eq(propertyHousingPulseConfigTable.propertyId, propertyId))
+          .returning();
+        config = u;
+      } else {
+        const [ins] = await db
+          .insert(propertyHousingPulseConfigTable)
+          .values({
+            propertyId,
+            enabled: true,
+            forcePromptAfter: now,
+            lastPushedAt: now,
+          })
+          .returning();
+        config = ins;
+      }
+
+      // Count eligible in-house residents and notify
+      let inHouseCount = 0;
+      try {
+        await withTenant(propertyId, async (tenantDb) => {
+          const resCount = await tenantDb
+            .select({
+              count: sql<number>`count(distinct ${assignmentsTable.profileId})::int`,
+            })
+            .from(assignmentsTable)
+            .where(eq(assignmentsTable.status, "ACTIVE"));
+          inHouseCount = resCount[0]?.count || 0;
+
+          // Insert a notification into portalNotificationsTable for active residents
+          const activeAssignments = await tenantDb
+            .select({ profileId: assignmentsTable.profileId })
+            .from(assignmentsTable)
+            .where(eq(assignmentsTable.status, "ACTIVE"));
+
+          const notifRows = activeAssignments.map((a) => ({
+            profileId: a.profileId,
+            titleAr: "استطلاع رأي: شاركنا رأيك في جودة السكن",
+            titleEn: "Housing Quality Survey: Share Your Feedback",
+            messageAr:
+              config.questionAr ||
+              "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
+            messageEn:
+              config.questionEn ||
+              "How satisfied are you with housing conditions, cleanliness & services this week?",
+            type: "survey",
+            actionUrl: "/portal/dashboard",
+            isRead: false,
+          }));
+
+          if (notifRows.length > 0) {
+            await tenantDb.insert(portalNotificationsTable).values(notifRows);
+          }
+        });
+      } catch (errTenant) {
+        console.warn(
+          "[housing-pulse-push] notification broadcast warning:",
+          errTenant,
+        );
+      }
+
+      // Broadcast WebSocket event
+      try {
+        broadcastToProperty(propertyId, {
+          type: "data_updated",
+          module: "evaluations",
+          action: "rate",
+          data: { forced: true, timestamp: now.toISOString() },
+        });
+        broadcastSyncAll(propertyId);
+      } catch (wsErr) {
+        console.warn("[housing-pulse-push] WebSocket broadcast error:", wsErr);
+      }
+
+      await logActivity({
+        req,
+        propertyId,
+        username: (req.session as any)?.username ?? "admin",
+        userId: (req.session as any)?.userId,
+        userRole: (req.session as any)?.userRole ?? "admin",
+        action: `إرسال وتفعيل استطلاع جودة السكن الآن لجميع المقيمين (${inHouseCount} مقيم)`,
+        actionType: "CREATE",
+        module: "evaluations",
+        entityType: "housing_pulse_push",
+      });
+
+      return res.json({
+        success: true,
+        message: `تم إرسال وتفعيل الاستبيان الآن بنجاح لجميع المقيمين (${inHouseCount} مقيم بالسكن)`,
+        inHouseCount,
+        lastPushedAt: now.toISOString(),
+      });
     } catch (err) {
       return next(err);
     }

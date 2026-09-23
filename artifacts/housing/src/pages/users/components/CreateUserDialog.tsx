@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/use-permission";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -68,7 +69,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
   const ar = language === "ar";
   const queryClient = useQueryClient();
   const { activePropertyId, isSuperAdmin } = useProperty();
-  const { isSystemAdmin } = useAuth();
+  const { user: currentUser, isSystemAdmin } = useAuth();
+  const { perms: actorPerms } = usePermission();
+  const canGrantAnything = isSuperAdmin || isSystemAdmin || actorPerms.has("*");
 
   const [isOpen, setIsOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -95,8 +98,16 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
   }>({});
 
   const availableProperties = useMemo(() => {
-    return properties || [];
-  }, [properties]);
+    if (canGrantAnything) {
+      return properties || [];
+    }
+    const actorPropIds = new Set<number>();
+    if (currentUser?.propertyId) actorPropIds.add(Number(currentUser.propertyId));
+    if (Array.isArray(currentUser?.propertyIds)) {
+      currentUser.propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
+    }
+    return (properties || []).filter((p) => actorPropIds.has(Number(p.id)));
+  }, [properties, canGrantAnything, currentUser]);
 
   const resetForm = () => {
     const defaultPid = (activePropertyId && typeof activePropertyId === "number") ? activePropertyId : (availableProperties[0]?.id || 0);
@@ -134,10 +145,17 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
     },
   });
 
-  // Calculate permissions preview
+  // Calculate permissions preview clamped to what creator possesses
   const resolvedPermissions = useMemo(() => {
-    return getPermissionsForRoles([form.role]);
-  }, [form.role]);
+    const rolePerms = getPermissionsForRoles([form.role]);
+    if (canGrantAnything) return rolePerms;
+    return rolePerms.filter((p) => {
+      let s = String(p).trim().toLowerCase();
+      if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
+      if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+      return actorPerms.has(s) || actorPerms.has(s.replace(".", ":"));
+    });
+  }, [form.role, canGrantAnything, actorPerms]);
 
   // Password evaluation
   const pwdEvaluation = useMemo(() => {
@@ -626,8 +644,8 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     {SYSTEM_ROLES.map((r) => {
                       const isSuper = r.value === "super_admin";
                       const isAdmin = r.value === "admin";
-                      // Guard: non-system admins cannot create system admins
-                      const disabled = (isSuper || isAdmin) && !isSystemAdmin;
+                      // Guard: non-system/super admins cannot create admins or super_admins
+                      const disabled = (isSuper || isAdmin) && !canGrantAnything;
 
                       return (
                         <SelectItem key={r.value} value={r.value} disabled={disabled}>

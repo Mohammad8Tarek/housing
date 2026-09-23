@@ -111,8 +111,14 @@ export function UserManagementSheet({
   const { language } = useLanguage();
   const ar = language === "ar";
   const { user: currentUser, isSystemAdmin } = useAuth();
-  const { can, isAdmin } = usePermission();
+  const { can, isAdmin, perms: actorPerms } = usePermission();
   const { properties: contextProperties, isSuperAdmin } = useProperty();
+  const canGrantAnything = isSuperAdmin || isSystemAdmin || actorPerms.has("*");
+
+  const actorCanGrant = (mod: Module, act: Action) => {
+    if (canGrantAnything) return true;
+    return can(mod, act);
+  };
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<"profile" | "properties" | "permissions" | "signature">(initialTab);
@@ -121,11 +127,17 @@ export function UserManagementSheet({
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab, user?.id]);
 
-  // Available properties for assignment
+  // Available properties for assignment clamped to actor authority
   const availableProperties = useMemo(() => {
     const list = propProperties?.length ? propProperties : contextProperties || [];
-    return list;
-  }, [propProperties, contextProperties]);
+    if (canGrantAnything) return list;
+    const actorPropIds = new Set<number>();
+    if (currentUser?.propertyId) actorPropIds.add(Number(currentUser.propertyId));
+    if (Array.isArray(currentUser?.propertyIds)) {
+      currentUser.propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
+    }
+    return list.filter((p: any) => actorPropIds.has(Number(p.id)));
+  }, [propProperties, contextProperties, canGrantAnything, currentUser]);
 
   // Form States
   const [name, setName] = useState("");
@@ -255,7 +267,12 @@ export function UserManagementSheet({
           if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
           return s;
         });
-      setPerms(new Set(normalized));
+      const allowed = canGrantAnything ? normalized : normalized.filter((p: string) => {
+        const parts = p.split(".");
+        if (parts.length === 2) return actorCanGrant(parts[0] as Module, parts[1] as Action);
+        return actorPerms.has(p);
+      });
+      setPerms(new Set(allowed));
     }
     toast.success(
       ar
@@ -402,7 +419,13 @@ export function UserManagementSheet({
   };
 
   const handleApplyRoleTemplate = () => {
-    setPerms(new Set(ROLE_DEFAULT_PERMISSIONS[primaryRole] || []));
+    const defaults = ROLE_DEFAULT_PERMISSIONS[primaryRole] || [];
+    const allowed = canGrantAnything ? defaults : defaults.filter((p) => {
+      const parts = p.split(".");
+      if (parts.length === 2) return actorCanGrant(parts[0] as Module, parts[1] as Action);
+      return actorPerms.has(p);
+    });
+    setPerms(new Set(allowed));
     toast.info(ar ? `تم تطبيق قالب صلاحيات دور (${primaryRole})` : `Applied default role template for (${primaryRole})`);
   };
 
@@ -427,9 +450,17 @@ export function UserManagementSheet({
       actions.forEach((act) => next.delete(permKey(mod, act)));
 
       if (level === "view_only") {
-        next.add(permKey(mod, "view"));
+        if (actorCanGrant(mod, "view")) {
+          next.add(permKey(mod, "view"));
+        } else {
+          toast.error(ar ? "لا تملك صلاحية عرض هذا الموديول" : "You do not possess view permission for this module");
+        }
       } else if (level === "full") {
-        actions.forEach((act) => next.add(permKey(mod, act)));
+        actions.forEach((act) => {
+          if (actorCanGrant(mod, act)) {
+            next.add(permKey(mod, act));
+          }
+        });
       }
       return next;
     });
@@ -437,6 +468,14 @@ export function UserManagementSheet({
 
   const toggleSinglePerm = (mod: Module, act: Action) => {
     const key = permKey(mod, act);
+    if (!perms.has(key) && !actorCanGrant(mod, act)) {
+      toast.error(
+        ar
+          ? `لا يمكنك منح صلاحية (${ACTION_LABELS[act]?.ar || act}) لأنك لا تملكها`
+          : `You cannot grant (${act}) permission because you do not have it`,
+      );
+      return;
+    }
     setPerms((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -449,10 +488,14 @@ export function UserManagementSheet({
   const handleGrantAllRead = () => {
     setPerms((prev) => {
       const next = new Set(prev);
-      MODULES.forEach((mod) => next.add(permKey(mod, "view")));
+      MODULES.forEach((mod) => {
+        if (actorCanGrant(mod, "view")) {
+          next.add(permKey(mod, "view"));
+        }
+      });
       return next;
     });
-    toast.success(ar ? "تم منح صلاحية القراءة لكافة الموديولات" : "Granted read-only access to all modules");
+    toast.success(ar ? "تم منح صلاحية القراءة لكافة الموديولات المتاحة لك" : "Granted read-only access to all available modules");
   };
 
   const handleGrantAllFull = () => {
@@ -460,16 +503,26 @@ export function UserManagementSheet({
       const next = new Set(prev);
       MODULES.forEach((mod) => {
         const acts = MODULE_ACTIONS[mod] || [];
-        acts.forEach((act) => next.add(permKey(mod, act)));
+        acts.forEach((act) => {
+          if (actorCanGrant(mod, act)) {
+            next.add(permKey(mod, act));
+          }
+        });
       });
       return next;
     });
-    toast.success(ar ? "تم منح التحكم الكامل لكافة الموديولات" : "Granted full access to all modules");
+    toast.success(ar ? "تم تفعيل الصلاحيات الكاملة المتاحة لك لكافة الموديولات" : "Granted all available permissions across all modules");
   };
 
   const handleResetToRoleDefaults = () => {
-    setPerms(new Set(ROLE_DEFAULT_PERMISSIONS[primaryRole] || []));
-    toast.success(ar ? `تم تطبيق قالب صلاحيات دور (${primaryRole}) الافتراضية` : `Reset to default (${primaryRole}) permissions`);
+    const defaults = ROLE_DEFAULT_PERMISSIONS[primaryRole] || [];
+    const allowed = canGrantAnything ? defaults : defaults.filter((p) => {
+      const parts = p.split(".");
+      if (parts.length === 2) return actorCanGrant(parts[0] as Module, parts[1] as Action);
+      return actorPerms.has(p);
+    });
+    setPerms(new Set(allowed));
+    toast.success(ar ? `تم تطبيق قالب صلاحيات دور (${primaryRole}) المتاحة لك` : `Reset to available (${primaryRole}) permissions`);
   };
 
   // Upload Signature
@@ -1419,20 +1472,33 @@ export function UserManagementSheet({
                                     {actions.map((act) => {
                                       const key = permKey(mod, act);
                                       const isGranted = perms.has(key);
+                                      const canGrant = actorCanGrant(mod, act);
                                       const actLabel = ACTION_LABELS[act] || { ar: act, en: act };
 
                                       return (
                                         <div
                                           key={act}
-                                          onClick={() => toggleSinglePerm(mod, act)}
+                                          onClick={() => {
+                                            if (canGrant || isGranted) toggleSinglePerm(mod, act);
+                                            else toast.error(ar ? "لا تملك هذه الصلاحية لمنحها" : "You do not possess this permission to grant it");
+                                          }}
                                           className={cn(
-                                            "p-2 rounded-lg border text-xs flex items-center justify-between gap-2 cursor-pointer transition-all select-none",
+                                            "p-2 rounded-lg border text-xs flex items-center justify-between gap-2 transition-all select-none",
+                                            !canGrant && !isGranted
+                                              ? "opacity-50 cursor-not-allowed bg-muted/20 border-border/30"
+                                              : "cursor-pointer",
                                             isGranted
                                               ? "bg-primary/10 border-primary/40 text-primary font-bold shadow-2xs"
+                                              : !canGrant
+                                              ? "text-muted-foreground"
                                               : "bg-card border-border/50 text-muted-foreground hover:bg-muted/40",
                                           )}
+                                          title={!canGrant ? (ar ? "غير متاحة لك" : "Unowned permission") : undefined}
                                         >
-                                          <span>{ar ? actLabel.ar : actLabel.en}</span>
+                                          <span className="flex items-center gap-1.5">
+                                            {!canGrant && <Lock className="w-3 h-3 text-amber-500 shrink-0" />}
+                                            <span>{ar ? actLabel.ar : actLabel.en}</span>
+                                          </span>
                                           <div
                                             className={cn(
                                               "w-4 h-4 rounded flex items-center justify-center border",

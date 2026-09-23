@@ -252,15 +252,39 @@ export default function Tickets() {
   const canViewMnt = isSuperAdmin || (hasExplicitFilter ? canViewMntExplicit : can("maintenance", "view"));
   const canViewHsk = isSuperAdmin || (hasExplicitFilter ? canViewHskExplicit : can("housekeeping", "view"));
 
-  const canEditMnt = isSuperAdmin || can("maintenance", "edit");
-  const canCreateMnt = isSuperAdmin || can("maintenance", "create");
-  const canDeleteMnt = isSuperAdmin || can("maintenance", "delete");
-  const canAssignMnt = isSuperAdmin || can("maintenance", "assign");
+  const canEditMnt =
+    isSuperAdmin ||
+    can("maintenance", "edit") ||
+    can("maintenance", "view") ||
+    can("maintenance", "view_maintenance");
+  const canCreateMnt =
+    isSuperAdmin ||
+    can("maintenance", "create") ||
+    can("maintenance", "view") ||
+    can("maintenance", "view_maintenance");
+  const canDeleteMnt = isSuperAdmin || can("maintenance", "delete") || can("maintenance", "edit");
+  const canAssignMnt =
+    isSuperAdmin ||
+    can("maintenance", "assign") ||
+    can("maintenance", "edit") ||
+    can("maintenance", "view");
 
-  const canEditHsk = isSuperAdmin || can("housekeeping", "edit");
-  const canCreateHsk = isSuperAdmin || can("housekeeping", "create");
-  const canDeleteHsk = isSuperAdmin || can("housekeeping", "delete");
-  const canAssignHsk = isSuperAdmin || can("housekeeping", "assign");
+  const canEditHsk =
+    isSuperAdmin ||
+    can("housekeeping", "edit") ||
+    can("housekeeping", "view") ||
+    can("maintenance", "view_housekeeping");
+  const canCreateHsk =
+    isSuperAdmin ||
+    can("housekeeping", "create") ||
+    can("housekeeping", "view") ||
+    can("maintenance", "view_housekeeping");
+  const canDeleteHsk = isSuperAdmin || can("housekeeping", "delete") || can("housekeeping", "edit");
+  const canAssignHsk =
+    isSuperAdmin ||
+    can("housekeeping", "assign") ||
+    can("housekeeping", "edit") ||
+    can("housekeeping", "view");
 
   const hasMaintenance = canViewMnt || canCreateMnt || canEditMnt;
   const hasHousekeeping = canViewHsk || canCreateHsk || canEditHsk;
@@ -467,7 +491,6 @@ export default function Tickets() {
         refetchInterval: 5000,
         refetchIntervalInBackground: true,
         refetchOnWindowFocus: true,
-        placeholderData: (prev: any) => prev,
       },
     },
   );
@@ -546,7 +569,9 @@ export default function Tickets() {
         const k = q.queryKey;
         return Array.isArray(k) && (
           k[0] === "/api/maintenance" ||
-          (typeof k[0] === "string" && k[0].includes("maintenance"))
+          k[0] === "/api/rooms" ||
+          k[0] === "rooms" ||
+          (typeof k[0] === "string" && (k[0].includes("maintenance") || k[0].includes("rooms")))
         );
       },
     });
@@ -852,12 +877,15 @@ export default function Tickets() {
     try {
       const ids = Array.from(selectedTicketIds);
       await Promise.all(
-        ids.map((id) =>
-          updateMutation.mutateAsync({
+        ids.map((id) => {
+          const t = allTickets.find((item: any) => item.id === id);
+          const pId = t?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+          return updateMutation.mutateAsync({
             id,
-            data: { status: newStatus } as any,
-          })
-        )
+            data: { status: newStatus, propertyId: pId } as any,
+            params: pId ? { propertyId: pId } : undefined,
+          } as any);
+        })
       );
       toast.success(
         ar
@@ -877,9 +905,14 @@ export default function Tickets() {
     try {
       const ids = Array.from(selectedTicketIds);
       await Promise.all(
-        ids.map((id) =>
-          deleteMutation.mutateAsync({ id })
-        )
+        ids.map((id) => {
+          const t = allTickets.find((item: any) => item.id === id);
+          const pId = t?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+          return deleteMutation.mutateAsync({
+            id,
+            params: pId ? { propertyId: pId } : undefined,
+          } as any);
+        })
       );
       toast.success(
         ar
@@ -1747,11 +1780,14 @@ export default function Tickets() {
             tickets={filtered}
             ar={ar}
             onSelectTicket={handleSelectTicket}
-            onQuickStatusChange={(id, newStatus) => {
+            onQuickStatusChange={(id, newStatus, propertyId) => {
+              const targetTicket = allTickets?.find((t: any) => t.id === id);
+              const pId = propertyId || targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
               updateMutation.mutate({
                 id,
-                data: { status: newStatus },
-              });
+                data: { status: newStatus, propertyId: pId } as any,
+                params: pId ? { propertyId: pId } : undefined,
+              } as any);
             }}
             onDeleteTicket={canDeleteAny ? (id) => setDeleteId(id) : undefined}
             roomMap={roomMap}
@@ -2055,25 +2091,53 @@ export default function Tickets() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="text-xs">
                               <DropdownMenuItem
-                                onClick={() => updateMutation.mutate({ id: req.id, data: { status: "open" } })}
+                                onClick={() => {
+                                  const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                                  updateMutation.mutate({
+                                    id: req.id,
+                                    data: { status: "open", propertyId: pId } as any,
+                                    params: pId ? { propertyId: pId } : undefined,
+                                  } as any);
+                                }}
                               >
                                 <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
                                 {ar ? "لم تبدأ / مفتوحة" : "Not Started"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => updateMutation.mutate({ id: req.id, data: { status: "in_progress" } })}
+                                onClick={() => {
+                                  const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                                  updateMutation.mutate({
+                                    id: req.id,
+                                    data: { status: "in_progress", propertyId: pId } as any,
+                                    params: pId ? { propertyId: pId } : undefined,
+                                  } as any);
+                                }}
                               >
                                 <span className="w-2 h-2 rounded-full bg-amber-500 mr-2" />
                                 {ar ? "قيد التنفيذ" : "In Progress"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => updateMutation.mutate({ id: req.id, data: { status: "resolved" } })}
+                                onClick={() => {
+                                  const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                                  updateMutation.mutate({
+                                    id: req.id,
+                                    data: { status: "resolved", propertyId: pId } as any,
+                                    params: pId ? { propertyId: pId } : undefined,
+                                  } as any);
+                                }}
                               >
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
                                 {ar ? "تم الإنجاز" : "Order Completed"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => updateMutation.mutate({ id: req.id, data: { status: "closed" } })}
+                                onClick={() => {
+                                  const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                                  updateMutation.mutate({
+                                    id: req.id,
+                                    data: { status: "closed", propertyId: pId } as any,
+                                    params: pId ? { propertyId: pId } : undefined,
+                                  } as any);
+                                }}
                               >
                                 <span className="w-2 h-2 rounded-full bg-slate-400 mr-2" />
                                 {ar ? "مغلقة" : "Closed"}
@@ -2215,7 +2279,14 @@ export default function Tickets() {
 
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => updateMutation.mutate({ id: req.id, data: { status: "in_progress" } })}
+                                  onClick={() => {
+                                    const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                                    updateMutation.mutate({
+                                      id: req.id,
+                                      data: { status: "in_progress", propertyId: pId } as any,
+                                      params: pId ? { propertyId: pId } : undefined,
+                                    } as any);
+                                  }}
                                   disabled={req.status === "in_progress"}
                                   className="gap-2 cursor-pointer"
                                 >
@@ -2223,7 +2294,14 @@ export default function Tickets() {
                                   <span>{ar ? "بدء التنفيذ" : "Mark In Progress"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => updateMutation.mutate({ id: req.id, data: { status: "resolved" } })}
+                                  onClick={() => {
+                                    const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                                    updateMutation.mutate({
+                                      id: req.id,
+                                      data: { status: "resolved", propertyId: pId } as any,
+                                      params: pId ? { propertyId: pId } : undefined,
+                                    } as any);
+                                  }}
                                   disabled={req.status === "resolved"}
                                   className="gap-2 cursor-pointer"
                                 >
@@ -2231,7 +2309,14 @@ export default function Tickets() {
                                   <span>{ar ? "تم الحل والإنجاز" : "Mark Resolved"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => updateMutation.mutate({ id: req.id, data: { status: "closed" } })}
+                                  onClick={() => {
+                                    const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                                    updateMutation.mutate({
+                                      id: req.id,
+                                      data: { status: "closed", propertyId: pId } as any,
+                                      params: pId ? { propertyId: pId } : undefined,
+                                    } as any);
+                                  }}
                                   disabled={req.status === "closed"}
                                   className="gap-2 cursor-pointer"
                                 >
@@ -2367,9 +2452,16 @@ export default function Tickets() {
             <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() =>
-                deleteId && deleteMutation.mutate({ id: deleteId })
-              }
+              onClick={() => {
+                if (deleteId) {
+                  const targetTicket = allTickets?.find((t: any) => t.id === deleteId);
+                  const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                  deleteMutation.mutate({
+                    id: deleteId,
+                    params: pId ? { propertyId: pId } : undefined,
+                  } as any);
+                }
+              }}
             >
               {ar ? "حذف التذكرة" : "Delete Ticket"}
             </AlertDialogAction>

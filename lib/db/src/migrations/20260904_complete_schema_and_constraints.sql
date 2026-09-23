@@ -2508,6 +2508,28 @@ We wish you a safe trip and a pleasant stay! ✨',
   CREATE INDEX IF NOT EXISTS idx_prop_housing_ratings_prop ON public.property_housing_ratings(property_id, created_at DESC);
 
   -- --------------------------------------------------------
+  -- Table: public.property_housing_pulse_config (Housing Pulse Survey Configuration & Trigger)
+  -- --------------------------------------------------------
+  CREATE TABLE IF NOT EXISTS public.property_housing_pulse_config (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL UNIQUE REFERENCES public.properties(id) ON DELETE CASCADE,
+    enabled BOOLEAN NOT NULL DEFAULT true,
+    rating_type TEXT NOT NULL DEFAULT 'faces',
+    allow_comment BOOLEAN NOT NULL DEFAULT true,
+    comment_required BOOLEAN NOT NULL DEFAULT false,
+    cooldown_days INTEGER NOT NULL DEFAULT 7,
+    title_ar TEXT NOT NULL DEFAULT 'استطلاع جودة السكن الأسبوعي',
+    title_en TEXT NOT NULL DEFAULT 'Weekly Housing Quality Pulse',
+    question_ar TEXT NOT NULL DEFAULT 'ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟',
+    question_en TEXT NOT NULL DEFAULT 'How satisfied are you with housing conditions, cleanliness & services this week?',
+    force_prompt_after TIMESTAMPTZ,
+    last_pushed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_prop_housing_pulse_prop ON public.property_housing_pulse_config(property_id);
+
+  -- --------------------------------------------------------
   -- Table: public.room_moves (Room & Bed Moves Log / PMS Report)
   -- --------------------------------------------------------
   CREATE TABLE IF NOT EXISTS public.room_moves (

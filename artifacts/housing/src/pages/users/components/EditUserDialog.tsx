@@ -93,13 +93,21 @@ export function EditUserDialog({
   const { language } = useLanguage();
   const ar = language === "ar";
   const { user: currentUser, isSystemAdmin } = useAuth();
-  const { can, isAdmin } = usePermission();
+  const { can, isAdmin, isSuperAdmin, perms: actorPerms } = usePermission();
   const { properties: contextProperties, activePropertyId } = useProperty();
+  const canGrantAnything = isSuperAdmin || isSystemAdmin || actorPerms.has("*");
   const queryClient = useQueryClient();
 
   const availableProperties = useMemo(() => {
-    return propProperties || contextProperties || [];
-  }, [propProperties, contextProperties]);
+    const raw = propProperties || contextProperties || [];
+    if (canGrantAnything) return raw;
+    const actorPropIds = new Set<number>();
+    if (currentUser?.propertyId) actorPropIds.add(Number(currentUser.propertyId));
+    if (Array.isArray(currentUser?.propertyIds)) {
+      currentUser.propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
+    }
+    return raw.filter((p: any) => actorPropIds.has(Number(p.id)));
+  }, [propProperties, contextProperties, canGrantAnything, currentUser]);
 
   // Initial properties calculation
   const initialPropertyIds: number[] = useMemo(() => {
@@ -399,10 +407,19 @@ export function EditUserDialog({
 
       // CRITICAL FIX: Preserve existing user.permissions unless explicitly managed in Matrix
       // DO NOT overwrite with getPermissionsForRoles(resolvedRoles) if user already has custom permissions!
-      const preservedPermissions =
+      let preservedPermissions =
         user.permissions && Array.isArray(user.permissions) && user.permissions.length > 0
           ? user.permissions
           : getPermissionsForRoles(resolvedRoles);
+
+      if (!canGrantAnything && (!user.permissions || !user.permissions.length)) {
+        preservedPermissions = preservedPermissions.filter((p: string) => {
+          let s = String(p).trim().toLowerCase();
+          if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
+          if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+          return actorPerms.has(s) || actorPerms.has(s.replace(".", ":"));
+        });
+      }
 
       const patchPayload: any = {
         username: formData.username.trim(),
@@ -824,7 +841,7 @@ export function EditUserDialog({
                     {SYSTEM_ROLES.map((r) => {
                       const isSuper = r.value === "super_admin";
                       const isAdmin = r.value === "admin";
-                      const disabled = (isSuper || isAdmin) && !isSystemAdmin;
+                      const disabled = (isSuper || isAdmin) && !canGrantAnything;
 
                       return (
                         <SelectItem key={r.value} value={r.value} disabled={disabled}>

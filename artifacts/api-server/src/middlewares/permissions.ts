@@ -415,7 +415,11 @@ function permissionKeys(
   ];
 }
 
-function effectivePermissions(user: AuthUser): Set<string> {
+export function normalizePermission(value: unknown): string {
+  return normalize(value);
+}
+
+export function effectivePermissions(user: AuthUser): Set<string> {
   // 1. Super admin / system admin root access (emergency self-lockout prevention)
   if (
     user.isSystemAdmin ||

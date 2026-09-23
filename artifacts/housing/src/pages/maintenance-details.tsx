@@ -94,8 +94,18 @@ export default function MaintenanceDetails() {
   const [comment, setComment] = useState("");
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
-  const canEditMnt = isSuperAdmin || can("maintenance", "edit");
-  const canEditHsk = isSuperAdmin || can("housekeeping", "edit");
+  const canEditMnt =
+    isSuperAdmin ||
+    isAdmin ||
+    can("maintenance", "edit") ||
+    can("maintenance", "view") ||
+    can("maintenance", "view_maintenance");
+  const canEditHsk =
+    isSuperAdmin ||
+    isAdmin ||
+    can("housekeeping", "edit") ||
+    can("housekeeping", "view") ||
+    can("maintenance", "view_housekeeping");
   const canEditTicket = isSuperAdmin || (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
 
   // Direct fetch for single ticket by ID to guarantee resolution regardless of pagination
@@ -159,12 +169,14 @@ export default function MaintenanceDetails() {
     });
     const entry = `[${timeStr}] ${comment.trim()}`;
     const newNotes = ticket.notes ? `${ticket.notes}\n\n${entry}` : entry;
+    const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
 
     updateMutation.mutate(
       {
         id: ticket.id,
-        data: { notes: newNotes },
-      },
+        data: { notes: newNotes, propertyId: pId } as any,
+        params: pId ? { propertyId: pId } : undefined,
+      } as any,
       {
         onSuccess: () => {
           setComment("");
@@ -484,10 +496,12 @@ export default function MaintenanceDetails() {
                       value={ticket.assignedTo ? String(ticket.assignedTo) : ""}
                       onValueChange={(v) => {
                         const empId = v ? parseInt(v) : null;
+                        const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
                         updateMutation.mutate({
                           id: ticket.id,
-                          data: { assignedTo: empId },
-                        });
+                          data: { assignedTo: empId, propertyId: pId } as any,
+                          params: pId ? { propertyId: pId } : undefined,
+                        } as any);
                       }}
                     >
                       <SelectTrigger>
@@ -512,9 +526,14 @@ export default function MaintenanceDetails() {
                     </Label>
                     <Select
                       value={ticket.status || ""}
-                      onValueChange={(status) =>
-                        updateMutation.mutate({ id: ticket.id, data: { status } })
-                      }
+                      onValueChange={(status) => {
+                        const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                        updateMutation.mutate({
+                          id: ticket.id,
+                          data: { status, propertyId: pId } as any,
+                          params: pId ? { propertyId: pId } : undefined,
+                        } as any);
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -551,15 +570,18 @@ export default function MaintenanceDetails() {
                   <div className="flex gap-2 pt-4">
                     {ticket.status?.toLowerCase() === "open" && (
                       <Button
-                        onClick={() =>
+                        onClick={() => {
+                          const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
                           updateMutation.mutate({
                             id: ticket.id,
                             data: {
                               status: "in_progress",
                               startedAt: new Date().toISOString(),
-                            },
-                          })
-                        }
+                              propertyId: pId,
+                            } as any,
+                            params: pId ? { propertyId: pId } : undefined,
+                          } as any);
+                        }}
                         className="flex-1"
                       >
                         <Play className="w-4 h-4 mr-2" />
@@ -568,15 +590,18 @@ export default function MaintenanceDetails() {
                     )}
                     {ticket.status?.toLowerCase() === "in_progress" && (
                       <Button
-                        onClick={() =>
+                        onClick={() => {
+                          const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
                           updateMutation.mutate({
                             id: ticket.id,
                             data: {
                               status: "resolved",
                               resolvedAt: new Date().toISOString(),
-                            },
-                          })
-                        }
+                              propertyId: pId,
+                            } as any,
+                            params: pId ? { propertyId: pId } : undefined,
+                          } as any);
+                        }}
                         className="flex-1"
                         variant="outline"
                       >

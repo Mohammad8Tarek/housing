@@ -61,9 +61,20 @@ export function HousekeepingTab({
   const queryClient = useQueryClient();
   const { can, isSuperAdmin } = usePermission();
 
-  const canEditHsk = isSuperAdmin || can("housekeeping", "edit");
-  const canCreateHsk = isSuperAdmin || can("housekeeping", "create");
-  const canExportHsk = isSuperAdmin || can("housekeeping", "export");
+  const canEditHsk =
+    isSuperAdmin ||
+    can("housekeeping", "edit") ||
+    can("housekeeping", "view") ||
+    can("maintenance", "view_housekeeping");
+  const canCreateHsk =
+    isSuperAdmin ||
+    can("housekeeping", "create") ||
+    can("housekeeping", "view") ||
+    can("maintenance", "view_housekeeping");
+  const canExportHsk =
+    isSuperAdmin ||
+    can("housekeeping", "export") ||
+    can("housekeeping", "view");
 
   // Filters state
   const [buildingFilter, setBuildingFilter] = useState<string>("all");

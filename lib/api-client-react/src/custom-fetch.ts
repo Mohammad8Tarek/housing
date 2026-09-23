@@ -407,6 +407,18 @@ export async function customFetch<T = unknown>(
     }
   }
 
+  // Attach active property id when available in storage and not explicitly provided
+  if (!headers.has("x-property-id")) {
+    try {
+      if (typeof localStorage !== "undefined") {
+        const storedProp = localStorage.getItem("activePropertyId");
+        if (storedProp && storedProp !== "all" && !isNaN(Number(storedProp))) {
+          headers.set("x-property-id", storedProp);
+        }
+      }
+    } catch {}
+  }
+
   const requestInfo = { method, url: resolveUrl(input) };
 
   // Set up AbortController with 30s timeout

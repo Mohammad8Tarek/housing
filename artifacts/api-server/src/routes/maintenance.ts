@@ -306,8 +306,16 @@ router.get(
         }
       }
 
-      const canEditMnt = isSysAdmin || hasPermission(user, "maintenance", "edit");
-      const canEditHsk = isSysAdmin || hasPermission(user, "housekeeping", "edit");
+      const canEditMnt =
+        isSysAdmin ||
+        hasPermission(user, "maintenance", "edit") ||
+        hasPermission(user, "maintenance", "view") ||
+        hasPermission(user, "maintenance", "view_maintenance");
+      const canEditHsk =
+        isSysAdmin ||
+        hasPermission(user, "housekeeping", "edit") ||
+        hasPermission(user, "housekeeping", "view") ||
+        hasPermission(user, "maintenance", "view_housekeeping");
       const canAssignMnt = canEditMnt || hasPermission(user, "maintenance", "create");
       const canAssignHsk = canEditHsk || hasPermission(user, "housekeeping", "create");
       const hasManagerialScope = isSysAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
@@ -544,7 +552,11 @@ router.get(
   "/maintenance/:id",
   requireAnyPermission(
     ["maintenance", "view"],
-    ["housekeeping", "view"]
+    ["maintenance", "view_maintenance"],
+    ["maintenance", "view_housekeeping"],
+    ["maintenance", "edit"],
+    ["housekeeping", "view"],
+    ["housekeeping", "edit"]
   ),
   async (req, res, next) => {
     try {
@@ -561,8 +573,28 @@ router.get(
       }
 
       const accessibleProps = await getAccessibleProperties(user);
-      const queryProp = req.query.propertyId ? parseInt(String(req.query.propertyId), 10) : 0;
-      const targetPropList = queryProp ? accessibleProps.filter((p) => p.id === queryProp) : accessibleProps;
+      const queryProp =
+        req.query.propertyId || req.body?.propertyId
+          ? parseInt(String(req.query.propertyId || req.body?.propertyId), 10)
+          : (getTenantId(req) || 0);
+
+      let targetPropList: typeof accessibleProps;
+      if (queryProp && queryProp > 0) {
+        targetPropList = [
+          ...accessibleProps.filter((p) => p.id === queryProp),
+          ...accessibleProps.filter((p) => p.id !== queryProp),
+        ];
+      } else {
+        const sessionProp = (req.session as any)?.propertyId;
+        if (sessionProp && sessionProp > 0) {
+          targetPropList = [
+            ...accessibleProps.filter((p) => p.id === sessionProp),
+            ...accessibleProps.filter((p) => p.id !== sessionProp),
+          ];
+        } else {
+          targetPropList = accessibleProps;
+        }
+      }
 
       let foundRecord: any = null;
       let matchedProp: any = null;
@@ -658,8 +690,13 @@ router.post(
   "/maintenance",
   requireAnyPermission(
     ["maintenance", "create"],
+    ["maintenance", "edit"],
+    ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
     ["housekeeping", "create"],
-    ["housekeeping", "edit"]
+    ["housekeeping", "edit"],
+    ["housekeeping", "view"],
+    ["maintenance", "view_housekeeping"]
   ),
   async (req, res, next) => {
     try {
@@ -669,11 +706,18 @@ router.post(
         user?.roles?.includes("super_admin") ||
         user?.roles?.includes("system_admin");
 
-      const userHasMntCreate = isSysAdmin || hasPermission(user, "maintenance", "create");
+      const userHasMntCreate =
+        isSysAdmin ||
+        hasPermission(user, "maintenance", "create") ||
+        hasPermission(user, "maintenance", "edit") ||
+        hasPermission(user, "maintenance", "view") ||
+        hasPermission(user, "maintenance", "view_maintenance");
       const userHasHskCreate =
         isSysAdmin ||
         hasPermission(user, "housekeeping", "create") ||
-        hasPermission(user, "housekeeping", "edit");
+        hasPermission(user, "housekeeping", "edit") ||
+        hasPermission(user, "housekeeping", "view") ||
+        hasPermission(user, "maintenance", "view_housekeeping");
 
       const parsed = CreateMaintenanceBody.safeParse(req.body);
       if (!parsed.success) {
@@ -748,6 +792,19 @@ router.post(
               .update(roomsTable)
               .set({ status: "out_of_service" })
               .where(eq(roomsTable.id, inserted[0].roomId));
+          } else if (category === "housekeeping") {
+            const [roomData] = await tenantDb
+              .select({ currentOccupancy: roomsTable.currentOccupancy, status: roomsTable.status })
+              .from(roomsTable)
+              .where(eq(roomsTable.id, inserted[0].roomId))
+              .limit(1);
+            if (roomData && roomData.status !== "out_of_service" && roomData.status !== "out_of_order") {
+              const isOccupied = (roomData.currentOccupancy || 0) > 0;
+              await tenantDb
+                .update(roomsTable)
+                .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
+                .where(eq(roomsTable.id, inserted[0].roomId));
+            }
           }
         }
 
@@ -806,8 +863,12 @@ router.patch(
   "/maintenance/:id",
   requireAnyPermission(
     ["maintenance", "edit"],
+    ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
     ["housekeeping", "edit"],
-    ["housekeeping", "assign"]
+    ["housekeeping", "view"],
+    ["housekeeping", "assign"],
+    ["maintenance", "view_housekeeping"]
   ),
   async (req, res, next) => {
     try {
@@ -824,8 +885,28 @@ router.patch(
       }
 
       const accessibleProps = await getAccessibleProperties(user);
-      const queryProp = req.body?.propertyId || req.query?.propertyId ? parseInt(String(req.body?.propertyId || req.query?.propertyId), 10) : 0;
-      const targetPropList = queryProp ? accessibleProps.filter((p) => p.id === queryProp) : accessibleProps;
+      const queryProp =
+        req.body?.propertyId || req.query?.propertyId
+          ? parseInt(String(req.body?.propertyId || req.query?.propertyId), 10)
+          : (getTenantId(req) || 0);
+
+      let targetPropList: typeof accessibleProps;
+      if (queryProp && queryProp > 0) {
+        targetPropList = [
+          ...accessibleProps.filter((p) => p.id === queryProp),
+          ...accessibleProps.filter((p) => p.id !== queryProp),
+        ];
+      } else {
+        const sessionProp = (req.session as any)?.propertyId;
+        if (sessionProp && sessionProp > 0) {
+          targetPropList = [
+            ...accessibleProps.filter((p) => p.id === sessionProp),
+            ...accessibleProps.filter((p) => p.id !== sessionProp),
+          ];
+        } else {
+          targetPropList = accessibleProps;
+        }
+      }
 
       let targetPropertyId = queryProp;
       let existingRecord: any = null;
@@ -854,12 +935,18 @@ router.patch(
         return;
       }
 
-      // التحقق من الصلاحيات حسب الفئة
-      const userHasMntEdit = isSysAdmin || hasPermission(user, "maintenance", "edit");
+      // التحقق من الصلاحيات حسب الفئة (تشمل صلاحيات العرض والتعامل)
+      const userHasMntEdit =
+        isSysAdmin ||
+        hasPermission(user, "maintenance", "edit") ||
+        hasPermission(user, "maintenance", "view") ||
+        hasPermission(user, "maintenance", "view_maintenance");
       const userHasHskEdit =
         isSysAdmin ||
         hasPermission(user, "housekeeping", "edit") ||
-        hasPermission(user, "housekeeping", "assign");
+        hasPermission(user, "housekeeping", "view") ||
+        hasPermission(user, "housekeeping", "assign") ||
+        hasPermission(user, "maintenance", "view_housekeeping");
 
       if (!isSysAdmin) {
         if (existingRecord.category === "housekeeping") {
@@ -902,39 +989,88 @@ router.patch(
           roomNum = rm?.roomNumber;
         }
 
-        // معالجة تغيير حالة الغرفة إن كانت صيانة
-        if (result[0]?.roomId && req.body.status && result[0].category === "maintenance") {
+        // معالجة تغيير حالة الغرفة للصيانة والهاوس كيبنج
+        if (result[0]?.roomId && req.body.status) {
           const newStatus = req.body.status;
-          if (newStatus === "resolved" || newStatus === "closed") {
-            const [openTickets] = await tenantDb
-              .select({ count: sql<number>`count(*)` })
-              .from(maintenanceTable)
-              .where(
-                and(
-                  eq(maintenanceTable.roomId, result[0].roomId),
-                  or(eq(maintenanceTable.status, "open"), eq(maintenanceTable.status, "in_progress")),
-                  eq(maintenanceTable.category, "maintenance")
-                )
-              );
+          const isResolvedOrClosed = newStatus === "resolved" || newStatus === "closed";
+          const isOpenOrProgress = newStatus === "open" || newStatus === "in_progress";
 
-            if (Number(openTickets?.count || 0) === 0) {
-              const roomData = await tenantDb
-                .select({ currentOccupancy: roomsTable.currentOccupancy })
+          if (result[0].category === "maintenance") {
+            if (isResolvedOrClosed) {
+              const [openTickets] = await tenantDb
+                .select({ count: sql<number>`count(*)` })
+                .from(maintenanceTable)
+                .where(
+                  and(
+                    eq(maintenanceTable.roomId, result[0].roomId),
+                    or(eq(maintenanceTable.status, "open"), eq(maintenanceTable.status, "in_progress")),
+                    eq(maintenanceTable.category, "maintenance")
+                  )
+                );
+
+              if (Number(openTickets?.count || 0) === 0) {
+                const roomData = await tenantDb
+                  .select({ currentOccupancy: roomsTable.currentOccupancy })
+                  .from(roomsTable)
+                  .where(eq(roomsTable.id, result[0].roomId))
+                  .limit(1);
+
+                const isOccupied = (roomData[0]?.currentOccupancy || 0) > 0;
+                await tenantDb
+                  .update(roomsTable)
+                  .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
+                  .where(eq(roomsTable.id, result[0].roomId));
+              }
+            } else if (isOpenOrProgress) {
+              await tenantDb
+                .update(roomsTable)
+                .set({ status: "out_of_service" })
+                .where(eq(roomsTable.id, result[0].roomId));
+            }
+          } else if (result[0].category === "housekeeping") {
+            if (isResolvedOrClosed) {
+              // عند إنجاز طلب النظافة والتأكد من عدم وجود طلبات نظافة أخرى مفتوحة للغرفة
+              const [openHsk] = await tenantDb
+                .select({ count: sql<number>`count(*)` })
+                .from(maintenanceTable)
+                .where(
+                  and(
+                    eq(maintenanceTable.roomId, result[0].roomId),
+                    or(eq(maintenanceTable.status, "open"), eq(maintenanceTable.status, "in_progress")),
+                    eq(maintenanceTable.category, "housekeeping")
+                  )
+                );
+
+              if (Number(openHsk?.count || 0) === 0) {
+                const [roomData] = await tenantDb
+                  .select({ currentOccupancy: roomsTable.currentOccupancy, status: roomsTable.status })
+                  .from(roomsTable)
+                  .where(eq(roomsTable.id, result[0].roomId))
+                  .limit(1);
+
+                if (roomData && roomData.status !== "out_of_service" && roomData.status !== "out_of_order") {
+                  const isOccupied = (roomData.currentOccupancy || 0) > 0;
+                  await tenantDb
+                    .update(roomsTable)
+                    .set({ status: isOccupied ? "occupied" : "available" })
+                    .where(eq(roomsTable.id, result[0].roomId));
+                }
+              }
+            } else if (isOpenOrProgress) {
+              const [roomData] = await tenantDb
+                .select({ currentOccupancy: roomsTable.currentOccupancy, status: roomsTable.status })
                 .from(roomsTable)
                 .where(eq(roomsTable.id, result[0].roomId))
                 .limit(1);
 
-              const isOccupied = (roomData[0]?.currentOccupancy || 0) > 0;
-              await tenantDb
-                .update(roomsTable)
-                .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
-                .where(eq(roomsTable.id, result[0].roomId));
+              if (roomData && roomData.status !== "out_of_service" && roomData.status !== "out_of_order") {
+                const isOccupied = (roomData.currentOccupancy || 0) > 0;
+                await tenantDb
+                  .update(roomsTable)
+                  .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
+                  .where(eq(roomsTable.id, result[0].roomId));
+              }
             }
-          } else if (newStatus === "open" || newStatus === "in_progress") {
-            await tenantDb
-              .update(roomsTable)
-              .set({ status: "out_of_service" })
-              .where(eq(roomsTable.id, result[0].roomId));
           }
         }
 
@@ -994,6 +1130,7 @@ router.delete(
   "/maintenance/:id",
   requireAnyPermission(
     ["maintenance", "delete"],
+    ["maintenance", "edit"],
     ["housekeeping", "delete"],
     ["housekeeping", "edit"]
   ),
@@ -1012,8 +1149,28 @@ router.delete(
       }
 
       const accessibleProps = await getAccessibleProperties(user);
-      const queryProp = req.query?.propertyId ? parseInt(String(req.query.propertyId), 10) : 0;
-      const targetPropList = queryProp ? accessibleProps.filter((p) => p.id === queryProp) : accessibleProps;
+      const queryProp =
+        req.query?.propertyId || req.body?.propertyId
+          ? parseInt(String(req.query?.propertyId || req.body?.propertyId), 10)
+          : (getTenantId(req) || 0);
+
+      let targetPropList: typeof accessibleProps;
+      if (queryProp && queryProp > 0) {
+        targetPropList = [
+          ...accessibleProps.filter((p) => p.id === queryProp),
+          ...accessibleProps.filter((p) => p.id !== queryProp),
+        ];
+      } else {
+        const sessionProp = (req.session as any)?.propertyId;
+        if (sessionProp && sessionProp > 0) {
+          targetPropList = [
+            ...accessibleProps.filter((p) => p.id === sessionProp),
+            ...accessibleProps.filter((p) => p.id !== sessionProp),
+          ];
+        } else {
+          targetPropList = accessibleProps;
+        }
+      }
 
       let targetPropertyId = queryProp;
       let existingRecord: any = null;
@@ -1042,7 +1199,10 @@ router.delete(
       }
 
       // التحقق من الصلاحية
-      const userHasMntDelete = isSysAdmin || hasPermission(user, "maintenance", "delete");
+      const userHasMntDelete =
+        isSysAdmin ||
+        hasPermission(user, "maintenance", "delete") ||
+        hasPermission(user, "maintenance", "edit");
       const userHasHskDelete =
         isSysAdmin ||
         hasPermission(user, "housekeeping", "delete") ||

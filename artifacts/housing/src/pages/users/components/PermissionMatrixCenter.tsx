@@ -67,6 +67,7 @@ import {
   type Action,
 } from "@/lib/permissions";
 import { roleColor } from "../utils";
+import { usePermission } from "@/hooks/use-permission";
 
 interface PermissionMatrixCenterProps {
   users: any[];
@@ -155,6 +156,12 @@ export function PermissionMatrixCenter({
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
+  const { isSuperAdmin: actorIsSuperAdmin, perms: actorPerms, can: actorCan } = usePermission();
+
+  const actorCanGrant = (mod: Module, act: Action) => {
+    if (actorIsSuperAdmin || actorPerms.has("*")) return true;
+    return actorCan(mod, act);
+  };
 
   // Selected User state
   const [currentUserId, setCurrentUserId] = useState<number>(() => {
@@ -252,6 +259,14 @@ export function PermissionMatrixCenter({
   // - Enabling any action enables view.
   const toggleAction = (m: Module, a: Action) => {
     const key = permKey(m, a);
+    if (!actorCanGrant(m, a) && !perms.has(key)) {
+      toast.error(
+        ar
+          ? "لا تمتلك هذه الصلاحية في حسابك لمنحها لمستخدم آخر"
+          : "You do not possess this permission to grant it to another user",
+      );
+      return;
+    }
     setPerms((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
@@ -263,7 +278,7 @@ export function PermissionMatrixCenter({
         }
       } else {
         next.add(key);
-        if (a !== "view" && (MODULE_ACTIONS[m] ?? []).includes("view")) {
+        if (a !== "view" && (MODULE_ACTIONS[m] ?? []).includes("view") && actorCanGrant(m, "view")) {
           next.add(permKey(m, "view"));
         }
       }
@@ -278,7 +293,11 @@ export function PermissionMatrixCenter({
     setPerms((prev) => {
       const next = new Set(prev);
       if (shouldEnable) {
-        modulePerms.forEach((a) => next.add(permKey(m, a)));
+        modulePerms.forEach((a) => {
+          if (actorCanGrant(m, a)) {
+            next.add(permKey(m, a));
+          }
+        });
       } else {
         modulePerms.forEach((a) => next.delete(permKey(m, a)));
       }
@@ -298,7 +317,9 @@ export function PermissionMatrixCenter({
         const acts = MODULE_ACTIONS[m] ?? [];
         acts.forEach((a) => {
           if (shouldEnable) {
-            next.add(permKey(m, a));
+            if (actorCanGrant(m, a)) {
+              next.add(permKey(m, a));
+            }
           } else {
             next.delete(permKey(m, a));
           }
@@ -311,8 +332,8 @@ export function PermissionMatrixCenter({
     toast.info(
       shouldEnable
         ? ar
-          ? `تم تفعيل كافة صلاحيات ${group.label.ar}`
-          : `Selected all permissions in ${group.label.en}`
+          ? `تم تفعيل كافة صلاحيات ${group.label.ar} المتاحة لك`
+          : `Selected all permissions you possess in ${group.label.en}`
         : ar
         ? `تم مسح صلاحيات ${group.label.ar}`
         : `Cleared all permissions in ${group.label.en}`,
@@ -345,11 +366,13 @@ export function PermissionMatrixCenter({
           }
         });
       } else {
-        // Enable action across candidate modules
+        // Enable action across candidate modules (only where actor has permission)
         candidateModules.forEach((m) => {
-          next.add(permKey(m, action));
-          if (action !== "view" && (MODULE_ACTIONS[m] ?? []).includes("view")) {
-            next.add(permKey(m, "view"));
+          if (actorCanGrant(m, action)) {
+            next.add(permKey(m, action));
+            if (action !== "view" && (MODULE_ACTIONS[m] ?? []).includes("view") && actorCanGrant(m, "view")) {
+              next.add(permKey(m, "view"));
+            }
           }
         });
       }
@@ -363,28 +386,42 @@ export function PermissionMatrixCenter({
           ? `تم تعطيل عملية (${action}) عبر الموديولات الظاهرة`
           : `Disabled ${action} across visible modules`
         : ar
-        ? `تم تفعيل عملية (${action}) عبر الموديولات الظاهرة`
-        : `Enabled ${action} across visible modules`,
+        ? `تم تفعيل عملية (${action}) عبر الموديولات المتاحة لك`
+        : `Enabled ${action} across accessible visible modules`,
     );
   };
 
   const applyRoleDefaults = (roleKey: string) => {
     const defaults = ROLE_DEFAULT_PERMISSIONS[roleKey] ?? [];
-    setPerms(new Set(defaults));
+    const filtered = defaults.filter((p) => {
+      const [mod, act] = p.split(".");
+      return actorCanGrant(mod as Module, act as Action);
+    });
+    setPerms(new Set(filtered));
     setHasChanges(true);
     const preset = SYSTEM_ROLE_PRESETS.find((r) => r.value === roleKey);
-    toast.info(
-      ar
-        ? `تم تطبيق قالب الدور: ${preset ? preset.labelAr : roleKey}`
-        : `Applied role preset: ${preset ? preset.labelEn : roleKey}`,
-    );
+    if (filtered.length < defaults.length) {
+      toast.warning(
+        ar
+          ? `تم تطبيق الصلاحيات المتاحة لك فقط (${filtered.length} من ${defaults.length}) من قالب: ${preset ? preset.labelAr : roleKey}`
+          : `Applied only permissions you possess (${filtered.length}/${defaults.length}) from role preset: ${preset ? preset.labelEn : roleKey}`,
+      );
+    } else {
+      toast.info(
+        ar
+          ? `تم تطبيق قالب الدور: ${preset ? preset.labelAr : roleKey}`
+          : `Applied role preset: ${preset ? preset.labelEn : roleKey}`,
+      );
+    }
   };
 
   const selectAll = () => {
     setPerms(
       new Set(
         MODULES.flatMap((m) =>
-          (MODULE_ACTIONS[m] ?? []).map((a) => permKey(m, a)),
+          (MODULE_ACTIONS[m] ?? [])
+            .filter((a) => actorCanGrant(m, a))
+            .map((a) => permKey(m, a)),
         ),
       ),
     );
@@ -399,13 +436,13 @@ export function PermissionMatrixCenter({
   const applyReadOnlyAll = () => {
     const readOnly = new Set<string>();
     MODULES.forEach((m) => {
-      if ((MODULE_ACTIONS[m] ?? []).includes("view")) {
+      if ((MODULE_ACTIONS[m] ?? []).includes("view") && actorCanGrant(m, "view")) {
         readOnly.add(permKey(m, "view"));
       }
     });
     setPerms(readOnly);
     setHasChanges(true);
-    toast.info(ar ? "تم تطبيق صلاحيات العرض فقط لكافة الأقسام" : "Applied Read-Only to all");
+    toast.info(ar ? "تم تطبيق صلاحيات العرض فقط لكافة الأقسام المتاحة لك" : "Applied Read-Only to accessible modules");
   };
 
   const resetToStored = () => {
@@ -417,12 +454,16 @@ export function PermissionMatrixCenter({
   };
 
   const revertToRoleDefaults = () => {
-    setPerms(new Set(roleDefaults));
+    const filteredDefaults = Array.from(roleDefaults).filter((p) => {
+      const [mod, act] = p.split(".");
+      return actorCanGrant(mod as Module, act as Action);
+    });
+    setPerms(new Set(filteredDefaults));
     setHasChanges(true);
     toast.info(
       ar
-        ? "تم تطبيق قالب صلاحيات الدور المحدد (اضغط حفظ لتأكيدها)"
-        : "Applied role preset template (click Save to confirm)",
+        ? "تم تطبيق قالب صلاحيات الدور المحدد ضمن حدود صلاحياتك (اضغط حفظ لتأكيدها)"
+        : "Applied role preset template within your permission limits (click Save to confirm)",
     );
   };
 
@@ -1253,7 +1294,8 @@ export function PermissionMatrixCenter({
                                       const key = permKey(m, a);
                                       const isChecked = perms.has(key);
                                       const isViewAction = a === "view";
-                                      const isActionDisabled = !isViewAction && !status.hasView;
+                                      const canGrant = actorCanGrant(m, a);
+                                      const isActionDisabled = (!isViewAction && !status.hasView) || !canGrant;
                                       const isRoleDefault = roleDefaults.has(key);
                                       const isActionMatch = matchesActionSearch(a, searchQuery);
 
@@ -1261,7 +1303,20 @@ export function PermissionMatrixCenter({
                                       let statusBadge = null;
                                       let tooltipText = "";
 
-                                      if (isChecked && isRoleDefault) {
+                                      if (!canGrant) {
+                                        statusBadge = (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-[9px] py-0 px-1 font-bold border-amber-300 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center gap-0.5"
+                                          >
+                                            <Lock className="w-2.5 h-2.5 text-amber-600" />
+                                            <span>{ar ? "غير متاحة لك" : "Unowned"}</span>
+                                          </Badge>
+                                        );
+                                        tooltipText = ar
+                                          ? "لا تمتلك هذه الصلاحية في حسابك لمنحها لمستخدم آخر"
+                                          : "You do not possess this permission to grant it";
+                                      } else if (isChecked && isRoleDefault) {
                                         statusBadge = (
                                           <Badge
                                             variant="outline"
@@ -1532,13 +1587,17 @@ export function PermissionMatrixCenter({
                                   const isChecked = perms.has(key);
                                   const isRoleDefault = roleDefaults.has(key);
                                   const isViewAction = act === "view";
-                                  const isActionDisabled = !isViewAction && !status.hasView;
+                                  const canGrant = actorCanGrant(m, act);
+                                  const isActionDisabled = (!isViewAction && !status.hasView) || !canGrant;
                                   const isActionMatch = matchesActionSearch(act, searchQuery);
 
                                   let badgeIcon = null;
                                   let tooltipDesc = "";
 
-                                  if (isChecked && isRoleDefault) {
+                                  if (!canGrant) {
+                                    badgeIcon = <Lock className="w-2 h-2 text-amber-600" />;
+                                    tooltipDesc = ar ? "غير متاحة لك لمنحها" : "Unowned (Cannot grant)";
+                                  } else if (isChecked && isRoleDefault) {
                                     badgeIcon = <Shield className="w-2 h-2 text-blue-500" />;
                                     tooltipDesc = ar ? "افتراضي للدور" : "Role Default";
                                   } else if (isChecked && !isRoleDefault) {
@@ -1591,10 +1650,11 @@ export function PermissionMatrixCenter({
                                       {specialActions.map((sa) => {
                                         const key = permKey(m, sa);
                                         const isChecked = perms.has(key);
+                                        const canGrant = actorCanGrant(m, sa);
                                         const isActionDisabled =
-                                          !status.hasView &&
+                                          ((!status.hasView &&
                                           sa !== "view_maintenance" &&
-                                          sa !== "view_housekeeping";
+                                          sa !== "view_housekeeping") || !canGrant);
                                         const isRoleDefault = roleDefaults.has(key);
                                         const isActionMatch = matchesActionSearch(sa, searchQuery);
 

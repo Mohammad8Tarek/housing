@@ -130,8 +130,14 @@ export default function UserDetailPage() {
   const { language } = useLanguage();
   const ar = language === "ar";
   const { user: currentUser, isSystemAdmin } = useAuth();
-  const { can, isAdmin } = usePermission();
+  const { can, isAdmin, perms: actorPerms } = usePermission();
   const { properties: contextProperties, isSuperAdmin, buildNavHref } = useProperty();
+  const canGrantAnything = isSuperAdmin || isSystemAdmin || actorPerms.has("*");
+
+  const actorCanGrant = (mod: string, act: string) => {
+    if (canGrantAnything) return true;
+    return can(mod as any, act as any);
+  };
   const queryClient = useQueryClient();
 
   // Read tab from query string or default to 'profile'
@@ -286,7 +292,12 @@ export default function UserDetailPage() {
           if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
           return s;
         });
-      setPerms(new Set(normalized));
+      const allowed = canGrantAnything ? normalized : normalized.filter((p: string) => {
+        const parts = p.split(".");
+        if (parts.length === 2) return actorCanGrant(parts[0], parts[1]);
+        return actorPerms.has(p);
+      });
+      setPerms(new Set(allowed));
     }
   }, [user]);
 
@@ -314,10 +325,16 @@ export default function UserDetailPage() {
     }
   }, [simModule, simActions, simAction]);
 
-  // Default permissions for current role
+  // Default permissions for current role clamped to actor's reach
   const defaultPermsForRole = useMemo(() => {
-    return new Set(ROLE_DEFAULT_PERMISSIONS[primaryRole] || []);
-  }, [primaryRole]);
+    const raw = ROLE_DEFAULT_PERMISSIONS[primaryRole] || [];
+    if (canGrantAnything) return new Set(raw);
+    return new Set(raw.filter((p: string) => {
+      const parts = p.split(".");
+      if (parts.length === 2) return actorCanGrant(parts[0], parts[1]);
+      return actorPerms.has(p);
+    }));
+  }, [primaryRole, canGrantAnything, actorPerms]);
 
   // Diff stats calculation (comparison against role template)
   const diffStats = useMemo(() => {
@@ -603,6 +620,11 @@ export default function UserDetailPage() {
 
   // Permission Toggle Helpers
   const togglePerm = (pKey: string) => {
+    const parts = pKey.split(".");
+    if (parts.length === 2 && !perms.has(pKey) && !actorCanGrant(parts[0], parts[1])) {
+      toast.error(ar ? "لا يمكنك منح صلاحية لا تملكها" : "Cannot grant unowned permission");
+      return;
+    }
     setPerms((prev) => {
       const next = new Set(prev);
       next.has(pKey) ? next.delete(pKey) : next.add(pKey);
@@ -618,7 +640,14 @@ export default function UserDetailPage() {
     setPerms((prev) => {
       const next = new Set(prev);
       allKeys.forEach((k) => {
-        allEnabled ? next.delete(k) : next.add(k);
+        if (allEnabled) {
+          next.delete(k);
+        } else {
+          const parts = k.split(".");
+          if (parts.length === 2 && actorCanGrant(parts[0], parts[1])) {
+            next.add(k);
+          }
+        }
       });
       return next;
     });
@@ -637,7 +666,14 @@ export default function UserDetailPage() {
     setPerms((prev) => {
       const next = new Set(prev);
       allKeys.forEach((k) => {
-        allEnabled ? next.delete(k) : next.add(k);
+        if (allEnabled) {
+          next.delete(k);
+        } else {
+          const parts = k.split(".");
+          if (parts.length === 2 && actorCanGrant(parts[0], parts[1])) {
+            next.add(k);
+          }
+        }
       });
       return next;
     });
@@ -1565,11 +1601,13 @@ export default function UserDetailPage() {
                               const isAdded = diffStats.addedKeys?.has(pKey);
                               const isRevoked = diffStats.revokedKeys?.has(pKey);
 
+                              const canGrant = actorCanGrant(mod, act);
                               return (
                                 <label
                                   key={act}
                                   className={cn(
-                                    "flex items-center gap-2 p-2 rounded-lg border text-xs font-medium cursor-pointer transition-colors",
+                                    "flex items-center gap-2 p-2 rounded-lg border text-xs font-medium transition-colors",
+                                    !canGrant && !isChecked ? "opacity-50 cursor-not-allowed bg-muted/20" : "cursor-pointer",
                                     isChecked
                                       ? "bg-primary/5 border-primary/20 text-foreground"
                                       : "border-border/50 text-muted-foreground hover:bg-muted/30",
@@ -1579,10 +1617,12 @@ export default function UserDetailPage() {
                                 >
                                   <Checkbox
                                     checked={isChecked}
+                                    disabled={!canGrant && !isChecked}
                                     onCheckedChange={() => togglePerm(pKey)}
                                   />
-                                  <span className="truncate flex-1">
-                                    {ar ? ACTION_LABELS[act]?.ar || act : ACTION_LABELS[act]?.en || act}
+                                  <span className="truncate flex-1 flex items-center gap-1">
+                                    {!canGrant && <Lock className="w-3 h-3 text-amber-500 shrink-0" />}
+                                    <span>{ar ? ACTION_LABELS[act]?.ar || act : ACTION_LABELS[act]?.en || act}</span>
                                   </span>
                                   {isAdded && (
                                     <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 px-1 rounded">
@@ -1634,7 +1674,15 @@ export default function UserDetailPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const allIds = properties.map((p: any) => p.id);
+                      const allowedProps = canGrantAnything ? properties : properties.filter((p: any) => {
+                        const actorPropIds = new Set<number>();
+                        if (currentUser?.propertyId) actorPropIds.add(Number(currentUser.propertyId));
+                        if (Array.isArray(currentUser?.propertyIds)) {
+                          currentUser.propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
+                        }
+                        return actorPropIds.has(Number(p.id));
+                      });
+                      const allIds = allowedProps.map((p: any) => p.id);
                       setSelectedPropertyIds(allIds);
                       if (!primaryPropertyId && allIds.length > 0) setPrimaryPropertyId(allIds[0]);
                     }}
