@@ -35,3 +35,4 @@ export * from "./workers";
 export * from "./gate_logs";
 export * from "./reports";
 export * from "./property_housing_ratings";
+export * from "./room_moves";

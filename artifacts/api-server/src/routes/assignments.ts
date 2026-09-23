@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, pool, withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, floorsTable } from "@workspace/db";
+import { db, pool, withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, floorsTable, roomMovesTable } from "@workspace/db";
 import { eq, and, or, ilike, sql, SQL, desc, not, count } from "drizzle-orm";
 import {
   CreateAssignmentBody,
@@ -1369,7 +1369,28 @@ router.post(
         .where(eq(assignmentsTable.id, params.data.id))
         .returning();
 
-      return { updated, oldRoom, newRoom };
+      const [prof] = await tenantDb
+        .select({
+          id: profilesTable.id,
+          profileId: profilesTable.profileId,
+          firstName: profilesTable.firstName,
+          lastName: profilesTable.lastName,
+          firstNameAr: profilesTable.firstNameAr,
+          lastNameAr: profilesTable.lastNameAr,
+          department: profilesTable.department,
+          jobTitle: profilesTable.jobTitle,
+        })
+        .from(profilesTable)
+        .where(eq(profilesTable.id, assignment.profileId));
+
+      const [oldBld] = oldRoom?.buildingId
+        ? await tenantDb.select().from(buildingsTable).where(eq(buildingsTable.id, oldRoom.buildingId))
+        : [null];
+      const [newBld] = newRoom.buildingId
+        ? await tenantDb.select().from(buildingsTable).where(eq(buildingsTable.id, newRoom.buildingId))
+        : [null];
+
+      return { updated, oldRoom, newRoom, prof, oldBld, newBld, oldBedNumber: assignment.bedNumber };
     });
 
     if (result.error) {
@@ -1403,6 +1424,41 @@ router.post(
         transferredByRole: s.userRole,
       },
     });
+
+    // ── Record in Room Moves Log ──
+    try {
+      const p = result.prof;
+      const residentName = p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : `Profile #${result.updated!.profileId}`;
+      const residentNameEn = p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : null;
+      const residentNameAr = p?.firstNameAr || p?.lastNameAr ? `${p.firstNameAr || ""} ${p.lastNameAr || ""}`.trim() : residentName;
+
+      await db.insert(roomMovesTable).values({
+        propertyId,
+        assignmentId: result.updated!.id,
+        profileId: result.updated!.profileId,
+        employeeId: p?.profileId || null,
+        residentName: residentNameAr,
+        residentNameEn: residentNameEn,
+        department: p?.department || null,
+        jobTitle: p?.jobTitle || null,
+        oldRoomId: result.oldRoom?.id || null,
+        oldRoomNumber: oldRoomNum,
+        oldBedNumber: result.oldBedNumber || null,
+        oldBuildingName: result.oldBld?.name || null,
+        oldRoomType: result.oldRoom?.roomType || null,
+        newRoomId: result.newRoom.id,
+        newRoomNumber: newRoomNum,
+        newBedNumber: result.updated!.bedNumber || null,
+        newBuildingName: result.newBld?.name || null,
+        newRoomType: result.newRoom.roomType || null,
+        moveReason: parsed.data.transferReason || "نقل سرير / غرفة",
+        reasonCode: parsed.data.transferReason ? "REASON_SPECIFIED" : "GENERAL",
+        actionByUserId: s.userId || null,
+        actionByUsername: s.username || "System",
+      });
+    } catch (moveErr) {
+      console.warn("Failed to insert into room_moves:", moveErr);
+    }
 
     broadcastToProperty(propertyId, {
       module: "accommodation",

@@ -28,6 +28,7 @@ export type Tab =
   | "vacations"
   | "policy_exceptions"
   | "housing_ratings"
+  | "room_moves"
   | "configuration";
 
 export interface TabConfig {

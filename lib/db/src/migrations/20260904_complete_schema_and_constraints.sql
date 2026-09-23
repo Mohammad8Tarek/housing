@@ -2507,5 +2507,38 @@ We wish you a safe trip and a pleasant stay! ✨',
   CREATE INDEX IF NOT EXISTS idx_prop_housing_ratings_cooldown ON public.property_housing_ratings(profile_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_prop_housing_ratings_prop ON public.property_housing_ratings(property_id, created_at DESC);
 
+  -- --------------------------------------------------------
+  -- Table: public.room_moves (Room & Bed Moves Log / PMS Report)
+  -- --------------------------------------------------------
+  CREATE TABLE IF NOT EXISTS public.room_moves (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
+    assignment_id INTEGER,
+    profile_id INTEGER NOT NULL,
+    employee_id TEXT,
+    resident_name TEXT NOT NULL,
+    resident_name_en TEXT,
+    department TEXT,
+    job_title TEXT,
+    old_room_id INTEGER,
+    old_room_number TEXT NOT NULL,
+    old_bed_number INTEGER,
+    old_building_name TEXT,
+    old_room_type TEXT,
+    new_room_id INTEGER NOT NULL,
+    new_room_number TEXT NOT NULL,
+    new_bed_number INTEGER,
+    new_building_name TEXT,
+    new_room_type TEXT,
+    move_reason TEXT,
+    reason_code TEXT DEFAULT 'GENERAL',
+    action_by_user_id INTEGER,
+    action_by_username TEXT NOT NULL DEFAULT 'System',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_room_moves_prop ON public.room_moves(property_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_room_moves_profile ON public.room_moves(profile_id);
+  CREATE INDEX IF NOT EXISTS idx_room_moves_created ON public.room_moves(created_at DESC);
+
   RAISE NOTICE '>>> All schemas, tables, and constraints migrated successfully!';
 END $$;

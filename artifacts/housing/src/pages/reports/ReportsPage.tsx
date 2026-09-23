@@ -31,6 +31,7 @@ import { ServiceRatingsTab } from "./components/ServiceRatingsTab";
 import { HousingMapReportTab } from "./components/HousingMapReportTab";
 import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTrackReportRibbon";
 import { HousingRatingsTab } from "./components/HousingRatingsTab";
+import { RoomMovesTab } from "./components/RoomMovesTab";
 
 export default function Reports() {
   const { activePropertyId, propertySlug } = useProperty();
@@ -327,13 +328,24 @@ export default function Reports() {
         />
       )}
 
+      {/* Room Moves & Bed Transfers PMS Report */}
+      {filters.activeTab === "room_moves" && (
+        <RoomMovesTab
+          ar={ar}
+          activePropertyId={activePropertyId}
+          properties={data.properties}
+          buildings={data.buildings}
+        />
+      )}
+
       {/* Other Tabs: Data Table & Filters */}
       {filters.activeTab !== "analytics" &&
         filters.activeTab !== "manager_flash" &&
         filters.activeTab !== "occupancy_forecast" &&
         filters.activeTab !== "service_ratings" &&
         filters.activeTab !== "housing_map" &&
-        filters.activeTab !== "housing_ratings" && (
+        filters.activeTab !== "housing_ratings" &&
+        filters.activeTab !== "room_moves" && (
         <>
           <ReportFilters
             ar={ar}

@@ -15,6 +15,7 @@ import {
   customReportTemplatesTable,
   propertiesTable,
   propertyHousingRatingsTable,
+  roomMovesTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, desc, sql, count } from "drizzle-orm";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
@@ -343,6 +344,150 @@ router.get("/housing-ratings", requirePermission("reports", "view"), async (req,
         limit,
         total: rowsWithComments.length,
         totalPages: Math.ceil(rowsWithComments.length / limit) || 1,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── GET /api/reports/room-moves (PMS Room Moves & Bed Transfers Report) ─────
+// @ts-ignore
+router.get("/room-moves", requirePermission("reports", "view"), async (req, res, next) => {
+  try {
+    const rawProp = req.query.propertyId as string | undefined;
+    const isAll = !rawProp || rawProp === "all" || rawProp === "-1" || rawProp === "0";
+    const propertyId = isAll ? null : Number(rawProp);
+
+    const fromDate = req.query.fromDate as string | undefined;
+    const toDate = req.query.toDate as string | undefined;
+    const reasonCode = (req.query.reasonCode as string) || "all";
+    const buildingName = (req.query.building as string) || "all";
+    const search = ((req.query.search as string) || "").trim().toLowerCase();
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
+    const offset = (page - 1) * limit;
+
+    let conditions: any[] = [];
+
+    if (propertyId) {
+      conditions.push(eq(roomMovesTable.propertyId, propertyId));
+    }
+
+    if (reasonCode && reasonCode !== "all") {
+      conditions.push(eq(roomMovesTable.reasonCode, reasonCode));
+    }
+
+    if (buildingName && buildingName !== "all") {
+      conditions.push(
+        or(
+          eq(roomMovesTable.oldBuildingName, buildingName),
+          eq(roomMovesTable.newBuildingName, buildingName)
+        )
+      );
+    }
+
+    if (fromDate) {
+      const d = new Date(fromDate);
+      if (!isNaN(d.getTime())) {
+        conditions.push(sql`${roomMovesTable.createdAt} >= ${d.toISOString()}::timestamptz`);
+      }
+    }
+
+    if (toDate) {
+      const d = new Date(toDate);
+      if (!isNaN(d.getTime())) {
+        d.setHours(23, 59, 59, 999);
+        conditions.push(sql`${roomMovesTable.createdAt} <= ${d.toISOString()}::timestamptz`);
+      }
+    }
+
+    const whereClause = conditions.length ? and(...conditions) : undefined;
+
+    const allRows = await db
+      .select({
+        id: roomMovesTable.id,
+        propertyId: roomMovesTable.propertyId,
+        propertyName: propertiesTable.name,
+        propertyDisplayName: propertiesTable.displayName,
+        assignmentId: roomMovesTable.assignmentId,
+        profileId: roomMovesTable.profileId,
+        employeeId: roomMovesTable.employeeId,
+        residentName: roomMovesTable.residentName,
+        residentNameEn: roomMovesTable.residentNameEn,
+        department: roomMovesTable.department,
+        jobTitle: roomMovesTable.jobTitle,
+        oldRoomId: roomMovesTable.oldRoomId,
+        oldRoomNumber: roomMovesTable.oldRoomNumber,
+        oldBedNumber: roomMovesTable.oldBedNumber,
+        oldBuildingName: roomMovesTable.oldBuildingName,
+        oldRoomType: roomMovesTable.oldRoomType,
+        newRoomId: roomMovesTable.newRoomId,
+        newRoomNumber: roomMovesTable.newRoomNumber,
+        newBedNumber: roomMovesTable.newBedNumber,
+        newBuildingName: roomMovesTable.newBuildingName,
+        newRoomType: roomMovesTable.newRoomType,
+        moveReason: roomMovesTable.moveReason,
+        reasonCode: roomMovesTable.reasonCode,
+        actionByUserId: roomMovesTable.actionByUserId,
+        actionByUsername: roomMovesTable.actionByUsername,
+        createdAt: roomMovesTable.createdAt,
+      })
+      .from(roomMovesTable)
+      .leftJoin(propertiesTable, eq(roomMovesTable.propertyId, propertiesTable.id))
+      .where(whereClause)
+      .orderBy(desc(roomMovesTable.createdAt));
+
+    // Search filter
+    const filteredRows = search
+      ? allRows.filter((r) => {
+          const s = search;
+          return (
+            (r.residentName && r.residentName.toLowerCase().includes(s)) ||
+            (r.residentNameEn && r.residentNameEn.toLowerCase().includes(s)) ||
+            (r.employeeId && r.employeeId.toLowerCase().includes(s)) ||
+            (r.oldRoomNumber && r.oldRoomNumber.toLowerCase().includes(s)) ||
+            (r.newRoomNumber && r.newRoomNumber.toLowerCase().includes(s)) ||
+            (r.actionByUsername && r.actionByUsername.toLowerCase().includes(s)) ||
+            (r.department && r.department.toLowerCase().includes(s)) ||
+            (r.moveReason && r.moveReason.toLowerCase().includes(s))
+          );
+        })
+      : allRows;
+
+    // Aggregations
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayMoves = filteredRows.filter((r) => {
+      const dStr = new Date(r.createdAt).toISOString().split("T")[0];
+      return dStr === todayStr;
+    }).length;
+
+    const reasonsMap: Record<string, number> = {};
+    const usersMap: Record<string, number> = {};
+    for (const r of filteredRows) {
+      const code = r.reasonCode || "GENERAL";
+      reasonsMap[code] = (reasonsMap[code] || 0) + 1;
+      const u = r.actionByUsername || "System";
+      usersMap[u] = (usersMap[u] || 0) + 1;
+    }
+
+    const paginatedMoves = filteredRows.slice(offset, offset + limit);
+
+    res.json({
+      success: true,
+      stats: {
+        totalMoves: filteredRows.length,
+        todayMoves,
+        reasonsBreakdown: reasonsMap,
+        usersBreakdown: usersMap,
+      },
+      moves: paginatedMoves,
+      allMoves: filteredRows,
+      pagination: {
+        page,
+        limit,
+        total: filteredRows.length,
+        totalPages: Math.ceil(filteredRows.length / limit) || 1,
       },
     });
   } catch (err) {

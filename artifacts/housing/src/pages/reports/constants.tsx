@@ -180,4 +180,10 @@ export const TABS: TabConfig[] = [
     labelAr: "استطلاع جودة السكن الأسبوعي",
     icon: <HeartHandshake className="w-4 h-4 text-emerald-500" />,
   },
+  {
+    id: "room_moves",
+    label: "Room Moves & Bed Transfers",
+    labelAr: "حركات نقل وتغيير الغرف (Room Moves)",
+    icon: <ArrowLeftRight className="w-4 h-4 text-indigo-500" />,
+  },
 ];
