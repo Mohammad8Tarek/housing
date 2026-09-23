@@ -599,6 +599,10 @@ export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = 
   "approved by": { ar: "المعتمد للطلب", en: "Approved By" },
   overridereason: { ar: "سبب ومسوغات الاستثناء", en: "Override Reason" },
   "override reason": { ar: "سبب ومسوغات الاستثناء", en: "Override Reason" },
+  requestdate: { ar: "تاريخ الاستثناء", en: "Exception Date" },
+  "request date": { ar: "تاريخ الاستثناء", en: "Exception Date" },
+  exceptiondate: { ar: "تاريخ الاستثناء", en: "Exception Date" },
+  "exception date": { ar: "تاريخ الاستثناء", en: "Exception Date" },
 };
 
 export function translateReportHeader(header: string, isArabic: boolean): string {

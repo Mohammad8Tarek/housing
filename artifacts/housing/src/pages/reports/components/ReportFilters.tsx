@@ -179,13 +179,21 @@ export function ReportFilters({
           { value: "damaged",      label: "Damaged / Broken",     labelAr: "تالف / معطل" },
           { value: "missing",      label: "Missing / Lost",       labelAr: "مفقود / ناقص" },
         ];
+      case "policy_exceptions":
+        return [
+          { value: "APPROVED",   label: "Approved Exceptions Only",   labelAr: "استثناءات معتمدة رسمياً فقط" },
+          { value: "UNAPPROVED", label: "Unapproved Violations Only", labelAr: "مخالفات غير معتمدة فقط" },
+          { value: "CRITICAL",   label: "Critical Severity Only",     labelAr: "مستوى خطورة حرج فقط" },
+          { value: "HIGH",       label: "High Severity Only",         labelAr: "مستوى خطورة مرتفع" },
+          { value: "MEDIUM",     label: "Medium Severity Only",       labelAr: "مستوى خطورة متوسط" },
+        ];
       default:
         return [];
     }
   };
 
   const statusOptions = getStatusOptions();
-  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping", "equipment_inventory"].includes(activeTab);
+  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping", "equipment_inventory", "policy_exceptions"].includes(activeTab);
   const showEmploymentType = ["assignments", "profiles", "analytics"].includes(activeTab);
   const showRoomType = [
     "housing",
@@ -199,10 +207,10 @@ export function ReportFilters({
     "departures_manifest",
     "daily_movement",
   ].includes(activeTab);
-  const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts"].includes(activeTab);
+  const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts", "policy_exceptions"].includes(activeTab);
   const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts"].includes(activeTab);
   const showNationality = ["assignments", "profiles", "expiring_contracts"].includes(activeTab);
-  const showCategory = activeTab === "maintenance" || activeTab === "equipment_inventory";
+  const showCategory = activeTab === "maintenance" || activeTab === "equipment_inventory" || activeTab === "policy_exceptions";
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-xs space-y-3 p-4">
@@ -447,11 +455,27 @@ export function ReportFilters({
         {/* Status Filter */}
         {statusOptions.length > 0 && (
           <div className="space-y-1">
-            <Label className="text-[11px] font-bold text-muted-foreground">{ar ? "الحالة" : "Status"}</Label>
+            <Label className="text-[11px] font-bold text-muted-foreground">
+              {activeTab === "policy_exceptions"
+                ? ar ? "حالة الاعتماد / الخطورة" : "Approval & Risk"
+                : ar ? "الحالة" : "Status"}
+            </Label>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={ar ? "كل الحالات" : "All Status"} /></SelectTrigger>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue
+                  placeholder={
+                    activeTab === "policy_exceptions"
+                      ? ar ? "الكل (معتمد ومخالف)" : "All Approvals & Risks"
+                      : ar ? "كل الحالات" : "All Status"
+                  }
+                />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كل الحالات" : "All Status"}</SelectItem>
+                <SelectItem value="all">
+                  {activeTab === "policy_exceptions"
+                    ? ar ? "كافة الحالات ومستويات الخطورة" : "All Approvals & Severities"
+                    : ar ? "كل الحالات" : "All Status"}
+                </SelectItem>
                 {statusOptions.map((s) => (
                   <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.label}</SelectItem>
                 ))}
@@ -491,18 +515,32 @@ export function ReportFilters({
           </div>
         )}
 
-        {/* Category (Maintenance or Equipment Inventory) */}
+        {/* Category (Maintenance, Equipment Inventory, or Policy Exceptions) */}
         {showCategory && (
           <div className="space-y-1">
             <Label className="text-[11px] font-bold text-muted-foreground">
               {activeTab === "equipment_inventory"
                 ? ar ? "تصنيف المعدات" : "Equipment Category"
+                : activeTab === "policy_exceptions"
+                ? ar ? "نوع المخالفة / السياسة" : "Violation / Policy Type"
                 : ar ? "فئة الصيانة" : "Category"}
             </Label>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={ar ? "كل الفئات" : "All Categories"} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{ar ? "كل الفئات" : "All Categories"}</SelectItem>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue
+                  placeholder={
+                    activeTab === "policy_exceptions"
+                      ? ar ? "كافة أنواع السياسات" : "All Policies & Types"
+                      : ar ? "كل الفئات" : "All Categories"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                <SelectItem value="all">
+                  {activeTab === "policy_exceptions"
+                    ? ar ? "كافة أنواع السياسات والمخالفات" : "All Policies & Violations"
+                    : ar ? "كل الفئات" : "All Categories"}
+                </SelectItem>
                 {activeTab === "equipment_inventory" ? (
                   <>
                     <SelectItem value="appliances">{ar ? "أجهزة كهربائية وتكييف (Electric / Appliances)" : "Electric & Appliances"}</SelectItem>
@@ -511,6 +549,18 @@ export function ReportFilters({
                     <SelectItem value="furniture">{ar ? "أثاث وغرف نوم (Furniture)" : "Furniture"}</SelectItem>
                     <SelectItem value="fixtures">{ar ? "مرافق وتجهيزات (Fixtures & Safes)" : "Fixtures & Safes"}</SelectItem>
                     <SelectItem value="linen">{ar ? "مفروشات وبياضات (Linen & Bedding)" : "Linen & Bedding"}</SelectItem>
+                  </>
+                ) : activeTab === "policy_exceptions" ? (
+                  <>
+                    <SelectItem value="capacity">{ar ? "تجاوز سعة الدرجة الوظيفية (Capacity & Level)" : "Level Capacity Exceeded"}</SelectItem>
+                    <SelectItem value="department">{ar ? "خلط الأقسام بالغرفة (Department Mixing)" : "Department Mixing"}</SelectItem>
+                    <SelectItem value="entire_room">{ar ? "حجز غرفة كاملة غير مصرح (Entire Room)" : "Unauthorized Entire Room"}</SelectItem>
+                    <SelectItem value="gender">{ar ? "مخالفة فصل الجنسين الصارمة (Gender)" : "Gender Segregation Violation"}</SelectItem>
+                    <SelectItem value="family">{ar ? "مخالفة سكن العائلات الصارمة (Family)" : "Family Housing Violation"}</SelectItem>
+                    <SelectItem value="contract">{ar ? "انتهاء عقد العمل مع الإقامة (Contract)" : "Contract Expiry Overstay"}</SelectItem>
+                    <SelectItem value="smoking">{ar ? "تعارض سياسة التدخين (Smoking)" : "Smoking Policy Mismatch"}</SelectItem>
+                    <SelectItem value="dnr">{ar ? "حظر الجمع بين نزلاء (DNR Mutual Exclusion)" : "Do Not Room Together (DNR)"}</SelectItem>
+                    <SelectItem value="visit">{ar ? "تجاوز مدة الزيارة العائلية (Visit Overstay)" : "Family Visit Overstay"}</SelectItem>
                   </>
                 ) : (
                   <>

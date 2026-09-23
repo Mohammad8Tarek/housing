@@ -288,18 +288,22 @@ export const TOURISM_POLICE_COLUMNS: ReportColumnDef[] = [
 // Orientation: LANDSCAPE — compliance violations and approvals
 export const POLICY_EXCEPTIONS_COLUMNS: ReportColumnDef[] = [
   { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'exceptionId',      header: 'Exception ID', headerAr: 'كود المخالفة',      type: 'id'         },
-  { key: 'building',         header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
-  { key: 'floor',            header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
+  { key: 'profileName',      header: 'Resident Name',headerAr: 'اسم المقيم',        type: 'text'       },
+  { key: 'profileCode',      header: 'Employee Code',headerAr: 'كود الموظف',        type: 'id'         },
+  { key: 'nationalId',       header: 'National ID',  headerAr: 'الرقم القومي',      type: 'id'         },
+  { key: 'jobLevel',         header: 'Job Level',    headerAr: 'الدرجة الوظيفية',   type: 'text-short' },
+  { key: 'department',       header: 'Department',   headerAr: 'القسم',             type: 'text-short' },
+  { key: 'buildingName',     header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
   { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
-  { key: 'policyName',       header: 'Policy',       headerAr: 'السياسة',           type: 'text-short' },
-  { key: 'requestedBy',      header: 'Requested By', headerAr: 'مقدم الاستثناء',    type: 'text-short' },
-  { key: 'exceptionType',    header: 'Type',         headerAr: 'نوع المخالفة',      type: 'text-short' },
-  { key: 'requestDate',      header: 'Date',         headerAr: 'التاريخ',           type: 'date'       },
-  { key: 'riskLevel',        header: 'Risk',         headerAr: 'مستوى الخطورة',     type: 'status'     },
+  { key: 'roomCapacity',     header: 'Capacity',     headerAr: 'سعة الغرفة',        type: 'number'     },
+  { key: 'currentOccupancy', header: 'Occupancy',    headerAr: 'الإشغال الحالي',    type: 'number'     },
+  { key: 'violationType',    header: 'Violation Type', headerAr: 'نوع المخالفة',    type: 'text-short' },
+  { key: 'violationDetails', header: 'Policy Details', headerAr: 'تفاصيل المخالفة', type: 'text'       },
+  { key: 'requestDate',      header: 'Exception Date', headerAr: 'تاريخ الاستثناء', type: 'date'       },
+  { key: 'severity',         header: 'Severity',     headerAr: 'مستوى الأهمية',     type: 'status'     },
   { key: 'approvalStatus',   header: 'Status',       headerAr: 'حالة الاعتماد',     type: 'status'     },
-  { key: 'approvedBy',       header: 'Approved By',  headerAr: 'المعتمد',           type: 'text-short' },
-  { key: 'justification',    header: 'Justification',headerAr: 'المبرر الإداري',     type: 'text'       },
+  { key: 'approvedBy',       header: 'Approved By',  headerAr: 'المعتمد للطلب',     type: 'text-short' },
+  { key: 'overrideReason',   header: 'Override Reason', headerAr: 'سبب الاستثناء',  type: 'text'       },
 ];
 
 // ══════════════════════════════════════════════════════════

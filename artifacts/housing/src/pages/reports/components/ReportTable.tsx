@@ -516,6 +516,7 @@ export function ReportTable({
                 {isVis("currentOccupancy") && H("currentOccupancy", ar ? "الإشغال الحالي" : "Occupancy", "text-center")}
                 {isVis("violationType") && H("violationType", ar ? "نوع المخالفة" : "Violation Type")}
                 {isVis("violationDetails") && H("violationDetails", ar ? "تفاصيل المخالفة والسياسة" : "Policy Details")}
+                {isVis("requestDate") && H("requestDate", ar ? "تاريخ الاستثناء" : "Exception Date", "text-center")}
                 {isVis("severity") && H("severity", ar ? "مستوى الأهمية" : "Severity", "text-center")}
                 {isVis("approvalStatus") && H("approvalStatus", ar ? "حالة الاعتماد" : "Approval Status", "text-center")}
                 {isVis("approvedBy") && H("approvedBy", ar ? "المعتمد للطلب" : "Approved By")}
@@ -1979,6 +1980,11 @@ export function ReportTable({
                     {isVis("violationDetails") && (
                       <TableCell className="text-xs text-muted-foreground max-w-[240px] truncate" title={row.violationDetails}>
                         {row.violationDetails || "—"}
+                      </TableCell>
+                    )}
+                    {isVis("requestDate") && (
+                      <TableCell className="text-center font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {row.requestDate ? formatDate(row.requestDate) : "—"}
                       </TableCell>
                     )}
                     {isVis("severity") && (

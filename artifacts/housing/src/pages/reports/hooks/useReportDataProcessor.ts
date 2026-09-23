@@ -2046,6 +2046,7 @@ export function useReportDataProcessor({
             }
           }
 
+          const itemDate = a.startDate || a.createdAt || (a as any).policyExceptionDate || (a as any).updatedAt || "";
           const isApprovedException = Boolean(
             (a as any).hasPolicyException ||
             (a.notes && (a.notes.includes("استثناء") || a.notes.includes("override")))
@@ -2070,6 +2071,8 @@ export function useReportDataProcessor({
           if (isCapViolated) {
             exceptions.push({
               id: `cap_${a.id}`,
+              categoryKey: "capacity",
+              requestDate: itemDate,
               profileName: getProfileDisplayName(emp, ar) || "—",
               profileCode: emp.profileId || emp.code || "—",
               nationalId: emp.nationalId || "—",
@@ -2103,6 +2106,8 @@ export function useReportDataProcessor({
             if ((strictSegregation || clusterEnabled) && diffDeptRoommates.length > 0) {
               exceptions.push({
                 id: `dept_${a.id}`,
+                categoryKey: "department",
+                requestDate: itemDate,
                 profileName: getProfileDisplayName(emp, ar) || "—",
                 profileCode: emp.profileId || emp.code || "—",
                 nationalId: emp.nationalId || "—",
@@ -2153,6 +2158,8 @@ export function useReportDataProcessor({
             if (!allowEntire) {
               exceptions.push({
                 id: `entire_${a.id}`,
+                categoryKey: "entire_room",
+                requestDate: itemDate,
                 profileName: getProfileDisplayName(emp, ar) || "—",
                 profileCode: emp.profileId || emp.code || "—",
                 nationalId: emp.nationalId || "—",
@@ -2201,6 +2208,8 @@ export function useReportDataProcessor({
             if (genderViolation) {
               exceptions.push({
                 id: `gender_${a.id}`,
+                categoryKey: "gender",
+                requestDate: itemDate,
                 profileName: getProfileDisplayName(emp, ar) || "—",
                 profileCode: emp.profileId || emp.code || "—",
                 nationalId: emp.nationalId || "—",
@@ -2237,6 +2246,8 @@ export function useReportDataProcessor({
             if (!isFamilyEmp && isFamilyRoom && !a.isEntireRoom) {
               exceptions.push({
                 id: `family_${a.id}`,
+                categoryKey: "family",
+                requestDate: itemDate,
                 profileName: getProfileDisplayName(emp, ar) || "—",
                 profileCode: emp.profileId || emp.code || "—",
                 nationalId: emp.nationalId || "—",
@@ -2263,6 +2274,8 @@ export function useReportDataProcessor({
             if (cEnd && cEnd < todayStr) {
               exceptions.push({
                 id: `contract_${a.id}`,
+                categoryKey: "contract",
+                requestDate: itemDate,
                 profileName: getProfileDisplayName(emp, ar) || "—",
                 profileCode: emp.profileId || emp.code || "—",
                 nationalId: emp.nationalId || "—",
@@ -2298,6 +2311,8 @@ export function useReportDataProcessor({
           if (empSmoker && roomNonSmoking) {
             exceptions.push({
               id: `smoke_${a.id}`,
+              categoryKey: "smoking",
+              requestDate: itemDate,
               profileName: getProfileDisplayName(emp, ar) || "—",
               profileCode: emp.profileId || emp.code || "—",
               nationalId: emp.nationalId || "—",
@@ -2331,6 +2346,8 @@ export function useReportDataProcessor({
               if (isBlacklisted) {
                 exceptions.push({
                   id: `dnr_${a.id}_${rm.id}`,
+                  categoryKey: "dnr",
+                  requestDate: itemDate,
                   profileName: getProfileDisplayName(emp, ar) || "—",
                   profileCode: emp.profileId || emp.code || "—",
                   nationalId: emp.nationalId || "—",
@@ -2365,6 +2382,8 @@ export function useReportDataProcessor({
               const hostEmp = empMap[h.profileId];
               exceptions.push({
                 id: `host_${h.id}`,
+                categoryKey: "visit",
+                requestDate: h.startDate || h.checkInDate || h.createdAt || "",
                 profileName: h.guestName || (ar ? "ضيف عائلي" : "Family Guest"),
                 profileCode: hostEmp?.profileId || `Host #${h.profileId}`,
                 nationalId: h.nationalId || h.guestId || "—",
@@ -2387,7 +2406,36 @@ export function useReportDataProcessor({
           }
         }
 
-        return applySearchAndDate(exceptions, undefined, (i) => [
+        // 3. Filter by Category (Policy / Violation Type)
+        let filteredExceptions = exceptions;
+        if (filterCategory && filterCategory !== "all") {
+          filteredExceptions = filteredExceptions.filter((item) => item.categoryKey === filterCategory);
+        }
+
+        // 4. Filter by Status (Approval Status or Severity / Risk Level)
+        if (filterStatus && filterStatus !== "all") {
+          filteredExceptions = filteredExceptions.filter((item) => {
+            const fs = filterStatus.toUpperCase();
+            if (fs === "APPROVED") {
+              return item.approvalStatus?.includes("معتمد") || item.approvalStatus?.includes("Approved");
+            }
+            if (fs === "UNAPPROVED") {
+              return !item.approvalStatus?.includes("معتمد") && !item.approvalStatus?.includes("Approved");
+            }
+            if (fs === "CRITICAL") {
+              return item.severity === "حرجة" || item.severity === "Critical";
+            }
+            if (fs === "HIGH") {
+              return item.severity === "مرتفعة" || item.severity === "High";
+            }
+            if (fs === "MEDIUM") {
+              return item.severity === "متوسطة" || item.severity === "Medium";
+            }
+            return true;
+          });
+        }
+
+        return applySearchAndDate(filteredExceptions, "requestDate", (i) => [
           i.profileName,
           i.profileCode,
           i.nationalId,
@@ -2399,6 +2447,8 @@ export function useReportDataProcessor({
           i.approvedBy,
           i.approvalStatus,
           i.overrideReason,
+          i.severity,
+          i.requestDate,
         ]);
       }
 
