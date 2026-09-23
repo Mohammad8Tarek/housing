@@ -1071,7 +1071,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <main className="flex-1 min-h-0 overflow-auto bg-background flex flex-col">
             <div className="flex-1 flex flex-col p-4 sm:p-6">
               {activePropertyId === "all" &&
-                !location.startsWith("/dashboard") && (
+                !location.includes("dashboard") &&
+                location !== "/" &&
+                !location.includes("reports") && (
                   <div className="mb-4 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/80 dark:bg-violet-950/40 px-4 py-3 flex items-center gap-3 text-sm shadow-sm">
                     <LayoutGrid className="w-5 h-5 text-violet-600 flex-shrink-0" />
                     <p className="text-violet-700 dark:text-violet-300 flex-1">

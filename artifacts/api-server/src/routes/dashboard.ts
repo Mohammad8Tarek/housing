@@ -72,8 +72,10 @@ router.get(
                 tenantDb
                   .select({
                     id: roomsTable.id,
+                    roomNumber: roomsTable.roomNumber,
                     capacity: roomsTable.capacity,
                     status: roomsTable.status,
+                    gender: roomsTable.gender,
                   })
                   .from(roomsTable),
               );
@@ -95,13 +97,17 @@ router.get(
                 upcomingReservations,
                 totalBuildings,
                 totalFloors,
+                recentArrivals,
+                recentTickets,
+                deptRows,
+                genderRows,
               ] = await Promise.all([
                 safeCount(() => tenantDb.select({ count: count() }).from(profilesTable)),
                 safeCount(() =>
                   tenantDb
                     .select({ count: count() })
                     .from(maintenanceTable)
-                    .where(statusEq(maintenanceTable.status, "open")),
+                    .where(sql`lower(${maintenanceTable.status}) IN ('open', 'in_progress')`),
                 ),
                 safeCount(() =>
                   tenantDb
@@ -111,22 +117,88 @@ router.get(
                 ),
                 safeCount(() => tenantDb.select({ count: count() }).from(buildingsTable)),
                 safeCount(() => tenantDb.select({ count: count() }).from(floorsTable)),
+                safeSelect(() =>
+                  tenantDb
+                    .select({
+                      id: reservationsTable.id,
+                      guestName: reservationsTable.guestName,
+                      checkInDate: reservationsTable.checkInDate,
+                      roomId: reservationsTable.roomId,
+                      status: reservationsTable.status,
+                    })
+                    .from(reservationsTable)
+                    .where(statusEq(reservationsTable.status, "upcoming"))
+                    .limit(6),
+                ),
+                safeSelect(() =>
+                  tenantDb
+                    .select({
+                      id: maintenanceTable.id,
+                      problemType: maintenanceTable.problemType,
+                      category: maintenanceTable.category,
+                      priority: maintenanceTable.priority,
+                      status: maintenanceTable.status,
+                      roomId: maintenanceTable.roomId,
+                    })
+                    .from(maintenanceTable)
+                    .where(sql`lower(${maintenanceTable.status}) IN ('open', 'in_progress')`)
+                    .limit(6),
+                ),
+                safeSelect(() =>
+                  tenantDb
+                    .select({
+                      department: profilesTable.department,
+                      count: count(),
+                    })
+                    .from(profilesTable)
+                    .groupBy(profilesTable.department),
+                ),
+                safeSelect(() =>
+                  tenantDb
+                    .select({
+                      gender: profilesTable.gender,
+                      count: count(),
+                    })
+                    .from(profilesTable)
+                    .groupBy(profilesTable.gender),
+                ),
               ]);
 
               const roomCapacityMap = new Map<number, number>();
+              const roomNumberMap = new Map<number, string>();
               let totalBeds = 0;
+              let dirtyRooms = 0;
+              let oooRooms = 0;
+              let availableRooms = 0;
+              let occupiedRooms = 0;
+
               for (const r of allRooms) {
                 const cap = Number(r.capacity) || 1;
                 roomCapacityMap.set(r.id, cap);
+                roomNumberMap.set(r.id, r.roomNumber || `#${r.id}`);
                 totalBeds += cap;
+
+                const st = (r.status || "available").toLowerCase();
+                if (st === "occupied") {
+                  occupiedRooms++;
+                } else if (st === "dirty" || st === "occupied_dirty") {
+                  dirtyRooms++;
+                } else if (
+                  st === "maintenance" ||
+                  st === "out_of_service" ||
+                  st === "out_of_order" ||
+                  st === "ooo" ||
+                  st === "oos"
+                ) {
+                  oooRooms++;
+                } else {
+                  availableRooms++;
+                }
               }
 
-              const roomOccupantCount = new Map<number, number>();
               let occupiedBeds = 0;
-
               for (const a of activeAssigns) {
                 if (!a.roomId) continue;
-                roomOccupantCount.set(a.roomId, (roomOccupantCount.get(a.roomId) || 0) + 1);
                 if (a.isEntireRoom) {
                   occupiedBeds += roomCapacityMap.get(a.roomId) || 1;
                 } else {
@@ -135,19 +207,37 @@ router.get(
               }
 
               const totalRooms = allRooms.length;
-              const occupiedRooms = roomOccupantCount.size;
-              const availableRooms = Math.max(0, totalRooms - occupiedRooms);
               const availableBeds = Math.max(0, totalBeds - occupiedBeds);
-
               const bedOccupancyRate =
                 totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 1000) / 10 : 0;
               const roomOccupancyRate =
                 totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 1000) / 10 : 0;
+              const cleanRate =
+                totalRooms > 0
+                  ? Math.round(((availableRooms + occupiedRooms) / totalRooms) * 100)
+                  : 100;
+
+              const formattedArrivals = (recentArrivals || []).map((arr: any) => ({
+                ...arr,
+                propertyName: p.name,
+                propertyId: p.id,
+                roomNumber: roomNumberMap.get(arr.roomId) || "—",
+              }));
+
+              const formattedTickets = (recentTickets || []).map((t: any) => ({
+                ...t,
+                propertyName: p.name,
+                propertyId: p.id,
+                roomNumber: roomNumberMap.get(t.roomId) || "—",
+              }));
 
               return {
                 totalRooms,
                 occupiedRooms,
                 availableRooms,
+                dirtyRooms,
+                oooRooms,
+                cleanRate,
                 totalBeds,
                 occupiedBeds,
                 availableBeds,
@@ -160,6 +250,10 @@ router.get(
                 upcomingReservations,
                 totalBuildings,
                 totalFloors,
+                arrivals: formattedArrivals,
+                tickets: formattedTickets,
+                deptRows,
+                genderRows,
               };
             });
             return { ...p, ...stats };
@@ -169,6 +263,9 @@ router.get(
               totalRooms: 0,
               occupiedRooms: 0,
               availableRooms: 0,
+              dirtyRooms: 0,
+              oooRooms: 0,
+              cleanRate: 100,
               totalBeds: 0,
               occupiedBeds: 0,
               availableBeds: 0,
@@ -181,6 +278,10 @@ router.get(
               upcomingReservations: 0,
               totalBuildings: 0,
               totalFloors: 0,
+              arrivals: [],
+              tickets: [],
+              deptRows: [],
+              genderRows: [],
             };
           }
         },
@@ -192,6 +293,8 @@ router.get(
         totalRooms: acc.totalRooms + p.totalRooms,
         occupiedRooms: acc.occupiedRooms + p.occupiedRooms,
         availableRooms: acc.availableRooms + p.availableRooms,
+        dirtyRooms: acc.dirtyRooms + (p.dirtyRooms || 0),
+        oooRooms: acc.oooRooms + (p.oooRooms || 0),
         totalBeds: acc.totalBeds + p.totalBeds,
         occupiedBeds: acc.occupiedBeds + p.occupiedBeds,
         availableBeds: acc.availableBeds + p.availableBeds,
@@ -206,6 +309,8 @@ router.get(
         totalRooms: 0,
         occupiedRooms: 0,
         availableRooms: 0,
+        dirtyRooms: 0,
+        oooRooms: 0,
         totalBeds: 0,
         occupiedBeds: 0,
         availableBeds: 0,
@@ -226,12 +331,107 @@ router.get(
       totals.totalRooms > 0
         ? Math.round((totals.occupiedRooms / totals.totalRooms) * 1000) / 10
         : 0;
+    const aggregateCleanRate =
+      totals.totalRooms > 0
+        ? Math.round(
+            ((totals.availableRooms + totals.occupiedRooms) / totals.totalRooms) * 100,
+          )
+        : 100;
 
     totals.occupancyRate = aggregateBedRate;
     totals.bedOccupancyRate = aggregateBedRate;
     totals.roomOccupancyRate = aggregateRoomRate;
+    totals.cleanRate = aggregateCleanRate;
 
-    res.json({ totals, perProperty });
+    // Aggregate Departments across all properties
+    const deptMap = new Map<string, number>();
+    for (const p of perProperty) {
+      for (const d of p.deptRows || []) {
+        if (!d.department) continue;
+        const name = String(d.department).trim();
+        deptMap.set(name, (deptMap.get(name) || 0) + Number(d.count || 0));
+      }
+    }
+    const departmentBreakdown = Array.from(deptMap.entries())
+      .map(([name, count]) => ({
+        name,
+        nameAr: name,
+        count,
+        percent:
+          totals.totalProfiles > 0
+            ? Math.round((count / totals.totalProfiles) * 100)
+            : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Aggregate Gender across all properties
+    let maleCount = 0;
+    let femaleCount = 0;
+    for (const p of perProperty) {
+      for (const g of p.genderRows || []) {
+        const gen = String(g.gender || "").toLowerCase().trim();
+        if (gen === "female" || gen === "f" || gen === "أنثى") {
+          femaleCount += Number(g.count || 0);
+        } else if (gen === "male" || gen === "m" || gen === "ذكر") {
+          maleCount += Number(g.count || 0);
+        }
+      }
+    }
+    const genderTotal = maleCount + femaleCount;
+    const genderDistribution = {
+      male: {
+        count: maleCount,
+        percent: genderTotal > 0 ? Math.round((maleCount / genderTotal) * 100) : 50,
+      },
+      female: {
+        count: femaleCount,
+        percent: genderTotal > 0 ? Math.round((femaleCount / genderTotal) * 100) : 50,
+      },
+    };
+
+    // Combine recent arrivals and maintenance across all properties
+    const allArrivals: any[] = [];
+    const allTickets: any[] = [];
+    for (const p of perProperty) {
+      if (Array.isArray(p.arrivals)) allArrivals.push(...p.arrivals);
+      if (Array.isArray(p.tickets)) allTickets.push(...p.tickets);
+    }
+    allArrivals.sort(
+      (a, b) =>
+        new Date(a.checkInDate || 0).getTime() - new Date(b.checkInDate || 0).getTime(),
+    );
+    allTickets.sort((a, b) => (b.id || 0) - (a.id || 0));
+
+    const analytics = {
+      roomStatusBreakdown: {
+        total: totals.totalRooms,
+        available: totals.availableRooms,
+        occupied: totals.occupiedRooms,
+        dirty: totals.dirtyRooms,
+        maintenance: totals.oooRooms,
+        occupancyRate: totals.roomOccupancyRate,
+      },
+      bedCapacity: {
+        totalBeds: totals.totalBeds,
+        occupiedBeds: totals.occupiedBeds,
+        availableBeds: totals.availableBeds,
+        utilizationPercent: totals.bedOccupancyRate,
+      },
+      turnoverHealth: {
+        cleanRate: totals.cleanRate,
+        pendingClean: totals.dirtyRooms,
+      },
+      departmentBreakdown,
+      genderDistribution,
+    };
+
+    const operations = {
+      checkIns: allArrivals.slice(0, 10),
+      maintenanceRequests: allTickets.slice(0, 10),
+    };
+
+    res.json({ totals, perProperty, analytics, operations });
   },
 );
 

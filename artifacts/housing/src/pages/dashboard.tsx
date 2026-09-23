@@ -79,6 +79,7 @@ import { QuickAssistBar } from "./dashboard/components/QuickAssistTab";
 import { useDashboardWidgets } from "./dashboard/hooks/useDashboardWidgets";
 import { DashboardCustomizeDialog } from "./dashboard/components/DashboardCustomizeDialog";
 import { TicketsDualTrackHub } from "./dashboard/components/TicketsDualTrackHub";
+import { DashboardLiveAllProperty } from "./dashboard/components/DashboardLiveAllProperty";
 
 function AnimatedNumber({ value }: { value: string | number }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -181,7 +182,12 @@ export default function Dashboard() {
   const totalProfilesCount = profilesData?.pagination?.total ?? stats?.totalProfiles ?? 0;
 
   // Aggregate stats for 'all' mode
-  const { data: allStats, isLoading: allLoading, isError: allStatsError } = useQuery({
+  const {
+    data: allStats,
+    isLoading: allLoading,
+    isError: allStatsError,
+    refetch: refetchAllStats,
+  } = useQuery({
     queryKey: ["/api/dashboard/all-stats"],
     queryFn: async () => {
       const r = await fetch("/api/dashboard/all-stats");
@@ -427,62 +433,28 @@ export default function Dashboard() {
         <QuickAssistBar buildNavHref={buildNavHref} />
       )}
 
-      {/* Modernized Executive KPI Cards with Sparklines & Deltas */}
+      {/* Super Admin: All Properties Live Executive Command Center OR Single Property View */}
       {isAll ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <DashboardKpiCard
-            title={ar ? "إجمالي الموظفين" : "Total Profiles"}
-            value={<AnimatedNumber value={totals?.totalProfiles ?? 0} />}
-            sub={ar ? "عبر كل الفروع" : "Across all properties"}
-            icon={Users}
-            color="text-blue-600 dark:text-blue-400"
-            bg="bg-blue-500/10"
-            delta={{ value: "+5.4%", isPositive: true }}
-            sparklineData={[120, 125, 122, 130, 134, 140, totals?.totalProfiles ?? 145]}
-          />
-          <DashboardKpiCard
-            title={ar ? "إجمالي الغرف" : "Total Rooms"}
-            value={<AnimatedNumber value={totals?.totalRooms ?? 0} />}
-            sub={ar ? "غرفة في كل الفروع" : "Rooms across properties"}
-            icon={Building2}
-            color="text-primary"
-            bg="bg-primary/10"
-            delta={{ value: "+1.2%", isPositive: true }}
-            sparklineData={[80, 80, 82, 82, 85, 85, totals?.totalRooms ?? 85]}
-          />
-          <DashboardKpiCard
-            title={ar ? "التذاكر المفتوحة" : "Open Tickets"}
-            value={<AnimatedNumber value={totals?.openMaintenance ?? 0} />}
-            sub={ar ? "عبر كل الفروع" : "Across all properties"}
-            icon={Wrench}
-            color="text-amber-600 dark:text-amber-400"
-            bg="bg-amber-500/10"
-            alert={(totals?.openMaintenance ?? 0) > 0}
-            delta={
-              (totals?.openMaintenance ?? 0) > 0
-                ? { value: `+${totals?.openMaintenance}`, isPositive: false }
-                : { value: "0", isPositive: true }
-            }
-            sparklineData={[8, 7, 6, 9, 7, 5, totals?.openMaintenance ?? 4]}
-          />
-          <DashboardKpiCard
-            title={ar ? "المتوقع وصولهم" : "Arrivals"}
-            value={<AnimatedNumber value={totals?.upcomingReservations ?? 0} />}
-            sub={ar ? "عبر كل الفروع" : "Across all properties"}
-            icon={CalendarCheck}
-            color="text-purple-600 dark:text-purple-400"
-            bg="bg-purple-500/10"
-            delta={{ value: "+3.1%", isPositive: true }}
-            sparklineData={[15, 18, 14, 20, 22, 21, totals?.upcomingReservations ?? 25]}
-          />
-        </div>
+        <DashboardLiveAllProperty
+          ar={ar}
+          totals={totals}
+          perProperty={perProperty}
+          analytics={allStats?.analytics}
+          operations={allStats?.operations}
+          allStatsLoading={allLoading}
+          refetchAllStats={refetchAllStats}
+          setActivePropertyId={setActivePropertyId}
+          properties={properties}
+        />
       ) : (
-        (isWidgetVisible("kpi_profiles") ||
-          isWidgetVisible("kpi_beds") ||
-          isWidgetVisible("kpi_rooms") ||
-          isWidgetVisible("kpi_arrivals") ||
-          isWidgetVisible("kpi_maintenance")) && (
-          <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
+        <>
+          {/* Modernized Executive KPI Cards with Sparklines & Deltas */}
+          {(isWidgetVisible("kpi_profiles") ||
+            isWidgetVisible("kpi_beds") ||
+            isWidgetVisible("kpi_rooms") ||
+            isWidgetVisible("kpi_arrivals") ||
+            isWidgetVisible("kpi_maintenance")) && (
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
             {/* Card 1: Total Profiles */}
             {isWidgetVisible("kpi_profiles") && (
               <DashboardKpiCard
@@ -578,11 +550,10 @@ export default function Dashboard() {
               />
             )}
           </div>
-        )
-      )}
+        )}
 
       {/* Live Room Readiness & Turnover Tracker Bar */}
-      {!isAll && isWidgetVisible("readiness_tracker") && (
+      {isWidgetVisible("readiness_tracker") && (
         <ReadinessTrackerBar
           totalRooms={analytics?.roomStatusBreakdown?.total ?? stats?.totalRooms ?? 0}
           available={analytics?.roomStatusBreakdown?.available ?? stats?.availableRooms ?? 0}
@@ -594,7 +565,7 @@ export default function Dashboard() {
       )}
 
       {/* Live Housing Capacity Ribbon (Matching exact design under Readiness Tracker) */}
-      {!isAll && isWidgetVisible("capacity_ribbon") && (
+      {isWidgetVisible("capacity_ribbon") && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
           {/* 1. Buildings */}
           <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
@@ -698,100 +669,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Per-Property Table (only in 'all' mode) */}
-      {isAll && perProperty.length > 0 && (
-        <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-base font-bold">
-              {ar ? "تفاصيل كل فرع" : "Per-Property Breakdown"}
-            </CardTitle>
-            <CardDescription className="text-xs">
-              {ar
-                ? "اضغط على أي فرع للانتقال المباشر للوحة القيادة الخاصة به"
-                : "Click any property to jump directly to its individual dashboard"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground text-xs uppercase tracking-wider">
-                    <th className="text-start py-2.5 px-3 font-semibold">
-                      {ar ? "الفرع" : "Property"}
-                    </th>
-                    <th className="text-center py-2.5 px-3 font-semibold">
-                      {ar ? "الموظفون" : "Profiles"}
-                    </th>
-                    <th className="text-center py-2.5 px-3 font-semibold">
-                      {ar ? "الغرف" : "Rooms"}
-                    </th>
-                    <th className="text-center py-2.5 px-3 font-semibold">
-                      {ar ? "الإشغال" : "Occupancy"}
-                    </th>
-                    <th className="text-center py-2.5 px-3 font-semibold">
-                      {ar ? "التذاكر" : "Tickets"}
-                    </th>
-                    <th className="text-center py-2.5 px-3 font-semibold">
-                      {ar ? "الوصول" : "Arrivals"}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {perProperty.map((p: any) => {
-                    const slug = getPropertySlug(p);
-                    return (
-                      <tr
-                        key={p.id}
-                        onClick={() => {
-                          setActivePropertyId(p.id);
-                          setLocation(`/${slug}/dashboard`);
-                        }}
-                        className="border-b border-border/40 hover:bg-muted/60 cursor-pointer transition-all duration-200"
-                      >
-                        <td className="py-3 px-3 font-semibold text-foreground flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-primary" />
-                          <span>{p.name}</span>
-                        </td>
-                        <td className="py-3 px-3 text-center font-mono">{p.totalProfiles}</td>
-                        <td className="py-3 px-3 text-center font-mono">{p.totalRooms}</td>
-                        <td className="py-3 px-3 text-center">
-                          <span
-                            className={cn(
-                              "font-semibold font-mono px-2 py-0.5 rounded-full text-xs",
-                              p.occupancyRate > 85
-                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-                            )}
-                          >
-                            {p.occupancyRate}%
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <span
-                            className={cn(
-                              "font-mono",
-                              p.openMaintenance > 0 ? "text-orange-600 font-bold" : "text-muted-foreground",
-                            )}
-                          >
-                            {p.openMaintenance}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-center font-mono text-muted-foreground">
-                          {p.upcomingReservations}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Reusable Content Blocks for Multi-View Modes */}
       {(() => {
-        if (isAll) return null;
 
         const donutNode = isWidgetVisible("donut_analytics") ? (
           <DashboardAnalyticsDonut
@@ -1145,6 +1024,8 @@ export default function Dashboard() {
           </>
         );
       })()}
+        </>
+      )}
 
       {/* Dashboard Customize Dialog */}
       <DashboardCustomizeDialog
