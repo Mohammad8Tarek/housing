@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -21,6 +21,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   RefreshCw,
   ShieldAlert,
@@ -52,6 +59,10 @@ import {
   Database,
   Loader2,
   Users,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -92,6 +103,27 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
   const { properties } = useProperty();
   const ar = language === "ar";
 
+  // List of real properties/hotels
+  const validProperties = useMemo(() => properties.filter((p) => p.id > 0), [properties]);
+
+  // Active Selected Hotel for this Section
+  const [activeHotelId, setActiveHotelId] = useState<number>(() => {
+    if (typeof propertyId === "number" && propertyId > 0) return propertyId;
+    return validProperties[0]?.id || 1;
+  });
+
+  useEffect(() => {
+    if (typeof propertyId === "number" && propertyId > 0) {
+      setActiveHotelId(propertyId);
+    }
+  }, [propertyId]);
+
+  const effectiveHotelId = activeHotelId;
+  const currentHotel = useMemo(
+    () => validProperties.find((p) => p.id === effectiveHotelId) || validProperties[0],
+    [validProperties, effectiveHotelId],
+  );
+
   // Master Global Settings
   const [isActive, setIsActive] = useState(false);
   const [autoCheckoutOnDeparture, setAutoCheckoutOnDeparture] = useState(true);
@@ -128,7 +160,8 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
     hotelCode?: string;
   } | null>(null);
 
-  // Range Sync State
+  // Range Sync State (with dedicated hotel selection)
+  const [rangeHotelId, setRangeHotelId] = useState<number>(effectiveHotelId);
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeTo, setRangeTo] = useState("");
   const [isRangeSyncing, setIsRangeSyncing] = useState(false);
@@ -139,11 +172,27 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
   const [batchRefreshResult, setBatchRefreshResult] = useState<any | null>(null);
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
 
-  // Load Config
-  const loadConfig = async () => {
-    if (!propertyId) return;
+  // Developer Guide Accordion State
+  const [showDevGuide, setShowDevGuide] = useState(false);
+  const [copiedWebhook, setCopiedWebhook] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedWebhook(id);
+    toast.success(ar ? "تم نسخ الرابط للحافظة" : "Copied to clipboard");
+    setTimeout(() => setCopiedWebhook(null), 2500);
+  };
+
+  useEffect(() => {
+    setRangeHotelId(effectiveHotelId);
+  }, [effectiveHotelId]);
+
+  // Load Config for specific hotel
+  const loadConfig = async (targetId?: number) => {
+    const hotelIdToLoad = targetId || effectiveHotelId;
+    if (!hotelIdToLoad) return;
     try {
-      const res = await fetch(`/api/hr-sync/config?propertyId=${propertyId}`, {
+      const res = await fetch(`/api/hr-sync/config?propertyId=${hotelIdToLoad}`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to load");
@@ -161,7 +210,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         setTargetPropertyIds(
           Array.isArray(d.config.targetPropertyIds)
             ? d.config.targetPropertyIds
-            : [propertyId],
+            : [hotelIdToLoad],
         );
 
         if (d.config.esignConfig) {
@@ -171,6 +220,15 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
           if (ec.password) setEsignPassword(ec.password);
           if (ec.hotelCode) setEsignHotelCode(ec.hotelCode);
           if (ec.isActive !== undefined) setEsignIsActive(ec.isActive);
+        } else {
+          // If no custom code yet, try default code from hotel metadata
+          const hotelObj = validProperties.find((p) => p.id === hotelIdToLoad);
+          if (hotelObj?.code) {
+            setEsignHotelCode(hotelObj.code);
+          } else {
+            setEsignHotelCode("");
+          }
+          setEsignPassword("");
         }
       }
     } catch {
@@ -178,9 +236,40 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
     }
   };
 
+  const handleHotelChange = (newHotelId: number) => {
+    setActiveHotelId(newHotelId);
+    setEsignTestResult(null);
+    loadConfig(newHotelId);
+  };
+
+  // Quick helper: Copy credentials from another hotel
+  const copyCredentialsFromOtherHotel = async (fromHotelId: number) => {
+    try {
+      const res = await fetch(`/api/hr-sync/config?propertyId=${fromHotelId}`, {
+        credentials: "include",
+      });
+      const d = await res.json();
+      if (d?.config?.esignConfig) {
+        const ec = d.config.esignConfig;
+        if (ec.baseUrl) setEsignBaseUrl(ec.baseUrl);
+        if (ec.username) setEsignUsername(ec.username);
+        if (ec.password) setEsignPassword(ec.password);
+        toast.success(
+          ar
+            ? "تم نسخ رابط السيرفر وبيانات الدخول! يرجى التأكد من كود هذا الفندق فقط ثم الحفظ."
+            : "Credentials copied. Set hotel code and save.",
+        );
+      } else {
+        toast.info(ar ? "الفندق المحدد ليس لديه بيانات ربط محفوظة بعد" : "Selected hotel has no saved credentials");
+      }
+    } catch {
+      toast.error(ar ? "فشل نسخ البيانات" : "Failed to copy credentials");
+    }
+  };
+
   // Save e-Signature Settings
   const saveEsignSettings = async () => {
-    if (!propertyId) return;
+    if (!effectiveHotelId) return;
     setSavingEsign(true);
     try {
       const resp = await fetch("/api/hr-sync/config", {
@@ -188,7 +277,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          propertyId,
+          propertyId: effectiveHotelId,
           esignConfig: {
             baseUrl: esignBaseUrl.trim(),
             username: esignUsername.trim(),
@@ -201,10 +290,10 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
       if (!resp.ok) throw new Error((await resp.json()).error || "Save failed");
       toast.success(
         ar
-          ? "تم حفظ بيانات الربط الفندقي (Sunrise e-Signature) بنجاح"
+          ? `تم حفظ بيانات الربط لفندق "${currentHotel?.name || ""}" بنجاح`
           : "e-Signature HR connection config saved",
       );
-      loadConfig();
+      loadConfig(effectiveHotelId);
     } catch (err: any) {
       toast.error(err?.message || "Failed to save e-Signature config");
     } finally {
@@ -230,6 +319,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          propertyId: effectiveHotelId,
           baseUrl: esignBaseUrl.trim(),
           username: esignUsername.trim(),
           password: esignPassword,
@@ -254,7 +344,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
     }
   };
 
-  // Range Sync (من كود إلى كود)
+  // Range Sync (من كود إلى كود) مع إمكانية تحديد الفندق
   const handleRangeSync = async () => {
     const fromNum = parseInt(rangeFrom.trim(), 10);
     const toNum = parseInt(rangeTo.trim(), 10);
@@ -283,6 +373,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
       return;
     }
 
+    const targetHotel = validProperties.find((p) => p.id === rangeHotelId) || currentHotel;
     setIsRangeSyncing(true);
     setRangeSyncResult(null);
     try {
@@ -291,9 +382,13 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          propertyId: rangeHotelId || effectiveHotelId,
           fromClockNo: fromNum,
           toClockNo: toNum,
-          hotelCode: esignHotelCode.trim().toUpperCase(),
+          hotelCode:
+            rangeHotelId === effectiveHotelId && esignHotelCode.trim()
+              ? esignHotelCode.trim().toUpperCase()
+              : undefined,
         }),
       });
       const data = await resp.json();
@@ -304,8 +399,8 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
       setRangeSyncResult(data);
       toast.success(
         ar
-          ? `اكتمل استيراد النطاق بنجاح! تم العثور على ${data.foundCount} موظف (إنشاء ${data.stats?.created || 0}، وتحديث ${data.stats?.updated || 0})`
-          : `Range sync complete! Found ${data.foundCount} employees (Created ${data.stats?.created || 0}, Updated ${data.stats?.updated || 0})`,
+          ? `اكتمل استيراد النطاق لفندق "${targetHotel?.name || ""}" بنجاح! تم العثور على ${data.foundCount} موظف (إنشاء ${data.stats?.created || 0}، وتحديث ${data.stats?.updated || 0})`
+          : `Range sync complete for ${targetHotel?.name || ""}! Found ${data.foundCount} employees`,
       );
       queryClient.invalidateQueries({ queryKey: ["profiles"] });
       queryClient.invalidateQueries({ queryKey: ["lookup_values"] });
@@ -327,7 +422,9 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          propertyId: effectiveHotelId,
+        }),
       });
       const data = await resp.json();
       if (!resp.ok || !data.success) {
@@ -337,8 +434,8 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
       setBatchRefreshResult(data);
       toast.success(
         ar
-          ? `اكتمل التحديث الشامل! تم فحص ${data.totalChecked} موظف وتحديث ${data.updatedCount} ملف مسكن بنجاح`
-          : `Batch refresh complete: ${data.updatedCount} profiles updated from HR`,
+          ? `اكتمل التحديث الشامل لفندق "${currentHotel?.name || ""}"! تم فحص ${data.totalChecked} وتحديث ${data.updatedCount} موظف`
+          : `Batch refresh complete for ${currentHotel?.name || ""}: ${data.updatedCount} profiles updated`,
       );
       queryClient.invalidateQueries({ queryKey: ["profiles"] });
       queryClient.invalidateQueries({ queryKey: ["lookup_values"] });
@@ -353,12 +450,12 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
   };
 
   useEffect(() => {
-    loadConfig();
-  }, [propertyId]);
+    loadConfig(effectiveHotelId);
+  }, [effectiveHotelId]);
 
   // Save Config
   const saveConfig = async (newSources?: HrSourceConfig[]) => {
-    if (!propertyId) return;
+    if (!effectiveHotelId) return;
     try {
       let fm: any = undefined;
       if (fieldMapping.trim()) {
@@ -377,19 +474,26 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          propertyId,
+          propertyId: effectiveHotelId,
           fieldMapping: fm,
           isActive,
           autoCheckoutOnDeparture,
           autoVacationSync,
-          targetPropertyIds: targetPropertyIds.length > 0 ? targetPropertyIds : [propertyId],
+          targetPropertyIds: targetPropertyIds.length > 0 ? targetPropertyIds : [effectiveHotelId],
           sources: payloadSources,
+          esignConfig: {
+            baseUrl: esignBaseUrl.trim(),
+            username: esignUsername.trim(),
+            password: esignPassword,
+            hotelCode: esignHotelCode.trim().toUpperCase(),
+            isActive: esignIsActive,
+          },
         }),
       });
 
       if (!resp.ok) throw new Error((await resp.json()).message || "Save failed");
       toast.success(ar ? "تم حفظ إعدادات ومصادر الـ HR بنجاح" : "HR sync config saved");
-      loadConfig();
+      loadConfig(effectiveHotelId);
     } catch (err: any) {
       toast.error(err.message || "Error saving config");
     }
@@ -618,6 +722,35 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
             </Button>
           </div>
         </div>
+
+        {/* Target Hotel Selector Banner */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-muted/50 rounded-xl border border-border/70 mt-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-1.5 font-bold text-xs text-foreground">
+              <Building2 className="w-4 h-4 text-primary" />
+              <span>{ar ? "الفندق المراد إدارته وضبط ربطه:" : "Active Target Hotel:"}</span>
+            </div>
+            <Select value={String(effectiveHotelId)} onValueChange={(val) => handleHotelChange(Number(val))}>
+              <SelectTrigger className="h-8 text-xs bg-background min-w-[220px] font-semibold shadow-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {validProperties.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)} className="text-xs">
+                    {p.name} {p.code ? `[${p.code}]` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">{ar ? "كود الفندق بالنظام:" : "Hotel System Code:"}</span>
+            <Badge variant="outline" className="font-mono text-xs font-bold text-primary border-primary/30 bg-primary/5">
+              {esignHotelCode || currentHotel?.code || "N/A"}
+            </Badge>
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-6">
@@ -716,14 +849,32 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
           <CardContent className="space-y-5 pt-1">
             {/* Step 1: Connection Credentials */}
             <div className="p-4 rounded-xl bg-card border border-border/70 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <KeyRound className="w-3.5 h-3.5 text-primary" />
                   {ar ? "بيانات الدخول وسيرفر الفندق (Zero-Hardcode):" : "Server & Hotel Credentials:"}
                 </h4>
-                <span className="text-[11px] text-muted-foreground">
-                  {ar ? "محفوظة بأمان في قاعدة البيانات" : "Securely stored in database"}
-                </span>
+                {validProperties.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                      {ar ? "تسريع الإعداد:" : "Quick Setup:"}
+                    </span>
+                    <Select onValueChange={(val) => copyCredentialsFromOtherHotel(Number(val))}>
+                      <SelectTrigger className="h-7 text-[11px] w-[210px] bg-muted/40 border-dashed text-foreground">
+                        <SelectValue placeholder={ar ? "نسخ رابط وحساب فندق آخر..." : "Copy from another hotel..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {validProperties
+                          .filter((p) => p.id !== effectiveHotelId)
+                          .map((p) => (
+                            <SelectItem key={p.id} value={String(p.id)} className="text-xs">
+                              {ar ? `نسخ من: ${p.name}` : `Copy from: ${p.name}`}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -863,6 +1014,39 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                           : "Scan & import/update employees between two clock numbers"}
                       </p>
                     </div>
+                  </div>
+
+                  {/* Target Hotel for Range Import */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-primary" />
+                        {ar ? "الفندق المستهدف للاستيراد:" : "Target Hotel for Range:"}
+                      </span>
+                      {(() => {
+                        const targetHotelObj = validProperties.find((p) => p.id === rangeHotelId);
+                        return targetHotelObj?.code ? (
+                          <Badge variant="outline" className="text-[10px] font-mono font-bold text-primary border-primary/30">
+                            Code: {targetHotelObj.code}
+                          </Badge>
+                        ) : null;
+                      })()}
+                    </div>
+                    <Select
+                      value={String(rangeHotelId)}
+                      onValueChange={(val) => setRangeHotelId(Number(val))}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {validProperties.map((p) => (
+                          <SelectItem key={p.id} value={String(p.id)} className="text-xs">
+                            {p.name} {p.code ? `[${p.code}]` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 pt-1">
@@ -1095,41 +1279,141 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
           </div>
         </div>
 
-        {/* Multi-Source Cards List */}
+        {/* ================================================================= */}
+        {/* Multi-Hotel System Matrix (Registered Hotels & HR Connection)     */}
+        {/* ================================================================= */}
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary" />
+                {ar ? "فنادق المنظومة وحالة ربط الـ HR (Registered Hotels Matrix):" : "Registered Hotels & HR Connection Matrix:"}
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {ar
+                  ? "يمكنك إدارة بيانات الربط والكود الوظيفي والاستيراد لكل فندق على حدة باختياره أدناه:"
+                  : "Manage credentials, hotel codes, and range import individually for each hotel:"}
+              </p>
+            </div>
+            <Badge variant="outline" className="text-xs font-semibold">
+              {ar ? `${validProperties.length} فنادق مسجلة` : `${validProperties.length} Registered Hotels`}
+            </Badge>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {validProperties.map((p) => {
+              const isSelected = p.id === effectiveHotelId;
+              const isRangeSelected = p.id === rangeHotelId;
+              const hotelCode = isSelected && esignHotelCode ? esignHotelCode : (p.code || "N/A");
+
+              return (
+                <Card
+                  key={p.id}
+                  className={`border transition-all shadow-xs ${
+                    isSelected
+                      ? "ring-2 ring-primary border-primary bg-primary/5"
+                      : "hover:border-border/90 bg-card"
+                  }`}
+                >
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 min-w-0">
+                        <CardTitle className="text-sm font-bold flex items-center gap-1.5 truncate">
+                          <Building2 className={`w-4 h-4 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                          <span className="truncate">{p.name}</span>
+                        </CardTitle>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {p.displayName || p.name}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={isSelected ? "default" : "outline"}
+                        className="text-[10px] shrink-0"
+                      >
+                        {isSelected ? (ar ? "محدد حالياً" : "Active") : `#${p.id}`}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-4 pt-1 space-y-3">
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <span className="text-muted-foreground">{ar ? "كود الفندق في الـ HR:" : "HR Hotel Code:"}</span>
+                      <Badge variant="outline" className="font-mono text-xs font-bold text-primary border-primary/30 bg-primary/5">
+                        {hotelCode}
+                      </Badge>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant={isSelected ? "secondary" : "outline"}
+                        onClick={() => handleHotelChange(p.id)}
+                        className="h-7 text-xs gap-1 flex-1 font-medium"
+                      >
+                        <Edit className="w-3 h-3" />
+                        {isSelected
+                          ? (ar ? "قيد التعديل أعلاه" : "Editing Above")
+                          : (ar ? "ضبط بيانات هذا الفندق" : "Configure This Hotel")}
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant={isRangeSelected ? "default" : "ghost"}
+                        onClick={() => {
+                          setRangeHotelId(p.id);
+                          toast.info(
+                            ar
+                              ? `تم اختيار فندق "${p.name}" في خانة الاستيراد بالنطاق (Range Sync)`
+                              : `Selected ${p.name} for Range Import`,
+                          );
+                        }}
+                        className={`h-7 text-xs gap-1 px-2.5 ${isRangeSelected ? "bg-primary text-primary-foreground" : "text-primary hover:bg-primary/10"}`}
+                        title={ar ? "تحديد هذا الفندق لاستيراد نطاق الأرقام الوظيفية" : "Select for range import"}
+                      >
+                        <Hash className="w-3 h-3" />
+                        {ar ? "سحب نطاق" : "Range"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Custom API Sources Section */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <Layers className="w-4 h-4 text-primary" />
-              {ar ? "قواعد بيانات وروابط الـ HR المتصلة:" : "Connected HR Databases & APIs:"}
+              {ar ? "مصادر وروابط مزامنة مخصصة (Custom External Feeds):" : "Custom External Feeds & Legacy Sources:"}
             </h3>
-            <span className="text-xs text-muted-foreground">
-              {ar ? `إجمالي المصادر: ${sources.length}` : `Total sources: ${sources.length}`}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {ar ? `المصادر: ${sources.length}` : `Sources: ${sources.length}`}
+              </span>
+              <Button size="sm" variant="outline" onClick={handleAddNewSource} className="h-7 text-xs gap-1">
+                <Plus className="w-3 h-3" />
+                {ar ? "إضافة مصدر" : "Add Source"}
+              </Button>
+            </div>
           </div>
 
           {sources.length === 0 ? (
-            <div className="text-center py-10 px-4 border border-dashed rounded-xl bg-muted/20 space-y-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                <Layers className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold">
-                  {ar ? "لم تتم إضافة أي مصدر HR بعد" : "No HR sources configured yet"}
-                </p>
-                <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  {ar
-                    ? "يمكنك ربط عدة روابط API لقواعد بيانات فنادق مختلفة (التاج، وايت هيلز، المرافئ...) تسكن عمالتها في هذا السكن."
-                    : "Connect multiple hotel databases sharing this housing facility or split across multiple locations."}
-                </p>
-              </div>
+            <div className="text-center py-6 px-4 border border-dashed rounded-xl bg-muted/20 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                {ar
+                  ? "لا توجد مصادر مخصصة إضافية. نظام الربط الفندقي المباشر (Sunrise e-Signature API) يعمل لجميع الفنادق أعلاه."
+                  : "No custom feeds configured. The direct Sunrise e-Signature API handles all registered hotels above."}
+              </p>
               <div className="flex items-center justify-center gap-2 pt-1">
-                <Button size="sm" onClick={handleAddNewSource} className="gap-1.5 text-xs">
-                  <Plus className="w-3.5 h-3.5" />
-                  {ar ? "إضافة مصدر جديد" : "Add Source"}
-                </Button>
-                <Button size="sm" variant="outline" onClick={setupDemoFeeds} className="gap-1.5 text-xs">
-                  <FlaskConical className="w-3.5 h-3.5" />
-                  {ar ? "تجربة روابط تلقائية (Demo)" : "Load Demo Feeds"}
+                <Button size="sm" variant="ghost" onClick={setupDemoFeeds} className="h-7 text-xs text-amber-600 gap-1">
+                  <FlaskConical className="w-3 h-3" />
+                  {ar ? "تحميل روابط تجريبية (Demo Mock)" : "Load Demo Mock Feeds"}
                 </Button>
               </div>
             </div>
@@ -1140,36 +1424,35 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                 return (
                   <Card
                     key={src.id}
-                    className={`border transition-all shadow-sm ${src.isActive ? "border-border/80" : "opacity-60 bg-muted/30"}`}
+                    className={`border transition-all shadow-xs ${src.isActive ? "border-border/80" : "opacity-60 bg-muted/30"}`}
                   >
                     <CardHeader className="p-4 pb-2">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <CardTitle className="text-sm font-bold flex items-center gap-1.5">
+                        <div className="min-w-0">
+                          <CardTitle className="text-sm font-bold flex items-center gap-1.5 truncate">
                             <Building2 className="w-4 h-4 text-primary shrink-0" />
-                            {src.name}
+                            <span className="truncate">{src.name}</span>
                           </CardTitle>
                           <p className="text-[11px] text-muted-foreground font-mono truncate max-w-[220px] mt-0.5">
                             {src.apiUrl}
                           </p>
                         </div>
-                        <Badge variant={src.isActive ? "default" : "secondary"} className="text-[10px]">
+                        <Badge variant={src.isActive ? "default" : "secondary"} className="text-[10px] shrink-0">
                           {src.isActive ? (ar ? "نشط" : "Active") : ar ? "متوقف" : "Off"}
                         </Badge>
                       </div>
                     </CardHeader>
 
                     <CardContent className="p-4 pt-1 space-y-3">
-                      {/* Properties & Level Badges */}
-                      <div className="space-y-1.5 pt-1">
+                      <div className="space-y-1.5 pt-1 text-[11px]">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] text-muted-foreground">{ar ? "السكن المستهدف:" : "Target:"}</span>
+                          <span className="text-muted-foreground">{ar ? "السكن المستهدف:" : "Target:"}</span>
                           {src.targetPropertyIds && src.targetPropertyIds.length > 0 ? (
                             src.targetPropertyIds.map((pid) => {
                               const prop = properties?.find((p: any) => p.id === pid);
                               return (
                                 <Badge key={pid} variant="outline" className="text-[10px] bg-background">
-                                  {prop?.displayName || prop?.name || `Property #${pid}`}
+                                  {prop?.displayName || prop?.name || `#${pid}`}
                                 </Badge>
                               );
                             })
@@ -1181,37 +1464,21 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                         </div>
 
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] text-muted-foreground">{ar ? "استيراد البروفايلات:" : "Profiles:"}</span>
+                          <span className="text-muted-foreground">{ar ? "البروفايلات:" : "Profiles:"}</span>
                           {src.syncProfiles !== false ? (
                             <Badge variant="outline" className="text-[10px] text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/5">
-                              {ar ? "مفعّل (استيراد كامل)" : "Enabled"}
+                              {ar ? "استيراد كامل" : "Enabled"}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/5">
-                              {ar ? "معطل (إجازات وتصفيات فقط)" : "Movements only"}
+                              {ar ? "حركات فقط" : "Movements only"}
                             </Badge>
                           )}
                         </div>
-
-                        {src.allowedLevels && src.allowedLevels.length > 0 && (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] text-muted-foreground">{ar ? "المستويات:" : "Levels:"}</span>
-                            <Badge variant="secondary" className="text-[10px]">
-                              {src.allowedLevels.map((l) => `Lvl ${l}`).join(", ")}
-                            </Badge>
-                          </div>
-                        )}
-
-                        {src.housingEligibleOnly && (
-                          <Badge variant="outline" className="text-[10px] text-blue-600 dark:text-blue-400 border-blue-500/30 bg-blue-500/5">
-                            {ar ? "مستحقي السكن فقط" : "Housing Eligible Only"}
-                          </Badge>
-                        )}
                       </div>
 
                       <Separator />
 
-                      {/* Card Footer Actions */}
                       <div className="flex items-center justify-between pt-1">
                         <div className="flex items-center gap-1">
                           <Button
@@ -1273,87 +1540,171 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
 
         <Separator />
 
-        {/* Bilingual Step-by-Step Developer Integration Guide */}
-        <div className="space-y-4 pt-1">
-          <div>
-            <h4 className="text-sm font-semibold flex items-center gap-2 mb-1">
-              <ShieldAlert className="w-4 h-4 text-primary" />
-              {ar
-                ? "دليل الربط البرمجي الكامل مع الـ HR والـ Webhooks التلقائية:"
-                : "HR System Integration API Reference & Webhooks:"}
-            </h4>
-            <p className="text-xs text-muted-foreground">
-              {ar
-                ? "يدعم النظام طريقتين للربط: السحب الآلي الدوري (Pull) أو الإرسال الفوري المباشر عبر الـ Webhooks (Push)."
-                : "Supports dual-mode: Periodic Pulling or Real-Time Push Webhooks directly from your HR solution."}
-            </p>
-          </div>
-
-          {/* Casual to Permanent Upgrade Feature Banner */}
-          <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-1.5 text-xs">
-            <div className="font-semibold text-primary flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-emerald-500" />
-              {ar
-                ? "ميزة ترقية العمالة المؤقتة إلى تعيين رسمي (Casual -> Permanent Transition):"
-                : "Automatic Casual to Permanent Worker Transition:"}
-            </div>
-            <p className="text-muted-foreground text-[11px] leading-relaxed">
-              {ar
-                ? "عندما يبدأ الموظف بكود مؤقت (Casual مثل CAS-1042) ثم يتعين برقم وظيفي جديد (مثل EMP-8802)، يقوم النظام تلقائياً بالمطابقة بالرقم القومي (National ID). يتم تحديث رقم الموظف وحفظ رقمه السابق (previous_profile_id)، مع الحفاظ الكامل على تسكينه وسريره الحالي وسجل إقامته دون أي انقطاع أو إخلاء!"
-                : "When an employee transitions from a casual worker code to a permanent ID with the same National ID, the system preserves their active room and bed assignment with zero interruption."}
-            </p>
-          </div>
-
-          {/* Webhooks Cards */}
-          <div className="grid gap-3 md:grid-cols-3">
-            {/* Webhook 1 */}
-            <div className="bg-muted/40 rounded-xl p-3 border text-xs space-y-2">
-              <div className="font-semibold text-primary flex items-center justify-between">
-                <span>1. إرسال بروفايلات (Push)</span>
-                <Badge variant="outline" className="text-[10px]">POST</Badge>
+        {/* Bilingual Step-by-Step Developer Integration Guide (Collapsible Drawer) */}
+        <div className="border border-border/70 rounded-xl overflow-hidden bg-card shadow-xs">
+          <button
+            type="button"
+            onClick={() => setShowDevGuide(!showDevGuide)}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-muted/40 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <ShieldAlert className="w-4 h-4" />
               </div>
-              <code className="block bg-background p-1.5 rounded font-mono text-[11px] text-foreground">
-                /api/hr-sync/receive
-              </code>
-              <p className="text-muted-foreground text-[11px]">
-                {ar
-                  ? "إرسال حزمة الموظفين بالكامل، مع صور البطاقات والأقسام."
-                  : "Push employee profiles array with documents and jobs."}
-              </p>
-            </div>
-
-            {/* Webhook 2 */}
-            <div className="bg-muted/40 rounded-xl p-3 border text-xs space-y-2">
-              <div className="font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-between">
-                <span>2. إشعار إجازة (خروج / عودة)</span>
-                <Badge variant="outline" className="text-[10px]">POST</Badge>
+              <div className="text-right sm:text-right rtl:text-right ltr:text-left">
+                <span className="text-xs sm:text-sm font-bold block text-foreground">
+                  {ar ? "دليل وروابط الـ Webhooks للمطورين والربط المباشر (Push APIs)" : "Developer Webhooks & Push Integration Guide"}
+                </span>
+                <span className="text-[11px] text-muted-foreground block mt-0.5">
+                  {ar
+                    ? `روابط الاستقبال الفوري مجهزة تلقائياً برقم الفندق المستهدف (#${effectiveHotelId} - ${currentHotel?.name || ""})`
+                    : `Push webhook endpoints formatted for hotel #${effectiveHotelId} (${currentHotel?.name || ""})`}
+                </span>
               </div>
-              <code className="block bg-background p-1.5 rounded font-mono text-[11px] text-foreground">
-                /api/hr-sync/notify-vacation
-              </code>
-              <p className="text-muted-foreground text-[11px]">
-                {ar
-                  ? "تسجيل الإجازة وتحديث حالة الغرفة لـ occupied_vacation."
-                  : "Sync vacation start/return & room occupied_vacation status."}
-              </p>
             </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">
+                {showDevGuide ? (ar ? "إخفاء التفاصيل" : "Hide Details") : (ar ? "عرض روابط المطورين" : "Show Webhooks")}
+              </Badge>
+              {showDevGuide ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </div>
+          </button>
 
-            {/* Webhook 3 */}
-            <div className="bg-muted/40 rounded-xl p-3 border text-xs space-y-2">
-              <div className="font-semibold text-red-600 dark:text-red-400 flex items-center justify-between">
-                <span>3. إشعار تصفية واستقالة</span>
-                <Badge variant="outline" className="text-[10px]">POST</Badge>
-              </div>
-              <code className="block bg-background p-1.5 rounded font-mono text-[11px] text-foreground">
-                /api/hr-sync/notify-departure
-              </code>
-              <p className="text-muted-foreground text-[11px]">
+          {showDevGuide && (
+            <div className="p-4 pt-2 border-t border-border/60 space-y-4 bg-muted/20">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {ar
-                  ? "Check-out تلقائي وإخلاء السرير وتحويل الغرفة لمتسخة."
-                  : "Auto check-out, release bed, and set room to dirty."}
+                  ? "يدعم النظام استقبال البيانات الفورية (Push Webhooks) مباشرة من سيرفر الموارد البشرية عند حدوث أي تعديل أو إجازة أو استقالة. الروابط أدناه مجهزة تلقائياً بمعرّف الفندق المختار حالياً:"
+                  : "The system supports instant Push Webhooks directly from HR servers. Below endpoints are tailored for the currently active hotel:"}
               </p>
+
+              {/* Casual to Permanent Upgrade Feature Banner */}
+              <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1 text-xs">
+                <div className="font-semibold text-primary flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-emerald-500" />
+                  {ar
+                    ? "ميزة ترقية العمالة المؤقتة إلى تعيين رسمي (Casual -> Permanent Transition):"
+                    : "Automatic Casual to Permanent Worker Transition:"}
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  {ar
+                    ? "عندما يبدأ الموظف بكود مؤقت (Casual مثل CAS-1042) ثم يتعين برقم وظيفي جديد (مثل EMP-8802)، يقوم النظام تلقائياً بالمطابقة بالرقم القومي (National ID). يتم تحديث رقم الموظف وحفظ رقمه السابق، مع الحفاظ الكامل على تسكينه وسريره الحالي وسجل إقامته دون أي انقطاع أو إخلاء!"
+                    : "When an employee transitions from a casual worker code to a permanent ID with the same National ID, the system preserves their active room and bed assignment with zero interruption."}
+                </p>
+              </div>
+
+              {/* Webhooks Cards with copy buttons and dynamic propertyId */}
+              <div className="grid gap-3 md:grid-cols-3">
+                {/* Webhook 1 */}
+                <div className="bg-background rounded-xl p-3.5 border text-xs space-y-2.5 shadow-2xs">
+                  <div className="font-semibold text-primary flex items-center justify-between">
+                    <span>{ar ? "1. إرسال بروفايلات (Push)" : "1. Push Profiles"}</span>
+                    <Badge variant="outline" className="text-[10px]">POST</Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <code className="block flex-1 bg-muted p-1.5 rounded font-mono text-[11px] text-foreground truncate" dir="ltr">
+                      {`/api/hr-sync/receive?propertyId=${effectiveHotelId}`}
+                    </code>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      onClick={() =>
+                        copyToClipboard(
+                          `${window.location.origin}/api/hr-sync/receive?propertyId=${effectiveHotelId}`,
+                          "webhook-1",
+                        )
+                      }
+                      title={ar ? "نسخ الرابط بالكامل" : "Copy full URL"}
+                    >
+                      {copiedWebhook === "webhook-1" ? (
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-[11px] leading-relaxed">
+                    {ar
+                      ? "إرسال حزمة الموظفين بالكامل، مع صور البطاقات والأقسام."
+                      : "Push employee profiles array with documents and jobs."}
+                  </p>
+                </div>
+
+                {/* Webhook 2 */}
+                <div className="bg-background rounded-xl p-3.5 border text-xs space-y-2.5 shadow-2xs">
+                  <div className="font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-between">
+                    <span>{ar ? "2. إشعار إجازة (خروج / عودة)" : "2. Vacation Notice"}</span>
+                    <Badge variant="outline" className="text-[10px]">POST</Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <code className="block flex-1 bg-muted p-1.5 rounded font-mono text-[11px] text-foreground truncate" dir="ltr">
+                      {`/api/hr-sync/notify-vacation?propertyId=${effectiveHotelId}`}
+                    </code>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      onClick={() =>
+                        copyToClipboard(
+                          `${window.location.origin}/api/hr-sync/notify-vacation?propertyId=${effectiveHotelId}`,
+                          "webhook-2",
+                        )
+                      }
+                      title={ar ? "نسخ الرابط بالكامل" : "Copy full URL"}
+                    >
+                      {copiedWebhook === "webhook-2" ? (
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-[11px] leading-relaxed">
+                    {ar
+                      ? "تسجيل الإجازة وتحديث حالة الغرفة لـ occupied_vacation."
+                      : "Sync vacation start/return & room occupied_vacation status."}
+                  </p>
+                </div>
+
+                {/* Webhook 3 */}
+                <div className="bg-background rounded-xl p-3.5 border text-xs space-y-2.5 shadow-2xs">
+                  <div className="font-semibold text-red-600 dark:text-red-400 flex items-center justify-between">
+                    <span>{ar ? "3. إشعار تصفية واستقالة" : "3. Departure Notice"}</span>
+                    <Badge variant="outline" className="text-[10px]">POST</Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <code className="block flex-1 bg-muted p-1.5 rounded font-mono text-[11px] text-foreground truncate" dir="ltr">
+                      {`/api/hr-sync/notify-departure?propertyId=${effectiveHotelId}`}
+                    </code>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      onClick={() =>
+                        copyToClipboard(
+                          `${window.location.origin}/api/hr-sync/notify-departure?propertyId=${effectiveHotelId}`,
+                          "webhook-3",
+                        )
+                      }
+                      title={ar ? "نسخ الرابط بالكامل" : "Copy full URL"}
+                    >
+                      {copiedWebhook === "webhook-3" ? (
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-[11px] leading-relaxed">
+                    {ar
+                      ? "Check-out تلقائي وإخلاء السرير وتحويل الغرفة لمتسخة."
+                      : "Auto check-out, release bed, and set room to dirty."}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </CardContent>
 
