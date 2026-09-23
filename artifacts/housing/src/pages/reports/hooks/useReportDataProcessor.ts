@@ -1937,6 +1937,8 @@ export function useReportDataProcessor({
           }
         }
 
+        const todayStr = new Date().toISOString().split("T")[0];
+
         // 1. Audit active occupants
         for (const a of assignments) {
           if (a.status !== "ACTIVE" && a.status !== "VACATION") continue;
