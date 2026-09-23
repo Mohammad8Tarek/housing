@@ -37,6 +37,7 @@ export interface NormalizedEsignEmployee {
   contractEndDate: string | null;
   email: string;
   emergencyContact: string;
+  photoUrl: string;
   raw: any;
 }
 
@@ -256,6 +257,7 @@ export function normalizeEsignRecord(raw: any): NormalizedEsignEmployee {
     contractEndDate,
     email: raw.email || "",
     emergencyContact: raw.emergency_contact || "",
+    photoUrl: String(raw.photo || raw.photoUrl || raw.photo_url || raw.avatar || raw.image || raw.ProfileImage || raw.profile_image || "").trim(),
     raw,
   };
 
