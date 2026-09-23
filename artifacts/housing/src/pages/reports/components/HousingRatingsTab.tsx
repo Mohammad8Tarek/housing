@@ -514,6 +514,7 @@ export function HousingRatingsTab({
         <div className="relative">
           <Search className="w-4 h-4 absolute start-3 top-2.5 text-muted-foreground" />
           <Input
+            type="text"
             value={searchComment}
             onChange={(e) => setSearchComment(e.target.value)}
             placeholder={

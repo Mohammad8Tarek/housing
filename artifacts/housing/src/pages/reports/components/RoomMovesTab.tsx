@@ -41,6 +41,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface RoomMovesTabProps {
   ar: boolean;
@@ -63,6 +64,7 @@ export function RoomMovesTab({
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(15);
 
@@ -76,7 +78,7 @@ export function RoomMovesTab({
       selectedReason,
       fromDate,
       toDate,
-      searchQuery,
+      debouncedSearch,
       currentPage,
       pageSize,
     ],
@@ -87,7 +89,7 @@ export function RoomMovesTab({
       if (selectedReason && selectedReason !== "all") params.append("reasonCode", selectedReason);
       if (fromDate) params.append("fromDate", fromDate);
       if (toDate) params.append("toDate", toDate);
-      if (searchQuery.trim()) params.append("search", searchQuery.trim());
+      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
       params.append("page", String(currentPage));
       params.append("limit", String(pageSize));
 
@@ -463,6 +465,7 @@ export function RoomMovesTab({
         <div className="relative">
           <Search className="w-4 h-4 absolute start-3 top-2.5 text-muted-foreground" />
           <Input
+            type="text"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             placeholder={
