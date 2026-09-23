@@ -2085,7 +2085,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     try {
       const targetPId = propId ?? activePropertyId;
       const sUrl = targetPId ? `/api/settings?propertyId=${targetPId}` : "/api/settings";
-      const sRes = await fetch(sUrl);
+      const sRes = await fetch(sUrl, { credentials: "include" });
       if (sRes.ok) {
         const sData = await sRes.json();
         resolvedSysLogoUrl = sData?.systemLogo;
@@ -2579,41 +2579,44 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       overflow: hidden;
     }
 
-    /* Opera PMS Header Layout with Dual Logos */
+    /* Formal PDF Header: system logo left, property logo right */
     .opera-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
-      min-height: 48px;
+      margin-bottom: 3px;
+      min-height: 54px;
     }
     .opera-header-left {
       width: 25%;
       min-width: 120px;
       display: flex;
       align-items: center;
-      justify-content: ${dir === "rtl" ? "flex-end" : "flex-start"};
+      justify-content: flex-start;
     }
     .opera-header-center {
       width: 50%;
       text-align: center;
-      padding: 0 10px;
+      padding: 0 12px;
+      align-self: flex-start;
+      padding-top: 4px;
     }
     .opera-hotel-name {
-      font-size: 10.5pt;
-      font-weight: 500;
+      font-size: 10pt;
+      font-weight: 700;
       font-style: italic;
       font-family: Georgia, "Times New Roman", serif;
       color: #000000;
-      margin-bottom: 3px;
+      margin-bottom: 5px;
       letter-spacing: 0.2px;
+      line-height: 1.1;
     }
     .opera-report-title {
-      font-size: 13.5pt;
-      font-weight: 800;
+      font-size: 14.5pt;
+      font-weight: 900;
       color: #000000;
-      letter-spacing: 0.2px;
-      line-height: 1.2;
+      letter-spacing: 0;
+      line-height: 1.15;
     }
     .opera-report-submeta {
       font-size: 7.5pt;
@@ -2625,26 +2628,34 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       min-width: 120px;
       display: flex;
       flex-direction: column;
-      align-items: ${dir === "rtl" ? "flex-start" : "flex-end"};
-      justify-content: center;
-      text-align: ${dir === "rtl" ? "left" : "right"};
+      align-items: flex-end;
+      justify-content: flex-start;
+      text-align: right;
     }
     .opera-logo {
-      max-height: 46px;
-      max-width: 140px;
+      max-height: 50px;
+      max-width: 150px;
       object-fit: contain;
     }
+    .opera-syslogo {
+      max-width: 155px;
+      max-height: 50px;
+    }
+    .opera-proplogo {
+      max-width: 120px;
+      max-height: 48px;
+    }
     .opera-meta-datetime {
-      font-size: 7.5pt;
-      font-weight: 600;
+      font-size: 6.8pt;
+      font-weight: 800;
       color: #000000;
-      font-family: monospace, sans-serif;
-      margin-top: 3px;
-      letter-spacing: 0.3px;
+      font-family: "Courier New", monospace;
+      margin-top: 1px;
+      letter-spacing: 0.2px;
     }
     .opera-meta-sep {
-      margin: 0 3px;
-      color: #94a3b8;
+      margin: 0 8px;
+      color: #000000;
     }
     .opera-fallback-brand {
       font-weight: 900;
@@ -2654,11 +2665,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       line-height: 1.15;
       display: flex;
       flex-direction: column;
-      align-items: ${dir === "rtl" ? "flex-end" : "flex-start"};
+      align-items: flex-start;
     }
     .opera-fallback-brand.right-brand {
-      align-items: ${dir === "rtl" ? "flex-start" : "flex-end"};
-      text-align: ${dir === "rtl" ? "left" : "right"};
+      align-items: flex-end;
+      text-align: right;
     }
     .opera-fallback-badge {
       font-size: 6.8pt;
@@ -2668,9 +2679,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
 
     .opera-divider {
-      height: 1px;
-      background: #000000;
-      margin: 6px 0 10px 0;
+      height: 0;
+      background: transparent;
+      margin: 2px 0 8px 0;
     }
 
     /* Opera Data Table: Strict fixed layout guarantees zero page blowout */
@@ -2884,7 +2895,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     @media print {
       @page {
         size: A4 ${orientation};
-        margin: 6mm 4mm !important;
+        margin: 0mm !important;
         marks: none;
       }
       html, body {
@@ -2901,7 +2912,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       .sheet {
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 4mm 6mm !important;
+        padding: 7mm 8mm 5mm !important;
         width: 100% !important;
         max-width: 100% !important;
         min-height: auto !important;
@@ -3092,7 +3103,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           }
           <div class="opera-meta-datetime">
             <span class="opera-meta-date">${operaDateStr}</span>
-            <span class="opera-meta-sep">·</span>
+            <span class="opera-meta-sep">-</span>
             <span class="opera-meta-time">${operaTimeStr}</span>
           </div>
         </div>
