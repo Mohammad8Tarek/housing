@@ -613,6 +613,10 @@ export default function ActivityLog() {
                       ? ar
                         ? "كل الوحدات"
                         : "All Modules"
+                      : m === "hr_sync"
+                      ? ar
+                        ? "الموارد البشرية (HR Sync)"
+                        : "HR Sync"
                       : m.charAt(0).toUpperCase() + m.slice(1)}
                   </SelectItem>
                 ))}
@@ -844,7 +848,9 @@ export default function ActivityLog() {
                               variant="outline"
                               className="text-xs capitalize"
                             >
-                              {log.module}
+                              {log.module === "hr_sync"
+                                ? (ar ? "الموارد البشرية (HR)" : "HR Sync")
+                                : log.module}
                             </Badge>
                           )}
                           {log.entityType && (

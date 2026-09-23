@@ -333,6 +333,19 @@ export function useReportDataProcessor({
               departureCategory = ar ? "مغادرة مجدولة" : "Scheduled Departure";
             }
 
+            let displayReason = a.notes || "";
+            if (displayReason) {
+              displayReason = displayReason
+                .replace(/^Auto checkout — HR departure \/ clearance:\s*/i, "")
+                .replace(/^تصفية من الموارد البشرية \(HR Departure\):\s*/i, "")
+                .trim();
+            }
+            if (!displayReason) {
+              displayReason = isHrClearance
+                ? (ar ? "تصفية ومغادرة عمل من الموارد البشرية" : "HR Termination / Clearance")
+                : (ar ? "إخلاء عادي" : "Normal Departure");
+            }
+
             return {
               id: a.id,
               profileName: getProfileDisplayName(emp, ar) || `#${a.profileId}`,
@@ -349,7 +362,7 @@ export function useReportDataProcessor({
               checkOutDate: formatDate(expCheckOut, "—"),
               status: a.status,
               departureCategory,
-              reason: isHrClearance ? (ar ? "تصفية ومغادرة عمل من الموارد البشرية" : "HR Termination / Clearance") : (a.notes || (ar ? "إخلاء عادي" : "Normal Departure")),
+              reason: displayReason,
               roomStatusAfter: room.status === "dirty" ? (ar ? "متسخة (تحتاج نظافة)" : "Dirty") : (room.status || "—"),
             };
           })
@@ -2238,8 +2251,103 @@ export function useReportDataProcessor({
                 severity: ar ? "مرتفعة" : "High",
                 approvalStatus: approvalStatusText,
                 approvedBy: exceptionApprover,
+              });
+            }
+          }
+
+          // Check F: Contract Expiry Overstay Alert (انتهاء عقد العمل مع استمرار الإقامة)
+          if (emp.contractEndDate && a.status === "ACTIVE") {
+            const cEnd = comparableDate(emp.contractEndDate);
+            if (cEnd && cEnd < todayStr) {
+              exceptions.push({
+                id: `contract_${a.id}`,
+                profileName: getProfileDisplayName(emp, ar) || "—",
+                profileCode: emp.profileId || emp.code || "—",
+                nationalId: emp.nationalId || "—",
+                jobLevel: emp.level || levelCategory,
+                department: getProfileDisplayDepartment(emp, ar) || "—",
+                roomNumber: room.roomNumber || "—",
+                buildingName: bName,
+                roomCapacity: roomCap,
+                currentOccupancy: roomOcc,
+                violationType: ar ? "إقامة بعد انتهاء عقد العمل" : "Contract Expiry Overstay",
+                violationDetails: ar
+                  ? `المقيم مستمر في السكن رغم انتهاء عقد العمل بتاريخ ${formatDate(emp.contractEndDate)} دون تجديد رسمي معتمد من الموارد البشرية`
+                  : `Resident continuing in housing after contract expired on ${formatDate(emp.contractEndDate)} without approved HR renewal`,
+                severity: ar ? "مرتفعة" : "High",
+                approvalStatus: approvalStatusText,
+                approvedBy: exceptionApprover,
                 overrideReason: exceptionReasonText,
               });
+            }
+          }
+
+          // Check G: Smoking Preference Conflict (تعارض سياسة التدخين)
+          const empSmoker = Boolean(
+            (emp as any).isSmoking === true ||
+            String(emp.notes || "").includes("مدخن") ||
+            String((emp as any).smokingPreference || "").toLowerCase() === "smoker"
+          );
+          const roomNonSmoking = Boolean(
+            (room as any).isNonSmoking === true ||
+            String(room.notes || "").includes("غير مدخن") ||
+            String(room.notes || "").toLowerCase().includes("non-smoking")
+          );
+          if (empSmoker && roomNonSmoking) {
+            exceptions.push({
+              id: `smoke_${a.id}`,
+              profileName: getProfileDisplayName(emp, ar) || "—",
+              profileCode: emp.profileId || emp.code || "—",
+              nationalId: emp.nationalId || "—",
+              jobLevel: emp.level || levelCategory,
+              department: getProfileDisplayDepartment(emp, ar) || "—",
+              roomNumber: room.roomNumber || "—",
+              buildingName: bName,
+              roomCapacity: roomCap,
+              currentOccupancy: roomOcc,
+              violationType: ar ? "مخالفة سياسة التدخين" : "Smoking Policy Mismatch",
+              violationDetails: ar
+                ? `المقيم مسجل كمدخن في غرفة مخصصة لغير المدخنين`
+                : `Resident is marked as smoker in a designated Non-Smoking room`,
+              severity: ar ? "متوسطة" : "Medium",
+              approvalStatus: approvalStatusText,
+              approvedBy: exceptionApprover,
+              overrideReason: exceptionReasonText,
+            });
+          }
+
+          // Check H: Do Not Room Together / Mutual Exclusion (حظر الجمع بين نزلاء)
+          if (roommates.length > 0) {
+            const pNotes = String(emp.notes || "").toLowerCase();
+            for (const rm of roommates) {
+              const rmCode = String(rm.profileId || rm.code || "").toLowerCase();
+              const rmNotes = String(rm.notes || "").toLowerCase();
+              const myCode = String(emp.profileId || emp.code || "").toLowerCase();
+              const isBlacklisted =
+                (rmCode && pNotes.includes("عدم التسكين مع") && pNotes.includes(rmCode)) ||
+                (myCode && rmNotes.includes("عدم التسكين مع") && rmNotes.includes(myCode));
+              if (isBlacklisted) {
+                exceptions.push({
+                  id: `dnr_${a.id}_${rm.id}`,
+                  profileName: getProfileDisplayName(emp, ar) || "—",
+                  profileCode: emp.profileId || emp.code || "—",
+                  nationalId: emp.nationalId || "—",
+                  jobLevel: emp.level || levelCategory,
+                  department: getProfileDisplayDepartment(emp, ar) || "—",
+                  roomNumber: room.roomNumber || "—",
+                  buildingName: bName,
+                  roomCapacity: roomCap,
+                  currentOccupancy: roomOcc,
+                  violationType: ar ? "مخالفة عدم الجمع بين نزلاء" : "Do Not Room Together Violation",
+                  violationDetails: ar
+                    ? `توجد موانع إدارية أو خلافات سابقة تحظر تسكين المقيم مع (${rm.firstName || ""} ${rm.lastName || ""} #${rm.profileId || rm.code}) في نفس الغرفة`
+                    : `Administrative restrictions prohibit housing resident with (${rm.firstName || ""} ${rm.lastName || ""} #${rm.profileId || rm.code}) in the same room`,
+                  severity: ar ? "حرجة" : "Critical",
+                  approvalStatus: approvalStatusText,
+                  approvedBy: exceptionApprover,
+                  overrideReason: exceptionReasonText,
+                });
+              }
             }
           }
         }

@@ -921,6 +921,57 @@ export function checkPolicyCompliance({
     }
   }
 
+  // 6. Contract Expiry Policy Check
+  if (profile.contractEndDate) {
+    const today = new Date().toISOString().split("T")[0];
+    if (profile.contractEndDate < today) {
+      violations.push({
+        code: "CONTRACT_EXPIRED",
+        messageAr: `مخالفة انتهاء العقد: عقد الموظف منتهي بتاريخ (${profile.contractEndDate}) ولا يجوز التسكين بدون تجديد معتمد من الموارد البشرية`,
+        messageEn: `Contract expired on (${profile.contractEndDate}); assignment requires approved renewal`,
+      });
+    }
+  }
+
+  // 7. Smoking Preference Policy Check
+  const isSmoker = Boolean(
+    profile.isSmoking === true ||
+    String(profile.notes || "").includes("مدخن") ||
+    String(profile.smokingPreference || "").toLowerCase() === "smoker"
+  );
+  const isNonSmokingRoom = Boolean(
+    room.isNonSmoking === true ||
+    String(room.notes || "").includes("غير مدخن") ||
+    String(room.notes || "").toLowerCase().includes("non-smoking")
+  );
+  if (isSmoker && isNonSmokingRoom) {
+    violations.push({
+      code: "SMOKING_MISMATCH",
+      messageAr: `مخالفة سياسة التدخين: الغرفة مخصصة لغير المدخنين بينما الموظف مصنف كمدخن`,
+      messageEn: `Smoking policy mismatch: Room is designated Non-Smoking while employee is a Smoker`,
+    });
+  }
+
+  // 8. Do Not Room Together (Mutual Incompatibility / Blacklist)
+  if (existingRoommates.length > 0) {
+    const pNotes = String(profile.notes || "").toLowerCase();
+    for (const rm of existingRoommates) {
+      const rmCode = String(rm.profileId || rm.code || "").toLowerCase();
+      const rmNotes = String(rm.notes || "").toLowerCase();
+      const myCode = String(profile.profileId || profile.code || "").toLowerCase();
+      const isBlacklisted =
+        (rmCode && pNotes.includes("عدم التسكين مع") && pNotes.includes(rmCode)) ||
+        (myCode && rmNotes.includes("عدم التسكين مع") && rmNotes.includes(myCode));
+      if (isBlacklisted) {
+        violations.push({
+          code: "DO_NOT_ROOM_TOGETHER",
+          messageAr: `مخالفة عدم الجمع: توجد موانع إدارية أو خلافات سابقة تحظر تسكين الموظف مع النزيل الحالي (${rm.firstName || ""} ${rm.lastName || ""} #${rm.profileId || rm.code}) في نفس الغرفة`,
+          messageEn: `Do Not Room Together violation: Administrative restrictions prohibit housing with (${rm.firstName || ""} ${rm.lastName || ""} #${rm.profileId || rm.code})`,
+        });
+      }
+    }
+  }
+
   return {
     compliant: violations.length === 0,
     violations,
