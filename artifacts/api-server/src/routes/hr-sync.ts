@@ -26,6 +26,12 @@ import {
   hasArabic,
 } from "../lib/bilingual-translator.js";
 import { broadcastToProperty } from "../lib/websocket.js";
+import {
+  getEsignConfig,
+  testEsignConnection,
+  fetchEmployeeByCode,
+  SunriseEsignConfig,
+} from "../lib/sunrise-esign-service.js";
 
 export interface HrSourceConfig {
   id: string;
@@ -68,6 +74,7 @@ const HrSyncConfigSchema = z.object({
   autoVacationSync: z.boolean().optional(),
   targetPropertyIds: z.array(z.number()).optional().default([]),
   sources: z.array(HrSourceConfigSchema).optional().default([]),
+  esignConfig: z.record(z.any()).optional().nullable(),
 });
 
 const router: Router = Router();
@@ -1262,6 +1269,7 @@ router.get(
           autoVacationSync: true,
           targetPropertyIds: [propertyId],
           sources: [],
+          esignConfig: null,
           lastSyncAt: null,
         },
       });
@@ -1273,6 +1281,12 @@ router.get(
       ...s,
       apiKey: s.apiKey ? "••••••" : "",
     }));
+
+    const rawEsign = (row.esign_config && typeof row.esign_config === "object") ? row.esign_config : {};
+    const safeEsign = Object.keys(rawEsign).length > 0 ? {
+      ...rawEsign,
+      password: rawEsign.password ? "••••••••" : "",
+    } : null;
 
     res.json({
       success: true,
@@ -1286,6 +1300,7 @@ router.get(
         autoVacationSync: row.auto_vacation_sync ?? true,
         targetPropertyIds: Array.isArray(row.target_property_ids) && row.target_property_ids.length > 0 ? row.target_property_ids : [propertyId],
         sources: safeSources,
+        esignConfig: safeEsign,
         lastSyncAt: row.last_sync_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -1324,10 +1339,11 @@ router.put(
       autoVacationSync,
       targetPropertyIds,
       sources,
+      esignConfig,
     } = parsed.data;
 
     const existingRes = await pool.query(
-      `SELECT id, api_key, sources FROM public.hr_sync_config WHERE property_id = $1`,
+      `SELECT id, api_key, sources, esign_config FROM public.hr_sync_config WHERE property_id = $1`,
       [propertyId],
     );
     const existing = existingRes?.rows?.[0];
@@ -1351,6 +1367,22 @@ router.put(
       };
     });
 
+    let finalEsignConfig = esignConfig;
+    if (esignConfig && typeof esignConfig === "object") {
+      const existingEsign = (existing?.esign_config && typeof existing.esign_config === "object")
+        ? existing.esign_config
+        : {};
+      let pwd = esignConfig.password;
+      if (pwd === "••••••••" || (typeof pwd === "string" && pwd.startsWith("•••"))) {
+        pwd = existingEsign.password || "";
+      }
+      finalEsignConfig = {
+        ...existingEsign,
+        ...esignConfig,
+        password: pwd,
+      };
+    }
+
     if (existing) {
       const updates: any = { updated_at: new Date() };
       if (apiUrl !== undefined) updates.api_url = apiUrl;
@@ -1361,6 +1393,7 @@ router.put(
       if (autoVacationSync !== undefined) updates.auto_vacation_sync = autoVacationSync;
       if (targetPropertyIds !== undefined) updates.target_property_ids = JSON.stringify(targetPropertyIds);
       if (sources !== undefined) updates.sources = JSON.stringify(finalSources);
+      if (finalEsignConfig !== undefined) updates.esign_config = JSON.stringify(finalEsignConfig);
 
       const setClauses = Object.entries(updates)
         .map(([k, v], i) => `${k} = $${i + 2}`)
@@ -1374,9 +1407,9 @@ router.put(
       await pool.query(
         `INSERT INTO public.hr_sync_config (
            property_id, api_url, api_key, field_mapping, is_active, 
-           auto_checkout_on_departure, auto_vacation_sync, target_property_ids, sources, updated_at
+           auto_checkout_on_departure, auto_vacation_sync, target_property_ids, sources, esign_config, updated_at
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
         [
           propertyId,
           apiUrl || "",
@@ -1387,6 +1420,7 @@ router.put(
           autoVacationSync ?? true,
           JSON.stringify(targetPropertyIds || [propertyId]),
           JSON.stringify(finalSources),
+          JSON.stringify(finalEsignConfig || {}),
         ],
       );
     }
@@ -2327,5 +2361,301 @@ router.get("/profiles/:profileId", async (req, res): Promise<void> => {
     });
   });
 });
+
+// ============================================================================
+// Sunrise e-Signature Integration Endpoints (Zero-Hardcode HR Synchronization)
+// ============================================================================
+
+// POST /api/hr-sync/esign/test — Test credentials and connectivity
+router.post(
+  "/esign/test",
+  requireAnyPermission(["hr_sync", "view"], ["hr_sync", "edit"], ["settings", "edit"]),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      const incoming = req.body || {};
+      let config: SunriseEsignConfig | null = null;
+
+      if (incoming.username && incoming.password && incoming.password !== "••••••••") {
+        config = {
+          baseUrl: incoming.baseUrl,
+          username: incoming.username,
+          password: incoming.password,
+          hotelCode: incoming.hotelCode,
+        };
+      } else {
+        const saved = await getEsignConfig(propertyId);
+        config = {
+          baseUrl: incoming.baseUrl || saved?.baseUrl,
+          username: incoming.username || saved?.username,
+          password: (incoming.password && incoming.password !== "••••••••") ? incoming.password : saved?.password,
+          hotelCode: incoming.hotelCode || saved?.hotelCode,
+        };
+      }
+
+      if (!config?.username || !config?.password) {
+        res.status(400).json({ success: false, error: "بيانات تسجيل الدخول (اسم المستخدم وكلمة المرور) غير متوفرة" });
+        return;
+      }
+      if (!config?.hotelCode) {
+        res.status(400).json({ success: false, error: "كود الفندق (Hotel Code) مطلوب لاختبار الاتصال" });
+        return;
+      }
+
+      const result = await testEsignConnection(config);
+      res.json(result);
+    } catch (err: any) {
+      console.error("[Esign Test Error]", err);
+      res.status(400).json({ success: false, error: err?.message || "فشل الاتصال بسيرفر Sunrise e-Signature" });
+    }
+  },
+);
+
+// GET /api/hr-sync/esign/lookup — Fetch single employee by Employee Code / Clock Number
+router.get(
+  "/esign/lookup",
+  requireAnyPermission(
+    ["profiles", "create"],
+    ["profiles", "edit"],
+    ["profiles", "view"],
+    ["hr_sync", "view"],
+    ["hr_sync", "edit"],
+    ["accommodation", "create"],
+  ),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      const clockNo = String(req.query.clockNo || req.query.code || "").trim();
+      const hotelCodeOverride = req.query.hotelCode ? String(req.query.hotelCode).trim() : undefined;
+
+      if (!clockNo) {
+        res.status(400).json({ success: false, error: "يرجى إدخال الرقم الوظيفي / كود الموظف (clock number)" });
+        return;
+      }
+
+      const config = await getEsignConfig(propertyId);
+      if (!config || !config.username || !config.password) {
+        res.status(400).json({
+          success: false,
+          error: "إعدادات الربط مع سيرفر الموارد البشرية (Sunrise e-Signature) غير مكتملة في هذا الفندق. يرجى تهيئتها من شاشة إعدادات HR Sync أولاً.",
+        });
+        return;
+      }
+
+      const employee = await fetchEmployeeByCode(config, clockNo, hotelCodeOverride);
+      if (!employee) {
+        res.json({
+          success: false,
+          notFound: true,
+          message: `لم يتم العثور على أي موظف يحمل الكود (${clockNo}) في قاعدة بيانات الموارد البشرية بالفندق`,
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        employee,
+      });
+    } catch (err: any) {
+      console.error("[Esign Lookup Error]", err);
+      res.status(400).json({ success: false, error: err?.message || "فشل جلب بيانات الموظف من HR" });
+    }
+  },
+);
+
+// POST /api/hr-sync/esign/range-sync — Bulk range import/update (fromClockNo -> toClockNo)
+router.post(
+  "/esign/range-sync",
+  requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"]),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ success: false, error: "propertyId required" });
+        return;
+      }
+
+      const fromClockNo = parseInt(String(req.body.fromClockNo || req.body.from || ""), 10);
+      const toClockNo = parseInt(String(req.body.toClockNo || req.body.to || ""), 10);
+      const hotelCodeOverride = req.body.hotelCode ? String(req.body.hotelCode).trim() : undefined;
+
+      if (isNaN(fromClockNo) || isNaN(toClockNo)) {
+        res.status(400).json({ success: false, error: "يرجى إدخال نطاق أرقام وظيفية صالح (من كود إلى كود)" });
+        return;
+      }
+
+      if (fromClockNo > toClockNo) {
+        res.status(400).json({ success: false, error: "بداية النطاق يجب أن تكون أقل من أو تساوي نهاية النطاق" });
+        return;
+      }
+
+      const count = toClockNo - fromClockNo + 1;
+      if (count > 2000) {
+        res.status(400).json({
+          success: false,
+          error: "الحد الأقصى للنطاق في المرة الواحدة هو 2000 موظف لمنع الضغط الزائد على الخادم",
+        });
+        return;
+      }
+
+      const config = await getEsignConfig(propertyId);
+      if (!config || !config.username || !config.password) {
+        res.status(400).json({
+          success: false,
+          error: "إعدادات الربط مع سيرفر الموارد البشرية غير مهيأة. يرجى إدخال بيانات الربط وحفظها أولاً.",
+        });
+        return;
+      }
+
+      const foundEmployees: any[] = [];
+      const notFoundCodes: number[] = [];
+
+      for (let code = fromClockNo; code <= toClockNo; code++) {
+        try {
+          const emp = await fetchEmployeeByCode(config, code, hotelCodeOverride);
+          if (emp) {
+            foundEmployees.push(emp);
+          } else {
+            notFoundCodes.push(code);
+          }
+        } catch (fetchErr: any) {
+          console.warn(`[Esign Range Sync] Error fetching code ${code}:`, fetchErr?.message);
+        }
+        if (count > 10) {
+          await new Promise((r) => setTimeout(r, 30));
+        }
+      }
+
+      let syncResult = {
+        stats: { totalReceived: 0, created: 0, updated: 0, departedAutoCheckouts: 0, casualUpgrades: 0, lookupsAdded: 0, errors: [] as string[] },
+      };
+
+      if (foundEmployees.length > 0) {
+        syncResult = await processReceive(propertyId, foundEmployees, req, {}, {
+          sourceName: "Sunrise e-Signature Range Sync",
+        });
+      }
+
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `استيراد بالنطاق من HR (${fromClockNo} إلى ${toClockNo}) — تم فحص ${count} رقم وظيفي، وُجد ${foundEmployees.length} موظف، تم إنشاء ${syncResult.stats.created}، وتحديث ${syncResult.stats.updated}`,
+        actionType: "SYNC",
+        module: "hr_sync",
+        entityType: "profile",
+        entityId: propertyId,
+      });
+
+      res.json({
+        success: true,
+        scannedCount: count,
+        foundCount: foundEmployees.length,
+        notFoundCount: notFoundCodes.length,
+        stats: syncResult.stats,
+      });
+    } catch (err: any) {
+      console.error("[Esign Range Sync Error]", err);
+      res.status(500).json({ success: false, error: err?.message || "حدث خطأ أثناء الاستيراد بالنطاق" });
+    }
+  },
+);
+
+// POST /api/hr-sync/esign/refresh-existing — Batch refresh & correct current profiles from HR
+router.post(
+  "/esign/refresh-existing",
+  requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"]),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ success: false, error: "propertyId required" });
+        return;
+      }
+
+      const config = await getEsignConfig(propertyId);
+      if (!config || !config.username || !config.password) {
+        res.status(400).json({
+          success: false,
+          error: "إعدادات الربط مع سيرفر الموارد البشرية غير مهيأة. يرجى تهيئتها أولاً.",
+        });
+        return;
+      }
+
+      // Query all profiles in the current property that have a profileId
+      let existingProfiles: any[] = [];
+      await withTenant(propertyId, async (tenantDb) => {
+        existingProfiles = await tenantDb
+          .select({
+            id: profilesTable.id,
+            profileId: profilesTable.profileId,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+          })
+          .from(profilesTable);
+      });
+
+      const validProfiles = existingProfiles.filter((p) => p.profileId && String(p.profileId).trim() !== "");
+      const foundEmployees: any[] = [];
+      let checked = 0;
+      let notFoundInHr = 0;
+
+      for (const p of validProfiles) {
+        checked++;
+        try {
+          const emp = await fetchEmployeeByCode(config, p.profileId);
+          if (emp) {
+            foundEmployees.push(emp);
+          } else {
+            notFoundInHr++;
+          }
+        } catch (fetchErr: any) {
+          console.warn(`[Esign Batch Refresh] Error checking profile ${p.profileId}:`, fetchErr?.message);
+        }
+        if (validProfiles.length > 20) {
+          await new Promise((r) => setTimeout(r, 30));
+        }
+      }
+
+      let syncResult = {
+        stats: { totalReceived: 0, created: 0, updated: 0, departedAutoCheckouts: 0, casualUpgrades: 0, lookupsAdded: 0, errors: [] as string[] },
+      };
+
+      if (foundEmployees.length > 0) {
+        syncResult = await processReceive(propertyId, foundEmployees, req, {}, {
+          sourceName: "Sunrise e-Signature Batch Refresh",
+        });
+      }
+
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `تحديث وتصحيح بيانات موظفي السكن الحاليين من HR — تم فحص ${checked} ملف، تحديث ${syncResult.stats.updated}، وإضافة ${syncResult.stats.lookupsAdded} مسميات`,
+        actionType: "UPDATE",
+        module: "hr_sync",
+        entityType: "profile",
+        entityId: propertyId,
+      });
+
+      res.json({
+        success: true,
+        totalChecked: checked,
+        updatedCount: syncResult.stats.updated,
+        notFoundInHr,
+        stats: syncResult.stats,
+      });
+    } catch (err: any) {
+      console.error("[Esign Batch Refresh Error]", err);
+      res.status(500).json({ success: false, error: err?.message || "حدث خطأ أثناء تحديث بيانات الموظفين" });
+    }
+  },
+);
 
 export default router;

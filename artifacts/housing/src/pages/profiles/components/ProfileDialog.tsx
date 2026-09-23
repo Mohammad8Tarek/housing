@@ -36,6 +36,8 @@ import {
   AlertCircle,
   Sparkles,
   Languages,
+  Loader2,
+  Search,
 } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 import { transliterateToken } from "@/lib/bilingual-name-engine";
@@ -306,6 +308,96 @@ export function ProfileDialog({
     enabled: isOpen,
   });
 
+  const [isLookingUpHr, setIsLookingUpHr] = useState(false);
+
+  const handleLookupFromHr = async () => {
+    const code = form.profileId?.trim();
+    if (!code) {
+      toast.error(
+        ar
+          ? "يرجى كتابة الرقم الوظيفي / كود الموظف أولاً"
+          : "Please enter Employee Code / Clock Number first",
+      );
+      return;
+    }
+
+    setIsLookingUpHr(true);
+    try {
+      const resp = await fetch(
+        `/api/hr-sync/esign/lookup?clockNo=${encodeURIComponent(code)}&propertyId=${effectivePropertyId}`,
+        { credentials: "include" },
+      );
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data.error || "Failed to fetch from HR");
+      }
+
+      if (data.notFound || !data.employee) {
+        toast.warning(
+          ar
+            ? `لم يتم العثور على أي موظف يحمل الكود (${code}) في نظام الـ HR الفندقي`
+            : `No employee found with code (${code}) in HR system`,
+        );
+        return;
+      }
+
+      const emp = data.employee;
+      setForm((prev) => ({
+        ...prev,
+        firstName: emp.firstName || prev.firstName,
+        lastName: emp.lastName || prev.lastName,
+        thirdName: emp.thirdName || prev.thirdName,
+        fourthName: emp.fourthName || prev.fourthName,
+        firstNameAr: emp.firstNameAr || prev.firstNameAr,
+        lastNameAr: emp.lastNameAr || prev.lastNameAr,
+        thirdNameAr: emp.thirdNameAr || prev.thirdNameAr,
+        fourthNameAr: emp.fourthNameAr || prev.fourthNameAr,
+        nationalId: emp.nationalId || prev.nationalId,
+        nationality: emp.nationality || prev.nationality,
+        phone: emp.phone || prev.phone,
+        address: emp.address || prev.address,
+        gender: emp.gender || prev.gender,
+        department: emp.department || prev.department,
+        departmentAr: emp.departmentAr || prev.departmentAr,
+        jobTitle: emp.jobTitle || prev.jobTitle,
+        jobTitleAr: emp.jobTitleAr || prev.jobTitleAr,
+        level: emp.level || prev.level,
+        hireDate: emp.hireDate || prev.hireDate,
+        dateOfBirth: emp.dateOfBirth || prev.dateOfBirth,
+        contractEndDate: emp.contractEndDate || prev.contractEndDate,
+      }));
+
+      // Mark names as populated
+      setManuallyEditedAr({
+        firstName: Boolean(emp.firstNameAr),
+        lastName: Boolean(emp.lastNameAr),
+        thirdName: Boolean(emp.thirdNameAr),
+        fourthName: Boolean(emp.fourthNameAr),
+      });
+      setManuallyEditedEn({
+        firstName: Boolean(emp.firstName),
+        lastName: Boolean(emp.lastName),
+        thirdName: Boolean(emp.thirdName),
+        fourthName: Boolean(emp.fourthName),
+      });
+
+      toast.success(
+        ar
+          ? `تم جلب وتعبئة بيانات الموظف (${emp.firstName || ""} ${emp.lastName || ""}) بنجاح من نظام الـ HR!`
+          : `Fetched employee data for (${emp.firstName || ""} ${emp.lastName || ""}) from HR!`,
+      );
+    } catch (err: any) {
+      toast.error(
+        err?.message ||
+          (ar
+            ? "فشل جلب بيانات الموظف من سيرفر الـ HR"
+            : "Failed to fetch employee from HR"),
+      );
+    } finally {
+      setIsLookingUpHr(false);
+    }
+  };
+
   const validate = () => {
     if (hasDuplicates) {
       toast.error(
@@ -501,19 +593,53 @@ export function ProfileDialog({
 
             {/* ID & Identifiers Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormRow label={ar ? "كود الموظف *" : "Profile Code *"}>
-                <Input
-                  value={form.profileId}
-                  onChange={(e) => set("profileId", e.target.value)}
-                  placeholder={ar ? "مثال: EMP-001" : "e.g. EMP-001"}
-                  className={
-                    duplicates.profileId
-                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
-                      : errors.profileId
-                      ? "border-destructive"
-                      : ""
-                  }
-                />
+              <FormRow
+                label={
+                  ar
+                    ? "الرقم الوظيفي / كود الموظف (Clock Number) *"
+                    : "Employee / Clock No *"
+                }
+              >
+                <div className="flex gap-2">
+                  <Input
+                    value={form.profileId}
+                    onChange={(e) => set("profileId", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleLookupFromHr();
+                      }
+                    }}
+                    placeholder={ar ? "مثال: 1042 أو EMP-001" : "e.g. 1042"}
+                    className={
+                      duplicates.profileId
+                        ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                        : errors.profileId
+                        ? "border-destructive"
+                        : ""
+                    }
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleLookupFromHr}
+                    disabled={isLookingUpHr || !form.profileId?.trim()}
+                    className="shrink-0 gap-1.5 h-9 px-3 text-xs bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                    title={
+                      ar
+                        ? "جلب بيانات الموظف تلقائياً من سيرفر الموارد البشرية"
+                        : "Fetch employee details from HR"
+                    }
+                  >
+                    {isLookingUpHr ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    )}
+                    <span>{ar ? "جلب من الـ HR" : "Fetch HR"}</span>
+                  </Button>
+                </div>
                 {duplicates.profileId ? (
                   <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -525,7 +651,13 @@ export function ProfileDialog({
                   </div>
                 ) : errors.profileId ? (
                   <p className="text-xs text-destructive">{errors.profileId}</p>
-                ) : null}
+                ) : (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {ar
+                      ? "اكتب الرقم الوظيفي واضغط (Enter) أو زر (جلب من الـ HR) للتعبئة التلقائية للبيانات"
+                      : "Type clock number & click fetch to auto-fill form"}
+                  </p>
+                )}
               </FormRow>
 
               <FormRow label={ar ? "رقم الهوية / الإقامة *" : "National ID *"}>

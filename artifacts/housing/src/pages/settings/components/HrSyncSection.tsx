@@ -40,10 +40,23 @@ import {
   Check,
   AlertTriangle,
   Info,
+  Eye,
+  EyeOff,
+  Lock,
+  Server,
+  KeyRound,
+  Hash,
+  ArrowRight,
+  Search,
+  Sparkles,
+  Database,
+  Loader2,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
+import { PermissionGate } from "@/components/ui/permission-gate";
 
 export interface HrSourceConfig {
   id: string;
@@ -98,6 +111,34 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
   // Edit/Add Source Dialog State
   const [editingSource, setEditingSource] = useState<HrSourceConfig | null>(null);
 
+  // Sunrise e-Signature Configuration State
+  const [esignBaseUrl, setEsignBaseUrl] = useState("https://signature-backend.sunrise-resorts.com/api");
+  const [esignUsername, setEsignUsername] = useState("");
+  const [esignPassword, setEsignPassword] = useState("");
+  const [esignHotelCode, setEsignHotelCode] = useState("");
+  const [esignIsActive, setEsignIsActive] = useState(true);
+  const [showEsignPassword, setShowEsignPassword] = useState(false);
+  const [savingEsign, setSavingEsign] = useState(false);
+  const [testingEsign, setTestingEsign] = useState(false);
+  const [esignTestResult, setEsignTestResult] = useState<{
+    success: boolean;
+    message: string;
+    hotelId?: number;
+    hotelName?: string;
+    hotelCode?: string;
+  } | null>(null);
+
+  // Range Sync State
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
+  const [isRangeSyncing, setIsRangeSyncing] = useState(false);
+  const [rangeSyncResult, setRangeSyncResult] = useState<any | null>(null);
+
+  // Batch Refresh State
+  const [isBatchRefreshing, setIsBatchRefreshing] = useState(false);
+  const [batchRefreshResult, setBatchRefreshResult] = useState<any | null>(null);
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
+
   // Load Config
   const loadConfig = async () => {
     if (!propertyId) return;
@@ -122,9 +163,192 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
             ? d.config.targetPropertyIds
             : [propertyId],
         );
+
+        if (d.config.esignConfig) {
+          const ec = d.config.esignConfig;
+          if (ec.baseUrl) setEsignBaseUrl(ec.baseUrl);
+          if (ec.username) setEsignUsername(ec.username);
+          if (ec.password) setEsignPassword(ec.password);
+          if (ec.hotelCode) setEsignHotelCode(ec.hotelCode);
+          if (ec.isActive !== undefined) setEsignIsActive(ec.isActive);
+        }
       }
     } catch {
       toast.error(ar ? "فشل تحميل إعدادات مزامنة الـ HR" : "Failed to load HR sync settings");
+    }
+  };
+
+  // Save e-Signature Settings
+  const saveEsignSettings = async () => {
+    if (!propertyId) return;
+    setSavingEsign(true);
+    try {
+      const resp = await fetch("/api/hr-sync/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          propertyId,
+          esignConfig: {
+            baseUrl: esignBaseUrl.trim(),
+            username: esignUsername.trim(),
+            password: esignPassword,
+            hotelCode: esignHotelCode.trim().toUpperCase(),
+            isActive: esignIsActive,
+          },
+        }),
+      });
+      if (!resp.ok) throw new Error((await resp.json()).error || "Save failed");
+      toast.success(
+        ar
+          ? "تم حفظ بيانات الربط الفندقي (Sunrise e-Signature) بنجاح"
+          : "e-Signature HR connection config saved",
+      );
+      loadConfig();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save e-Signature config");
+    } finally {
+      setSavingEsign(false);
+    }
+  };
+
+  // Test e-Signature Connection
+  const handleTestEsign = async () => {
+    if (!esignUsername.trim() || !esignPassword.trim() || !esignHotelCode.trim()) {
+      toast.error(
+        ar
+          ? "يرجى كتابة اسم المستخدم، وكلمة المرور، وكود الفندق أولاً"
+          : "Username, password, and hotel code are required",
+      );
+      return;
+    }
+    setTestingEsign(true);
+    setEsignTestResult(null);
+    try {
+      const resp = await fetch("/api/hr-sync/esign/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          baseUrl: esignBaseUrl.trim(),
+          username: esignUsername.trim(),
+          password: esignPassword,
+          hotelCode: esignHotelCode.trim().toUpperCase(),
+        }),
+      });
+      const data = await resp.json();
+      setEsignTestResult(data);
+      if (resp.ok && data.success) {
+        toast.success(
+          ar
+            ? `الاتصال ناجح! تم التحقق من فندق: ${data.hotelName} (كود: ${data.hotelCode}، معرف: ${data.hotelId})`
+            : `Connected successfully to hotel: ${data.hotelName}`,
+        );
+      } else {
+        toast.error(data.error || (ar ? "فشل الاتصال بسيرفر الـ HR" : "Connection failed"));
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Test connection failed");
+    } finally {
+      setTestingEsign(false);
+    }
+  };
+
+  // Range Sync (من كود إلى كود)
+  const handleRangeSync = async () => {
+    const fromNum = parseInt(rangeFrom.trim(), 10);
+    const toNum = parseInt(rangeTo.trim(), 10);
+    if (isNaN(fromNum) || isNaN(toNum)) {
+      toast.error(
+        ar
+          ? "يرجى كتابة أرقام وظيفية صحيحة في خانتي (من كود) و(إلى كود)"
+          : "Please enter valid start and end clock numbers",
+      );
+      return;
+    }
+    if (fromNum > toNum) {
+      toast.error(
+        ar
+          ? "بداية النطاق يجب أن تكون أقل من أو تساوي نهاية النطاق"
+          : "Start number must be less than or equal to end number",
+      );
+      return;
+    }
+    if (toNum - fromNum + 1 > 2000) {
+      toast.error(
+        ar
+          ? "الحد الأقصى للنطاق في المرة الواحدة هو 2000 موظف"
+          : "Maximum range is 2000 employees per run",
+      );
+      return;
+    }
+
+    setIsRangeSyncing(true);
+    setRangeSyncResult(null);
+    try {
+      const resp = await fetch("/api/hr-sync/esign/range-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          fromClockNo: fromNum,
+          toClockNo: toNum,
+          hotelCode: esignHotelCode.trim().toUpperCase(),
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || "Range sync failed");
+      }
+
+      setRangeSyncResult(data);
+      toast.success(
+        ar
+          ? `اكتمل استيراد النطاق بنجاح! تم العثور على ${data.foundCount} موظف (إنشاء ${data.stats?.created || 0}، وتحديث ${data.stats?.updated || 0})`
+          : `Range sync complete! Found ${data.foundCount} employees (Created ${data.stats?.created || 0}, Updated ${data.stats?.updated || 0})`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["lookup_values"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (err: any) {
+      toast.error(err?.message || (ar ? "حدث خطأ أثناء الاستيراد بالنطاق" : "Range sync error"));
+    } finally {
+      setIsRangeSyncing(false);
+    }
+  };
+
+  // Batch Refresh Existing Profiles
+  const handleBatchRefresh = async () => {
+    setShowBatchConfirm(false);
+    setIsBatchRefreshing(true);
+    setBatchRefreshResult(null);
+    try {
+      const resp = await fetch("/api/hr-sync/esign/refresh-existing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({}),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || "Batch refresh failed");
+      }
+
+      setBatchRefreshResult(data);
+      toast.success(
+        ar
+          ? `اكتمل التحديث الشامل! تم فحص ${data.totalChecked} موظف وتحديث ${data.updatedCount} ملف مسكن بنجاح`
+          : `Batch refresh complete: ${data.updatedCount} profiles updated from HR`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["lookup_values"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (err: any) {
+      toast.error(
+        err?.message || (ar ? "حدث خطأ أثناء تحديث بيانات الموظفين" : "Batch refresh error"),
+      );
+    } finally {
+      setIsBatchRefreshing(false);
     }
   };
 
@@ -454,6 +678,355 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
             />
           </div>
         </div>
+
+        {/* ================================================================= */}
+        {/* Sunrise e-Signature (Hotel HR API) Integration Hub               */}
+        {/* ================================================================= */}
+        <Card className="border-2 border-primary/20 bg-linear-to-b from-primary/5 via-card to-card shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1">
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <span>
+                    {ar
+                      ? "الربط الفندقي المباشر (Sunrise e-Signature Employee API)"
+                      : "Sunrise Hotel HR e-Signature Integration"}
+                  </span>
+                  <Badge variant={esignIsActive ? "default" : "secondary"} className="text-[10px]">
+                    {esignIsActive ? (ar ? "نشط" : "Active") : (ar ? "معطل" : "Disabled")}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {ar
+                    ? "الربط مع سيرفر الموارد البشرية الفندقي لجلب وتحديث بيانات الموظفين بالرقم الوظيفي (Clock Number)، والاستيراد بالنطاق، والتحديث الشامل."
+                    : "Direct connection to fetch employee records by Clock Number, execute range imports, and batch update profiles."}
+                </CardDescription>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{ar ? "تفعيل الربط:" : "Enable:"}</span>
+                <Switch checked={esignIsActive} onCheckedChange={setEsignIsActive} />
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-5 pt-1">
+            {/* Step 1: Connection Credentials */}
+            <div className="p-4 rounded-xl bg-card border border-border/70 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-primary" />
+                  {ar ? "بيانات الدخول وسيرفر الفندق (Zero-Hardcode):" : "Server & Hotel Credentials:"}
+                </h4>
+                <span className="text-[11px] text-muted-foreground">
+                  {ar ? "محفوظة بأمان في قاعدة البيانات" : "Securely stored in database"}
+                </span>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">
+                    {ar ? "رابط سيرفر الـ HR (API URL):" : "API Base URL:"}
+                  </label>
+                  <Input
+                    value={esignBaseUrl}
+                    onChange={(e) => setEsignBaseUrl(e.target.value)}
+                    placeholder="https://signature-backend.sunrise-resorts.com/api"
+                    className="h-9 text-xs font-mono"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">
+                    {ar ? "اسم المستخدم / البريد (Username/Email):" : "Username / Email:"}
+                  </label>
+                  <Input
+                    value={esignUsername}
+                    onChange={(e) => setEsignUsername(e.target.value)}
+                    placeholder="housing.hr@sunrise-resorts.com"
+                    className="h-9 text-xs"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">
+                    {ar ? "كلمة المرور (Password):" : "Password:"}
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showEsignPassword ? "text" : "password"}
+                      value={esignPassword}
+                      onChange={(e) => setEsignPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="h-9 text-xs pr-8"
+                      dir="ltr"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEsignPassword(!showEsignPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-muted-foreground hover:text-foreground"
+                    >
+                      {showEsignPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">
+                    {ar ? "كود الفندق (Hotel Code):" : "Hotel Code:"}
+                  </label>
+                  <Input
+                    value={esignHotelCode}
+                    onChange={(e) => setEsignHotelCode(e.target.value.toUpperCase())}
+                    placeholder={ar ? "مثال: CO أو DR أو RB" : "e.g. CO, DR, RB"}
+                    className="h-9 text-xs font-mono uppercase"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons & Feedback */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestEsign}
+                    disabled={testingEsign}
+                    className="gap-1.5 text-xs h-9 border-amber-500/40 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  >
+                    {testingEsign ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FlaskConical className="w-3.5 h-3.5 text-amber-500" />
+                    )}
+                    {ar ? "اختبار الاتصال والفندق" : "Test Hotel Connection"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={saveEsignSettings}
+                    disabled={savingEsign}
+                    className="gap-1.5 text-xs h-9"
+                  >
+                    {savingEsign ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
+                    {ar ? "حفظ بيانات الربط" : "Save Credentials"}
+                  </Button>
+                </div>
+
+                {esignTestResult && (
+                  <div
+                    className={`p-2 px-3 rounded-lg border text-xs flex items-center gap-2 ${
+                      esignTestResult.success
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                        : "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400"
+                    }`}
+                  >
+                    {esignTestResult.success ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                    )}
+                    <span>{esignTestResult.message}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Step 2: Range Sync & Batch Refresh Grid */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Feature 1: Range-Based Sync */}
+              <div className="p-4 rounded-xl bg-card border border-border/70 space-y-3 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      <Hash className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">
+                        {ar ? "الاستيراد والتحديث بالنطاق (Range Sync):" : "Range-Based Import & Sync:"}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        {ar
+                          ? "فحص واستيراد/تحديث الموظفين من كود معين إلى كود معين"
+                          : "Scan & import/update employees between two clock numbers"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="space-y-1">
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        {ar ? "من الرقم الوظيفي:" : "From Clock No:"}
+                      </span>
+                      <Input
+                        value={rangeFrom}
+                        onChange={(e) => setRangeFrom(e.target.value)}
+                        placeholder="1001"
+                        className="h-9 text-xs font-mono"
+                        dir="ltr"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        {ar ? "إلى الرقم الوظيفي:" : "To Clock No:"}
+                      </span>
+                      <Input
+                        value={rangeTo}
+                        onChange={(e) => setRangeTo(e.target.value)}
+                        placeholder="1100"
+                        className="h-9 text-xs font-mono"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleRangeSync}
+                    disabled={isRangeSyncing || !rangeFrom || !rangeTo}
+                    className="w-full gap-1.5 text-xs h-9 border border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary font-semibold"
+                  >
+                    {isRangeSyncing ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>{ar ? "جارٍ فحص واستيراد النطاق..." : "Scanning Range..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{ar ? "بدء فحص واستيراد النطاق" : "Start Range Scan & Sync"}</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {rangeSyncResult && (
+                    <div className="p-2.5 rounded-lg bg-muted/40 border text-[11px] space-y-1">
+                      <div className="flex items-center justify-between font-semibold text-foreground">
+                        <span>{ar ? "نتيجة الاستيراد:" : "Sync Summary:"}</span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {rangeSyncResult.scannedCount} {ar ? "رقم تم فحصه" : "scanned"}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 text-muted-foreground pt-1">
+                        <div>
+                          {ar ? "وُجد في الـ HR: " : "Found in HR: "}
+                          <span className="font-bold text-foreground">{rangeSyncResult.foundCount}</span>
+                        </div>
+                        <div>
+                          {ar ? "غير موجود: " : "Not Found: "}
+                          <span className="font-bold text-foreground">{rangeSyncResult.notFoundCount}</span>
+                        </div>
+                        <div>
+                          {ar ? "ملفات جديدة: " : "Created: "}
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                            {rangeSyncResult.stats?.created || 0}
+                          </span>
+                        </div>
+                        <div>
+                          {ar ? "ملفات تم تحديثها: " : "Updated: "}
+                          <span className="font-bold text-blue-600 dark:text-blue-400">
+                            {rangeSyncResult.stats?.updated || 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Feature 2: Batch Refresh for Existing Profiles */}
+              <div className="p-4 rounded-xl bg-card border border-border/70 space-y-3 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      <RefreshCw className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">
+                        {ar ? "تحديث وتصحيح بيانات الموظفين الحاليين:" : "Batch Refresh Existing Residents:"}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        {ar
+                          ? "زر خاص للسوبر أدمن وإدارة الـ HR لتحديث كافة البروفايلات وتصحيح أي بيانات خاطئة دورياً"
+                          : "Periodic verification & data correction against HR server"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                    {ar
+                      ? "يقوم بتمرير كافة الأرقام الوظيفية لملفات السكن الحالية على سيرفر الموارد البشرية، وتحديث (المسميات، الأقسام، الهواتف، العناوين، انتهاء العقود) مع الحفاظ التام على التسكين والغرف."
+                      : "Scans all current housing profiles against HR and refreshes contact info, job titles, and departments with zero impact on room assignments."}
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <PermissionGate module="hr_sync" action="edit">
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowBatchConfirm(true)}
+                      disabled={isBatchRefreshing}
+                      className="w-full gap-1.5 text-xs h-9 font-semibold"
+                    >
+                      {isBatchRefreshing ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>{ar ? "جارٍ التحديث الشامل لكافة الموظفين..." : "Batch Refreshing..."}</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>
+                            {ar
+                              ? "🔄 فحص وتحديث بيانات موظفي السكن الحاليين"
+                              : "Refresh All Existing Profiles"}
+                          </span>
+                        </>
+                      )}
+                    </Button>
+                  </PermissionGate>
+
+                  {batchRefreshResult && (
+                    <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-[11px] space-y-1 text-emerald-800 dark:text-emerald-300">
+                      <div className="flex items-center justify-between font-semibold">
+                        <span>{ar ? "اكتمل التحديث الشامل:" : "Refresh Completed:"}</span>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 text-[11px] pt-1">
+                        <div>
+                          {ar ? "تم فحصهم: " : "Checked: "}
+                          <span className="font-bold">{batchRefreshResult.totalChecked}</span>
+                        </div>
+                        <div>
+                          {ar ? "تم تصحيح وتحديث: " : "Updated: "}
+                          <span className="font-bold">{batchRefreshResult.updatedCount}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Quick Operations Action Bar */}
         <div className="p-4 bg-background rounded-xl border border-primary/20 shadow-sm space-y-3">
@@ -1100,6 +1673,36 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
           <DialogFooter>
             <Button onClick={() => setIsTestModalOpen(false)}>
               {ar ? "إغلاق" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Refresh Confirmation Dialog */}
+      <Dialog open={showBatchConfirm} onOpenChange={setShowBatchConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              {ar ? "تأكيد التحديث الشامل لبيانات الموظفين" : "Confirm Batch Profile Refresh"}
+            </DialogTitle>
+            <DialogDescription className="text-xs pt-2 leading-relaxed">
+              {ar
+                ? "سيقوم النظام بالاتصال بسيرفر الموارد البشرية (Sunrise e-Signature)، وتمرير كافة الأرقام الوظيفية للموظفين المسكنين حالياً وتحديث بياناتهم الرسمية (الأسماء، الوظائف، الأقسام، الهواتف، انتهاء العقود) وتصحيح أي بيانات غير دقيقة. هل تريد المتابعة؟"
+                : "The system will query Sunrise e-Signature HR API for all current residents and refresh/correct their details without affecting existing bed assignments. Proceed?"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setShowBatchConfirm(false)}>
+              {ar ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleBatchRefresh}
+              className="gap-1.5 bg-primary text-primary-foreground"
+            >
+              <RefreshCw className="w-4 h-4" />
+              {ar ? "بدء التحديث الآن" : "Start Refresh"}
             </Button>
           </DialogFooter>
         </DialogContent>
