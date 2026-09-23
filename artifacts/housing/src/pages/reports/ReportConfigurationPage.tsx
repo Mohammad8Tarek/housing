@@ -6,6 +6,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { useGetSettings } from "@workspace/api-client-react";
 
 // Icons
 import {
@@ -90,6 +91,11 @@ export default function ReportConfigurationPage() {
     if (properties && properties.length > 0) return properties[0].id;
     return undefined;
   }, [activePropertyId, properties]);
+
+  const { data: settings } = useGetSettings(
+    { propertyId: effectivePropId },
+    { query: { queryKey: ["settings", effectivePropId], enabled: !!effectivePropId } },
+  );
 
   // ─── 1. State: Data Source & Columns ──────────────────────────────────────
   const [selectedSource, setSelectedSource] = useState<DataSourceType>("in_house");
@@ -573,6 +579,7 @@ export default function ReportConfigurationPage() {
         showSignatures,
         properties,
         activePropertyId: effectivePropId,
+        settings,
         kpiCards: kpis,
         headers,
         rows: rows2D,

@@ -2068,7 +2068,21 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     || (isArabic ? "سكن منتجعات وفنادق صن رايز" : "Sunrise Resorts Staff Housing");
 
   // Convert both property and system logos to base64 DataURLs if available
-  const sysLogo = settings?.systemLogo ? await loadImgDataUrl(settings.systemLogo) : null;
+  let resolvedSysLogoUrl = settings?.systemLogo;
+  if (!resolvedSysLogoUrl) {
+    try {
+      const targetPId = propId ?? activePropertyId;
+      const sUrl = targetPId ? `/api/settings?propertyId=${targetPId}` : "/api/settings";
+      const sRes = await fetch(sUrl);
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        resolvedSysLogoUrl = sData?.systemLogo;
+      }
+    } catch {
+      // fallback
+    }
+  }
+  const sysLogo = resolvedSysLogoUrl ? await loadImgDataUrl(resolvedSysLogoUrl) : null;
   const propLogo = propObj?.logo ? await loadImgDataUrl(propObj.logo) : null;
 
   // Resolve Title & Opera Code

@@ -52,6 +52,10 @@ export const pdfTextSafe = (
 export const loadImgDataUrl = async (
   url: string,
 ): Promise<{ dataUrl: string; w: number; h: number } | null> => {
+  if (!url) return null;
+  if (url.startsWith("data:")) {
+    return { dataUrl: url, w: 200, h: 80 };
+  }
   try {
     const img = new Image();
     img.crossOrigin = "anonymous";
