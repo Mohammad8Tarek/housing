@@ -2455,11 +2455,20 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     ? (signatures?.role3Ar || signatures?.role3 || (activeTab === "housekeeping_sheet" ? "مدير الإشراف الداخلي المعتمد" : "اعتماد / مدير الموارد البشرية والمدير العام"))
     : (signatures?.role3 || (activeTab === "housekeeping_sheet" ? "Executive Housekeeper" : "Approved by / HR Director"));
 
-  // Dynamic Page Chunking for Opera PMS multi-page layout (matches reference PDF e.g. Meraki Sharm Resort)
+  // Proportional Page Allocation so tables fill the page nicely without leaving huge empty gaps
   const isLandscape = orientation === "landscape";
-  const baseCap = isLandscape ? 15 : 22;
-  const kpiDeduction = (initialShowKpis && kpiCards.length > 0) ? (isLandscape ? 5 : 6) : 0;
-  const sigDeduction = (initialShowSigs || customBottomSectionsHtml) ? (isLandscape ? 5 : 6) : 0;
+  const hasKpis = Boolean(initialShowKpis && kpiCards.length > 0);
+  const hasSigs = Boolean(initialShowSigs);
+  const hasBottom = Boolean(customBottomSectionsHtml);
+
+  // Maximum capacities:
+  // Page 1 has logos (+ optional KPIs)
+  const capP1 = hasKpis ? (isLandscape ? 16 : 22) : (isLandscape ? 22 : 30);
+  const capP1WithSigs = hasKpis ? (isLandscape ? 12 : 16) : (isLandscape ? 16 : 22);
+
+  // Subsequent pages (Page 2+) do NOT have logos, so they have significantly more room
+  const capSubsequent = isLandscape ? 25 : 34;
+  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 18 : 24) : capSubsequent;
 
   const pageChunks: any[][][] = [];
   const pageStartIndexes: number[] = [];
@@ -2468,31 +2477,45 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     pageChunks.push(tableRows);
     pageStartIndexes.push(0);
   } else {
-    let cursor = 0;
-    while (cursor < tableRows.length) {
-      const pageIndex = pageChunks.length;
-      let capacity = baseCap;
-      if (pageIndex === 0) {
-        capacity = Math.max(5, baseCap - kpiDeduction);
+    const totalRowsCount = tableRows.length;
+    // Check if 1 page suffices
+    if (totalRowsCount <= (hasSigs || hasBottom ? capP1WithSigs : capP1)) {
+      pageChunks.push(tableRows);
+      pageStartIndexes.push(0);
+    } else {
+      // Determine minimum required pages
+      let neededPages = 2;
+      while (true) {
+        const totalCapacity = capP1 + (neededPages - 2) * capSubsequent + capLastWithSigs;
+        if (totalCapacity >= totalRowsCount || neededPages > 200) break;
+        neededPages++;
       }
-      const remainingCount = tableRows.length - cursor;
 
-      if (remainingCount <= Math.max(5, capacity - sigDeduction)) {
-        // Fits all remaining rows plus bottom signatures block on this page
+      // Distribute rows across neededPages so every page is well-filled and balanced
+      let cursor = 0;
+      for (let p = 0; p < neededPages; p++) {
+        const isFirst = p === 0;
+        const isLast = p === neededPages - 1;
+        const remainingPages = neededPages - p;
+        const remainingRows = totalRowsCount - cursor;
+
         pageStartIndexes.push(cursor);
-        pageChunks.push(tableRows.slice(cursor));
-        cursor = tableRows.length;
-      } else if (remainingCount <= capacity) {
-        // Fits rows without signatures, but need room for signatures on final page
-        const take = Math.max(5, capacity - sigDeduction);
-        pageStartIndexes.push(cursor);
-        pageChunks.push(tableRows.slice(cursor, cursor + take));
-        cursor += take;
-      } else {
-        // Full capacity for intermediate pages
-        pageStartIndexes.push(cursor);
-        pageChunks.push(tableRows.slice(cursor, cursor + capacity));
-        cursor += capacity;
+        if (isLast) {
+          pageChunks.push(tableRows.slice(cursor));
+          cursor = totalRowsCount;
+        } else {
+          const maxForThisPage = isFirst ? capP1 : capSubsequent;
+          // Target roughly equal rows per remaining page, biased to fill earlier pages
+          const avg = Math.ceil(remainingRows / remainingPages);
+          let take = Math.min(maxForThisPage, Math.max(8, avg));
+          // Ensure we don't leave remaining pages starved
+          const minNeededForRemaining = (remainingPages - 1) * 5;
+          if (remainingRows - take < minNeededForRemaining && remainingRows > minNeededForRemaining) {
+            take = Math.max(5, remainingRows - minNeededForRemaining);
+          }
+          pageChunks.push(tableRows.slice(cursor, cursor + take));
+          cursor += take;
+        }
       }
     }
   }
@@ -2510,49 +2533,66 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     const isLastPage = pageIdx === totalPagesCount - 1;
     const pageNumber = pageIdx + 1;
 
-    // Header HTML on every page
-    const pageHeaderHtml = `
-      <div class="opera-header">
-        <!-- Left: System Logo / System Brand -->
-        <div class="opera-header-left">
-          ${sysLogo
-            ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
-            : `<div class="opera-fallback-brand">
-                <span style="font-weight: 900; font-size: 11pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
-                <span class="opera-fallback-badge" style="letter-spacing: 1px;">RESORTS & CRUISES</span>
-               </div>`
-          }
-        </div>
+    // Header HTML: Branded Logos Letterhead on Page 1 ONLY; Compact Sub-Header on Page 2+
+    // strictly direction: ltr so System logo stays LEFT and Property logo stays RIGHT in Arabic and English alike
+    const pageHeaderHtml = isFirstPage
+      ? `
+        <div class="opera-header">
+          <!-- Left: System Logo (SUNRISE) - strictly left in all languages -->
+          <div class="opera-header-left">
+            ${sysLogo
+              ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
+              : `<div class="opera-fallback-brand">
+                  <span style="font-weight: 900; font-size: 11pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
+                  <span class="opera-fallback-badge" style="letter-spacing: 1px;">RESORTS & CRUISES</span>
+                 </div>`
+            }
+          </div>
 
-        <!-- Center: Hotel Name & Report Title -->
-        <div class="opera-header-center">
-          <div class="opera-hotel-name">${propName}</div>
-          <div class="opera-report-title">${reportTitle}</div>
-          ${dateFrom || dateTo ? `
-          <div class="opera-report-submeta">
-            ${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}
-            ${dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : ""}
-          </div>` : ""}
-        </div>
+          <!-- Center: Hotel Name & Report Title -->
+          <div class="opera-header-center">
+            <div class="opera-hotel-name">${propName}</div>
+            <div class="opera-report-title">${reportTitle}</div>
+            ${dateFrom || dateTo ? `
+            <div class="opera-report-submeta">
+              ${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}
+              ${dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : ""}
+            </div>` : ""}
+          </div>
 
-        <!-- Right: Property Logo & Opera Date/Time -->
-        <div class="opera-header-right">
-          ${propLogo
-            ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
-            : `<div class="opera-fallback-brand right-brand">
-                <span style="font-weight: 800; font-size: 9.5pt; color: #0F2A44;">${propName}</span>
-                <span class="opera-fallback-badge" style="letter-spacing: 0.5px;">${isArabic ? "سكن الموظفين" : "STAFF HOUSING"}</span>
-               </div>`
-          }
-          <div class="opera-meta-datetime">
+          <!-- Right: Property Logo & Opera Date/Time - strictly right in all languages -->
+          <div class="opera-header-right">
+            ${propLogo
+              ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
+              : `<div class="opera-fallback-brand right-brand">
+                  <span style="font-weight: 800; font-size: 9.5pt; color: #0F2A44;">${propName}</span>
+                  <span class="opera-fallback-badge" style="letter-spacing: 0.5px;">${isArabic ? "سكن الموظفين" : "STAFF HOUSING"}</span>
+                 </div>`
+            }
+            <div class="opera-meta-datetime">
+              <span class="opera-meta-date">${operaDateStr}</span>
+              <span class="opera-meta-sep">-</span>
+              <span class="opera-meta-time">${operaTimeStr}</span>
+            </div>
+          </div>
+        </div>
+        <div class="opera-divider"></div>
+      `
+      : `
+        <div class="opera-sub-header">
+          <div class="opera-sub-header-left">
+            <span class="sub-prop-title">${propName}</span>
+            <span class="sub-sep">—</span>
+            <span class="sub-rep-title">${reportTitle}</span>
+          </div>
+          <div class="opera-sub-header-right">
             <span class="opera-meta-date">${operaDateStr}</span>
             <span class="opera-meta-sep">-</span>
             <span class="opera-meta-time">${operaTimeStr}</span>
           </div>
         </div>
-      </div>
-      <div class="opera-divider"></div>
-    `;
+        <div class="opera-divider"></div>
+      `;
 
     // Data rows for this page chunk with continuous sequence indexing
     let rowsHtml = "";
@@ -2823,27 +2863,30 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       flex-direction: column;
     }
 
-    /* Formal PDF Header: system logo left, property logo right */
+    /* Formal PDF Header: system logo left, property logo right (strictly direction: ltr so never flips in Arabic RTL) */
     .opera-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 3px;
-      min-height: 54px;
+      min-height: 52px;
+      direction: ltr !important;
     }
     .opera-header-left {
       width: 25%;
-      min-width: 120px;
+      min-width: 140px;
       display: flex;
       align-items: center;
       justify-content: flex-start;
+      direction: ltr !important;
+      text-align: left !important;
     }
     .opera-header-center {
       width: 50%;
-      text-align: center;
+      text-align: center !important;
       padding: 0 12px;
       align-self: flex-start;
-      padding-top: 4px;
+      padding-top: 2px;
     }
     .opera-hotel-name {
       font-size: 10pt;
@@ -2851,7 +2894,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       font-style: italic;
       font-family: Georgia, "Times New Roman", serif;
       color: #000000;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       letter-spacing: 0.2px;
       line-height: 1.1;
     }
@@ -2869,12 +2912,49 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
     .opera-header-right {
       width: 25%;
-      min-width: 120px;
+      min-width: 140px;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       justify-content: flex-start;
-      text-align: right;
+      direction: ltr !important;
+      text-align: right !important;
+    }
+    .opera-sub-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      min-height: 24px;
+      direction: ltr !important;
+      padding: 0 2px;
+    }
+    .opera-sub-header-left {
+      font-size: 9.5pt;
+      font-weight: 800;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      direction: ltr !important;
+    }
+    .sub-prop-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-style: italic;
+    }
+    .sub-sep {
+      color: #64748b;
+    }
+    .sub-rep-title {
+      font-weight: 800;
+    }
+    .opera-sub-header-right {
+      font-size: 7.2pt;
+      font-family: "Courier New", monospace;
+      font-weight: 700;
+      color: #000000;
+      direction: ltr !important;
+      text-align: right !important;
     }
     .opera-logo {
       max-height: 50px;
@@ -3275,6 +3355,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         align-items: center !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        direction: ltr !important;
       }
       .opera-header-left {
         width: 25% !important;
@@ -3282,6 +3363,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         display: flex !important;
         align-items: center !important;
         justify-content: flex-start !important;
+        direction: ltr !important;
+        text-align: left !important;
       }
       .opera-header-right {
         width: 25% !important;
@@ -3290,7 +3373,33 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         flex-direction: column !important;
         align-items: flex-end !important;
         justify-content: flex-start !important;
+        direction: ltr !important;
         text-align: right !important;
+      }
+      .opera-sub-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        direction: ltr !important;
+        padding: 0 2px !important;
+        min-height: 22px !important;
+      }
+      .opera-sub-header-left {
+        display: flex !important;
+        align-items: center !important;
+        font-size: 9.5pt !important;
+        font-weight: 800 !important;
+        color: #000000 !important;
+        direction: ltr !important;
+      }
+      .opera-sub-header-right {
+        font-size: 7.2pt !important;
+        font-family: "Courier New", monospace !important;
+        font-weight: 700 !important;
+        color: #000000 !important;
+        direction: ltr !important;
       }
       .opera-logo {
         object-fit: contain !important;
