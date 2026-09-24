@@ -1583,7 +1583,7 @@ export function computeReportColumnWidths(
 
     if (m.isFixedSingleLine) {
       // Fixed single-line format: Must fit entire text on a single line with comfortable breathing space
-      const fixedExtra = /national|قومي|phone|هاتف|mobile|موبايل/i.test(m.norm) ? 3.5 : 2.5;
+      const fixedExtra = /national|قومي|phone|هاتف|mobile|موبايل/i.test(m.norm) ? 4.2 : 2.5;
       return Math.max(minTokenFloor, effLen + fixedExtra);
     }
 
@@ -2214,22 +2214,22 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       printPadding = "1.5px 2px";
       tableLetterSpacing = "-0.25px";
     } else if (colCount >= 16) {
-      baseFontSizePt = 7.5;
+      baseFontSizePt = 7.4;
       printFontSizePt = 7.0;
-      cellPadding = "2.5px 3.5px";
-      printPadding = "2px 2.8px";
+      cellPadding = "2px 3px";
+      printPadding = "1.8px 2.5px";
       tableLetterSpacing = "-0.15px";
     } else if (colCount >= 13) {
-      baseFontSizePt = 8.2;
-      printFontSizePt = 7.8;
-      cellPadding = "3px 4.5px";
-      printPadding = "2.5px 3.8px";
+      baseFontSizePt = 8.0;
+      printFontSizePt = 7.6;
+      cellPadding = "2.5px 3.5px";
+      printPadding = "2px 3px";
       tableLetterSpacing = "normal";
     } else if (colCount >= 10) {
-      baseFontSizePt = 8.8;
-      printFontSizePt = 8.4;
-      cellPadding = "3.5px 5px";
-      printPadding = "3px 4.2px";
+      baseFontSizePt = 8.5;
+      printFontSizePt = 8.0;
+      cellPadding = "2.5px 4px";
+      printPadding = "2.2px 3.5px";
       tableLetterSpacing = "normal";
     }
   } else {
@@ -2469,18 +2469,18 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const hasSigs = Boolean(initialShowSigs);
   const hasBottom = Boolean(customBottomSectionsHtml);
 
-  // Maximum row capacity per page type (safely calibrated for multi-line cells and fixed page height)
-  // Page 1: 21 rows if KPIs are shown, 24 rows without KPIs
-  // Subsequent pages (no logos): 28 rows in landscape, 40 rows in portrait
-  // Final page with signatures: 20 rows in landscape, 32 rows in portrait
-  const capP1 = hasKpis ? (isLandscape ? 21 : 36) : (isLandscape ? 24 : 42);
-  const capSubsequent = isLandscape ? 28 : 42;
-  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 20 : 32) : capSubsequent;
+  // Maximum row capacity per page type (safely calibrated for multi-line cells and physical printable height)
+  // Page 1: 17 rows if KPIs are shown, 20 rows without KPIs (guarantees header + logos fit with 0 clipping)
+  // Subsequent pages (no logos): 24 rows in landscape, 38 rows in portrait
+  // Final page with signatures: 17 rows in landscape, 28 rows in portrait
+  const capP1 = hasKpis ? (isLandscape ? 17 : 30) : (isLandscape ? 20 : 36);
+  const capSubsequent = isLandscape ? 24 : 38;
+  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 17 : 28) : capSubsequent;
 
   // Single-page capacity (page 1 with everything: header + optional KPIs + optional sigs)
   const capP1Single = hasKpis
-    ? (isLandscape ? ((hasSigs || hasBottom) ? 15 : 21) : ((hasSigs || hasBottom) ? 28 : 36))
-    : (isLandscape ? ((hasSigs || hasBottom) ? 18 : 24) : ((hasSigs || hasBottom) ? 32 : 42));
+    ? (isLandscape ? ((hasSigs || hasBottom) ? 14 : 17) : ((hasSigs || hasBottom) ? 24 : 30))
+    : (isLandscape ? ((hasSigs || hasBottom) ? 16 : 20) : ((hasSigs || hasBottom) ? 28 : 36));
 
   const pageChunks: any[][][] = [];
   const pageStartIndexes: number[] = [];
@@ -2498,8 +2498,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
     // Case 2: Fits across 2 pages — balance them nicely so neither page looks empty
     else if (totalRowsCount <= (capP1 + capLastWithSigs)) {
-      const targetP1 = Math.min(capP1, Math.max(10, Math.ceil(totalRowsCount / 2) + (hasKpis ? 0 : 2)));
-      const p1Rows = Math.min(targetP1, totalRowsCount - 5); // ensure page 2 gets at least 5 rows
+      const minOnLast = 5;
+      const targetP1 = Math.min(capP1, Math.max(8, Math.ceil(totalRowsCount / 2) + (hasKpis ? 0 : 2)));
+      const p1Rows = Math.min(targetP1, totalRowsCount - minOnLast); // ensure page 2 gets at least 5 rows
       pageStartIndexes.push(0);
       pageChunks.push(tableRows.slice(0, p1Rows));
       pageStartIndexes.push(p1Rows);
@@ -2519,6 +2520,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           pageChunks.push(tableRows.slice(cursor));
           cursor = totalRowsCount;
           break;
+        }
+
+        // If remaining rows cannot fit with signatures on one page, but are <= maxCapacity without signatures,
+        // we MUST split across this page and a final page so the final page doesn't overflow signatures!
+        if (remaining <= maxCapacity) {
+          const minLastPage = 5;
+          const take = Math.min(maxCapacity - minLastPage, Math.max(minLastPage, Math.ceil(remaining / 2)));
+          pageStartIndexes.push(cursor);
+          pageChunks.push(tableRows.slice(cursor, cursor + take));
+          cursor += take;
+          continue;
         }
 
         // Prevent stranded orphan pages (< 5 rows alone on the final page)
@@ -2859,7 +2871,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       height: ${orientation === "landscape" ? "210mm" : "297mm"};
       max-height: ${orientation === "landscape" ? "210mm" : "297mm"};
       background: #ffffff;
-      padding: 8mm 10mm;
+      padding: 6mm 8mm;
       box-shadow: 0 8px 30px rgba(0,0,0,0.3);
       position: relative;
       box-sizing: border-box;
@@ -2872,11 +2884,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       width: 100%;
       display: flex;
       flex-direction: column;
+      flex: 1 1 auto;
+      overflow: hidden;
     }
     .opera-page-bottom {
       width: 100%;
       display: flex;
       flex-direction: column;
+      flex-shrink: 0;
     }
 
     /* Formal PDF Header: system logo left, property logo right (strictly direction: ltr so never flips in Arabic RTL) */
@@ -3259,12 +3274,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       .sheet.opera-page {
         width: 100% !important;
         max-width: 100% !important;
-        height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
-        max-height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
-        min-height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
+        height: ${orientation === "landscape" ? "206mm" : "293mm"} !important;
+        max-height: ${orientation === "landscape" ? "206mm" : "293mm"} !important;
+        min-height: ${orientation === "landscape" ? "206mm" : "293mm"} !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 7mm 10mm 6mm !important;
+        padding: 5mm 8mm 5mm 8mm !important;
         overflow: hidden !important;
         border-radius: 0 !important;
         display: flex !important;
@@ -3279,6 +3294,18 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       .sheet.opera-page:last-child {
         page-break-after: auto !important;
         break-after: auto !important;
+      }
+      .opera-page-main {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+      }
+      .opera-page-bottom {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex-shrink: 0 !important;
       }
       table.opera-table {
         width: 100% !important;

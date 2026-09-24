@@ -1039,7 +1039,7 @@ export function useReportDataProcessor({
 
             const assignedRoom = room
               ? `${bld ? bld.name + " • " : ""}${room.roomNumber}${asgn?.bedNumber ? ` (${ar ? `سرير ${asgn.bedNumber}` : `Bed ${asgn.bedNumber}`})` : ""}`
-              : (ar ? "غير مسكّن" : "Unassigned");
+              : (ar ? "بدون غرفة" : "No Room");
 
             return {
               id: e.id,
@@ -1129,7 +1129,7 @@ export function useReportDataProcessor({
                   : (ar ? "ساري" : "Active"),
               assignedRoom: room
                 ? (ar ? `غرفة ${room.roomNumber} (${buildingMap[room.buildingId] || ""})` : `Room ${room.roomNumber} (${buildingMap[room.buildingId] || ""})`)
-                : (ar ? "غير مسكن" : "Unassigned"),
+                : (ar ? "بدون غرفة" : "No Room"),
             };
           })
           .sort((a: any, b: any) => a.daysRemaining - b.daysRemaining);
