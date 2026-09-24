@@ -34,9 +34,9 @@ interface SessionState {
 
 const activeSessions = new Map<number, SessionState>();
 
-export const DEFAULT_WELCOME_AR = `مرحباً بك أ/ {employee_name} في {property_name} 🌴✨
+export const DEFAULT_WELCOME_AR = `{مرحباً بك|أهلاً وسهلاً بك|تحياتنا الطيبة لك|عزيزنا} أ/ {employee_name} في {property_name} 🌴✨
 
-يسعدنا إبلاغك بأنه تم إتمام إجراءات تسكينك بنجاح:
+{يسعدنا إبلاغك بأنه تم إتمام وتأكيد إجراءات تسكينك بنجاح|نحيطك علماً باعتماد تفاصيل تسكينك وإقامتك المعتمدة|تم الانتهاء من تجهيز وتأكيد غرفة إقامتك بنجاح}:
 🏢 المبنى: {building_name} ({floor_name})
 🚪 رقم الغرفة: {room_number}
 🛏️ السرير: {bed_label}
@@ -56,11 +56,15 @@ export const DEFAULT_WELCOME_AR = `مرحباً بك أ/ {employee_name} في {p
 • التقديم على تصاريح استضافة الأقارب والزيارات
 • المحادثة المباشرة مع مشرفي إدارة السكن
 
-نتمنى لك إقامة هانئة ومريحة! ✨`;
+{نتمنى لك إقامة هانئة ومريحة! ✨|إقامة سعيدة وموفقة بإذن الله تعالى! 🌴|نسعد دائماً بوجودك ونتمنى لك وقتاً ممتعاً ومريحاً! ✨}
 
-export const DEFAULT_WELCOME_EN = `Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨
+━━━━━━━━━━━━━━━━━━━━
+🏨 إدارة سكن العاملين — مجموعة فنادق صن رايز
+📌 رسالة آلية رسمية خاصة بإقامتك وسكنك الفندقي. في حال وجود أي استفسار أو رغبة في عدم استقبال إشعارات الواتساب، يرجى الرد على هذه الرسالة أو مراجعة مكتب الإسكان مباشرة.`;
 
-Your accommodation has been successfully confirmed:
+export const DEFAULT_WELCOME_EN = `{Welcome|Greetings|Warm welcome} Mr/Ms {employee_name} to {property_name}! 🌴✨
+
+{Your accommodation has been successfully confirmed|We are pleased to confirm your room assignment details|Your staff housing placement is now officially ready}:
 🏢 Building: {building_name} ({floor_name})
 🚪 Room: {room_number}
 🛏️ Bed: {bed_label}
@@ -80,11 +84,15 @@ Your accommodation has been successfully confirmed:
 • Apply for guest and visitor hosting permits
 • Chat directly with Housing Supervisors
 
-We wish you a pleasant and comfortable stay! ✨`;
+{We wish you a pleasant and comfortable stay! ✨|Wishing you a safe and joyful stay! 🌴|We are glad to have you with us! ✨}
 
-export const DEFAULT_RESERVATION_AR = `مرحباً بك أ/ {guest_name} في {property_name} 🌴✨
+━━━━━━━━━━━━━━━━━━━━
+🏨 Staff Housing Management — SUNRISE Resorts
+📌 Official automated service notification. For inquiries or support, please reply to this message or visit the housing office.`;
 
-يسعدنا تأكيد حجز إقامتك المسبق لدينا:
+export const DEFAULT_RESERVATION_AR = `{مرحباً بك|أهلاً وسهلاً بك|تحياتنا الطيبة لك} أ/ {guest_name} في {property_name} 🌴✨
+
+{يسعدنا تأكيد حجز إقامتك المسبق لدينا|تم تسجيل واعتماد بيانات حجز إقامتك القادمة بنجاح|يسرنا إحاطتك علماً بتفاصيل حجز إقامتك لدينا}:
 🔖 رقم الحجز: #{reservation_id}
 🏢 المبنى / الغرفة: {room_info}
 🛏️ تفاصيل السرير: {bed_info}
@@ -96,11 +104,15 @@ export const DEFAULT_RESERVATION_AR = `مرحباً بك أ/ {guest_name} في {
 
 ℹ️ تنويه: يُرجى التوجه لمكتب الإسكان فور وصولك لاستلام المفتاح وإتمام إجراءات التسكين.
 
-نتمنى لك رحلة موفقة وإقامة سعيدة! ✨`;
+{نتمنى لك رحلة موفقة وإقامة سعيدة! ✨|نسعد باستقبالك ونتمنى لك إقامة ممتعة! 🌴|مع خالص تمنياتنا لك بإقامة طيبة ومريحة! ✨}
 
-export const DEFAULT_RESERVATION_EN = `Welcome Mr/Ms {guest_name} to {property_name}! 🌴✨
+━━━━━━━━━━━━━━━━━━━━
+🏨 إدارة سكن العاملين — مجموعة فنادق صن رايز
+📌 رسالة آلية رسمية لتأكيد حجز السكن. للتواصل أو الاستفسار يرجى الرد هنا أو مراجعة مكتب الإسكان.`;
 
-We are pleased to confirm your upcoming reservation:
+export const DEFAULT_RESERVATION_EN = `{Welcome|Greetings|Warm welcome} Mr/Ms {guest_name} to {property_name}! 🌴✨
+
+{We are pleased to confirm your upcoming reservation|Your staff accommodation booking is confirmed|We are delighted to confirm your upcoming stay}:
 🔖 Booking Ref: #{reservation_id}
 🏢 Building / Room: {room_info}
 🛏️ Bed Info: {bed_info}
@@ -112,13 +124,101 @@ We are pleased to confirm your upcoming reservation:
 
 ℹ️ Note: Please visit the Housing Office upon your arrival to complete check-in and collect your keys.
 
-We wish you a safe trip and a pleasant stay! ✨`;
+{We wish you a safe trip and a pleasant stay! ✨|Looking forward to welcoming you! 🌴|Wishing you a safe journey and great stay! ✨}
+
+━━━━━━━━━━━━━━━━━━━━
+🏨 Staff Housing Management — SUNRISE Resorts
+📌 Official automated reservation notice. For assistance, please reply to this message or contact the housing office.`;
 
 // Outbox queue processing state per property
 const isProcessingOutbox = new Map<number, boolean>();
 
 // Track consecutive sent messages per property for anti-ban batch cooling
 const propertyBatchSentCount = new Map<number, number>();
+
+// Hourly and Daily quota windows for anti-ban rate limiting
+interface QuotaWindow {
+  count: number;
+  windowStart: number;
+}
+const propertyHourlySent = new Map<number, QuotaWindow>();
+const propertyDailySent = new Map<number, QuotaWindow>();
+
+export const SAFE_HOURLY_LIMIT = 30; // Max 30 messages per rolling hour
+export const SAFE_DAILY_LIMIT = 150; // Max 150 messages per rolling 24 hours
+
+/**
+ * Checks and increments anti-ban quota counters.
+ * Prevents account from triggering WhatsApp velocity filters.
+ */
+export function checkAndIncrementAntiBanQuota(propertyId: number): { allowed: boolean; reason?: string } {
+  const now = Date.now();
+
+  // 1. Hourly check
+  let h = propertyHourlySent.get(propertyId);
+  if (!h || now - h.windowStart > 3600000) {
+    h = { count: 0, windowStart: now };
+    propertyHourlySent.set(propertyId, h);
+  }
+  if (h.count >= SAFE_HOURLY_LIMIT) {
+    const waitMin = Math.ceil((3600000 - (now - h.windowStart)) / 60000);
+    return {
+      allowed: false,
+      reason: `تم بلوغ الحد الأقصى الآمن للإرسال في الساعة (${SAFE_HOURLY_LIMIT} رسالة/ساعة). سيتم استئناف الإرسال تلقائياً بعد ${waitMin} دقيقة لتفادي حظر الرقم.`,
+    };
+  }
+
+  // 2. Daily check
+  let d = propertyDailySent.get(propertyId);
+  if (!d || now - d.windowStart > 86400000) {
+    d = { count: 0, windowStart: now };
+    propertyDailySent.set(propertyId, d);
+  }
+  if (d.count >= SAFE_DAILY_LIMIT) {
+    return {
+      allowed: false,
+      reason: `تم بلوغ الحد الأقصى الآمن للإرسال اليومي (${SAFE_DAILY_LIMIT} رسالة/يوم). سيتم استئناف الإرسال غداً لتفادي حظر الرقم.`,
+    };
+  }
+
+  h.count++;
+  d.count++;
+  return { allowed: true };
+}
+
+/**
+ * Checks if current time in Egypt is during night quiet hours (23:00 to 07:30).
+ * Prevents recipient irritation and spam reports during sleeping hours.
+ */
+export function isQuietHoursNow(): boolean {
+  try {
+    const egyptHourStr = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Africa/Cairo",
+      hour: "numeric",
+      hour12: false,
+    }).format(new Date());
+    const hour = parseInt(egyptHourStr, 10);
+    return hour >= 23 || hour < 7;
+  } catch {
+    const hour = (new Date().getUTCHours() + 2) % 24;
+    return hour >= 23 || hour < 7;
+  }
+}
+
+/**
+ * Resolves Spintax format: {option1|option2|option3} into a random choice.
+ * Ensures natural linguistic variation across messages to evade duplicate text detection.
+ */
+export function resolveSpintax(text: string): string {
+  if (!text || typeof text !== "string") return text;
+  return text.replace(/\{([^{}]+)\}/g, (match, contents) => {
+    if (contents.includes("|")) {
+      const parts = contents.split("|");
+      return parts[Math.floor(Math.random() * parts.length)];
+    }
+    return match;
+  });
+}
 
 const ZERO_WIDTH_SALT_CHARS = [
   "\u200B", // Zero-Width Space
@@ -185,10 +285,25 @@ export async function processOutboxQueue(
       return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
     }
 
+    // Anti-ban check: Quiet hours (23:00 to 07:30)
+    if (isQuietHoursNow()) {
+      console.log(
+        `[WhatsApp Anti-Ban] 🌙 Night quiet hours active in Egypt (23:00 - 07:30). Holding pending messages in outbox to prevent spam reports.`
+      );
+      return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
+    }
+
     let processed = 0;
     let failed = 0;
 
     while (true) {
+      // Check quota before fetching next batch
+      const quotaCheck = checkAndIncrementAntiBanQuota(propertyId);
+      if (!quotaCheck.allowed) {
+        console.warn(`[WhatsApp Anti-Ban] 🛡️ ${quotaCheck.reason}`);
+        break;
+      }
+
       const { rows: pendingItems } = await pool.query(
         `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
          FROM public.whatsapp_outbox_queue
@@ -244,17 +359,17 @@ export async function processOutboxQueue(
           ).catch(() => {});
 
           // Anti-ban cooling rule:
-          // Every 15 sent messages, enforce an extended cooling-off pause of 40-60 seconds to calm account activity
-          if (batchTotal > 0 && batchTotal % 15 === 0) {
-            const coolDownMs = 40000 + Math.floor(Math.random() * 20000); // 40s to 60s
+          // Every 8 sent messages, enforce an extended cooling-off pause of 70-110 seconds to mimic human breaks
+          if (batchTotal > 0 && batchTotal % 8 === 0) {
+            const coolDownMs = 70000 + Math.floor(Math.random() * 40000); // 70s to 110s
             console.log(
-              `[WhatsApp Anti-Ban] 🛡️ Completed safety cycle of 15 messages for property ${propertyId}. Enforcing cooling-off pause for ${Math.round(coolDownMs / 1000)}s to prevent ban...`
+              `[WhatsApp Anti-Ban] 🛡️ Completed safety cycle of 8 messages for property ${propertyId}. Enforcing cooling-off pause for ${Math.round(coolDownMs / 1000)}s to prevent account flag...`
             );
             await new Promise((r) => setTimeout(r, coolDownMs));
-            console.log(`[WhatsApp Anti-Ban] ✅ Cooling-off pause completed. Resuming message dispatch.`);
+            console.log(`[WhatsApp Anti-Ban] ✅ Cooling-off pause completed. Resuming safe dispatch.`);
           } else {
-            // Standard anti-ban randomized delay jitter between consecutive messages: 5000ms to 9000ms (5 to 9 seconds)
-            const jitterMs = 5000 + Math.floor(Math.random() * 4000);
+            // Enhanced human delay jitter: 10,000ms to 18,000ms (10 to 18 seconds)
+            const jitterMs = 10000 + Math.floor(Math.random() * 8000);
             await new Promise((r) => setTimeout(r, jitterMs));
           }
         } else if (result.reason === "NOT_REGISTERED") {
@@ -445,7 +560,8 @@ export async function connectPropertyWhatsApp(
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     generateHighQualityLinkPreview: false,
-    browser: Browsers.ubuntu("Chrome"),
+    browser: Browsers.windows("Desktop"),
+    markOnlineOnConnect: false,
     syncFullHistory: false,
     getMessage: async () => undefined,
     connectTimeoutMs: 60000,
@@ -753,16 +869,21 @@ async function executeSendHumanLike(
 
     const verifiedJid = exists.jid;
 
-    // 2. Anti-ban: Human simulation (presence available -> composing state -> realistic pause)
-    await session.sock.sendPresenceUpdate("available");
-    await session.sock.sendPresenceUpdate("composing", verifiedJid);
+    // 2. Anti-ban: Realistic human simulation (reading delay -> composing -> pre-send pause)
+    await session.sock.sendPresenceUpdate("available").catch(() => {});
+    // Simulate user reading/preparing to type (1.5s to 3s)
+    await new Promise((r) => setTimeout(r, 1500 + Math.floor(Math.random() * 1500)));
 
-    // Realistic human typing delay (between 2800ms to 5200ms depending on message length + random jitter)
-    const baseTyping = Math.min(Math.max(text.length * 12, 2800), 5000);
-    const typingDelay = baseTyping + Math.floor(Math.random() * 1200);
+    await session.sock.sendPresenceUpdate("composing", verifiedJid).catch(() => {});
+
+    // Realistic human typing delay (proportional to message length, 3.2s to 7s)
+    const baseTyping = Math.min(Math.max(text.length * 18, 3200), 6800);
+    const typingDelay = baseTyping + Math.floor(Math.random() * 1500);
     await new Promise((r) => setTimeout(r, typingDelay));
 
-    await session.sock.sendPresenceUpdate("paused", verifiedJid);
+    // Natural human pause right before hitting send (1s to 1.8s)
+    await session.sock.sendPresenceUpdate("paused", verifiedJid).catch(() => {});
+    await new Promise((r) => setTimeout(r, 1000 + Math.floor(Math.random() * 800)));
 
     // 3. Anti-ban: Inject unique invisible zero-width fingerprint & hash salt
     // Each dispatched message gets an entirely unique cryptographic hash on WhatsApp servers
@@ -771,7 +892,12 @@ async function executeSendHumanLike(
     // 4. Send message with unique wire payload
     await session.sock.sendMessage(verifiedJid, { text: antiBanPayload });
 
-    // 5. Log successful delivery (saving clean text for clean admin dashboard viewing)
+    // 5. Reset presence to idle/unavailable after sending to avoid suspicious permanent-online bot signal
+    setTimeout(() => {
+      session.sock?.sendPresenceUpdate("unavailable").catch(() => {});
+    }, 2000);
+
+    // 6. Log successful delivery (saving clean text for clean admin dashboard viewing)
     await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "SENT");
     console.log(`[WhatsApp Anti-Ban] Message successfully sent to ${cleanPhone} with unique fingerprint (Payload length: ${antiBanPayload.length})`);
     return { success: true };
@@ -888,6 +1014,8 @@ export function compileWhatsAppTemplate(
     const regex = new RegExp(`{${key}}`, "g");
     result = result.replace(regex, String(val ?? ""));
   }
+  // Anti-ban Spintax resolution: ensures each recipient receives a uniquely phrased message
+  result = resolveSpintax(result);
   return result;
 }
 
