@@ -920,13 +920,9 @@ export function useReportDataProcessor({
             if (filterRoomType && filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
             if (filterStatus && filterStatus !== "all") {
               const fs = filterStatus.toLowerCase();
-              if (fs === "available" && occ > 0) return false;
-              if (fs === "partially" && (occ === 0 || occ >= cap)) return false;
+              if ((fs === "available" || fs === "vacant") && occ > 0) return false;
+              if ((fs === "partially" || fs === "vacant_beds") && (occ === 0 || occ >= cap)) return false;
               if (fs === "dirty" && rawStatus !== "dirty") return false;
-            } else if (occ > 0) {
-              // Default view: fully-vacant rooms only. Partially occupied
-              // rooms appear only via the explicit "partially" filter.
-              return false;
             }
             if (filterGender && filterGender !== "all") {
               const fg = filterGender.toUpperCase().trim();
@@ -1049,17 +1045,22 @@ export function useReportDataProcessor({
             const isOOS = ["out_of_service", "oos"].includes(rawStatus);
             const isOOO = ["out_of_order", "ooo"].includes(rawStatus);
             const isMaint = isOOS || isOOO || rawStatus === "maintenance";
-            const isOccupied = isFullLock || occ > 0 || rawStatus === "occupied" || rawStatus === "occupied_dirty";
+            const isOccupied = isFullLock || occ >= cap || rawStatus === "occupied";
             const isDirty = rawStatus === "dirty" || rawStatus === "occupied_dirty";
-            const isAvailable = !isMaint && (vacantBeds > 0 || occ === 0 || rawStatus === "available");
+            // Fully vacant only: 0 occupants AND available/clean status!
+            const isFullyVacant = !isMaint && !isDirty && occ === 0 && (rawStatus === "available" || rawStatus === "vacant");
+            // Has vacant beds / partially occupied:
+            const hasVacantBeds = !isMaint && !isFullLock && occ > 0 && vacantBeds > 0;
 
             // 3. Status filter
             if (filterStatus && filterStatus !== "all") {
               const fs = filterStatus.toLowerCase().trim();
-              if (fs === "available") {
-                if (!isAvailable) return false;
+              if (fs === "available" || fs === "vacant") {
+                if (!isFullyVacant) return false;
+              } else if (fs === "vacant_beds" || fs === "partially") {
+                if (!hasVacantBeds) return false;
               } else if (fs === "occupied") {
-                if (!isOccupied) return false;
+                if (!isOccupied && occ === 0) return false;
               } else if (fs === "dirty") {
                 if (!isDirty) return false;
               } else if (fs === "occupied_dirty") {

@@ -1331,7 +1331,27 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               const assigns = roomAssignMap.get(r.id) || [];
               if (buildingId && r.buildingId !== buildingId) return false;
               if (floorId && r.floorId !== floorId) return false;
-              if (status && status !== "all" && (r.status || "").toLowerCase() !== status.toLowerCase()) return false;
+              if (status && status !== "all") {
+                const st = status.toLowerCase().trim();
+                const occ = assigns.length || r.currentOccupancy || 0;
+                const cap = r.capacity || 1;
+                const vac = Math.max(0, cap - occ);
+                const isOoo = ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes((r.status || "").toLowerCase());
+
+                if (st === "available" || st === "vacant") {
+                  // Fully vacant only: 0 occupants AND available/clean status
+                  if (occ > 0 || isOoo || (r.status || "").toLowerCase() === "dirty") return false;
+                } else if (st === "vacant_beds" || st === "partially") {
+                  // Rooms with vacant beds (partially occupied)
+                  if (occ === 0 || vac <= 0 || isOoo) return false;
+                } else if (st === "occupied") {
+                  if (occ === 0 && (r.status || "").toLowerCase() !== "occupied") return false;
+                } else if (st === "dirty") {
+                  if ((r.status || "").toLowerCase() !== "dirty") return false;
+                } else {
+                  if ((r.status || "").toLowerCase() !== st) return false;
+                }
+              }
               if (filters.gender && filters.gender !== "all" && (r.gender || "").toLowerCase() !== String(filters.gender).toLowerCase()) return false;
               if (filters.roomType && filters.roomType !== "all" && (r.roomType || "").toLowerCase() !== String(filters.roomType).toLowerCase()) return false;
               if (department && department !== "all") {

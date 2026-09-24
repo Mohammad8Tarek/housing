@@ -1350,42 +1350,59 @@ router.get(
         ]);
 
         const roomCapacityMap = new Map<number, number>();
-        let readyRooms = 0;
-        let occupiedRooms = 0;
+        const roomOccupantCount = new Map<number, number>();
         let dirtyRooms = 0;
         let maintenanceRooms = 0;
         let totalBeds = 0;
+
+        for (const a of assignments) {
+          if (!a.roomId) continue;
+          roomOccupantCount.set(a.roomId, (roomOccupantCount.get(a.roomId) || 0) + 1);
+        }
 
         for (const r of rooms) {
           const cap = Number(r.capacity) || 1;
           roomCapacityMap.set(r.id, cap);
           totalBeds += cap;
           const st = (r.status || "available").toLowerCase();
-          if (st === "occupied") {
-            occupiedRooms++;
-          } else if (st === "dirty" || st === "occupied_dirty") {
+          if (st === "dirty" || st === "occupied_dirty") {
             dirtyRooms++;
-          } else if (st === "maintenance" || st === "out_of_service" || st === "out_of_order") {
+          } else if (st === "maintenance" || st === "out_of_service" || st === "out_of_order" || st === "ooo" || st === "oos") {
             maintenanceRooms++;
-          } else {
+          }
+        }
+
+        let readyRooms = 0;
+        let occupiedRooms = 0;
+        let partiallyOccupiedRooms = 0;
+
+        for (const r of rooms) {
+          const cap = Number(r.capacity) || 1;
+          const occ = Math.min(cap, Math.max(r.currentOccupancy || 0, roomOccupantCount.get(r.id) || 0));
+          const st = (r.status || "available").toLowerCase();
+          const isMaint = ["maintenance", "out_of_service", "out_of_order", "ooo", "oos"].includes(st);
+          const isDirty = st === "dirty" || st === "occupied_dirty";
+
+          if (isMaint || isDirty) continue;
+          // Fully vacant rule: room is ready/available ONLY if 0 occupants
+          if (occ === 0 && (st === "available" || st === "vacant")) {
             readyRooms++;
+          } else {
+            occupiedRooms++;
+            if (occ < cap) {
+              partiallyOccupiedRooms++;
+            }
           }
         }
 
         let occupiedBeds = 0;
         for (const a of assignments) {
+          if (!a.roomId) continue;
           if (a.isEntireRoom) {
             occupiedBeds += roomCapacityMap.get(a.roomId) || 1;
           } else {
             occupiedBeds += 1;
           }
-        }
-
-        // If occupied rooms from status is 0 but assignments exist, compute from assignments
-        if (occupiedRooms === 0 && assignments.length > 0) {
-          const uniqueOcc = new Set(assignments.map((a) => a.roomId).filter(Boolean));
-          occupiedRooms = uniqueOcc.size;
-          readyRooms = Math.max(0, rooms.length - occupiedRooms - dirtyRooms - maintenanceRooms);
         }
 
         const availableBeds = Math.max(0, totalBeds - occupiedBeds);
@@ -1449,6 +1466,7 @@ router.get(
             total: rooms.length,
             available: readyRooms,
             occupied: occupiedRooms,
+            partiallyOccupied: partiallyOccupiedRooms,
             dirty: dirtyRooms,
             maintenance: maintenanceRooms,
             occupancyRate: roomOccupancyRate,

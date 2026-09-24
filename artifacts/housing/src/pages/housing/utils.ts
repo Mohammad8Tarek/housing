@@ -10,9 +10,10 @@ export type FloorConfig = {
 export const statusNorm = (s: string) => s?.toLowerCase().trim() || "";
 
 export const ROOM_STATUS_OPTIONS = [
-  { value: "available", labelAr: "شاغرة (جاهزة)", labelEn: "Vacant Clean", shortAr: "شاغرة", color: "emerald", dot: "bg-emerald-500" },
+  { value: "available", labelAr: "شاغرة بالكامل (جاهزة)", labelEn: "Vacant Clean", shortAr: "شاغرة بالكامل", color: "emerald", dot: "bg-emerald-500" },
+  { value: "vacant_beds", labelAr: "أسِرّة شاغرة (مشغولة جزئياً)", labelEn: "Vacant Beds (Partially Occupied)", shortAr: "أسِرّة شاغرة", color: "teal", dot: "bg-teal-500" },
   { value: "dirty", labelAr: "تحتاج تنظيف", labelEn: "Vacant Dirty", shortAr: "تحتاج تنظيف", color: "orange", dot: "bg-orange-500" },
-  { value: "occupied", labelAr: "مشغولة", labelEn: "Occupied Clean", shortAr: "مشغولة", color: "blue", dot: "bg-blue-500" },
+  { value: "occupied", labelAr: "مشغولة بالكامل", labelEn: "Fully Occupied", shortAr: "مشغولة", color: "blue", dot: "bg-blue-500" },
   { value: "occupied_dirty", labelAr: "مشغولة تحتاج تنظيف", labelEn: "Occupied Dirty", shortAr: "مشغولة متسخة", color: "purple", dot: "bg-purple-500" },
   { value: "occupied_vacation", labelAr: "مشغولة - إجازة", labelEn: "Occupied (Vacation)", shortAr: "مشغولة - إجازة", color: "amber", dot: "bg-amber-500" },
   { value: "out_of_service", labelAr: "صيانة مؤقتة", labelEn: "Out of Service", shortAr: "صيانة مؤقتة", color: "slate", dot: "bg-slate-500" },
@@ -24,7 +25,11 @@ export const getRoomStatusLabel = (status: string, ar = true): string => {
   switch (s) {
     case "available":
     case "vacant":
-      return ar ? "شاغرة" : "Vacant";
+      return ar ? "شاغرة بالكامل" : "Vacant Clean";
+    case "vacant_beds":
+    case "partially":
+    case "partial":
+      return ar ? "أسِرّة شاغرة" : "Vacant Beds";
     case "dirty":
     case "vacant_dirty":
       return ar ? "تحتاج تنظيف" : "Dirty";
@@ -54,6 +59,10 @@ export const roomStatusBadge = (status: string) => {
     case "available":
     case "vacant":
       return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
+    case "vacant_beds":
+    case "partially":
+    case "partial":
+      return "bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300 border border-teal-300 dark:border-teal-800 font-semibold";
     case "dirty":
     case "vacant_dirty":
       return "bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 border border-orange-300 dark:border-orange-800";

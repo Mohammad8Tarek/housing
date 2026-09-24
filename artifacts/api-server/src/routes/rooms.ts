@@ -11,7 +11,7 @@ import {
   hostingsTable,
   reservationsTable,
 } from "@workspace/db";
-import { eq, and, desc, SQL, sql, ilike } from "drizzle-orm";
+import { eq, and, or, desc, SQL, sql, ilike } from "drizzle-orm";
 import {
   CreateRoomBody,
   UpdateRoomBody,
@@ -283,8 +283,30 @@ router.get(
           conditions.push(eq(roomsTable.buildingId, query.data.buildingId));
         if (query.data.floorId)
           conditions.push(eq(roomsTable.floorId, query.data.floorId));
-        if (query.data.status)
-          conditions.push(eq(roomsTable.status, query.data.status));
+        if (query.data.status) {
+          const st = String(query.data.status).toLowerCase().trim();
+          if (st === "available" || st === "vacant") {
+            // Fully vacant only: 0 current occupancy AND available status
+            conditions.push(and(
+              or(eq(roomsTable.status, "available"), eq(roomsTable.status, "vacant")),
+              eq(roomsTable.currentOccupancy, 0)
+            ));
+          } else if (st === "vacant_beds" || st === "partially") {
+            // Partially occupied: has free beds AND at least 1 occupant, not OOO/OOS
+            conditions.push(and(
+              sql`${roomsTable.capacity} > ${roomsTable.currentOccupancy}`,
+              sql`${roomsTable.currentOccupancy} > 0`,
+              sql`LOWER(${roomsTable.status}) NOT IN ('out_of_service', 'out_of_order', 'maintenance', 'ooo', 'oos')`
+            ));
+          } else if (st === "occupied") {
+            conditions.push(or(
+              eq(roomsTable.status, "occupied"),
+              sql`${roomsTable.currentOccupancy} >= ${roomsTable.capacity}`
+            ));
+          } else {
+            conditions.push(eq(roomsTable.status, query.data.status));
+          }
+        }
       }
 
       const offset = (page - 1) * limit;

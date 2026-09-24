@@ -275,9 +275,9 @@ export function HousingMapReportTab({
 
               // Status filter
               if (statusFilter !== "all") {
-                if (statusFilter === "available" && stCat !== "available") return false;
+                if ((statusFilter === "available" || statusFilter === "vacant") && stCat !== "available") return false;
                 if (statusFilter === "occupied" && stCat !== "occupied") return false;
-                if (statusFilter === "partial" && stCat !== "partial") return false;
+                if ((statusFilter === "partial" || statusFilter === "vacant_beds") && stCat !== "partial") return false;
                 if (statusFilter === "dirty" && clnSt !== "dirty") return false;
                 if (statusFilter === "maintenance" && stCat !== "maintenance") return false;
               }
@@ -943,8 +943,8 @@ export function HousingMapReportTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-xs">{ar ? "جميع الحالات" : "All Statuses"}</SelectItem>
-                <SelectItem value="available" className="text-xs">{ar ? "شاغرة بالكامل" : "Vacant"}</SelectItem>
-                <SelectItem value="partial" className="text-xs">{ar ? "إشغال جزئي" : "Partially Occupied"}</SelectItem>
+                <SelectItem value="available" className="text-xs">{ar ? "شاغرة بالكامل (جاهزة)" : "Fully Vacant Clean"}</SelectItem>
+                <SelectItem value="partial" className="text-xs">{ar ? "أسِرّة شاغرة (مشغولة جزئياً)" : "Vacant Beds (Partially Occupied)"}</SelectItem>
                 <SelectItem value="occupied" className="text-xs">{ar ? "مشغولة بالكامل" : "Fully Occupied"}</SelectItem>
                 <SelectItem value="dirty" className="text-xs">{ar ? "تحتاج تنظيف" : "Dirty"}</SelectItem>
                 <SelectItem value="maintenance" className="text-xs">{ar ? "صيانة / خارج الخدمة" : "Maintenance"}</SelectItem>

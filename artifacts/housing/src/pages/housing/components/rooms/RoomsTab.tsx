@@ -442,7 +442,13 @@ export function RoomsTab({
               <SelectItem value="available">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span>{ar ? "شاغرة (جاهزة)" : "Vacant Clean"}</span>
+                  <span>{ar ? "شاغرة بالكامل (جاهزة)" : "Fully Vacant Clean"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="vacant_beds">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0" />
+                  <span>{ar ? "أسِرّة شاغرة (مشغولة جزئياً)" : "Vacant Beds (Partially Occupied)"}</span>
                 </div>
               </SelectItem>
               <SelectItem value="dirty">

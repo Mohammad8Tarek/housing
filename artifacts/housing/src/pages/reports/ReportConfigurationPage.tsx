@@ -993,8 +993,9 @@ export default function ReportConfigurationPage() {
                 )}
                 {selectedSource === "rooms" && (
                   <>
-                    <SelectItem value="available">{ar ? "شاغر متاح" : "Available"}</SelectItem>
-                    <SelectItem value="occupied">{ar ? "مشغول" : "Occupied"}</SelectItem>
+                    <SelectItem value="available">{ar ? "شاغر متاح بالكامل" : "Fully Vacant"}</SelectItem>
+                    <SelectItem value="vacant_beds">{ar ? "أسِرّة شاغرة (مشغول جزئياً)" : "Vacant Beds (Partially Occupied)"}</SelectItem>
+                    <SelectItem value="occupied">{ar ? "مشغول بالكامل" : "Occupied"}</SelectItem>
                     <SelectItem value="dirty">{ar ? "متسخ" : "Dirty"}</SelectItem>
                     <SelectItem value="out_of_service">{ar ? "خارج الخدمة" : "Out of Service"}</SelectItem>
                   </>

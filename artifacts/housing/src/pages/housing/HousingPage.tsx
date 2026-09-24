@@ -123,6 +123,14 @@ export function HousingPage() {
     return s === "available" || s === "vacant" || (s !== "out_of_service" && s !== "out_of_order");
   }).length;
 
+  const partiallyOccupiedRooms = rooms.filter((r: any) => {
+    const s = (r.status || "").toLowerCase();
+    const roomOccCount = activeAssignments.filter((a: any) => a.roomId === r.id).length;
+    const cap = r.capacity || 1;
+    if (["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(s)) return false;
+    return roomOccCount > 0 && roomOccCount < cap;
+  }).length;
+
   const occPct =
     totalRooms > 0
       ? Math.round((occupiedRooms / totalRooms) * 100)
@@ -386,9 +394,9 @@ export function HousingPage() {
           sparklineData={[60, 62, 65, 68, 70, 72, occPct || 70]}
         />
         <DashboardKpiCard
-          title={ar ? "الغرف المتاحة" : "Available Rooms"}
+          title={ar ? "الغرف المتاحة بالكامل" : "Available Rooms"}
           value={isLoading ? "—" : availableRooms}
-          sub={`${freeBeds} ${ar ? "سرير شاغر للتسكين" : "vacant beds ready"}`}
+          sub={`${freeBeds} ${ar ? "سرير شاغر للتسكين" : "vacant beds ready"}${partiallyOccupiedRooms > 0 ? ` · ${partiallyOccupiedRooms} ${ar ? "غرف بها أسرة" : "partial rooms"}` : ""}`}
           icon={BedDouble}
           color="text-emerald-600 dark:text-emerald-400"
           bg="bg-emerald-500/10"
