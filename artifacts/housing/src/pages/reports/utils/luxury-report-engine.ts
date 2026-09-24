@@ -2081,28 +2081,77 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const initialShowKpis = opts.showKpis !== undefined ? opts.showKpis : (tabConfig ? tabConfig.showKpis : false);
   const initialShowSigs = opts.showSignatures !== undefined ? opts.showSignatures : (tabConfig ? tabConfig.showSignatures : false);
 
-  // Resolve property name & logo (PRESERVING SYSTEM LOGO STRICTLY)
-  const propObj = properties.find((p: any) => p.id === (propId ?? activePropertyId));
+  // 1. Resolve target property id robustly (supporting number or numeric string)
+  const rawPropId = propId ?? activePropertyId;
+  let targetPropId: number | undefined =
+    rawPropId && rawPropId !== "all" && !isNaN(Number(rawPropId))
+      ? Number(rawPropId)
+      : undefined;
+
+  // 2. Resolve Property object from passed array
+  let propObj = Array.isArray(properties)
+    ? properties.find((p: any) =>
+        (targetPropId && Number(p.id) === targetPropId) ||
+        (rawPropId && String(p.id) === String(rawPropId)) ||
+        (rawPropId && p.code && String(p.code).toLowerCase() === String(rawPropId).toLowerCase())
+      )
+    : undefined;
+
+  // If still not resolved or properties was empty or propObj has no logo, fetch from /api/properties
+  if (!propObj || !propObj.logo) {
+    try {
+      const pRes = await fetch("/api/properties", { credentials: "include" });
+      if (pRes.ok) {
+        const pList = await pRes.json();
+        if (Array.isArray(pList) && pList.length > 0) {
+          const match = pList.find((p: any) =>
+            (targetPropId && Number(p.id) === targetPropId) ||
+            (rawPropId && String(p.id) === String(rawPropId)) ||
+            (rawPropId && p.code && String(p.code).toLowerCase() === String(rawPropId).toLowerCase())
+          ) || pList[0];
+          if (match) {
+            propObj = { ...match, ...propObj };
+            if (!targetPropId && match.id) {
+              targetPropId = Number(match.id);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch /api/properties fallback in luxury report:", e);
+    }
+  }
+
+  // If still no targetPropId, use propObj.id or default to 1
+  if (!targetPropId && propObj?.id) {
+    targetPropId = Number(propObj.id);
+  }
+  if (!targetPropId) {
+    targetPropId = 1;
+  }
+
+  // Resolve Property Display Name
   const propName = (isArabic ? (opts.subtitleAr || opts.subtitle) : (opts.subtitle || opts.subtitleAr))
     || propObj?.displayName
     || propObj?.name
     || (isArabic ? "سكن منتجعات وفنادق صن رايز" : "Sunrise Resorts Staff Housing");
 
-  // Convert both property and system logos to base64 DataURLs if available
+  // 3. Resolve System Logo (Corporate Brand)
   let resolvedSysLogoUrl = settings?.systemLogo;
   if (!resolvedSysLogoUrl) {
     try {
-      const targetPId = propId ?? activePropertyId;
-      const sUrl = targetPId ? `/api/settings?propertyId=${targetPId}` : "/api/settings";
+      const sUrl = `/api/settings?propertyId=${targetPropId}`;
       const sRes = await fetch(sUrl, { credentials: "include" });
       if (sRes.ok) {
         const sData = await sRes.json();
         resolvedSysLogoUrl = sData?.systemLogo;
       }
-    } catch {
-      // fallback
+    } catch (e) {
+      console.warn("Failed to fetch /api/settings fallback in luxury report:", e);
     }
   }
+
+  // 4. Convert both property and system logos to base64 DataURLs if available
   const sysLogo = resolvedSysLogoUrl ? await loadImgDataUrl(resolvedSysLogoUrl) : null;
   const propLogo = propObj?.logo ? await loadImgDataUrl(propObj.logo) : null;
 
@@ -3221,8 +3270,41 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         break-inside: avoid !important;
       }
       .opera-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+      }
+      .opera-header-left {
+        width: 25% !important;
+        min-width: 140px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+      }
+      .opera-header-right {
+        width: 25% !important;
+        min-width: 140px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        justify-content: flex-start !important;
+        text-align: right !important;
+      }
+      .opera-logo {
+        object-fit: contain !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        display: block !important;
+      }
+      .opera-syslogo {
+        max-width: 160px !important;
+        max-height: 48px !important;
+      }
+      .opera-proplogo {
+        max-width: 130px !important;
+        max-height: 44px !important;
       }
     }
   </style>
@@ -3333,11 +3415,26 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     };
 
     ${autoPrint ? `
-    document.fonts.ready.then(function() {
-      setTimeout(function() {
-        window.print();
-      }, 450);
-    });
+    function triggerPrintWhenReady() {
+      const imgs = Array.from(document.images);
+      const imgPromises = imgs.map(function(img) {
+        if (img.complete) return Promise.resolve();
+        return new Promise(function(resolve) {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      });
+      Promise.all([document.fonts.ready, ...imgPromises]).then(function() {
+        setTimeout(function() {
+          window.print();
+        }, 400);
+      });
+    }
+    if (document.readyState === "complete") {
+      triggerPrintWhenReady();
+    } else {
+      window.addEventListener("load", triggerPrintWhenReady);
+    }
     ` : ""}
   </script>
 </body>

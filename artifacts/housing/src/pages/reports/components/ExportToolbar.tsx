@@ -92,8 +92,6 @@ export function ExportToolbar({
       handleExportAnalyticsPDF();
     } else if (custom?.exportPDF) {
       custom.exportPDF();
-    } else if (hasSmartReport && handleSmartExportPdf) {
-      handleSmartExportPdf();
     } else {
       handleExportPDF();
     }
