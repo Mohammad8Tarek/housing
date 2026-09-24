@@ -2355,6 +2355,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   const tableLineHeight = isShortSingleDataset ? "1.30" : "1.18";
 
+  // Readability bump: body text one notch larger. The estimator below derives
+  // from baseFontSizePt, so estimates stay consistent; measured reflow is the net.
+  baseFontSizePt += 1.0;
+  printFontSizePt += 1.0;
+
   // Helper: Strictly determine if a column is a legitimate quantifiable metric that can be summed
   const isQuantifiableHeader = (headerName: string, rawHeaderName: string): boolean => {
     const combined = `${headerName || ""} ${rawHeaderName || ""}`.toLowerCase();
@@ -3329,7 +3334,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     table.opera-table td {
       background: #ffffff !important;
       color: #000000 !important;
-      font-weight: 700 !important;
+      font-weight: 800 !important;
       border-top: none !important;
       border-left: none !important;
       border-right: none !important;
