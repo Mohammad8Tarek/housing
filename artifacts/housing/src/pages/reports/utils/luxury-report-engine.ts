@@ -1583,7 +1583,7 @@ export function computeReportColumnWidths(
 
     if (m.isFixedSingleLine) {
       // Fixed single-line format: Must fit entire text on a single line with comfortable breathing space
-      const fixedExtra = /national|قومي|phone|هاتف|mobile|موبايل/i.test(m.norm) ? 3.0 : 2.2;
+      const fixedExtra = /national|قومي|phone|هاتف|mobile|موبايل/i.test(m.norm) ? 3.5 : 2.5;
       return Math.max(minTokenFloor, effLen + fixedExtra);
     }
 
@@ -1595,10 +1595,10 @@ export function computeReportColumnWidths(
     }
 
     // Natural multi-word text columns (Full Name, Department, Job Title, Building, Company, etc.)
-    // In landscape: allocate comfortably so names and titles fit on 1 or 2 lines cleanly without overpowering
-    // In portrait: allow 2-line clean wrapping at word boundaries without squeezing
+    // In landscape: allocate comfortably so names and titles fit cleanly without overpowering
+    // In portrait: allow clean wrapping at word boundaries without squeezing
     if (orientation === "landscape") {
-      const maxTextCap = colCount >= 16 ? 18 : 24;
+      const maxTextCap = colCount >= 16 ? 16 : 22;
       const textDemand = Math.max(m.avgCellLen * 0.95 + 2.0, effLen * 0.85 + 2.5);
       return Math.max(minTokenFloor, Math.min(maxTextCap, textDemand));
     } else {
@@ -1616,7 +1616,8 @@ export function computeReportColumnWidths(
   const rawColWidths = demands.map((d) => (d / totalDemand) * availablePct);
 
   // Round to 1 decimal place with adaptive minimum percentage based on total column count
-  const minColPct = colCount >= 20 ? 2.2 : colCount >= 16 ? 2.6 : colCount >= 12 ? 3.0 : 3.5;
+  // Guaranteeing at least 4.2% - 5.5% so short headers like 'Level' (5 chars) never get truncated!
+  const minColPct = colCount >= 20 ? 2.8 : colCount >= 16 ? 3.5 : colCount >= 12 ? 4.2 : 5.0;
   const roundedColWidths = rawColWidths.map((w) => Math.max(minColPct, Math.round(w * 10) / 10));
 
   // Re-balance so sum equals availablePct exactly
@@ -1937,7 +1938,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     return "text-align: center; white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;";
   }
 
-  // Status & Categories & Types & Gender
+  // Status & Categories & Types & Gender & Level & Nationality
   if (
     norm.includes("حالة") ||
     norm.includes("status") ||
@@ -1946,9 +1947,13 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("type") ||
     norm.includes("نوع") ||
     norm.includes("priority") ||
-    norm.includes("أولوية")
+    norm.includes("أولوية") ||
+    norm.includes("level") ||
+    norm.includes("درجة") ||
+    norm.includes("nationality") ||
+    norm.includes("جنسية")
   ) {
-    return "text-align: center; white-space: nowrap !important; line-height: 1.2; font-weight: 700 !important; color: #000000 !important;";
+    return "text-align: center; white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; line-height: 1.2; font-weight: 700 !important; color: #000000 !important;";
   }
 
   // Full Names (Person Name)
@@ -2457,21 +2462,25 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // ── Greedy Fill-to-Capacity Page Allocation ──
   // Each page is filled to its MAXIMUM row capacity before spilling to the next page.
-  // This eliminates the large empty white gaps caused by the old averaging algorithm.
+  // ── Fill-to-Capacity Page Allocation with Multi-Line Safety Margin ──
+  // Calibrated so even when rows wrap to 2 lines, they never overflow the physical A4 printable height (208mm).
   const isLandscape = orientation === "landscape";
   const hasKpis = Boolean(initialShowKpis && kpiCards.length > 0);
   const hasSigs = Boolean(initialShowSigs);
   const hasBottom = Boolean(customBottomSectionsHtml);
 
-  // Maximum row capacity per page type (calibrated to fill A4 pages completely)
-  const capP1 = hasKpis ? (isLandscape ? 25 : 40) : (isLandscape ? 30 : 46);
-  const capSubsequent = isLandscape ? 34 : 48;
-  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 25 : 40) : capSubsequent;
+  // Maximum row capacity per page type (safely calibrated for multi-line cells and fixed page height)
+  // Page 1: 21 rows if KPIs are shown, 24 rows without KPIs
+  // Subsequent pages (no logos): 28 rows in landscape, 40 rows in portrait
+  // Final page with signatures: 20 rows in landscape, 32 rows in portrait
+  const capP1 = hasKpis ? (isLandscape ? 21 : 36) : (isLandscape ? 24 : 42);
+  const capSubsequent = isLandscape ? 28 : 42;
+  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 20 : 32) : capSubsequent;
 
   // Single-page capacity (page 1 with everything: header + optional KPIs + optional sigs)
   const capP1Single = hasKpis
-    ? (isLandscape ? ((hasSigs || hasBottom) ? 18 : 25) : ((hasSigs || hasBottom) ? 32 : 40))
-    : (isLandscape ? ((hasSigs || hasBottom) ? 24 : 30) : ((hasSigs || hasBottom) ? 38 : 46));
+    ? (isLandscape ? ((hasSigs || hasBottom) ? 15 : 21) : ((hasSigs || hasBottom) ? 28 : 36))
+    : (isLandscape ? ((hasSigs || hasBottom) ? 18 : 24) : ((hasSigs || hasBottom) ? 32 : 42));
 
   const pageChunks: any[][][] = [];
   const pageStartIndexes: number[] = [];
@@ -2489,8 +2498,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
     // Case 2: Fits across 2 pages — balance them nicely so neither page looks empty
     else if (totalRowsCount <= (capP1 + capLastWithSigs)) {
-      const targetP1 = Math.min(capP1, Math.max(12, Math.ceil(totalRowsCount / 2) + (hasKpis ? 0 : 2)));
-      const p1Rows = Math.min(targetP1, totalRowsCount - 6); // ensure page 2 gets at least 6 rows
+      const targetP1 = Math.min(capP1, Math.max(10, Math.ceil(totalRowsCount / 2) + (hasKpis ? 0 : 2)));
+      const p1Rows = Math.min(targetP1, totalRowsCount - 5); // ensure page 2 gets at least 5 rows
       pageStartIndexes.push(0);
       pageChunks.push(tableRows.slice(0, p1Rows));
       pageStartIndexes.push(p1Rows);
@@ -2512,12 +2521,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           break;
         }
 
-        // Prevent stranded orphan pages (< 6 rows alone on the final page)
+        // Prevent stranded orphan pages (< 5 rows alone on the final page)
         const remainderIfFull = remaining - maxCapacity;
         let take = maxCapacity;
-        if (remainderIfFull > 0 && remainderIfFull < 6) {
-          // Shave rows from this page so the last page gets at least 6 rows
-          take = maxCapacity - (6 - remainderIfFull);
+        if (remainderIfFull > 0 && remainderIfFull < 5) {
+          // Shave rows from this page so the last page gets at least 5 rows
+          take = maxCapacity - (5 - remainderIfFull);
         }
 
         pageStartIndexes.push(cursor);
@@ -3054,10 +3063,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       line-height: 1.2;
       vertical-align: bottom;
       overflow: hidden !important;
-      text-overflow: ellipsis !important;
+      text-overflow: clip !important;
       white-space: normal !important;
       word-break: normal !important;
-      overflow-wrap: break-word !important;
+      overflow-wrap: normal !important;
       box-sizing: border-box !important;
       letter-spacing: ${tableLetterSpacing};
       hyphens: none !important;
@@ -3312,7 +3321,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         padding: ${printPadding} !important;
         color: #000000 !important;
         border-bottom: 1px solid #cbd5e1 !important;
-        word-break: break-word !important;
+        word-break: normal !important;
         overflow-wrap: break-word !important;
         overflow: visible !important;
         -webkit-print-color-adjust: exact !important;

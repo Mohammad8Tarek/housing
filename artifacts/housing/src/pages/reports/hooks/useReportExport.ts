@@ -221,8 +221,9 @@ export function useReportExport({
           [ar ? "تاريخ التعيين" : "Hire Date"]: e.hireDate,
           [ar ? "انتهاء العقد" : "Contract End"]: e.contractEndDate,
           [ar ? "البريد الإلكتروني" : "Email"]: e.email,
-          [ar ? "هاتف الطوارئ" : "Emergency Contact"]: e.emergencyContact,
-          [ar ? "الحالة" : "Status"]: translateProfileStatus(e.rawStatus || e.status, ar),
+          [ar ? "الحالة" : "Status"]: ar
+            ? translateProfileStatus(e.rawStatus || e.status, true)
+            : (e.rawStatus === "ACTIVE" ? "In-House" : e.rawStatus === "VACATION" ? "Vacation" : e.rawStatus === "UNASSIGNED" ? "Unassigned" : (e.rawStatus || e.status || "—")),
         }));
 
       case "expiring_contracts":
