@@ -799,26 +799,24 @@ export default function Tickets() {
     { key: "building_floor", label: "BUILDING & FLOOR", labelAr: "المبنى والدور", defaultVisible: true },
     { key: "room", label: "ROOM", labelAr: "رقم الغرفة", defaultVisible: true },
     { key: "requester", label: "REQUESTER / RESIDENT", labelAr: "مقدم الطلب / المقيم", defaultVisible: true },
-    { key: "property", label: "PROPERTY / HOUSING", labelAr: "الفندق / السكن", defaultVisible: true },
+    { key: "property", label: "PROPERTY / HOUSING", labelAr: "الفندق / السكن", defaultVisible: false },
     { key: "problem", label: "PROBLEM", labelAr: "المشكلة والوصف", defaultVisible: true },
-    { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: true },
+    { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: false },
     { key: "status", label: "STATUS", labelAr: "الحالة", defaultVisible: true },
     { key: "priority", label: "PRIORITY", labelAr: "الأولوية", defaultVisible: true },
     { key: "assigned_to", label: "ASSIGNED TO", labelAr: "المسند إليه / الفني", defaultVisible: true },
-    { key: "at", label: "REPORTED AT", labelAr: "تاريخ البدء", defaultVisible: true },
-    { key: "duration", label: "DURATION", labelAr: "المدة", defaultVisible: true },
-    { key: "rating", label: "RATING", labelAr: "التقييم", defaultVisible: true },
+    { key: "at", label: "REPORTED AT", labelAr: "تاريخ البدء", defaultVisible: false },
+    { key: "duration", label: "DURATION", labelAr: "المدة", defaultVisible: false },
+    { key: "rating", label: "RATING", labelAr: "التقييم", defaultVisible: false },
     { key: "actions", label: "ACTIONS", labelAr: "إجراءات", defaultVisible: true, fixed: true },
   ];
 
   const { visible, toggle, showAll, hideAll, isVisible } = useColumnVisibility(COLS);
 
   const isColVisible = (key: string) => {
-    if (key === "room") return isVisible("room") || isVisible("room_person");
-    if (key === "building_floor") return isVisible("building_floor") || isVisible("room_person");
-    if (key === "requester") return isVisible("requester") || isVisible("room_person") || isVisible("name");
-    if (key === "property") return isVisible("property") || isVisible("resident") || isVisible("hotel");
-    if (key === "assigned_to") return isVisible("assigned_to");
+    if (key === "property") {
+      return isVisible("property") || propertyFilter === "all";
+    }
     return isVisible(key);
   };
 
@@ -2002,11 +2000,11 @@ export default function Tickets() {
             ar={ar}
           />
 
-          <div className="border rounded-xl bg-card overflow-hidden overflow-x-auto shadow-xs">
-            <Table>
+          <div className="border rounded-xl bg-card overflow-hidden shadow-xs w-full">
+            <Table className="w-full table-fixed">
               <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="w-10 px-3">
+                <TableRow className="bg-muted/40 hover:bg-muted/40 text-[11px]">
+                  <TableHead className="w-9 px-2 text-center">
                     <Checkbox
                       checked={
                         paged.length > 0 &&
@@ -2029,72 +2027,72 @@ export default function Tickets() {
                     />
                   </TableHead>
                   {isVisible("id") && (
-                    <TableHead className="font-semibold w-16">
+                    <TableHead className="font-semibold w-12 px-2 text-center">
                       {ar ? "رقم" : "ID"}
                     </TableHead>
                   )}
                   {isColVisible("building_floor") && (
-                    <TableHead className="font-semibold min-w-[140px]">
+                    <TableHead className="font-semibold w-[15%] px-2">
                       {ar ? "المبنى والدور" : "BUILDING & FLOOR"}
                     </TableHead>
                   )}
                   {isColVisible("room") && (
-                    <TableHead className="font-semibold w-[90px]">
+                    <TableHead className="font-semibold w-[8%] px-2">
                       {ar ? "رقم الغرفة" : "ROOM"}
                     </TableHead>
                   )}
                   {isColVisible("requester") && (
-                    <TableHead className="font-semibold min-w-[150px]">
+                    <TableHead className="font-semibold w-[15%] px-2">
                       {ar ? "مقدم الطلب" : "REQUESTER"}
                     </TableHead>
                   )}
                   {isColVisible("property") && (
-                    <TableHead className="font-semibold min-w-[120px]">
+                    <TableHead className="font-semibold w-[12%] px-2">
                       {ar ? "الفندق / السكن" : "PROPERTY / HOUSING"}
                     </TableHead>
                   )}
                   {isVisible("problem") && (
-                    <TableHead className="font-semibold min-w-[180px]">
+                    <TableHead className="font-semibold w-[22%] px-2">
                       {ar ? "المشكلة والوصف" : "PROBLEM"}
                     </TableHead>
                   )}
                   {isVisible("department") && (
-                    <TableHead className="font-semibold">
+                    <TableHead className="font-semibold w-[10%] px-2">
                       {ar ? "القسم" : "DEPT"}
                     </TableHead>
                   )}
                   {isVisible("status") && (
-                    <TableHead className="font-semibold">
+                    <TableHead className="font-semibold w-[11%] px-2">
                       {ar ? "الحالة" : "STATUS"}
                     </TableHead>
                   )}
                   {isVisible("priority") && (
-                    <TableHead className="font-semibold">
+                    <TableHead className="font-semibold w-[8%] px-2">
                       {ar ? "الأولوية" : "PRIORITY"}
                     </TableHead>
                   )}
                   {isColVisible("assigned_to") && (
-                    <TableHead className="font-semibold min-w-[130px]">
+                    <TableHead className="font-semibold w-[13%] px-2">
                       {ar ? "المسند إليه" : "ASSIGNED TO"}
                     </TableHead>
                   )}
                   {isVisible("at") && (
-                    <TableHead className="font-semibold">
+                    <TableHead className="font-semibold w-[10%] px-2">
                       {ar ? "تاريخ البلاغ" : "REPORTED"}
                     </TableHead>
                   )}
                   {isVisible("duration") && (
-                    <TableHead className="font-semibold">
+                    <TableHead className="font-semibold w-[8%] px-2">
                       {ar ? "المدة" : "DURATION"}
                     </TableHead>
                   )}
                   {isVisible("rating") && (
-                    <TableHead className="font-semibold min-w-[100px]">
+                    <TableHead className="font-semibold w-[8%] px-2">
                       {ar ? "التقييم" : "RATING"}
                     </TableHead>
                   )}
                   {isVisible("actions") && (
-                    <TableHead className="font-semibold text-end">
+                    <TableHead className="font-semibold w-14 px-2 text-center">
                       {ar ? "إجراءات" : "ACTIONS"}
                     </TableHead>
                   )}
@@ -2122,25 +2120,25 @@ export default function Tickets() {
                     </TableCell>
 
                     {isVisible("id") && (
-                      <TableCell className="font-mono text-xs font-bold text-muted-foreground">
+                      <TableCell className="font-mono text-xs font-bold text-muted-foreground px-2 text-center">
                         #{req.id}
                       </TableCell>
                     )}
 
                     {isColVisible("building_floor") && (
-                      <TableCell className="text-xs font-medium">
+                      <TableCell className="text-xs font-medium px-2 overflow-hidden">
                         {(req.buildingName || req.floorNumber) ? (
                           <div className="flex items-center gap-1 flex-wrap">
                             {req.buildingName && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-medium" title={ar ? "المبنى" : "Building"}>
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-medium truncate max-w-full" title={req.buildingName}>
                                 <Building2 className="w-3 h-3 shrink-0 text-sky-600 dark:text-sky-400" />
-                                <span>{req.buildingName}</span>
+                                <span className="truncate">{req.buildingName}</span>
                               </span>
                             )}
                             {req.floorNumber && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 text-[11px] font-medium" title={ar ? "الدور / الطابق" : "Floor"}>
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 text-[11px] font-medium shrink-0" title={ar ? "الدور / الطابق" : "Floor"}>
                                 <Layers className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />
-                                <span>{ar ? `الدور ${req.floorNumber}` : `Floor ${req.floorNumber}`}</span>
+                                <span>{ar ? `د ${req.floorNumber}` : `Fl ${req.floorNumber}`}</span>
                               </span>
                             )}
                           </div>
@@ -2151,25 +2149,25 @@ export default function Tickets() {
                     )}
 
                     {isColVisible("room") && (
-                      <TableCell className="text-xs font-bold text-foreground whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-muted/60 border text-xs font-bold">
+                      <TableCell className="text-xs font-bold text-foreground whitespace-nowrap px-2 overflow-hidden">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 border text-xs font-bold" title={req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}>
                           <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
-                          {req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}
+                          <span className="truncate">{req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}</span>
                         </span>
                       </TableCell>
                     )}
 
                     {isColVisible("requester") && (
-                      <TableCell className="text-xs font-medium">
+                      <TableCell className="text-xs font-medium px-2 overflow-hidden">
                         {renderRequester(req)}
                       </TableCell>
                     )}
 
                     {isColVisible("property") && (
-                      <TableCell className="text-xs">
-                        <div className="flex items-center gap-1.5">
+                      <TableCell className="text-xs px-2 overflow-hidden">
+                        <div className="flex items-center gap-1.5 truncate" title={req.propertyName || properties.find((p: any) => p.id === req.propertyId)?.displayName || (ar ? "سكن العاملين" : "Staff Housing")}>
                           <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span className="font-medium text-foreground">
+                          <span className="font-medium text-foreground truncate">
                             {req.propertyName ||
                               properties.find((p: any) => p.id === req.propertyId)?.displayName ||
                               properties.find((p: any) => p.id === req.propertyId)?.name ||
@@ -2180,13 +2178,13 @@ export default function Tickets() {
                     )}
 
                     {isVisible("problem") && (
-                      <TableCell className="text-xs">
-                        <div className="flex flex-col gap-0.5 max-w-[220px]">
-                          <span className="font-semibold text-foreground text-xs line-clamp-1" title={req.title || req.description}>
+                      <TableCell className="text-xs px-2 overflow-hidden">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <span className="font-semibold text-foreground text-xs truncate" title={req.title || req.description}>
                             {req.title || (ar ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType) : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType)) || (ar ? "طلب صيانة" : "Maintenance Ticket")}
                           </span>
                           {req.description && (
-                            <span className="text-[11px] text-muted-foreground line-clamp-2" title={req.description}>
+                            <span className="text-[11px] text-muted-foreground truncate" title={req.description}>
                               {req.description}
                             </span>
                           )}
@@ -2195,14 +2193,14 @@ export default function Tickets() {
                     )}
 
                     {isVisible("department") && (
-                      <TableCell className="text-xs">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-foreground">
+                      <TableCell className="text-xs px-2 overflow-hidden">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-foreground truncate">
                             {ar
                               ? ((CATEGORIES_AR as Record<string, string>)[req.category] || req.category)
                               : ((CATEGORIES_EN as Record<string, string>)[req.category] || req.category?.toUpperCase())}
                           </span>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-[11px] text-muted-foreground truncate">
                             {ar
                               ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
                               : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType)}
@@ -2212,113 +2210,45 @@ export default function Tickets() {
                     )}
 
                     {isVisible("status") && (
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {canEditAny ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                type="button"
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all hover:ring-2 hover:ring-primary/20 ${statusColor(req.status)}`}
-                                title={ar ? "انقر لتغيير الحالة سريعاً" : "Click to change status"}
-                              >
-                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                  req.status === "open" ? "bg-blue-500" :
-                                  req.status === "in_progress" ? "bg-amber-500" :
-                                  req.status === "resolved" ? "bg-emerald-500" : "bg-slate-400"
-                                }`} />
-                                <span>
-                                  {ar
-                                    ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
-                                    : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
-                                </span>
-                                <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="text-xs">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-                                  updateMutation.mutate({
-                                    id: req.id,
-                                    data: { status: "open", propertyId: pId } as any,
-                                    params: pId ? { propertyId: pId } : undefined,
-                                  } as any);
-                                }}
-                              >
-                                <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-                                {ar ? "لم تبدأ / مفتوحة" : "Not Started"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-                                  updateMutation.mutate({
-                                    id: req.id,
-                                    data: { status: "in_progress", propertyId: pId } as any,
-                                    params: pId ? { propertyId: pId } : undefined,
-                                  } as any);
-                                }}
-                              >
-                                <span className="w-2 h-2 rounded-full bg-amber-500 mr-2" />
-                                {ar ? "قيد التنفيذ" : "In Progress"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-                                  updateMutation.mutate({
-                                    id: req.id,
-                                    data: { status: "resolved", propertyId: pId } as any,
-                                    params: pId ? { propertyId: pId } : undefined,
-                                  } as any);
-                                }}
-                              >
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
-                                {ar ? "تم الإنجاز" : "Order Completed"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-                                  updateMutation.mutate({
-                                    id: req.id,
-                                    data: { status: "closed", propertyId: pId } as any,
-                                    params: pId ? { propertyId: pId } : undefined,
-                                  } as any);
-                                }}
-                              >
-                                <span className="w-2 h-2 rounded-full bg-slate-400 mr-2" />
-                                {ar ? "مغلقة" : "Closed"}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : (
+                      <TableCell className="px-2 overflow-hidden">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border max-w-full ${statusColor(req.status)}`}
+                          title={ar
+                            ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
+                            : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
+                        >
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${statusColor(req.status)}`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              req.status === "open" ? "bg-blue-500" :
-                              req.status === "in_progress" ? "bg-amber-500" :
-                              req.status === "resolved" ? "bg-emerald-500" : "bg-slate-400"
-                            }`} />
-                            <span>
-                              {ar
-                                ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
-                                : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
-                            </span>
+                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              req.status === "open"
+                                ? "bg-blue-500"
+                                : req.status === "in_progress"
+                                  ? "bg-amber-500"
+                                  : req.status === "resolved"
+                                    ? "bg-emerald-500"
+                                    : "bg-slate-400"
+                            }`}
+                          />
+                          <span className="truncate">
+                            {ar
+                              ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
+                              : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
                           </span>
-                        )}
+                        </span>
                       </TableCell>
                     )}
 
                     {isVisible("priority") && (
-                      <TableCell>
+                      <TableCell className="px-2 overflow-hidden">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityColor(req.priority)}`}
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border max-w-full ${priorityColor(req.priority)}`}
+                          title={ar ? (PRIORITY_AR[req.priority?.toUpperCase()] || req.priority) : req.priority}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                             (req.priority || "").toUpperCase() === "URGENT" ? "bg-red-600 animate-pulse" :
                             (req.priority || "").toUpperCase() === "HIGH" ? "bg-orange-500" :
                             (req.priority || "").toUpperCase() === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
                           }`} />
-                          <span>
+                          <span className="truncate">
                             {ar
                               ? (PRIORITY_AR[req.priority?.toUpperCase()] || req.priority)
                               : req.priority}
@@ -2328,11 +2258,11 @@ export default function Tickets() {
                     )}
 
                     {isColVisible("assigned_to") && (
-                      <TableCell className="text-xs">
+                      <TableCell className="text-xs px-2 overflow-hidden">
                         {req.assignedToName || req.workerName ? (
-                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-medium">
+                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-medium max-w-full" title={req.assignedToName || req.workerName}>
                             <Wrench className="w-3 h-3 shrink-0 text-purple-600 dark:text-purple-400" />
-                            <span className="truncate max-w-[130px]">{req.assignedToName || req.workerName}</span>
+                            <span className="truncate">{req.assignedToName || req.workerName}</span>
                           </div>
                         ) : (
                           <span className="text-muted-foreground/50 text-[11px] italic">
@@ -2343,9 +2273,9 @@ export default function Tickets() {
                     )}
 
                     {isVisible("at") && (
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap px-2 overflow-hidden">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">
+                          <span className="font-semibold text-foreground truncate">
                             {ar ? "البدء: " : "Start: "}{req.reportedAt ? format(new Date(req.reportedAt), "dd-MM-yyyy") : "—"}
                           </span>
                           <span className="text-muted-foreground text-[10px] font-mono">
@@ -2356,11 +2286,11 @@ export default function Tickets() {
                     )}
 
                     {isVisible("duration") && (
-                      <TableCell>
+                      <TableCell className="px-2 overflow-hidden">
                         {req.startedAt || req.reportedAt ? (
                           <Badge
                             variant="secondary"
-                            className="font-mono text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                            className="font-mono text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 truncate"
                           >
                             {formatDuration(
                               req.startedAt,
@@ -2376,7 +2306,7 @@ export default function Tickets() {
                     )}
 
                     {isVisible("rating") && (
-                      <TableCell>
+                      <TableCell className="px-2 overflow-hidden">
                         {req.rating ? (
                           <div className="flex flex-col gap-0.5">
                             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 w-fit shadow-2xs">
@@ -2385,7 +2315,7 @@ export default function Tickets() {
                             </div>
                             {req.ratingComment && (
                               <span
-                                className="text-[10px] text-muted-foreground truncate max-w-[130px]"
+                                className="text-[10px] text-muted-foreground truncate max-w-full"
                                 title={req.ratingComment}
                               >
                                 {req.ratingComment}
@@ -2395,9 +2325,9 @@ export default function Tickets() {
                         ) : ["resolved", "closed"].includes(req.status) ? (
                           <Badge
                             variant="outline"
-                            className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 font-medium"
+                            className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 font-medium truncate"
                           >
-                            {ar ? "بانتظار التقييم" : "Pending Rating"}
+                            {ar ? "بانتظار التقييم" : "Pending"}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground/40 text-xs">—</span>
@@ -2406,97 +2336,44 @@ export default function Tickets() {
                     )}
 
                     {isVisible("actions") && (
-                      <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Hotel PMS Blue Rounded Square Eye Action Button */}
+                      <TableCell className="px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1">
                           <Button
                             size="icon"
-                            className="h-8 w-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                            className="h-7 w-7 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
                             onClick={() => handleSelectTicket(req.id)}
-                            title={ar ? "عرض تفاصيل التذكرة" : "View Details"}
+                            title={ar ? "عرض التفاصيل ومتابعة سير العمل" : "View Details & Workflow"}
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-3.5 h-3.5" />
                           </Button>
 
-                          {canEditAny && (
+                          {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                 >
-                                  <MoreVertical className="w-4 h-4" />
+                                  <MoreVertical className="w-3.5 h-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-44 text-xs">
                                 <DropdownMenuItem
                                   onClick={() => handleSelectTicket(req.id)}
-                                  className="gap-2 cursor-pointer"
+                                  className="gap-2 cursor-pointer font-medium"
                                 >
                                   <Eye className="w-3.5 h-3.5 text-primary" />
-                                  <span>{ar ? "عرض التفاصيل الكاملة" : "Full Details"}</span>
+                                  <span>{ar ? "سير العمل والتفاصيل" : "Workflow & Details"}</span>
                                 </DropdownMenuItem>
-
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-                                    updateMutation.mutate({
-                                      id: req.id,
-                                      data: { status: "in_progress", propertyId: pId } as any,
-                                      params: pId ? { propertyId: pId } : undefined,
-                                    } as any);
-                                  }}
-                                  disabled={req.status === "in_progress"}
-                                  className="gap-2 cursor-pointer"
+                                  onClick={() => setDeleteId(req.id)}
+                                  className="gap-2 text-destructive focus:text-destructive cursor-pointer"
                                 >
-                                  <span className="w-2 h-2 rounded-full bg-amber-500" />
-                                  <span>{ar ? "بدء التنفيذ" : "Mark In Progress"}</span>
+                                  <Trash className="w-3.5 h-3.5" />
+                                  <span>{ar ? "حذف التذكرة" : "Delete Ticket"}</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-                                    updateMutation.mutate({
-                                      id: req.id,
-                                      data: { status: "resolved", propertyId: pId } as any,
-                                      params: pId ? { propertyId: pId } : undefined,
-                                    } as any);
-                                  }}
-                                  disabled={req.status === "resolved"}
-                                  className="gap-2 cursor-pointer"
-                                >
-                                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                  <span>{ar ? "تم الحل والإنجاز" : "Mark Resolved"}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    const pId = req.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-                                    updateMutation.mutate({
-                                      id: req.id,
-                                      data: { status: "closed", propertyId: pId } as any,
-                                      params: pId ? { propertyId: pId } : undefined,
-                                    } as any);
-                                  }}
-                                  disabled={req.status === "closed"}
-                                  className="gap-2 cursor-pointer"
-                                >
-                                  <span className="w-2 h-2 rounded-full bg-slate-400" />
-                                  <span>{ar ? "إغلاق الطلب" : "Mark Closed"}</span>
-                                </DropdownMenuItem>
-
-                                {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => setDeleteId(req.id)}
-                                      className="gap-2 text-destructive focus:text-destructive cursor-pointer"
-                                    >
-                                      <Trash className="w-3.5 h-3.5" />
-                                      <span>{ar ? "حذف التذكرة" : "Delete Ticket"}</span>
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
