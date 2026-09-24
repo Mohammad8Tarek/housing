@@ -1655,7 +1655,8 @@ export function useReportDataProcessor({
           const empDept = emp.department || a.profileDepartment;
           if (filterDepartment !== "all" && empDept !== filterDepartment) return;
 
-          const deptName = getProfileDisplayDepartment(emp, ar) || a.profileDepartmentAr || a.profileDepartment || (ar ? "غير محدد" : "Unspecified");
+          const effectiveEmp = emp.department ? emp : { department: a.profileDepartment, departmentAr: a.profileDepartmentAr };
+          const deptName = getProfileDisplayDepartment(effectiveEmp, ar) || (ar ? (a.profileDepartmentAr || a.profileDepartment) : (a.profileDepartment || a.profileDepartmentAr)) || (ar ? "غير محدد" : "Unspecified");
 
           if (!deptMap[deptName]) {
             deptMap[deptName] = {
@@ -1671,8 +1672,9 @@ export function useReportDataProcessor({
           deptMap[deptName].residentCount += 1;
           totalActiveResidents += 1;
 
-          const genderStr = (emp.gender || a.profileGender || "").toLowerCase();
-          if (genderStr === "female" || emp.gender === "أنثى") {
+          const genderRaw = emp.gender || a.profileGender || "";
+          const isFemale = genderRaw.toLowerCase() === "female" || genderRaw === "أنثى" || genderRaw.toUpperCase() === "F";
+          if (isFemale) {
             deptMap[deptName].femaleCount += 1;
           } else {
             deptMap[deptName].maleCount += 1;
@@ -1918,28 +1920,45 @@ export function useReportDataProcessor({
 
             const pCode = emp.profileId || a.profileCode || `EMP-${pId}`;
             const fName =
-              getProfileDisplayName(emp, ar) ||
-              (emp.firstName
-                ? `${emp.firstName} ${emp.lastName || ""}`.trim()
-                : a.profileFirstName
-                ? `${a.profileFirstName} ${a.profileLastName || ""}`.trim()
-                : `Resident #${pId}`);
+              getProfileDisplayName(
+                emp.firstName || emp.firstNameAr
+                  ? emp
+                  : {
+                      firstName: a.profileFirstName,
+                      lastName: a.profileLastName,
+                      firstNameAr: a.profileFirstNameAr,
+                      lastNameAr: a.profileLastNameAr,
+                      thirdNameAr: a.profileThirdNameAr,
+                      fourthNameAr: a.profileFourthNameAr,
+                    },
+                ar
+              ) || (ar
+                ? (a.profileFirstNameAr ? `${a.profileFirstNameAr} ${a.profileLastNameAr || ""}`.trim() : (a.profileFirstName || `Resident #${pId}`))
+                : (a.profileFirstName ? `${a.profileFirstName} ${a.profileLastName || ""}`.trim() : (a.profileFirstNameAr || `Resident #${pId}`)));
+
+            const effectiveEmpDept = emp.department ? emp : { department: a.profileDepartment, departmentAr: a.profileDepartmentAr };
             const dName =
-              getProfileDisplayDepartment(emp, ar) ||
-              a.profileDepartmentAr ||
-              a.profileDepartment ||
+              getProfileDisplayDepartment(effectiveEmpDept, ar) ||
+              (ar ? (a.profileDepartmentAr || a.profileDepartment) : (a.profileDepartment || a.profileDepartmentAr)) ||
               "—";
+
+            const effectiveEmpJob = emp.jobTitle ? emp : { jobTitle: a.profileJobTitle, jobTitleAr: a.profileJobTitleAr };
             const jTitle =
-              getProfileDisplayJobTitle(emp, ar) ||
-              a.profileJobTitleAr ||
-              a.profileJobTitle ||
+              getProfileDisplayJobTitle(effectiveEmpJob, ar) ||
+              (ar ? (a.profileJobTitleAr || a.profileJobTitle) : (a.profileJobTitle || a.profileJobTitleAr)) ||
               "—";
+
             const rNum = room.roomNumber || a.roomNumber || `#${rId}`;
             const bName = buildingMap[bId] || a.buildingName || "—";
-            const fNum = floor?.floorNumber ?? a.floorNumber ?? 0;
+            const fNum = floor?.floorNumber ?? a.floorNumber;
             const fNameStr =
-              floorMap[fId] ||
-              (fNum !== undefined ? `${ar ? "الدور" : "Floor"} ${fNum}` : "—");
+              fNum !== undefined && fNum !== null
+                ? (ar ? `الدور ${fNum}` : `Floor ${fNum}`)
+                : (floorMap[fId]
+                  ? (ar
+                      ? String(floorMap[fId]).replace(/^Floor\s*/i, "الدور ")
+                      : String(floorMap[fId]).replace(/^الدور\s*/i, "Floor "))
+                  : "—");
 
             return {
               id: a.id,
