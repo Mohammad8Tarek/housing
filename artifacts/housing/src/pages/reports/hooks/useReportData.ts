@@ -64,7 +64,9 @@ export function useReportData(
     { propertyId: propId, limit: 5000, status: "ALL" } as any,
     { query: { queryKey: ["assignments", propId, 5000, "ALL"], enabled: !!propId } },
   );
-  const assignments: any[] = (_aData as any)?.data || _aData || [];
+  const assignments: any[] = Array.isArray(_aData)
+    ? _aData
+    : ((_aData as any)?.data || []);
 
   const { data: _resData, isLoading: resLoad } = useListReservations(
     { propertyId: propId, limit: 5000 } as any,

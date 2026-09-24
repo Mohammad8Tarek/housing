@@ -219,15 +219,14 @@ export const STAFF_VACATIONS_COLUMNS: ReportColumnDef[] = [
 // 13. DEPARTMENT OCCUPANCY
 // Orientation: PORTRAIT — summary by department, few columns
 export const DEPARTMENT_OCCUPANCY_COLUMNS: ReportColumnDef[] = [
-  { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'department',       header: 'Department',   headerAr: 'القسم',             type: 'text'       },
-  { key: 'totalStaff',       header: 'Total Staff',  headerAr: 'إجمالي الموظفين',   type: 'number'     },
-  { key: 'inHouse',          header: 'In-House',     headerAr: 'المقيمين بالسكن',   type: 'number'     },
-  { key: 'assignedRooms',    header: 'Rooms Used',   headerAr: 'الغرف المشغولة',    type: 'number'     },
-  { key: 'occupancyPct',     header: 'Occupancy %',  headerAr: 'نسبة الإشغال',      type: 'percentage' },
-  { key: 'onLeave',          header: 'On Leave',     headerAr: 'في إجازة',          type: 'number'     },
-  { key: 'available',        header: 'Available',    headerAr: 'المتاح',            type: 'number'     },
-  { key: 'status',           header: 'Status',       headerAr: 'الحالة',            type: 'status'     },
+  { key: 'index',            header: '#',                  headerAr: '#',                 type: 'index'      },
+  { key: 'department',       header: 'Department',         headerAr: 'القسم',             type: 'text'       },
+  { key: 'residentCount',    header: 'Total Residents',    headerAr: 'إجمالي المقيمين',   type: 'number'     },
+  { key: 'maleCount',        header: 'Males',              headerAr: 'ذكور',              type: 'number'     },
+  { key: 'femaleCount',      header: 'Females',            headerAr: 'إناث',              type: 'number'     },
+  { key: 'roomsCount',       header: 'Rooms Occupied',     headerAr: 'الغرف المشغولة',    type: 'number'     },
+  { key: 'shareOfHousing',   header: 'Share of Housing',   headerAr: 'نسبة الإشغال بالسكن',type: 'percentage' },
+  { key: 'buildingsList',    header: 'Assigned Buildings', headerAr: 'المباني المسكن بها',type: 'text'       },
 ];
 
 // 14. DAILY MOVEMENT
@@ -346,21 +345,19 @@ export const AMENITIES_INVENTORY_COLUMNS: ReportColumnDef[] = [
 ];
 
 // 20. WATER DISTRIBUTION SHEET
-// Orientation: LANDSCAPE — utility consumption tracking
+// Orientation: LANDSCAPE — monthly drinking water distribution tracking
 export const WATER_DISTRIBUTION_COLUMNS: ReportColumnDef[] = [
-  { key: 'index',            header: '#',            headerAr: '#',                 type: 'index'      },
-  { key: 'buildingName',     header: 'Building',     headerAr: 'المبنى',            type: 'text-short' },
-  { key: 'floorName',        header: 'Floor',        headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
-  { key: 'roomNumber',       header: 'Room',         headerAr: 'الغرفة',            type: 'id'         },
-  { key: 'locationUnit',     header: 'Location',     headerAr: 'الموقع / الغرفة',   type: 'text'       },
-  { key: 'meterNumber',      header: 'Meter No.',    headerAr: 'رقم العداد / الوحدة',type: 'id'        },
-  { key: 'prevReading',      header: 'Prev. Read.',  headerAr: 'القراءة السابقة',   type: 'number'     },
-  { key: 'currReading',      header: 'Curr. Read.',  headerAr: 'القراءة الحالية',   type: 'number'     },
-  { key: 'consumption',      header: 'Consumed (m³)',headerAr: 'الاستهلاك (م³)',    type: 'number'     },
-  { key: 'unitPrice',        header: 'Unit Price',   headerAr: 'سعر الوحدة',        type: 'currency'   },
-  { key: 'totalCost',        header: 'Total',        headerAr: 'إجمالي التكلفة',    type: 'currency'   },
-  { key: 'readingDate',      header: 'Date',         headerAr: 'تاريخ القراءة',     type: 'date'       },
-  { key: 'notes',            header: 'Notes',        headerAr: 'ملاحظات',           type: 'text'       },
+  { key: 'index',            header: '#',                  headerAr: '#',                 type: 'index'      },
+  { key: 'profileCode',      header: 'Staff ID',           headerAr: 'كود الموظف',        type: 'id'         },
+  { key: 'fullName',         header: 'Full Name',          headerAr: 'الاسم بالكامل',     type: 'text'       },
+  { key: 'department',       header: 'Department',         headerAr: 'القسم',             type: 'text'       },
+  { key: 'buildingName',     header: 'Building',           headerAr: 'المبنى',            type: 'text-short' },
+  { key: 'floorName',        header: 'Floor',              headerAr: 'الدور',             type: 'text-short', widthOverride: 16 },
+  { key: 'roomNumber',       header: 'Room',               headerAr: 'الغرفة',            type: 'id'         },
+  { key: 'bedNumber',        header: 'Bed',                headerAr: 'السرير',            type: 'id'         },
+  { key: 'waterIssue1',      header: '1st Issue (1st Half)', headerAr: 'الصرف الأول (النصف الأول)', type: 'text-short' },
+  { key: 'waterIssue2',      header: '2nd Issue (2nd Half)', headerAr: 'الصرف الثاني (النصف الثاني)', type: 'text-short' },
+  { key: 'signature',        header: 'Resident Signature', headerAr: 'توقيع المستلم',     type: 'text-short' },
 ];
 
 // ══════════════════════════════════════════════════════════

@@ -393,7 +393,7 @@ router.get(
     const conditions: SQL[] = [];
 
     if (query.success) {
-      if (query.data.status)
+      if (query.data.status && String(query.data.status).toUpperCase() !== "ALL")
         conditions.push(eq(assignmentsTable.status, query.data.status));
       if (query.data.profileId)
         conditions.push(eq(assignmentsTable.profileId, query.data.profileId));
@@ -431,18 +431,17 @@ router.get(
         : await base.orderBy(desc(assignmentsTable.id));
     });
 
-    res.json(
-      ListAssignmentsResponse.parse(
-        assignments.map((a) => ({
-          ...fmtAssignment({ ...a, propertyId }),
-          roomNumber: a.roomNumber ?? null,
-          buildingId: a.buildingId ?? null,
-          floorId: a.floorId ?? null,
-          buildingName: a.buildingName ?? null,
-          floorNumber: a.floorNumber ?? null,
-        })),
-      ),
-    );
+    const mapped = assignments.map((a) => ({
+      ...fmtAssignment({ ...a, propertyId }),
+      roomNumber: a.roomNumber ?? null,
+      buildingId: a.buildingId ?? null,
+      floorId: a.floorId ?? null,
+      buildingName: a.buildingName ?? null,
+      floorNumber: a.floorNumber ?? null,
+    }));
+
+    const parsed = ListAssignmentsResponse.safeParse(mapped);
+    res.json(parsed.success ? parsed.data : mapped);
   },
 );
 

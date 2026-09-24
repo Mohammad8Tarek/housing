@@ -201,8 +201,8 @@ export function ReportFilters({
   };
 
   const statusOptions = getStatusOptions();
-  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "profiles", "maintenance", "hostings", "housekeeping", "equipment_inventory", "policy_exceptions", "vacations"].includes(activeTab);
-  const showEmploymentType = ["assignments", "profiles", "analytics", "vacations"].includes(activeTab);
+  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "profiles", "maintenance", "hostings", "housekeeping", "equipment_inventory", "policy_exceptions", "vacations", "water_distribution", "department_occupancy"].includes(activeTab);
+  const showEmploymentType = ["assignments", "profiles", "analytics", "vacations", "water_distribution"].includes(activeTab);
   const showRoomType = [
     "housing",
     "vacant_rooms",
@@ -216,9 +216,9 @@ export function ReportFilters({
     "daily_movement",
     "vacations",
   ].includes(activeTab);
-  const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts", "policy_exceptions", "vacations"].includes(activeTab);
-  const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts", "vacations"].includes(activeTab);
-  const showNationality = ["assignments", "profiles", "expiring_contracts", "vacations"].includes(activeTab);
+  const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts", "policy_exceptions", "vacations", "water_distribution", "department_occupancy"].includes(activeTab);
+  const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts", "vacations", "water_distribution"].includes(activeTab);
+  const showNationality = ["assignments", "profiles", "expiring_contracts", "vacations", "water_distribution"].includes(activeTab);
   const showCategory = activeTab === "maintenance" || activeTab === "equipment_inventory" || activeTab === "policy_exceptions";
 
   return (

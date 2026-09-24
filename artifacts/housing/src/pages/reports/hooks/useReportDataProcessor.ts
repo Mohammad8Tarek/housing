@@ -1636,18 +1636,26 @@ export function useReportDataProcessor({
 
         let totalActiveResidents = 0;
 
-        assignments.forEach((a: any) => {
+        const activeAssignments = (assignments || []).filter((a: any) => {
           const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT";
-          if (isCheckedOut) return;
+          return !isCheckedOut;
+        });
 
-          const emp = empMap[a.profileId] || {};
-          const room = roomMap[a.roomId] || {};
+        activeAssignments.forEach((a: any) => {
+          const pId = a.profileId ?? a.profile_id;
+          const rId = a.roomId ?? a.room_id;
+          const emp = empMap[Number(pId)] || empMap[pId] || {};
+          const room = roomMap[Number(rId)] || roomMap[rId] || {};
 
-          if (filterBuilding !== "all" && (!room || !filteredBuildingIds.has(room.buildingId))) return;
-          if (filterFloor !== "all" && (!room || !filteredFloorIds.has(room.floorId))) return;
-          if (filterDepartment !== "all" && emp?.department !== filterDepartment) return;
+          const bId = room.buildingId ?? a.buildingId;
+          const fId = room.floorId ?? a.floorId;
 
-          const deptName = getProfileDisplayDepartment(emp, ar) || (ar ? "غير محدد" : "Unspecified");
+          if (filterBuilding !== "all" && (!bId || !filteredBuildingIds.has(bId))) return;
+          if (filterFloor !== "all" && (!fId || !filteredFloorIds.has(fId))) return;
+          const empDept = emp.department || a.profileDepartment;
+          if (filterDepartment !== "all" && empDept !== filterDepartment) return;
+
+          const deptName = getProfileDisplayDepartment(emp, ar) || a.profileDepartmentAr || a.profileDepartment || (ar ? "غير محدد" : "Unspecified");
 
           if (!deptMap[deptName]) {
             deptMap[deptName] = {
@@ -1663,17 +1671,18 @@ export function useReportDataProcessor({
           deptMap[deptName].residentCount += 1;
           totalActiveResidents += 1;
 
-          const genderStr = (emp.gender || "").toLowerCase();
+          const genderStr = (emp.gender || a.profileGender || "").toLowerCase();
           if (genderStr === "female" || emp.gender === "أنثى") {
             deptMap[deptName].femaleCount += 1;
           } else {
             deptMap[deptName].maleCount += 1;
           }
 
-          if (room.roomNumber) {
-            deptMap[deptName].roomsSet.add(room.roomNumber);
+          const rNum = room.roomNumber || a.roomNumber;
+          if (rNum) {
+            deptMap[deptName].roomsSet.add(rNum);
           }
-          const bName = buildingMap[room.buildingId];
+          const bName = buildingMap[bId] || a.buildingName;
           if (bName) {
             deptMap[deptName].buildingsSet.add(bName);
           }
@@ -1681,15 +1690,22 @@ export function useReportDataProcessor({
 
         const list = Object.values(deptMap).map((d, idx) => ({
           id: idx + 1,
+          index: idx + 1,
           department: d.department,
           residentCount: d.residentCount,
+          inHouse: d.residentCount,
           maleCount: d.maleCount,
           femaleCount: d.femaleCount,
           roomsCount: d.roomsSet.size,
+          assignedRooms: d.roomsSet.size,
           shareOfHousing:
             totalActiveResidents > 0
               ? `${((d.residentCount / totalActiveResidents) * 100).toFixed(1)}%`
               : "0.0%",
+          occupancyPct:
+            totalActiveResidents > 0
+              ? Number(((d.residentCount / totalActiveResidents) * 100).toFixed(1))
+              : 0,
           buildingsList: Array.from(d.buildingsSet).join(ar ? "، " : ", ") || "—",
         }));
 
@@ -1857,24 +1873,39 @@ export function useReportDataProcessor({
       }
 
       case "water_distribution": {
-        const list = assignments
+        const list = (assignments || [])
           .filter((a: any) => {
-            const room = roomMap[a.roomId];
-            const emp = empMap[a.profileId] || {};
-            const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || emp.status === "LEFT" || emp.status === "CHECKED_OUT";
+            const pId = a.profileId ?? a.profile_id;
+            const rId = a.roomId ?? a.room_id;
+            const room = roomMap[Number(rId)] || roomMap[rId] || {};
+            const emp = empMap[Number(pId)] || empMap[pId] || {};
+            const isCheckedOut =
+              a.status === "CHECKED_OUT" ||
+              a.status === "LEFT" ||
+              emp.status === "LEFT" ||
+              emp.status === "CHECKED_OUT" ||
+              a.profileStatus === "LEFT" ||
+              a.profileStatus === "CHECKED_OUT";
             if (isCheckedOut) return false;
 
-            if (filterBuilding !== "all" && (!room || !filteredBuildingIds.has(room.buildingId))) return false;
-            if (filterFloor !== "all" && (!room || !filteredFloorIds.has(room.floorId))) return false;
-            if (filterDepartment !== "all" && emp?.department !== filterDepartment) return false;
-            if (filterGender !== "all" && emp?.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
-            if (filterNationality !== "all" && emp?.nationality !== filterNationality) return false;
+            const bId = room.buildingId ?? a.buildingId;
+            const fId = room.floorId ?? a.floorId;
+            if (filterBuilding !== "all" && (!bId || !filteredBuildingIds.has(bId))) return false;
+            if (filterFloor !== "all" && (!fId || !filteredFloorIds.has(fId))) return false;
+            const dept = emp.department || a.profileDepartment;
+            if (filterDepartment !== "all" && dept !== filterDepartment) return false;
+            const gen = emp.gender || a.profileGender;
+            if (filterGender !== "all" && gen?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            const nat = emp.nationality || a.profileNationality;
+            if (filterNationality !== "all" && nat !== filterNationality) return false;
             return true;
           })
           .map((a: any) => {
-            const emp = empMap[a.profileId] || {};
-            const room = roomMap[a.roomId] || {};
-            const floor = floors.find((f: any) => f.id === room.floorId);
+            const pId = a.profileId ?? a.profile_id;
+            const rId = a.roomId ?? a.room_id;
+            const emp = empMap[Number(pId)] || empMap[pId] || {};
+            const room = roomMap[Number(rId)] || roomMap[rId] || {};
+            const floor = floors.find((f: any) => f.id === (room.floorId ?? a.floorId));
             const isEntire = Boolean(
               a.isEntireRoom ||
               a.is_entire_room ||
@@ -1882,22 +1913,49 @@ export function useReportDataProcessor({
               a.notes?.includes("[تسكين الغرفة بالكامل]")
             );
             const bedNum = a.bedNumber ?? (isEntire ? 1 : null);
+            const bId = room.buildingId ?? a.buildingId;
+            const fId = room.floorId ?? a.floorId;
+
+            const pCode = emp.profileId || a.profileCode || `EMP-${pId}`;
+            const fName =
+              getProfileDisplayName(emp, ar) ||
+              (emp.firstName
+                ? `${emp.firstName} ${emp.lastName || ""}`.trim()
+                : a.profileFirstName
+                ? `${a.profileFirstName} ${a.profileLastName || ""}`.trim()
+                : `Resident #${pId}`);
+            const dName =
+              getProfileDisplayDepartment(emp, ar) ||
+              a.profileDepartmentAr ||
+              a.profileDepartment ||
+              "—";
+            const jTitle =
+              getProfileDisplayJobTitle(emp, ar) ||
+              a.profileJobTitleAr ||
+              a.profileJobTitle ||
+              "—";
+            const rNum = room.roomNumber || a.roomNumber || `#${rId}`;
+            const bName = buildingMap[bId] || a.buildingName || "—";
+            const fNum = floor?.floorNumber ?? a.floorNumber ?? 0;
+            const fNameStr =
+              floorMap[fId] ||
+              (fNum !== undefined ? `${ar ? "الدور" : "Floor"} ${fNum}` : "—");
 
             return {
               id: a.id,
-              profileId: emp.id,
-              profileCode: emp.profileId || `EMP-${a.profileId}`,
-              fullName: getProfileDisplayName(emp, ar),
-              department: getProfileDisplayDepartment(emp, ar) || "—",
-              jobTitle: getProfileDisplayJobTitle(emp, ar) || "—",
-              roomId: a.roomId,
-              roomNumber: room.roomNumber || `#${a.roomId}`,
+              profileId: emp.id || pId,
+              profileCode: pCode,
+              fullName: fName,
+              department: dName,
+              jobTitle: jTitle,
+              roomId: rId,
+              roomNumber: rNum,
               bedNumber: bedNum ? String(bedNum) : "—",
-              buildingId: room.buildingId,
-              buildingName: buildingMap[room.buildingId] || "—",
-              floorId: room.floorId,
-              floorNumber: floor?.floorNumber ?? 0,
-              floorName: floorMap[room.floorId] || (floor?.floorNumber !== undefined ? `${ar ? "الدور" : "Floor"} ${floor.floorNumber}` : "—"),
+              buildingId: bId,
+              buildingName: bName,
+              floorId: fId,
+              floorNumber: fNum,
+              floorName: fNameStr,
               waterIssue1: false,
               waterIssue2: false,
               signature: "",
