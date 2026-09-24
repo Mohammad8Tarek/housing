@@ -1652,8 +1652,39 @@ export function useReportDataProcessor({
 
           if (filterBuilding !== "all" && (!bId || !filteredBuildingIds.has(bId))) return;
           if (filterFloor !== "all" && (!fId || !filteredFloorIds.has(fId))) return;
-          const empDept = emp.department || a.profileDepartment;
-          if (filterDepartment !== "all" && empDept !== filterDepartment) return;
+          const empDept = emp.department || a.profileDepartment || "";
+          const empDeptAr = emp.departmentAr || a.profileDepartmentAr || "";
+          if (filterDepartment !== "all" && filterDepartment) {
+            if (empDept !== filterDepartment && empDeptAr !== filterDepartment) return;
+          }
+
+          const genderRaw = emp.gender || a.profileGender || a.gender || "";
+          const isFemale =
+            genderRaw.toLowerCase() === "female" ||
+            genderRaw === "أنثى" ||
+            genderRaw === "انثى" ||
+            genderRaw.toUpperCase() === "F";
+          const isMale =
+            genderRaw.toLowerCase() === "male" ||
+            genderRaw === "ذكر" ||
+            genderRaw.toUpperCase() === "M";
+
+          if (filterGender !== "all" && filterGender) {
+            const wantFemale =
+              filterGender.toLowerCase() === "f" ||
+              filterGender.toLowerCase() === "female" ||
+              filterGender === "أنثى" ||
+              filterGender === "انثى";
+            const wantMale =
+              filterGender.toLowerCase() === "m" ||
+              filterGender.toLowerCase() === "male" ||
+              filterGender === "ذكر";
+            if (wantFemale && !isFemale) return;
+            if (wantMale && !isMale) return;
+          }
+
+          const natVal = emp.nationality || a.profileNationality || "";
+          if (filterNationality !== "all" && filterNationality && natVal !== filterNationality) return;
 
           const effectiveEmp = emp.department ? emp : { department: a.profileDepartment, departmentAr: a.profileDepartmentAr };
           const deptName = getProfileDisplayDepartment(effectiveEmp, ar) || (ar ? (a.profileDepartmentAr || a.profileDepartment) : (a.profileDepartment || a.profileDepartmentAr)) || (ar ? "غير محدد" : "Unspecified");
@@ -1672,10 +1703,10 @@ export function useReportDataProcessor({
           deptMap[deptName].residentCount += 1;
           totalActiveResidents += 1;
 
-          const genderRaw = emp.gender || a.profileGender || "";
-          const isFemale = genderRaw.toLowerCase() === "female" || genderRaw === "أنثى" || genderRaw.toUpperCase() === "F";
           if (isFemale) {
             deptMap[deptName].femaleCount += 1;
+          } else if (isMale) {
+            deptMap[deptName].maleCount += 1;
           } else {
             deptMap[deptName].maleCount += 1;
           }

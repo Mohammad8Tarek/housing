@@ -217,8 +217,8 @@ export function ReportFilters({
     "vacations",
   ].includes(activeTab);
   const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts", "policy_exceptions", "vacations", "water_distribution", "department_occupancy"].includes(activeTab);
-  const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts", "vacations", "water_distribution"].includes(activeTab);
-  const showNationality = ["assignments", "profiles", "expiring_contracts", "vacations", "water_distribution"].includes(activeTab);
+  const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts", "vacations", "water_distribution", "department_occupancy"].includes(activeTab);
+  const showNationality = ["assignments", "profiles", "expiring_contracts", "vacations", "water_distribution", "department_occupancy"].includes(activeTab);
   const showCategory = activeTab === "maintenance" || activeTab === "equipment_inventory" || activeTab === "policy_exceptions";
 
   return (

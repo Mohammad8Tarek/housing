@@ -115,6 +115,7 @@ router.get(
           profileThirdNameAr: profilesTable.thirdNameAr,
           profileFourthNameAr: profilesTable.fourthNameAr,
           profileCode: profilesTable.profileId,
+          profileGender: profilesTable.gender,
           profileNationality: profilesTable.nationality,
           profileDepartment: profilesTable.department,
           profileDepartmentAr: profilesTable.departmentAr,
@@ -164,6 +165,8 @@ router.get(
           profileThirdNameAr: i.profileThirdNameAr,
           profileFourthNameAr: i.profileFourthNameAr,
           profileCode: i.profileCode,
+          profileGender: i.profileGender,
+          gender: i.profileGender,
           profileNationality: i.profileNationality,
           profileDepartment: i.profileDepartment,
           profileDepartmentAr: i.profileDepartmentAr,
@@ -420,8 +423,21 @@ router.get(
           floorId: roomsTable.floorId,
           buildingName: buildingsTable.name,
           floorNumber: floorsTable.floorNumber,
+          profileFirstName: profilesTable.firstName,
+          profileLastName: profilesTable.lastName,
+          profileFirstNameAr: profilesTable.firstNameAr,
+          profileLastNameAr: profilesTable.lastNameAr,
+          profileCode: profilesTable.profileId,
+          profileGender: profilesTable.gender,
+          gender: profilesTable.gender,
+          profileDepartment: profilesTable.department,
+          profileDepartmentAr: profilesTable.departmentAr,
+          profileJobTitle: profilesTable.jobTitle,
+          profileJobTitleAr: profilesTable.jobTitleAr,
+          profileNationality: profilesTable.nationality,
         })
         .from(assignmentsTable)
+        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id));
@@ -438,6 +454,18 @@ router.get(
       floorId: a.floorId ?? null,
       buildingName: a.buildingName ?? null,
       floorNumber: a.floorNumber ?? null,
+      profileFirstName: a.profileFirstName ?? null,
+      profileLastName: a.profileLastName ?? null,
+      profileFirstNameAr: a.profileFirstNameAr ?? null,
+      profileLastNameAr: a.profileLastNameAr ?? null,
+      profileCode: a.profileCode ?? null,
+      profileGender: a.profileGender ?? null,
+      gender: a.gender ?? a.profileGender ?? null,
+      profileDepartment: a.profileDepartment ?? null,
+      profileDepartmentAr: a.profileDepartmentAr ?? null,
+      profileJobTitle: a.profileJobTitle ?? null,
+      profileJobTitleAr: a.profileJobTitleAr ?? null,
+      profileNationality: a.profileNationality ?? null,
     }));
 
     const parsed = ListAssignmentsResponse.safeParse(mapped);
