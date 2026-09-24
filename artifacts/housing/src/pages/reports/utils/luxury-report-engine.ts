@@ -2734,23 +2734,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       </div>
     ` : "";
 
-    // Footer Layout pinned at bottom of EVERY page with real Page X of Y
+    // Footer Layout pinned at bottom of EVERY page with real Page X of Y (clean, minimal single-line footer)
     const pageFooterHtml = `
       <div class="opera-footer">
         <div class="opera-footer-left">
-          <div class="opera-filter-tag">${isArabic ? "عوامل التصفية" : "Filter"}</div>
-          <div class="opera-filter-desc">
-            <span>${isArabic ? "الفرع" : "Property"}: ${propName}</span>
-            ${dateFrom || dateTo ? `<span>${isArabic ? "الفترة" : "Date"}: ${dateFrom || "All"} — ${dateTo || "All"}</span>` : `<span>${isArabic ? "التاريخ" : "Date"}: ${operaDateStr}</span>`}
-            ${search ? `<span>${isArabic ? "البحث" : "Filter"}: "${search}"</span>` : `<span>${isArabic ? "الحالة: الكل" : "Status: All"}</span>`}
-            <span>${isArabic ? "الترتيب حسب: رقم الغرفة" : "Sort Order: Room No."}</span>
-          </div>
+          <span class="opera-report-slug">${propName} · ${operaCode}</span>
         </div>
         <div class="opera-footer-center">
           <span class="opera-page-indicator">${isArabic ? `صفحة ${pageNumber} من ${totalPagesCount}` : `Page ${pageNumber} of ${totalPagesCount}`}</span>
         </div>
         <div class="opera-footer-right">
-          <span class="opera-report-slug">${operaCode}</span>
+          <span class="opera-meta-datetime">${operaDateStr} ${operaTimeStr}</span>
         </div>
       </div>
     `;
@@ -3244,45 +3238,40 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       color: #64748b;
     }
 
-    /* Opera Footer Layout */
+    /* Opera Footer Layout - Clean single line */
     .opera-footer {
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
-      font-size: 7pt;
-      color: #000000;
-      margin-top: 6px;
+      align-items: center;
+      font-size: 7.2pt;
+      color: #334155;
+      margin-top: 4px;
       padding-top: 4px;
-      line-height: 1.35;
+      border-top: 1px solid #cbd5e1;
+      line-height: 1.2;
+      direction: ltr !important;
     }
     .opera-footer-left {
       display: flex;
-      gap: 8px;
-      max-width: 48%;
-    }
-    .opera-filter-tag {
+      align-items: center;
+      gap: 6px;
       font-weight: 700;
       color: #000000;
-      white-space: nowrap;
-    }
-    .opera-filter-desc {
-      display: flex;
-      flex-direction: column;
-      color: #000000;
+      font-size: 7.2pt;
     }
     .opera-footer-center {
       text-align: center;
-      font-weight: 500;
-      font-size: 7.5pt;
+      font-weight: 800;
       color: #000000;
+      font-size: 7.5pt;
     }
     .opera-footer-right {
-      text-align: ${dir === "rtl" ? "left" : "right"};
-      font-style: italic;
-      font-family: monospace, sans-serif;
-      font-size: 7.5pt;
-      color: #000000;
-      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      font-family: "Courier New", monospace;
+      font-weight: 700;
+      color: #334155;
+      font-size: 7pt;
     }
 
     /* Print Media Styles */
@@ -3431,9 +3420,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         margin-bottom: 24px !important;
       }
       .opera-footer {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        margin-top: 6px !important;
+        margin-top: 4px !important;
+        padding-top: 4px !important;
+        border-top: 1px solid #cbd5e1 !important;
+        direction: ltr !important;
       }
       .kpi-grid {
         page-break-inside: avoid !important;
