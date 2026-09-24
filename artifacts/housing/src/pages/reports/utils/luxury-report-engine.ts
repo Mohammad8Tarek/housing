@@ -592,11 +592,6 @@ export const BILINGUAL_HEADER_MAP: Record<string, { ar: string; en: string }> = 
   femalecount: { ar: "إناث", en: "Females" },
   female_count: { ar: "إناث", en: "Females" },
   "female count": { ar: "إناث", en: "Females" },
-  females: { ar: "إناث", en: "Females" },
-  "إناث": { ar: "إناث", en: "Females" },
-  roomscount: { ar: "الغرف المشغولة", en: "Rooms Occupied" },
-  rooms_count: { ar: "الغرف المشغولة", en: "Rooms Occupied" },
-  "rooms count": { ar: "الغرف المشغولة", en: "Rooms Occupied" },
   "rooms occupied": { ar: "الغرف المشغولة", en: "Rooms Occupied" },
   "الغرف المشغولة": { ar: "الغرف المشغولة", en: "Rooms Occupied" },
   shareofhousing: { ar: "نسبة الإشغال بالسكن", en: "Share of Housing" },
@@ -1629,28 +1624,53 @@ export function computeReportColumnWidths(
     const effLen = m.maxCellLen > 0 ? Math.max(m.maxCellLen, m.headerTotalLen * 0.75) : m.headerTotalLen;
 
     if (m.isFixedSingleLine) {
-      // Fixed single-line format: Must fit entire text on a single line with comfortable breathing space
-      const fixedExtra = /national|قومي|phone|هاتف|mobile|موبايل/i.test(m.norm) ? 4.2 : 2.5;
-      return Math.max(minTokenFloor, effLen + fixedExtra);
+      // National ID / Passport / National Number (14 digits) MUST NEVER truncate or get squeezed
+      if (/national|قومي|passport|جواز|هوية/i.test(m.norm)) {
+        return Math.max(minTokenFloor, Math.max(22, (m.maxCellLen || 14) * 1.45 + 3));
+      }
+      // Phone / Mobile numbers (+201012345678)
+      if (/phone|هاتف|mobile|موبايل|emergency|طوارئ/i.test(m.norm)) {
+        return Math.max(minTokenFloor, Math.max(18, (m.maxCellLen || 12) * 1.35 + 2.5));
+      }
+      // Employee codes & clock numbers (CLK-10023, EMP-1001)
+      if (/code|كود|clock|profile/i.test(m.norm)) {
+        return Math.max(minTokenFloor, Math.max(15, (m.maxCellLen || 8) * 1.4 + 2.5));
+      }
+      // Dates (DD-MM-YYYY)
+      if (/date|تاريخ|birth|hire|contract|check-in|check-out/i.test(m.norm)) {
+        return Math.max(minTokenFloor, Math.max(14, 10 * 1.3 + 2));
+      }
+      // Gender (Female / Male / أنثى / ذكر)
+      if (/gender|جنس/i.test(m.norm)) {
+        return Math.max(minTokenFloor, Math.max(8.5, m.maxHeaderWordLen + 1.5));
+      }
+      // Room number
+      if (/room|غرفة/i.test(m.norm) && !/type|نوع/i.test(m.norm)) {
+        return Math.max(minTokenFloor, Math.max(9, (m.maxCellLen || 4) + 2.5));
+      }
+      // Bed number
+      if (/bed|سرير/i.test(m.norm)) {
+        return Math.max(minTokenFloor, Math.max(7, (m.maxCellLen || 2) + 2));
+      }
+      return Math.max(minTokenFloor, effLen + 2.5);
     }
 
     if (m.isLongFreeText) {
       // Long freeform text / notes
       return orientation === "landscape"
-        ? Math.max(minTokenFloor, Math.min(26, effLen * 0.75 + 4))
-        : Math.max(minTokenFloor, Math.min(18, effLen * 0.55 + 3));
+        ? Math.max(minTokenFloor, Math.min(22, effLen * 0.65 + 3))
+        : Math.max(minTokenFloor, Math.min(16, effLen * 0.5 + 2.5));
     }
 
-    // Natural multi-word text columns (Full Name, Department, Job Title, Building, Company, etc.)
-    // In landscape: allocate comfortably so names and titles fit cleanly without overpowering
-    // In portrait: allow clean wrapping at word boundaries without squeezing
+    // Natural multi-word text columns (Full Name, Department, Job Title, Building, Company, Address, etc.)
+    // These columns can and should wrap onto 2-3 lines cleanly instead of starving non-wrapping code/ID columns!
     if (orientation === "landscape") {
-      const maxTextCap = colCount >= 16 ? 16 : 24;
-      const textDemand = Math.max(m.avgCellLen * 1.05 + 2.5, effLen * 0.9 + 3.0);
+      const maxTextCap = colCount >= 18 ? 14 : colCount >= 12 ? 17 : 22;
+      const textDemand = Math.max(m.avgCellLen * 0.85 + 2.0, effLen * 0.75 + 2.5);
       return Math.max(minTokenFloor, Math.min(maxTextCap, textDemand));
     } else {
-      const textDemand = Math.max(m.avgCellLen * 0.7 + 2.0, effLen * 0.65 + 2.5);
-      return Math.max(minTokenFloor, Math.min(17, textDemand));
+      const textDemand = Math.max(m.avgCellLen * 0.6 + 1.8, effLen * 0.55 + 2.0);
+      return Math.max(minTokenFloor, Math.min(14, textDemand));
     }
   });
 
@@ -1663,8 +1683,8 @@ export function computeReportColumnWidths(
   const rawColWidths = demands.map((d) => (d / totalDemand) * availablePct);
 
   // Round to 1 decimal place with adaptive minimum percentage based on total column count
-  // Guaranteeing at least 4.2% - 5.5% so short headers like 'Level' (5 chars) never get truncated!
-  const minColPct = colCount >= 20 ? 2.8 : colCount >= 16 ? 3.5 : colCount >= 12 ? 4.2 : 5.0;
+  // Guaranteeing at least 2.4% - 4.5% so short headers like 'Level' or 'Bed' never get truncated!
+  const minColPct = colCount >= 20 ? 2.4 : colCount >= 16 ? 3.0 : colCount >= 12 ? 3.8 : 4.5;
   const roundedColWidths = rawColWidths.map((w) => Math.max(minColPct, Math.round(w * 10) / 10));
 
   // Re-balance so sum equals availablePct exactly
@@ -1954,7 +1974,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("profile / id") ||
     norm.includes("رقم الموظف")
   ) {
-    const endPad = isArabic ? "padding-left: 8px !important;" : "padding-right: 8px !important;";
+    const endPad = isArabic ? "padding-left: 2px !important;" : "padding-right: 2px !important;";
     return `text-align: ${isArabic ? "right" : "left"}; white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important; ${endPad}`;
   }
 
@@ -1970,7 +1990,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("طوارئ") ||
     norm.includes("هوية")
   ) {
-    return "text-align: center; white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important; letter-spacing: 0.2px;";
+    return "text-align: center; white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important;";
   }
 
   // Dates & Times
@@ -2015,7 +2035,7 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     (norm.includes("name") && !norm.includes("building") && !norm.includes("company"));
 
   if (isPersonNameOnly) {
-    const startPad = isArabic ? "padding-right: 6px !important;" : "padding-left: 6px !important;";
+    const startPad = isArabic ? "padding-right: 3px !important;" : "padding-left: 3px !important;";
     return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: normal !important; overflow-wrap: normal !important; line-height: 1.25; font-weight: 700 !important; color: #000000 !important; ${startPad}`;
   }
 
@@ -2258,63 +2278,63 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   if (orientation === "landscape") {
     if (colCount >= 20) {
-      // Ultra-dense reports (e.g. Police Report with 22 columns)
-      baseFontSizePt = 6.8;
-      printFontSizePt = 6.4;
-      cellPadding = "2px 2.5px";
-      printPadding = "1.5px 2px";
+      // Ultra-dense reports (e.g. Tourism Police Manifest with 20-25 columns)
+      baseFontSizePt = 5.6;
+      printFontSizePt = 5.3;
+      cellPadding = "1.2px 1.8px";
+      printPadding = "1.0px 1.5px";
       tableLetterSpacing = "-0.25px";
     } else if (colCount >= 16) {
-      baseFontSizePt = 7.4;
-      printFontSizePt = 7.0;
-      cellPadding = "2px 3px";
-      printPadding = "1.8px 2.5px";
-      tableLetterSpacing = "-0.15px";
+      baseFontSizePt = 6.4;
+      printFontSizePt = 6.0;
+      cellPadding = "1.5px 2.2px";
+      printPadding = "1.2px 1.8px";
+      tableLetterSpacing = "-0.2px";
     } else if (colCount >= 13) {
-      baseFontSizePt = 8.0;
-      printFontSizePt = 7.6;
-      cellPadding = "2.5px 3.5px";
-      printPadding = "2px 3px";
-      tableLetterSpacing = "normal";
+      baseFontSizePt = 7.1;
+      printFontSizePt = 6.7;
+      cellPadding = "2px 2.8px";
+      printPadding = "1.6px 2.2px";
+      tableLetterSpacing = "-0.1px";
     } else if (colCount >= 10) {
-      baseFontSizePt = 8.5;
-      printFontSizePt = 8.0;
-      cellPadding = "2.5px 4px";
-      printPadding = "2.2px 3.5px";
+      baseFontSizePt = 7.8;
+      printFontSizePt = 7.4;
+      cellPadding = "2.5px 3.5px";
+      printPadding = "2px 2.8px";
       tableLetterSpacing = "normal";
     }
   } else {
     // Portrait mode (190mm printable width)
     if (colCount >= 20) {
       // Extreme density on portrait: micro font to prevent collision
-      baseFontSizePt = 5.8;
-      printFontSizePt = 5.5;
-      cellPadding = "1.5px 2px";
-      printPadding = "1.2px 1.5px";
+      baseFontSizePt = 5.2;
+      printFontSizePt = 4.9;
+      cellPadding = "1px 1.5px";
+      printPadding = "0.8px 1.2px";
       tableLetterSpacing = "-0.35px";
     } else if (colCount >= 16) {
+      baseFontSizePt = 5.8;
+      printFontSizePt = 5.5;
+      cellPadding = "1.2px 1.8px";
+      printPadding = "1px 1.5px";
+      tableLetterSpacing = "-0.25px";
+    } else if (colCount >= 13) {
       baseFontSizePt = 6.6;
       printFontSizePt = 6.2;
-      cellPadding = "2px 2.5px";
-      printPadding = "1.5px 2px";
-      tableLetterSpacing = "-0.2px";
-    } else if (colCount >= 13) {
+      cellPadding = "1.8px 2.2px";
+      printPadding = "1.5px 1.8px";
+      tableLetterSpacing = "-0.15px";
+    } else if (colCount >= 10) {
       baseFontSizePt = 7.2;
       printFontSizePt = 6.8;
-      cellPadding = "2.5px 3px";
-      printPadding = "2px 2.5px";
-      tableLetterSpacing = "-0.1px";
-    } else if (colCount >= 10) {
-      baseFontSizePt = 7.8;
-      printFontSizePt = 7.4;
-      cellPadding = "3px 4px";
-      printPadding = "2.5px 3.5px";
+      cellPadding = "2px 2.8px";
+      printPadding = "1.8px 2.2px";
       tableLetterSpacing = "normal";
     } else if (colCount >= 7) {
-      baseFontSizePt = 8.6;
-      printFontSizePt = 8.2;
-      cellPadding = "3.5px 5px";
-      printPadding = "3px 4.5px";
+      baseFontSizePt = 8.2;
+      printFontSizePt = 7.8;
+      cellPadding = "3px 4px";
+      printPadding = "2.5px 3.5px";
       tableLetterSpacing = "normal";
     }
   }
@@ -3312,23 +3332,23 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       background: #f8fafc !important;
       color: #000000 !important;
       font-weight: 800 !important;
-      font-size: ${baseFontSizePt}pt !important;
+      font-size: ${Math.max(5.0, baseFontSizePt - 0.2)}pt !important;
       border-top: 1.5px solid #000000 !important;
       border-bottom: 1.5px solid #000000 !important;
       border-left: none !important;
       border-right: none !important;
       border-inline-end: 1px solid #e2e8f0 !important;
       padding: ${cellPadding} !important;
-      line-height: 1.2;
+      line-height: 1.15;
       vertical-align: bottom;
-      overflow: hidden !important;
+      overflow: visible !important;
       text-overflow: clip !important;
       white-space: normal !important;
-      word-break: normal !important;
-      overflow-wrap: normal !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
       box-sizing: border-box !important;
       letter-spacing: ${tableLetterSpacing};
-      hyphens: none !important;
+      hyphens: auto !important;
     }
     table.opera-table th:last-child {
       border-inline-end: none !important;
@@ -3345,8 +3365,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       padding: ${cellPadding} !important;
       line-height: ${tableLineHeight} !important;
       vertical-align: middle;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
       word-break: normal;
       overflow-wrap: break-word;
       box-sizing: border-box !important;
@@ -3601,7 +3621,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       page-break-inside: avoid !important;
     }
     table.opera-table th {
-        font-size: ${printFontSizePt}pt !important;
+        font-size: ${Math.max(5.0, printFontSizePt - 0.2)}pt !important;
         font-weight: 800 !important;
         padding: ${printPadding} !important;
         border-top: 1.5px solid #000000 !important;
@@ -3610,9 +3630,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         color: #000000 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        word-break: normal !important;
-        overflow-wrap: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
         white-space: normal !important;
+        overflow: visible !important;
+        hyphens: auto !important;
       }
       table.opera-table td {
         font-size: ${printFontSizePt}pt !important;
@@ -3624,6 +3646,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         word-break: normal !important;
         overflow-wrap: break-word !important;
         overflow: visible !important;
+        text-overflow: clip !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
