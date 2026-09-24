@@ -971,13 +971,16 @@ export const printArabicAnalyticsReport = async (opts: {
       min-height: 280mm;
       margin: 12px auto;
       background: #ffffff;
-      padding: 7mm 9mm 6mm;
+      padding: 6mm 8mm 5mm;
       box-shadow: 0 4px 15px rgba(0,0,0,0.08);
       border-radius: 4px;
       page-break-after: always;
       page-break-inside: avoid;
       box-sizing: border-box;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .page-sheet:last-child {
       page-break-after: avoid;
@@ -1114,9 +1117,12 @@ export const printArabicAnalyticsReport = async (opts: {
         page-break-after: always;
         page-break-inside: avoid;
         overflow: visible;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
       }
       .page-sheet:last-child {
-        page-break-after: avoid;
+        page-break-after: avoid !important;
       }
       @page {
         size: A4 portrait;
@@ -1305,29 +1311,6 @@ export const printArabicAnalyticsReport = async (opts: {
           ${bldgRows || `<tr><td colspan="8" style="text-align:center;">${isAr ? "لا توجد بيانات مبانٍ" : "No buildings found"}</td></tr>`}
         </tbody>
       </table>
-    </div>
-
-    <div class="foot">
-      <span>${isAr ? "تاريخ الطباعة:" : "Print Date:"} ${today}</span>
-      <span>${isAr ? "صفحة 1 من 2 · المؤشرات التنفيذية وحركة الإشغال" : "Page 1 of 2 · Executive KPIs & Occupancy Performance"}</span>
-      <span>Sunrise Staff Housing Management System</span>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════════════════════════ -->
-  <!-- PAGE 2: Floors, Demographics, Maintenance, Quality & Approvals -->
-  <!-- ══════════════════════════════════════════════════════════════ -->
-  <div class="page-sheet">
-    <div>
-      <div class="header">
-        <div style="font-weight:800; color:#0f2a44; font-size:8.5pt;">
-          ${isAr ? "تقرير التحليلات الشاملة · توزيع الأدوار، القوى العاملة، الصيانة والاعتماد الرسمي" : "Comprehensive Analytics · Floors, Demographics, Maintenance & Official Approvals"}
-        </div>
-        <div style="font-size:6.8pt; color:#64748b;">
-          ${propName || (isAr ? "سكن العاملين" : "Staff Housing")} · ${isAr ? "صفحة 2 من 2" : "Page 2 of 2"}
-        </div>
-      </div>
-      <hr class="gold-line" />
 
       <!-- Floor Capacity Distribution -->
       <div class="sec-head">${isAr ? "توزيع الطاقة الاستيعابية بحسب الأدوار والأجنحة" : "Floor-by-Floor Capacity & Occupancy Distribution"}</div>
@@ -1347,6 +1330,29 @@ export const printArabicAnalyticsReport = async (opts: {
           ${floorRows || `<tr><td colspan="7" style="text-align:center;">${isAr ? "لا توجد بيانات أدوار" : "No floor data available"}</td></tr>`}
         </tbody>
       </table>
+    </div>
+
+    <div class="foot">
+      <span>${isAr ? "تاريخ الطباعة:" : "Print Date:"} ${today}</span>
+      <span>${isAr ? "صفحة 1 من 2 · البنية الإنشائية والمباني والأدوار وحركة الإشغال" : "Page 1 of 2 · Infrastructure, Buildings, Floors & Operations"}</span>
+      <span>Sunrise Staff Housing Management System</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- PAGE 2: Department Quotas, Demographics, Maintenance & Approvals -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="header">
+        <div style="font-weight:800; color:#0f2a44; font-size:8.5pt;">
+          ${isAr ? "تقرير التحليلات الشاملة · حصص الأقسام، القوى العاملة، الصيانة والاعتماد الرسمي" : "Comprehensive Analytics · Department Quotas, Demographics, Maintenance & Approvals"}
+        </div>
+        <div style="font-size:6.8pt; color:#64748b;">
+          ${propName || (isAr ? "سكن العاملين" : "Staff Housing")} · ${isAr ? "صفحة 2 من 2" : "Page 2 of 2"}
+        </div>
+      </div>
+      <hr class="gold-line" />
 
       <!-- Comprehensive Department Occupancy & Bed Quotas Table -->
       <div class="sec-head">${isAr ? "التحليل الشامل لإشغال الأقسام وحصص الغرف والأسِرّة" : "Comprehensive Department Occupancy & Bed Quotas"}</div>
@@ -1538,7 +1544,7 @@ export const printArabicAnalyticsReport = async (opts: {
 
     <div class="foot">
       <span>${isAr ? "تاريخ الطباعة:" : "Print Date:"} ${today}</span>
-      <span>${isAr ? "صفحة 2 من 2 · وثيقة رسمية معتمدة لسكن العاملين" : "Page 2 of 2 · Official Endorsed Housing Document"}</span>
+      <span>${isAr ? "صفحة 2 من 2 · حصص الأقسام، القوى العاملة، الصيانة والاعتماد الرسمي" : "Page 2 of 2 · Department Quotas, Demographics, Maintenance & Approvals"}</span>
       <span>Sunrise Staff Housing Management System</span>
     </div>
   </div>
