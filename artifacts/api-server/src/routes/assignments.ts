@@ -1419,36 +1419,46 @@ router.post(
         ? await tenantDb.select().from(buildingsTable).where(eq(buildingsTable.id, newRoom.buildingId))
         : [null];
 
-      return { updated, oldRoom, newRoom, prof, oldBld, newBld, oldBedNumber: assignment.bedNumber };
+      return { error: undefined, updated, oldRoom, newRoom, prof, oldBld, newBld, oldBedNumber: assignment.bedNumber };
     });
 
     if (result.error) {
       res
-        .status(result.status)
-        .json({ error: result.error, code: result.code });
+        .status((result as any).status || 400)
+        .json({ error: result.error, code: (result as any).code });
       return;
     }
 
+    const transferData = result as {
+      updated: any;
+      oldRoom: any;
+      newRoom: any;
+      prof: any;
+      oldBld: any;
+      newBld: any;
+      oldBedNumber: any;
+    };
+
     const s = su(req);
-    const oldRoomNum = result.oldRoom?.roomNumber ?? "?";
-    const newRoomNum = result.newRoom?.roomNumber ?? "?";
+    const oldRoomNum = transferData.oldRoom?.roomNumber ?? "?";
+    const newRoomNum = transferData.newRoom?.roomNumber ?? "?";
     await logActivity({
       req,
       propertyId,
       username: s.username,
       userId: s.userId,
       userRole: s.userRole,
-      action: `نقل موظف #${result.updated!.profileId} من الغرفة رقم ${oldRoomNum} إلى الغرفة رقم ${newRoomNum}`,
+      action: `نقل موظف #${transferData.updated?.profileId} من الغرفة رقم ${oldRoomNum} إلى الغرفة رقم ${newRoomNum}`,
       actionType: "TRANSFER",
       module: "accommodation",
       entityType: "assignment",
-      entityId: result.updated!.id,
+      entityId: transferData.updated?.id,
       details: {
         fromRoomNumber: oldRoomNum,
         toRoomNumber: newRoomNum,
-        fromRoomId: result.oldRoom?.id,
-        toRoomId: result.newRoom?.id,
-        profileId: result.updated!.profileId,
+        fromRoomId: transferData.oldRoom?.id,
+        toRoomId: transferData.newRoom?.id,
+        profileId: transferData.updated?.profileId,
         transferredBy: s.username,
         transferredByRole: s.userRole,
       },
@@ -1456,30 +1466,30 @@ router.post(
 
     // ── Record in Room Moves Log ──
     try {
-      const p = result.prof;
-      const residentName = p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : `Profile #${result.updated!.profileId}`;
+      const p = transferData.prof;
+      const residentName = p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : `Profile #${transferData.updated?.profileId}`;
       const residentNameEn = p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : null;
       const residentNameAr = p?.firstNameAr || p?.lastNameAr ? `${p.firstNameAr || ""} ${p.lastNameAr || ""}`.trim() : residentName;
 
       await db.insert(roomMovesTable).values({
         propertyId,
-        assignmentId: result.updated!.id,
-        profileId: result.updated!.profileId,
+        assignmentId: transferData.updated?.id,
+        profileId: transferData.updated?.profileId,
         employeeId: p?.profileId || null,
         residentName: residentNameAr,
         residentNameEn: residentNameEn,
         department: p?.department || null,
         jobTitle: p?.jobTitle || null,
-        oldRoomId: result.oldRoom?.id || null,
+        oldRoomId: transferData.oldRoom?.id || null,
         oldRoomNumber: oldRoomNum,
-        oldBedNumber: result.oldBedNumber || null,
-        oldBuildingName: result.oldBld?.name || null,
-        oldRoomType: result.oldRoom?.roomType || null,
-        newRoomId: result.newRoom.id,
+        oldBedNumber: transferData.oldBedNumber || null,
+        oldBuildingName: transferData.oldBld?.name || null,
+        oldRoomType: transferData.oldRoom?.roomType || null,
+        newRoomId: transferData.newRoom?.id || parsed.data.newRoomId,
         newRoomNumber: newRoomNum,
-        newBedNumber: result.updated!.bedNumber || null,
-        newBuildingName: result.newBld?.name || null,
-        newRoomType: result.newRoom.roomType || null,
+        newBedNumber: transferData.updated?.bedNumber || null,
+        newBuildingName: transferData.newBld?.name || null,
+        newRoomType: transferData.newRoom?.roomType || null,
         moveReason: parsed.data.transferReason || "نقل سرير / غرفة",
         reasonCode: parsed.data.transferReason ? "REASON_SPECIFIED" : "GENERAL",
         actionByUserId: s.userId || null,

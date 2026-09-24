@@ -745,12 +745,18 @@ router.patch(
     }
     if (notes !== undefined) extraData.notes = notes;
 
-    const [updated] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
+    const { existingRoom, updated } = await withTenant(propertyId, async (tenantDb) => {
+      const [existing] = await tenantDb
+        .select()
+        .from(roomsTable)
+        .where(eq(roomsTable.id, params.data.id));
+      if (!existing) return { existingRoom: null, updated: null };
+      const [up] = await tenantDb
         .update(roomsTable)
         .set({ ...parsed.data, ...extraData })
         .where(eq(roomsTable.id, params.data.id))
         .returning();
+      return { existingRoom: existing, updated: up };
     });
 
     if (!updated) {

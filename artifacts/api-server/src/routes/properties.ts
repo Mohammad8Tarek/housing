@@ -265,10 +265,12 @@ router.post(
           const assignedNames = await assignExistingUsersToProperty(assignedUserIds, property.id);
           if (assignedNames.length > 0) {
             await logActivity({
-              category: "properties",
-              action: "ASSIGN_USERS",
-              description: `Assigned existing users (${assignedNames.join(", ")}) to property "${property.name}"`,
-              metadata: { propertyId: property.id, users: assignedNames },
+              req,
+              propertyId: property.id,
+              module: "properties",
+              action: `Assigned existing users (${assignedNames.join(", ")}) to property "${property.name}"`,
+              actionType: "ASSIGN_USERS",
+              details: { propertyId: property.id, users: assignedNames },
               ...su(req),
             });
           }
@@ -460,10 +462,12 @@ router.patch(
         const assignedNames = await assignExistingUsersToProperty(assignedUserIds, params.data.id);
         if (assignedNames.length > 0) {
           await logActivity({
-            category: "properties",
-            action: "ASSIGN_USERS",
-            description: `Assigned existing users (${assignedNames.join(", ")}) to property "${updated.name}"`,
-            metadata: { propertyId: params.data.id, users: assignedNames },
+            req,
+            propertyId: params.data.id,
+            module: "properties",
+            action: `Assigned existing users (${assignedNames.join(", ")}) to property "${updated.name}"`,
+            actionType: "ASSIGN_USERS",
+            details: { propertyId: params.data.id, users: assignedNames },
             ...su(req),
           });
         }

@@ -121,7 +121,8 @@ router.get(
                   tenantDb
                     .select({
                       id: reservationsTable.id,
-                      guestName: reservationsTable.guestName,
+                      firstName: reservationsTable.firstName,
+                      lastName: reservationsTable.lastName,
                       checkInDate: reservationsTable.checkInDate,
                       roomId: reservationsTable.roomId,
                       status: reservationsTable.status,
@@ -219,6 +220,7 @@ router.get(
 
               const formattedArrivals = (recentArrivals || []).map((arr: any) => ({
                 ...arr,
+                guestName: [arr.firstName, arr.lastName].filter(Boolean).join(" ") || "Guest",
                 propertyName: p.name,
                 propertyId: p.id,
                 roomNumber: roomNumberMap.get(arr.roomId) || "—",

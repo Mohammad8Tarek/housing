@@ -840,30 +840,21 @@ router.post(
             .where(eq(assignmentsTable.status, "ACTIVE"));
           inHouseCount = resCount[0]?.count || 0;
 
-          // Insert a notification into portalNotificationsTable for active residents
-          const activeAssignments = await tenantDb
-            .select({ profileId: assignmentsTable.profileId })
-            .from(assignmentsTable)
-            .where(eq(assignmentsTable.status, "ACTIVE"));
-
-          const notifRows = activeAssignments.map((a) => ({
-            profileId: a.profileId,
+          // Insert a broadcast notification into portalNotificationsTable for active residents
+          await tenantDb.insert(portalNotificationsTable).values({
+            propertyId,
+            title: config.questionEn || "Housing Quality Survey: Share Your Feedback",
             titleAr: "استطلاع رأي: شاركنا رأيك في جودة السكن",
-            titleEn: "Housing Quality Survey: Share Your Feedback",
+            message:
+              config.questionEn ||
+              "How satisfied are you with housing conditions, cleanliness & services this week?",
             messageAr:
               config.questionAr ||
               "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
-            messageEn:
-              config.questionEn ||
-              "How satisfied are you with housing conditions, cleanliness & services this week?",
-            type: "survey",
-            actionUrl: "/portal/dashboard",
-            isRead: false,
-          }));
-
-          if (notifRows.length > 0) {
-            await tenantDb.insert(portalNotificationsTable).values(notifRows);
-          }
+            type: "evaluation",
+            priority: "high",
+            targetAll: true,
+          });
         });
       } catch (errTenant) {
         console.warn(

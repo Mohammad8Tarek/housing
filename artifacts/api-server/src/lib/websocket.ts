@@ -38,6 +38,7 @@ export type WsModule =
   | "properties"
   | "hosting-requests"
   | "workers"
+  | "evaluations"
   | "activities";
 
 export type WsAction =

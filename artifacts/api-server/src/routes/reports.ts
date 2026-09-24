@@ -1141,7 +1141,8 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
               let days = 0;
               if (checkIn) {
                 const start = new Date(checkIn).getTime();
-                const end = r.checkOutDate || r.expectedCheckOutDate ? new Date(r.checkOutDate || r.expectedCheckOutDate).getTime() : Date.now();
+                const outDate = r.checkOutDate || r.expectedCheckOutDate;
+                const end = outDate ? new Date(outDate).getTime() : Date.now();
                 days = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
               }
               const fullName = [r.firstName, r.lastName].filter(Boolean).join(" ");

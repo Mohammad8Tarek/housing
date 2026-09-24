@@ -537,7 +537,7 @@ router.post(
       }
 
       // Create approval steps based on the property's configured signature policy
-      const targetHotelId = hotelId || user.propertyId;
+      const targetHotelId = body.hotelId || user.propertyId;
       const signaturePolicy = await getPropertySignaturePolicy(targetHotelId);
 
       for (let i = 0; i < signaturePolicy.length; i++) {

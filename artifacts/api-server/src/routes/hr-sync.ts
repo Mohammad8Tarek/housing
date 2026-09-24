@@ -1180,14 +1180,14 @@ export async function processReceive(
             await tenantDb.insert(profileVacationsTable).values({
               profileId: inserted.id,
               startDate: emp.vacationStartDate,
-              endDate: emp.vacationEndDate || null,
+              endDate: emp.vacationEndDate || emp.vacationStartDate,
               notes: emp.vacationNotes || "Synced from HR system",
               status: "ACTIVE",
             }).catch(() => {});
           }
 
           if (inserted && inserted.profileId) {
-            await ensureProfilePortalAccount(propertyId, inserted.profileId, inserted.id).catch(() => {});
+            await ensureProfilePortalAccount(propertyId, inserted.profileId).catch(() => {});
           }
 
           // Insert documents for new profile from HR
@@ -1238,6 +1238,7 @@ export async function processReceive(
     success: true,
     stats: {
       received: rawProfiles.length,
+      totalReceived: rawProfiles.length,
       created,
       updated,
       departedAutoCheckouts,
@@ -1378,14 +1379,14 @@ router.put(
     const existingSources: HrSourceConfig[] = Array.isArray(existing?.sources) ? existing.sources : [];
     const existingKeyMap = new Map(existingSources.map((s) => [s.id, s.apiKey || ""]));
 
-    const finalSources = (sources || []).map((s: HrSourceConfig) => {
+    const finalSources = (sources || []).map((s: any) => {
       let key = s.apiKey;
       if (key === "••••••" || (key && key.startsWith("•••"))) {
         key = existingKeyMap.get(s.id) || "";
       }
       return {
         ...s,
-        apiKey: key,
+        apiKey: key || undefined,
       };
     });
 
@@ -2598,8 +2599,8 @@ router.post(
         }
       }
 
-      let syncResult = {
-        stats: { totalReceived: 0, created: 0, updated: 0, departedAutoCheckouts: 0, casualUpgrades: 0, lookupsAdded: 0, errors: [] as string[] },
+      let syncResult: any = {
+        stats: { totalReceived: 0, received: 0, created: 0, updated: 0, departedAutoCheckouts: 0, casualUpgrades: 0, lookupsAdded: 0, errors: 0 },
       };
 
       if (foundEmployees.length > 0) {
@@ -2703,8 +2704,8 @@ router.post(
         }
       }
 
-      let syncResult = {
-        stats: { totalReceived: 0, created: 0, updated: 0, departedAutoCheckouts: 0, casualUpgrades: 0, lookupsAdded: 0, errors: [] as string[] },
+      let syncResult: any = {
+        stats: { totalReceived: 0, received: 0, created: 0, updated: 0, departedAutoCheckouts: 0, casualUpgrades: 0, lookupsAdded: 0, errors: 0 },
       };
 
       if (foundEmployees.length > 0) {
