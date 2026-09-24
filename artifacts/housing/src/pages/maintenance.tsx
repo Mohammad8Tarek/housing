@@ -214,16 +214,17 @@ function formatDuration(
   startedAt: any,
   resolvedAt: any,
   reportedAt: any,
+  ar: boolean = false,
 ): string {
   const totalMins = getDurationMins(startedAt, resolvedAt, reportedAt);
   if (totalMins < 0) return "—";
-  if (totalMins < 1) return "< 1 min";
+  if (totalMins < 1) return ar ? "< دقيقة" : "< 1 min";
   if (totalMins >= 60) {
     const hours = Math.floor(totalMins / 60);
     const mins = totalMins % 60;
-    return `${hours}h ${mins}m`;
+    return ar ? `${hours} س ${mins} د` : `${hours}h ${mins}m`;
   }
-  return `${totalMins} min`;
+  return ar ? `${totalMins} دقيقة` : `${totalMins} min`;
 }
 
 function getDurationColor(
@@ -795,10 +796,10 @@ export default function Tickets() {
 
   const COLS = [
     { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
-    { key: "room", label: "ROOM", labelAr: "رقم الغرفة", defaultVisible: true },
     { key: "building_floor", label: "BUILDING & FLOOR", labelAr: "المبنى والدور", defaultVisible: true },
+    { key: "room", label: "ROOM", labelAr: "رقم الغرفة", defaultVisible: true },
     { key: "requester", label: "REQUESTER / RESIDENT", labelAr: "مقدم الطلب / المقيم", defaultVisible: true },
-    { key: "property", label: "PROPERTY", labelAr: "الفندق / السكن", defaultVisible: true },
+    { key: "property", label: "PROPERTY / HOUSING", labelAr: "الفندق / السكن", defaultVisible: true },
     { key: "problem", label: "PROBLEM", labelAr: "المشكلة والوصف", defaultVisible: true },
     { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: true },
     { key: "status", label: "STATUS", labelAr: "الحالة", defaultVisible: true },
@@ -1930,7 +1931,7 @@ export default function Tickets() {
             problemTypesMap={PROBLEM_TYPES_MAP}
             priorityAr={PRIORITY_AR}
             statusAr={STATUS_AR}
-            formatDuration={formatDuration}
+            formatDuration={(st, res, rep) => formatDuration(st, res, rep, ar)}
             getDurationColor={getDurationColor}
           />
         </div>
@@ -2032,14 +2033,14 @@ export default function Tickets() {
                       {ar ? "رقم" : "ID"}
                     </TableHead>
                   )}
-                  {isColVisible("room") && (
-                    <TableHead className="font-semibold w-[90px]">
-                      {ar ? "رقم الغرفة" : "ROOM"}
-                    </TableHead>
-                  )}
                   {isColVisible("building_floor") && (
                     <TableHead className="font-semibold min-w-[140px]">
                       {ar ? "المبنى والدور" : "BUILDING & FLOOR"}
+                    </TableHead>
+                  )}
+                  {isColVisible("room") && (
+                    <TableHead className="font-semibold w-[90px]">
+                      {ar ? "رقم الغرفة" : "ROOM"}
                     </TableHead>
                   )}
                   {isColVisible("requester") && (
@@ -2049,7 +2050,7 @@ export default function Tickets() {
                   )}
                   {isColVisible("property") && (
                     <TableHead className="font-semibold min-w-[120px]">
-                      {ar ? "الفندق" : "PROPERTY"}
+                      {ar ? "الفندق / السكن" : "PROPERTY / HOUSING"}
                     </TableHead>
                   )}
                   {isVisible("problem") && (
@@ -2126,15 +2127,6 @@ export default function Tickets() {
                       </TableCell>
                     )}
 
-                    {isColVisible("room") && (
-                      <TableCell className="text-xs font-bold text-foreground whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-muted/60 border text-xs font-bold">
-                          <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
-                          {req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}
-                        </span>
-                      </TableCell>
-                    )}
-
                     {isColVisible("building_floor") && (
                       <TableCell className="text-xs font-medium">
                         {(req.buildingName || req.floorNumber) ? (
@@ -2155,6 +2147,15 @@ export default function Tickets() {
                         ) : (
                           <span className="text-muted-foreground/50 text-xs">—</span>
                         )}
+                      </TableCell>
+                    )}
+
+                    {isColVisible("room") && (
+                      <TableCell className="text-xs font-bold text-foreground whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-muted/60 border text-xs font-bold">
+                          <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
+                          {req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}
+                        </span>
                       </TableCell>
                     )}
 
@@ -2345,7 +2346,7 @@ export default function Tickets() {
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="font-semibold text-foreground">
-                            Start: {req.reportedAt ? format(new Date(req.reportedAt), "dd-MM-yyyy") : "—"}
+                            {ar ? "البدء: " : "Start: "}{req.reportedAt ? format(new Date(req.reportedAt), "dd-MM-yyyy") : "—"}
                           </span>
                           <span className="text-muted-foreground text-[10px] font-mono">
                             {req.reportedAt ? format(new Date(req.reportedAt), "hh:mm:ss a") : ""}
@@ -2365,6 +2366,7 @@ export default function Tickets() {
                               req.startedAt,
                               req.resolvedAt,
                               req.reportedAt,
+                              ar,
                             )}
                           </Badge>
                         ) : (

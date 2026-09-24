@@ -47,35 +47,46 @@ const PROBLEM_TYPES_AR = {
   Internet: "إنترنت",
   Other: "أخرى",
 };
-const CATEGORIES_AR = {
+const CATEGORIES_AR: Record<string, string> = {
   maintenance: "صيانة",
   housekeeping: "هاوس كيبنج",
   general: "عام",
 };
-const PRIORITY_AR = {
+const CATEGORIES_EN: Record<string, string> = {
+  maintenance: "Maintenance",
+  housekeeping: "Housekeeping",
+  general: "General",
+};
+const PRIORITY_AR: Record<string, string> = {
   LOW: "منخفضة",
   MEDIUM: "متوسطة",
   HIGH: "عالية",
   URGENT: "عاجلة",
 };
-const STATUS_AR = {
+const STATUS_AR: Record<string, string> = {
   open: "مفتوحة",
   in_progress: "قيد التنفيذ",
   resolved: "محلولة",
   closed: "مغلقة",
 };
+const STATUS_EN: Record<string, string> = {
+  open: "Open",
+  in_progress: "In Progress",
+  resolved: "Completed",
+  closed: "Closed",
+};
 
-function formatDuration(startedAt: any, resolvedAt: any, reportedAt: any) {
+function formatDuration(startedAt: any, resolvedAt: any, reportedAt: any, ar: boolean = false) {
   const start = reportedAt ?? startedAt;
   if (!start) return "—";
   const startDate = new Date(start);
   const endDate = resolvedAt ? new Date(resolvedAt) : new Date();
   const totalMins = differenceInMinutes(endDate, startDate);
-  if (totalMins < 1) return "<1m";
-  if (totalMins < 60) return `${totalMins}m`;
+  if (totalMins < 1) return ar ? "< دقيقة" : "< 1 min";
+  if (totalMins < 60) return ar ? `${totalMins} دقيقة` : `${totalMins}m`;
   const hrs = differenceInHours(endDate, startDate);
   const mins = totalMins % 60;
-  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+  return mins > 0 ? (ar ? `${hrs} س ${mins} د` : `${hrs}h ${mins}m`) : (ar ? `${hrs} ساعة` : `${hrs}h`);
 }
 
 export default function MaintenanceDetails() {
@@ -364,7 +375,9 @@ export default function MaintenanceDetails() {
                   <div
                     className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${statusColor(ticket.status)}`}
                   >
-                    {ticket.status?.replace("_", " ")}
+                    {ar
+                      ? ((STATUS_AR as Record<string, string>)[ticket.status?.toLowerCase()] || ticket.status)
+                      : ((STATUS_EN as Record<string, string>)[ticket.status?.toLowerCase()] || ticket.status?.replace("_", " "))}
                   </div>
                 </div>
                 <div>
@@ -374,7 +387,9 @@ export default function MaintenanceDetails() {
                   <div
                     className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${priorityColor(ticket.priority)}`}
                   >
-                    {ticket.priority}
+                    {ar
+                      ? ((PRIORITY_AR as Record<string, string>)[ticket.priority?.toUpperCase()] || ticket.priority)
+                      : ticket.priority}
                   </div>
                 </div>
                 <div>
@@ -382,7 +397,9 @@ export default function MaintenanceDetails() {
                     {ar ? "النوع" : "Type"}
                   </p>
                   <p className="text-sm font-medium">
-                    {ar ? (CATEGORIES_AR as Record<string, string>)[ticket.category] : ticket.category}
+                    {ar
+                      ? ((CATEGORIES_AR as Record<string, string>)[ticket.category] || ticket.category)
+                      : ((CATEGORIES_EN as Record<string, string>)[ticket.category] || ticket.category)}
                   </p>
                 </div>
                 <div>
@@ -459,6 +476,7 @@ export default function MaintenanceDetails() {
                       ticket.startedAt,
                       ticket.resolvedAt,
                       ticket.reportedAt,
+                      ar,
                     )}
                   </p>
                 </div>
