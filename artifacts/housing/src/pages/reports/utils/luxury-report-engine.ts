@@ -2113,14 +2113,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     : (opts.title || defaultTabInfo?.en || "Staff Housing Operations Report");
   const operaCode = REPORT_OPERA_CODES[activeTab || ""] || (activeTab ? activeTab.replace(/[^a-z0-9_]/gi, "").toLowerCase() : "gibyroom");
 
-  // Opera standard date & time (e.g. 2026-09-22, 21:20)
+  // Opera standard date & time (e.g. 24-09-2026, 14:39) — strict DD-MM-YYYY format per Rule 7
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
-  const operaDateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const operaDateStr = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
   const operaTimeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const issueDateFormatted = isArabic
     ? now.toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })
-    : now.toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    : now.toLocaleString("en-GB", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   // Normalize Table Headers & Rows
   let rawHeaders: string[] = [];
@@ -2393,49 +2393,6 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     </thead>
   `;
 
-  // Generate Opera Table Body HTML
-  const tbodyHtml = `
-    <tbody>
-      ${tableRows.length > 0
-        ? tableRows
-            .map((row, idx) => {
-              return `
-                <tr class="opera-row">
-                  <td class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center; color: #000000; font-weight: 700; font-size: ${printFontSizePt}pt;">${idx + 1}</td>
-                  ${row
-                    .map((cell, colIdx) => {
-                      const raw = rawHeaders[colIdx] || "";
-                      const align = getOperaColumnAlign(raw, isArabic);
-                      const colStyle = getOperaColumnStyle(raw, isArabic);
-                      const formatted = formatStatusBadgeHtml(cell, isArabic);
-                      const isNum = typeof cell === "number" || (!isNaN(Number(cell)) && cell !== "" && cell !== null && !String(cell).includes("-") && !String(cell).includes("/"));
-                      const displayVal = (isNum && typeof cell === "number") ? cell.toLocaleString() : formatted;
-                      return `<td style="width: ${colWidthsPct[colIdx]}%; text-align: ${align}; ${colStyle}">${displayVal}</td>`;
-                    })
-                    .join("")}
-                </tr>
-              `;
-            })
-            .join("")
-        : `<tr><td colspan="${headers.length + 1}" style="text-align:center; padding:20px; color:#000000; font-weight: 700;">${isArabic ? "لا توجد سجلات مطابقة للعرض" : "No records found matching criteria"}</td></tr>`
-      }
-      ${tableRows.length > 0 ? `
-        <tr class="opera-totals-row">
-          <td class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center; font-weight: 800; color: #000000;">—</td>
-          <td style="font-weight: bold;" ${!hasAnyColTotal ? `colspan="${headers.length}"` : ""}>
-            ${isArabic ? `إجمالي السجلات: ${tableRows.length} سجل` : `Total Records: ${tableRows.length}`}
-          </td>
-          ${hasAnyColTotal ? colTotals.map((tot, i) => {
-            if (i === 0) return ""; // already spanned / handled
-            if (tot === null) return `<td></td>`;
-            const align = getOperaColumnAlign(rawHeaders[i] || "", isArabic);
-            return `<td style="text-align: ${align}; font-weight: bold;">${tot.toLocaleString()}</td>`;
-          }).join("") : ""}
-        </tr>
-      ` : ""}
-    </tbody>
-  `;
-
   // Signatures Configuration
   const sig1 = isArabic
     ? (signatures?.role1Ar || signatures?.role1 || (activeTab === "housekeeping_sheet" ? "عامل التجهيز الميداني" : "إعداد / منسق السكن"))
@@ -2448,6 +2405,228 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const sig3 = isArabic
     ? (signatures?.role3Ar || signatures?.role3 || (activeTab === "housekeeping_sheet" ? "مدير الإشراف الداخلي المعتمد" : "اعتماد / مدير الموارد البشرية والمدير العام"))
     : (signatures?.role3 || (activeTab === "housekeeping_sheet" ? "Executive Housekeeper" : "Approved by / HR Director"));
+
+  // Dynamic Page Chunking for Opera PMS multi-page layout (matches reference PDF e.g. Meraki Sharm Resort)
+  const isLandscape = orientation === "landscape";
+  const baseCap = isLandscape ? 15 : 22;
+  const kpiDeduction = (initialShowKpis && kpiCards.length > 0) ? (isLandscape ? 5 : 6) : 0;
+  const sigDeduction = (initialShowSigs || customBottomSectionsHtml) ? (isLandscape ? 5 : 6) : 0;
+
+  const pageChunks: any[][][] = [];
+  const pageStartIndexes: number[] = [];
+
+  if (isSinglePage || tableRows.length === 0) {
+    pageChunks.push(tableRows);
+    pageStartIndexes.push(0);
+  } else {
+    let cursor = 0;
+    while (cursor < tableRows.length) {
+      const pageIndex = pageChunks.length;
+      let capacity = baseCap;
+      if (pageIndex === 0) {
+        capacity = Math.max(5, baseCap - kpiDeduction);
+      }
+      const remainingCount = tableRows.length - cursor;
+
+      if (remainingCount <= Math.max(5, capacity - sigDeduction)) {
+        // Fits all remaining rows plus bottom signatures block on this page
+        pageStartIndexes.push(cursor);
+        pageChunks.push(tableRows.slice(cursor));
+        cursor = tableRows.length;
+      } else if (remainingCount <= capacity) {
+        // Fits rows without signatures, but need room for signatures on final page
+        const take = Math.max(5, capacity - sigDeduction);
+        pageStartIndexes.push(cursor);
+        pageChunks.push(tableRows.slice(cursor, cursor + take));
+        cursor += take;
+      } else {
+        // Full capacity for intermediate pages
+        pageStartIndexes.push(cursor);
+        pageChunks.push(tableRows.slice(cursor, cursor + capacity));
+        cursor += capacity;
+      }
+    }
+  }
+
+  const totalPages = Math.max(1, pageChunks.length);
+
+  // Render a Single Formal Opera PMS Page (Header, optional KPIs, Table Chunk, optional Signatures, and Pinned Footer)
+  function renderSinglePageHtml(
+    pageRows: any[][],
+    pageIdx: number,
+    totalPagesCount: number,
+    startSeq: number
+  ): string {
+    const isFirstPage = pageIdx === 0;
+    const isLastPage = pageIdx === totalPagesCount - 1;
+    const pageNumber = pageIdx + 1;
+
+    // Header HTML on every page
+    const pageHeaderHtml = `
+      <div class="opera-header">
+        <!-- Left: System Logo / System Brand -->
+        <div class="opera-header-left">
+          ${sysLogo
+            ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
+            : `<div class="opera-fallback-brand">
+                <span style="font-weight: 900; font-size: 11pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
+                <span class="opera-fallback-badge" style="letter-spacing: 1px;">RESORTS & CRUISES</span>
+               </div>`
+          }
+        </div>
+
+        <!-- Center: Hotel Name & Report Title -->
+        <div class="opera-header-center">
+          <div class="opera-hotel-name">${propName}</div>
+          <div class="opera-report-title">${reportTitle}</div>
+          ${dateFrom || dateTo ? `
+          <div class="opera-report-submeta">
+            ${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}
+            ${dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : ""}
+          </div>` : ""}
+        </div>
+
+        <!-- Right: Property Logo & Opera Date/Time -->
+        <div class="opera-header-right">
+          ${propLogo
+            ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
+            : `<div class="opera-fallback-brand right-brand">
+                <span style="font-weight: 800; font-size: 9.5pt; color: #0F2A44;">${propName}</span>
+                <span class="opera-fallback-badge" style="letter-spacing: 0.5px;">${isArabic ? "سكن الموظفين" : "STAFF HOUSING"}</span>
+               </div>`
+          }
+          <div class="opera-meta-datetime">
+            <span class="opera-meta-date">${operaDateStr}</span>
+            <span class="opera-meta-sep">-</span>
+            <span class="opera-meta-time">${operaTimeStr}</span>
+          </div>
+        </div>
+      </div>
+      <div class="opera-divider"></div>
+    `;
+
+    // Data rows for this page chunk with continuous sequence indexing
+    let rowsHtml = "";
+    if (pageRows.length > 0) {
+      rowsHtml = pageRows
+        .map((row, rIdx) => {
+          const seq = startSeq + rIdx + 1;
+          return `
+            <tr class="opera-row">
+              <td class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center; color: #000000; font-weight: 700; font-size: ${printFontSizePt}pt;">${seq}</td>
+              ${row
+                .map((cell, colIdx) => {
+                  const raw = rawHeaders[colIdx] || "";
+                  const align = getOperaColumnAlign(raw, isArabic);
+                  const colStyle = getOperaColumnStyle(raw, isArabic);
+                  const formatted = formatStatusBadgeHtml(cell, isArabic);
+                  const isNum = typeof cell === "number" || (!isNaN(Number(cell)) && cell !== "" && cell !== null && !String(cell).includes("-") && !String(cell).includes("/"));
+                  const displayVal = (isNum && typeof cell === "number") ? cell.toLocaleString() : formatted;
+                  return `<td style="width: ${colWidthsPct[colIdx]}%; text-align: ${align}; ${colStyle}">${displayVal}</td>`;
+                })
+                .join("")}
+            </tr>
+          `;
+        })
+        .join("");
+    } else if (tableRows.length === 0 && headers.length > 0) {
+      rowsHtml = `<tr><td colspan="${headers.length + 1}" style="text-align:center; padding:20px; color:#000000; font-weight: 700;">${isArabic ? "لا توجد سجلات مطابقة للعرض" : "No records found matching criteria"}</td></tr>`;
+    }
+
+    // Totals Row (Appears strictly on the final page of data rows)
+    let totalsRowHtml = "";
+    if (isLastPage && tableRows.length > 0) {
+      totalsRowHtml = `
+        <tr class="opera-totals-row">
+          <td class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center; font-weight: 800; color: #000000;">—</td>
+          <td style="font-weight: bold;" ${!hasAnyColTotal ? `colspan="${headers.length}"` : ""}>
+            ${isArabic ? `إجمالي السجلات: ${tableRows.length} سجل` : `Total Records: ${tableRows.length}`}
+          </td>
+          ${hasAnyColTotal ? colTotals.map((tot, i) => {
+            if (i === 0) return "";
+            if (tot === null) return `<td></td>`;
+            const align = getOperaColumnAlign(rawHeaders[i] || "", isArabic);
+            return `<td style="text-align: ${align}; font-weight: bold;">${tot.toLocaleString()}</td>`;
+          }).join("") : ""}
+        </tr>
+      `;
+    }
+
+    const tableHtml = (tableRows.length > 0 || headers.length > 0)
+      ? `<table class="opera-table">
+          ${theadHtml}
+          <tbody>
+            ${rowsHtml}
+            ${totalsRowHtml}
+          </tbody>
+        </table>`
+      : "";
+
+    // Signatures Block (Rendered strictly on final page)
+    const sigsHtml = isLastPage ? `
+      <div class="sig-section" id="sigSection" style="${initialShowSigs ? "" : "display: none !important;"}">
+        <div class="sig-grid">
+          <div class="sig-card">
+            <div class="sig-role">${sig1}</div>
+            <div class="sig-line"></div>
+            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
+          </div>
+          <div class="sig-card">
+            <div class="sig-role">${sig2}</div>
+            <div class="sig-line"></div>
+            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
+          </div>
+          <div class="sig-card">
+            <div class="sig-role">${sig3}</div>
+            <div class="sig-line"></div>
+            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
+          </div>
+        </div>
+      </div>
+    ` : "";
+
+    // Footer Layout pinned at bottom of EVERY page with real Page X of Y
+    const pageFooterHtml = `
+      <div class="opera-footer">
+        <div class="opera-footer-left">
+          <div class="opera-filter-tag">${isArabic ? "عوامل التصفية" : "Filter"}</div>
+          <div class="opera-filter-desc">
+            <span>${isArabic ? "الفرع" : "Property"}: ${propName}</span>
+            ${dateFrom || dateTo ? `<span>${isArabic ? "الفترة" : "Date"}: ${dateFrom || "All"} — ${dateTo || "All"}</span>` : `<span>${isArabic ? "التاريخ" : "Date"}: ${operaDateStr}</span>`}
+            ${search ? `<span>${isArabic ? "البحث" : "Filter"}: "${search}"</span>` : `<span>${isArabic ? "الحالة: الكل" : "Status: All"}</span>`}
+            <span>${isArabic ? "الترتيب حسب: رقم الغرفة" : "Sort Order: Room No."}</span>
+          </div>
+        </div>
+        <div class="opera-footer-center">
+          <span class="opera-page-indicator">${isArabic ? `صفحة ${pageNumber} من ${totalPagesCount}` : `Page ${pageNumber} of ${totalPagesCount}`}</span>
+        </div>
+        <div class="opera-footer-right">
+          <span class="opera-report-slug">${operaCode}</span>
+        </div>
+      </div>
+    `;
+
+    return `
+      <div class="sheet opera-page ${isSinglePage ? "single-page" : ""}" data-page="${pageNumber}">
+        <div class="opera-page-main">
+          ${pageHeaderHtml}
+          ${isFirstPage ? kpisHtml : ""}
+          ${isFirstPage ? (customSectionsHtml || "") : ""}
+          ${tableHtml}
+        </div>
+        <div class="opera-page-bottom">
+          ${isLastPage ? (customBottomSectionsHtml || "") : ""}
+          ${sigsHtml}
+          ${pageFooterHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  // Pre-generate HTML for all discrete pages
+  const allPagesHtml = pageChunks
+    .map((chunk, idx) => renderSinglePageHtml(chunk, idx, totalPages, pageStartIndexes[idx]))
+    .join("\n");
 
   // Complete Opera PMS HTML Document
   const html = `<!DOCTYPE html>
@@ -2557,35 +2736,42 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       color: #ffffff;
     }
 
-    /* Sheet Canvas */
+    /* Sheet Canvas & Multi-page Preview */
     .sheet-wrapper {
-      padding: 16px;
+      padding: 24px 16px;
       display: flex;
-      justify-content: center;
-      background: #f1f5f9;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      background: #475569;
       width: 100%;
       box-sizing: border-box;
       overflow-x: auto;
     }
-    .sheet {
+    .sheet.opera-page {
       width: ${orientation === "landscape" ? "297mm" : "210mm"};
       max-width: ${orientation === "landscape" ? "297mm" : "210mm"};
-      min-height: ${orientation === "landscape" ? "210mm" : "297mm"};
-      background: #ffffff;
-      padding: 8mm 10mm;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.07);
-      position: relative;
-      box-sizing: border-box;
-      overflow-x: hidden; /* STRICT CONTAINMENT: mathematically prevents table blowout beyond A4 */
-    }
-    .sheet.single-page {
       height: ${orientation === "landscape" ? "210mm" : "297mm"};
       max-height: ${orientation === "landscape" ? "210mm" : "297mm"};
-      min-height: ${orientation === "landscape" ? "210mm" : "297mm"};
+      background: #ffffff;
+      padding: 8mm 10mm;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      position: relative;
+      box-sizing: border-box;
+      overflow: hidden; /* STRICT CONTAINMENT: mathematically prevents table blowout beyond A4 */
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      overflow: hidden;
+    }
+    .opera-page-main {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .opera-page-bottom {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
     /* Formal PDF Header: system logo left, property logo right */
@@ -2917,33 +3103,37 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         padding: 0 !important;
       }
       .preview-actions-bar { display: none !important; }
-      .sheet-wrapper { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-      .sheet {
+      .sheet-wrapper {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        background: transparent !important;
+        display: block !important;
+        gap: 0 !important;
+      }
+      .sheet.opera-page {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
+        max-height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
+        min-height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 7mm 8mm 5mm !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        min-height: auto !important;
-        height: auto !important;
-        overflow: visible !important;
+        padding: 7mm 10mm 6mm !important;
+        overflow: hidden !important;
         border-radius: 0 !important;
-      }
-      .sheet.single-page {
-        width: 100% !important;
-        max-width: 100% !important;
-        height: ${orientation === "landscape" ? "210mm" : "297mm"} !important;
-        max-height: ${orientation === "landscape" ? "210mm" : "297mm"} !important;
-        min-height: ${orientation === "landscape" ? "210mm" : "297mm"} !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
-        overflow: hidden !important;
-        page-break-after: avoid !important;
+        page-break-after: always !important;
+        break-after: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        padding: 8mm 10mm !important;
         box-sizing: border-box !important;
+      }
+      .sheet.opera-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
       }
       table.opera-table {
         width: 100% !important;
@@ -2992,7 +3182,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
-      /* Critical: prevent row splitting across pages */
+      /* Prevent internal breaks inside rows */
       tr {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
@@ -3005,19 +3195,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         display: table-header-group !important;
         break-inside: avoid !important;
       }
-      tfoot {
-        display: table-footer-group !important;
-        break-inside: avoid !important;
-      }
-      /* Ensure table itself allows page breaks between rows but not inside them */
-      table.opera-table tbody {
-        page-break-inside: auto !important;
-        break-inside: auto !important;
-      }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      /* Hide hardcoded page indicator — browser print dialog handles page numbering */
-      .opera-page-indicator { display: none !important; }
-      /* Keep signatures and footer together — never split across pages */
+      /* Display dynamic Opera page indicator */
+      .opera-page-indicator {
+        display: inline-block !important;
+        font-weight: 600 !important;
+      }
+      /* Keep signatures and footer intact */
       .sig-section {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
@@ -3040,13 +3224,6 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
-      .sheet.single-page .sig-role {
-        margin-bottom: 30px !important;
-      }
-      .sheet.single-page .sig-card {
-        min-height: 80px !important;
-        padding: 8px 12px !important;
-      }
     }
   </style>
 </head>
@@ -3059,7 +3236,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         <span>🏨</span>
         <span>${reportTitle}</span>
       </div>
-      <div class="bar-meta">${propName} · ${tableRows.length} ${isArabic ? "سجل" : "records"} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : (isArabic ? "رأسي (Portrait)" : "Portrait")}</span> · <span style="font-family: monospace;">[${operaCode}]</span></div>
+      <div class="bar-meta">${propName} · ${tableRows.length} ${isArabic ? "سجل" : "records"} · ${totalPages} ${isArabic ? (totalPages === 1 ? "صفحة" : "صفحات") : (totalPages === 1 ? "page" : "pages")} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : (isArabic ? "رأسي (Portrait)" : "Portrait")}</span> · <span style="font-family: monospace;">[${operaCode}]</span></div>
     </div>
     <div class="bar-actions">
       <button class="btn btn-primary" onclick="window.print()">🖨️ ${isArabic ? "طباعة / حفظ كـ PDF" : "Print / Save as PDF"}</button>
@@ -3075,136 +3252,39 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     </div>
   </div>
 
-  <div class="sheet-wrapper">
-    <div class="sheet ${isSinglePage ? "single-page" : ""}" id="printSheet">
-      <!-- Opera Header Layout with Dual Logos (System Logo on Left, Property Logo on Right) -->
-      <div class="opera-header">
-        <!-- Left: System Logo / System Brand -->
-        <div class="opera-header-left">
-          ${sysLogo
-            ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
-            : `<div class="opera-fallback-brand">
-                <span style="font-weight: 900; font-size: 11pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
-                <span class="opera-fallback-badge" style="letter-spacing: 1px;">RESORTS & CRUISES</span>
-               </div>`
-          }
-        </div>
-
-        <!-- Center: Hotel Name & Report Title -->
-        <div class="opera-header-center">
-          <div class="opera-hotel-name">${propName}</div>
-          <div class="opera-report-title">${reportTitle}</div>
-          ${dateFrom || dateTo ? `
-          <div class="opera-report-submeta">
-            ${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}
-            ${dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : ""}
-          </div>` : ""}
-        </div>
-
-        <!-- Right: Property Logo & Opera Date/Time -->
-        <div class="opera-header-right">
-          ${propLogo
-            ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
-            : `<div class="opera-fallback-brand right-brand">
-                <span style="font-weight: 800; font-size: 9.5pt; color: #0F2A44;">${propName}</span>
-                <span class="opera-fallback-badge" style="letter-spacing: 0.5px;">${isArabic ? "سكن الموظفين" : "STAFF HOUSING"}</span>
-               </div>`
-          }
-          <div class="opera-meta-datetime">
-            <span class="opera-meta-date">${operaDateStr}</span>
-            <span class="opera-meta-sep">-</span>
-            <span class="opera-meta-time">${operaTimeStr}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="opera-divider"></div>
-
-      <!-- Top KPI Summary Cards (Optional, toggled via bar) -->
-      ${kpisHtml}
-
-      <!-- Custom Injected Sections if any -->
-      ${customSectionsHtml || ""}
-
-      <!-- Opera Data Table (rendered only when tabular rows/headers exist) -->
-      ${(tableRows.length > 0 || headers.length > 0) ? `
-      <table class="opera-table">
-        ${theadHtml}
-        ${tbodyHtml}
-      </table>` : ""}
-
-      <!-- Custom Bottom Injected Sections if any (e.g. Demographics, Nationalities, Departments) -->
-      ${customBottomSectionsHtml || ""}
-
-      <!-- Multi-Tier Official Signatures Block (Optional, toggled via bar) -->
-      <div class="sig-section" id="sigSection" style="${initialShowSigs ? "" : "display: none !important;"}">
-        <div class="sig-grid">
-          <div class="sig-card">
-            <div class="sig-role">${sig1}</div>
-            <div class="sig-line"></div>
-            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
-          </div>
-          <div class="sig-card">
-            <div class="sig-role">${sig2}</div>
-            <div class="sig-line"></div>
-            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
-          </div>
-          <div class="sig-card">
-            <div class="sig-role">${sig3}</div>
-            <div class="sig-line"></div>
-            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Opera Footer Layout -->
-      <div class="opera-footer">
-        <div class="opera-footer-left">
-          <div class="opera-filter-tag">${isArabic ? "عوامل التصفية" : "Filter"}</div>
-          <div class="opera-filter-desc">
-            <span>${isArabic ? "الفرع" : "Property"}: ${propName}</span>
-            ${dateFrom || dateTo ? `<span>${isArabic ? "الفترة" : "Date"}: ${dateFrom || "All"} — ${dateTo || "All"}</span>` : `<span>${isArabic ? "التاريخ" : "Date"}: ${operaDateStr}</span>`}
-            ${search ? `<span>${isArabic ? "البحث" : "Filter"}: "${search}"</span>` : `<span>${isArabic ? "الحالة: الكل" : "Status: All"}</span>`}
-            <span>${isArabic ? "الترتيب حسب: رقم الغرفة" : "Sort Order: Room No."}</span>
-          </div>
-        </div>
-        <div class="opera-footer-center">
-          <span class="opera-page-indicator">${isArabic ? "صفحة 1 من 1" : "Page 1 of 1"}</span>
-        </div>
-        <div class="opera-footer-right">
-          <span class="opera-report-slug">${operaCode}</span>
-        </div>
-      </div>
-    </div>
+  <div class="sheet-wrapper" id="sheetWrapper">
+    ${allPagesHtml}
   </div>
 
   <script>
     let currentOrientation = "${orientation}";
     function toggleOrientation() {
-      const sheet = document.getElementById("printSheet");
+      const sheets = document.querySelectorAll(".sheet.opera-page");
       const orientBtn = document.getElementById("orientBtn");
       const metaOrient = document.getElementById("metaOrient");
       currentOrientation = currentOrientation === "landscape" ? "portrait" : "landscape";
-      if (currentOrientation === "portrait") {
-        sheet.style.width = "210mm";
-        sheet.style.maxWidth = "210mm";
-        sheet.style.minHeight = "297mm";
-        if (sheet.classList.contains("single-page")) {
+      sheets.forEach(function(sheet) {
+        if (currentOrientation === "portrait") {
+          sheet.style.width = "210mm";
+          sheet.style.maxWidth = "210mm";
           sheet.style.height = "297mm";
           sheet.style.maxHeight = "297mm";
-        }
-        if (orientBtn) orientBtn.innerHTML = "📄 ${isArabic ? 'رأسي (انقر للأفقي)' : 'Portrait (Click for Landscape)'}";
-        if (metaOrient) metaOrient.innerHTML = "${isArabic ? 'رأسي (Portrait)' : 'Portrait'}";
-      } else {
-        sheet.style.width = "297mm";
-        sheet.style.maxWidth = "297mm";
-        sheet.style.minHeight = "210mm";
-        if (sheet.classList.contains("single-page")) {
+        } else {
+          sheet.style.width = "297mm";
+          sheet.style.maxWidth = "297mm";
           sheet.style.height = "210mm";
           sheet.style.maxHeight = "210mm";
         }
-        if (orientBtn) orientBtn.innerHTML = "📄 ${isArabic ? 'أفقي (انقر للرأسي)' : 'Landscape (Click for Portrait)'}";
-        if (metaOrient) metaOrient.innerHTML = "${isArabic ? 'أفقي (Landscape)' : 'Landscape'}";
+      });
+      if (orientBtn) {
+        orientBtn.innerHTML = currentOrientation === "portrait"
+          ? "📄 ${isArabic ? 'رأسي (انقر للأفقي)' : 'Portrait (Click for Landscape)'}"
+          : "📄 ${isArabic ? 'أفقي (انقر للرأسي)' : 'Landscape (Click for Portrait)'}";
+      }
+      if (metaOrient) {
+        metaOrient.innerHTML = currentOrientation === "portrait"
+          ? "${isArabic ? 'رأسي (Portrait)' : 'Portrait'}"
+          : "${isArabic ? 'أفقي (Landscape)' : 'Landscape'}";
       }
       const existingStyle = document.getElementById("dynamicPageOrientation");
       if (existingStyle) existingStyle.remove();
