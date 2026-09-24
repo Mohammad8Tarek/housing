@@ -2470,14 +2470,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const hasSigs = Boolean(initialShowSigs);
   const hasBottom = Boolean(customBottomSectionsHtml);
 
-  // Available printable height budgets in millimeters
-  // Landscape A4 (210mm height): Page padding (10mm), footer (12mm)
-  // Page 1 non-table: padding (10mm) + header (24mm) + divider (2mm) + thead (9mm) + footer (12mm) = 57mm -> Budget = 148mm
-  // Subsequent pages non-table: padding (10mm) + subheader (8mm) + divider (2mm) + thead (9mm) + footer (12mm) = 41mm -> Budget = 166mm
-  // Last page with signatures: 41mm + signatures (28mm) = 69mm -> Budget = 138mm
-  const budgetP1Mm = isLandscape ? (hasKpis ? 122 : 148) : (hasKpis ? 198 : 228);
-  const budgetSubsequentMm = isLandscape ? 166 : 248;
-  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 138 : 210) : budgetSubsequentMm;
+  // Available printable height budgets in millimeters (strictly calibrated to eliminate any overflow or clipping)
+  // Landscape A4 (210mm height): Page padding (10mm), footer (14mm), safety margin (14mm)
+  // Page 1: budget = 130mm (guarantees max 19-20 rows with logos and header)
+  // Subsequent pages: budget = 144mm (guarantees max 21-22 rows with subheader)
+  // Last page with signatures: budget = 116mm (guarantees max 16-17 rows with signatures)
+  const budgetP1Mm = isLandscape ? (hasKpis ? 105 : 130) : (hasKpis ? 180 : 210);
+  const budgetSubsequentMm = isLandscape ? 144 : 220;
+  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 116 : 180) : budgetSubsequentMm;
 
   // Approximate character capacity per column to detect line wrapping
   const printableWidthMm = isLandscape ? 280 : 196;
@@ -2518,9 +2518,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
     }
 
-    if (maxLines === 1) return isLandscape ? 5.2 : 5.8;
-    if (maxLines === 2) return isLandscape ? 7.8 : 8.6;
-    return isLandscape ? 10.4 : 11.4;
+    if (maxLines === 1) return isLandscape ? 6.5 : 7.0;
+    if (maxLines === 2) return isLandscape ? 9.5 : 10.2;
+    return isLandscape ? 12.5 : 13.5;
   };
 
   const pageChunks: any[][][] = [];
@@ -2903,7 +2903,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       height: ${orientation === "landscape" ? "210mm" : "297mm"};
       max-height: ${orientation === "landscape" ? "210mm" : "297mm"};
       background: #ffffff;
-      padding: 6mm 8mm;
+      padding: 5mm 8mm;
       box-shadow: 0 8px 30px rgba(0,0,0,0.3);
       position: relative;
       box-sizing: border-box;
@@ -2917,7 +2917,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       display: flex;
       flex-direction: column;
       flex: 1 1 auto;
-      overflow: hidden;
+      overflow: visible;
     }
     .opera-page-bottom {
       width: 100%;
