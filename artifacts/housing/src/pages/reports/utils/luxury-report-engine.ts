@@ -2472,12 +2472,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Available printable height budgets in millimeters (strictly calibrated to eliminate any overflow or clipping)
   // Landscape A4 (210mm height): Page padding (10mm), footer (14mm), safety margin (14mm)
-  // Page 1: budget = 130mm (guarantees max 19-20 rows with logos and header)
-  // Subsequent pages: budget = 144mm (guarantees max 21-22 rows with subheader)
-  // Last page with signatures: budget = 116mm (guarantees max 16-17 rows with signatures)
-  const budgetP1Mm = isLandscape ? (hasKpis ? 105 : 130) : (hasKpis ? 180 : 210);
-  const budgetSubsequentMm = isLandscape ? 144 : 220;
-  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 116 : 180) : budgetSubsequentMm;
+  // Available printable height budgets in millimeters (strictly calibrated to eliminate any overflow or clipping)
+  // Landscape A4 (210mm height): Page padding (10mm), footer (10mm), safety margin (20mm)
+  // Page 1: budget = 118mm (guarantees max 17-18 single-line rows with logos and header)
+  // Subsequent pages: budget = 132mm (guarantees max 19-20 single-line rows with subheader)
+  // Last page with signatures: budget = 98mm (guarantees max 14-15 rows with signatures)
+  const budgetP1Mm = isLandscape ? (hasKpis ? 95 : 118) : (hasKpis ? 165 : 190);
+  const budgetSubsequentMm = isLandscape ? 132 : 205;
+  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 98 : 155) : budgetSubsequentMm;
 
   // Approximate character capacity per column to detect line wrapping
   const printableWidthMm = isLandscape ? 280 : 196;
@@ -2543,7 +2545,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
 
       // If all remaining rows fit on this page with signatures, take them all!
-      const maxSigBudget = isFirst ? (hasKpis ? 100 : 122) : budgetLastWithSigsMm;
+      const maxSigBudget = isFirst
+        ? (hasKpis ? (hasSigs ? 70 : 92) : (hasSigs ? 92 : 118))
+        : budgetLastWithSigsMm;
       if (remainingTotalHeight <= maxSigBudget) {
         pageStartIndexes.push(cursor);
         pageChunks.push(tableRows.slice(cursor));
@@ -2553,10 +2557,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
       // Otherwise, fill this page to its maximum millimeter budget
       const maxPageBudget = isFirst ? budgetP1Mm : budgetSubsequentMm;
+      const maxRowLimit = isFirst ? 18 : 21;
       let accumulatedHeight = 0;
       let count = 0;
 
       while (cursor + count < totalRowsCount) {
+        if (count >= maxRowLimit) break;
         const nextH = estimateRowHeightMm(tableRows[cursor + count]);
         if (accumulatedHeight + nextH > maxPageBudget && count >= 5) {
           break; // Page reached maximum safe physical capacity!
@@ -2565,10 +2571,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         count++;
       }
 
-      // Prevent stranded orphan rows on the final page (< 5 rows)
+      // Prevent stranded orphan rows on the final page (< 4 rows)
       const rowsAfterThis = totalRowsCount - (cursor + count);
-      if (rowsAfterThis > 0 && rowsAfterThis < 5) {
-        const pull = 5 - rowsAfterThis;
+      if (rowsAfterThis > 0 && rowsAfterThis < 4) {
+        const pull = 4 - rowsAfterThis;
         if (count - pull >= 5) {
           count -= pull;
         }
@@ -2702,7 +2708,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
 
     const tableHtml = (tableRows.length > 0 || headers.length > 0)
-      ? `<table class="opera-table ${!isLastPage ? "opera-table-fill" : ""}">
+      ? `<table class="opera-table">
           ${theadHtml}
           <tbody>
             ${rowsHtml}
@@ -2734,17 +2740,26 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       </div>
     ` : "";
 
-    // Footer Layout pinned at bottom of EVERY page with real Page X of Y (clean, minimal single-line footer)
+    // Footer Layout pinned at bottom of EVERY page with real Page X of Y
     const pageFooterHtml = `
       <div class="opera-footer">
         <div class="opera-footer-left">
-          <span class="opera-report-slug">${propName} · ${operaCode}</span>
+          <span class="opera-filter-tag">${isArabic ? "عوامل التصفية:" : "Filter:"}</span>
+          <span class="opera-filter-desc-inline">
+            <span>${propName}</span>
+            <span class="opera-meta-sep">·</span>
+            <span>${dateFrom || dateTo ? `${dateFrom || "All"} — ${dateTo || "All"}` : operaDateStr}</span>
+            <span class="opera-meta-sep">·</span>
+            <span>${search ? `"${search}"` : (isArabic ? "الحالة: الكل" : "Status: All")}</span>
+            <span class="opera-meta-sep">·</span>
+            <span>${isArabic ? "الترتيب: رقم الغرفة" : "Sort: Room No."}</span>
+          </span>
         </div>
         <div class="opera-footer-center">
           <span class="opera-page-indicator">${isArabic ? `صفحة ${pageNumber} من ${totalPagesCount}` : `Page ${pageNumber} of ${totalPagesCount}`}</span>
         </div>
         <div class="opera-footer-right">
-          <span class="opera-meta-datetime">${operaDateStr} ${operaTimeStr}</span>
+          <span class="opera-report-slug">${operaCode}</span>
         </div>
       </div>
     `;
@@ -2910,7 +2925,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       width: 100%;
       display: flex;
       flex-direction: column;
-      flex: 1 1 auto;
+      flex: 0 0 auto;
       overflow: visible;
     }
     .opera-page-bottom {
@@ -2918,6 +2933,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+      margin-top: auto;
     }
 
     /* Formal PDF Header: system logo left, property logo right (strictly direction: ltr so never flips in Arabic RTL) */
@@ -3072,16 +3088,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-collapse: collapse !important;
       border-spacing: 0 !important;
       margin-bottom: 0 !important;
+      height: auto !important;
       font-size: ${baseFontSizePt}pt;
       table-layout: fixed !important;
       word-wrap: break-word !important;
-    }
-    table.opera-table.opera-table-fill {
-      flex: 1 1 auto;
-      height: 100%;
-    }
-    table.opera-table.opera-table-fill tbody {
-      height: 100%;
     }
     col.opera-col-seq,
     table.opera-table th.opera-seq-col,
@@ -3258,6 +3268,32 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       font-weight: 700;
       color: #000000;
       font-size: 7.2pt;
+      max-width: 65%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .opera-filter-tag {
+      font-weight: 700;
+      color: #000000;
+      font-size: 7.2pt;
+      white-space: nowrap;
+    }
+    .opera-filter-desc-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #334155;
+      font-weight: 600;
+      font-size: 7pt;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .opera-meta-sep {
+      color: #94a3b8;
+      font-weight: 800;
+      padding: 0 1px;
     }
     .opera-footer-center {
       text-align: center;
@@ -3327,28 +3363,23 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
-        flex: 1 1 auto !important;
+        flex: 0 0 auto !important;
       }
       .opera-page-bottom {
         width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
         flex-shrink: 0 !important;
+        margin-top: auto !important;
       }
       table.opera-table {
         width: 100% !important;
         max-width: 100% !important;
         table-layout: fixed !important;
+        height: auto !important;
         font-size: ${printFontSizePt}pt !important;
         border-collapse: collapse !important;
         margin-bottom: 0 !important;
-      }
-      table.opera-table.opera-table-fill {
-        flex: 1 1 auto !important;
-        height: 100% !important;
-      }
-      table.opera-table.opera-table-fill tbody {
-        height: 100% !important;
       }
       col.opera-col-seq,
       table.opera-table th.opera-seq-col,
@@ -3425,10 +3456,20 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         align-items: center !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        margin-top: 4px !important;
+        margin-top: auto !important;
         padding-top: 4px !important;
         border-top: 1px solid #cbd5e1 !important;
         direction: ltr !important;
+        width: 100% !important;
+      }
+      .opera-footer-left {
+        max-width: 65% !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+      }
+      .opera-filter-desc-inline {
+        white-space: nowrap !important;
+        overflow: hidden !important;
       }
       .kpi-grid {
         page-break-inside: avoid !important;
