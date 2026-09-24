@@ -405,9 +405,11 @@ export function useReportExport({
             p.isEntireRoom
               ? `${p.bedNumber && p.bedNumber !== "—" ? p.bedNumber : 1} (${ar ? "غرفة كاملة" : "Full Lock"})`
               : p.bedNumber,
+          [ar ? "نوع الغرفة" : "Room Type"]: p.roomType || "—",
           [ar ? "تاريخ التسكين" : "Check-In Date"]: p.checkInDate,
           [ar ? "تاريخ التعيين" : "Hire Date"]: p.hireDate,
           [ar ? "انتهاء العقد" : "Contract End"]: p.contractEndDate,
+          [ar ? "البريد الإلكتروني" : "Email"]: p.email || "—",
           [ar ? "هاتف الطوارئ" : "Emergency Contact"]: p.emergencyContact,
           [ar ? "الحالة بالسكن" : "Status"]:
             p.status === "VACATION"

@@ -2061,6 +2061,7 @@ export function useReportDataProcessor({
               roomId: a.roomId,
               roomNumber: room.roomNumber || `#${a.roomId}`,
               bedNumber: bedNum ? String(bedNum) : "—",
+              roomType: ar ? translateRoomType(room.roomType, true) : (room.roomType || "Standard"),
               isEntireRoom: isEntire,
               buildingName: buildingMap[room.buildingId] || "—",
               floorName: floorMap[room.floorId] || "—",
