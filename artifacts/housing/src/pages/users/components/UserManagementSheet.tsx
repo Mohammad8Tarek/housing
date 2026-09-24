@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   useUpdateUser,
@@ -133,8 +132,8 @@ export function UserManagementSheet({
     if (canGrantAnything) return list;
     const actorPropIds = new Set<number>();
     if (currentUser?.propertyId) actorPropIds.add(Number(currentUser.propertyId));
-    if (Array.isArray(currentUser?.propertyIds)) {
-      currentUser.propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
+    if (Array.isArray((currentUser as any)?.propertyIds)) {
+      (currentUser as any).propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
     }
     return list.filter((p: any) => actorPropIds.has(Number(p.id)));
   }, [propProperties, contextProperties, canGrantAnything, currentUser]);
@@ -176,12 +175,12 @@ export function UserManagementSheet({
 
   // Available actions for the selected simulator module
   const simActions = useMemo(() => {
-    return MODULE_ACTIONS[simModule] || ["view"];
+    return (MODULE_ACTIONS as Record<string, Action[]>)[simModule] || ["view"];
   }, [simModule]);
 
   // Ensure simAction is valid when simModule changes
   useEffect(() => {
-    if (simActions.length > 0 && !simActions.includes(simAction)) {
+    if (simActions.length > 0 && !simActions.includes(simAction as any)) {
       setSimAction(simActions[0]);
     }
   }, [simModule, simActions, simAction]);
@@ -206,9 +205,9 @@ export function UserManagementSheet({
 
   // Check if a module has overrides
   const isModuleOverridden = (mod: string) => {
-    const actions = MODULE_ACTIONS[mod] || [];
-    return actions.some((act) => {
-      const key = permKey(mod, act);
+    const actions = (MODULE_ACTIONS as Record<string, Action[]>)[mod] || [];
+    return actions.some((act: any) => {
+      const key = permKey(mod as any, act);
       return diffStats.addedKeys?.has(key) || diffStats.revokedKeys?.has(key);
     });
   };
@@ -292,7 +291,7 @@ export function UserManagementSheet({
         type: "super",
       };
     }
-    const key = permKey(simModule, simAction);
+    const key = permKey(simModule as any, simAction as any);
     const hasPerm = perms.has(key);
     if (hasPerm) {
       return {
@@ -1061,7 +1060,7 @@ export function UserManagementSheet({
                         {SYSTEM_ROLES.map((r) => (
                           <SelectItem key={r.value} value={r.value} className="text-xs font-medium">
                             <span className="flex items-center gap-2">
-                              <span>{ar ? r.labelAr : r.labelEn}</span>
+                              <span>{ar ? r.labelAr : r.label}</span>
                             </span>
                           </SelectItem>
                         ))}
@@ -1277,9 +1276,9 @@ export function UserManagementSheet({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {simActions.map((a) => (
+                              {simActions.map((a: any) => (
                                 <SelectItem key={a} value={a} className="text-xs">
-                                  {ar ? ACTION_LABELS[a]?.ar : ACTION_LABELS[a]?.en} ({a})
+                                  {ar ? (ACTION_LABELS as Record<string, any>)[a]?.ar : (ACTION_LABELS as Record<string, any>)[a]?.en} ({a})
                                 </SelectItem>
                               ))}
                             </SelectContent>

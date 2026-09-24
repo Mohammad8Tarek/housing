@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as React from "react";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -570,12 +569,12 @@ export function HousingMapReportTab({
     }
 
     const kpiCards = [
-      { label: ar ? "إجمالي المباني" : "Buildings", labelAr: "إجمالي المباني", value: summary.totalBuildings, color: "blue" },
-      { label: ar ? "إجمالي الأدوار" : "Floors", labelAr: "إجمالي الأدوار", value: summary.totalFloors, color: "blue" },
-      { label: ar ? "إجمالي الغرف" : "Rooms", labelAr: "إجمالي الغرف", value: summary.totalRooms, color: "blue" },
-      { label: ar ? "الغرف المشغولة" : "Occupied", labelAr: "الغرف المشغولة", value: summary.occupiedRooms, color: "orange" },
-      { label: ar ? "الغرف الشاغرة" : "Vacant", labelAr: "الغرف الشاغرة", value: summary.availableRooms, color: "green" },
-      { label: ar ? "نسبة إشغال الأسرة" : "Bed Occ.", labelAr: "نسبة إشغال الأسرة", value: `${summary.bedOccupancyRate}%`, color: "purple" },
+      { label: ar ? "إجمالي المباني" : "Buildings", labelAr: "إجمالي المباني", value: summary.totalBuildings, color: "blue" as const },
+      { label: ar ? "إجمالي الأدوار" : "Floors", labelAr: "إجمالي الأدوار", value: summary.totalFloors, color: "blue" as const },
+      { label: ar ? "إجمالي الغرف" : "Rooms", labelAr: "إجمالي الغرف", value: summary.totalRooms, color: "blue" as const },
+      { label: ar ? "الغرف المشغولة" : "Occupied", labelAr: "الغرف المشغولة", value: summary.occupiedRooms, color: "orange" as const },
+      { label: ar ? "الغرف الشاغرة" : "Vacant", labelAr: "الغرف الشاغرة", value: summary.availableRooms, color: "green" as const },
+      { label: ar ? "نسبة إشغال الأسرة" : "Bed Occ.", labelAr: "نسبة إشغال الأسرة", value: `${summary.bedOccupancyRate}%`, color: "purple" as const },
     ];
 
     await printLuxuryReport({

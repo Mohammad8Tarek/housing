@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -316,11 +315,11 @@ export default function UserDetailPage() {
 
   // Actions for the selected simulator module
   const simActions = useMemo(() => {
-    return MODULE_ACTIONS[simModule] || ["view"];
+    return (MODULE_ACTIONS as Record<string, Action[]>)[simModule] || ["view"];
   }, [simModule]);
 
   useEffect(() => {
-    if (simActions.length > 0 && !simActions.includes(simAction)) {
+    if (simActions.length > 0 && !simActions.includes(simAction as any)) {
       setSimAction(simActions[0]);
     }
   }, [simModule, simActions, simAction]);
@@ -350,9 +349,9 @@ export default function UserDetailPage() {
   }, [perms, defaultPermsForRole]);
 
   const isModuleOverridden = (mod: string) => {
-    const actions = MODULE_ACTIONS[mod] || [];
-    return actions.some((act) => {
-      const key = permKey(mod, act);
+    const actions = (MODULE_ACTIONS as Record<string, Action[]>)[mod] || [];
+    return actions.some((act: any) => {
+      const key = permKey(mod as any, act);
       return diffStats.addedKeys?.has(key) || diffStats.revokedKeys?.has(key);
     });
   };
@@ -431,7 +430,7 @@ export default function UserDetailPage() {
         type: "super",
       };
     }
-    const key = permKey(simModule, simAction);
+    const key = permKey(simModule as any, simAction as any);
     const hasPerm = perms.has(key);
     if (hasPerm) {
       return {
@@ -633,13 +632,13 @@ export default function UserDetailPage() {
   };
 
   const toggleAllModule = (mod: string) => {
-    const actions = MODULE_ACTIONS[mod] || [];
-    const allKeys = actions.map((act) => permKey(mod, act));
-    const allEnabled = allKeys.every((k) => perms.has(k));
+    const actions = (MODULE_ACTIONS as Record<string, Action[]>)[mod] || [];
+    const allKeys = actions.map((act: any) => permKey(mod as any, act));
+    const allEnabled = allKeys.every((k: any) => perms.has(k));
 
     setPerms((prev) => {
       const next = new Set(prev);
-      allKeys.forEach((k) => {
+      allKeys.forEach((k: any) => {
         if (allEnabled) {
           next.delete(k);
         } else {
@@ -1406,9 +1405,9 @@ export default function UserDetailPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {simActions.map((act) => (
+                          {simActions.map((act: any) => (
                             <SelectItem key={act} value={act} className="text-xs">
-                              {ar ? ACTION_LABELS[act]?.ar || act : ACTION_LABELS[act]?.en || act}
+                              {ar ? (ACTION_LABELS as Record<string, any>)[act]?.ar || act : (ACTION_LABELS as Record<string, any>)[act]?.en || act}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1554,9 +1553,9 @@ export default function UserDetailPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {group.modules.map((mod: string) => {
-                    const actions = MODULE_ACTIONS[mod] || [];
-                    const modKeys = actions.map((act) => permKey(mod, act));
-                    const enabledCount = modKeys.filter((k) => perms.has(k)).length;
+                    const actions = (MODULE_ACTIONS as Record<string, Action[]>)[mod] || [];
+                    const modKeys = actions.map((act: any) => permKey(mod as any, act));
+                    const enabledCount = modKeys.filter((k: any) => perms.has(k)).length;
                     const isAllEnabled = enabledCount === actions.length && actions.length > 0;
                     const isExpanded = expandedModules[mod] ?? true;
 
@@ -1571,7 +1570,7 @@ export default function UserDetailPage() {
                             />
                             <div>
                               <span className="font-bold text-sm text-foreground">
-                                {ar ? MODULE_LABELS[mod]?.ar : MODULE_LABELS[mod]?.en}
+                                {ar ? (MODULE_LABELS as Record<string, any>)[mod]?.ar : (MODULE_LABELS as Record<string, any>)[mod]?.en}
                               </span>
                               <span className="text-xs text-muted-foreground font-mono ms-2 capitalize">
                                 ({mod})
@@ -1595,8 +1594,8 @@ export default function UserDetailPage() {
 
                         {isExpanded && (
                           <div className="p-3.5 grid grid-cols-2 gap-2">
-                            {actions.map((act) => {
-                              const pKey = permKey(mod, act);
+                            {actions.map((act: any) => {
+                              const pKey = permKey(mod as any, act);
                               const isChecked = perms.has(pKey);
                               const isAdded = diffStats.addedKeys?.has(pKey);
                               const isRevoked = diffStats.revokedKeys?.has(pKey);
@@ -1622,7 +1621,7 @@ export default function UserDetailPage() {
                                   />
                                   <span className="truncate flex-1 flex items-center gap-1">
                                     {!canGrant && <Lock className="w-3 h-3 text-amber-500 shrink-0" />}
-                                    <span>{ar ? ACTION_LABELS[act]?.ar || act : ACTION_LABELS[act]?.en || act}</span>
+                                    <span>{ar ? (ACTION_LABELS as Record<string, any>)[act]?.ar || act : (ACTION_LABELS as Record<string, any>)[act]?.en || act}</span>
                                   </span>
                                   {isAdded && (
                                     <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 px-1 rounded">
@@ -1677,8 +1676,8 @@ export default function UserDetailPage() {
                       const allowedProps = canGrantAnything ? properties : properties.filter((p: any) => {
                         const actorPropIds = new Set<number>();
                         if (currentUser?.propertyId) actorPropIds.add(Number(currentUser.propertyId));
-                        if (Array.isArray(currentUser?.propertyIds)) {
-                          currentUser.propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
+                        if (Array.isArray((currentUser as any)?.propertyIds)) {
+                          (currentUser as any).propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
                         }
                         return actorPropIds.has(Number(p.id));
                       });

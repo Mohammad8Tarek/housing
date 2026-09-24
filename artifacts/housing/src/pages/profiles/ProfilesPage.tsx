@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,6 +14,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { formatNationality } from "@/lib/countries";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
+import type { ProfileForm } from "./types";
 import {
   Table,
   TableBody,
@@ -177,17 +177,18 @@ export function ProfilesPage() {
       },
     },
   );
-  const profiles = _eData?.data || [];
-  const totalRecords = _eData?.pagination?.total || 0;
+  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const profiles: any[] = Array.isArray(_eData) ? _eData : (((_eData as any)?.data as any[]) || []);
+  const totalRecords: number = Array.isArray(_eData) ? _eData.length : (((_eData as any)?.pagination?.total as number) ?? profiles.length);
 
   const { data: departments = [] } = useLookupValues(
-    activePropertyId,
+    numericPropertyId,
     LOOKUP_CATEGORIES.DEPARTMENT,
   );
 
   const invalidate = () => {
     queryClient.invalidateQueries({
-      queryKey: getListProfilesQueryKey({ propertyId: activePropertyId }),
+      queryKey: getListProfilesQueryKey({ propertyId: numericPropertyId }),
     });
     queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
     queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
@@ -409,20 +410,20 @@ export function ProfilesPage() {
   } = useColumnVisibility(EMP_COLS);
 
   const currentPageEmps = profiles;
-  const pagedEmpIds = currentPageEmps.map((e) => e.id);
+  const pagedEmpIds = currentPageEmps.map((e: any) => e.id);
   const allEmpPageSelected =
-    pagedEmpIds.length > 0 && pagedEmpIds.every((id) => selectedRows.has(id));
+    pagedEmpIds.length > 0 && pagedEmpIds.every((id: any) => selectedRows.has(id));
   const toggleSelectAll = () => {
     if (allEmpPageSelected) {
       setSelectedRows((prev) => {
         const next = new Set(prev);
-        pagedEmpIds.forEach((id) => next.delete(id));
+        pagedEmpIds.forEach((id: any) => next.delete(id));
         return next;
       });
     } else {
       setSelectedRows((prev) => {
         const next = new Set(prev);
-        pagedEmpIds.forEach((id) => next.add(id));
+        pagedEmpIds.forEach((id: any) => next.add(id));
         return next;
       });
     }
@@ -909,7 +910,7 @@ export function ProfilesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentPageEmps.map((emp) => {
+                {currentPageEmps.map((emp: any) => {
                   const isSelected = selectedRows.has(emp.id);
                   const fullName = getProfileDisplayName(emp, ar);
                   const jobTitle = getProfileDisplayJobTitle(emp, ar);

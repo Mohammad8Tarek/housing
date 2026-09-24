@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from "react";
 import {
   useListUsers,
@@ -147,13 +146,13 @@ export default function UsersPage() {
     search: debouncedSearch,
     role: roleFilter,
     status: statusFilter
-  });
+  } as any);
   const { data: properties } = useListProperties();
   const { data: allUsersRes } = useListUsers({ limit: 500 } as any);
 
-  const users = _apiResponseWrapper?.data ?? [];
-  const allUsers = allUsersRes?.data ?? users;
-  const pagination = _apiResponseWrapper?.pagination;
+  const users: any[] = Array.isArray(_apiResponseWrapper) ? _apiResponseWrapper : (((_apiResponseWrapper as any)?.data as any[]) ?? []);
+  const allUsers: any[] = Array.isArray(allUsersRes) ? allUsersRes : (((allUsersRes as any)?.data as any[]) ?? users);
+  const pagination = (_apiResponseWrapper as any)?.pagination;
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { AnimatedConfirmModal } from "@/components/shared/AnimatedConfirmModal";
 import { Button } from "@/components/ui/button";
@@ -223,7 +222,7 @@ export function LookupSection({
               ? selectedParent
               : undefined
             : undefined,
-      });
+      } as any);
       setNewValue("");
       setNewValueAr("");
       if (showCapacity) setNewCapacity(2);
@@ -1121,8 +1120,8 @@ export function LookupSection({
             : `Are you sure you want to delete "${deleteDialog.val}"? This action cannot be undone.`
         }
         variant="destructive"
-        confirmText={ar ? "حذف" : "Delete"}
-        cancelText={ar ? "إلغاء" : "Cancel"}
+        confirmLabel={ar ? "حذف" : "Delete"}
+        cancelLabel={ar ? "إلغاء" : "Cancel"}
       />
 
       {/* Universal Lookup Import Dialog */}

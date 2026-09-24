@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useState, useRef, useEffect, useMemo } from "react";
+﻿import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useRef, useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -141,15 +140,18 @@ const statusBadge = (status: string) => {
 export default function ProfileDetail() {
   const { id } = useParams();
   const profileId = Number(id);
+  const queryClient = useQueryClient();
   const { language } = useLanguage();
   const { activePropertyId } = useProperty();
   const ar = language === "ar";
   const { langDialogOpen, openDialog, handleSelect, handleCancel } =
     usePrintLanguage();
 
-  const { data: settings } = useGetSettings({
-    query: { enabled: !!activePropertyId },
-  });
+  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const { data: settings } = useGetSettings(
+    { propertyId: numericPropertyId },
+    { query: { enabled: !!numericPropertyId } as any },
+  );
 
   const {
     data: profile,
@@ -220,9 +222,9 @@ export default function ProfileDetail() {
       if (!res.ok) throw new Error();
       toast.success(ar ? "تم تسجيل خروج الموظف في إجازة بنجاح" : "Vacation recorded successfully");
       setVacationModalOpen(false);
-      qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id, { propertyId: effectivePropId as any }) });
-      qc.invalidateQueries({ queryKey: ["profile", profileId, activePropertyId] });
-      qc.invalidateQueries({ queryKey: ["/api/rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["profile", profileId, activePropertyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
     } catch {
       toast.error(ar ? "فشل تسجيل الإجازة" : "Failed to record vacation");
     } finally {
@@ -253,16 +255,16 @@ export default function ProfileDetail() {
       }
       if (!res.ok) throw new Error();
       toast.success(ar ? "تم تسجيل عودة الموظف من الإجازة بنجاح (مقيم بالسكن)" : "Returned from vacation");
-      qc.invalidateQueries({ queryKey: getGetProfileQueryKey(id, { propertyId: effectivePropId as any }) });
-      qc.invalidateQueries({ queryKey: ["profile", profileId, activePropertyId] });
-      qc.invalidateQueries({ queryKey: ["/api/rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["profile", profileId, activePropertyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
     } catch {
       toast.error(ar ? "فشل تسجيل العودة" : "Failed to record return");
     }
   };
 
   const { data: _pData } = useListProperties();
-  const properties = _pData?.data || _pData || [];
+  const properties: any[] = Array.isArray(_pData) ? _pData : (((_pData as any)?.data as any[]) || []);
   const activeProp = properties.find((p: any) => p.id === activePropertyId);
   
   const fileRef = useRef<HTMLInputElement>(null);
@@ -411,24 +413,24 @@ export default function ProfileDetail() {
 
   const { data: allAssignments, isLoading: assignmentsLoading } = useListAssignments(
     { propertyId: effectivePropId, profileId: Number(profileId) } as any,
-    { query: { enabled: !!profileId && !!effectivePropId } },
+    { query: { enabled: !!profileId && !!effectivePropId } as any },
   );
 
   const { data: _rData } = useListRooms(
-    { propertyId: effectivePropId, limit: 1000 },
-    { query: { enabled: !!effectivePropId } },
+    { propertyId: effectivePropId, limit: 1000 } as any,
+    { query: { enabled: !!effectivePropId } as any },
   );
-  const rooms = Array.isArray(_rData) ? _rData : (_rData?.data || []);
+  const rooms: any[] = Array.isArray(_rData) ? _rData : (((_rData as any)?.data as any[]) || []);
   const { data: _bData } = useListBuildings(
-    { propertyId: effectivePropId },
-    { query: { enabled: !!effectivePropId } },
+    { propertyId: effectivePropId } as any,
+    { query: { enabled: !!effectivePropId } as any },
   );
-  const buildings = Array.isArray(_bData) ? _bData : (_bData?.data || []);
+  const buildings: any[] = Array.isArray(_bData) ? _bData : (((_bData as any)?.data as any[]) || []);
   const { data: _fData } = useListFloors(
-    { propertyId: effectivePropId },
-    { query: { enabled: !!effectivePropId } },
+    { propertyId: effectivePropId } as any,
+    { query: { enabled: !!effectivePropId } as any },
   );
-  const floors = Array.isArray(_fData) ? _fData : (_fData?.data || []);
+  const floors: any[] = Array.isArray(_fData) ? _fData : (((_fData as any)?.data as any[]) || []);
 
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
   const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
@@ -479,7 +481,6 @@ export default function ProfileDetail() {
     });
   };
 
-  const queryClient = useQueryClient();
   const [extendModalOpen, setExtendModalOpen] = useState(false);
   const [extendNewDate, setExtendNewDate] = useState("");
   const [extendNotes, setExtendNotes] = useState("");
