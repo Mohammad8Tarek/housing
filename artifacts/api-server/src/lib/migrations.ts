@@ -636,8 +636,9 @@ const MIGRATIONS = [
       IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'family_visit_requests' AND relnamespace = 'public'::regnamespace) THEN
         IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'hosting_requests' AND relnamespace = 'public'::regnamespace) THEN
           ALTER TABLE public.family_visit_requests RENAME TO hosting_requests;
-        ELSE
-          DROP TABLE public.family_visit_requests;
+        ELSIF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'family_visit_requests_deprecated' AND relnamespace = 'public'::regnamespace) THEN
+          -- Zero-loss: park the legacy table instead of dropping rows.
+          ALTER TABLE public.family_visit_requests RENAME TO family_visit_requests_deprecated;
         END IF;
       END IF;
     END $$`,
@@ -648,8 +649,9 @@ const MIGRATIONS = [
       IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'family_visit_approval_steps' AND relnamespace = 'public'::regnamespace) THEN
         IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'hosting_request_approval_steps' AND relnamespace = 'public'::regnamespace) THEN
           ALTER TABLE public.family_visit_approval_steps RENAME TO hosting_request_approval_steps;
-        ELSE
-          DROP TABLE public.family_visit_approval_steps;
+        ELSIF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'family_visit_approval_steps_deprecated' AND relnamespace = 'public'::regnamespace) THEN
+          -- Zero-loss: park the legacy table instead of dropping rows.
+          ALTER TABLE public.family_visit_approval_steps RENAME TO family_visit_approval_steps_deprecated;
         END IF;
       END IF;
     END $$`,
