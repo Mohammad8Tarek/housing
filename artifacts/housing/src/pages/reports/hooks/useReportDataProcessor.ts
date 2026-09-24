@@ -2744,15 +2744,27 @@ export function useReportDataProcessor({
               ? `${v.roomNumber}${v.bedNumber && v.bedNumber !== "—" ? ` (${ar ? `سرير ${v.bedNumber}` : `Bed ${v.bedNumber}`})` : ""}`
               : "—";
 
+            // Unified profile context for bilingual resolution
+            const effectiveEmp = {
+              ...vEmp,
+              fullName: vEmp.fullName || v.fullName,
+              department: vEmp.department || v.department,
+              jobTitle: vEmp.jobTitle || v.jobTitle,
+            };
+
+            const resolvedFullName = getProfileDisplayName(effectiveEmp, ar) || (ar ? v.fullName : transliterateFullName(v.fullName, "en"));
+            const resolvedDepartment = getProfileDisplayDepartment(effectiveEmp, ar) || (ar ? v.department : translateDepartment(v.department, "en"));
+            const resolvedJobTitle = getProfileDisplayJobTitle(effectiveEmp, ar) || (ar ? v.jobTitle : translateJobTitle(v.jobTitle, "en"));
+
             return {
               id: v.id,
               profileId: v.profileId,
               profileCode: v.profileCode,
-              fullName: v.fullName,
-              department: v.department,
-              jobTitle: v.jobTitle,
-              phone: v.phone,
-              nationalId: v.nationalId,
+              fullName: resolvedFullName,
+              department: resolvedDepartment,
+              jobTitle: resolvedJobTitle,
+              phone: v.phone || vEmp.phone || "",
+              nationalId: v.nationalId || vEmp.nationalId || "",
               gender: genderVal,
               genderLabel: genderVal === "M" ? (ar ? "ذكر" : "Male") : genderVal === "F" ? (ar ? "أنثى" : "Female") : genderVal,
               nationality: natVal,
@@ -2766,9 +2778,9 @@ export function useReportDataProcessor({
               housingInfo: housingDisplay,
               buildingName: v.buildingName,
               buildingId: v.buildingId,
-              startDate: v.startDate,
-              endDate: v.endDate,
-              actualReturnDate: v.actualReturnDate || "—",
+              startDate: formatDate(v.startDate),
+              endDate: formatDate(v.endDate),
+              actualReturnDate: v.actualReturnDate && v.actualReturnDate !== "—" ? formatDate(v.actualReturnDate) : "—",
               duration: v.duration,
               status: statusBadge,
               statusKey: v.statusKey,

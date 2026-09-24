@@ -97,6 +97,7 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   // Front Office
   { en: "Front Office Manager", ar: "مدير المكاتب الأمامية" },
   { en: "Assistant Front Office Manager", ar: "مساعد مدير المكاتب الأمامية" },
+  { en: "Front Office Supervisor", ar: "مشرف مكاتب أمامية" },
   { en: "Front Desk Supervisor", ar: "مشرف استقبال" },
   { en: "Front Desk Agent", ar: "موظف استقبال" },
   { en: "Receptionist", ar: "موظف استقبال" },
@@ -190,7 +191,9 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   // Security & Safety
   { en: "Director of Security", ar: "مدير قطاع الأمن" },
   { en: "Security Manager", ar: "مدير الأمن" },
+  { en: "Senior Security Supervisor", ar: "مشرف أمن أول" },
   { en: "Security Supervisor", ar: "مشرف أمن" },
+  { en: "Senior Security Officer", ar: "فرد أمن أول" },
   { en: "Security Officer", ar: "فرد أمن" },
   { en: "Security Guard", ar: "حارس أمن" },
   { en: "CCTV Operator", ar: "مشغل كاميرات مراقبة" },
@@ -285,6 +288,13 @@ for (const item of HOSPITALITY_JOB_TITLES) {
   TITLE_MAP_AR_TO_EN.set(item.ar.trim(), item.en);
 }
 
+// Pre-sorted arrays for accurate partial matching (longer, more specific phrases first)
+const DEPT_ENTRIES_EN_TO_AR = Array.from(DEPT_MAP_EN_TO_AR.entries()).sort((a, b) => b[0].length - a[0].length);
+const DEPT_ENTRIES_AR_TO_EN = Array.from(DEPT_MAP_AR_TO_EN.entries()).sort((a, b) => b[0].length - a[0].length);
+
+const TITLE_ENTRIES_EN_TO_AR = Array.from(TITLE_MAP_EN_TO_AR.entries()).sort((a, b) => b[0].length - a[0].length);
+const TITLE_ENTRIES_AR_TO_EN = Array.from(TITLE_MAP_AR_TO_EN.entries()).sort((a, b) => b[0].length - a[0].length);
+
 /**
  * Translate Department between Arabic and English
  */
@@ -295,16 +305,16 @@ export function translateDepartment(dept: string | null | undefined, targetLang:
   if (targetLang === "ar") {
     const match = DEPT_MAP_EN_TO_AR.get(cleaned.toLowerCase());
     if (match) return match;
-    // Partial search
-    for (const [en, ar] of DEPT_MAP_EN_TO_AR.entries()) {
+    // Partial search (longest match first)
+    for (const [en, ar] of DEPT_ENTRIES_EN_TO_AR) {
       if (cleaned.toLowerCase().includes(en)) return ar;
     }
     return cleaned; // fallback to original
   } else {
     const match = DEPT_MAP_AR_TO_EN.get(cleaned);
     if (match) return match;
-    // Partial search
-    for (const [ar, en] of DEPT_MAP_AR_TO_EN.entries()) {
+    // Partial search (longest match first)
+    for (const [ar, en] of DEPT_ENTRIES_AR_TO_EN) {
       if (cleaned.includes(ar)) return en;
     }
     return cleaned; // fallback to original
@@ -321,14 +331,14 @@ export function translateJobTitle(title: string | null | undefined, targetLang: 
   if (targetLang === "ar") {
     const match = TITLE_MAP_EN_TO_AR.get(cleaned.toLowerCase());
     if (match) return match;
-    for (const [en, ar] of TITLE_MAP_EN_TO_AR.entries()) {
+    for (const [en, ar] of TITLE_ENTRIES_EN_TO_AR) {
       if (cleaned.toLowerCase().includes(en)) return ar;
     }
     return cleaned;
   } else {
     const match = TITLE_MAP_AR_TO_EN.get(cleaned);
     if (match) return match;
-    for (const [ar, en] of TITLE_MAP_AR_TO_EN.entries()) {
+    for (const [ar, en] of TITLE_ENTRIES_AR_TO_EN) {
       if (cleaned.includes(ar)) return en;
     }
     return cleaned;

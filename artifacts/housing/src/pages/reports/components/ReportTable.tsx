@@ -955,7 +955,7 @@ export function ReportTable({
                             </Badge>
                             {row.vacationEndDate && (
                               <span className="text-[10px] text-muted-foreground font-mono">
-                                {ar ? `حتى ${row.vacationEndDate}` : `Till ${row.vacationEndDate}`}
+                                {ar ? `حتى ${formatDate(row.vacationEndDate)}` : `Till ${formatDate(row.vacationEndDate)}`}
                               </span>
                             )}
                           </div>
@@ -1924,18 +1924,18 @@ export function ReportTable({
                     )}
                     {isVis("startDate") && (
                       <TableCell className="text-xs font-mono font-medium">
-                        {row.startDate || "—"}
+                        {row.startDate ? formatDate(row.startDate) : "—"}
                       </TableCell>
                     )}
                     {isVis("endDate") && (
                       <TableCell className="text-xs font-mono">
-                        {row.endDate || "—"}
+                        {row.endDate ? formatDate(row.endDate) : "—"}
                       </TableCell>
                     )}
                     {isVis("actualReturnDate") && (
                       <TableCell className="text-xs font-mono font-medium">
                         {row.actualReturnDate && row.actualReturnDate !== "—" ? (
-                          <span className="text-emerald-600 font-semibold">{row.actualReturnDate}</span>
+                          <span className="text-emerald-600 font-semibold">{formatDate(row.actualReturnDate)}</span>
                         ) : (
                           <span className="text-muted-foreground/60">—</span>
                         )}

@@ -52,6 +52,20 @@ export function toDate(value: DateInput): Date | null {
     }
     return null;
   }
+  // DMY calendar format: DD/MM/YYYY or DD-MM-YYYY (Egyptian / UK standard)
+  const dmy = /^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})/.exec(trimmed);
+  if (dmy) {
+    const d = new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+    if (
+      isRealDate(d) &&
+      d.getFullYear() === Number(dmy[3]) &&
+      d.getMonth() === Number(dmy[2]) - 1 &&
+      d.getDate() === Number(dmy[1])
+    ) {
+      return d;
+    }
+    return null;
+  }
   const d = new Date(trimmed);
   return isRealDate(d) ? d : null;
 }
