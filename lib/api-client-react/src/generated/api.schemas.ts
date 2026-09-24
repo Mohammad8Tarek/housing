@@ -166,6 +166,15 @@ export interface CreateRoomBody {
   status?: string;
   /** @nullable */
   gender?: string | null;
+  view?: string;
+  bedType?: string;
+  classification?: string;
+  separatorDoor?: boolean;
+  size?: string;
+  sizeSqm?: number;
+  features?: string;
+  featuresList?: string[];
+  notes?: string;
 }
 
 export interface UpdateRoomBody {
@@ -175,6 +184,15 @@ export interface UpdateRoomBody {
   status?: string;
   /** @nullable */
   gender?: string | null;
+  view?: string;
+  bedType?: string;
+  classification?: string;
+  separatorDoor?: boolean;
+  size?: string;
+  sizeSqm?: number;
+  features?: string;
+  featuresList?: string[];
+  notes?: string;
 }
 
 export interface Profile {

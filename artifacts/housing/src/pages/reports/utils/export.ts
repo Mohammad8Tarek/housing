@@ -577,6 +577,7 @@ export const exportAnalyticsPDF = async (
         `${Math.round(((d.count || 0) / totalDeptCount) * 100)}%`,
       ]),
       startY: tablesStartY + 2,
+      rowPageBreak: "avoid",
       styles: tblStyle,
       headStyles: tblHead,
       alternateRowStyles: tblAlt,
@@ -604,6 +605,7 @@ export const exportAnalyticsPDF = async (
       ["Other General Requests", String(analytics.ticketsByCategory?.general ?? 0), "Category"],
     ],
     startY: maintStartY + 2,
+    rowPageBreak: "avoid",
     styles: tblStyle,
     headStyles: tblHead,
     alternateRowStyles: tblAlt,
@@ -698,6 +700,7 @@ export const exportAnalyticsPDF = async (
         ];
       }),
       startY: p2StartY + 2,
+      rowPageBreak: "avoid",
       styles: tblStyle,
       headStyles: tblHead,
       alternateRowStyles: tblAlt,

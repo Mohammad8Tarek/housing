@@ -210,6 +210,10 @@ export function RoomsTab({
             .filter(Boolean);
 
       const effectiveFloorId = rForm.floorId ? Number(rForm.floorId) : buildingFloors[0]?.id ? Number(buildingFloors[0].id) : undefined;
+      if (effectiveFloorId === undefined) {
+        toast.error(ar ? "يرجى تحديد الطابق" : "Please select a floor");
+        return;
+      }
 
       const dataToSave = {
         ...rForm,

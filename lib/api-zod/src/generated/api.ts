@@ -403,7 +403,16 @@ export const CreateRoomBody = zod.object({
   "roomType": zod.string(),
   "capacity": zod.number(),
   "status": zod.string().optional(),
-  "gender": zod.string().nullish()
+  "gender": zod.string().nullish(),
+  "view": zod.string().optional(),
+  "bedType": zod.string().optional(),
+  "classification": zod.string().optional(),
+  "separatorDoor": zod.boolean().optional(),
+  "size": zod.string().optional(),
+  "sizeSqm": zod.number().optional(),
+  "features": zod.string().optional(),
+  "featuresList": zod.array(zod.string()).optional(),
+  "notes": zod.string().optional()
 })
 
 
@@ -440,7 +449,16 @@ export const UpdateRoomBody = zod.object({
   "roomType": zod.string().optional(),
   "capacity": zod.number().optional(),
   "status": zod.string().optional(),
-  "gender": zod.string().nullish()
+  "gender": zod.string().nullish(),
+  "view": zod.string().optional(),
+  "bedType": zod.string().optional(),
+  "classification": zod.string().optional(),
+  "separatorDoor": zod.boolean().optional(),
+  "size": zod.string().optional(),
+  "sizeSqm": zod.number().optional(),
+  "features": zod.string().optional(),
+  "featuresList": zod.array(zod.string()).optional(),
+  "notes": zod.string().optional()
 })
 
 export const UpdateRoomResponse = zod.object({
