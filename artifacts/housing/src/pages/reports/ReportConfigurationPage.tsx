@@ -636,7 +636,7 @@ export default function ReportConfigurationPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <SlidersHorizontal className="w-6 h-6 text-primary" />
-            {ar ? "كنفجريشن ريبورت (مُنشئ التقارير المخصصة)" : "Configuration Report (Custom Builder)"}
+            {ar ? "كستم ريبورت (مُنشئ التقارير المخصصة)" : "Custom Reports (Custom Builder)"}
           </h1>
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
             {ar ? "تحكم كامل" : "Full Control"}
@@ -698,7 +698,7 @@ export default function ReportConfigurationPage() {
           className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all bg-background text-foreground shadow-sm border"
         >
           <SlidersHorizontal className="w-4 h-4 text-primary" />
-          {ar ? "كنفجريشن ريبورت (تقرير مخصص)" : "Configuration Report"}
+          {ar ? "كستم ريبورت" : "Custom Reports"}
         </button>
       </div>
 

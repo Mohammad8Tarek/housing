@@ -235,7 +235,7 @@ export default function Reports() {
                 className="gap-2 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/40"
               >
                 <SlidersHorizontal className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                <span>{ar ? "منشئ التقارير المخصصة" : "Custom Report Builder"}</span>
+                <span>{ar ? "كستم ريبورت" : "Custom Reports"}</span>
               </Button>
             </Link>
           )}

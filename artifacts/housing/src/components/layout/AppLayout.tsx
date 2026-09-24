@@ -402,7 +402,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           ? [
               {
                 href: "/reports/configuration",
-                label: ar ? "كنفجريشن ريبورت (تقرير مخصص)" : "Configuration Report",
+                label: ar ? "كستم ريبورت" : "Custom Reports",
               },
             ]
           : []),
