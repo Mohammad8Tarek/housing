@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";

@@ -1,5 +1,3 @@
-//@ts-nocheck
-// @ts-nocheck
 import { useState } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -72,7 +70,7 @@ import {
 } from "lucide-react";
 import { HousingPulseSection } from "./HousingPulseSection";
 
-export function EvaluationsSection() {
+export function EvaluationsSection({ onViewReport }: { onViewReport?: () => void } = {}) {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -132,7 +130,7 @@ export function EvaluationsSection() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: Record<string, any>) => {
       const r = await fetch("/api/evaluations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,9 +158,9 @@ export function EvaluationsSection() {
     },
   });
 
-  const getTitle = (ev) =>
+  const getTitle = (ev: any) =>
     (ar ? ev.titleAr || ev.titleEn : ev.titleEn || ev.titleAr) || ev.category;
-  const getDesc = (ev) =>
+  const getDesc = (ev: any) =>
     ar
       ? ev.descriptionAr || ev.descriptionEn
       : ev.descriptionEn || ev.descriptionAr;
@@ -468,7 +466,7 @@ export function EvaluationsSection() {
                     <SelectItem value="__all__">
                       {ar ? "كل الأقسام" : "All departments"}
                     </SelectItem>
-                    {departments?.map((d) => (
+                    {departments?.map((d: any) => (
                       <SelectItem key={d.id || d.value} value={d.value}>
                         {d.value}
                       </SelectItem>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLocation } from "wouter";

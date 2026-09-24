@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useEffect } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -490,8 +489,7 @@ export function HousingPulseSection() {
             <div className="mt-3">
               <Progress
                 value={stats.satisfactionRate}
-                className="h-1.5 bg-muted"
-                indicatorClassName="bg-emerald-500"
+                className="h-1.5 bg-muted [&>div]:bg-emerald-500"
               />
             </div>
           </CardContent>
@@ -790,9 +788,8 @@ export function HousingPulseSection() {
             <div className="p-3 border-t">
               <DataPagination
                 currentPage={pagination.page}
-                totalPages={pagination.totalPages}
+                total={pagination.total || 0}
                 pageSize={pageSize}
-                totalItems={pagination.total}
                 onPageChange={(p) => setCurrentPage(p)}
                 onPageSizeChange={(s) => {
                   setPageSize(s);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
@@ -259,7 +258,7 @@ export function BuildingsTab({
           data: {
             ...bForm,
             propertyId,
-          },
+          } as any,
         });
         toast.success(ar ? "تم تحديث المبنى بنجاح" : "Building updated");
         invalidateAllHousingQueries();

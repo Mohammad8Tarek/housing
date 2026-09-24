@@ -1,5 +1,3 @@
-//@ts-nocheck
-// @ts-nocheck
 import { useState } from "react";
 import { formatDate } from "@/lib/date-utils";
 import { useProperty } from "@/context/PropertyContext";
@@ -169,7 +167,7 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: Record<string, any>) => {
       const r = await fetch("/api/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

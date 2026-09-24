@@ -1,5 +1,3 @@
-//@ts-nocheck
-// @ts-nocheck
 import { useState } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";

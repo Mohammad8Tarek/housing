@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useEffect } from "react";
 import {
   useListInHouseAssignments,
@@ -321,16 +320,18 @@ export default function InHouse() {
     }
   };
 
+  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
   const { data: _pData } = useListProperties();
-  const allProperties = _pData?.data || _pData || [];
-  const { data: settings } = useGetSettings({
-    query: { enabled: !!activePropertyId },
-  });
+  const allProperties: any[] = Array.isArray(_pData) ? _pData : (((_pData as any)?.data as any[]) || []);
+  const { data: settings } = useGetSettings(
+    { propertyId: numericPropertyId },
+    { query: { queryKey: ["getSettings", numericPropertyId], enabled: !!numericPropertyId } as any },
+  );
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
 
   const { data: assignmentsRes, isLoading } = useListInHouseAssignments(
     {
-      propertyId: activePropertyId as any,
+      propertyId: numericPropertyId as any,
       page: currentPage,
       limit: pageSize,
       search: debouncedSearch || undefined,
@@ -338,17 +339,21 @@ export default function InHouse() {
     {
       query: {
         queryKey: getListInHouseAssignmentsQueryKey({
-          propertyId: activePropertyId as any,
+          propertyId: numericPropertyId as any,
           page: currentPage,
           limit: pageSize,
           search: debouncedSearch || undefined,
         }),
-        enabled: !!activePropertyId,
+        enabled: !!numericPropertyId,
       },
     },
   );
-  const assignments = assignmentsRes?.data || [];
-  const total = assignmentsRes?.pagination?.total || 0;
+  const assignments: any[] = Array.isArray(assignmentsRes)
+    ? assignmentsRes
+    : (((assignmentsRes as any)?.data as any[]) || []);
+  const total = Array.isArray(assignmentsRes)
+    ? assignmentsRes.length
+    : (((assignmentsRes as any)?.pagination?.total as number) ?? assignments.length);
 
   const selectedProfileIds = useMemo(() => {
     return Array.from(selectedRows).map((id) => {
@@ -358,44 +363,62 @@ export default function InHouse() {
   }, [selectedRows, assignments]);
 
   const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: numericPropertyId ?? undefined, limit: 1000 } as any,
+    { query: { queryKey: ["listProfiles", numericPropertyId], enabled: !!numericPropertyId } as any },
   );
-  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
+  const profiles: any[] = Array.isArray(_eDataWrapper)
+    ? _eDataWrapper
+    : (((_eDataWrapper as any)?.profiles as any[]) || ((_eDataWrapper as any)?.data as any[]) || []);
   const { data: _rData } = useListRooms(
-    { propertyId: activePropertyId, limit: 1000 },
-    { query: { enabled: !!activePropertyId, staleTime: 60000 } },
+    { propertyId: numericPropertyId, limit: 1000 } as any,
+    { query: { queryKey: ["listRooms", numericPropertyId], enabled: !!numericPropertyId, staleTime: 60000 } as any },
   );
-  const rooms = _rData?.data || [];
+  const rooms: any[] = Array.isArray(_rData)
+    ? _rData
+    : (((_rData as any)?.data as any[]) || []);
   const { data: _bData } = useListBuildings(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
+    { propertyId: numericPropertyId } as any,
+    { query: { queryKey: ["listBuildings", numericPropertyId], enabled: !!numericPropertyId, staleTime: 300000 } as any },
   );
-  const buildings = _bData?.data || [];
+  const buildings: any[] = Array.isArray(_bData)
+    ? _bData
+    : (((_bData as any)?.data as any[]) || []);
   const { data: _fData } = useListFloors(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
+    { propertyId: numericPropertyId } as any,
+    { query: { queryKey: ["listFloors", numericPropertyId], enabled: !!numericPropertyId, staleTime: 300000 } as any },
   );
-  const floors = _fData?.data || [];
+  const floors: any[] = Array.isArray(_fData)
+    ? _fData
+    : (((_fData as any)?.data as any[]) || []);
 
   // For cross-property transfer: load rooms from selected target property
   const targetPropId =
     transferPropertyId && transferPropertyId !== String(activePropertyId)
       ? Number(transferPropertyId)
-      : activePropertyId;
+      : numericPropertyId;
   const { data: _targetRoomsWrapper } = useListRooms(
-    { propertyId: targetPropId, limit: 1000 },
-    { query: { enabled: !!targetPropId } },
+    { propertyId: targetPropId, limit: 1000 } as any,
+    { query: { queryKey: ["listRooms", targetPropId], enabled: !!targetPropId } as any },
   );
-  const targetRooms = _targetRoomsWrapper?.data || [];
+  const targetRooms: any[] = Array.isArray(_targetRoomsWrapper)
+    ? _targetRoomsWrapper
+    : (((_targetRoomsWrapper as any)?.data as any[]) || []);
   const { data: _tbData } = useListBuildings(
-    { propertyId: targetPropId },
-    { query: { enabled: !!targetPropId } },
+    { propertyId: targetPropId } as any,
+    { query: { queryKey: ["listBuildings", targetPropId], enabled: !!targetPropId } as any },
   );
-  const targetBuildings = _tbData?.data || [];
+  const targetBuildings: any[] = Array.isArray(_tbData)
+    ? _tbData
+    : (((_tbData as any)?.data as any[]) || []);
   const { data: _taData } = useListAssignments(
     { propertyId: targetPropId } as any,
-    { query: { enabled: !!targetPropId, staleTime: 30000 } },
+    {
+      query: {
+        queryKey: ["listAssignments", targetPropId],
+        enabled: !!targetPropId,
+        staleTime: 30000,
+      },
+    },
   );
   const targetAssignments: any[] = Array.isArray(_taData)
     ? _taData
@@ -422,7 +445,7 @@ export default function InHouse() {
     const selRoomId = parseInt(transferRoomId);
     if (!selRoomId) return set;
 
-    const currentRoom = targetRooms.find((r) => r.id === selRoomId);
+    const currentRoom = targetRooms.find((r: any) => r.id === selRoomId);
     const capacity = currentRoom?.capacity ?? 1;
 
     // 1. From real-time bed-occupancy endpoint
@@ -473,7 +496,7 @@ export default function InHouse() {
       if (aStatus === "ACTIVE" && Number(a.roomId) === selRoomId && a.bedNumber != null) {
         const bedNum = Number(a.bedNumber);
         if (!map.has(bedNum)) {
-          const empObj = profiles.find((p) => p.id === a.profileId);
+          const empObj = profiles.find((p: any) => p.id === a.profileId);
           const fullName = empObj
             ? getProfileDisplayName(empObj, ar)
             : a.profileFirstName
@@ -491,7 +514,7 @@ export default function InHouse() {
   }, [transferRoomId, roomBedOccupancy, targetAssignments, profiles, ar]);
 
   const selectedTargetRoom = targetRooms.find(
-    (r) => r.id === parseInt(transferRoomId),
+    (r: any) => r.id === parseInt(transferRoomId),
   );
   const transferRoomCapacity = selectedTargetRoom?.capacity ?? 0;
   const bedOptions = Array.from(
@@ -763,7 +786,7 @@ export default function InHouse() {
         invalidate();
         const emp = transferDialog.emp;
         const targetRoom = targetRooms.find(
-          (r) => r.id === parseInt(transferRoomId),
+          (r: any) => r.id === parseInt(transferRoomId),
         );
         const isCross = Boolean(transferPropertyId && String(transferPropertyId) !== String(activePropertyId));
         if (isCross) {
@@ -813,14 +836,14 @@ export default function InHouse() {
     },
   });
 
-  const empMap = Object.fromEntries(profiles.map((e) => [e.id, e]));
-  const roomMap = Object.fromEntries(rooms.map((r) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
+  const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
+  const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
+  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
   const floorMap = Object.fromEntries(
-    floors.map((f) => [f.id, { name: f.name, number: f.floorNumber }]),
+    floors.map((f: any) => [f.id, { name: f.name, number: f.floorNumber }]),
   );
   const targetBuildingMap = Object.fromEntries(
-    targetBuildings.map((b) => [b.id, b.name]),
+    targetBuildings.map((b: any) => [b.id, b.name]),
   );
 
   const transferRecommendations = useMemo(() => {
@@ -837,13 +860,13 @@ export default function InHouse() {
   }, [transferDialog.open, transferDialog.emp, targetRooms, targetAssignments, settings]);
 
   const transferableRooms = targetRooms.filter(
-    (r) =>
+    (r: any) =>
       r.status?.toLowerCase() !== "maintenance" &&
       (r.currentOccupancy ?? 0) < (r.capacity ?? 1),
   );
 
   const filteredTransferRooms = useMemo(() => {
-    const list = transferableRooms.filter((r) => {
+    const list = transferableRooms.filter((r: any) => {
       if (!roomSearch.trim()) return true;
       const q = roomSearch.toLowerCase();
       const b = targetBuildingMap[r.buildingId] ?? "";
@@ -855,7 +878,7 @@ export default function InHouse() {
     });
 
     // Sort by AI recommender score descending so highest matching rooms appear first
-    return list.sort((a, b) => {
+    return list.sort((a: any, b: any) => {
       const scoreA = transferRecommendations.recommendedMap[a.id]?.score ?? 0;
       const scoreB = transferRecommendations.recommendedMap[b.id]?.score ?? 0;
       return scoreB - scoreA;
@@ -863,20 +886,20 @@ export default function InHouse() {
   }, [transferableRooms, roomSearch, targetBuildingMap, transferRecommendations]);
 
   // Row selection helpers
-  const pagedIds = assignments.map((a) => a.id);
+  const pagedIds = assignments.map((a: any) => a.id);
   const allPageSelected =
-    pagedIds.length > 0 && pagedIds.every((id) => selectedRows.has(id));
+    pagedIds.length > 0 && pagedIds.every((id: any) => selectedRows.has(id));
   const toggleSelectAll = () => {
     if (allPageSelected) {
       setSelectedRows((prev) => {
         const next = new Set(prev);
-        pagedIds.forEach((id) => next.delete(id));
+        pagedIds.forEach((id: any) => next.delete(id));
         return next;
       });
     } else {
       setSelectedRows((prev) => {
         const next = new Set(prev);
-        pagedIds.forEach((id) => next.add(id));
+        pagedIds.forEach((id: any) => next.add(id));
         return next;
       });
     }
@@ -1034,8 +1057,8 @@ export default function InHouse() {
       activeTab: "assignments",
       title: ar ? "كشف المقيمين بالسكن — الموظفون المحددون" : "In-House Selected Residents Report",
       language: ar ? "ar" : "en",
-      properties,
-      activePropertyId,
+      properties: allProperties,
+      activePropertyId: numericPropertyId,
       settings,
       rows,
       orientation: "landscape",
@@ -1148,7 +1171,7 @@ export default function InHouse() {
       });
 
       if (!compliance.compliant && compliance.violations.length > 0) {
-        if (settings?.policyRequireExceptionApproval) {
+        if ((settings as any)?.policyRequireExceptionApproval) {
           setTransferPolicyModal({
             open: true,
             violations: compliance.violations,
@@ -2632,7 +2655,7 @@ export default function InHouse() {
                     {ar ? "لا توجد غرف متاحة" : "No available rooms"}
                   </p>
                 ) : (
-                  filteredTransferRooms.map((r) => {
+                  filteredTransferRooms.map((r: any) => {
                     const building = targetBuildingMap[r.buildingId];
                     const isSelected = transferRoomId === String(r.id);
                     const available =
@@ -2843,7 +2866,7 @@ export default function InHouse() {
                 {ar ? "إلغاء" : "Cancel"}
               </Button>
               <Button
-                onClick={handleTransfer}
+                onClick={() => handleTransfer()}
                 disabled={transferMutation.isPending || !transferRoomId}
               >
                 {transferMutation.isPending
@@ -2921,9 +2944,9 @@ export default function InHouse() {
             </div>
             {reissueDialog.assignment &&
               reissueDialog.room &&
-              activePropertyId && (
+              numericPropertyId && (
                 <KeyManagementPanel
-                  propertyId={activePropertyId}
+                  propertyId={numericPropertyId}
                   roomId={reissueDialog.assignment.roomId}
                   assignmentId={reissueDialog.assignment.id}
                   profileId={reissueDialog.assignment.profileId}
@@ -2966,7 +2989,7 @@ export default function InHouse() {
       {/* Profile Profile Popup */}
       <ProfileProfilePopup
         profileId={profileEmpId}
-        propertyId={activePropertyId}
+        propertyId={numericPropertyId}
         onClose={() => setProfileEmpId(null)}
       />
 
@@ -3030,7 +3053,7 @@ export default function InHouse() {
       <BroadcastWhatsAppDialog
         open={broadcastOpen}
         onOpenChange={setBroadcastOpen}
-        propertyId={activePropertyId}
+        propertyId={numericPropertyId ?? null}
         initialTargetMode={broadcastTargetMode}
         selectedProfileIds={selectedProfileIds}
         language={language}

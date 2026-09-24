@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef } from "react";
 import {
   useListHostings,
@@ -223,11 +222,12 @@ export default function GuestHosting() {
     },
   );
   
-  const hostings = _hWrapper?.data || _hWrapper || [];
-  const paginationTotal = _hWrapper?.pagination?.total || 0;
+  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const hostings: any[] = Array.isArray(_hWrapper) ? _hWrapper : (((_hWrapper as any)?.data as any[]) || []);
+  const paginationTotal: number = Array.isArray(_hWrapper) ? _hWrapper.length : (((_hWrapper as any)?.pagination?.total as number) ?? hostings.length);
 
   useEffect(() => {
-    if (!activePropertyId || !(hostings as any[])?.length) return;
+    if (!numericPropertyId || !(hostings as any[])?.length) return;
     const missing = (hostings as any[]).filter(
       (h) =>
         Number(h.guestsCount ?? 0) > 0 &&
@@ -241,7 +241,7 @@ export default function GuestHosting() {
       missing.map(async (h) => {
         try {
           const resp = await fetch(
-            `/api/hostings/${h.id}/companions?propertyId=${activePropertyId}`,
+            `/api/hostings/${h.id}/companions?propertyId=${numericPropertyId}`,
           );
           if (!resp.ok) return [h.id, []] as const;
           const list = await resp.json();
@@ -255,7 +255,7 @@ export default function GuestHosting() {
       setCompanionCache((prev) => {
         const next = { ...prev };
         entries.forEach(([id, list]) => {
-          next[id] = list;
+          next[id] = list as any[];
         });
         return next;
       });
@@ -264,31 +264,32 @@ export default function GuestHosting() {
     return () => {
       cancelled = true;
     };
-  }, [activePropertyId, hostings]);
+  }, [numericPropertyId, hostings]);
 
-  const requestPropertyId = Number(searchPropertyId) || activePropertyId;
+  const requestPropertyId = Number(searchPropertyId) || numericPropertyId;
   const { data: _rData } = useListRooms(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: numericPropertyId },
+    { query: { queryKey: ["listRooms", numericPropertyId], enabled: !!numericPropertyId } as any },
   );
-  const rooms = _rData?.data || [];
+  const rooms: any[] = Array.isArray(_rData) ? _rData : (((_rData as any)?.data as any[]) || []);
   const { data: _requestRoomsWrapper } = useListRooms(
     { propertyId: requestPropertyId },
     {
       query: {
-        enabled: !!requestPropertyId && requestPropertyId !== activePropertyId,
-      },
+        queryKey: ["listRooms", requestPropertyId],
+        enabled: !!requestPropertyId && requestPropertyId !== numericPropertyId,
+      } as any,
     },
   );
-  const requestRooms = _requestRoomsWrapper?.data || [];
+  const requestRooms: any[] = Array.isArray(_requestRoomsWrapper) ? _requestRoomsWrapper : (((_requestRoomsWrapper as any)?.data as any[]) || []);
   const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: numericPropertyId ?? undefined, limit: 1000 } as any,
+    { query: { queryKey: ["listProfiles", numericPropertyId], enabled: !!numericPropertyId } as any },
   );
-  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
+  const profiles: any[] = Array.isArray(_eDataWrapper) ? _eDataWrapper : (((_eDataWrapper as any)?.profiles as any[]) || ((_eDataWrapper as any)?.data as any[]) || []);
   const { data: settings } = useGetSettings(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: numericPropertyId },
+    { query: { queryKey: ["getSettings", numericPropertyId], enabled: !!numericPropertyId } as any },
   );
   const modalRooms =
     requestPropertyId === activePropertyId ? rooms : requestRooms;
@@ -312,7 +313,7 @@ export default function GuestHosting() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["listHostings"] });
     queryClient.invalidateQueries({
-      queryKey: getListHostingsQueryKey({ propertyId: activePropertyId }),
+      queryKey: getListHostingsQueryKey({ propertyId: numericPropertyId }),
     });
   };
 
@@ -320,7 +321,7 @@ export default function GuestHosting() {
     mutation: {
       onSuccess: (_data, variables: any) => {
         const createdPropertyId =
-          Number(variables?.data?.propertyId) || activePropertyId;
+          Number(variables?.data?.propertyId) || numericPropertyId;
         queryClient.invalidateQueries({ queryKey: ["listHostings"] });
         queryClient.invalidateQueries({
           queryKey: getListHostingsQueryKey({ propertyId: createdPropertyId }),
@@ -657,20 +658,20 @@ export default function GuestHosting() {
     (profiles as any[]).map((e) => [e.id, e]),
   );
 
-  const pagedHostIds = pagedHostings.map((h) => h.id);
+  const pagedHostIds = pagedHostings.map((h: any) => h.id);
   const allHostPageSelected =
-    pagedHostIds.length > 0 && pagedHostIds.every((id) => selectedRows.has(id));
+    pagedHostIds.length > 0 && pagedHostIds.every((id: any) => selectedRows.has(id));
   const toggleSelectAllHost = () => {
     if (allHostPageSelected) {
       setSelectedRows((prev) => {
         const next = new Set(prev);
-        pagedHostIds.forEach((id) => next.delete(id));
+        pagedHostIds.forEach((id: any) => next.delete(id));
         return next;
       });
     } else {
       setSelectedRows((prev) => {
         const next = new Set(prev);
-        pagedHostIds.forEach((id) => next.add(id));
+        pagedHostIds.forEach((id: any) => next.add(id));
         return next;
       });
     }
@@ -1161,7 +1162,7 @@ export default function GuestHosting() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedHostings.map((h) => {
+                {pagedHostings.map((h: any) => {
                   const isSelected = selectedRows.has(h.id);
                   const emp = getHostProfile(h);
                   const room = getRoom(h);
@@ -1472,12 +1473,11 @@ export default function GuestHosting() {
           </div>
           {hostings.length > 0 && (
             <DataPagination
-              page={currentPage}
+              currentPage={currentPage}
               pageSize={pageSize}
               total={paginationTotal}
               onPageChange={setCurrentPage}
               onPageSizeChange={setPageSize}
-              ar={ar}
             />
           )}
         </div>
@@ -1486,7 +1486,7 @@ export default function GuestHosting() {
       {/* Profile Profile Popup */}
       <ProfileProfilePopup
         profileId={profileEmpId}
-        propertyId={activePropertyId}
+        propertyId={numericPropertyId}
         onClose={() => setProfileEmpId(null)}
       />
 
@@ -1586,7 +1586,7 @@ export default function GuestHosting() {
       {companionsDetailHostingId &&
         (() => {
           const hosting = hostings?.find(
-            (h) => h.id === companionsDetailHostingId,
+            (h: any) => h.id === companionsDetailHostingId,
           );
           if (!hosting) return null;
           const companions = getCompanions(hosting);
@@ -1921,9 +1921,9 @@ export default function GuestHosting() {
           );
         })()}
       <ImageLightbox
-        isOpen={lightboxSrc !== null}
-        src={lightboxSrc || ""}
-        name={lightboxName}
+        src={lightboxSrc}
+        alt={lightboxName}
+        fileName={lightboxName}
         onClose={() => setLightboxSrc(null)}
       />
 
@@ -1977,9 +1977,9 @@ export default function GuestHosting() {
             )}
 
             {(selectedHostingKey?.roomId || keyPromptRoomId) &&
-            activePropertyId ? (
+            numericPropertyId ? (
               <KeyManagementPanel
-                propertyId={activePropertyId}
+                propertyId={numericPropertyId}
                 roomId={selectedHostingKey?.roomId || parseInt(keyPromptRoomId)}
                 checkInDate={(() => {
                   const d =
