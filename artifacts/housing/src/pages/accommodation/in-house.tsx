@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useListInHouseAssignments,
   useListProfiles,
@@ -97,7 +97,7 @@ import {
 import { format, differenceInDays } from "date-fns";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { formatNationality } from "@/lib/countries";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { DataPagination } from "@/components/DataPagination";
 import KeyManagementPanel from "@/components/KeyManagementPanel";
 import { generateHousingLetterPdf, printLuxuryReport } from "@/lib/pdf-utils";
@@ -397,19 +397,98 @@ export default function InHouse() {
     { propertyId: targetPropId } as any,
     { query: { enabled: !!targetPropId, staleTime: 30000 } },
   );
-  const targetAssignments = _taData?.data || [];
+  const targetAssignments: any[] = Array.isArray(_taData)
+    ? _taData
+    : (((_taData as any)?.data as any[]) || []);
+
+  // Fetch real-time bed occupancy for the selected target room
+  const { data: roomBedOccupancy } = useQuery({
+    queryKey: ["/api/rooms", transferRoomId, "bed-occupancy", targetPropId],
+    queryFn: async () => {
+      if (!transferRoomId) return null;
+      const res = await fetch(`/api/rooms/${transferRoomId}/bed-occupancy`, {
+        headers: targetPropId ? { "X-Property-Id": String(targetPropId) } : {},
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!transferRoomId && !!transferDialog.open,
+    staleTime: 5000,
+  });
 
   // Compute occupied beds for transfer target room
-  const targetOccupiedBeds = new Set<number>(
-    targetAssignments
-      .filter(
-        (a: any) =>
-          a.status === "ACTIVE" &&
-          a.roomId === parseInt(transferRoomId) &&
-          a.bedNumber != null,
-      )
-      .map((a: any) => a.bedNumber as number),
-  );
+  const targetOccupiedBeds = useMemo(() => {
+    const set = new Set<number>();
+    const selRoomId = parseInt(transferRoomId);
+    if (!selRoomId) return set;
+
+    const currentRoom = targetRooms.find((r) => r.id === selRoomId);
+    const capacity = currentRoom?.capacity ?? 1;
+
+    // 1. From real-time bed-occupancy endpoint
+    if (roomBedOccupancy?.beds && Array.isArray(roomBedOccupancy.beds)) {
+      for (const b of roomBedOccupancy.beds) {
+        if (b.status === "OCCUPIED" || b.status === "VACATION") {
+          set.add(Number(b.bedNumber));
+        }
+      }
+    }
+
+    // 2. Cross-check with targetAssignments (handling entire room and normal assignments)
+    for (const a of targetAssignments) {
+      const aStatus = String(a.status || "").toUpperCase();
+      if (aStatus === "ACTIVE" && Number(a.roomId) === selRoomId) {
+        if (a.isEntireRoom) {
+          for (let i = 1; i <= capacity; i++) {
+            set.add(i);
+          }
+        } else if (a.bedNumber != null) {
+          set.add(Number(a.bedNumber));
+        }
+      }
+    }
+
+    return set;
+  }, [transferRoomId, roomBedOccupancy, targetAssignments, targetRooms]);
+
+  // Occupants map by bed number
+  const bedOccupantsMap = useMemo(() => {
+    const map = new Map<number, { name: string; isOnVacation?: boolean }>();
+    const selRoomId = parseInt(transferRoomId);
+    if (!selRoomId) return map;
+
+    if (roomBedOccupancy?.beds && Array.isArray(roomBedOccupancy.beds)) {
+      for (const b of roomBedOccupancy.beds) {
+        if (b.occupant?.name) {
+          map.set(Number(b.bedNumber), {
+            name: b.occupant.name,
+            isOnVacation: b.occupant.isOnVacation,
+          });
+        }
+      }
+    }
+
+    for (const a of targetAssignments) {
+      const aStatus = String(a.status || "").toUpperCase();
+      if (aStatus === "ACTIVE" && Number(a.roomId) === selRoomId && a.bedNumber != null) {
+        const bedNum = Number(a.bedNumber);
+        if (!map.has(bedNum)) {
+          const empObj = profiles.find((p) => p.id === a.profileId);
+          const fullName = empObj
+            ? getProfileDisplayName(empObj, ar)
+            : a.profileFirstName
+              ? `${a.profileFirstName} ${a.profileLastName || ""}`.trim()
+              : (a.profileName || (ar ? "نزيل آخر" : "Resident"));
+          map.set(bedNum, {
+            name: fullName,
+            isOnVacation: (a as any).profileStatus === "VACATION",
+          });
+        }
+      }
+    }
+
+    return map;
+  }, [transferRoomId, roomBedOccupancy, targetAssignments, profiles, ar]);
 
   const selectedTargetRoom = targetRooms.find(
     (r) => r.id === parseInt(transferRoomId),
@@ -419,6 +498,20 @@ export default function InHouse() {
     { length: transferRoomCapacity },
     (_, i) => i + 1,
   );
+
+  // Auto-select first available bed when target room changes or occupied beds update
+  useEffect(() => {
+    if (!transferRoomId || bedOptions.length === 0) return;
+    const isCurrentBedOccupied = selectedTransferBed && targetOccupiedBeds.has(Number(selectedTransferBed));
+    if (!selectedTransferBed || isCurrentBedOccupied) {
+      const firstFree = bedOptions.find((b) => !targetOccupiedBeds.has(b));
+      if (firstFree != null) {
+        setSelectedTransferBed(String(firstFree));
+      } else {
+        setSelectedTransferBed("");
+      }
+    }
+  }, [transferRoomId, targetOccupiedBeds, bedOptions, selectedTransferBed]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({
@@ -1033,6 +1126,14 @@ export default function InHouse() {
     }
     if (bedOptions.length > 0 && !selectedTransferBed) {
       toast.error(ar ? "الرجاء اختيار سرير" : "Please select a bed");
+      return;
+    }
+    if (selectedTransferBed && targetOccupiedBeds.has(Number(selectedTransferBed))) {
+      toast.error(
+        ar
+          ? "السرير المحدد مشغول بالفعل، يرجى اختيار سرير شاغر"
+          : "Selected bed is already occupied, please choose an available bed",
+      );
       return;
     }
 
@@ -2586,41 +2687,67 @@ export default function InHouse() {
 
             {transferRoomId && bedOptions.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-1.5">
-                  <BedDouble className="w-4 h-4 text-muted-foreground" />
-                  {ar ? "السرير في الغرفة الجديدة" : "Bed in New Room"}{" "}
-                  <span className="text-red-500">*</span>
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium flex items-center gap-1.5">
+                    <BedDouble className="w-4 h-4 text-muted-foreground" />
+                    {ar ? "السرير في الغرفة الجديدة" : "Bed in New Room"}{" "}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {Math.max(0, bedOptions.length - targetOccupiedBeds.size)} / {bedOptions.length} {ar ? "متاح" : "available"}
+                  </span>
+                </div>
                 <div className="flex gap-2 flex-wrap">
                   {bedOptions.map((bed) => {
                     const isTaken = targetOccupiedBeds.has(bed);
                     const isSelected = selectedTransferBed === String(bed);
+                    const occupantInfo = bedOccupantsMap.get(bed);
                     return (
                       <button
                         key={bed}
                         type="button"
-                        onClick={() =>
-                          !isTaken && setSelectedTransferBed(String(bed))
-                        }
+                        onClick={() => {
+                          if (!isTaken) setSelectedTransferBed(String(bed));
+                        }}
                         disabled={isTaken}
+                        aria-disabled={isTaken}
                         title={
                           isTaken
-                            ? ar
-                              ? "هذا السرير مشغول"
-                              : "Bed already occupied"
+                            ? occupantInfo?.name
+                              ? `${ar ? "مشغول بواسطة:" : "Occupied by:"} ${occupantInfo.name}`
+                              : ar
+                                ? "هذا السرير مشغول"
+                                : "Bed already occupied"
                             : undefined
                         }
-                        className={`relative px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                        className={`relative flex flex-col items-center justify-center min-w-[90px] px-3 py-2 rounded-lg border text-sm font-semibold transition-all ${
                           isTaken
-                            ? "bg-red-50 border-red-200 text-red-400 dark:bg-red-950/30 dark:border-red-800 dark:text-red-500 cursor-not-allowed opacity-70"
+                            ? "bg-muted/40 border-red-200 dark:border-red-900/40 text-muted-foreground cursor-not-allowed opacity-50 pointer-events-none select-none"
                             : isSelected
-                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                              : "bg-card hover:bg-muted border-border"
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                              : "bg-card hover:bg-muted border-border cursor-pointer"
                         }`}
                       >
-                        {ar ? `سرير ${bed}` : `Bed ${bed}`}
+                        <div className="flex items-center gap-1">
+                          <span>{ar ? `سرير ${bed}` : `Bed ${bed}`}</span>
+                          {isTaken && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] px-1 py-0 bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 border-red-300 font-bold"
+                            >
+                              {occupantInfo?.isOnVacation
+                                ? (ar ? "إجازة" : "Vacation")
+                                : (ar ? "مشغول" : "Occupied")}
+                            </Badge>
+                          )}
+                        </div>
+                        {isTaken && occupantInfo?.name && (
+                          <span className="text-[10px] text-muted-foreground/80 truncate max-w-[100px] mt-0.5 font-normal">
+                            {occupantInfo.name}
+                          </span>
+                        )}
                         {isTaken && (
-                          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center shadow-xs">
                             <X className="w-2.5 h-2.5 text-white" />
                           </span>
                         )}
