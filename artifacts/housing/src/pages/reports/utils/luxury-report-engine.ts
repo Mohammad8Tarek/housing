@@ -2492,7 +2492,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const topMarginMm = 4.0; // sheet padding top
   const bottomMarginMm = 4.0; // sheet padding bottom
   const footerHeightMm = 5.5; // .opera-footer layout + border
-  const safetyBufferMm = isLandscape ? 1.5 : 2.0; // subpixel rendering tolerance
+  const safetyBufferMm = isLandscape ? 3.5 : 4.0; // subpixel rendering tolerance + one-row guard band
 
   // Net usable height inside sheet container (191.0mm in landscape, 277.5mm in portrait)
   const usableHeightMm = pageHeightMm - topMarginMm - bottomMarginMm - footerHeightMm - safetyBufferMm;
@@ -3143,6 +3143,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       align-items: center;
       gap: 8px;
       direction: ltr !important;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
     .sub-prop-title {
       font-family: Georgia, "Times New Roman", serif;
@@ -3161,6 +3166,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       color: #000000;
       direction: ltr !important;
       text-align: right !important;
+      flex-shrink: 0;
+      white-space: nowrap;
+      padding-left: 8px;
     }
     .opera-logo {
       max-height: 50px;
@@ -3528,7 +3536,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         white-space: nowrap !important;
         overflow: hidden !important;
       }
-      table.opera-table th {
+    table.opera-table tr.opera-row {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    table.opera-table th {
         font-size: ${printFontSizePt}pt !important;
         font-weight: 800 !important;
         padding: ${printPadding} !important;

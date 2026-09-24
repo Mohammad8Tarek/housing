@@ -1,4 +1,5 @@
 import { exportExcel, exportPDF, exportAnalyticsPDF, printArabicAnalyticsReport } from "../utils/export";
+import { formatDate } from "@/lib/date-utils";
 import {
   translateReportHeader,
   translateRoomType,
