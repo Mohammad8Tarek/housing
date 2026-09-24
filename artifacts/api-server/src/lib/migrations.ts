@@ -2050,7 +2050,7 @@ const TENANT_MIGRATIONS = [
     q: `DO $$ BEGIN
       ALTER TABLE rooms DROP CONSTRAINT IF EXISTS chk_rooms_status;
       ALTER TABLE rooms ADD CONSTRAINT chk_rooms_status
-        CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order'));
+        CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order', 'room_vacant', 'bed_vacant', 'room_and_bed_vacant'));
     END $$`,
   },
   {

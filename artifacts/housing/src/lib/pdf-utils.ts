@@ -247,6 +247,7 @@ export const generateHousingLetterPdf = async (opts: {
 
   autoTable(doc, {
     startY: y,
+    rowPageBreak: "avoid",
     tableWidth: bw,
     margin: { left: ml, right: ml },
     head: [["Field", "Value"]],
@@ -308,6 +309,7 @@ export const generateHousingLetterPdf = async (opts: {
 
   autoTable(doc, {
     startY: y,
+    rowPageBreak: "avoid",
     tableWidth: bw,
     margin: { left: ml, right: ml },
     head: [["#", "Item", "Qty", "Condition", "Notes"]],

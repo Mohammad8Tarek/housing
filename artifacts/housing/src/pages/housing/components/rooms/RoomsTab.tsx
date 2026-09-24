@@ -3,7 +3,7 @@ import { downloadRoomImportTemplate } from "@/lib/room-importer-engine";
 import { Search, Plus, FileDown, Trash2, QrCode } from "lucide-react";
 import * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RoomQrModal } from "./RoomQrModal";
 import { RoomQrBatchPrintDialog } from "./RoomQrBatchPrintDialog";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -48,6 +48,8 @@ type Props = {
   floors: any[];
   rooms: any[];
   rLoading: boolean;
+  externalEditRoom?: any;
+  onClearExternalEditRoom?: () => void;
 };
 
 const EMPTY_FORM = {
@@ -72,6 +74,8 @@ export function RoomsTab({
   propertyId,
   buildings,
   floors,
+  externalEditRoom,
+  onClearExternalEditRoom,
 }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -173,12 +177,26 @@ export function RoomsTab({
     setRoomModal(true);
   };
 
+  useEffect(() => {
+    if (externalEditRoom) {
+      openEditRoom(externalEditRoom);
+      onClearExternalEditRoom?.();
+    }
+  }, [externalEditRoom]);
+
   const saveRoomHandler = async () => {
-    if (!rForm.buildingId || !rForm.floorId || !rForm.roomNumber.trim()) {
+    const buildingFloors = (floors || []).filter((f: any) => Number(f.buildingId) === Number(rForm.buildingId));
+    if (!rForm.buildingId || !rForm.roomNumber.trim()) {
       toast.error(
         ar
-          ? "المبنى والطابق ورقم الغرفة مطلوبين"
-          : "Building, floor, and room number are required",
+          ? "المبنى ورقم الغرفة مطلوبين"
+          : "Building and room number are required",
+      );
+      return;
+    }
+    if (buildingFloors.length > 0 && !rForm.floorId) {
+      toast.error(
+        ar ? "يرجى تحديد الطابق" : "Please select a floor",
       );
       return;
     }
@@ -191,10 +209,20 @@ export function RoomsTab({
             .map((s: string) => s.trim())
             .filter(Boolean);
 
+      const effectiveFloorId = rForm.floorId ? Number(rForm.floorId) : buildingFloors[0]?.id ? Number(buildingFloors[0].id) : undefined;
+
       const dataToSave = {
         ...rForm,
-        propertyId,
-        gender: rForm.gender === "" ? undefined : rForm.gender,
+        propertyId: Number(propertyId),
+        buildingId: Number(rForm.buildingId),
+        floorId: effectiveFloorId,
+        capacity: Number(rForm.capacity) || 1,
+        gender: rForm.gender === "" || rForm.gender === "__none__" ? null : rForm.gender,
+        status: statusNorm(rForm.status) === "room_vacant" || statusNorm(rForm.status) === "room_and_bed_vacant" 
+          ? "available" 
+          : statusNorm(rForm.status) === "bed_vacant" 
+          ? "available" 
+          : rForm.status || "available",
         featuresList: computedFeaturesList,
         features: rForm.features || computedFeaturesList.join(", "),
       };
@@ -202,7 +230,9 @@ export function RoomsTab({
       if (editRoom) {
         const token =
           localStorage.getItem("auth_token") ||
-          sessionStorage.getItem("auth_token");
+          sessionStorage.getItem("auth_token") ||
+          localStorage.getItem("session_id") ||
+          sessionStorage.getItem("session_id");
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         };

@@ -33,6 +33,7 @@ type Props = {
   room: any | null;
   onClose: () => void;
   onOpenRoomLog: (room: any) => void;
+  onEditRoom?: (room: any) => void;
   buildings: any[];
   floors: any[];
   assignments: any[];
@@ -43,6 +44,7 @@ export function RoomDetailsDialog({
   room,
   onClose,
   onOpenRoomLog,
+  onEditRoom,
   buildings,
   floors,
   assignments,
@@ -277,18 +279,37 @@ export function RoomDetailsDialog({
             <span>
               {ar ? "الغرفة" : "Room"} {room.roomNumber}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-              onClick={() => {
-                onOpenRoomLog(room);
-                onClose();
-              }}
-            >
-              <History className="w-3.5 h-3.5 mr-1" />
-              {ar ? "سجل الغرفة" : "Room Log"}
-            </Button>
+            <div className="flex items-center gap-1.5">
+              {onEditRoom && (
+                <PermissionGate module="housing" action="edit">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8 gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                    onClick={() => {
+                      const rToEdit = room;
+                      onClose();
+                      onEditRoom(rToEdit);
+                    }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>{ar ? "تعديل الغرفة" : "Edit Room"}</span>
+                  </Button>
+                </PermissionGate>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-8"
+                onClick={() => {
+                  onOpenRoomLog(room);
+                  onClose();
+                }}
+              >
+                <History className="w-3.5 h-3.5 mr-1" />
+                {ar ? "سجل الغرفة" : "Room Log"}
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
         

@@ -685,9 +685,15 @@ router.patch(
       return;
     }
 
-    const parsed = UpdateRoomBody.safeParse(req.body);
+    const bodyToParse = {
+      ...req.body,
+      capacity: req.body.capacity !== undefined && req.body.capacity !== "" ? Number(req.body.capacity) : undefined,
+      gender: req.body.gender === "" || req.body.gender === "__none__" ? null : req.body.gender,
+    };
+
+    const parsed = UpdateRoomBody.safeParse(bodyToParse);
     if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
+      res.status(400).json({ error: parsed.error.errors?.[0]?.message || parsed.error.message });
       return;
     }
 
@@ -750,9 +756,18 @@ router.patch(
       }
     }
 
+    if (parsed.data.status) {
+      const s = parsed.data.status.toLowerCase().trim();
+      if (s === "room_vacant" || s === "room_and_bed_vacant" || s === "vacant") {
+        parsed.data.status = "available";
+      } else if (s === "bed_vacant" || s === "vacant_beds" || s === "partially") {
+        parsed.data.status = (currentRoom.currentOccupancy || 0) > 0 ? "occupied" : "available";
+      }
+    }
+
     const extraData: any = {};
-    if (buildingId !== undefined) extraData.buildingId = Number(buildingId);
-    if (floorId !== undefined) extraData.floorId = Number(floorId);
+    if (buildingId !== undefined && Number(buildingId) > 0) extraData.buildingId = Number(buildingId);
+    if (floorId !== undefined && Number(floorId) > 0) extraData.floorId = Number(floorId);
     if (view !== undefined) extraData.view = view;
     if (bedType !== undefined) extraData.bedType = bedType;
     if (classification !== undefined) extraData.classification = classification;
@@ -867,6 +882,14 @@ router.patch(
     res.json({ ...updated, genderPolicy: updated.gender, propertyId });
     } catch (err: any) {
       console.error("[rooms/update] Error:", err);
+      if (err.code === "23503") {
+        res.status(400).json({ error: "المبنى أو الدور المحدد غير موجود في النظام", code: "FK_NOT_FOUND" });
+        return;
+      }
+      if (err.code === "23514") {
+        res.status(400).json({ error: "بيانات الغرفة غير صالحة وفق محددات النظام", code: "CONSTRAINT_VIOLATION" });
+        return;
+      }
       res.status(500).json({ error: err.message || "Failed to update room" });
     }
   },

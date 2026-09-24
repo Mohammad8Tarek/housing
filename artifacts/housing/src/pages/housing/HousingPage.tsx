@@ -55,6 +55,7 @@ export function HousingPage() {
     }
   });
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [externalEditRoom, setExternalEditRoom] = useState<any>(null);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [roomLogRoom, setRoomLogRoom] = useState<any>(null);
 
@@ -504,6 +505,8 @@ export function HousingPage() {
             floors={floors}
             rooms={rooms}
             rLoading={rLoading}
+            externalEditRoom={externalEditRoom}
+            onClearExternalEditRoom={() => setExternalEditRoom(null)}
           />
         )}
         {tab === "keys" && (
@@ -523,6 +526,11 @@ export function HousingPage() {
         room={selectedRoom}
         onClose={() => setSelectedRoom(null)}
         onOpenRoomLog={(room) => setRoomLogRoom(room)}
+        onEditRoom={(room) => {
+          setSelectedRoom(null);
+          setExternalEditRoom(room);
+          setTab("rooms");
+        }}
         buildings={buildings}
         floors={floors}
         assignments={assignments}

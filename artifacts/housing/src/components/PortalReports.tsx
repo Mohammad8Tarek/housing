@@ -346,6 +346,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
         startY: y,
         head: [headRow],
         body: bodyRows,
+        rowPageBreak: "avoid",
         margin: { left: MARGIN, right: MARGIN },
         styles: { fontSize: 8, cellPadding: 2.5, overflow: "linebreak" },
         headStyles: {
@@ -380,6 +381,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
         startY: y,
         head: [[ar ? "المقياس" : "Metric", ar ? "القيمة" : "Value"]],
         body: summaryRows,
+        rowPageBreak: "avoid",
         margin: { left: MARGIN, right: MARGIN },
         styles: { fontSize: 8.5, cellPadding: 3 },
         headStyles: {
@@ -528,6 +530,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
           startY: y,
           head: [],
           body: actStats,
+          rowPageBreak: "avoid",
           margin: { left: MARGIN, right: MARGIN },
           styles: { fontSize: 8, cellPadding: 2 },
           alternateRowStyles: { fillColor: [245, 247, 250] },
@@ -575,6 +578,7 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
             startY: y,
             head: [[ar ? "المقياس" : "Metric", ar ? "القيمة" : "Value"]],
             body: rows,
+            rowPageBreak: "avoid",
             margin: { left: MARGIN, right: MARGIN },
             styles: { fontSize: 8, cellPadding: 2 },
             headStyles: { fillColor: [15, 42, 68], textColor: 255 },

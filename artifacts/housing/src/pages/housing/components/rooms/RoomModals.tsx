@@ -98,11 +98,21 @@ export function RoomModals({
     if (!rForm.roomNumber?.trim() || !rForm.buildingId) return false;
     const trimmed = rForm.roomNumber.trim().toLowerCase();
     const editRoomId = editRoom?.id != null ? Number(editRoom.id) : null;
+
+    // If editing and the user didn't change the room number or building, don't flag as duplicate
+    if (
+      editRoom &&
+      String(editRoom.roomNumber || "").trim().toLowerCase() === trimmed &&
+      Number(editRoom.buildingId) === Number(rForm.buildingId)
+    ) {
+      return false;
+    }
+
     return (rooms || []).some(
       (r: any) =>
-        (editRoomId === null || Number(r.id) !== editRoomId) &&
+        (editRoomId === null || Number(r.id ?? r.roomId) !== editRoomId) &&
         Number(r.buildingId) === Number(rForm.buildingId) &&
-        r.roomNumber?.trim().toLowerCase() === trimmed
+        String(r.roomNumber || "").trim().toLowerCase() === trimmed
     );
   }, [rForm.roomNumber, rForm.buildingId, rooms, editRoom]);
 
