@@ -2462,73 +2462,141 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     : (signatures?.role3 || (activeTab === "housekeeping_sheet" ? "Executive Housekeeper" : "Approved by / HR Director"));
 
   // ── Greedy Fill-to-Capacity Page Allocation ──
-  // Each page is filled to its MAXIMUM row capacity before spilling to the next page.
-  // ── Dynamic Content-Aware Height Allocation (Physical Millimeter Budgeting) ──
-  // Instead of an arbitrary fixed number of rows that causes empty gaps or overflow,
-  // we calculate the physical height in millimeters of each row based on wrapped lines.
+  // ── Dynamic Available Page Height Calculation ──
   const isLandscape = orientation === "landscape";
   const hasKpis = Boolean(initialShowKpis && kpiCards.length > 0);
   const hasSigs = Boolean(initialShowSigs);
   const hasBottom = Boolean(customBottomSectionsHtml);
 
-  // Available printable height budgets in millimeters (strictly calibrated to eliminate empty gaps and prevent overflow)
-  // Landscape A4 (210mm height): Page padding (10mm), footer (6mm), safe margin (15mm)
-  // Page 1: budget = 125mm (allows up to 20 single-line rows with logos and header)
-  // Subsequent pages: budget = 145mm (allows up to 23 single-line rows with subheader)
-  // Last page with signatures: budget = 105mm (allows up to 17-18 rows with signatures)
-  // Portrait A4 (297mm height): Page padding (10mm), footer (6mm), safe margin (15mm)
-  // Page 1: budget = 205mm (allows up to 32 single-line rows with logos and header)
-  // Subsequent pages: budget = 230mm (allows up to 36 single-line rows with subheader)
-  // Last page with signatures: budget = 175mm (allows up to 26-28 rows with signatures)
-  const budgetP1Mm = isLandscape ? (hasKpis ? 95 : 125) : (hasKpis ? 165 : 205);
-  const budgetSubsequentMm = isLandscape ? 145 : 230;
-  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 105 : 175) : budgetSubsequentMm;
+  // Exact printable A4 heights in millimeters (matching print CSS: 206mm landscape, 293mm portrait)
+  const pageHeightMm = isLandscape ? 206.0 : 293.0;
+  const topMarginMm = 5.0; // sheet padding top
+  const bottomMarginMm = 5.0; // sheet padding bottom
+  const footerHeightMm = 7.5; // .opera-footer layout + border
+  const safetyBufferMm = isLandscape ? 3.0 : 4.0; // font metrics & rendering subpixel tolerance
 
-  // Approximate character capacity per column to detect line wrapping
-  const printableWidthMm = isLandscape ? 280 : 196;
-  const avgCharWidthMm = (baseFontSizePt * 0.3528) * 0.48;
+  // Net usable height inside sheet container
+  const usableHeightMm = pageHeightMm - topMarginMm - bottomMarginMm - footerHeightMm - safetyBufferMm;
+
+  // Header, Components, and Table Header Heights in mm:
+  const p1HeaderHeightMm = (dateFrom || dateTo) ? 26.5 : 23.0; // Branded Letterhead Header on Page 1
+  const subsequentHeaderHeightMm = 10.5; // Compact Sub-Header on Page 2+
+  const theadHeightMm = 8.0; // Repeated table header row
+  const kpisHeightMm = hasKpis ? 26.0 : 0.0; // KPI Cards Grid
+  const customSectionHeightMm = customSectionsHtml ? 35.0 : 0.0; // Custom top sections (if any)
+  const customBottomSectionHeightMm = customBottomSectionsHtml ? 42.0 : 0.0; // Demographics / bottom section
+  const sigsHeightMm = hasSigs ? 29.0 : 0.0; // Signatures Section on final page
+  const totalsRowHeightMm = 6.5; // Final totals row
+
+  // Function to calculate available table height dynamically for ANY page
+  const getAvailableTableHeightMm = (pageNum: number, isFinal: boolean): number => {
+    const isFirst = pageNum === 1;
+    const headerH = isFirst ? (p1HeaderHeightMm + kpisHeightMm + customSectionHeightMm) : subsequentHeaderHeaderHeight(isFirst);
+    const bottomH = isFinal ? (sigsHeightMm + totalsRowHeightMm + customBottomSectionHeightMm) : 0;
+    return Math.max(20.0, usableHeightMm - headerH - theadHeightMm - bottomH);
+  };
+
+  function subsequentHeaderHeaderHeight(isFirst: boolean): number {
+    return isFirst ? p1HeaderHeightMm : subsequentHeaderHeightMm;
+  }
+
+  // ── Dynamic Row Height Calculation ──
+  const printableWidthMm = isLandscape ? 280.0 : 196.0;
+  const avgCharWidthMm = (baseFontSizePt * 0.3528) * (isArabic ? 0.54 : 0.50);
   const colCharsCapacity = colWidthsPct.map((pct) => {
     const colWidthMm = printableWidthMm * (pct / 100);
-    return Math.max(3, Math.floor((colWidthMm - 3) / avgCharWidthMm));
+    return Math.max(3, Math.floor((colWidthMm - 2.5) / avgCharWidthMm));
   });
+
+  const baseRowHeightMm = isLandscape ? 5.6 : 6.0;
+  const extraLineHeightMm = isLandscape
+    ? Math.max(2.8, printFontSizePt * 1.25 * 0.3528)
+    : Math.max(3.2, printFontSizePt * 1.25 * 0.3528);
+
+  const calculateCellLines = (val: any, cpl: number): number => {
+    if (val === null || val === undefined) return 1;
+    const rawStr = String(val).trim();
+    if (!rawStr || rawStr === "—") return 1;
+
+    const paragraphs = rawStr.split(/\r?\n/);
+    let totalLines = 0;
+
+    for (const p of paragraphs) {
+      const text = p.trim();
+      if (!text) {
+        totalLines += 1;
+        continue;
+      }
+      if (text.length <= cpl) {
+        totalLines += 1;
+        continue;
+      }
+
+      // Word wrapping
+      const words = text.split(/\s+/);
+      let lines = 1;
+      let curLineLen = 0;
+
+      for (const w of words) {
+        if (w.length > cpl) {
+          if (curLineLen > 0) {
+            lines++;
+            curLineLen = 0;
+          }
+          lines += Math.floor(w.length / cpl);
+          curLineLen = w.length % cpl;
+        } else if (curLineLen === 0) {
+          curLineLen = w.length;
+        } else if (curLineLen + 1 + w.length <= cpl) {
+          curLineLen += 1 + w.length;
+        } else {
+          lines++;
+          curLineLen = w.length;
+        }
+      }
+      totalLines += lines;
+    }
+    return Math.max(1, Math.min(5, totalLines));
+  };
+
+  const isWrappableHeader = (h: string): boolean => {
+    const norm = (h || "").toLowerCase();
+    // Identifiers, codes, phones, dates, single room numbers, checkboxes are nowrap
+    if (
+      norm === "#" ||
+      norm.includes("كود") || norm.includes("code") ||
+      norm.includes("قومي") || norm.includes("national") ||
+      norm.includes("هاتف") || norm.includes("phone") || norm.includes("mobile") ||
+      norm.includes("تاريخ") || norm.includes("date") ||
+      norm.includes("وقت") || norm.includes("time") ||
+      norm.includes("حالة") || norm.includes("status") ||
+      norm.includes("room no") || norm.includes("bed no") ||
+      norm === "غرفة" || norm === "سرير" || norm === "طابق" || norm === "floor"
+    ) {
+      return false;
+    }
+    return true;
+  };
 
   const estimateRowHeightMm = (row: any[]): number => {
     let maxLines = 1;
     for (let c = 0; c < row.length; c++) {
       const val = row[c];
       if (val === null || val === undefined) continue;
-      const str = String(val).trim();
-      if (!str || str === "—") continue;
-
-      const normH = (rawHeaders[c] || headers[c] || "").toLowerCase();
-      // Only multi-item or true wrapping text columns increase row height
-      // (e.g. notes, descriptions, reasons, actions, occupants list, amenities list)
-      if (!isMultiItemOrTextColumn(normH)) {
-        continue;
-      }
+      const normH = rawHeaders[c] || headers[c] || "";
+      if (!isWrappableHeader(normH)) continue;
 
       const cpl = colCharsCapacity[c] || 15;
-      if (str.length > cpl) {
-        const words = str.split(/\s+/);
-        let lines = 1;
-        let curLineLen = 0;
-        for (const w of words) {
-          if (curLineLen + w.length > cpl) {
-            lines++;
-            curLineLen = w.length + 1;
-          } else {
-            curLineLen += w.length + 1;
-          }
-        }
-        maxLines = Math.max(maxLines, Math.min(3, lines));
+      const lines = calculateCellLines(val, cpl);
+      if (lines > maxLines) {
+        maxLines = lines;
       }
     }
 
-    if (maxLines === 1) return isLandscape ? 5.8 : 6.5;
-    if (maxLines === 2) return isLandscape ? 8.5 : 9.5;
-    return isLandscape ? 11.5 : 12.5;
+    return baseRowHeightMm + (maxLines - 1) * extraLineHeightMm;
   };
 
+  // ── Dynamic Page Allocation (Available Height Budgeting) ──
   const pageChunks: any[][][] = [];
   const pageStartIndexes: number[] = [];
 
@@ -2540,57 +2608,88 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     let cursor = 0;
 
     while (cursor < totalRowsCount) {
-      const isFirst = pageChunks.length === 0;
+      const pageNum = pageChunks.length + 1;
 
-      // Calculate total height of all remaining rows if placed on a final page
+      // 1. Check if ALL remaining rows fit on this page as the FINAL page (with signatures & totals)
       let remainingTotalHeight = 0;
       for (let i = cursor; i < totalRowsCount; i++) {
         remainingTotalHeight += estimateRowHeightMm(tableRows[i]);
       }
 
-      // If all remaining rows fit on this page with signatures, take them all!
-      const maxSigBudget = isFirst
-        ? (isLandscape
-            ? (hasKpis ? (hasSigs ? 75 : 95) : (hasSigs ? 98 : 125))
-            : (hasKpis ? (hasSigs ? 135 : 165) : (hasSigs ? 175 : 205)))
-        : budgetLastWithSigsMm;
-      if (remainingTotalHeight <= maxSigBudget) {
+      const availableIfFinal = getAvailableTableHeightMm(pageNum, true);
+      if (remainingTotalHeight <= availableIfFinal) {
+        // Fits entirely on this page!
         pageStartIndexes.push(cursor);
         pageChunks.push(tableRows.slice(cursor));
         cursor = totalRowsCount;
         break;
       }
 
-      // Otherwise, fill this page to its maximum millimeter budget
-      const maxPageBudget = isFirst ? budgetP1Mm : budgetSubsequentMm;
-      const maxRowLimit = isLandscape
-        ? (isFirst ? (hasKpis ? 15 : 20) : 23)
-        : (isFirst ? (hasKpis ? 24 : 32) : 36);
+      // 2. Otherwise, fill this page to its maximum dynamic available height
+      const availableTableHeight = getAvailableTableHeightMm(pageNum, false);
       let accumulatedHeight = 0;
       let count = 0;
 
       while (cursor + count < totalRowsCount) {
-        if (count >= maxRowLimit) break;
         const nextH = estimateRowHeightMm(tableRows[cursor + count]);
-        if (accumulatedHeight + nextH > maxPageBudget && count >= 5) {
-          break; // Page reached maximum safe physical capacity!
+        // Break only when the next row physically cannot fit on this page
+        if (accumulatedHeight + nextH > availableTableHeight && count >= 4) {
+          break;
         }
         accumulatedHeight += nextH;
         count++;
       }
 
-      // Prevent stranded orphan rows on the final page (< 4 rows)
-      const rowsAfterThis = totalRowsCount - (cursor + count);
-      if (rowsAfterThis > 0 && rowsAfterThis < 4) {
-        const pull = 4 - rowsAfterThis;
-        if (count - pull >= 5) {
-          count -= pull;
-        }
+      // Ensure at least 1 row moves forward
+      if (count === 0 && cursor < totalRowsCount) {
+        count = 1;
       }
 
       pageStartIndexes.push(cursor);
       pageChunks.push(tableRows.slice(cursor, cursor + count));
       cursor += count;
+    }
+
+    // ── Phase 2: Last Page Health Check & Rebalancing (Requirement 7) ──
+    // If the last page has very few rows (< 6 rows) and there's a previous page:
+    if (pageChunks.length >= 2) {
+      const lastIdx = pageChunks.length - 1;
+      const prevIdx = lastIdx - 1;
+      const lastChunk = pageChunks[lastIdx];
+      const prevChunk = pageChunks[prevIdx];
+
+      // A. Can we completely merge the last page into the previous page?
+      const combined = [...prevChunk, ...lastChunk];
+      let combinedHeight = 0;
+      for (const r of combined) {
+        combinedHeight += estimateRowHeightMm(r);
+      }
+
+      const prevPageAvailableIfFinal = getAvailableTableHeightMm(prevIdx + 1, true);
+      if (combinedHeight <= prevPageAvailableIfFinal) {
+        // Merge into previous page and eliminate the orphan page completely!
+        pageChunks[prevIdx] = combined;
+        pageChunks.pop();
+        pageStartIndexes.pop();
+      } else if (lastChunk.length < 6 && prevChunk.length > 10) {
+        // B. Rebalance: distribute rows naturally between the last two pages
+        const targetLastCount = Math.max(lastChunk.length, Math.min(10, Math.floor((prevChunk.length + lastChunk.length) / 2)));
+        const shiftCount = targetLastCount - lastChunk.length;
+
+        if (shiftCount > 0 && prevChunk.length - shiftCount >= 8) {
+          const shiftedRows = prevChunk.slice(prevChunk.length - shiftCount);
+          let newLastPageHeight = 0;
+          for (const r of [...shiftedRows, ...lastChunk]) {
+            newLastPageHeight += estimateRowHeightMm(r);
+          }
+          const lastPageAvailableIfFinal = getAvailableTableHeightMm(lastIdx + 1, true);
+          if (newLastPageHeight <= lastPageAvailableIfFinal) {
+            pageChunks[prevIdx] = prevChunk.slice(0, prevChunk.length - shiftCount);
+            pageChunks[lastIdx] = [...shiftedRows, ...lastChunk];
+            pageStartIndexes[lastIdx] = pageStartIndexes[prevIdx] + pageChunks[prevIdx].length;
+          }
+        }
+      }
     }
   }
 
