@@ -2199,6 +2199,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const orientation = opts.orientation || autoOrientation;
   const isSinglePage = singlePage ?? (tableRows.length === 0 && Boolean(customSectionsHtml));
 
+  // Check if dataset is a small single-page batch (e.g. <= 22 rows) where generous executive row spacing is desirable
+  const isShortSingleDataset = tableRows.length <= 22 && tableRows.length > 0;
+
   // High-legibility, bold typography scaled by orientation and column density
   let baseFontSizePt = 9.8;
   let printFontSizePt = 9.2;
@@ -2268,6 +2271,22 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       tableLetterSpacing = "normal";
     }
   }
+
+  if (isShortSingleDataset) {
+    if (tableRows.length <= 12) {
+      cellPadding = orientation === "landscape" ? "6.5px 8px" : "7.5px 9px";
+      printPadding = orientation === "landscape" ? "5.5px 7px" : "6.5px 8px";
+      baseFontSizePt = Math.min(10.5, baseFontSizePt + 1.0);
+      printFontSizePt = Math.min(10.0, printFontSizePt + 1.0);
+    } else {
+      cellPadding = orientation === "landscape" ? "4.5px 6.5px" : "5.5px 7.5px";
+      printPadding = orientation === "landscape" ? "4px 5.5px" : "5px 6.5px";
+      baseFontSizePt = Math.min(10.0, baseFontSizePt + 0.5);
+      printFontSizePt = Math.min(9.5, printFontSizePt + 0.5);
+    }
+  }
+
+  const tableLineHeight = isShortSingleDataset ? "1.30" : "1.18";
 
   // Helper: Strictly determine if a column is a legitimate quantifiable metric that can be summed
   const isQuantifiableHeader = (headerName: string, rawHeaderName: string): boolean => {
@@ -2470,23 +2489,23 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Exact printable A4 heights in millimeters (matching print CSS: 206mm landscape, 293mm portrait)
   const pageHeightMm = isLandscape ? 206.0 : 293.0;
-  const topMarginMm = 5.0; // sheet padding top
-  const bottomMarginMm = 5.0; // sheet padding bottom
-  const footerHeightMm = 7.5; // .opera-footer layout + border
-  const safetyBufferMm = isLandscape ? 3.0 : 4.0; // font metrics & rendering subpixel tolerance
+  const topMarginMm = 4.0; // sheet padding top
+  const bottomMarginMm = 4.0; // sheet padding bottom
+  const footerHeightMm = 5.5; // .opera-footer layout + border
+  const safetyBufferMm = isLandscape ? 1.5 : 2.0; // subpixel rendering tolerance
 
-  // Net usable height inside sheet container
+  // Net usable height inside sheet container (191.0mm in landscape, 277.5mm in portrait)
   const usableHeightMm = pageHeightMm - topMarginMm - bottomMarginMm - footerHeightMm - safetyBufferMm;
 
   // Header, Components, and Table Header Heights in mm:
-  const p1HeaderHeightMm = (dateFrom || dateTo) ? 26.5 : 23.0; // Branded Letterhead Header on Page 1
-  const subsequentHeaderHeightMm = 10.5; // Compact Sub-Header on Page 2+
-  const theadHeightMm = 8.0; // Repeated table header row
+  const p1HeaderHeightMm = (dateFrom || dateTo) ? 17.0 : 14.5; // Branded Letterhead Header on Page 1
+  const subsequentHeaderHeightMm = 7.5; // Compact Sub-Header on Page 2+
+  const theadHeightMm = 6.0; // Repeated table header row
   const kpisHeightMm = hasKpis ? 26.0 : 0.0; // KPI Cards Grid
   const customSectionHeightMm = customSectionsHtml ? 35.0 : 0.0; // Custom top sections (if any)
   const customBottomSectionHeightMm = customBottomSectionsHtml ? 42.0 : 0.0; // Demographics / bottom section
-  const sigsHeightMm = hasSigs ? 29.0 : 0.0; // Signatures Section on final page
-  const totalsRowHeightMm = 6.5; // Final totals row
+  const sigsHeightMm = hasSigs ? 28.0 : 0.0; // Signatures Section on final page
+  const totalsRowHeightMm = 6.0; // Final totals row
 
   // Function to calculate available table height dynamically for ANY page
   const getAvailableTableHeightMm = (pageNum: number, isFinal: boolean): number => {
@@ -2501,17 +2520,24 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   }
 
   // ── Dynamic Row Height Calculation ──
-  const printableWidthMm = isLandscape ? 280.0 : 196.0;
-  const avgCharWidthMm = (baseFontSizePt * 0.3528) * (isArabic ? 0.54 : 0.50);
+  const printableWidthMm = isLandscape ? 285.0 : 198.0;
+  // In Cairo / Arial fonts at 8pt, average character width is ~1.15mm (approx 0.40 * font size)
+  const avgCharWidthMm = (baseFontSizePt * 0.3528) * (isArabic ? 0.42 : 0.38);
   const colCharsCapacity = colWidthsPct.map((pct) => {
     const colWidthMm = printableWidthMm * (pct / 100);
-    return Math.max(3, Math.floor((colWidthMm - 2.5) / avgCharWidthMm));
+    return Math.max(4, Math.floor((colWidthMm - 2.0) / avgCharWidthMm));
   });
 
-  const baseRowHeightMm = isLandscape ? 5.6 : 6.0;
-  const extraLineHeightMm = isLandscape
-    ? Math.max(2.8, printFontSizePt * 1.25 * 0.3528)
-    : Math.max(3.2, printFontSizePt * 1.25 * 0.3528);
+  // Base row height in mm corresponding to CSS line-height + padding + border:
+  const baseRowHeightMm = isShortSingleDataset
+    ? (isLandscape ? (tableRows.length <= 12 ? 8.0 : 6.4) : (tableRows.length <= 12 ? 8.6 : 7.0))
+    : isLandscape
+      ? (colCount >= 14 ? 4.2 : colCount >= 10 ? 4.5 : 4.8)
+      : (colCount >= 14 ? 4.5 : colCount >= 10 ? 4.8 : 5.2);
+
+  const extraLineHeightMm = isShortSingleDataset
+    ? (isLandscape ? 3.0 : 3.4)
+    : (isLandscape ? 2.3 : 2.6);
 
   const calculateCellLines = (val: any, cpl: number): number => {
     if (val === null || val === undefined) return 1;
@@ -2556,7 +2582,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
       totalLines += lines;
     }
-    return Math.max(1, Math.min(5, totalLines));
+    return Math.max(1, Math.min(4, totalLines));
   };
 
   const isWrappableHeader = (h: string): boolean => {
@@ -3019,7 +3045,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       height: ${orientation === "landscape" ? "210mm" : "297mm"};
       max-height: ${orientation === "landscape" ? "210mm" : "297mm"};
       background: #ffffff;
-      padding: 5mm 8mm;
+      padding: 4mm 6mm;
       box-shadow: 0 8px 30px rgba(0,0,0,0.3);
       position: relative;
       box-sizing: border-box;
@@ -3249,7 +3275,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-inline-end: 1px solid #f1f5f9 !important;
       border-bottom: 1px solid #cbd5e1 !important;
       padding: ${cellPadding} !important;
-      line-height: 1.18 !important;
+      line-height: ${tableLineHeight} !important;
       vertical-align: middle;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
@@ -3450,7 +3476,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         min-height: ${orientation === "landscape" ? "206mm" : "293mm"} !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 5mm 8mm 5mm 8mm !important;
+        padding: 4mm 6mm 4mm 6mm !important;
         overflow: hidden !important;
         border-radius: 0 !important;
         display: flex !important;
@@ -3520,6 +3546,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         font-size: ${printFontSizePt}pt !important;
         font-weight: 700 !important;
         padding: ${printPadding} !important;
+        line-height: ${tableLineHeight} !important;
         color: #000000 !important;
         border-bottom: 1px solid #cbd5e1 !important;
         word-break: normal !important;
