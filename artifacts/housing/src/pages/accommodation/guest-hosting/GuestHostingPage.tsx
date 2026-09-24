@@ -75,6 +75,7 @@ import KeyManagementPanel from "@/components/KeyManagementPanel";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
+import { exportExcel } from "@/pages/reports/utils/export";
 import { DataPagination } from "@/components/DataPagination";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import {
@@ -780,10 +781,10 @@ export default function GuestHosting() {
         Status: h.status,
       };
     });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "GuestHosting");
-    XLSX.writeFile(wb, getExportFileName("Guest_Hosting", "xlsx"));
+    exportExcel("Guest_Hosting", rows, {
+      sheetName: ar ? "الاستضافات" : "GuestHosting",
+      orientation: "landscape",
+    });
   };
 
   const HOSTING_COLS = [

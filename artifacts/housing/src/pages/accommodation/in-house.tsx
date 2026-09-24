@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import * as XLSX from "xlsx";
+import { exportExcel } from "@/pages/reports/utils/export";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -879,10 +880,10 @@ export default function InHouse() {
         Status: (a as any).profileStatus || emp?.status || a.status || "",
       };
     });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, ar ? "المقيمون بالسكن" : "In-House");
-    XLSX.writeFile(wb, getExportFileName(ar ? "المقيمون_بالسكن" : "InHouse_Selected", "xlsx"));
+    exportExcel(ar ? "المقيمون_بالسكن" : "InHouse_Selected", rows, {
+      sheetName: ar ? "المقيمون بالسكن" : "In-House",
+      orientation: "landscape",
+    });
   };
 
   const exportSelectedPdf = async () => {

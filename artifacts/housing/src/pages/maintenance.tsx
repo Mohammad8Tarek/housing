@@ -78,6 +78,7 @@ import {
 } from "@/components/ui/column-chooser";
 import TicketDetailModal from "@/components/ui/ticket-detail-modal";
 import * as XLSX from "xlsx";
+import { exportExcel } from "@/pages/reports/utils/export";
 import { format, differenceInMinutes } from "date-fns";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -816,10 +817,10 @@ export default function Tickets() {
         : "—",
       [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, ar ? "التذاكر" : "Tickets");
-    XLSX.writeFile(wb, getExportFileName("Tickets_Hub", "xlsx"));
+    exportExcel("Tickets_Hub", rows, {
+      sheetName: ar ? "التذاكر" : "Tickets",
+      orientation: "landscape",
+    });
   };
 
   const exportSelectedTicketsExcel = () => {
@@ -865,10 +866,10 @@ export default function Tickets() {
         : "—",
       [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, ar ? "التذاكر المحددة" : "Selected Tickets");
-    XLSX.writeFile(wb, getExportFileName("Selected_Tickets", "xlsx"));
+    exportExcel("Selected_Tickets", rows, {
+      sheetName: ar ? "التذاكر المحددة" : "Selected Tickets",
+      orientation: "landscape",
+    });
   };
 
   const handleBulkStatusChange = async (newStatus: string) => {

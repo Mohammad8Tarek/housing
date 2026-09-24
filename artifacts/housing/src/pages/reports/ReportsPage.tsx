@@ -157,6 +157,7 @@ export default function Reports() {
       activeTab: filters.activeTab,
       canExportReports,
       currentData: () => sortedData,
+      currentPageData: () => paginatedData,
       properties: data.properties,
       propId: data.propId,
       activePropertyId,

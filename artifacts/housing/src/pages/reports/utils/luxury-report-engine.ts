@@ -67,39 +67,39 @@ export interface LuxuryReportOptions {
 // ----------------------------------------------------------------------------
 export const REPORT_TAB_CONFIG: Record<
   string,
-  { showKpis: boolean; showSignatures: boolean }
+  { showKpis: boolean; showSignatures: boolean; orientation?: "landscape" | "portrait" }
 > = {
   // Executive & Operations Audits (Clean formal report view - with executive KPIs and signatures)
-  manager_flash: { showKpis: true, showSignatures: true },
-  housekeeping_sheet: { showKpis: false, showSignatures: true },
-  room_discrepancy: { showKpis: false, showSignatures: true },
-  occupancy_forecast: { showKpis: false, showSignatures: false },
+  manager_flash: { showKpis: true, showSignatures: true, orientation: "landscape" },
+  housekeeping_sheet: { showKpis: false, showSignatures: true, orientation: "landscape" },
+  room_discrepancy: { showKpis: false, showSignatures: true, orientation: "landscape" },
+  occupancy_forecast: { showKpis: false, showSignatures: false, orientation: "landscape" },
 
   // Formal Master Ledgers & Directory Manifests (Formal clean style, maximum rows per page)
-  assignments: { showKpis: false, showSignatures: false },
-  profiles: { showKpis: false, showSignatures: false },
-  vacant_rooms: { showKpis: false, showSignatures: false },
-  housing: { showKpis: false, showSignatures: false },
-  history: { showKpis: false, showSignatures: false },
-  expiring_contracts: { showKpis: false, showSignatures: false },
-  reservations: { showKpis: false, showSignatures: false },
-  hostings: { showKpis: false, showSignatures: false },
-  maintenance: { showKpis: true, showSignatures: true },
-  equipment_inventory: { showKpis: false, showSignatures: false },
-  arrivals_manifest: { showKpis: false, showSignatures: false },
-  departures_manifest: { showKpis: false, showSignatures: false },
-  housekeeping: { showKpis: false, showSignatures: false },
-  daily_movement: { showKpis: false, showSignatures: false },
-  department_occupancy: { showKpis: false, showSignatures: false },
-  gate_logs: { showKpis: false, showSignatures: false },
-  police_report: { showKpis: false, showSignatures: true },
-  service_ratings: { showKpis: true, showSignatures: true },
-  housing_map: { showKpis: false, showSignatures: false },
-  water_distribution: { showKpis: false, showSignatures: true },
-  vacations: { showKpis: true, showSignatures: true },
-  policy_exceptions: { showKpis: true, showSignatures: true },
-  housing_ratings: { showKpis: true, showSignatures: false },
-  room_moves: { showKpis: true, showSignatures: false },
+  assignments: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  profiles: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  vacant_rooms: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  housing: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  history: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  expiring_contracts: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  reservations: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  hostings: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  maintenance: { showKpis: true, showSignatures: true, orientation: "landscape" },
+  equipment_inventory: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  arrivals_manifest: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  departures_manifest: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  housekeeping: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  daily_movement: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  department_occupancy: { showKpis: false, showSignatures: false, orientation: "portrait" },
+  gate_logs: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  police_report: { showKpis: false, showSignatures: true, orientation: "landscape" },
+  service_ratings: { showKpis: true, showSignatures: true, orientation: "landscape" },
+  housing_map: { showKpis: false, showSignatures: false, orientation: "landscape" },
+  water_distribution: { showKpis: false, showSignatures: true, orientation: "landscape" },
+  vacations: { showKpis: true, showSignatures: true, orientation: "landscape" },
+  policy_exceptions: { showKpis: true, showSignatures: true, orientation: "landscape" },
+  housing_ratings: { showKpis: true, showSignatures: false, orientation: "landscape" },
+  room_moves: { showKpis: true, showSignatures: false, orientation: "landscape" },
 };
 
 // ----------------------------------------------------------------------------
@@ -2194,8 +2194,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const headers = rawHeaders.map((h) => translateReportHeader(h, isArabic));
   const colCount = headers.length + 1; // including '#' sequence column
 
-  // Determine Orientation: Automatically enforce Landscape if >= 5 columns or explicitly requested
-  const orientation = opts.orientation || (colCount >= 5 ? "landscape" : "portrait");
+  // Determine Orientation: Automatically enforce Landscape if >= 7 columns (including # seq) or explicitly requested/configured
+  const autoOrientation = tabConfig?.orientation || (colCount >= 7 ? "landscape" : "portrait");
+  const orientation = opts.orientation || autoOrientation;
   const isSinglePage = singlePage ?? (tableRows.length === 0 && Boolean(customSectionsHtml));
 
   // High-legibility, bold typography scaled by orientation and column density
@@ -2475,9 +2476,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   // Page 1: budget = 125mm (allows up to 20 single-line rows with logos and header)
   // Subsequent pages: budget = 145mm (allows up to 23 single-line rows with subheader)
   // Last page with signatures: budget = 105mm (allows up to 17-18 rows with signatures)
-  const budgetP1Mm = isLandscape ? (hasKpis ? 95 : 125) : (hasKpis ? 165 : 190);
-  const budgetSubsequentMm = isLandscape ? 145 : 210;
-  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 105 : 160) : budgetSubsequentMm;
+  // Portrait A4 (297mm height): Page padding (10mm), footer (6mm), safe margin (15mm)
+  // Page 1: budget = 205mm (allows up to 32 single-line rows with logos and header)
+  // Subsequent pages: budget = 230mm (allows up to 36 single-line rows with subheader)
+  // Last page with signatures: budget = 175mm (allows up to 26-28 rows with signatures)
+  const budgetP1Mm = isLandscape ? (hasKpis ? 95 : 125) : (hasKpis ? 165 : 205);
+  const budgetSubsequentMm = isLandscape ? 145 : 230;
+  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 105 : 175) : budgetSubsequentMm;
 
   // Approximate character capacity per column to detect line wrapping
   const printableWidthMm = isLandscape ? 280 : 196;
@@ -2545,7 +2550,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
       // If all remaining rows fit on this page with signatures, take them all!
       const maxSigBudget = isFirst
-        ? (hasKpis ? (hasSigs ? 75 : 95) : (hasSigs ? 98 : 125))
+        ? (isLandscape
+            ? (hasKpis ? (hasSigs ? 75 : 95) : (hasSigs ? 98 : 125))
+            : (hasKpis ? (hasSigs ? 135 : 165) : (hasSigs ? 175 : 205)))
         : budgetLastWithSigsMm;
       if (remainingTotalHeight <= maxSigBudget) {
         pageStartIndexes.push(cursor);
@@ -2556,7 +2563,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
       // Otherwise, fill this page to its maximum millimeter budget
       const maxPageBudget = isFirst ? budgetP1Mm : budgetSubsequentMm;
-      const maxRowLimit = isFirst ? (hasKpis ? 15 : 20) : 23;
+      const maxRowLimit = isLandscape
+        ? (isFirst ? (hasKpis ? 15 : 20) : 23)
+        : (isFirst ? (hasKpis ? 24 : 32) : 36);
       let accumulatedHeight = 0;
       let count = 0;
 

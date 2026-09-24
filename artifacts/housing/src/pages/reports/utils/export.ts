@@ -21,22 +21,100 @@ export {
   type ReportColumn,
 };
 
-export const exportExcel = (activeTab: string, rows: Record<string, any>[]) => {
+export interface ExcelExportOptions {
+  orientation?: "landscape" | "portrait";
+  isArabic?: boolean;
+  sheetTitle?: string;
+  filenamePrefix?: string;
+}
+
+export const exportExcel = (
+  activeTab: string,
+  rows: Record<string, any>[],
+  options?: ExcelExportOptions,
+) => {
+  const isAr = options?.isArabic ?? true;
   if (!rows || !rows.length) {
-    toast.warning("لا توجد بيانات مطابقة لتصديرها إلى Excel");
+    toast.warning(isAr ? "لا توجد بيانات مطابقة لتصديرها إلى Excel" : "No matching records found to export to Excel");
     return;
   }
+
+  // 1. Generate worksheet from json rows
   const ws = XLSX.utils.json_to_sheet(rows);
+
+  // 2. Compute intelligent column widths (wch) dynamically from headers and cell content
+  const headers = Object.keys(rows[0] || {});
+  const colWidths = headers.map((header) => {
+    let maxCharLen = header.length;
+    const sampleLimit = Math.min(rows.length, 500);
+    for (let r = 0; r < sampleLimit; r++) {
+      const val = rows[r][header];
+      if (val !== null && val !== undefined) {
+        const strVal = String(val).trim();
+        maxCharLen = Math.max(maxCharLen, strVal.length);
+      }
+    }
+    const normH = header.toLowerCase();
+    const isIdOrCode = /code|كود|#|id|phone|هاتف|mobile|room|غرفة|bed|سرير|status|حالة|gender|نوع|level|درجة/i.test(normH);
+    const isLongText = /notes|ملاحظات|reason|سبب|detail|تفاصيل|address|عنوان|comment|تعليق|action|إجراء/i.test(normH);
+
+    if (isIdOrCode) {
+      return { wch: Math.min(26, Math.max(10, Math.ceil(maxCharLen * 1.15) + 2)) };
+    }
+    if (isLongText) {
+      return { wch: Math.min(60, Math.max(26, Math.ceil(maxCharLen * 1.1) + 3)) };
+    }
+    return { wch: Math.min(48, Math.max(14, Math.ceil(maxCharLen * 1.15) + 3)) };
+  });
+  ws["!cols"] = colWidths;
+
+  // 3. Freeze top header row and set Right-to-Left sheet view if Arabic
+  ws["!views"] = [
+    {
+      state: "frozen",
+      ySplit: 1,
+      xSplit: 0,
+      activeCell: "A2",
+      showGridLines: true,
+      rightToLeft: isAr,
+    },
+  ];
+
+  // 4. Set AutoFilter across all populated columns
+  if (ws["!ref"]) {
+    ws["!autofilter"] = { ref: ws["!ref"] };
+  }
+
+  // 5. Print Setup: Fit all columns to 1 page wide, auto orientation, A4 paper size
+  const autoOrientation = options?.orientation || (headers.length >= 7 ? "landscape" : "portrait");
+  ws["!pageSetup"] = {
+    orientation: autoOrientation,
+    paperSize: 9, // A4 paper size
+    fitToWidth: 1,
+    fitToHeight: 0, // automatic vertical pages
+    scale: 100,
+  };
+
+  // 6. Professional print margins (0.5 inch margins)
+  ws["!margins"] = {
+    left: 0.5,
+    right: 0.5,
+    top: 0.75,
+    bottom: 0.75,
+    header: 0.3,
+    footer: 0.3,
+  };
+
+  // 7. Create workbook and add sheet with clean title
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(
-    wb,
-    ws,
-    activeTab.charAt(0).toUpperCase() + activeTab.slice(1),
-  );
-  XLSX.writeFile(
-    wb,
-    getExportFileName(`${activeTab}_Report`, "xlsx"),
-  );
+  const rawSheetName = options?.sheetTitle || (REPORT_TAB_TITLES[activeTab] ? (isAr ? REPORT_TAB_TITLES[activeTab].ar : REPORT_TAB_TITLES[activeTab].en) : activeTab);
+  const cleanSheetName = rawSheetName.slice(0, 31).replace(/[\\/?*[\]]/g, "_");
+  XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
+
+  // 8. Output filename conforming to DD-MM-YYYY format
+  const filePrefix = options?.filenamePrefix || `${activeTab}_Report`;
+  XLSX.writeFile(wb, getExportFileName(filePrefix, "xlsx"));
+  toast.success(isAr ? `تم تصدير ${rows.length} سجل بنجاح إلى ملف Excel جاهز للطباعة!` : `Successfully exported ${rows.length} records to print-ready Excel!`);
 };
 
 export const pdfTextSafe = (

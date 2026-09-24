@@ -97,6 +97,7 @@ import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import * as XLSX from "xlsx";
+import { exportExcel } from "@/pages/reports/utils/export";
 import { DataPagination } from "@/components/DataPagination";
 import { PaginationBar } from "@/components/ui/PaginationBar";
 
@@ -582,11 +583,10 @@ export function ProfilesPage() {
         };
       });
 
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, ar ? "دليل الموظفين الشامل" : "Complete Profiles");
-      const filename = getExportFileName(ar ? "سجل_الموظفين_الشامل" : "Profiles_Complete", "xlsx");
-      XLSX.writeFile(wb, filename);
+      exportExcel(ar ? "سجل_الموظفين_الشامل" : "Profiles_Complete", rows, {
+        sheetName: ar ? "دليل الموظفين الشامل" : "Profiles",
+        orientation: "landscape",
+      });
 
       toast.success(
         ar

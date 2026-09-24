@@ -65,6 +65,7 @@ import { NationalitySelect } from "@/components/ui/nationality-select";
 import { format } from "date-fns";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
 import * as XLSX from "xlsx";
+import { exportExcel } from "@/pages/reports/utils/export";
 import {
   Plus, Trash, Search, BedDouble, UserCheck, Users,
   CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
@@ -1358,10 +1359,10 @@ export default function ReservationsPage() {
       Department: r.department ?? "",
       "ID Card": r.guestIdCardNumber ?? "",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Reservations");
-    XLSX.writeFile(wb, getExportFileName("Reservations", "xlsx"));
+    exportExcel("Reservations", rows, {
+      sheetName: ar ? "الحجوزات" : "Reservations",
+      orientation: "landscape",
+    });
   };
 
   const printHousingLetter = async (profile: any, assignment: any) => {

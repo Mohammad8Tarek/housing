@@ -21,6 +21,7 @@ export function useReportExport({
   activeTab,
   canExportReports,
   currentData,
+  currentPageData,
   properties,
   propId,
   activePropertyId,
@@ -43,8 +44,8 @@ export function useReportExport({
   inventoryViewMode = "summary",
   filterRow,
 }: any) {
-  const getRawRows = (): Record<string, any>[] => {
-    const data = currentData();
+  const getRawRows = (scope: "all" | "page" = "all"): Record<string, any>[] => {
+    const data = (scope === "page" && typeof currentPageData === "function") ? currentPageData() : currentData();
     switch (activeTab) {
       case "manager_flash":
         return data.map((b: any) => ({
@@ -484,20 +485,20 @@ export function useReportExport({
     }
   };
 
-  const toExcelRows = (): Record<string, any>[] => {
-    const raw = getRawRows();
+  const toExcelRows = (scope: "all" | "page" = "all"): Record<string, any>[] => {
+    const raw = getRawRows(scope);
     if (typeof filterRow === "function") {
       return raw.map((r) => filterRow(r));
     }
     return raw;
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = (scope: "all" | "page" = "all") => {
     if (!canExportReports) {
       toast.error(ar ? "ليس لديك صلاحية تصدير التقارير" : "You do not have permission to export reports");
       return;
     }
-    const rows = toExcelRows();
+    const rows = toExcelRows(scope);
     if (!rows || rows.length === 0) {
       toast.warning(ar ? "لا توجد بيانات مطابقة لتصديرها إلى Excel" : "No matching data available to export to Excel");
       return;
@@ -505,12 +506,12 @@ export function useReportExport({
     exportExcel(activeTab, rows);
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (scope: "all" | "page" = "all") => {
     if (!canExportReports) {
       toast.error(ar ? "ليس لديك صلاحية تصدير التقارير" : "You do not have permission to export reports");
       return;
     }
-    const rows = toExcelRows();
+    const rows = toExcelRows(scope);
     if (!rows || rows.length === 0) {
       toast.warning(ar ? "لا توجد بيانات مطابقة لتصديرها كـ PDF" : "No matching data available to export as PDF");
       return;

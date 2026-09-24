@@ -63,6 +63,7 @@ import {
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 import * as XLSX from "xlsx";
+import { exportExcel } from "@/pages/reports/utils/export";
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
@@ -362,10 +363,10 @@ export default function HistoryPage() {
         Status: formatStatus(a.status, ar),
       };
     });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "History");
-    XLSX.writeFile(wb, getExportFileName("Housing_History", "xlsx"));
+    exportExcel("Housing_History", rows, {
+      sheetName: ar ? "سجل التسكين" : "History",
+      orientation: "landscape",
+    });
   };
 
   const exportPDF = async () => {
