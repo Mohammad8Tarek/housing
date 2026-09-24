@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useCallback, useState } from "react";
 import {
   X,
@@ -40,6 +39,7 @@ export function ImageLightbox({
     : false;
 
   useEffect(() => {
+    let cleanupUrl: string | null = null;
     if (!src) {
       if (blobUrl) {
         URL.revokeObjectURL(blobUrl);
@@ -63,11 +63,15 @@ export function ImageLightbox({
       if (blob.size > 0) {
         const url = URL.createObjectURL(blob);
         setBlobUrl(url);
-        return () => {
-          URL.revokeObjectURL(url);
-        };
+        cleanupUrl = url;
       }
     }
+
+    return () => {
+      if (cleanupUrl) {
+        URL.revokeObjectURL(cleanupUrl);
+      }
+    };
   }, [src, isPdf, isImage]);
 
   const handleKeyDown = useCallback(

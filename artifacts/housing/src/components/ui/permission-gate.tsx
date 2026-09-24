@@ -1,5 +1,4 @@
-// @ts-nocheck
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 import { usePermission } from "@/hooks/use-permission";
 import type { Module, Action } from "@/lib/permissions";
 

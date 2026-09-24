@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * World Countries & Nationalities Database
  * Comprehensive list of 195+ sovereign states & territories with:

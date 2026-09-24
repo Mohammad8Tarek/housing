@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useEffect, useRef } from "react";
 import { applyBrandColors } from "@/lib/brand-colors";
 import { Link, useLocation } from "wouter";
@@ -186,9 +185,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   });
 
 
+  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
   const { data: sysSettings } = useGetSettings(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId, staleTime: 300000 } },
+    { propertyId: numericPropertyId },
+    { query: { enabled: !!numericPropertyId, staleTime: 300000 } as any },
   );
   const systemName =
     sysSettings?.systemName &&

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useAuth } from "@/context/AuthContext";
 import {
   permKey,
@@ -17,7 +16,7 @@ const normalize = (value: unknown): string => {
 };
 
 // Role hierarchy: child roles inherit all permissions from parent roles
-const ROLE_INHERITANCE = {
+const ROLE_INHERITANCE: Record<string, string[]> = {
   super_admin: [],
   system_admin: [],
   admin: [],

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
@@ -280,7 +279,7 @@ export default function PortalNotifications() {
                   className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card hover:bg-muted/20 transition-colors group"
                 >
                   <div className="flex-shrink-0 mt-0.5">
-                    {TYPE_ICONS[n.type] ?? <Bell className="w-4 h-4" />}
+                    {(TYPE_ICONS as Record<string, any>)[n.type] ?? <Bell className="w-4 h-4" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -288,10 +287,10 @@ export default function PortalNotifications() {
                         {ar ? n.titleAr || n.title : n.title}
                       </span>
                       <Badge
-                        className={`text-[10px] px-1.5 py-0 ${PRIORITY_BADGE[n.priority] ?? ""}`}
+                        className={`text-[10px] px-1.5 py-0 ${(PRIORITY_BADGE as Record<string, string>)[n.priority] ?? ""}`}
                       >
                         {ar
-                          ? ({ high: "عالية", medium: "متوسطة", low: "منخفضة" }[
+                          ? (({ high: "عالية", medium: "متوسطة", low: "منخفضة" } as Record<string, string>)[
                               n.priority
                             ] ?? n.priority)
                           : n.priority}
@@ -301,12 +300,12 @@ export default function PortalNotifications() {
                         className="text-[10px] px-1.5 py-0"
                       >
                         {ar
-                          ? ({
+                          ? (({
                               activity: "فعالية",
                               evaluation: "استبيان",
                               document: "مستند",
                               announcement: "إعلان",
-                            }[n.type] ?? n.type)
+                            } as Record<string, string>)[n.type] ?? n.type)
                           : n.type}
                       </Badge>
                     </div>

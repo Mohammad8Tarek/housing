@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * housing/src/hooks/use-websocket.ts
  *

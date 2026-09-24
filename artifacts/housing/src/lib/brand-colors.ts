@@ -1,4 +1,3 @@
-// @ts-nocheck
 export function hexToHslComponents(hex: string): string | null {
   if (!hex?.startsWith("#") || hex.length < 7) return null;
   const r = parseInt(hex.slice(1, 3), 16) / 255;

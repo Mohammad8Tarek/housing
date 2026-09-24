@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -148,17 +147,18 @@ export default function PortalReports({ defaultType }: { defaultType?: string } 
     Record<string, boolean>
   >({});
 
+  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
   const { data: settings } = useGetSettings(
-    { propertyId: activePropertyId },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: numericPropertyId },
+    { query: { enabled: !!numericPropertyId } as any },
   );
   const { data: _pData } = useListProperties({
     query: {
       staleTime: 5 * 60 * 1000,
-      cacheTime: 30 * 60 * 1000,
-    },
+      gcTime: 30 * 60 * 1000,
+    } as any,
   });
-  const properties = _pData?.data || _pData || [];
+  const properties = Array.isArray(_pData) ? _pData : ((_pData as any)?.data || []);
 
   // Fetch departments for filter
   const { data: departments = [] } = useQuery({

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -99,11 +98,21 @@ export default function PortalFoodTransport() {
   );
 }
 
-function FoodMenuSection({ propertyId, items, loading, queryClient }) {
+function FoodMenuSection({
+  propertyId,
+  items,
+  loading,
+  queryClient,
+}: {
+  propertyId: any;
+  items: any[];
+  loading: boolean;
+  queryClient: any;
+}) {
   const { language } = useLanguage();
   const ar = language === "ar";
   const [isOpen, setIsOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
+  const [editItem, setEditItem] = useState<any>(null);
   const emptyForm = {
     name: "",
     nameAr: "",
@@ -118,7 +127,7 @@ function FoodMenuSection({ propertyId, items, loading, queryClient }) {
   const [form, setForm] = useState(emptyForm);
 
   const saveMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: any) => {
       const isEdit = !!data.id;
       const url = isEdit
         ? `/api/portal-food/admin/menu/${data.id}`
@@ -159,7 +168,7 @@ function FoodMenuSection({ propertyId, items, loading, queryClient }) {
     },
   });
 
-  const openEdit = (item) => {
+  const openEdit = (item: any) => {
     setEditItem(item);
     setForm({
       name: item.name,
@@ -226,7 +235,7 @@ function FoodMenuSection({ propertyId, items, loading, queryClient }) {
               </TableCell>
             </TableRow>
           ) : (
-            items.map((item) => (
+            items.map((item: any) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">
                   {ar && item.nameAr ? item.nameAr : item.name}
@@ -406,11 +415,21 @@ function FoodMenuSection({ propertyId, items, loading, queryClient }) {
   );
 }
 
-function TransportSection({ propertyId, schedules, loading, queryClient }) {
+function TransportSection({
+  propertyId,
+  schedules,
+  loading,
+  queryClient,
+}: {
+  propertyId: any;
+  schedules: any[];
+  loading: boolean;
+  queryClient: any;
+}) {
   const { language } = useLanguage();
   const ar = language === "ar";
   const [isOpen, setIsOpen] = useState(false);
-  const [editSched, setEditSched] = useState(null);
+  const [editSched, setEditSched] = useState<any>(null);
   const emptyForm = {
     route: "",
     routeAr: "",
@@ -428,7 +447,7 @@ function TransportSection({ propertyId, schedules, loading, queryClient }) {
   const [form, setForm] = useState(emptyForm);
 
   const saveMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: any) => {
       const isEdit = !!data.id;
       const url = isEdit
         ? `/api/portal-food/admin/schedules/${data.id}`
@@ -455,7 +474,7 @@ function TransportSection({ propertyId, schedules, loading, queryClient }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
+    mutationFn: async (id: any) => {
       await fetch(
         `/api/portal-food/admin/schedules/${id}?propertyId=${propertyId}`,
         { method: "DELETE" },
@@ -469,7 +488,7 @@ function TransportSection({ propertyId, schedules, loading, queryClient }) {
     },
   });
 
-  const openEdit = (s) => {
+  const openEdit = (s: any) => {
     setEditSched(s);
     setForm({
       route: s.route,
@@ -539,7 +558,7 @@ function TransportSection({ propertyId, schedules, loading, queryClient }) {
               </TableCell>
             </TableRow>
           ) : (
-            schedules.map((s) => (
+            schedules.map((s: any) => (
               <TableRow key={s.id}>
                 <TableCell className="font-medium">
                   {ar && s.routeAr ? s.routeAr : s.route}

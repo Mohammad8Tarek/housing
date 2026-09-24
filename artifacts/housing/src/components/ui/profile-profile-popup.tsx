@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -77,39 +76,39 @@ export function ProfileProfilePopup({
   const effectivePropId = (profile?.propertyId || propId) as number | undefined;
 
   const { data: _aData } = useListAssignments({ propertyId: effectivePropId } as any, {
-    query: { enabled: !!effectivePropId },
+    query: { enabled: !!effectivePropId } as any,
   });
-  const assignments: any[] = Array.isArray(_aData) ? _aData : (_aData?.data || []);
+  const assignments: any[] = Array.isArray(_aData) ? _aData : ((_aData as any)?.data || []);
 
   const { data: _empAssignments } = useListAssignments({ propertyId: effectivePropId, profileId: Number(profileId) } as any, {
-    query: { enabled: !!profileId && !!effectivePropId },
+    query: { enabled: !!profileId && !!effectivePropId } as any,
   });
 
   const { data: _rData } = useListRooms(
-    { propertyId: effectivePropId, limit: 1000 },
-    { query: { enabled: !!effectivePropId } },
+    { propertyId: effectivePropId, limit: 1000 } as any,
+    { query: { enabled: !!effectivePropId } as any },
   );
-  const rooms = Array.isArray(_rData) ? _rData : (_rData?.data || []);
+  const rooms: any[] = Array.isArray(_rData) ? _rData : ((_rData as any)?.data || []);
   const { data: _bData } = useListBuildings(
-    { propertyId: effectivePropId },
-    { query: { enabled: !!effectivePropId } },
+    { propertyId: effectivePropId } as any,
+    { query: { enabled: !!effectivePropId } as any },
   );
-  const buildings = Array.isArray(_bData) ? _bData : (_bData?.data || []);
+  const buildings: any[] = Array.isArray(_bData) ? _bData : ((_bData as any)?.data || []);
   const { data: _fData } = useListFloors(
-    { propertyId: effectivePropId },
-    { query: { enabled: !!effectivePropId } },
+    { propertyId: effectivePropId } as any,
+    { query: { enabled: !!effectivePropId } as any },
   );
-  const floors = Array.isArray(_fData) ? _fData : (_fData?.data || []);
+  const floors: any[] = Array.isArray(_fData) ? _fData : ((_fData as any)?.data || []);
   const { data: _eData, isLoading: profilesLoading } = useListProfiles(
-    { propertyId: effectivePropId },
-    { query: { enabled: !!effectivePropId } },
+    { propertyId: effectivePropId } as any,
+    { query: { enabled: !!effectivePropId } as any },
   );
-  const profiles = Array.isArray(_eData) ? _eData : (_eData?.data || []);
+  const profiles: any[] = Array.isArray(_eData) ? _eData : ((_eData as any)?.data || []);
   const { data: _hData } = useListHostings(
     { propertyId: effectivePropId } as any,
-    { query: { enabled: !!effectivePropId } },
+    { query: { enabled: !!effectivePropId } as any },
   );
-  const hostings = Array.isArray(_hData) ? _hData : (_hData?.data || []);
+  const hostings: any[] = Array.isArray(_hData) ? _hData : ((_hData as any)?.data || []);
 
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
   const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
@@ -119,18 +118,18 @@ export function ProfileProfilePopup({
   const rawEmpAss = Array.isArray(_empAssignments)
     ? _empAssignments
     : ((_empAssignments as any)?.data || []);
-  const profileAssignments = rawEmpAss.length > 0
+  const profileAssignments: any[] = rawEmpAss.length > 0
     ? rawEmpAss
-    : assignments.filter((a) => Number(a.profileId) === Number(profileId));
+    : assignments.filter((a: any) => Number(a.profileId) === Number(profileId));
 
   const currentAssignment =
-    profileAssignments.find((a) => a.status === "ACTIVE" && !a.checkOutDate) ||
-    profileAssignments.find((a) => a.status === "ACTIVE");
+    profileAssignments.find((a: any) => a.status === "ACTIVE" && !a.checkOutDate) ||
+    profileAssignments.find((a: any) => a.status === "ACTIVE");
 
   const pastAssignments = profileAssignments
-    .filter((a) => a.id !== currentAssignment?.id)
+    .filter((a: any) => a.id !== currentAssignment?.id)
     .sort(
-      (a, b) =>
+      (a: any, b: any) =>
         new Date(b.checkInDate || b.createdAt || 0).getTime() -
         new Date(a.checkInDate || a.createdAt || 0).getTime(),
     );
@@ -177,11 +176,11 @@ export function ProfileProfilePopup({
           const resp = await fetch(
             `/api/hostings/${h.id}/companions?propertyId=${propertyId}`,
           );
-          if (!resp.ok) return [h.id, []] as const;
+          if (!resp.ok) return [h.id, [] as any[]] as [number, any[]];
           const list = await resp.json();
-          return [h.id, Array.isArray(list) ? list : []] as const;
+          return [h.id, (Array.isArray(list) ? list : []) as any[]] as [number, any[]];
         } catch {
-          return [h.id, []] as const;
+          return [h.id, [] as any[]] as [number, any[]];
         }
       }),
     ).then((entries) => {

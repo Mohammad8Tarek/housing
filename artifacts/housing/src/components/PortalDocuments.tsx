@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate as formatSystemDate } from "@/lib/date-utils";

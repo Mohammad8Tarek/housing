@@ -1,5 +1,4 @@
-// @ts-nocheck
-/**
+﻿/**
  * components/ErrorBoundary.tsx
  *
  * Catches unhandled JS errors anywhere in the component tree.

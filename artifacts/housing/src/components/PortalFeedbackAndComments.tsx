@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -31,6 +30,10 @@ export default function PortalFeedbackAndComments() {
   });
   const [commentText, setCommentText] = useState("");
   const [rating, setRating] = useState(5);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: number | null }>({
+    open: false,
+    id: null,
+  });
 
   const { data: feedback, isLoading } = useQuery({
     queryKey: ["portal-feedback", activePropertyId, selectedContent],
@@ -204,11 +207,11 @@ export default function PortalFeedbackAndComments() {
                 <button
                   key={star}
                   type="button"
-                  onClick={() => setNewFeedback({ ...feedback, rating: star })}
+                  onClick={() => setRating(star)}
                   className="p-1"
                 >
                   <Star
-                    className={`w-6 h-6 ${star <= (newFeedback.rating || 0) ? "fill-primary text-primary" : "text-muted-foreground"}`}
+                    className={`w-6 h-6 ${star <= rating ? "fill-primary text-primary" : "text-muted-foreground"}`}
                   />
                 </button>
               ))}
@@ -322,7 +325,9 @@ export default function PortalFeedbackAndComments() {
             : "Are you sure you want to delete this comment?"
         }
         variant="destructive"
-        onConfirm={() => deleteCommentMutation.mutate(deleteDialog.id)}
+        onConfirm={() => {
+          if (deleteDialog.id) deleteCommentMutation.mutate(deleteDialog.id);
+        }}
       />
     </div>
   );
