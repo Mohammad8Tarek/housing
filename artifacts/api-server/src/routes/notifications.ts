@@ -322,7 +322,7 @@ router.get(
                   JOIN rooms r ON a.room_id = r.id
                   WHERE a.status = 'CHECKED_OUT'
                     AND a.notes LIKE '%HR departure%'
-                    AND a.check_out_date >= CURRENT_DATE - INTERVAL '2 days'
+                    AND a.check_out_date >= TO_CHAR(CURRENT_DATE - INTERVAL '2 days', 'YYYY-MM-DD')
                   ORDER BY a.check_out_date DESC
                   LIMIT 15`,
             ).catch(() => ({ rows: [] })),
