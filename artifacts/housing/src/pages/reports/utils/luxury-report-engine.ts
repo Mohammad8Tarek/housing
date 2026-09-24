@@ -237,8 +237,8 @@ export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
     en: "Monthly Drinking Water Distribution Sheet",
   },
   vacations: {
-    ar: "تقرير وسجل وأرشيف إجازات العاملين",
-    en: "Staff Vacations & Historical Leaves Ledger",
+    ar: "تقرير الإجازات",
+    en: "Vacations Report",
   },
   policy_exceptions: {
     ar: "تقرير مخالفات واستثناءات سياسات السكن",

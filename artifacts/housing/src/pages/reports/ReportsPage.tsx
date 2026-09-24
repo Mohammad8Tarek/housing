@@ -474,7 +474,7 @@ export default function Reports() {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">
-                    {ar ? "سجل وأرشيف إجازات الموظفين (استعلام زمني بالتاريخ)" : "Staff Vacations & Leaves Historical Archive"}
+                    {ar ? "تقرير الإجازات (استعلام زمني بالتاريخ)" : "Vacations Report (Date Range Query)"}
                   </h4>
                   <p className="text-muted-foreground mt-0.5">
                     {ar

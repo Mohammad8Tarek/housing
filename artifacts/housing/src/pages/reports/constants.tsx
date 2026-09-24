@@ -164,8 +164,8 @@ export const TABS: TabConfig[] = [
   },
   {
     id: "vacations",
-    label: "Staff Vacations & Historical Archive",
-    labelAr: "سجل وأرشيف إجازات الموظفين",
+    label: "Vacations",
+    labelAr: "الإجازات",
     icon: <Palmtree className="w-4 h-4 text-emerald-600" />,
   },
   {

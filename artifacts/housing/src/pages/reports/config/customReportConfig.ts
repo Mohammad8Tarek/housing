@@ -86,8 +86,8 @@ export const DATA_SOURCES: DataSourceDef[] = [
   },
   {
     id: "vacations",
-    label: "Staff Vacations & Archive",
-    labelAr: "سجل وأرشيف إجازات الموظفين",
+    label: "Vacations",
+    labelAr: "الإجازات",
     description: "Historical leave archive, expected/actual returns, department, and contact phone.",
     descriptionAr: "سجل تاريخي لإجازات الموظفين، مواعيد النزول والعودة، أرقام الهواتف، وحالة العودة.",
     icon: Palmtree,

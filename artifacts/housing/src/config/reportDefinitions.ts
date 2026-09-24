@@ -833,8 +833,8 @@ export const SMART_REPORT_TABS: Record<Tab, {
   },
   vacations: {
     columns: STAFF_VACATIONS_COLUMNS,
-    title: 'Staff Vacations & Historical Archive',
-    titleAr: 'سجل وأرشيف إجازات الموظفين',
+    title: 'Vacations',
+    titleAr: 'الإجازات',
   },
   policy_exceptions: {
     columns: POLICY_EXCEPTIONS_COLUMNS,
