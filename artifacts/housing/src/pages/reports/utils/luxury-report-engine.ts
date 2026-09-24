@@ -3852,6 +3852,45 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     };
 
     ${autoPrint ? `
+    function reflowOperaSheets() {
+      // Measured reflow: move rows that overflow a fixed-height sheet into
+      // the next sheet. Fixes rows visually cut/eaten at page boundaries
+      // when estimated heights undershoot real rendering.
+      try {
+        var sheets = Array.prototype.slice.call(document.querySelectorAll('.sheet.opera-page'));
+        if (sheets.length === 0) return;
+        var guard = 0;
+        var moved = true;
+        while (moved && guard < 300) {
+          moved = false;
+          guard++;
+          for (var i = 0; i < sheets.length; i++) {
+            var sheet = sheets[i];
+            var table = sheet.querySelector('table.opera-table');
+            if (!table) continue;
+            var tbody = table.querySelector('tbody');
+            if (!tbody) continue;
+            var bottomEl = sheet.querySelector('.opera-page-bottom');
+            var sheetRect = sheet.getBoundingClientRect();
+            var bottomH = bottomEl ? bottomEl.getBoundingClientRect().height : 0;
+            var limit = sheetRect.top + sheetRect.height - bottomH - 10;
+            var next = sheets[i + 1] || null;
+            var nextTbody = next ? next.querySelector('table.opera-table tbody') : null;
+            var rows = tbody.querySelectorAll('tr');
+            while (rows.length > 1) {
+              var last = rows[rows.length - 1];
+              if (last.classList && last.classList.contains('opera-totals-row')) break;
+              var r = last.getBoundingClientRect();
+              if (r.bottom <= limit + 1) break;
+              if (!nextTbody) break;
+              nextTbody.insertBefore(last, nextTbody.firstChild);
+              moved = true;
+              rows = tbody.querySelectorAll('tr');
+            }
+          }
+        }
+      } catch (e) { /* never block printing */ }
+    }
     function triggerPrintWhenReady() {
       const imgs = Array.from(document.images);
       const imgPromises = imgs.map(function(img) {
@@ -3863,6 +3902,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       });
       Promise.all([document.fonts.ready, ...imgPromises]).then(function() {
         setTimeout(function() {
+          try { reflowOperaSheets(); } catch (e) {}
           window.print();
         }, 400);
       });
