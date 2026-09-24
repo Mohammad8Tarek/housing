@@ -58,6 +58,7 @@ interface HousingMapReportTabProps {
   activePropertyId?: number | null | string;
   properties?: any[];
   settings?: any;
+  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
 }
 
 export function HousingMapReportTab({
@@ -65,6 +66,7 @@ export function HousingMapReportTab({
   activePropertyId,
   properties = [],
   settings,
+  onRegisterExport,
 }: HousingMapReportTabProps) {
   const initialPropId =
     activePropertyId && activePropertyId !== "all"
@@ -605,6 +607,15 @@ export function HousingMapReportTab({
       customSectionsHtml: targetMode === "map" ? customSectionsHtml : undefined,
     });
   };
+
+  React.useEffect(() => {
+    if (onRegisterExport) {
+      onRegisterExport({
+        exportExcel: handleExportExcel,
+        exportPDF: () => handlePrint("table"),
+      });
+    }
+  }, [onRegisterExport, flatRooms, selectedPropertyId, ar, viewMode]);
 
   const getStatusBadge = (statusCategory: string, cleanlinessStatus?: string) => {
     switch (statusCategory) {

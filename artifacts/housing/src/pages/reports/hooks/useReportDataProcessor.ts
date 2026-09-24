@@ -2455,14 +2455,40 @@ export function useReportDataProcessor({
       case "vacations": {
         const list = (vacations || [])
           .filter((v: any) => {
+            const vRoom = v.roomId ? roomMap[v.roomId] : null;
+            const vBuildingId = v.buildingId ?? vRoom?.buildingId;
+            const vFloorId = v.floorId ?? vRoom?.floorId;
+            const vRoomType = v.roomType || vRoom?.roomType || "";
+            const vCapacity = v.capacity || vRoom?.capacity || 1;
+            const vEmp = empMap[v.profileId] || {};
+            const vGender = v.gender || vEmp.gender || "";
+            const vNationality = v.nationality || vEmp.nationality || "";
+            const vEmploymentType = v.employmentType || vEmp.employmentType || "";
+
             if (filterBuilding !== "all" && filterBuilding) {
-              if (v.buildingId !== Number(filterBuilding)) return false;
+              if (vBuildingId !== Number(filterBuilding)) return false;
+            }
+            if (filterFloor !== "all" && filterFloor) {
+              if (vFloorId !== Number(filterFloor)) return false;
             }
             if (filterDepartment !== "all" && filterDepartment) {
               if (v.department !== filterDepartment) return false;
             }
             if (filterStatus !== "all" && filterStatus) {
               if (v.statusKey !== filterStatus.toUpperCase()) return false;
+            }
+            if (filterGender !== "all" && filterGender) {
+              if (vGender !== filterGender) return false;
+            }
+            if (filterNationality !== "all" && filterNationality) {
+              if (vNationality !== filterNationality) return false;
+            }
+            if (filterEmploymentType !== "all" && filterEmploymentType) {
+              if (vEmploymentType !== filterEmploymentType) return false;
+            }
+            if (filterRoomType !== "all" && filterRoomType) {
+              const dummyRoom = { roomType: vRoomType, capacity: vCapacity };
+              if (!matchesRoomType(dummyRoom, filterRoomType)) return false;
             }
 
             // Historical Date Overlap Query: [dateFrom, dateTo]
@@ -2475,6 +2501,14 @@ export function useReportDataProcessor({
             return true;
           })
           .map((v: any) => {
+            const vRoom = v.roomId ? roomMap[v.roomId] : null;
+            const vEmp = empMap[v.profileId] || {};
+            const genderVal = v.gender || vEmp.gender || "";
+            const natVal = v.nationality || vEmp.nationality || "";
+            const roomTypeVal = v.roomType || vRoom?.roomType || "";
+            const floorIdVal = v.floorId ?? vRoom?.floorId;
+            const floorNameVal = floorIdVal ? (floorMap[floorIdVal] || `Floor ${floorIdVal}`) : "—";
+
             let statusBadge = ar ? "في إجازة حالياً" : "On Vacation";
             if (v.statusKey === "COMPLETED") {
               statusBadge = ar ? "عاد للعمل" : "Returned";
@@ -2495,8 +2529,16 @@ export function useReportDataProcessor({
               jobTitle: v.jobTitle,
               phone: v.phone,
               nationalId: v.nationalId,
+              gender: genderVal,
+              genderLabel: genderVal === "M" ? (ar ? "ذكر" : "Male") : genderVal === "F" ? (ar ? "أنثى" : "Female") : genderVal,
+              nationality: natVal,
+              nationalityLabel: ar ? formatNationality(natVal, true, false) : (natVal || "—"),
+              employmentType: v.employmentType || vEmp.employmentType || "",
               roomNumber: v.roomNumber,
               bedNumber: v.bedNumber,
+              roomType: roomTypeVal ? (ar ? translateRoomType(roomTypeVal, true) : roomTypeVal) : "—",
+              floorName: floorNameVal,
+              floorId: floorIdVal,
               housingInfo: housingDisplay,
               buildingName: v.buildingName,
               buildingId: v.buildingId,
@@ -2517,6 +2559,10 @@ export function useReportDataProcessor({
           v.jobTitle,
           v.roomNumber,
           v.buildingName,
+          v.floorName,
+          v.genderLabel,
+          v.nationalityLabel,
+          v.roomType,
           v.startDate,
           v.endDate,
           v.actualReturnDate,

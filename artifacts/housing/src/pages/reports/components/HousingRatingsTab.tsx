@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { printLuxuryReport } from "../utils/luxury-report-engine";
@@ -47,12 +47,14 @@ interface HousingRatingsTabProps {
   ar: boolean;
   activePropertyId?: number | string | null;
   properties?: any[];
+  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
 }
 
 export function HousingRatingsTab({
   ar,
   activePropertyId,
   properties = [],
+  onRegisterExport,
 }: HousingRatingsTabProps) {
   const [selectedProp, setSelectedProp] = useState<string>(
     activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
@@ -181,6 +183,15 @@ export function HousingRatingsTab({
       rows,
     });
   };
+
+  useEffect(() => {
+    if (onRegisterExport) {
+      onRegisterExport({
+        exportExcel: handleExportExcel,
+        exportPDF: handlePrintReport,
+      });
+    }
+  }, [onRegisterExport, allCommentsList, commentsList, queryPropertyId, ar, stats]);
 
   const resetFilters = () => {
     setSelectedProp("all");

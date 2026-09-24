@@ -187,14 +187,20 @@ export function ReportFilters({
           { value: "HIGH",       label: "High Severity Only",         labelAr: "مستوى خطورة مرتفع" },
           { value: "MEDIUM",     label: "Medium Severity Only",       labelAr: "مستوى خطورة متوسط" },
         ];
+      case "vacations":
+        return [
+          { value: "ON_VACATION", label: "On Vacation",             labelAr: "في إجازة حالياً" },
+          { value: "COMPLETED",   label: "Returned to Work",        labelAr: "عاد للعمل" },
+          { value: "OVERDUE",     label: "Overdue Return",          labelAr: "متأخر عن العودة" },
+        ];
       default:
         return [];
     }
   };
 
   const statusOptions = getStatusOptions();
-  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping", "equipment_inventory", "policy_exceptions"].includes(activeTab);
-  const showEmploymentType = ["assignments", "profiles", "analytics"].includes(activeTab);
+  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping", "equipment_inventory", "policy_exceptions", "vacations"].includes(activeTab);
+  const showEmploymentType = ["assignments", "profiles", "analytics", "vacations"].includes(activeTab);
   const showRoomType = [
     "housing",
     "vacant_rooms",
@@ -206,10 +212,11 @@ export function ReportFilters({
     "arrivals_manifest",
     "departures_manifest",
     "daily_movement",
+    "vacations",
   ].includes(activeTab);
-  const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts", "policy_exceptions"].includes(activeTab);
-  const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts"].includes(activeTab);
-  const showNationality = ["assignments", "profiles", "expiring_contracts"].includes(activeTab);
+  const showDepartment = ["assignments", "profiles", "reservations", "hostings", "expiring_contracts", "policy_exceptions", "vacations"].includes(activeTab);
+  const showGender = ["housing", "vacant_rooms", "assignments", "profiles", "expiring_contracts", "vacations"].includes(activeTab);
+  const showNationality = ["assignments", "profiles", "expiring_contracts", "vacations"].includes(activeTab);
   const showCategory = activeTab === "maintenance" || activeTab === "equipment_inventory" || activeTab === "policy_exceptions";
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { printLuxuryReport } from "../utils/luxury-report-engine";
@@ -45,12 +45,14 @@ interface ServiceRatingsTabProps {
   ar: boolean;
   activePropertyId?: number | string | null;
   properties?: any[];
+  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
 }
 
 export function ServiceRatingsTab({
   ar,
   activePropertyId,
   properties = [],
+  onRegisterExport,
 }: ServiceRatingsTabProps) {
   const [category, setCategory] = useState<string>("all");
   const [fromDate, setFromDate] = useState<string>("");
@@ -197,6 +199,15 @@ export function ServiceRatingsTab({
       language: ar ? "ar" : "en",
     });
   };
+
+  useEffect(() => {
+    if (onRegisterExport) {
+      onRegisterExport({
+        exportExcel: handleExportExcel,
+        exportPDF: handlePrint,
+      });
+    }
+  }, [onRegisterExport, ratedTickets, workerLeaderboard, activePropertyId, ar]);
 
   return (
     <div className="space-y-6 bg-background p-4 print:p-0">

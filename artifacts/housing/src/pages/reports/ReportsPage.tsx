@@ -199,6 +199,15 @@ export default function Reports() {
     language: ar ? 'ar' : 'en',
   });
 
+  const [customExportActions, setCustomExportActions] = useState<{
+    exportExcel?: () => void;
+    exportPDF?: () => void;
+  } | undefined>(undefined);
+
+  useEffect(() => {
+    setCustomExportActions(undefined);
+  }, [filters.activeTab]);
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -240,6 +249,7 @@ export default function Reports() {
             onToggle={reportCols.toggle}
             onShowAll={reportCols.showAll}
             onHideAll={reportCols.hideAll}
+            customExportActions={customExportActions}
           />
         </div>
       </div>
@@ -306,6 +316,7 @@ export default function Reports() {
           ar={ar}
           activePropertyId={activePropertyId}
           properties={data.properties}
+          onRegisterExport={setCustomExportActions}
         />
       )}
 
@@ -316,6 +327,7 @@ export default function Reports() {
           activePropertyId={activePropertyId}
           properties={data.properties}
           settings={data.settings}
+          onRegisterExport={setCustomExportActions}
         />
       )}
 
@@ -325,6 +337,7 @@ export default function Reports() {
           ar={ar}
           activePropertyId={activePropertyId}
           properties={data.properties}
+          onRegisterExport={setCustomExportActions}
         />
       )}
 
@@ -335,6 +348,7 @@ export default function Reports() {
           activePropertyId={activePropertyId}
           properties={data.properties}
           buildings={data.buildings}
+          onRegisterExport={setCustomExportActions}
         />
       )}
 

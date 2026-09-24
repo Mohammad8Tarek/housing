@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { printLuxuryReport } from "../utils/luxury-report-engine";
@@ -48,6 +48,7 @@ interface RoomMovesTabProps {
   activePropertyId?: number | string | null;
   properties?: any[];
   buildings?: any[];
+  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
 }
 
 export function RoomMovesTab({
@@ -55,6 +56,7 @@ export function RoomMovesTab({
   activePropertyId,
   properties = [],
   buildings = [],
+  onRegisterExport,
 }: RoomMovesTabProps) {
   const [selectedProp, setSelectedProp] = useState<string>(
     activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
@@ -200,6 +202,15 @@ export function RoomMovesTab({
       rows,
     });
   };
+
+  useEffect(() => {
+    if (onRegisterExport) {
+      onRegisterExport({
+        exportExcel: handleExportExcel,
+        exportPDF: handlePrintReport,
+      });
+    }
+  }, [onRegisterExport, allMovesList, movesList, queryPropertyId, ar]);
 
   const resetFilters = () => {
     setSelectedProp("all");

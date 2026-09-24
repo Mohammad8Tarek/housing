@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, FileText, Download } from "lucide-react";
+import { FileSpreadsheet, FileText, Download, Printer } from "lucide-react";
 import { Tab } from "../types";
 import { ColumnChooser, ColDef } from "@/components/ui/column-chooser";
 
@@ -23,6 +23,11 @@ interface ExportToolbarProps {
   isSmartExportingCsv?: boolean;
   isSmartExportingXlsx?: boolean;
   hasSmartReport?: boolean;
+  // Custom tab export handlers (for self-contained tabs like room_moves, housing_map, etc.)
+  customExportActions?: {
+    exportExcel?: () => void;
+    exportPDF?: () => void;
+  };
 }
 
 export function ExportToolbar({
@@ -44,6 +49,7 @@ export function ExportToolbar({
   isSmartExportingCsv,
   isSmartExportingXlsx,
   hasSmartReport,
+  customExportActions,
 }: ExportToolbarProps) {
   if (!canExportReports) return null;
 
@@ -58,146 +64,83 @@ export function ExportToolbar({
     />
   ) : null;
 
-  // Tabs that have their own self-contained toolbar/actions (prevent duplicate print & export buttons)
-  if (
-    activeTab === "manager_flash" ||
-    activeTab === "service_ratings" ||
-    activeTab === "housing_map" ||
-    activeTab === "occupancy_forecast" ||
-    activeTab === "analytics" ||
-    activeTab === "housing_ratings" ||
-    activeTab === "room_moves"
-  ) {
-    return null;
-  }
+  const handleExcelClick = () => {
+    if (customExportActions?.exportExcel) {
+      customExportActions.exportExcel();
+    } else if (hasSmartReport && handleSmartExportXlsx) {
+      handleSmartExportXlsx();
+    } else {
+      handleExportExcel();
+    }
+  };
 
-  if (activeTab === "housekeeping_sheet") {
-    return (
-      <div className="flex items-center gap-2">
-        {columnChooserElement}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportExcel}
-          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          {ar ? "تصدير المهام Excel" : "Task Sheet Excel"}
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleExportPDF}
-          className="gap-2 bg-sky-600 hover:bg-sky-700 text-white text-xs shadow-xs"
-        >
-          <FileText className="w-4 h-4" />
-          {ar ? "طباعة كشف المهام الميداني PDF" : "Print Task Sheet PDF"}
-        </Button>
-      </div>
-    );
-  }
+  const handlePdfClick = () => {
+    if (activeTab === "analytics") {
+      handleExportAnalyticsPDF();
+    } else if (customExportActions?.exportPDF) {
+      customExportActions.exportPDF();
+    } else if (hasSmartReport && handleSmartExportPdf) {
+      handleSmartExportPdf();
+    } else {
+      handleExportPDF();
+    }
+  };
 
-  if (activeTab === "room_discrepancy") {
-    return (
-      <div className="flex items-center gap-2">
-        {columnChooserElement}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportExcel}
-          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          {ar ? "تصدير تدقيق الغرف Excel" : "Discrepancy Excel"}
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleExportPDF}
-          className="gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs shadow-xs"
-        >
-          <FileText className="w-4 h-4" />
-          {ar ? "تقرير التدقيق والمطابقة PDF" : "Discrepancy Audit PDF"}
-        </Button>
-      </div>
-    );
-  }
-
-  if ((activeTab as string) === "occupancy_forecast") {
-    return (
-      <div className="flex items-center gap-2">
-        {columnChooserElement}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportExcel}
-          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          {ar ? "تصدير التوقعات Excel" : "Forecast Excel"}
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleExportPDF}
-          className="gap-2 bg-violet-600 hover:bg-violet-700 text-white text-xs shadow-xs"
-        >
-          <FileText className="w-4 h-4" />
-          {ar ? "تقرير التوقعات PDF" : "Forecast PDF"}
-        </Button>
-      </div>
-    );
-  }
-
-  if ((activeTab as string) === "analytics") {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleExportAnalyticsPDF}
-        className="gap-2 text-red-700 border-red-200 hover:bg-red-50"
-      >
-        <FileText className="w-4 h-4" />
-        {ar ? "طباعة التحليلات PDF" : "Print Analytics PDF"}
-      </Button>
-    );
-  }
-
-  // ── Unified Luxury Report Toolbar for all tabs ──
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       {columnChooserElement}
+
+      {/* Unified Excel Button */}
       <Button
         variant="outline"
         size="sm"
-        onClick={handleExportExcel}
-        className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs font-semibold"
+        onClick={handleExcelClick}
+        disabled={isSmartExportingXlsx}
+        className="gap-2 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs font-semibold h-9"
+        title={ar ? "تصدير البيانات الحالية كملف Excel" : "Export current dataset to Excel (.xlsx)"}
       >
-        <FileSpreadsheet className="w-4 h-4" />
-        {ar ? "تصدير Excel" : "Excel"}
+        <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <span>
+          {isSmartExportingXlsx
+            ? (ar ? "جاري التصدير..." : "Exporting...")
+            : (ar ? "تصدير Excel" : "Export Excel")}
+        </span>
       </Button>
+
+      {/* Smart CSV Button (when applicable) */}
       {hasSmartReport && handleSmartExportCsv && (
         <Button
           variant="outline"
           size="sm"
           onClick={handleSmartExportCsv}
           disabled={isSmartExportingCsv}
-          className="gap-2 text-slate-700 border-slate-200 hover:bg-slate-50 text-xs font-semibold"
+          className="gap-2 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 text-xs font-semibold h-9"
+          title={ar ? "تصدير كملف CSV" : "Export as CSV"}
         >
           <Download className="w-4 h-4" />
-          {isSmartExportingCsv
-            ? (ar ? "جاري التصدير..." : "Exporting...")
-            : "CSV"}
+          <span>
+            {isSmartExportingCsv
+              ? (ar ? "جاري التصدير..." : "Exporting...")
+              : "CSV"}
+          </span>
         </Button>
       )}
+
+      {/* Unified Print / PDF Report Button */}
       <Button
         variant="default"
         size="sm"
-        onClick={handleExportPDF}
-        className="gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs shadow-xs font-semibold"
+        onClick={handlePdfClick}
+        disabled={isSmartExportingPdf}
+        className="gap-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs shadow-xs font-semibold h-9"
+        title={ar ? "معاينة وطباعة التقرير الفاخر بصيغة PDF" : "Print luxury report as PDF"}
       >
-        <FileText className="w-4 h-4" />
-        {ar ? "طباعة تقرير PDF" : "Print PDF"}
+        <Printer className="w-4 h-4" />
+        <span>
+          {isSmartExportingPdf
+            ? (ar ? "جاري التجهيز..." : "Generating...")
+            : (ar ? "طباعة تقرير PDF" : "Print PDF Report")}
+        </span>
       </Button>
     </div>
   );
