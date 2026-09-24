@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useEffect, useRef, useCallback } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
@@ -200,13 +200,20 @@ export default function Reports() {
     language: ar ? 'ar' : 'en',
   });
 
-  const [customExportActions, setCustomExportActions] = useState<{
+  const customExportRef = useRef<{
     exportExcel?: () => void;
     exportPDF?: () => void;
-  } | undefined>(undefined);
+  }>({});
+
+  const handleRegisterExport = useCallback(
+    (actions: { exportExcel?: () => void; exportPDF?: () => void }) => {
+      customExportRef.current = actions;
+    },
+    [],
+  );
 
   useEffect(() => {
-    setCustomExportActions(undefined);
+    customExportRef.current = {};
   }, [filters.activeTab]);
 
   return (
@@ -250,7 +257,7 @@ export default function Reports() {
             onToggle={reportCols.toggle}
             onShowAll={reportCols.showAll}
             onHideAll={reportCols.hideAll}
-            customExportActions={customExportActions}
+            customExportRef={customExportRef}
           />
         </div>
       </div>
@@ -280,7 +287,7 @@ export default function Reports() {
           profiles={data.profiles}
           onExportPDF={handleExportPDF}
           onExportExcel={handleExportExcel}
-          onRegisterExport={setCustomExportActions}
+          onRegisterExport={handleRegisterExport}
         />
       )}
 
@@ -309,7 +316,7 @@ export default function Reports() {
           reservations={data.reservations}
           onExportPDF={handleExportPDF}
           onExportExcel={handleExportExcel}
-          onRegisterExport={setCustomExportActions}
+          onRegisterExport={handleRegisterExport}
         />
       )}
 
@@ -319,7 +326,7 @@ export default function Reports() {
           ar={ar}
           activePropertyId={activePropertyId}
           properties={data.properties}
-          onRegisterExport={setCustomExportActions}
+          onRegisterExport={handleRegisterExport}
         />
       )}
 
@@ -330,7 +337,7 @@ export default function Reports() {
           activePropertyId={activePropertyId}
           properties={data.properties}
           settings={data.settings}
-          onRegisterExport={setCustomExportActions}
+          onRegisterExport={handleRegisterExport}
         />
       )}
 
@@ -340,7 +347,7 @@ export default function Reports() {
           ar={ar}
           activePropertyId={activePropertyId}
           properties={data.properties}
-          onRegisterExport={setCustomExportActions}
+          onRegisterExport={handleRegisterExport}
         />
       )}
 
@@ -351,7 +358,7 @@ export default function Reports() {
           activePropertyId={activePropertyId}
           properties={data.properties}
           buildings={data.buildings}
-          onRegisterExport={setCustomExportActions}
+          onRegisterExport={handleRegisterExport}
         />
       )}
 

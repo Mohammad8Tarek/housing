@@ -612,7 +612,7 @@ export function HousingMapReportTab({
     if (onRegisterExport) {
       onRegisterExport({
         exportExcel: handleExportExcel,
-        exportPDF: () => handlePrint("table"),
+        exportPDF: () => handlePrint(viewMode === "table" ? "table" : "map"),
       });
     }
   }, [onRegisterExport, flatRooms, selectedPropertyId, ar, viewMode]);
@@ -676,13 +676,6 @@ export function HousingMapReportTab({
         return null;
     }
   };
-
-  useEffect(() => {
-    onRegisterExport?.({
-      exportExcel: handleExportExcel,
-      exportPDF: () => handlePrint("map"),
-    });
-  }, [handleExportExcel, onRegisterExport]);
 
   return (
     <div className="space-y-6 print:space-y-4">

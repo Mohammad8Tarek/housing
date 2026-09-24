@@ -1,3 +1,4 @@
+import type { MutableRefObject, RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, FileText, Download, Printer } from "lucide-react";
 import { Tab } from "../types";
@@ -28,6 +29,15 @@ interface ExportToolbarProps {
     exportExcel?: () => void;
     exportPDF?: () => void;
   };
+  customExportRef?:
+    | MutableRefObject<{
+        exportExcel?: () => void;
+        exportPDF?: () => void;
+      } | undefined>
+    | RefObject<{
+        exportExcel?: () => void;
+        exportPDF?: () => void;
+      } | undefined>;
 }
 
 export function ExportToolbar({
@@ -50,6 +60,7 @@ export function ExportToolbar({
   isSmartExportingXlsx,
   hasSmartReport,
   customExportActions,
+  customExportRef,
 }: ExportToolbarProps) {
   if (!canExportReports) return null;
 
@@ -65,8 +76,9 @@ export function ExportToolbar({
   ) : null;
 
   const handleExcelClick = () => {
-    if (customExportActions?.exportExcel) {
-      customExportActions.exportExcel();
+    const custom = customExportRef?.current || customExportActions;
+    if (custom?.exportExcel) {
+      custom.exportExcel();
     } else if (hasSmartReport && handleSmartExportXlsx) {
       handleSmartExportXlsx();
     } else {
@@ -75,10 +87,11 @@ export function ExportToolbar({
   };
 
   const handlePdfClick = () => {
+    const custom = customExportRef?.current || customExportActions;
     if (activeTab === "analytics") {
       handleExportAnalyticsPDF();
-    } else if (customExportActions?.exportPDF) {
-      customExportActions.exportPDF();
+    } else if (custom?.exportPDF) {
+      custom.exportPDF();
     } else if (hasSmartReport && handleSmartExportPdf) {
       handleSmartExportPdf();
     } else {
