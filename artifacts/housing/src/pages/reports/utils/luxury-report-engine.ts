@@ -2470,16 +2470,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const hasSigs = Boolean(initialShowSigs);
   const hasBottom = Boolean(customBottomSectionsHtml);
 
-  // Available printable height budgets in millimeters (strictly calibrated to eliminate any overflow or clipping)
-  // Landscape A4 (210mm height): Page padding (10mm), footer (14mm), safety margin (14mm)
-  // Available printable height budgets in millimeters (strictly calibrated to eliminate any overflow or clipping)
-  // Landscape A4 (210mm height): Page padding (10mm), footer (10mm), safety margin (20mm)
-  // Page 1: budget = 118mm (guarantees max 17-18 single-line rows with logos and header)
-  // Subsequent pages: budget = 132mm (guarantees max 19-20 single-line rows with subheader)
-  // Last page with signatures: budget = 98mm (guarantees max 14-15 rows with signatures)
-  const budgetP1Mm = isLandscape ? (hasKpis ? 95 : 118) : (hasKpis ? 165 : 190);
-  const budgetSubsequentMm = isLandscape ? 132 : 205;
-  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 98 : 155) : budgetSubsequentMm;
+  // Available printable height budgets in millimeters (strictly calibrated to eliminate empty gaps and prevent overflow)
+  // Landscape A4 (210mm height): Page padding (10mm), footer (6mm), safe margin (15mm)
+  // Page 1: budget = 125mm (allows up to 20 single-line rows with logos and header)
+  // Subsequent pages: budget = 145mm (allows up to 23 single-line rows with subheader)
+  // Last page with signatures: budget = 105mm (allows up to 17-18 rows with signatures)
+  const budgetP1Mm = isLandscape ? (hasKpis ? 95 : 125) : (hasKpis ? 165 : 190);
+  const budgetSubsequentMm = isLandscape ? 145 : 210;
+  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 105 : 160) : budgetSubsequentMm;
 
   // Approximate character capacity per column to detect line wrapping
   const printableWidthMm = isLandscape ? 280 : 196;
@@ -2498,8 +2496,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       if (!str || str === "—") continue;
 
       const normH = (rawHeaders[c] || headers[c] || "").toLowerCase();
-      // Single-line fixed fields
-      if (/date|تاريخ|phone|هاتف|mobile|موبايل|national|قومي|bed|سرير|room|غرفة|level|درجة|status|حالة|gender|نوع/i.test(normH)) {
+      // Only multi-item or true wrapping text columns increase row height
+      // (e.g. notes, descriptions, reasons, actions, occupants list, amenities list)
+      if (!isMultiItemOrTextColumn(normH)) {
         continue;
       }
 
@@ -2520,9 +2519,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
     }
 
-    if (maxLines === 1) return isLandscape ? 6.5 : 7.0;
-    if (maxLines === 2) return isLandscape ? 9.5 : 10.2;
-    return isLandscape ? 12.5 : 13.5;
+    if (maxLines === 1) return isLandscape ? 5.8 : 6.5;
+    if (maxLines === 2) return isLandscape ? 8.5 : 9.5;
+    return isLandscape ? 11.5 : 12.5;
   };
 
   const pageChunks: any[][][] = [];
@@ -2546,7 +2545,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
       // If all remaining rows fit on this page with signatures, take them all!
       const maxSigBudget = isFirst
-        ? (hasKpis ? (hasSigs ? 70 : 92) : (hasSigs ? 92 : 118))
+        ? (hasKpis ? (hasSigs ? 75 : 95) : (hasSigs ? 98 : 125))
         : budgetLastWithSigsMm;
       if (remainingTotalHeight <= maxSigBudget) {
         pageStartIndexes.push(cursor);
@@ -2557,7 +2556,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
       // Otherwise, fill this page to its maximum millimeter budget
       const maxPageBudget = isFirst ? budgetP1Mm : budgetSubsequentMm;
-      const maxRowLimit = isFirst ? 18 : 21;
+      const maxRowLimit = isFirst ? (hasKpis ? 15 : 20) : 23;
       let accumulatedHeight = 0;
       let count = 0;
 
