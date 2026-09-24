@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useRef, useEffect } from "react";
 import {
   useListMaintenance,
@@ -78,7 +77,7 @@ import {
 } from "@/components/ui/column-chooser";
 import TicketDetailModal from "@/components/ui/ticket-detail-modal";
 import * as XLSX from "xlsx";
-import { exportExcel } from "@/pages/reports/utils/export";
+import { exportExcel as exportExcelUtil } from "@/pages/reports/utils/export";
 import { format, differenceInMinutes } from "date-fns";
 import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -266,7 +265,7 @@ export default function Tickets() {
   const canDeleteMnt = isSuperAdmin || can("maintenance", "delete") || can("maintenance", "edit");
   const canAssignMnt =
     isSuperAdmin ||
-    can("maintenance", "assign") ||
+    can("maintenance", "assign" as any) ||
     can("maintenance", "edit") ||
     can("maintenance", "view");
 
@@ -283,7 +282,7 @@ export default function Tickets() {
   const canDeleteHsk = isSuperAdmin || can("housekeeping", "delete") || can("housekeeping", "edit");
   const canAssignHsk =
     isSuperAdmin ||
-    can("housekeeping", "assign") ||
+    can("housekeeping", "assign" as any) ||
     can("housekeeping", "edit") ||
     can("housekeeping", "view");
 
@@ -431,14 +430,14 @@ export default function Tickets() {
   // Pre-load profiles for employee mapping and current user match
   const { data: _eDataWrapper } = useListProfiles(
     { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
+    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } as any },
   );
-  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
+  const profiles: any[] = Array.isArray(_eDataWrapper) ? _eDataWrapper : ((_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || []);
 
   const currentUserProfile = useMemo(() => {
     if (!user || !profiles || profiles.length === 0) return null;
     const uname = String(user.username || "").toLowerCase().trim();
-    const uemail = String(user.email || "").toLowerCase().trim();
+    const uemail = String((user as any)?.email || "").toLowerCase().trim();
     return profiles.find((p: any) => {
       if (p.profileId && String(p.profileId).toLowerCase().trim() === uname) return true;
       if (uemail && p.email && String(p.email).toLowerCase().trim() === uemail) return true;
@@ -495,8 +494,8 @@ export default function Tickets() {
       },
     },
   );
-  const allTickets = allTicketsWrapper?.data || allTicketsWrapper || [];
-  const paginationData = allTicketsWrapper?.pagination || { total: allTickets?.length || 0, page: currentPage, limit: pageSize };
+  const allTickets = Array.isArray(allTicketsWrapper) ? allTicketsWrapper : (((allTicketsWrapper as any)?.data as any[]) || []);
+  const paginationData = (allTicketsWrapper as any)?.pagination || { total: allTickets?.length || 0, page: currentPage, limit: pageSize };
 
   const myTicketsCount = useMemo(() => {
     if (!currentUserProfile || !allTickets || !Array.isArray(allTickets)) return 0;
@@ -510,21 +509,21 @@ export default function Tickets() {
 
   const { data: _roomsWrapper } = useListRooms(
     { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
+    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } as any },
   );
-  const rooms = _roomsWrapper?.data || [];
+  const rooms: any[] = Array.isArray(_roomsWrapper) ? _roomsWrapper : (((_roomsWrapper as any)?.data as any[]) || []);
 
   // Rooms specifically for modal's selected property
   const selectedModalPropId = parseInt(formPropertyId, 10) || (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
   const { data: _modalRoomsWrapper } = useListRooms(
     { propertyId: selectedModalPropId, limit: 1000 } as any,
-    { query: { enabled: !!selectedModalPropId } },
+    { query: { enabled: !!selectedModalPropId } as any },
   );
-  const modalRooms = _modalRoomsWrapper?.data || [];
+  const modalRooms: any[] = Array.isArray(_modalRoomsWrapper) ? _modalRoomsWrapper : (((_modalRoomsWrapper as any)?.data as any[]) || []);
 
   const { data: assignments } = useListAssignments(
     { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined } as any,
-    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } },
+    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } as any },
   );
 
   // Build room -> occupant name(s) map from active assignments + profiles
@@ -686,7 +685,7 @@ export default function Tickets() {
         priority: form.priority,
         photoUrl: formPhotoUrl || undefined,
         workerId: form.workerId ? parseInt(form.workerId) : undefined,
-      },
+      } as any,
     });
   };
 
@@ -791,7 +790,7 @@ export default function Tickets() {
       [ar ? "مقدم البلاغ" : "Reported By"]: req.reportedBy || "—",
       [ar ? "النزيل المقيم" : "Occupant"]: roomOccupantMap[req.roomId] || "—",
       [ar ? "القسم / النوع" : "Type"]: ar
-        ? (CATEGORIES_AR[req.category] ?? req.category)
+        ? ((CATEGORIES_AR as Record<string, string>)[req.category] ?? req.category)
         : req.category,
       [ar ? "نوع المشكلة / الخدمة" : "Problem / Service"]: ar
         ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
@@ -817,7 +816,7 @@ export default function Tickets() {
         : "—",
       [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
     }));
-    exportExcel("Tickets_Hub", rows, {
+    exportExcelUtil("Tickets_Hub", rows, {
       sheetName: ar ? "التذاكر" : "Tickets",
       orientation: "landscape",
     });
@@ -840,7 +839,7 @@ export default function Tickets() {
       [ar ? "الدور" : "Floor"]: req.floorNumber ? `${ar ? "الدور " : "Floor "}${req.floorNumber}` : "—",
       [ar ? "مقدم البلاغ" : "Reported By"]: req.reportedBy || "—",
       [ar ? "النوع" : "Category"]: ar
-        ? (CATEGORIES_AR[req.category] ?? req.category)
+        ? ((CATEGORIES_AR as Record<string, string>)[req.category] ?? req.category)
         : req.category,
       [ar ? "المشكلة" : "Problem Type"]: ar
         ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
@@ -866,7 +865,7 @@ export default function Tickets() {
         : "—",
       [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
     }));
-    exportExcel("Selected_Tickets", rows, {
+    exportExcelUtil("Selected_Tickets", rows, {
       sheetName: ar ? "التذاكر المحددة" : "Selected Tickets",
       orientation: "landscape",
     });
@@ -2055,8 +2054,8 @@ export default function Tickets() {
                         <div className="flex flex-col">
                           <span className="font-bold text-foreground">
                             {ar
-                              ? (CATEGORIES_AR[req.category] || req.category)
-                              : (CATEGORIES_EN[req.category] || req.category?.toUpperCase())}
+                              ? ((CATEGORIES_AR as Record<string, string>)[req.category] || req.category)
+                              : ((CATEGORIES_EN as Record<string, string>)[req.category] || req.category?.toUpperCase())}
                           </span>
                           <span className="text-[11px] text-muted-foreground">
                             {ar
@@ -2505,7 +2504,7 @@ export default function Tickets() {
                 data: {
                   assignedTo: empId,
                   propertyId: pId,
-                },
+                } as any,
               });
             }}
             onWorkerAssignChange={(id, workerId) => {
@@ -2516,7 +2515,7 @@ export default function Tickets() {
                 data: {
                   workerId,
                   propertyId: pId,
-                },
+                } as any,
               });
             }}
             subTickets={subTickets}
@@ -2535,7 +2534,7 @@ export default function Tickets() {
                         description: data.description,
                         priority: data.priority,
                         parentId,
-                      },
+                      } as any,
                     });
                     fetchSubTickets(parentId);
                   }

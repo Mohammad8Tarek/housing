@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
 import { useAuditLog, useListActivityLogs } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
@@ -265,8 +264,9 @@ export default function ActivityLog() {
   const [keyCurrentPage, setKeyCurrentPage] = useState(1);
 
   const [keyLogsLoading, setKeyLogsLoading] = useState(false); // mock or replace if needed
-  const { data: keyLogs = [], isLoading: isKeyLogsLoading } =
+  const { data: keyLogsRaw = [], isLoading: isKeyLogsLoading } =
     useAuditLog(keyAuditPropertyId);
+  const keyLogs: any[] = Array.isArray(keyLogsRaw) ? keyLogsRaw : (((keyLogsRaw as any)?.data as any[]) || []);
 
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   useEffect(() => {
@@ -286,15 +286,15 @@ export default function ActivityLog() {
       dateFrom: activityDateFrom || undefined,
       dateTo: activityDateTo || undefined,
     } as any,
-    { query: { enabled: true } },
+    { query: { enabled: true } as any },
   );
 
-  const paginated = logsResponse?.data || [];
-  const totalLogs = logsResponse?.pagination?.total || 0;
+  const paginated: any[] = Array.isArray(logsResponse) ? logsResponse : (((logsResponse as any)?.data as any[]) || []);
+  const totalLogs = (logsResponse as any)?.pagination?.total || paginated.length;
 
   // Replaced client-side filtering and pagination with server-side response
 
-  const filteredKeyLogs = keyLogs.filter((log) => {
+  const filteredKeyLogs = keyLogs.filter((log: any) => {
     const action = (log.action ?? "").toLowerCase();
     const details = formatDetails(log.details).toLowerCase();
     const term = keySearch.toLowerCase();
@@ -376,7 +376,7 @@ export default function ActivityLog() {
     ]
       .map(escapeCsv)
       .join(",");
-    const rows = paginated.map((l) =>
+    const rows = paginated.map((l: any) =>
       [
         l.id,
         l.timestamp,
@@ -411,7 +411,7 @@ export default function ActivityLog() {
     ]
       .map(escapeCsv)
       .join(",");
-    const rows = filteredKeyLogs.map((l) =>
+    const rows = filteredKeyLogs.map((l: any) =>
       [
         l.id,
         l.createdAt,
@@ -434,7 +434,7 @@ export default function ActivityLog() {
   const printKeyReport = () => {
     const rows = filteredKeyLogs
       .map(
-        (l) => `
+        (l: any) => `
       <tr>
         <td>${escapeHtml(formatDateTime(l.createdAt, "-"))}</td>
         <td>${escapeHtml(prettyKeyAction(l.action, ar))}</td>
@@ -503,17 +503,17 @@ export default function ActivityLog() {
     },
     {
       label: ar ? "إصدار" : "Issued",
-      value: filteredKeyLogs.filter((l) => l.action === "issue").length,
+      value: filteredKeyLogs.filter((l: any) => l.action === "issue").length,
       color: "text-green-600",
     },
     {
       label: ar ? "إلغاء" : "Revoked",
-      value: filteredKeyLogs.filter((l) => l.action === "revoke").length,
+      value: filteredKeyLogs.filter((l: any) => l.action === "revoke").length,
       color: "text-red-600",
     },
     {
       label: ar ? "الغرف المتأثرة" : "Rooms",
-      value: new Set(filteredKeyLogs.map((l) => l.roomNumber).filter(Boolean))
+      value: new Set(filteredKeyLogs.map((l: any) => l.roomNumber).filter(Boolean))
         .size,
       color: "text-blue-600",
     },
@@ -705,20 +705,20 @@ export default function ActivityLog() {
               },
               {
                 label: ar ? "تسجيلات دخول" : "Logins",
-                value: paginated.filter((l) => l.action === "LOGIN").length,
+                value: paginated.filter((l: any) => l.action === "LOGIN").length,
                 color: "text-purple-600",
               },
               {
                 label: ar ? "تحذيرات أمان" : "Security Alerts",
                 value: paginated.filter(
-                  (l) =>
+                  (l: any) =>
                     l.severity === "warning" || l.action === "LOGIN_FAILED",
                 ).length,
                 color: "text-amber-600",
               },
               {
                 label: ar ? "إجراءات حذف" : "Deletions",
-                value: paginated.filter((l) =>
+                value: paginated.filter((l: any) =>
                   (l.action ?? "").includes("DELETE"),
                 ).length,
                 color: "text-red-600",
@@ -783,7 +783,7 @@ export default function ActivityLog() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginated.map((log) => (
+                  {paginated.map((log: any) => (
                     <TableRow
                       key={log.id}
                       className={`hover:bg-muted/20 ${(log as any).severity === "warning" ? "bg-amber-50/30 dark:bg-amber-950/10" : ""}`}
@@ -1214,7 +1214,7 @@ export default function ActivityLog() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedKeyLogs.map((log) => (
+                  {paginatedKeyLogs.map((log: any) => (
                     <TableRow key={log.id} className="hover:bg-muted/20">
                       <TableCell className="text-xs font-mono whitespace-nowrap">
                         <div className="font-medium text-foreground">

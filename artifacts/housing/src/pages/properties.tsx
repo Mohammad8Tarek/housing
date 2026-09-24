@@ -7,7 +7,6 @@ import {
   downloadRoomImportTemplate,
 } from "@/lib/room-importer-engine";
 import { FileSpreadsheet, CheckCircle2, Download } from "lucide-react";
-// @ts-nocheck
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {

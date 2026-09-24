@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as React from "react";
 import {
   useGetDashboardStats,
@@ -163,10 +162,11 @@ export default function Dashboard() {
     return propertySlug ? `/${propertySlug}${baseHref}` : baseHref;
   };
 
-  const { data: stats, isLoading: statsLoading, isError: statsError } = useGetDashboardStats(
+  const { data: statsData, isLoading: statsLoading, isError: statsError } = useGetDashboardStats(
     { propertyId: isAll ? 0 : activePropertyId! },
-    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } },
+    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } as any },
   );
+  const stats = statsData as any;
 
   const hasProfiles = canView("profiles");
 
@@ -176,10 +176,10 @@ export default function Dashboard() {
       query: {
         enabled: !isAll && !!activePropertyId && hasProfiles,
         refetchInterval: 15000,
-      },
+      } as any,
     },
   );
-  const totalProfilesCount = profilesData?.pagination?.total ?? stats?.totalProfiles ?? 0;
+  const totalProfilesCount = (profilesData as any)?.pagination?.total ?? stats?.totalProfiles ?? 0;
 
   // Aggregate stats for 'all' mode
   const {
@@ -228,7 +228,7 @@ export default function Dashboard() {
 
   const { data: occupancy } = useGetOccupancyByBuilding(
     { propertyId: isAll ? 0 : activePropertyId! },
-    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } },
+    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } as any },
   );
 
   const { data: housingBreakdown } = useQuery({
@@ -884,7 +884,7 @@ export default function Dashboard() {
 
         const matrixNode =
           isWidgetVisible("capacity_matrix") && occupancy && occupancy.length > 0 ? (
-            <BuildingCapacityMatrix buildings={occupancy} buildNavHref={buildNavHref} />
+            <BuildingCapacityMatrix buildings={occupancy as any} buildNavHref={buildNavHref} />
           ) : null;
 
         const operationsHubNode = isWidgetVisible("daily_operations") ? (
@@ -909,7 +909,7 @@ export default function Dashboard() {
 
         const ticketsHubNode = isWidgetVisible("tickets_dual_hub") ? (
           <TicketsDualTrackHub
-            propertyId={activePropertyId}
+            propertyId={typeof activePropertyId === "number" ? activePropertyId : 0}
             buildNavHref={buildNavHref}
           />
         ) : null;

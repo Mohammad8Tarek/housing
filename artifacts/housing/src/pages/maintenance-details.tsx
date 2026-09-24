@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -62,7 +61,7 @@ const STATUS_AR = {
   closed: "مغلقة",
 };
 
-function formatDuration(startedAt, resolvedAt, reportedAt) {
+function formatDuration(startedAt: any, resolvedAt: any, reportedAt: any) {
   const start = reportedAt ?? startedAt;
   if (!start) return "—";
   const startDate = new Date(start);
@@ -90,9 +89,9 @@ export default function MaintenanceDetails() {
   const ar = language === "ar";
   const { can, isSuperAdmin, isAdmin } = usePermission();
 
-  const [ticket, setTicket] = useState(null);
+  const [ticket, setTicket] = useState<any>(null);
   const [comment, setComment] = useState("");
-  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const canEditMnt =
     isSuperAdmin ||
@@ -124,16 +123,18 @@ export default function MaintenanceDetails() {
     enabled: !!id,
   });
 
-  const { data: _allTicketsWrapper } = useListMaintenance({
-    query: { enabled: !!activePropertyId && !singleTicketData },
-  });
-  const allTickets = _allTicketsWrapper?.data || [];
+  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const { data: _allTicketsWrapper } = useListMaintenance(
+    { propertyId: numericPropertyId } as any,
+    { query: { enabled: !!numericPropertyId && !singleTicketData } as any },
+  );
+  const allTickets: any[] = Array.isArray(_allTicketsWrapper) ? _allTicketsWrapper : (((_allTicketsWrapper as any)?.data as any[]) || []);
 
   const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: activePropertyId ?? undefined, limit: 1000 },
-    { query: { enabled: !!activePropertyId } },
+    { propertyId: numericPropertyId, limit: 1000 } as any,
+    { query: { enabled: !!numericPropertyId } as any },
   );
-  const profiles = _eDataWrapper?.profiles || _eDataWrapper?.data || [];
+  const profiles: any[] = Array.isArray(_eDataWrapper) ? _eDataWrapper : (((_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || []) as any[]);
 
   const updateMutation = useUpdateMaintenance({
     mutation: {
@@ -152,7 +153,7 @@ export default function MaintenanceDetails() {
     if (singleTicketData) {
       setTicket(singleTicketData);
     } else if (allTickets.length > 0) {
-      const found = allTickets.find((t) => t.id === parseInt(id));
+      const found = allTickets.find((t: any) => t.id === parseInt(id || "0", 10));
       if (found) setTicket(found);
     }
   }, [singleTicketData, allTickets, id]);
@@ -215,8 +216,8 @@ export default function MaintenanceDetails() {
     );
   }
 
-  const empOptions = profiles.filter((e) => e.status === "active");
-  const priorityColor = (p) => {
+  const empOptions = profiles.filter((e: any) => e.status === "active");
+  const priorityColor = (p: any) => {
     switch ((p || "").toLowerCase()) {
       case "urgent":
         return "bg-red-100 text-red-800";
@@ -229,7 +230,7 @@ export default function MaintenanceDetails() {
     }
   };
 
-  const statusColor = (s) => {
+  const statusColor = (s: any) => {
     switch ((s || "").toLowerCase()) {
       case "open":
         return "bg-blue-100 text-blue-800";
@@ -314,7 +315,7 @@ export default function MaintenanceDetails() {
                     {ar ? "النوع" : "Type"}
                   </p>
                   <p className="text-sm font-medium">
-                    {ar ? CATEGORIES_AR[ticket.category] : ticket.category}
+                    {ar ? (CATEGORIES_AR as Record<string, string>)[ticket.category] : ticket.category}
                   </p>
                 </div>
                 <div>
@@ -323,7 +324,7 @@ export default function MaintenanceDetails() {
                   </p>
                   <p className="text-sm font-medium">
                     {ar
-                      ? (PROBLEM_TYPES_AR[ticket.problemType] ??
+                      ? ((PROBLEM_TYPES_AR as Record<string, string>)[ticket.problemType] ??
                         ticket.problemType)
                       : ticket.problemType}
                   </p>
@@ -511,7 +512,7 @@ export default function MaintenanceDetails() {
                         <SelectItem value="unassigned">
                           — {ar ? "غير مسند" : "Unassigned"} —
                         </SelectItem>
-                        {empOptions.map((e) => (
+                        {empOptions.map((e: any) => (
                           <SelectItem key={e.id} value={String(e.id)}>
                             {e.firstName} {e.lastName}
                           </SelectItem>
@@ -628,7 +629,7 @@ export default function MaintenanceDetails() {
                     <span className="font-semibold text-gray-900">
                       {ticket.assignedTo
                         ? (() => {
-                            const emp = empOptions.find((e) => e.id === ticket.assignedTo);
+                            const emp = empOptions.find((e: any) => e.id === ticket.assignedTo);
                             return emp ? `${emp.firstName} ${emp.lastName}` : (ar ? "غير مسند" : "Unassigned");
                           })()
                         : (ar ? "غير مسند" : "Unassigned")}

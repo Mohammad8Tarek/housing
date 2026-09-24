@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate as formatSystemDate } from "@/lib/date-utils";
@@ -72,6 +71,33 @@ export default function Documents() {
   const [previewDoc, setPreviewDoc] = useState<PreviewableDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: number | null; title: string }>({
+    open: false,
+    id: null,
+    title: "",
+  });
+
+  const handleDelete = (id: number, title: string) => {
+    setDeleteDialog({ open: true, id, title });
+  };
+
+  const performDelete = async () => {
+    if (!deleteDialog.id) return;
+    try {
+      const res = await fetch(`/api/documents/${deleteDialog.id}?propertyId=${activePropertyId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      toast.success(ar ? "تم حذف المستند بنجاح" : "Document deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+    } catch {
+      toast.error(ar ? "فشل حذف المستند" : "Failed to delete document");
+    } finally {
+      setDeleteDialog({ open: false, id: null, title: "" });
+    }
+  };
+
   const resetForm = () => {
     setTitleAr("");
     setTitleEn("");
@@ -143,23 +169,6 @@ export default function Documents() {
       });
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleDelete = async (id: number, title: string) => {
-    if (!confirm(ar ? `حذ�? "${title}"؟` : `Delete "${title}"?`)) return;
-    try {
-      const res = await fetch(
-        `/api/documents/${id}?propertyId=${activePropertyId}`,
-        { method: "DELETE", credentials: "include" },
-      );
-      if (!res.ok) throw new Error("Delete failed");
-      toast.success(ar ? "تم حذف المستند" : "Document deleted");
-      queryClient.invalidateQueries({ queryKey: ["documents"] });
-    } catch (err: any) {
-      toast.error(ar ? "فشل الحذف" : "Delete failed", {
-        description: err.message,
-      });
     }
   };
 
