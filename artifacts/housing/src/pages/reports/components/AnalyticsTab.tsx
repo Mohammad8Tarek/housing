@@ -21,6 +21,7 @@ import {
   Calendar,
   Briefcase,
   Brush,
+  Search,
 } from "lucide-react";
 import {
   Table,
@@ -29,7 +30,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import {
   AreaChart,
   Area,
@@ -60,6 +63,26 @@ export function AnalyticsTab({
   onPrint,
 }: AnalyticsTabProps) {
   const [structureView, setStructureView] = useState<"buildings" | "floors">("buildings");
+  const [deptSearch, setDeptSearch] = useState("");
+
+  const allDepts = (analytics?.byDept || []) as any[];
+  const filteredDepts = allDepts.filter((d: any) => {
+    if (!deptSearch.trim()) return true;
+    const q = deptSearch.toLowerCase().trim();
+    return (
+      (d.dept && d.dept.toLowerCase().includes(q)) ||
+      (d.buildingsList && d.buildingsList.toLowerCase().includes(q)) ||
+      (d.roomsSummary && d.roomsSummary.toLowerCase().includes(q))
+    );
+  });
+
+  const totalDeptResidents = allDepts.reduce((acc: number, d: any) => acc + (d.residentCount ?? d.count ?? 0), 0);
+  const totalDeptRooms = allDepts.reduce((acc: number, d: any) => acc + (d.roomsCount ?? 0), 0);
+  const totalDeptOccupiedBeds = allDepts.reduce((acc: number, d: any) => acc + (d.occupiedBeds ?? 0), 0);
+  const totalDeptAvailableBeds = allDepts.reduce((acc: number, d: any) => acc + (d.availableBeds ?? 0), 0);
+  const totalDeptCapacity = allDepts.reduce((acc: number, d: any) => acc + (d.capacity ?? 0), 0);
+  const totalDeptMales = allDepts.reduce((acc: number, d: any) => acc + (d.maleCount ?? 0), 0);
+  const totalDeptFemales = allDepts.reduce((acc: number, d: any) => acc + (d.femaleCount ?? 0), 0);
 
   const occRate = analytics?.occRate ?? 0;
   const occColorClass =
@@ -673,6 +696,160 @@ export function AnalyticsTab({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Comprehensive Department Occupancy & Bed Quotas Analysis */}
+      <div className="bg-card border border-border/70 rounded-xl p-4 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+              <Briefcase className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-foreground">
+                  {ar ? "التحليل الشامل لإشغال الأقسام وحصص الغرف والأسِرّة" : "Comprehensive Department Occupancy & Bed Quotas"}
+                </h3>
+                <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                  {allDepts.length} {ar ? "قسم / إدارة" : "Departments"}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {ar
+                  ? "توزيع المقيمين بالسكن لكل قسم، عدد الغرف المخصصة، والأسِرّة المشغولة والمتاحة شاغرة بتلك الغرف"
+                  : "Resident headcount, assigned rooms, occupied beds, and remaining vacant beds in those rooms per department"}
+              </p>
+            </div>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={deptSearch}
+              onChange={(e) => setDeptSearch(e.target.value)}
+              placeholder={ar ? "بحث بالقسم أو المبنى..." : "Search dept or building..."}
+              className="h-8 text-xs pl-9 rtl:pl-3 rtl:pr-9 bg-muted/30"
+            />
+          </div>
+        </div>
+
+        {filteredDepts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-xs">
+            {ar ? "لا توجد أقسام مطابقة للبحث" : "No departments match your search"}
+          </div>
+        ) : (
+          <div className="overflow-x-auto border border-border/60 rounded-lg">
+            <Table>
+              <TableHeader className="bg-muted/40">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs font-bold py-2.5">{ar ? "القسم / الإدارة" : "Department"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "المقيمين بالسكن" : "Residents"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "الحصة من الإشغال" : "Occupancy Share"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "الغرف المشغولة" : "Assigned Rooms"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "الأسِرّة المشغولة" : "Occupied Beds"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "الأسِرّة الشاغرة" : "Available Beds"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "إجمالي الطاقة" : "Total Capacity"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "توزيع النوع" : "Gender Split"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5">{ar ? "المباني السكنية" : "Buildings"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredDepts.map((d: any) => {
+                  const pct = d.percentage ?? 0;
+                  return (
+                    <TableRow key={d.dept} className="hover:bg-muted/20">
+                      <TableCell className="py-2">
+                        <div className="font-semibold text-xs text-foreground">{d.dept}</div>
+                        {d.roomsSummary && (
+                          <div className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={d.roomsSummary}>
+                            {ar ? "غرف:" : "Rooms:"} {d.roomsSummary}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center py-2 font-mono font-bold text-xs text-primary">
+                        {d.residentCount ?? d.count ?? 0}
+                      </TableCell>
+                      <TableCell className="py-2 text-center">
+                        <div className="flex items-center justify-center gap-1.5 min-w-[90px]">
+                          <div className="w-14 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary/80 rounded-full"
+                              style={{ width: `${Math.min(100, pct)}%` }}
+                            />
+                          </div>
+                          <span className="font-mono text-[11px] font-bold text-foreground">
+                            {d.shareOfHousing || pct}%
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center py-2 font-mono text-xs font-semibold">
+                        {d.roomsCount ?? 0}
+                      </TableCell>
+                      <TableCell className="text-center py-2 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                        {d.occupiedBeds ?? 0}
+                      </TableCell>
+                      <TableCell className="text-center py-2 font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        {d.availableBeds ?? 0}
+                      </TableCell>
+                      <TableCell className="text-center py-2 font-mono text-xs text-muted-foreground">
+                        {d.capacity ?? 0}
+                      </TableCell>
+                      <TableCell className="text-center py-2 text-xs">
+                        <div className="flex items-center justify-center gap-1 text-[11px] font-mono">
+                          <span className="text-blue-600 dark:text-blue-400 font-bold" title={ar ? "ذكور" : "Males"}>
+                            {d.maleCount ?? 0} ♂
+                          </span>
+                          <span className="text-muted-foreground/60">/</span>
+                          <span className="text-purple-600 dark:text-purple-400 font-bold" title={ar ? "إناث" : "Females"}>
+                            {d.femaleCount ?? 0} ♀
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2 text-xs">
+                        <span className="text-muted-foreground text-[11px] truncate block max-w-[220px]" title={d.buildingsList}>
+                          {d.buildingsList || "—"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+              <TableFooter className="bg-muted/60 font-bold text-xs">
+                <TableRow>
+                  <TableCell className="py-2.5 font-bold">
+                    {ar ? `الإجمالي (${allDepts.length} قسم)` : `Total (${allDepts.length} depts)`}
+                  </TableCell>
+                  <TableCell className="text-center py-2.5 font-mono text-primary font-bold">
+                    {totalDeptResidents}
+                  </TableCell>
+                  <TableCell className="text-center py-2.5 font-mono">
+                    100%
+                  </TableCell>
+                  <TableCell className="text-center py-2.5 font-mono font-bold">
+                    {totalDeptRooms}
+                  </TableCell>
+                  <TableCell className="text-center py-2.5 font-mono text-blue-600 dark:text-blue-400 font-bold">
+                    {totalDeptOccupiedBeds}
+                  </TableCell>
+                  <TableCell className="text-center py-2.5 font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                    {totalDeptAvailableBeds}
+                  </TableCell>
+                  <TableCell className="text-center py-2.5 font-mono">
+                    {totalDeptCapacity}
+                  </TableCell>
+                  <TableCell className="text-center py-2.5 font-mono">
+                    <span className="text-blue-600 dark:text-blue-400">{totalDeptMales} ♂</span>
+                    {" / "}
+                    <span className="text-purple-600 dark:text-purple-400">{totalDeptFemales} ♀</span>
+                  </TableCell>
+                  <TableCell className="py-2.5 text-muted-foreground text-[11px]">
+                    {ar ? "كافة المباني السكنية" : "All Residential Buildings"}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
+        )}
       </div>
 
       {/* Bottom Row: 3 Modular Cards (Maintenance, Demographics, Quality & Evaluations) */}

@@ -240,8 +240,19 @@ export function useReportAnalytics({
       }))
       .sort((a: any, b: any) => b.rate - a.rate);
 
-    // 4. Department & Workforce Demographics
-    const deptMap: Record<string, number> = {};
+    // 4. Comprehensive Department Quotas & Workforce Demographics
+    interface DeptStat {
+      dept: string;
+      residentCount: number;
+      maleCount: number;
+      femaleCount: number;
+      roomsSet: Set<number>;
+      roomNumbersSet: Set<string>;
+      buildingsSet: Set<string>;
+      occupiedBeds: number;
+    }
+
+    const deptStatsMap: Record<string, DeptStat> = {};
     const natMap: Record<string, number> = {};
     const companyMap: Record<string, number> = {};
     const genderMap: Record<string, number> = { male: 0, female: 0 };
@@ -254,13 +265,50 @@ export function useReportAnalytics({
       .forEach((a: any) => {
         const p = safeProfiles.find((prof: any) => prof.id === a.profileId);
         const dept = p?.department || (ar ? "عام" : "General");
-        deptMap[dept] = (deptMap[dept] || 0) + 1;
+        
+        if (!deptStatsMap[dept]) {
+          deptStatsMap[dept] = {
+            dept,
+            residentCount: 0,
+            maleCount: 0,
+            femaleCount: 0,
+            roomsSet: new Set<number>(),
+            roomNumbersSet: new Set<string>(),
+            buildingsSet: new Set<string>(),
+            occupiedBeds: 0,
+          };
+        }
+
+        const dStat = deptStatsMap[dept];
+        dStat.residentCount += 1;
 
         const nat = p?.nationality || (ar ? "غير محدد" : "Unspecified");
         natMap[nat] = (natMap[nat] || 0) + 1;
 
         const g = p?.gender === "F" || p?.gender === "female" ? "female" : "male";
         genderMap[g] = (genderMap[g] || 0) + 1;
+        if (g === "female") {
+          dStat.femaleCount += 1;
+        } else {
+          dStat.maleCount += 1;
+        }
+
+        const r = safeRooms.find((rm: any) => rm.id === a.roomId);
+        if (r) {
+          dStat.roomsSet.add(r.id);
+          if (r.roomNumber) dStat.roomNumbersSet.add(r.roomNumber);
+          const bName = buildingNameMap.get(r.buildingId);
+          if (bName) dStat.buildingsSet.add(bName);
+        }
+
+        const isEntire = Boolean(
+          a.isEntireRoom ||
+          a.is_entire_room ||
+          a.notes?.includes("[حجز الغرفة بالكامل]") ||
+          a.notes?.includes("[تسكين الغرفة بالكامل]")
+        );
+        const bedsForAssignment = isEntire && r ? (r.capacity ?? 1) : 1;
+        dStat.occupiedBeds += bedsForAssignment;
 
         if (p?.employmentType === "THIRD_PARTY") {
           thirdPartyStaffCount++;
@@ -273,12 +321,40 @@ export function useReportAnalytics({
 
     const totalActiveResidents = stats.activeAss || 1;
 
-    const byDept = Object.entries(deptMap)
-      .map(([dept, count]) => ({
-        dept,
-        count,
-        percentage: Math.round((count / totalActiveResidents) * 100),
-      }))
+    // Detailed Department Metrics across ALL departments
+    const byDept = Object.values(deptStatsMap)
+      .map((d) => {
+        let totalRoomCap = 0;
+        let totalVacantBedsInRooms = 0;
+
+        d.roomsSet.forEach((rId) => {
+          const rm = safeRooms.find((x: any) => x.id === rId);
+          if (rm) {
+            const cap = rm.capacity ?? 1;
+            const occ = getRoomOccupancy(rm);
+            totalRoomCap += cap;
+            totalVacantBedsInRooms += Math.max(0, cap - occ);
+          }
+        });
+
+        const shareNum = totalActiveResidents > 0 ? (d.residentCount / totalActiveResidents) * 100 : 0;
+
+        return {
+          dept: d.dept,
+          count: d.residentCount,
+          residentCount: d.residentCount,
+          roomsCount: d.roomsSet.size,
+          occupiedBeds: d.occupiedBeds,
+          availableBeds: totalVacantBedsInRooms,
+          capacity: totalRoomCap,
+          maleCount: d.maleCount,
+          femaleCount: d.femaleCount,
+          percentage: Math.round(shareNum),
+          shareOfHousing: shareNum.toFixed(1),
+          buildingsList: Array.from(d.buildingsSet).join(ar ? "، " : ", ") || "—",
+          roomsSummary: Array.from(d.roomNumbersSet).slice(0, 10).join(", "),
+        };
+      })
       .sort((a, b) => b.count - a.count);
 
     const byNationality = Object.entries(natMap)

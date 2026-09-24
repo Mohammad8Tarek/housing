@@ -838,14 +838,34 @@ export const printArabicAnalyticsReport = async (opts: {
     </tr>`;
   }).join("");
 
-  // ── 4. Department Rows ──
-  const deptRows = (analytics?.byDept || []).slice(0, 8).map((d: any) => {
+  // ── 4. Comprehensive Department Quotas Rows & Totals ──
+  const depts = analytics?.byDept || [];
+  const totalDeptResidents = depts.reduce((acc: number, d: any) => acc + (d.residentCount ?? d.count ?? 0), 0);
+  const totalDeptRooms = depts.reduce((acc: number, d: any) => acc + (d.roomsCount ?? 0), 0);
+  const totalDeptOccBeds = depts.reduce((acc: number, d: any) => acc + (d.occupiedBeds ?? 0), 0);
+  const totalDeptAvailBeds = depts.reduce((acc: number, d: any) => acc + (d.availableBeds ?? 0), 0);
+  const totalDeptCapacity = depts.reduce((acc: number, d: any) => acc + (d.capacity ?? 0), 0);
+  const totalDeptMales = depts.reduce((acc: number, d: any) => acc + (d.maleCount ?? 0), 0);
+  const totalDeptFemales = depts.reduce((acc: number, d: any) => acc + (d.femaleCount ?? 0), 0);
+
+  const deptRowsFull = depts.map((d: any) => {
     return `<tr>
-      <td style="font-weight:600;">${d.dept || (isAr ? "عام" : "General")}</td>
-      <td style="text-align:center; font-weight:700; color:#1d4ed8;">${d.count ?? 0}</td>
-      <td style="text-align:center;">
-        <span style="display:inline-block; padding:1px 5px; border-radius:4px; background:#f1f5f9; font-weight:700; font-size:6.5pt;">${d.percentage ?? 0}%</span>
+      <td style="font-weight:600;">
+        ${d.dept || (isAr ? "عام" : "General")}
+        ${d.roomsSummary ? `<div style="font-size:5.5pt; color:#64748b; font-weight:normal;">${isAr ? "غرف:" : "Rooms:"} ${d.roomsSummary}</div>` : ""}
       </td>
+      <td style="text-align:center; font-weight:700; color:#1d4ed8;">${d.residentCount ?? d.count ?? 0}</td>
+      <td style="text-align:center;">
+        <span style="display:inline-block; padding:1px 5px; border-radius:4px; background:#f1f5f9; font-weight:700; font-size:6.5pt;">${d.shareOfHousing || d.percentage || 0}%</span>
+      </td>
+      <td style="text-align:center; font-weight:600;">${d.roomsCount ?? 0}</td>
+      <td style="text-align:center; font-weight:700; color:#1d4ed8;">${d.occupiedBeds ?? 0}</td>
+      <td style="text-align:center; font-weight:700; color:#15803d;">${d.availableBeds ?? 0}</td>
+      <td style="text-align:center; color:#64748b;">${d.capacity ?? 0}</td>
+      <td style="text-align:center; font-size:6.2pt; white-space:nowrap;">
+        <span style="color:#1d4ed8; font-weight:bold;">${d.maleCount ?? 0} ♂</span> / <span style="color:#7c3aed; font-weight:bold;">${d.femaleCount ?? 0} ♀</span>
+      </td>
+      <td style="font-size:6pt; color:#475569;">${d.buildingsList || "—"}</td>
     </tr>`;
   }).join("");
 
@@ -1112,7 +1132,7 @@ export const printArabicAnalyticsReport = async (opts: {
       ${isAr ? "تقرير التحليلات والإحصائيات الشاملة لسكن العاملين" : "Executive Housing Analytics Report"} · ${propName || (isAr ? "سكن العاملين" : "Staff Housing")}
     </div>
     <div style="display:flex; gap:8px;">
-      <button class="btn btn-primary" onclick="window.print()">🖨️ ${isAr ? "طباعة / حفظ كـ PDF (تقرير تنفيذي متكامل - صفحتان)" : "Print / Save PDF (2 Executive Pages)"}</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ ${isAr ? "طباعة / حفظ كـ PDF (تقرير تنفيذي شامل)" : "Print / Save PDF (Executive Report)"}</button>
       <button class="btn btn-outline" onclick="window.close()">❌ ${isAr ? "إغلاق" : "Close"}</button>
     </div>
   </div>
@@ -1328,24 +1348,43 @@ export const printArabicAnalyticsReport = async (opts: {
         </tbody>
       </table>
 
+      <!-- Comprehensive Department Occupancy & Bed Quotas Table -->
+      <div class="sec-head">${isAr ? "التحليل الشامل لإشغال الأقسام وحصص الغرف والأسِرّة" : "Comprehensive Department Occupancy & Bed Quotas"}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>${isAr ? "القسم / الإدارة" : "Department"}</th>
+            <th style="text-align:center; width:38px;">${isAr ? "المقيمين" : "Pax"}</th>
+            <th style="text-align:center; width:40px;">${isAr ? "النسبة %" : "Share %"}</th>
+            <th style="text-align:center; width:34px;">${isAr ? "الغرف" : "Rooms"}</th>
+            <th style="text-align:center; width:38px;">${isAr ? "مشغول" : "Occ"}</th>
+            <th style="text-align:center; width:38px;">${isAr ? "شاغر" : "Avail"}</th>
+            <th style="text-align:center; width:38px;">${isAr ? "الطاقة" : "Cap"}</th>
+            <th style="text-align:center; width:55px;">${isAr ? "ذكور / إناث" : "M / F"}</th>
+            <th style="width:85px;">${isAr ? "المباني السكنية" : "Buildings"}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${deptRowsFull || `<tr><td colspan="9" style="text-align:center;">${isAr ? "لا توجد بيانات أقسام" : "No department data available"}</td></tr>`}
+        </tbody>
+        <tfoot>
+          <tr style="background:#f1f5f9; font-weight:800; border-top:1.5px solid #0f2a44;">
+            <td>${isAr ? `الإجمالي (${depts.length} قسم)` : `Total (${depts.length} depts)`}</td>
+            <td style="text-align:center; color:#1d4ed8;">${totalDeptResidents}</td>
+            <td style="text-align:center;">100%</td>
+            <td style="text-align:center;">${totalDeptRooms}</td>
+            <td style="text-align:center; color:#1d4ed8;">${totalDeptOccBeds}</td>
+            <td style="text-align:center; color:#15803d;">${totalDeptAvailBeds}</td>
+            <td style="text-align:center;">${totalDeptCapacity}</td>
+            <td style="text-align:center; font-size:6.2pt;">${totalDeptMales} ♂ / ${totalDeptFemales} ♀</td>
+            <td style="font-size:5.8pt; color:#64748b;">${isAr ? "كافة المباني السكنية" : "All Buildings"}</td>
+          </tr>
+        </tfoot>
+      </table>
+
       <!-- 2-Column Deep Dive: Demographics & Workforce (Left) + Maintenance & Satisfaction (Right) -->
       <div class="grid-2">
         <div>
-          <!-- Departments Breakdown -->
-          <div class="sec-head">${isAr ? "توزيع المقيمين حسب الإدارات والأقسام" : "Resident Distribution by Department"}</div>
-          <table>
-            <thead>
-              <tr>
-                <th>${isAr ? "القسم / الإدارة" : "Department"}</th>
-                <th style="text-align:center; width:55px;">${isAr ? "المقيمين" : "Residents"}</th>
-                <th style="text-align:center; width:55px;">${isAr ? "الحصة %" : "Share %"}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${deptRows || `<tr><td colspan="3" style="text-align:center;">${isAr ? "لا توجد بيانات" : "No department data"}</td></tr>`}
-            </tbody>
-          </table>
-
           <!-- Workforce Structure & Gender -->
           <div class="sec-head">${isAr ? "هيكل القوى العاملة ونوع التسكين" : "Workforce Demographics & Gender"}</div>
           <table>
