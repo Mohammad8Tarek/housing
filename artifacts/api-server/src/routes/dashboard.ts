@@ -167,6 +167,7 @@ router.get(
 
               const roomCapacityMap = new Map<number, number>();
               const roomNumberMap = new Map<number, string>();
+              const roomOccMap = new Map<number, number>();
               let totalBeds = 0;
               let dirtyRooms = 0;
               let oooRooms = 0;
@@ -180,11 +181,17 @@ router.get(
                 totalBeds += cap;
 
                 const st = (r.status || "available").toLowerCase();
-                if (st === "occupied") {
-                  occupiedRooms++;
-                } else if (st === "dirty" || st === "occupied_dirty") {
-                  dirtyRooms++;
-                } else if (
+                // Per-room occupancy from active assignments (entire-room
+                // locks occupy the whole capacity). Fully-vacant-only rule:
+                // a room with any occupied bed is NOT available.
+                let occ = 0;
+                for (const a of activeAssigns) {
+                  if (a.roomId !== r.id) continue;
+                  occ += a.isEntireRoom ? cap : 1;
+                }
+                roomOccMap.set(r.id, Math.min(cap, occ));
+
+                if (
                   st === "maintenance" ||
                   st === "out_of_service" ||
                   st === "out_of_order" ||
@@ -192,6 +199,10 @@ router.get(
                   st === "oos"
                 ) {
                   oooRooms++;
+                } else if (st === "dirty" || st === "occupied_dirty") {
+                  dirtyRooms++;
+                } else if (st === "occupied" || occ > 0) {
+                  occupiedRooms++;
                 } else {
                   availableRooms++;
                 }

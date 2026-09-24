@@ -118,7 +118,9 @@ export function HousingPage() {
   const availableRooms = rooms.filter((r: any) => {
     const s = (r.status || "").toLowerCase();
     const roomOccCount = activeAssignments.filter((a: any) => a.roomId === r.id).length;
-    return s === "available" || s === "vacant" || ((r.capacity || 1) > roomOccCount && s !== "out_of_service" && s !== "out_of_order");
+    // Fully-vacant-only: any occupied bed disqualifies the room.
+    if (roomOccCount > 0) return false;
+    return s === "available" || s === "vacant" || (s !== "out_of_service" && s !== "out_of_order");
   }).length;
 
   const occPct =

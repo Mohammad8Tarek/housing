@@ -90,7 +90,9 @@ export function useReportAnalytics({
 
       if (isMaint) {
         maintRooms++;
-      } else if (occ >= cap || (st === "occupied" && occ > 0)) {
+      } else if (occ > 0) {
+        // Any occupied bed => room counts as occupied (fully OR partially).
+        // Fully-vacant-only rule: partial rooms are NOT vacant.
         occupiedRooms++;
         if (st === "occupied_dirty") {
           occupiedDirtyRooms++;
@@ -172,7 +174,7 @@ export function useReportAnalytics({
         const bAvailBeds = Math.max(0, bCapacity - bOccupied);
         const bAvailRooms = bRooms.filter(
           (r: any) =>
-            (r.capacity ?? 1) > getRoomOccupancy(r) &&
+            getRoomOccupancy(r) === 0 &&
             !["maintenance", "out_of_service", "out_of_order"].includes(r.status?.toLowerCase()),
         ).length;
         const bMaint = bRooms.filter(

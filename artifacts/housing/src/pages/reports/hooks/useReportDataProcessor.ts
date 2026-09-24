@@ -923,6 +923,10 @@ export function useReportDataProcessor({
               if (fs === "available" && occ > 0) return false;
               if (fs === "partially" && (occ === 0 || occ >= cap)) return false;
               if (fs === "dirty" && rawStatus !== "dirty") return false;
+            } else if (occ > 0) {
+              // Default view: fully-vacant rooms only. Partially occupied
+              // rooms appear only via the explicit "partially" filter.
+              return false;
             }
             if (filterGender && filterGender !== "all") {
               const fg = filterGender.toUpperCase().trim();
