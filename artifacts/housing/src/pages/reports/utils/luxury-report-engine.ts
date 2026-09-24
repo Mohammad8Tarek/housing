@@ -2462,25 +2462,66 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // ── Greedy Fill-to-Capacity Page Allocation ──
   // Each page is filled to its MAXIMUM row capacity before spilling to the next page.
-  // ── Fill-to-Capacity Page Allocation with Multi-Line Safety Margin ──
-  // Calibrated so even when rows wrap to 2 lines, they never overflow the physical A4 printable height (208mm).
+  // ── Dynamic Content-Aware Height Allocation (Physical Millimeter Budgeting) ──
+  // Instead of an arbitrary fixed number of rows that causes empty gaps or overflow,
+  // we calculate the physical height in millimeters of each row based on wrapped lines.
   const isLandscape = orientation === "landscape";
   const hasKpis = Boolean(initialShowKpis && kpiCards.length > 0);
   const hasSigs = Boolean(initialShowSigs);
   const hasBottom = Boolean(customBottomSectionsHtml);
 
-  // Maximum row capacity per page type (safely calibrated for multi-line cells and physical printable height)
-  // Page 1: 15 rows if KPIs are shown, 18 rows without KPIs (guarantees header + logos fit with 0 clipping)
-  // Subsequent pages (no logos): 21 rows in landscape, 34 rows in portrait (guarantees 0 overlap with footer)
-  // Final page with signatures: 15 rows in landscape, 24 rows in portrait
-  const capP1 = hasKpis ? (isLandscape ? 15 : 26) : (isLandscape ? 18 : 32);
-  const capSubsequent = isLandscape ? 21 : 34;
-  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 15 : 24) : capSubsequent;
+  // Available printable height budgets in millimeters
+  // Landscape A4 (210mm height): Page padding (10mm), footer (12mm)
+  // Page 1 non-table: padding (10mm) + header (24mm) + divider (2mm) + thead (9mm) + footer (12mm) = 57mm -> Budget = 148mm
+  // Subsequent pages non-table: padding (10mm) + subheader (8mm) + divider (2mm) + thead (9mm) + footer (12mm) = 41mm -> Budget = 166mm
+  // Last page with signatures: 41mm + signatures (28mm) = 69mm -> Budget = 138mm
+  const budgetP1Mm = isLandscape ? (hasKpis ? 122 : 148) : (hasKpis ? 198 : 228);
+  const budgetSubsequentMm = isLandscape ? 166 : 248;
+  const budgetLastWithSigsMm = (hasSigs || hasBottom) ? (isLandscape ? 138 : 210) : budgetSubsequentMm;
 
-  // Single-page capacity (page 1 with everything: header + optional KPIs + optional sigs)
-  const capP1Single = hasKpis
-    ? (isLandscape ? ((hasSigs || hasBottom) ? 12 : 15) : ((hasSigs || hasBottom) ? 20 : 26))
-    : (isLandscape ? ((hasSigs || hasBottom) ? 14 : 18) : ((hasSigs || hasBottom) ? 24 : 32));
+  // Approximate character capacity per column to detect line wrapping
+  const printableWidthMm = isLandscape ? 280 : 196;
+  const avgCharWidthMm = (baseFontSizePt * 0.3528) * 0.48;
+  const colCharsCapacity = colWidthsPct.map((pct) => {
+    const colWidthMm = printableWidthMm * (pct / 100);
+    return Math.max(3, Math.floor((colWidthMm - 3) / avgCharWidthMm));
+  });
+
+  const estimateRowHeightMm = (row: any[]): number => {
+    let maxLines = 1;
+    for (let c = 0; c < row.length; c++) {
+      const val = row[c];
+      if (val === null || val === undefined) continue;
+      const str = String(val).trim();
+      if (!str || str === "—") continue;
+
+      const normH = (rawHeaders[c] || headers[c] || "").toLowerCase();
+      // Single-line fixed fields
+      if (/date|تاريخ|phone|هاتف|mobile|موبايل|national|قومي|bed|سرير|room|غرفة|level|درجة|status|حالة|gender|نوع/i.test(normH)) {
+        continue;
+      }
+
+      const cpl = colCharsCapacity[c] || 15;
+      if (str.length > cpl) {
+        const words = str.split(/\s+/);
+        let lines = 1;
+        let curLineLen = 0;
+        for (const w of words) {
+          if (curLineLen + w.length > cpl) {
+            lines++;
+            curLineLen = w.length + 1;
+          } else {
+            curLineLen += w.length + 1;
+          }
+        }
+        maxLines = Math.max(maxLines, Math.min(3, lines));
+      }
+    }
+
+    if (maxLines === 1) return isLandscape ? 5.2 : 5.8;
+    if (maxLines === 2) return isLandscape ? 7.8 : 8.6;
+    return isLandscape ? 10.4 : 11.4;
+  };
 
   const pageChunks: any[][][] = [];
   const pageStartIndexes: number[] = [];
@@ -2490,61 +2531,52 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     pageStartIndexes.push(0);
   } else {
     const totalRowsCount = tableRows.length;
+    let cursor = 0;
 
-    // Case 1: Everything fits on a single page
-    if (totalRowsCount <= capP1Single) {
-      pageChunks.push(tableRows);
-      pageStartIndexes.push(0);
-    }
-    // Case 2: Fits across 2 pages — balance them nicely so neither page looks empty
-    else if (totalRowsCount <= (capP1 + capLastWithSigs)) {
-      const minOnLast = 5;
-      const targetP1 = Math.min(capP1, Math.max(8, Math.ceil(totalRowsCount / 2) + (hasKpis ? 0 : 2)));
-      const p1Rows = Math.min(targetP1, totalRowsCount - minOnLast); // ensure page 2 gets at least 5 rows
-      pageStartIndexes.push(0);
-      pageChunks.push(tableRows.slice(0, p1Rows));
-      pageStartIndexes.push(p1Rows);
-      pageChunks.push(tableRows.slice(p1Rows));
-    }
-    // Case 3: Multi-page (3+ pages) — fill every intermediate page TO CAPACITY
-    else {
-      let cursor = 0;
-      while (cursor < totalRowsCount) {
-        const isFirst = pageChunks.length === 0;
-        const remaining = totalRowsCount - cursor;
-        const maxCapacity = isFirst ? capP1 : capSubsequent;
+    while (cursor < totalRowsCount) {
+      const isFirst = pageChunks.length === 0;
 
-        // If remaining rows fit on this last page (with signatures), take them all
-        if (remaining <= capLastWithSigs) {
-          pageStartIndexes.push(cursor);
-          pageChunks.push(tableRows.slice(cursor));
-          cursor = totalRowsCount;
-          break;
-        }
-
-        // If remaining rows cannot fit with signatures on one page, but are <= maxCapacity without signatures,
-        // we MUST split across this page and a final page so the final page doesn't overflow signatures!
-        if (remaining <= maxCapacity) {
-          const minLastPage = 5;
-          const take = Math.min(maxCapacity - minLastPage, Math.max(minLastPage, Math.ceil(remaining / 2)));
-          pageStartIndexes.push(cursor);
-          pageChunks.push(tableRows.slice(cursor, cursor + take));
-          cursor += take;
-          continue;
-        }
-
-        // Prevent stranded orphan pages (< 5 rows alone on the final page)
-        const remainderIfFull = remaining - maxCapacity;
-        let take = maxCapacity;
-        if (remainderIfFull > 0 && remainderIfFull < 5) {
-          // Shave rows from this page so the last page gets at least 5 rows
-          take = maxCapacity - (5 - remainderIfFull);
-        }
-
-        pageStartIndexes.push(cursor);
-        pageChunks.push(tableRows.slice(cursor, cursor + take));
-        cursor += take;
+      // Calculate total height of all remaining rows if placed on a final page
+      let remainingTotalHeight = 0;
+      for (let i = cursor; i < totalRowsCount; i++) {
+        remainingTotalHeight += estimateRowHeightMm(tableRows[i]);
       }
+
+      // If all remaining rows fit on this page with signatures, take them all!
+      const maxSigBudget = isFirst ? (hasKpis ? 100 : 122) : budgetLastWithSigsMm;
+      if (remainingTotalHeight <= maxSigBudget) {
+        pageStartIndexes.push(cursor);
+        pageChunks.push(tableRows.slice(cursor));
+        cursor = totalRowsCount;
+        break;
+      }
+
+      // Otherwise, fill this page to its maximum millimeter budget
+      const maxPageBudget = isFirst ? budgetP1Mm : budgetSubsequentMm;
+      let accumulatedHeight = 0;
+      let count = 0;
+
+      while (cursor + count < totalRowsCount) {
+        const nextH = estimateRowHeightMm(tableRows[cursor + count]);
+        if (accumulatedHeight + nextH > maxPageBudget && count >= 5) {
+          break; // Page reached maximum safe physical capacity!
+        }
+        accumulatedHeight += nextH;
+        count++;
+      }
+
+      // Prevent stranded orphan rows on the final page (< 5 rows)
+      const rowsAfterThis = totalRowsCount - (cursor + count);
+      if (rowsAfterThis > 0 && rowsAfterThis < 5) {
+        const pull = 5 - rowsAfterThis;
+        if (count - pull >= 5) {
+          count -= pull;
+        }
+      }
+
+      pageStartIndexes.push(cursor);
+      pageChunks.push(tableRows.slice(cursor, cursor + count));
+      cursor += count;
     }
   }
 
@@ -2670,7 +2702,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
 
     const tableHtml = (tableRows.length > 0 || headers.length > 0)
-      ? `<table class="opera-table">
+      ? `<table class="opera-table ${!isLastPage ? "opera-table-fill" : ""}">
           ${theadHtml}
           <tbody>
             ${rowsHtml}
@@ -3045,10 +3077,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       max-width: 100% !important;
       border-collapse: collapse !important;
       border-spacing: 0 !important;
-      margin-bottom: 12px;
+      margin-bottom: 0 !important;
       font-size: ${baseFontSizePt}pt;
       table-layout: fixed !important;
       word-wrap: break-word !important;
+    }
+    table.opera-table.opera-table-fill {
+      flex: 1 1 auto;
+      height: 100%;
+    }
+    table.opera-table.opera-table-fill tbody {
+      height: 100%;
     }
     col.opera-col-seq,
     table.opera-table th.opera-seq-col,
@@ -3313,6 +3352,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         table-layout: fixed !important;
         font-size: ${printFontSizePt}pt !important;
         border-collapse: collapse !important;
+        margin-bottom: 0 !important;
+      }
+      table.opera-table.opera-table-fill {
+        flex: 1 1 auto !important;
+        height: 100% !important;
+      }
+      table.opera-table.opera-table-fill tbody {
+        height: 100% !important;
       }
       col.opera-col-seq,
       table.opera-table th.opera-seq-col,
