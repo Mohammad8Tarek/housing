@@ -619,14 +619,75 @@ export default function Tickets() {
 
   const updateMutation = useUpdateMaintenance({
     mutation: {
-      onSuccess: () => {
-        invalidate();
-        toast.success(ar ? "تم تحديث الحالة بنجاح" : "Status updated successfully");
+      onMutate: async (variables: any) => {
+        // إلغاء أي استعلامات قيد التنفيذ حتى لا تدوس على التحديث الفوري
+        await queryClient.cancelQueries({
+          predicate: (q) =>
+            Array.isArray(q.queryKey) &&
+            typeof q.queryKey[0] === "string" &&
+            q.queryKey[0].includes("maintenance"),
+        });
+
+        const previousData = queryClient.getQueriesData({
+          predicate: (q) =>
+            Array.isArray(q.queryKey) &&
+            typeof q.queryKey[0] === "string" &&
+            q.queryKey[0].includes("maintenance"),
+        });
+
+        // تحديث الكاش محلياً فوراً بـ 0ms تأخير
+        queryClient.setQueriesData(
+          {
+            predicate: (q) =>
+              Array.isArray(q.queryKey) &&
+              typeof q.queryKey[0] === "string" &&
+              q.queryKey[0].includes("maintenance"),
+          },
+          (old: any) => {
+            if (!old) return old;
+            const updateItem = (item: any) => {
+              if (item && item.id === variables.id) {
+                return {
+                  ...item,
+                  ...variables.data,
+                  ...(variables.data?.status === "resolved" ? { resolvedAt: new Date().toISOString() } : {}),
+                  ...(variables.data?.status === "in_progress" && !item.startedAt ? { startedAt: new Date().toISOString() } : {}),
+                };
+              }
+              return item;
+            };
+
+            if (Array.isArray(old)) {
+              return old.map(updateItem);
+            }
+            if (old.data && Array.isArray(old.data)) {
+              return {
+                ...old,
+                data: old.data.map(updateItem),
+              };
+            }
+            return old;
+          }
+        );
+
+        return { previousData };
       },
-      onError: (e: any) =>
-        toast.error(ar ? "خطأ" : "Error", {
-          description: e.message,
-        }),
+      onError: (err: any, _vars, context: any) => {
+        if (context?.previousData) {
+          context.previousData.forEach(([queryKey, data]: any) => {
+            queryClient.setQueryData(queryKey, data);
+          });
+        }
+        toast.error(ar ? "خطأ في تحديث الطلب" : "Error updating ticket", {
+          description: err.message,
+        });
+      },
+      onSuccess: () => {
+        toast.success(ar ? "تم تحديث الطلب بنجاح" : "Ticket updated successfully");
+      },
+      onSettled: () => {
+        invalidate();
+      },
     },
   });
 
@@ -734,19 +795,88 @@ export default function Tickets() {
 
   const COLS = [
     { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
-    { key: "room_person", label: "BUILDING, FLOOR & ROOM", labelAr: "المبنى والدور والغرفة", defaultVisible: true },
-    { key: "problem", label: "PROBLEM", labelAr: "المشكلة", defaultVisible: true },
-    { key: "resident", label: "RESIDENT", labelAr: "Resident", defaultVisible: true },
+    { key: "room", label: "ROOM", labelAr: "رقم الغرفة", defaultVisible: true },
+    { key: "building_floor", label: "BUILDING & FLOOR", labelAr: "المبنى والدور", defaultVisible: true },
+    { key: "requester", label: "REQUESTER / RESIDENT", labelAr: "مقدم الطلب / المقيم", defaultVisible: true },
+    { key: "property", label: "PROPERTY", labelAr: "الفندق / السكن", defaultVisible: true },
+    { key: "problem", label: "PROBLEM", labelAr: "المشكلة والوصف", defaultVisible: true },
     { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: true },
     { key: "status", label: "STATUS", labelAr: "الحالة", defaultVisible: true },
     { key: "priority", label: "PRIORITY", labelAr: "الأولوية", defaultVisible: true },
-    { key: "at", label: "AT", labelAr: "تاريخ البدء", defaultVisible: true },
+    { key: "assigned_to", label: "ASSIGNED TO", labelAr: "المسند إليه / الفني", defaultVisible: true },
+    { key: "at", label: "REPORTED AT", labelAr: "تاريخ البدء", defaultVisible: true },
     { key: "duration", label: "DURATION", labelAr: "المدة", defaultVisible: true },
     { key: "rating", label: "RATING", labelAr: "التقييم", defaultVisible: true },
     { key: "actions", label: "ACTIONS", labelAr: "إجراءات", defaultVisible: true, fixed: true },
   ];
 
   const { visible, toggle, showAll, hideAll, isVisible } = useColumnVisibility(COLS);
+
+  const isColVisible = (key: string) => {
+    if (key === "room") return isVisible("room") || isVisible("room_person");
+    if (key === "building_floor") return isVisible("building_floor") || isVisible("room_person");
+    if (key === "requester") return isVisible("requester") || isVisible("room_person") || isVisible("name");
+    if (key === "property") return isVisible("property") || isVisible("resident") || isVisible("hotel");
+    if (key === "assigned_to") return isVisible("assigned_to");
+    return isVisible(key);
+  };
+
+  const renderRequester = (ticket: any) => {
+    const rep = (ticket.reportedBy || "").trim();
+    if (rep) {
+      const isSystemAdmin = ["admin", "super_admin", "system_admin", "system", "test_superadmin"].includes(rep.toLowerCase());
+      if (isSystemAdmin) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="inline-flex items-center gap-1 font-semibold text-xs text-foreground">
+              <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              <span>{ar ? "إدارة السكن" : "Housing Admin"}</span>
+              <span className="text-[10px] text-muted-foreground font-mono">({rep})</span>
+            </span>
+            {ticket.residentName && (
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1" title={ticket.residentName}>
+                <User className="w-3 h-3 text-slate-400 shrink-0" />
+                <span className="truncate max-w-[140px]">{ticket.residentName}</span>
+              </span>
+            )}
+          </div>
+        );
+      }
+
+      const isQr = rep.includes("مسح QR") || rep.includes("QR");
+      const cleanName = rep.replace(/\s*-\s*\[مسح QR.*?\]/g, "").trim();
+
+      return (
+        <div className="flex flex-col gap-0.5">
+          <span className="inline-flex items-center gap-1 font-bold text-xs text-foreground">
+            <User className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span className="truncate max-w-[160px]" title={cleanName}>{cleanName}</span>
+          </span>
+          {isQr && (
+            <Badge variant="outline" className="w-fit text-[9px] px-1 py-0 h-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300">
+              {ar ? "مسح QR الغرفة" : "Room QR Scan"}
+            </Badge>
+          )}
+        </div>
+      );
+    }
+
+    if (ticket.residentName) {
+      return (
+        <span className="inline-flex items-center gap-1 font-semibold text-xs text-foreground" title={ticket.residentName}>
+          <User className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="truncate max-w-[160px]">{ticket.residentName}</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="text-[11px] text-muted-foreground/70 italic flex items-center gap-1">
+        <User className="w-3 h-3 opacity-40 shrink-0" />
+        <span>{ar ? "شاغرة (بدون نزيل)" : "Vacant"}</span>
+      </span>
+    );
+  };
 
   const roomMap = Object.fromEntries(
     (rooms || []).map((r: any) => [r.id, r.roomNumber]),
@@ -1157,18 +1287,18 @@ export default function Tickets() {
         <div className="bg-card p-4 rounded-xl border shadow-xs space-y-3.5">
           {/* Row 1: Hotels, From Date, To Date, Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Resident Filter */}
+            {/* Property Filter */}
             <div className="space-y-1">
               <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "Resident" : "Resident"}</span>
+                <span>{ar ? "الفندق / السكن" : "Property / Housing"}</span>
               </Label>
               <Select value={propertyFilter} onValueChange={(v) => setPropertyFilter(v)}>
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "كل الـ Resident" : "All Residents"} />
+                  <SelectValue placeholder={ar ? "جميع الفنادق والوحدات" : "All Properties"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{ar ? "كل الـ Resident" : "All Residents"}</SelectItem>
+                  <SelectItem value="all">{ar ? "جميع الفنادق والوحدات" : "All Properties"}</SelectItem>
                   {properties.map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       {p.displayName || p.name}
@@ -1902,24 +2032,34 @@ export default function Tickets() {
                       {ar ? "رقم" : "ID"}
                     </TableHead>
                   )}
-                  {(isVisible("room_person") || isVisible("name")) && (
-                    <TableHead className="font-semibold min-w-[210px]">
-                      {ar ? "المبنى والدور والغرفة" : "BUILDING, FLOOR & ROOM"}
+                  {isColVisible("room") && (
+                    <TableHead className="font-semibold w-[90px]">
+                      {ar ? "رقم الغرفة" : "ROOM"}
+                    </TableHead>
+                  )}
+                  {isColVisible("building_floor") && (
+                    <TableHead className="font-semibold min-w-[140px]">
+                      {ar ? "المبنى والدور" : "BUILDING & FLOOR"}
+                    </TableHead>
+                  )}
+                  {isColVisible("requester") && (
+                    <TableHead className="font-semibold min-w-[150px]">
+                      {ar ? "مقدم الطلب" : "REQUESTER"}
+                    </TableHead>
+                  )}
+                  {isColVisible("property") && (
+                    <TableHead className="font-semibold min-w-[120px]">
+                      {ar ? "الفندق" : "PROPERTY"}
                     </TableHead>
                   )}
                   {isVisible("problem") && (
-                    <TableHead className="font-semibold min-w-[200px]">
-                      {ar ? "المشكلة" : "PROBLEM"}
-                    </TableHead>
-                  )}
-                  {(isVisible("resident") || isVisible("hotel")) && (
-                    <TableHead className="font-semibold min-w-[130px]">
-                      {ar ? "Resident" : "RESIDENT"}
+                    <TableHead className="font-semibold min-w-[180px]">
+                      {ar ? "المشكلة والوصف" : "PROBLEM"}
                     </TableHead>
                   )}
                   {isVisible("department") && (
                     <TableHead className="font-semibold">
-                      {ar ? "القسم والخدمة" : "DEPARTMENT"}
+                      {ar ? "القسم" : "DEPT"}
                     </TableHead>
                   )}
                   {isVisible("status") && (
@@ -1932,9 +2072,14 @@ export default function Tickets() {
                       {ar ? "الأولوية" : "PRIORITY"}
                     </TableHead>
                   )}
+                  {isColVisible("assigned_to") && (
+                    <TableHead className="font-semibold min-w-[130px]">
+                      {ar ? "المسند إليه" : "ASSIGNED TO"}
+                    </TableHead>
+                  )}
                   {isVisible("at") && (
                     <TableHead className="font-semibold">
-                      {ar ? "تاريخ البدء" : "AT"}
+                      {ar ? "تاريخ البلاغ" : "REPORTED"}
                     </TableHead>
                   )}
                   {isVisible("duration") && (
@@ -1943,7 +2088,7 @@ export default function Tickets() {
                     </TableHead>
                   )}
                   {isVisible("rating") && (
-                    <TableHead className="font-semibold min-w-[120px]">
+                    <TableHead className="font-semibold min-w-[100px]">
                       {ar ? "التقييم" : "RATING"}
                     </TableHead>
                   )}
@@ -1981,41 +2126,54 @@ export default function Tickets() {
                       </TableCell>
                     )}
 
-                    {(isVisible("room_person") || isVisible("name")) && (
+                    {isColVisible("room") && (
+                      <TableCell className="text-xs font-bold text-foreground whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-muted/60 border text-xs font-bold">
+                          <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
+                          {req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}
+                        </span>
+                      </TableCell>
+                    )}
+
+                    {isColVisible("building_floor") && (
                       <TableCell className="text-xs font-medium">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {(req.buildingName || req.floorNumber) && (
-                              <div className="flex items-center gap-1 flex-wrap">
-                                {req.buildingName && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-medium" title={ar ? "المبنى" : "Building"}>
-                                    <Building2 className="w-3 h-3 shrink-0 text-sky-600 dark:text-sky-400" />
-                                    <span>{req.buildingName}</span>
-                                  </span>
-                                )}
-                                {req.floorNumber && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 text-[11px] font-medium" title={ar ? "الدور / الطابق" : "Floor"}>
-                                    <Layers className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />
-                                    <span>{ar ? `الدور ${req.floorNumber}` : `Floor ${req.floorNumber}`}</span>
-                                  </span>
-                                )}
-                              </div>
+                        {(req.buildingName || req.floorNumber) ? (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {req.buildingName && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-medium" title={ar ? "المبنى" : "Building"}>
+                                <Building2 className="w-3 h-3 shrink-0 text-sky-600 dark:text-sky-400" />
+                                <span>{req.buildingName}</span>
+                              </span>
                             )}
-                            <span className="font-bold text-foreground flex items-center gap-1">
-                              <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
-                              {ar ? "الغرفة" : "Room"} {req.roomNumber || roomMap[req.roomId] || req.roomId}
-                            </span>
+                            {req.floorNumber && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 text-[11px] font-medium" title={ar ? "الدور / الطابق" : "Floor"}>
+                                <Layers className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />
+                                <span>{ar ? `الدور ${req.floorNumber}` : `Floor ${req.floorNumber}`}</span>
+                              </span>
+                            )}
                           </div>
-                          {roomOccupantMap[req.roomId] ? (
-                            <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
-                              <User className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="truncate max-w-[170px]">{roomOccupantMap[req.roomId]}</span>
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 italic">
-                              {ar ? "شاغرة (بدون نزيل)" : "Vacant (No resident)"}
-                            </span>
-                          )}
+                        ) : (
+                          <span className="text-muted-foreground/50 text-xs">—</span>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {isColVisible("requester") && (
+                      <TableCell className="text-xs font-medium">
+                        {renderRequester(req)}
+                      </TableCell>
+                    )}
+
+                    {isColVisible("property") && (
+                      <TableCell className="text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="font-medium text-foreground">
+                            {req.propertyName ||
+                              properties.find((p: any) => p.id === req.propertyId)?.displayName ||
+                              properties.find((p: any) => p.id === req.propertyId)?.name ||
+                              (ar ? "سكن العاملين" : "Staff Housing")}
+                          </span>
                         </div>
                       </TableCell>
                     )}
@@ -2031,20 +2189,6 @@ export default function Tickets() {
                               {req.description}
                             </span>
                           )}
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {(isVisible("resident") || isVisible("hotel")) && (
-                      <TableCell className="text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span className="font-medium text-foreground">
-                            {req.propertyName ||
-                              properties.find((p: any) => p.id === req.propertyId)?.displayName ||
-                              properties.find((p: any) => p.id === req.propertyId)?.name ||
-                              (ar ? "Resident شروق" : "Sunrise Resident")}
-                          </span>
                         </div>
                       </TableCell>
                     )}
@@ -2179,6 +2323,21 @@ export default function Tickets() {
                               : req.priority}
                           </span>
                         </span>
+                      </TableCell>
+                    )}
+
+                    {isColVisible("assigned_to") && (
+                      <TableCell className="text-xs">
+                        {req.assignedToName || req.workerName ? (
+                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-medium">
+                            <Wrench className="w-3 h-3 shrink-0 text-purple-600 dark:text-purple-400" />
+                            <span className="truncate max-w-[130px]">{req.assignedToName || req.workerName}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/50 text-[11px] italic">
+                            {ar ? "غير مسند" : "Unassigned"}
+                          </span>
+                        )}
                       </TableCell>
                     )}
 

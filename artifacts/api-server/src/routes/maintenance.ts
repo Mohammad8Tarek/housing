@@ -10,7 +10,7 @@ import {
   workersTable,
   withTenant,
 } from "@workspace/db";
-import { eq, ne, and, or, ilike, sql, SQL, desc, inArray } from "drizzle-orm";
+import { eq, ne, and, or, ilike, sql, SQL, desc, inArray, aliasedTable } from "drizzle-orm";
 import {
   CreateMaintenanceBody,
   GetMaintenanceParams,
@@ -27,6 +27,7 @@ import {
 import { getTenantId, su } from "../lib/request-utils.js";
 
 const router: Router = Router();
+const assignedProfile = aliasedTable(profilesTable, "assigned_profile");
 
 /**
  * جلب العقارات المصرح للمستخدم الوصول إليها
@@ -246,6 +247,9 @@ function fmt(r: any) {
     rating: r.rating != null ? Number(r.rating) : null,
     ratingComment: r.ratingComment ?? null,
     ratedByProfileId: r.ratedByProfileId ?? null,
+    assignedToName: r.assignedToName ?? null,
+    assignedToProfileId: r.assignedToProfileId ?? null,
+    residentName: r.residentName ?? null,
   };
 }
 
@@ -393,6 +397,16 @@ router.get(
                     priority: maintenanceTable.priority,
                     reportedBy: maintenanceTable.reportedBy,
                     assignedTo: maintenanceTable.assignedTo,
+                    assignedToName: sql<string | null>`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
+                    assignedToProfileId: assignedProfile.profileId,
+                    residentName: sql<string | null>`(
+                      SELECT TRIM(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')))
+                      FROM assignments a
+                      JOIN profiles p ON p.id = a.profile_id
+                      WHERE a.room_id = ${maintenanceTable.roomId} AND a.status = 'ACTIVE'
+                      ORDER BY a.id DESC
+                      LIMIT 1
+                    )`,
                     workerId: maintenanceTable.workerId,
                     workerName: workersTable.name,
                     workerPhone: workersTable.phone,
@@ -414,6 +428,7 @@ router.get(
                   .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
                   .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
                   .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
+                  .leftJoin(assignedProfile, eq(maintenanceTable.assignedTo, assignedProfile.id))
                   .where(whereClause)
                   .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
                   .limit(offset + limit);
@@ -501,6 +516,16 @@ router.get(
             priority: maintenanceTable.priority,
             reportedBy: maintenanceTable.reportedBy,
             assignedTo: maintenanceTable.assignedTo,
+            assignedToName: sql<string | null>`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
+            assignedToProfileId: assignedProfile.profileId,
+            residentName: sql<string | null>`(
+              SELECT TRIM(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')))
+              FROM assignments a
+              JOIN profiles p ON p.id = a.profile_id
+              WHERE a.room_id = ${maintenanceTable.roomId} AND a.status = 'ACTIVE'
+              ORDER BY a.id DESC
+              LIMIT 1
+            )`,
             workerId: maintenanceTable.workerId,
             workerName: workersTable.name,
             workerPhone: workersTable.phone,
@@ -522,6 +547,7 @@ router.get(
           .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
           .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
           .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
+          .leftJoin(assignedProfile, eq(maintenanceTable.assignedTo, assignedProfile.id))
           .where(whereClause)
           .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
           .limit(limit)
@@ -617,6 +643,16 @@ router.get(
                 priority: maintenanceTable.priority,
                 status: maintenanceTable.status,
                 assignedTo: maintenanceTable.assignedTo,
+                assignedToName: sql<string | null>`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
+                assignedToProfileId: assignedProfile.profileId,
+                residentName: sql<string | null>`(
+                  SELECT TRIM(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')))
+                  FROM assignments a
+                  JOIN profiles p ON p.id = a.profile_id
+                  WHERE a.room_id = ${maintenanceTable.roomId} AND a.status = 'ACTIVE'
+                  ORDER BY a.id DESC
+                  LIMIT 1
+                )`,
                 workerId: maintenanceTable.workerId,
                 workerName: workersTable.name,
                 workerPhone: workersTable.phone,
@@ -640,6 +676,7 @@ router.get(
               .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
               .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
               .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
+              .leftJoin(assignedProfile, eq(maintenanceTable.assignedTo, assignedProfile.id))
               .where(eq(maintenanceTable.id, id))
               .limit(1);
             return found;

@@ -28,6 +28,10 @@ import {
   Lock,
   Star,
   Loader2,
+  DoorClosed,
+  Building2,
+  Layers,
+  User,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { differenceInMinutes, differenceInHours } from "date-fns";
@@ -245,6 +249,14 @@ export default function MaintenanceDetails() {
     }
   };
 
+  const cleanReportedBy = ticket?.reportedBy
+    ? ticket.reportedBy.replace(/\s*-\s*\[مسح QR.*?\]/g, "").replace(/\s*-\s*\[QR.*?\]/g, "").trim()
+    : "";
+  const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(cleanReportedBy);
+  const requesterDisplay = isSystemAdmin
+    ? (ar ? "إدارة السكن" : "Housing Administration")
+    : cleanReportedBy || ticket?.residentName || (ar ? "شاغرة (بدون نزيل)" : "Vacant");
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -290,6 +302,61 @@ export default function MaintenanceDetails() {
                 {ar ? "التفاصيل" : "Details"}
               </h2>
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "رقم الغرفة والموقع" : "Room & Location"}
+                  </p>
+                  <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                    <DoorClosed className="w-4 h-4 text-primary shrink-0" />
+                    <span>{ar ? "غرفة" : "Room"} {ticket.roomNumber || ticket.roomId || "—"}</span>
+                  </p>
+                  {(ticket.buildingName || ticket.floorNumber) && (
+                    <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap">
+                      {ticket.buildingName && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-xs">
+                          <Building2 className="w-3 h-3 text-sky-600" />
+                          <span>{ticket.buildingName}</span>
+                        </span>
+                      )}
+                      {ticket.floorNumber && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-xs">
+                          <Layers className="w-3 h-3 text-amber-600" />
+                          <span>{ar ? `الدور ${ticket.floorNumber}` : `Floor ${ticket.floorNumber}`}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "مقدم الطلب" : "Requester"}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span>{requesterDisplay}</span>
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "الفندق / السكن" : "Property / Housing"}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-primary shrink-0" />
+                    <span>{ticket.propertyName || (ar ? "سكن العاملين" : "Staff Housing")}</span>
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "المسند إليه" : "Assigned To"}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {ticket.assignedToName || ticket.workerName || (ar ? "غير مسند" : "Unassigned")}
+                  </p>
+                </div>
+
                 <div>
                   <p className="text-xs text-gray-500 mb-1">
                     {ar ? "الحالة" : "Status"}

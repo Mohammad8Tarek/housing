@@ -216,7 +216,13 @@ export function TicketsKanbanBoard({
                   : (problemTypesMap[ticket.problemType]?.labelEn || ticket.problemType);
 
                 const roomNum = ticket.roomNumber || roomMap[ticket.roomId] || ticket.roomId;
-                const occupant = roomOccupantMap[ticket.roomId];
+                const cleanReportedBy = ticket.reportedBy
+                  ? ticket.reportedBy.replace(/\s*-\s*\[مسح QR.*?\]/g, "").replace(/\s*-\s*\[QR.*?\]/g, "").trim()
+                  : "";
+                const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(cleanReportedBy);
+                const occupant = isSystemAdmin
+                  ? (ar ? "إدارة السكن" : "Admin Staff")
+                  : cleanReportedBy || ticket.residentName || roomOccupantMap[ticket.roomId];
                 const propName =
                   ticket.propertyName ||
                   properties.find((p: any) => p.id === ticket.propertyId)?.displayName ||

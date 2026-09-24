@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +46,8 @@ import {
   Phone,
   Star,
   Layers,
+  DoorClosed,
+  User,
 } from "lucide-react";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
@@ -261,11 +263,17 @@ export default function TicketDetailModal({
     ticket.problemType ||
     (ticket.category === "housekeeping" ? "نظافة الغرفة" : "خدمة صيانة");
 
-  const residentName = ticket.propertyName || (ar ? "Resident شروق" : "Sunrise Resident");
+  const residentName = ticket.propertyName || (ar ? "سكن العاملين" : "Staff Housing");
 
-  const displayName = `Room - ${ticket.roomNumber || ticket.roomId || "—"} - ${
-    occupantName || ticket.residentName ? (ar ? `النزيل: ${occupantName || ticket.residentName}` : `Guest: ${occupantName || ticket.residentName}`) : (ar ? "شاغرة" : "Vacant")
-  }`;
+  const cleanReportedBy = ticket.reportedBy
+    ? ticket.reportedBy.replace(/\s*-\s*\[مسح QR.*?\]/g, "").replace(/\s*-\s*\[QR.*?\]/g, "").trim()
+    : "";
+  const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(cleanReportedBy);
+  const requesterDisplay = isSystemAdmin
+    ? (ar ? "إدارة السكن" : "Housing Administration")
+    : cleanReportedBy || ticket.residentName || occupantName || (ar ? "شاغرة (بدون نزيل)" : "Vacant");
+
+  const displayName = `Room - ${ticket.roomNumber || ticket.roomId || "—"}`;
 
   const currentWorker = ticket.workerName
     ? ticket.workerName
@@ -457,10 +465,11 @@ export default function TicketDetailModal({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3.5 gap-x-6">
                         <div>
                           <p className="text-xs text-muted-foreground mb-0.5">
-                            {ar ? "الاسم / الغرفة والنزيل" : "Name"}
+                            {ar ? "رقم الغرفة والموقع" : "Room & Location"}
                           </p>
-                          <p className="font-semibold text-foreground text-sm">
-                            {displayName}
+                          <p className="font-bold text-foreground text-sm flex items-center gap-1.5">
+                            <DoorClosed className="w-4 h-4 text-primary shrink-0" />
+                            <span>{ar ? "الغرفة" : "Room"} {ticket.roomNumber || ticket.roomId || "—"}</span>
                           </p>
                           {(ticket.buildingName || ticket.floorNumber) && (
                             <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap">
@@ -482,11 +491,31 @@ export default function TicketDetailModal({
 
                         <div>
                           <p className="text-xs text-muted-foreground mb-0.5">
-                            {ar ? "Resident" : "Resident"}
+                            {ar ? "مقدم الطلب" : "Requester"}
+                          </p>
+                          <p className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-slate-500" />
+                            <span>{requesterDisplay}</span>
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            {ar ? "الفندق / السكن" : "Property / Housing"}
                           </p>
                           <p className="font-semibold text-foreground text-sm flex items-center gap-1.5">
                             <Building2 className="w-3.5 h-3.5 text-primary" />
                             <span>{residentName}</span>
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            {ar ? "المسند إليه (الفني)" : "Assigned Technician"}
+                          </p>
+                          <p className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                            <Wrench className="w-3.5 h-3.5 text-purple-600" />
+                            <span>{ticket.assignedToName || currentWorker || (ar ? "غير مسند" : "Unassigned")}</span>
                           </p>
                         </div>
 
