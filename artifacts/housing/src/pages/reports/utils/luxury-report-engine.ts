@@ -2455,20 +2455,23 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     ? (signatures?.role3Ar || signatures?.role3 || (activeTab === "housekeeping_sheet" ? "مدير الإشراف الداخلي المعتمد" : "اعتماد / مدير الموارد البشرية والمدير العام"))
     : (signatures?.role3 || (activeTab === "housekeeping_sheet" ? "Executive Housekeeper" : "Approved by / HR Director"));
 
-  // Proportional Page Allocation so tables fill the page nicely without leaving huge empty gaps
+  // ── Greedy Fill-to-Capacity Page Allocation ──
+  // Each page is filled to its MAXIMUM row capacity before spilling to the next page.
+  // This eliminates the large empty white gaps caused by the old averaging algorithm.
   const isLandscape = orientation === "landscape";
   const hasKpis = Boolean(initialShowKpis && kpiCards.length > 0);
   const hasSigs = Boolean(initialShowSigs);
   const hasBottom = Boolean(customBottomSectionsHtml);
 
-  // Maximum capacities:
-  // Page 1 has logos (+ optional KPIs)
-  const capP1 = hasKpis ? (isLandscape ? 16 : 22) : (isLandscape ? 22 : 30);
-  const capP1WithSigs = hasKpis ? (isLandscape ? 12 : 16) : (isLandscape ? 16 : 22);
+  // Maximum row capacity per page type (calibrated to fill A4 pages completely)
+  const capP1 = hasKpis ? (isLandscape ? 25 : 40) : (isLandscape ? 30 : 46);
+  const capSubsequent = isLandscape ? 34 : 48;
+  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 25 : 40) : capSubsequent;
 
-  // Subsequent pages (Page 2+) do NOT have logos, so they have significantly more room
-  const capSubsequent = isLandscape ? 25 : 34;
-  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 18 : 24) : capSubsequent;
+  // Single-page capacity (page 1 with everything: header + optional KPIs + optional sigs)
+  const capP1Single = hasKpis
+    ? (isLandscape ? ((hasSigs || hasBottom) ? 18 : 25) : ((hasSigs || hasBottom) ? 32 : 40))
+    : (isLandscape ? ((hasSigs || hasBottom) ? 24 : 30) : ((hasSigs || hasBottom) ? 38 : 46));
 
   const pageChunks: any[][][] = [];
   const pageStartIndexes: number[] = [];
@@ -2478,44 +2481,48 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     pageStartIndexes.push(0);
   } else {
     const totalRowsCount = tableRows.length;
-    // Check if 1 page suffices
-    if (totalRowsCount <= (hasSigs || hasBottom ? capP1WithSigs : capP1)) {
+
+    // Case 1: Everything fits on a single page
+    if (totalRowsCount <= capP1Single) {
       pageChunks.push(tableRows);
       pageStartIndexes.push(0);
-    } else {
-      // Determine minimum required pages
-      let neededPages = 2;
-      while (true) {
-        const totalCapacity = capP1 + (neededPages - 2) * capSubsequent + capLastWithSigs;
-        if (totalCapacity >= totalRowsCount || neededPages > 200) break;
-        neededPages++;
-      }
-
-      // Distribute rows across neededPages so every page is well-filled and balanced
+    }
+    // Case 2: Fits across 2 pages — balance them nicely so neither page looks empty
+    else if (totalRowsCount <= (capP1 + capLastWithSigs)) {
+      const targetP1 = Math.min(capP1, Math.max(12, Math.ceil(totalRowsCount / 2) + (hasKpis ? 0 : 2)));
+      const p1Rows = Math.min(targetP1, totalRowsCount - 6); // ensure page 2 gets at least 6 rows
+      pageStartIndexes.push(0);
+      pageChunks.push(tableRows.slice(0, p1Rows));
+      pageStartIndexes.push(p1Rows);
+      pageChunks.push(tableRows.slice(p1Rows));
+    }
+    // Case 3: Multi-page (3+ pages) — fill every intermediate page TO CAPACITY
+    else {
       let cursor = 0;
-      for (let p = 0; p < neededPages; p++) {
-        const isFirst = p === 0;
-        const isLast = p === neededPages - 1;
-        const remainingPages = neededPages - p;
-        const remainingRows = totalRowsCount - cursor;
+      while (cursor < totalRowsCount) {
+        const isFirst = pageChunks.length === 0;
+        const remaining = totalRowsCount - cursor;
+        const maxCapacity = isFirst ? capP1 : capSubsequent;
 
-        pageStartIndexes.push(cursor);
-        if (isLast) {
+        // If remaining rows fit on this last page (with signatures), take them all
+        if (remaining <= capLastWithSigs) {
+          pageStartIndexes.push(cursor);
           pageChunks.push(tableRows.slice(cursor));
           cursor = totalRowsCount;
-        } else {
-          const maxForThisPage = isFirst ? capP1 : capSubsequent;
-          // Target roughly equal rows per remaining page, biased to fill earlier pages
-          const avg = Math.ceil(remainingRows / remainingPages);
-          let take = Math.min(maxForThisPage, Math.max(8, avg));
-          // Ensure we don't leave remaining pages starved
-          const minNeededForRemaining = (remainingPages - 1) * 5;
-          if (remainingRows - take < minNeededForRemaining && remainingRows > minNeededForRemaining) {
-            take = Math.max(5, remainingRows - minNeededForRemaining);
-          }
-          pageChunks.push(tableRows.slice(cursor, cursor + take));
-          cursor += take;
+          break;
         }
+
+        // Prevent stranded orphan pages (< 6 rows alone on the final page)
+        const remainderIfFull = remaining - maxCapacity;
+        let take = maxCapacity;
+        if (remainderIfFull > 0 && remainderIfFull < 6) {
+          // Shave rows from this page so the last page gets at least 6 rows
+          take = maxCapacity - (6 - remainderIfFull);
+        }
+
+        pageStartIndexes.push(cursor);
+        pageChunks.push(tableRows.slice(cursor, cursor + take));
+        cursor += take;
       }
     }
   }
