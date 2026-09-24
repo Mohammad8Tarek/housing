@@ -201,7 +201,7 @@ export function ReportFilters({
   };
 
   const statusOptions = getStatusOptions();
-  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "maintenance", "hostings", "housekeeping", "equipment_inventory", "policy_exceptions", "vacations"].includes(activeTab);
+  const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "profiles", "maintenance", "hostings", "housekeeping", "equipment_inventory", "policy_exceptions", "vacations"].includes(activeTab);
   const showEmploymentType = ["assignments", "profiles", "analytics", "vacations"].includes(activeTab);
   const showRoomType = [
     "housing",

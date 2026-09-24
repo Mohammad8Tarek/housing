@@ -185,10 +185,9 @@ export function ReportTable({
                 {H("hkStatus", ar ? "حالة النظافة (HK)" : "HK Status")}
                 {H("taskType", ar ? "نوع المهمة المطلوبة" : "Task Assignment")}
                 {H("occupantNames", ar ? "النزلاء الحاليون" : "Current Occupants")}
-                {H("estimatedMins", ar ? "الوقت التقديري" : "Est. Time", "text-center")}
-                <TableHead className="text-center w-28 text-white">{ar ? "فحص المفروشات" : "Linen"}</TableHead>
-                <TableHead className="text-center w-28 text-white">{ar ? "فحص العهد" : "Amenities"}</TableHead>
-                <TableHead className="text-center w-32 text-white">{ar ? "التوقيع والوقت" : "Attendant Sign"}</TableHead>
+                {H("linenCheck", ar ? "فحص المفروشات" : "Linen", "text-center w-28")}
+                {H("amenitiesCheck", ar ? "فحص العهد" : "Amenities", "text-center w-28")}
+                {H("signature", ar ? "التوقيع والوقت" : "Attendant Sign", "text-center w-32")}
               </>
             )}
 
@@ -279,26 +278,25 @@ export function ReportTable({
             {/* 4. PROFILES HEADERS */}
             {activeTab === "profiles" && (
               <>
-                {isVis("fullName") && H("fullName", ar ? "كود والاسم" : "Code & Name")}
-                {isVis("firstName") && H("firstName", ar ? "الاسم الأول" : "First Name")}
-                {isVis("lastName") && H("lastName", ar ? "الاسم الثاني" : "Second Name")}
-                {isVis("thirdName") && H("thirdName", ar ? "الاسم الثالث" : "Third Name")}
-                {isVis("fourthName") && H("fourthName", ar ? "الاسم الرابع" : "Fourth Name")}
-                {isVis("employmentType") && H("employmentType", ar ? "النوع والشركة" : "Employment & Company")}
-                {isVis("nationalId") && H("nationalId", ar ? "الرقم القومي" : "National ID")}
-                {isVis("phone") && H("phone", ar ? "الهاتف" : "Phone")}
-                {isVis("nationality") && H("nationality", ar ? "الجنسية" : "Nationality")}
-                {isVis("gender") && H("gender", ar ? "الجنس" : "Gender")}
-                {isVis("dateOfBirth") && H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth")}
-                {isVis("address") && H("address", ar ? "العنوان" : "Address")}
-                {isVis("department") && H("department", ar ? "القسم والمسمى" : "Dept & Job Title")}
-                {isVis("level") && H("level", ar ? "الدرجة" : "Level")}
+                {isVis("profileCode") && H("profileCode", ar ? "كود الموظف" : "Employee Code")}
+                {isVis("fullName") && H("fullName", ar ? "اسم الموظف" : "Employee Name")}
+                {isVis("department") && H("department", ar ? "القسم" : "Department")}
+                {isVis("jobTitle") && H("jobTitle", ar ? "الوظيفة" : "Job Title")}
+                {isVis("level") && H("level", ar ? "الدرجة" : "Level", "text-center")}
                 {isVis("assignedRoom") && H("assignedRoom", ar ? "السكن الحالي" : "Housing")}
+                {isVis("employmentType") && H("employmentType", ar ? "نوع التوظيف" : "Employment")}
+                {isVis("companyName") && H("companyName", ar ? "الشركة / جهة العمل" : "Company")}
+                {isVis("phone") && H("phone", ar ? "الهاتف" : "Phone")}
+                {isVis("nationalId") && H("nationalId", ar ? "الرقم القومي" : "National ID")}
+                {isVis("nationality") && H("nationality", ar ? "الجنسية" : "Nationality")}
+                {isVis("gender") && H("gender", ar ? "الجنس" : "Gender", "text-center")}
                 {isVis("hireDate") && H("hireDate", ar ? "تاريخ التعيين" : "Hire Date")}
                 {isVis("contractEndDate") && H("contractEndDate", ar ? "انتهاء العقد" : "Contract End")}
+                {isVis("status") && H("status", ar ? "الحالة بالسكن" : "Status", "text-center")}
+                {isVis("dateOfBirth") && H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth")}
+                {isVis("address") && H("address", ar ? "العنوان" : "Address")}
                 {isVis("email") && H("email", ar ? "البريد الإلكتروني" : "Email")}
                 {isVis("emergencyContact") && H("emergencyContact", ar ? "هاتف الطوارئ" : "Emergency Contact")}
-                {isVis("status") && H("status", ar ? "الحالة" : "Status")}
               </>
             )}
 
@@ -519,6 +517,8 @@ export function ReportTable({
                 {isVis("requestDate") && H("requestDate", ar ? "تاريخ الاستثناء" : "Exception Date", "text-center")}
                 {isVis("severity") && H("severity", ar ? "مستوى الأهمية" : "Severity", "text-center")}
                 {isVis("approvalStatus") && H("approvalStatus", ar ? "حالة الاعتماد" : "Approval Status", "text-center")}
+                {isVis("resolvedAt") && H("resolvedAt", ar ? "تاريخ المعالجة والتصحيح" : "Resolution Date", "text-center")}
+                {isVis("resolutionDetails") && H("resolutionDetails", ar ? "إجراء المعالجة والتصحيح" : "Resolution Action")}
                 {isVis("approvedBy") && H("approvedBy", ar ? "المعتمد للطلب" : "Approved By")}
                 {isVis("overrideReason") && H("overrideReason", ar ? "سبب ومسوغات الاستثناء" : "Override Reason")}
               </>
@@ -1040,58 +1040,89 @@ export function ReportTable({
                 {/* 4. PROFILES ROW */}
                 {activeTab === "profiles" && (
                   <>
+                    {isVis("profileCode") && (
+                      <TableCell className="font-mono text-xs font-bold text-primary">
+                        {row.profileCode}
+                      </TableCell>
+                    )}
                     {isVis("fullName") && (
                       <TableCell>
-                        <div>
-                          <p className="font-bold text-sm text-foreground">{row.fullName}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{row.profileCode}</p>
+                        <div className="font-bold text-sm text-foreground">
+                          {row.fullName}
                         </div>
                       </TableCell>
                     )}
-                    {isVis("firstName") && <TableCell className="text-xs">{row.firstName}</TableCell>}
-                    {isVis("lastName") && <TableCell className="text-xs">{row.lastName}</TableCell>}
-                    {isVis("thirdName") && <TableCell className="text-xs font-medium">{row.thirdName}</TableCell>}
-                    {isVis("fourthName") && <TableCell className="text-xs">{row.fourthName}</TableCell>}
+                    {isVis("department") && (
+                      <TableCell className="text-xs font-medium">
+                        {row.department}
+                      </TableCell>
+                    )}
+                    {isVis("jobTitle") && (
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.jobTitle}
+                      </TableCell>
+                    )}
+                    {isVis("level") && (
+                      <TableCell className="text-xs text-center font-semibold">
+                        {row.level}
+                      </TableCell>
+                    )}
+                    {isVis("assignedRoom") && (
+                      <TableCell>
+                        {row.hasRoom ? (
+                          <span className="inline-flex items-center text-xs font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/20">
+                            {row.assignedRoom}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded">
+                            {ar ? "غير مسكّن" : "Unassigned"}
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
                     {isVis("employmentType") && (
                       <TableCell>
                         {row.employmentType === "THIRD_PARTY" ? (
                           <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
-                            {row.companyName || (ar ? "طرف ثالث" : "Third Party")}
+                            {ar ? "طرف ثالث" : "Third Party"}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                            {ar ? "موظف داخلي" : "Internal"}
+                            {ar ? "داخلي" : "Internal"}
                           </Badge>
                         )}
                       </TableCell>
                     )}
-                    {isVis("nationalId") && <TableCell className="text-xs font-mono">{row.nationalId}</TableCell>}
-                    {isVis("phone") && <TableCell className="text-xs font-mono">{row.phone}</TableCell>}
-                    {isVis("nationality") && <TableCell className="text-xs">{row.nationality}</TableCell>}
-                    {isVis("gender") && (
+                    {isVis("companyName") && (
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.companyName}
+                      </TableCell>
+                    )}
+                    {isVis("phone") && (
+                      <TableCell className="text-xs font-mono">
+                        {row.phone}
+                      </TableCell>
+                    )}
+                    {isVis("nationalId") && (
+                      <TableCell className="text-xs font-mono">
+                        {row.nationalId}
+                      </TableCell>
+                    )}
+                    {isVis("nationality") && (
                       <TableCell className="text-xs">
+                        {row.nationality}
+                      </TableCell>
+                    )}
+                    {isVis("gender") && (
+                      <TableCell className="text-xs text-center">
                         {row.gender === "M" ? (ar ? "ذكر" : "Male") : row.gender === "F" ? (ar ? "أنثى" : "Female") : row.gender}
                       </TableCell>
                     )}
-                    {isVis("dateOfBirth") && <TableCell className="text-xs">{row.dateOfBirth}</TableCell>}
-                    {isVis("address") && (
-                      <TableCell className="text-xs max-w-[180px] truncate" title={row.address}>
-                        {row.address}
+                    {isVis("hireDate") && (
+                      <TableCell className="text-xs font-mono">
+                        {row.hireDate}
                       </TableCell>
                     )}
-                    {isVis("department") && (
-                      <TableCell>
-                        <p className="text-xs font-medium">{row.department}</p>
-                        <p className="text-[11px] text-muted-foreground">{row.jobTitle}</p>
-                      </TableCell>
-                    )}
-                    {isVis("level") && <TableCell className="text-xs">{row.level}</TableCell>}
-                    {isVis("assignedRoom") && (
-                      <TableCell>
-                        <span className="text-xs font-semibold text-primary">{row.assignedRoom}</span>
-                      </TableCell>
-                    )}
-                    {isVis("hireDate") && <TableCell className="text-xs">{row.hireDate}</TableCell>}
                     {isVis("contractEndDate") && (
                       <TableCell>
                         {row.contractEndDate !== "—" ? (
@@ -1103,13 +1134,35 @@ export function ReportTable({
                         )}
                       </TableCell>
                     )}
-                    {isVis("email") && <TableCell className="text-xs font-mono">{row.email}</TableCell>}
-                    {isVis("emergencyContact") && <TableCell className="text-xs font-mono">{row.emergencyContact}</TableCell>}
                     {isVis("status") && (
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs capitalize">{row.status}</Badge>
+                      <TableCell className="text-center">
+                        {row.rawStatus === "VACATION" ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs font-semibold">
+                            {ar ? "في إجازة" : "On Vacation"}
+                          </Badge>
+                        ) : row.rawStatus === "ACTIVE" ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs font-semibold">
+                            {ar ? "مقيم بالسكن" : "In-House"}
+                          </Badge>
+                        ) : row.rawStatus === "UNASSIGNED" ? (
+                          <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 text-xs font-medium">
+                            {ar ? "غير مسكّن" : "Unassigned"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            {row.status}
+                          </Badge>
+                        )}
                       </TableCell>
                     )}
+                    {isVis("dateOfBirth") && <TableCell className="text-xs font-mono">{row.dateOfBirth}</TableCell>}
+                    {isVis("address") && (
+                      <TableCell className="text-xs max-w-[180px] truncate" title={row.address}>
+                        {row.address}
+                      </TableCell>
+                    )}
+                    {isVis("email") && <TableCell className="text-xs font-mono">{row.email}</TableCell>}
+                    {isVis("emergencyContact") && <TableCell className="text-xs font-mono">{row.emergencyContact}</TableCell>}
                   </>
                 )}
 

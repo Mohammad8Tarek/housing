@@ -222,7 +222,7 @@ export function useReportExport({
           [ar ? "انتهاء العقد" : "Contract End"]: e.contractEndDate,
           [ar ? "البريد الإلكتروني" : "Email"]: e.email,
           [ar ? "هاتف الطوارئ" : "Emergency Contact"]: e.emergencyContact,
-          [ar ? "الحالة" : "Status"]: translateProfileStatus(e.status, ar),
+          [ar ? "الحالة" : "Status"]: translateProfileStatus(e.rawStatus || e.status, ar),
         }));
 
       case "expiring_contracts":

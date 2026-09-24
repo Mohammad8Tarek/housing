@@ -992,12 +992,31 @@ export function useReportDataProcessor({
       case "profiles": {
         const activeAssByProfile = new Map<number, any>();
         assignments
-          .filter((a: any) => a.status?.toLowerCase() === "active")
+          .filter((a: any) => {
+            const st = String(a.status || "").toLowerCase();
+            return st === "active" || st === "vacation";
+          })
           .forEach((a: any) => activeAssByProfile.set(a.profileId, a));
 
         const list = profiles
           .filter((e: any) => {
-            if (filterStatus !== "all" && e.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
+            const asgn = activeAssByProfile.get(e.id);
+            const room = asgn ? roomMap[asgn.roomId] : null;
+            const hasRoom = !!room;
+            const isVacation = (e.status || "").toUpperCase() === "VACATION" || (asgn?.status || "").toUpperCase() === "VACATION";
+
+            if (filterBuilding !== "all" && filterBuilding && (!room || String(room.buildingId) !== String(filterBuilding))) return false;
+            if (filterFloor !== "all" && filterFloor && (!room || String(room.floorId) !== String(filterFloor))) return false;
+
+            if (filterStatus !== "all") {
+              const fs = filterStatus.toUpperCase();
+              if (fs === "ACTIVE" && (!hasRoom || isVacation)) return false;
+              if (fs === "VACATION" && !isVacation) return false;
+              if ((fs === "NO_ROOM" || fs === "UNASSIGNED") && hasRoom) return false;
+              if (fs === "CHECKED_OUT" && (hasRoom || (e.status !== "CHECKED_OUT" && e.status !== "LEFT"))) return false;
+              if (fs === "INACTIVE" && e.status !== "INACTIVE") return false;
+            }
+
             if (filterDepartment !== "all" && e.department !== filterDepartment) return false;
             if (filterGender !== "all" && e.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
             if (filterNationality !== "all" && e.nationality !== filterNationality) return false;
@@ -1010,13 +1029,21 @@ export function useReportDataProcessor({
           .map((e: any) => {
             const asgn = activeAssByProfile.get(e.id);
             const room = asgn ? roomMap[asgn.roomId] : null;
+            const bld = room ? buildingMap[room.buildingId] : null;
+            const hasRoom = !!room;
+            const isVacation = (e.status || "").toUpperCase() === "VACATION" || (asgn?.status || "").toUpperCase() === "VACATION";
+            const rawStatus = isVacation ? "VACATION" : (hasRoom ? "ACTIVE" : (e.status === "INACTIVE" ? "INACTIVE" : "UNASSIGNED"));
+            const statusLabel = ar
+              ? (rawStatus === "ACTIVE" ? "مقيم بالسكن" : rawStatus === "VACATION" ? "في إجازة" : rawStatus === "UNASSIGNED" ? "غير مسكّن" : "غير نشط")
+              : (rawStatus === "ACTIVE" ? "In-House" : rawStatus === "VACATION" ? "Vacation" : rawStatus === "UNASSIGNED" ? "Unassigned" : "Inactive");
+
+            const assignedRoom = room
+              ? `${bld ? bld.name + " • " : ""}${room.roomNumber}${asgn?.bedNumber ? ` (${ar ? `سرير ${asgn.bedNumber}` : `Bed ${asgn.bedNumber}`})` : ""}`
+              : (ar ? "غير مسكّن" : "Unassigned");
+
             return {
               id: e.id,
               profileCode: e.profileId || `EMP-${e.id}`,
-              firstName: ar ? (e.firstNameAr || e.firstName) : e.firstName,
-              lastName: ar ? (e.lastNameAr || e.lastName) : e.lastName,
-              thirdName: ar ? (e.thirdNameAr || e.thirdName || "—") : (e.thirdName || "—"),
-              fourthName: ar ? (e.fourthNameAr || e.fourthName || "—") : (e.fourthName || "—"),
               fullName: getProfileDisplayName(e, ar),
               nationalId: e.nationalId || "—",
               nationality: ar ? formatNationality(e.nationality, ar, false) : (e.nationality || "—"),
@@ -1033,10 +1060,10 @@ export function useReportDataProcessor({
               address: e.address || "—",
               email: e.email || "—",
               emergencyContact: e.emergencyContact || "—",
-              status: ar ? translateProfileStatus(e.status, true) : (e.status || "ACTIVE"),
-              assignedRoom: room
-                ? `${room.roomNumber} (${asgn?.bedNumber ? (ar ? `سرير ${asgn.bedNumber}` : `Bed ${asgn.bedNumber}`) : ""})`
-                : (ar ? "غير مسكن" : "Unassigned"),
+              rawStatus,
+              hasRoom,
+              status: statusLabel,
+              assignedRoom,
             };
           });
 
