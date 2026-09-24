@@ -1598,8 +1598,8 @@ export function computeReportColumnWidths(
     // In landscape: allocate comfortably so names and titles fit cleanly without overpowering
     // In portrait: allow clean wrapping at word boundaries without squeezing
     if (orientation === "landscape") {
-      const maxTextCap = colCount >= 16 ? 16 : 22;
-      const textDemand = Math.max(m.avgCellLen * 0.95 + 2.0, effLen * 0.85 + 2.5);
+      const maxTextCap = colCount >= 16 ? 16 : 24;
+      const textDemand = Math.max(m.avgCellLen * 1.05 + 2.5, effLen * 0.9 + 3.0);
       return Math.max(minTokenFloor, Math.min(maxTextCap, textDemand));
     } else {
       const textDemand = Math.max(m.avgCellLen * 0.7 + 2.0, effLen * 0.65 + 2.5);
@@ -2470,17 +2470,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const hasBottom = Boolean(customBottomSectionsHtml);
 
   // Maximum row capacity per page type (safely calibrated for multi-line cells and physical printable height)
-  // Page 1: 17 rows if KPIs are shown, 20 rows without KPIs (guarantees header + logos fit with 0 clipping)
-  // Subsequent pages (no logos): 24 rows in landscape, 38 rows in portrait
-  // Final page with signatures: 17 rows in landscape, 28 rows in portrait
-  const capP1 = hasKpis ? (isLandscape ? 17 : 30) : (isLandscape ? 20 : 36);
-  const capSubsequent = isLandscape ? 24 : 38;
-  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 17 : 28) : capSubsequent;
+  // Page 1: 15 rows if KPIs are shown, 18 rows without KPIs (guarantees header + logos fit with 0 clipping)
+  // Subsequent pages (no logos): 21 rows in landscape, 34 rows in portrait (guarantees 0 overlap with footer)
+  // Final page with signatures: 15 rows in landscape, 24 rows in portrait
+  const capP1 = hasKpis ? (isLandscape ? 15 : 26) : (isLandscape ? 18 : 32);
+  const capSubsequent = isLandscape ? 21 : 34;
+  const capLastWithSigs = (hasSigs || hasBottom) ? (isLandscape ? 15 : 24) : capSubsequent;
 
   // Single-page capacity (page 1 with everything: header + optional KPIs + optional sigs)
   const capP1Single = hasKpis
-    ? (isLandscape ? ((hasSigs || hasBottom) ? 14 : 17) : ((hasSigs || hasBottom) ? 24 : 30))
-    : (isLandscape ? ((hasSigs || hasBottom) ? 16 : 20) : ((hasSigs || hasBottom) ? 28 : 36));
+    ? (isLandscape ? ((hasSigs || hasBottom) ? 12 : 15) : ((hasSigs || hasBottom) ? 20 : 26))
+    : (isLandscape ? ((hasSigs || hasBottom) ? 14 : 18) : ((hasSigs || hasBottom) ? 24 : 32));
 
   const pageChunks: any[][][] = [];
   const pageStartIndexes: number[] = [];
@@ -3099,7 +3099,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       border-inline-end: 1px solid #f1f5f9 !important;
       border-bottom: 1px solid #cbd5e1 !important;
       padding: ${cellPadding} !important;
-      line-height: 1.25;
+      line-height: 1.18 !important;
       vertical-align: middle;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
