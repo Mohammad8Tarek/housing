@@ -103,8 +103,8 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
     }
     const actorPropIds = new Set<number>();
     if (currentUser?.propertyId) actorPropIds.add(Number(currentUser.propertyId));
-    if (Array.isArray(currentUser?.propertyIds)) {
-      currentUser.propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
+    if (Array.isArray((currentUser as any)?.propertyIds)) {
+      (currentUser as any).propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
     }
     return (properties || []).filter((p) => actorPropIds.has(Number(p.id)));
   }, [properties, canGrantAnything, currentUser]);

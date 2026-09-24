@@ -25,6 +25,7 @@ export interface ExcelExportOptions {
   orientation?: "landscape" | "portrait";
   isArabic?: boolean;
   sheetTitle?: string;
+  sheetName?: string;
   filenamePrefix?: string;
 }
 
