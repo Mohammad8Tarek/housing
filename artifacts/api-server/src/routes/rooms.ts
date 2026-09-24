@@ -285,19 +285,25 @@ router.get(
           conditions.push(eq(roomsTable.floorId, query.data.floorId));
         if (query.data.status) {
           const st = String(query.data.status).toLowerCase().trim();
-          if (st === "available" || st === "vacant") {
+          if (st === "room_vacant" || st === "available" || st === "vacant") {
             // Fully vacant only: 0 current occupancy AND available status
             conditions.push(and(
-              or(eq(roomsTable.status, "available"), eq(roomsTable.status, "vacant")),
+              or(eq(roomsTable.status, "available"), eq(roomsTable.status, "vacant"), eq(roomsTable.status, "room_vacant")),
               eq(roomsTable.currentOccupancy, 0)
-            ));
-          } else if (st === "vacant_beds" || st === "partially") {
+            ) as SQL);
+          } else if (st === "bed_vacant" || st === "vacant_beds" || st === "partially") {
             // Partially occupied: has free beds AND at least 1 occupant, not OOO/OOS
             conditions.push(and(
               sql`${roomsTable.capacity} > ${roomsTable.currentOccupancy}`,
               sql`${roomsTable.currentOccupancy} > 0`,
               sql`LOWER(${roomsTable.status}) NOT IN ('out_of_service', 'out_of_order', 'maintenance', 'ooo', 'oos')`
-            ));
+            ) as SQL);
+          } else if (st === "room_and_bed_vacant" || st === "both") {
+            // Room and bed vacant: any available capacity, not OOO/OOS/dirty
+            conditions.push(and(
+              sql`${roomsTable.capacity} > ${roomsTable.currentOccupancy}`,
+              sql`LOWER(${roomsTable.status}) NOT IN ('out_of_service', 'out_of_order', 'maintenance', 'ooo', 'oos', 'dirty', 'occupied_dirty')`
+            ) as SQL);
           } else if (st === "occupied") {
             conditions.push(or(
               eq(roomsTable.status, "occupied"),

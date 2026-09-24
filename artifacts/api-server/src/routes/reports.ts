@@ -1338,12 +1338,15 @@ router.post("/custom/query", requirePermission("reports", "view"), async (req, r
                 const vac = Math.max(0, cap - occ);
                 const isOoo = ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes((r.status || "").toLowerCase());
 
-                if (st === "available" || st === "vacant") {
+                if (st === "room_vacant" || st === "available" || st === "vacant") {
                   // Fully vacant only: 0 occupants AND available/clean status
                   if (occ > 0 || isOoo || (r.status || "").toLowerCase() === "dirty") return false;
-                } else if (st === "vacant_beds" || st === "partially") {
+                } else if (st === "bed_vacant" || st === "vacant_beds" || st === "partially") {
                   // Rooms with vacant beds (partially occupied)
                   if (occ === 0 || vac <= 0 || isOoo) return false;
+                } else if (st === "room_and_bed_vacant" || st === "both") {
+                  // Room & Bed Vacant: any available capacity, not ooo or dirty
+                  if (vac <= 0 || isOoo || (r.status || "").toLowerCase() === "dirty") return false;
                 } else if (st === "occupied") {
                   if (occ === 0 && (r.status || "").toLowerCase() !== "occupied") return false;
                 } else if (st === "dirty") {

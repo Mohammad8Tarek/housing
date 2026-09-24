@@ -107,20 +107,22 @@ export function ReportFilters({
         ];
       case "housing":
         return [
-          { value: "available",     label: "Fully Vacant",                  labelAr: "شاغرة بالكامل (متاحة)" },
-          { value: "vacant_beds",   label: "Vacant Beds (Partially Occupied)", labelAr: "أسِرّة شاغرة (مشغولة جزئياً)" },
-          { value: "occupied",      label: "Occupied",                      labelAr: "مشغولة" },
-          { value: "dirty",         label: "Dirty",                         labelAr: "متسخة (تحتاج تنظيف)" },
-          { value: "occupied_dirty",label: "Occupied — Dirty",              labelAr: "مشغولة ومتسخة" },
-          { value: "maintenance",   label: "Maintenance",                   labelAr: "صيانة" },
-          { value: "out_of_service",label: "Out of Service",                labelAr: "صيانة مؤقتة" },
-          { value: "out_of_order",  label: "Out of Order",                  labelAr: "خارج الخدمة" },
+          { value: "room_and_bed_vacant", label: "Room & Bed Vacant",                  labelAr: "روم آند بد فيكنت (غرف وأسِرّة شاغرة)" },
+          { value: "room_vacant",         label: "Room Vacant (Only Full Rooms)",      labelAr: "روم فيكنت (غرف فارغة بالكامل)" },
+          { value: "bed_vacant",          label: "Bed Vacant (Only Vacant Beds)",      labelAr: "بد فيكنت (أسِرّة شاغرة)" },
+          { value: "occupied",            label: "Occupied",                           labelAr: "مشغولة" },
+          { value: "dirty",               label: "Dirty",                              labelAr: "متسخة (تحتاج تنظيف)" },
+          { value: "occupied_dirty",      label: "Occupied — Dirty",                   labelAr: "مشغولة ومتسخة" },
+          { value: "maintenance",         label: "Maintenance",                        labelAr: "صيانة" },
+          { value: "out_of_service",      label: "Out of Service",                     labelAr: "صيانة مؤقتة" },
+          { value: "out_of_order",        label: "Out of Order",                       labelAr: "خارج الخدمة" },
         ];
       case "vacant_rooms":
         return [
-          { value: "available",     label: "Fully Vacant Clean",            labelAr: "شاغرة بالكامل (جاهزة)" },
-          { value: "vacant_beds",   label: "Vacant Beds (Partially Occupied)", labelAr: "أسِرّة شاغرة (مشغولة جزئياً)" },
-          { value: "dirty",         label: "Dirty (Needs Cleaning)",        labelAr: "متسخة (تحتاج تنظيف)" },
+          { value: "room_and_bed_vacant", label: "Room & Bed Vacant",                  labelAr: "روم آند بد فيكنت (غرف وأسِرّة شاغرة)" },
+          { value: "room_vacant",         label: "Room Vacant (Only Full Rooms)",      labelAr: "روم فيكنت (غرف فارغة بالكامل)" },
+          { value: "bed_vacant",          label: "Bed Vacant (Only Vacant Beds)",      labelAr: "بد فيكنت (أسِرّة شاغرة)" },
+          { value: "dirty",               label: "Dirty (Needs Cleaning)",             labelAr: "متسخة (تحتاج تنظيف)" },
         ];
       case "assignments":
         return [

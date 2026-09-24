@@ -77,16 +77,22 @@ export function AvailabilityTab({
             <SelectItem value="all">
               {ar ? "كل الحالات" : "All Statuses"}
             </SelectItem>
-            <SelectItem value="available">
+            <SelectItem value="room_and_bed_vacant">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                <span>{ar ? "شاغرة بالكامل (جاهزة)" : "Fully Vacant Clean"}</span>
+                <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
+                <span>{ar ? "روم آند بد فيكنت (الكل)" : "Room & Bed Vacant"}</span>
               </div>
             </SelectItem>
-            <SelectItem value="vacant_beds">
+            <SelectItem value="room_vacant">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span>{ar ? "روم فيكنت (غرف فارغة بالكامل)" : "Room Vacant (Only Full Rooms)"}</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="bed_vacant">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0" />
-                <span>{ar ? "أسِرّة شاغرة (مشغولة جزئياً)" : "Vacant Beds (Partially Occupied)"}</span>
+                <span>{ar ? "بد فيكنت (أسِرّة شاغرة)" : "Bed Vacant (Only Vacant Beds)"}</span>
               </div>
             </SelectItem>
             <SelectItem value="dirty">

@@ -10,8 +10,9 @@ export type FloorConfig = {
 export const statusNorm = (s: string) => s?.toLowerCase().trim() || "";
 
 export const ROOM_STATUS_OPTIONS = [
-  { value: "available", labelAr: "شاغرة بالكامل (جاهزة)", labelEn: "Vacant Clean", shortAr: "شاغرة بالكامل", color: "emerald", dot: "bg-emerald-500" },
-  { value: "vacant_beds", labelAr: "أسِرّة شاغرة (مشغولة جزئياً)", labelEn: "Vacant Beds (Partially Occupied)", shortAr: "أسِرّة شاغرة", color: "teal", dot: "bg-teal-500" },
+  { value: "room_and_bed_vacant", labelAr: "روم آند بد فيكنت (الكل)", labelEn: "Room & Bed Vacant", shortAr: "روم وبد فيكنت", color: "sky", dot: "bg-sky-500" },
+  { value: "room_vacant", labelAr: "روم فيكنت (غرف فارغة بالكامل)", labelEn: "Room Vacant (Only Full Rooms)", shortAr: "روم فيكنت", color: "emerald", dot: "bg-emerald-500" },
+  { value: "bed_vacant", labelAr: "بد فيكنت (أسِرّة شاغرة)", labelEn: "Bed Vacant (Only Vacant Beds)", shortAr: "بد فيكنت", color: "teal", dot: "bg-teal-500" },
   { value: "dirty", labelAr: "تحتاج تنظيف", labelEn: "Vacant Dirty", shortAr: "تحتاج تنظيف", color: "orange", dot: "bg-orange-500" },
   { value: "occupied", labelAr: "مشغولة بالكامل", labelEn: "Fully Occupied", shortAr: "مشغولة", color: "blue", dot: "bg-blue-500" },
   { value: "occupied_dirty", labelAr: "مشغولة تحتاج تنظيف", labelEn: "Occupied Dirty", shortAr: "مشغولة متسخة", color: "purple", dot: "bg-purple-500" },
@@ -23,13 +24,17 @@ export const ROOM_STATUS_OPTIONS = [
 export const getRoomStatusLabel = (status: string, ar = true): string => {
   const s = statusNorm(status);
   switch (s) {
+    case "room_vacant":
     case "available":
     case "vacant":
-      return ar ? "شاغرة بالكامل" : "Vacant Clean";
+      return ar ? "روم فيكنت" : "Room Vacant";
+    case "bed_vacant":
     case "vacant_beds":
     case "partially":
     case "partial":
-      return ar ? "أسِرّة شاغرة" : "Vacant Beds";
+      return ar ? "بد فيكنت" : "Bed Vacant";
+    case "room_and_bed_vacant":
+      return ar ? "روم وبد فيكنت" : "Room & Bed Vacant";
     case "dirty":
     case "vacant_dirty":
       return ar ? "تحتاج تنظيف" : "Dirty";
@@ -56,13 +61,17 @@ export const getRoomStatusLabel = (status: string, ar = true): string => {
 
 export const roomStatusBadge = (status: string) => {
   switch (statusNorm(status)) {
+    case "room_vacant":
     case "available":
     case "vacant":
       return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
+    case "bed_vacant":
     case "vacant_beds":
     case "partially":
     case "partial":
       return "bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300 border border-teal-300 dark:border-teal-800 font-semibold";
+    case "room_and_bed_vacant":
+      return "bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-300 dark:border-sky-800 font-semibold";
     case "dirty":
     case "vacant_dirty":
       return "bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 border border-orange-300 dark:border-orange-800";

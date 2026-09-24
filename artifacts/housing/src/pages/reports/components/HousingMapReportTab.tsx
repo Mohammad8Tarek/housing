@@ -275,9 +275,10 @@ export function HousingMapReportTab({
 
               // Status filter
               if (statusFilter !== "all") {
-                if ((statusFilter === "available" || statusFilter === "vacant") && stCat !== "available") return false;
+                if ((statusFilter === "room_vacant" || statusFilter === "available" || statusFilter === "vacant") && stCat !== "available") return false;
+                if ((statusFilter === "bed_vacant" || statusFilter === "partial" || statusFilter === "vacant_beds") && stCat !== "partial") return false;
+                if ((statusFilter === "room_and_bed_vacant" || statusFilter === "both") && stCat !== "available" && stCat !== "partial") return false;
                 if (statusFilter === "occupied" && stCat !== "occupied") return false;
-                if ((statusFilter === "partial" || statusFilter === "vacant_beds") && stCat !== "partial") return false;
                 if (statusFilter === "dirty" && clnSt !== "dirty") return false;
                 if (statusFilter === "maintenance" && stCat !== "maintenance") return false;
               }
@@ -943,8 +944,9 @@ export function HousingMapReportTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-xs">{ar ? "جميع الحالات" : "All Statuses"}</SelectItem>
-                <SelectItem value="available" className="text-xs">{ar ? "شاغرة بالكامل (جاهزة)" : "Fully Vacant Clean"}</SelectItem>
-                <SelectItem value="partial" className="text-xs">{ar ? "أسِرّة شاغرة (مشغولة جزئياً)" : "Vacant Beds (Partially Occupied)"}</SelectItem>
+                <SelectItem value="room_and_bed_vacant" className="text-xs">{ar ? "روم آند بد فيكنت (الكل)" : "Room & Bed Vacant"}</SelectItem>
+                <SelectItem value="room_vacant" className="text-xs">{ar ? "روم فيكنت (غرف فارغة بالكامل)" : "Room Vacant (Only Full Rooms)"}</SelectItem>
+                <SelectItem value="bed_vacant" className="text-xs">{ar ? "بد فيكنت (أسِرّة شاغرة)" : "Bed Vacant (Only Vacant Beds)"}</SelectItem>
                 <SelectItem value="occupied" className="text-xs">{ar ? "مشغولة بالكامل" : "Fully Occupied"}</SelectItem>
                 <SelectItem value="dirty" className="text-xs">{ar ? "تحتاج تنظيف" : "Dirty"}</SelectItem>
                 <SelectItem value="maintenance" className="text-xs">{ar ? "صيانة / خارج الخدمة" : "Maintenance"}</SelectItem>

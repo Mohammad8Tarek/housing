@@ -101,12 +101,15 @@ export function RoomSpaceViewTab({
         const isMaint = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(r.status));
         const isDirty = statusNorm(r.status) === "dirty" || statusNorm(r.status) === "occupied_dirty";
 
-        if (statusFilter === "available" || statusFilter === "vacant") {
+        if (statusFilter === "room_vacant" || statusFilter === "available" || statusFilter === "vacant") {
           // Fully vacant clean only! If 1 or more beds are occupied, DO NOT SHOW!
           if (occ > 0 || isMaint || isDirty) return false;
-        } else if (statusFilter === "vacant_beds" || statusFilter === "partially") {
+        } else if (statusFilter === "bed_vacant" || statusFilter === "vacant_beds" || statusFilter === "partially") {
           // Rooms with vacant beds available (partially occupied)
           if (occ === 0 || vacantBeds <= 0 || isMaint) return false;
+        } else if (statusFilter === "room_and_bed_vacant" || statusFilter === "both") {
+          // Room & bed vacant: any available beds regardless of empty or partial
+          if (vacantBeds <= 0 || isMaint || isDirty) return false;
         } else if (statusFilter === "occupied") {
           if (occ === 0 && statusNorm(r.status) !== "occupied") return false;
         } else if (statusFilter === "dirty") {
@@ -271,14 +274,22 @@ export function RoomSpaceViewTab({
 
           {ROOM_STATUS_OPTIONS.map((opt) => {
             let count = 0;
-            if (opt.value === "available") {
+            if (opt.value === "room_and_bed_vacant") {
+              count = rooms.filter((r) => {
+                const occ = (assignmentsByRoom[r.id] || []).length;
+                const cap = r.capacity || 1;
+                const isMaint = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(r.status));
+                const isDirty = statusNorm(r.status) === "dirty" || statusNorm(r.status) === "occupied_dirty";
+                return cap - occ > 0 && !isMaint && !isDirty;
+              }).length;
+            } else if (opt.value === "room_vacant" || opt.value === "available") {
               count = rooms.filter((r) => {
                 const occ = (assignmentsByRoom[r.id] || []).length;
                 const isMaint = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(r.status));
                 const isDirty = statusNorm(r.status) === "dirty" || statusNorm(r.status) === "occupied_dirty";
-                return occ === 0 && !isMaint && !isDirty && (statusNorm(r.status) === "available" || statusNorm(r.status) === "vacant");
+                return occ === 0 && !isMaint && !isDirty && (statusNorm(r.status) === "available" || statusNorm(r.status) === "vacant" || statusNorm(r.status) === "room_vacant");
               }).length;
-            } else if (opt.value === "vacant_beds") {
+            } else if (opt.value === "bed_vacant" || opt.value === "vacant_beds") {
               count = rooms.filter((r) => {
                 const occ = (assignmentsByRoom[r.id] || []).length;
                 const cap = r.capacity || 1;
@@ -383,13 +394,15 @@ export function RoomSpaceViewTab({
                           </span>
                           <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
                             occCount > 0 && occCount < capacity && !["out_of_service", "out_of_order", "maintenance"].includes(statusNorm(room.status))
-                              ? roomStatusBadge("vacant_beds")
+                              ? roomStatusBadge("bed_vacant")
+                              : occCount === 0 && (statusNorm(room.status) === "available" || statusNorm(room.status) === "vacant" || statusNorm(room.status) === "room_vacant")
+                              ? roomStatusBadge("room_vacant")
                               : roomStatusBadge(room.status)
                           }`}>
                             {occCount > 0 && occCount < capacity && !["out_of_service", "out_of_order", "maintenance"].includes(statusNorm(room.status))
-                              ? (ar ? "أسِرّة شاغرة (جزئي)" : "Vacant Beds (Partial)")
-                              : occCount === 0 && (statusNorm(room.status) === "available" || statusNorm(room.status) === "vacant")
-                              ? (ar ? "شاغرة بالكامل" : "Vacant Clean")
+                              ? (ar ? "بد فيكنت (أسِرّة شاغرة)" : "Bed Vacant (Partial)")
+                              : occCount === 0 && (statusNorm(room.status) === "available" || statusNorm(room.status) === "vacant" || statusNorm(room.status) === "room_vacant")
+                              ? (ar ? "روم فيكنت (فارغة)" : "Room Vacant (Clean)")
                               : getRoomStatusLabel(room.status, ar)}
                           </span>
                         </div>

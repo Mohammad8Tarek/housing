@@ -920,8 +920,9 @@ export function useReportDataProcessor({
             if (filterRoomType && filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
             if (filterStatus && filterStatus !== "all") {
               const fs = filterStatus.toLowerCase();
-              if ((fs === "available" || fs === "vacant") && occ > 0) return false;
-              if ((fs === "partially" || fs === "vacant_beds") && (occ === 0 || occ >= cap)) return false;
+              if ((fs === "room_vacant" || fs === "available" || fs === "vacant") && occ > 0) return false;
+              if ((fs === "bed_vacant" || fs === "partially" || fs === "vacant_beds") && (occ === 0 || occ >= cap)) return false;
+              if ((fs === "room_and_bed_vacant" || fs === "both") && vacantBeds <= 0) return false;
               if (fs === "dirty" && rawStatus !== "dirty") return false;
             }
             if (filterGender && filterGender !== "all") {
@@ -1048,16 +1049,20 @@ export function useReportDataProcessor({
             const isOccupied = isFullLock || occ >= cap || rawStatus === "occupied";
             const isDirty = rawStatus === "dirty" || rawStatus === "occupied_dirty";
             // Fully vacant only: 0 occupants AND available/clean status!
-            const isFullyVacant = !isMaint && !isDirty && occ === 0 && (rawStatus === "available" || rawStatus === "vacant");
+            const isFullyVacant = !isMaint && !isDirty && occ === 0 && (rawStatus === "available" || rawStatus === "vacant" || rawStatus === "room_vacant");
             // Has vacant beds / partially occupied:
             const hasVacantBeds = !isMaint && !isFullLock && occ > 0 && vacantBeds > 0;
+            // Room & Bed Vacant: any available capacity (not maint or dirty)
+            const hasAnyVacancy = !isMaint && !isDirty && !isFullLock && vacantBeds > 0;
 
             // 3. Status filter
             if (filterStatus && filterStatus !== "all") {
               const fs = filterStatus.toLowerCase().trim();
-              if (fs === "available" || fs === "vacant") {
+              if (fs === "room_and_bed_vacant" || fs === "both") {
+                if (!hasAnyVacancy) return false;
+              } else if (fs === "room_vacant" || fs === "available" || fs === "vacant") {
                 if (!isFullyVacant) return false;
-              } else if (fs === "vacant_beds" || fs === "partially") {
+              } else if (fs === "bed_vacant" || fs === "vacant_beds" || fs === "partially") {
                 if (!hasVacantBeds) return false;
               } else if (fs === "occupied") {
                 if (!isOccupied && occ === 0) return false;
