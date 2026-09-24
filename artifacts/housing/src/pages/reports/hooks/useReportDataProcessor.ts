@@ -107,6 +107,34 @@ export function matchesRoomType(room: any, filterValue: string): boolean {
   return false;
 }
 
+export function matchesGender(
+  entityGender: string | null | undefined,
+  filterGender: string,
+): boolean {
+  if (!filterGender || filterGender === "all") return true;
+  const target = filterGender.toUpperCase().trim(); // "M" or "F"
+  const val = String(entityGender || "").trim().toLowerCase();
+  if (!val) return false;
+
+  const isMale =
+    val === "m" ||
+    val === "male" ||
+    val === "ذكر" ||
+    val.includes("ذكور") ||
+    val.includes("شباب");
+  const isFemale =
+    val === "f" ||
+    val === "female" ||
+    val === "إناث" ||
+    val === "انثى" ||
+    val === "بنات" ||
+    val === "أنثى";
+
+  if (target === "M") return isMale;
+  if (target === "F") return isFemale;
+  return true;
+}
+
 export function useReportDataProcessor({
   ar = true,
   activeTab,
@@ -307,7 +335,7 @@ export function useReportDataProcessor({
             if (filterBuilding !== "all" && room && !filteredBuildingIds.has(room.buildingId)) return false;
             if (filterFloor !== "all" && room && !filteredFloorIds.has(room.floorId)) return false;
             if (filterDepartment !== "all" && emp.department !== filterDepartment) return false;
-            if (filterGender !== "all" && emp.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterGender !== "all" && !matchesGender(emp.gender, filterGender)) return false;
             if (filterNationality !== "all" && emp.nationality?.toLowerCase() !== filterNationality.toLowerCase()) return false;
             if (filterRoomType !== "all" && room && !matchesRoomType(room, filterRoomType)) return false;
 
@@ -761,7 +789,7 @@ export function useReportDataProcessor({
             }
 
             if (filterDepartment !== "all" && emp?.department !== filterDepartment) return false;
-            if (filterGender !== "all" && emp?.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterGender !== "all" && !matchesGender(emp?.gender, filterGender)) return false;
             if (filterNationality !== "all" && emp?.nationality !== filterNationality) return false;
             if (filterRoomType !== "all" && !matchesRoomType(room, filterRoomType)) return false;
             if (filterEmploymentType !== "all") {
@@ -852,6 +880,8 @@ export function useReportDataProcessor({
       case "vacant_rooms": {
         const activeAssByRoom = new Map<number, Set<number>>();
         const roomHasFullLock = new Map<number, boolean>();
+        const occupantGendersByRoom = new Map<number, Set<string>>();
+
         assignments
           .filter((a: any) => a.status?.toLowerCase() === "active")
           .forEach((a: any) => {
@@ -864,11 +894,19 @@ export function useReportDataProcessor({
             );
             if (isFullLock) roomHasFullLock.set(a.roomId, true);
             if (a.bedNumber != null) activeAssByRoom.get(a.roomId)!.add(a.bedNumber);
+
+            const emp = empMap[a.profileId] || {};
+            const g = String(emp.gender || a.profileGender || a.gender || "").toUpperCase().trim();
+            if (g === "M" || g === "F") {
+              if (!occupantGendersByRoom.has(a.roomId)) occupantGendersByRoom.set(a.roomId, new Set());
+              occupantGendersByRoom.get(a.roomId)!.add(g);
+            }
           });
 
         const list = rooms
           .filter((r: any) => {
-            const isOutOfOrder = ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(r.status?.toLowerCase());
+            const rawStatus = String(r.status || "").toLowerCase().trim();
+            const isOutOfOrder = ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(rawStatus);
             if (isOutOfOrder) return false;
             if (roomHasFullLock.get(r.id)) return false; // Full Lock: no vacant beds
             const cap = r.capacity || 1;
@@ -877,16 +915,30 @@ export function useReportDataProcessor({
             const vacantBeds = Math.max(0, cap - occ);
             if (vacantBeds <= 0) return false; // Only rooms with available space
 
-            if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
-            if (filterFloor !== "all" && !filteredFloorIds.has(r.floorId)) return false;
-            if (filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
-            if (filterStatus !== "all") {
+            if (filterBuilding && filterBuilding !== "all" && String(r.buildingId) !== String(filterBuilding)) return false;
+            if (filterFloor && filterFloor !== "all" && String(r.floorId) !== String(filterFloor)) return false;
+            if (filterRoomType && filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
+            if (filterStatus && filterStatus !== "all") {
               const fs = filterStatus.toLowerCase();
               if (fs === "available" && occ > 0) return false;
               if (fs === "partially" && (occ === 0 || occ >= cap)) return false;
-              if (fs === "dirty" && r.status?.toLowerCase() !== "dirty") return false;
+              if (fs === "dirty" && rawStatus !== "dirty") return false;
             }
-            if (filterGender !== "all" && r.genderPolicy?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterGender && filterGender !== "all") {
+              const fg = filterGender.toUpperCase().trim();
+              const rawGen = String(r.gender || r.genderPolicy || "").trim().toLowerCase();
+              const isMalePolicy = (rawGen.includes("male") && !rawGen.includes("fe")) || rawGen === "m" || rawGen.includes("ذكور") || rawGen.includes("ذكر");
+              const isFemalePolicy = rawGen.includes("female") || rawGen === "f" || rawGen.includes("إناث") || rawGen.includes("انثى") || rawGen.includes("بنات") || rawGen.includes("أنثى");
+              const occGenders = occupantGendersByRoom.get(r.id);
+              const hasMaleOcc = occGenders?.has("M");
+              const hasFemaleOcc = occGenders?.has("F");
+
+              if (fg === "M") {
+                if (isFemalePolicy || hasFemaleOcc) return false;
+              } else if (fg === "F") {
+                if (isMalePolicy || hasMaleOcc) return false;
+              }
+            }
             return true;
           })
           .map((r: any) => {
@@ -899,6 +951,26 @@ export function useReportDataProcessor({
               if (!occupiedBeds.has(b)) availableBedNumbers.push(b);
             }
 
+            const rawGen = String(r.gender || r.genderPolicy || "").trim().toLowerCase();
+            const isMalePolicy = (rawGen.includes("male") && !rawGen.includes("fe")) || rawGen === "m" || rawGen.includes("ذكور") || rawGen.includes("ذكر");
+            const isFemalePolicy = rawGen.includes("female") || rawGen === "f" || rawGen.includes("إناث") || rawGen.includes("انثى") || rawGen.includes("بنات") || rawGen.includes("أنثى");
+            const occGenders = occupantGendersByRoom.get(r.id);
+            const hasMaleOcc = occGenders?.has("M");
+            const hasFemaleOcc = occGenders?.has("F");
+
+            let genderPolicyLabel: string;
+            if (isFemalePolicy) {
+              genderPolicyLabel = ar ? "إناث فقط" : "Female";
+            } else if (isMalePolicy) {
+              genderPolicyLabel = ar ? "ذكور فقط" : "Male";
+            } else if (hasFemaleOcc && !hasMaleOcc) {
+              genderPolicyLabel = ar ? "إناث (إشغال)" : "Female (Occupied)";
+            } else if (hasMaleOcc && !hasFemaleOcc) {
+              genderPolicyLabel = ar ? "ذكور (إشغال)" : "Male (Occupied)";
+            } else {
+              genderPolicyLabel = ar ? "متاح للجميع / مختلط" : "Any / Mixed";
+            }
+
             return {
               id: r.id,
               roomNumber: r.roomNumber,
@@ -909,7 +981,7 @@ export function useReportDataProcessor({
               currentOccupancy: occ,
               vacantBedsCount,
               availableBedsText: availableBedNumbers.map((b) => (ar ? `سرير ${b}` : `Bed ${b}`)).join(", ") || (ar ? "أي سرير" : "Any Bed"),
-              genderPolicy: ar ? translateGenderPolicy(r.genderPolicy, true) : (r.genderPolicy || "Any"),
+              genderPolicy: genderPolicyLabel,
               status: r.status || "available",
               isFullyVacant: occ === 0,
             };
@@ -934,6 +1006,8 @@ export function useReportDataProcessor({
       case "housing": {
         const activeAssByRoom = new Map<number, number>();
         const roomHasFullLock = new Map<number, boolean>();
+        const occupantGendersByRoom = new Map<number, Set<string>>();
+
         assignments
           .filter((a: any) => a.status?.toLowerCase() === "active")
           .forEach((a: any) => {
@@ -946,23 +1020,128 @@ export function useReportDataProcessor({
             ) {
               roomHasFullLock.set(a.roomId, true);
             }
+            const emp = empMap[a.profileId] || {};
+            const g = String(emp.gender || a.profileGender || a.gender || "").toUpperCase().trim();
+            if (g === "M" || g === "F") {
+              if (!occupantGendersByRoom.has(a.roomId)) occupantGendersByRoom.set(a.roomId, new Set());
+              occupantGendersByRoom.get(a.roomId)!.add(g);
+            }
           });
 
         const list = rooms
           .filter((r: any) => {
-            if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
-            if (filterFloor !== "all" && !filteredFloorIds.has(r.floorId)) return false;
-            if (filterStatus !== "all" && r.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
-            if (filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
-            if (filterGender !== "all" && r.genderPolicy?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            // 1. Building & Floor filter
+            if (filterBuilding && filterBuilding !== "all" && String(r.buildingId) !== String(filterBuilding)) return false;
+            if (filterFloor && filterFloor !== "all" && String(r.floorId) !== String(filterFloor)) return false;
+
+            // 2. Room Type filter
+            if (filterRoomType && filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
+
+            const cap = r.capacity || 1;
+            const isFullLock = !!roomHasFullLock.get(r.id);
+            const occ = isFullLock ? cap : Math.min(cap, Math.max(r.currentOccupancy || 0, activeAssByRoom.get(r.id) || 0));
+            const vacantBeds = Math.max(0, cap - occ);
+            const rawStatus = String(r.status || "").toLowerCase().trim();
+            const isOOS = ["out_of_service", "oos"].includes(rawStatus);
+            const isOOO = ["out_of_order", "ooo"].includes(rawStatus);
+            const isMaint = isOOS || isOOO || rawStatus === "maintenance";
+            const isOccupied = isFullLock || occ > 0 || rawStatus === "occupied" || rawStatus === "occupied_dirty";
+            const isDirty = rawStatus === "dirty" || rawStatus === "occupied_dirty";
+            const isAvailable = !isMaint && (vacantBeds > 0 || occ === 0 || rawStatus === "available");
+
+            // 3. Status filter
+            if (filterStatus && filterStatus !== "all") {
+              const fs = filterStatus.toLowerCase().trim();
+              if (fs === "available") {
+                if (!isAvailable) return false;
+              } else if (fs === "occupied") {
+                if (!isOccupied) return false;
+              } else if (fs === "dirty") {
+                if (!isDirty) return false;
+              } else if (fs === "occupied_dirty") {
+                if (!isOccupied || !isDirty) return false;
+              } else if (fs === "maintenance") {
+                if (!isMaint) return false;
+              } else if (fs === "out_of_service") {
+                if (!isOOS && rawStatus !== "maintenance") return false;
+              } else if (fs === "out_of_order") {
+                if (!isOOO) return false;
+              } else {
+                if (rawStatus !== fs) return false;
+              }
+            }
+
+            // 4. Gender Policy filter
+            if (filterGender && filterGender !== "all") {
+              const fg = filterGender.toUpperCase().trim(); // "M" or "F"
+              const rawGen = String(r.gender || r.genderPolicy || "").trim().toLowerCase();
+              const isMalePolicy = (rawGen.includes("male") && !rawGen.includes("fe")) || rawGen === "m" || rawGen.includes("ذكور") || rawGen.includes("ذكر");
+              const isFemalePolicy = rawGen.includes("female") || rawGen === "f" || rawGen.includes("إناث") || rawGen.includes("انثى") || rawGen.includes("بنات") || rawGen.includes("أنثى");
+              const occGenders = occupantGendersByRoom.get(r.id);
+              const hasMaleOcc = occGenders?.has("M");
+              const hasFemaleOcc = occGenders?.has("F");
+
+              if (fg === "M") {
+                // Must be male policy OR occupied by males (and NOT female policy/female occupied)
+                if (isFemalePolicy || hasFemaleOcc) return false;
+                if (!isMalePolicy && !hasMaleOcc && occ > 0) return false;
+              } else if (fg === "F") {
+                // Must be female policy OR occupied by females (and NOT male policy/male occupied)
+                if (isMalePolicy || hasMaleOcc) return false;
+                if (!isFemalePolicy && !hasFemaleOcc && occ > 0) return false;
+              }
+            }
+
             return true;
           })
           .map((r: any) => {
             const cap = r.capacity || 1;
-            const isFullLock = roomHasFullLock.get(r.id);
+            const isFullLock = !!roomHasFullLock.get(r.id);
             const occ = isFullLock ? cap : Math.min(cap, Math.max(r.currentOccupancy || 0, activeAssByRoom.get(r.id) || 0));
             const vacantBeds = Math.max(0, cap - occ);
             const rate = cap > 0 ? Math.round((occ / cap) * 100) : 0;
+
+            const rawStatus = String(r.status || "").toLowerCase().trim();
+            const isOOS = ["out_of_service", "oos"].includes(rawStatus);
+            const isOOO = ["out_of_order", "ooo"].includes(rawStatus);
+            const isOccupied = isFullLock || occ > 0 || rawStatus === "occupied" || rawStatus === "occupied_dirty";
+            const isDirty = rawStatus === "dirty" || rawStatus === "occupied_dirty";
+
+            let effectiveStatus = "available";
+            if (isOOO) {
+              effectiveStatus = "out_of_order";
+            } else if (isOOS || rawStatus === "maintenance") {
+              effectiveStatus = "out_of_service";
+            } else if (isOccupied && isDirty) {
+              effectiveStatus = "occupied_dirty";
+            } else if (isOccupied) {
+              effectiveStatus = "occupied";
+            } else if (isDirty) {
+              effectiveStatus = "dirty";
+            } else {
+              effectiveStatus = "available";
+            }
+
+            const rawGen = String(r.gender || r.genderPolicy || "").trim().toLowerCase();
+            const isMalePolicy = (rawGen.includes("male") && !rawGen.includes("fe")) || rawGen === "m" || rawGen.includes("ذكور") || rawGen.includes("ذكر");
+            const isFemalePolicy = rawGen.includes("female") || rawGen === "f" || rawGen.includes("إناث") || rawGen.includes("انثى") || rawGen.includes("بنات") || rawGen.includes("أنثى");
+            const occGenders = occupantGendersByRoom.get(r.id);
+            const hasMaleOcc = occGenders?.has("M");
+            const hasFemaleOcc = occGenders?.has("F");
+
+            let genderPolicyLabel: string;
+            if (isFemalePolicy) {
+              genderPolicyLabel = ar ? "إناث فقط" : "Female";
+            } else if (isMalePolicy) {
+              genderPolicyLabel = ar ? "ذكور فقط" : "Male";
+            } else if (hasFemaleOcc && !hasMaleOcc) {
+              genderPolicyLabel = ar ? "إناث (إشغال)" : "Female (Occupied)";
+            } else if (hasMaleOcc && !hasFemaleOcc) {
+              genderPolicyLabel = ar ? "ذكور (إشغال)" : "Male (Occupied)";
+            } else {
+              genderPolicyLabel = ar ? "متاح للجميع / مختلط" : "Any / Mixed";
+            }
+
             return {
               id: r.id,
               roomNumber: r.roomNumber,
@@ -973,8 +1152,8 @@ export function useReportDataProcessor({
               currentOccupancy: occ,
               vacantBeds,
               occupancyRate: `${rate}%`,
-              genderPolicy: ar ? translateGenderPolicy(r.genderPolicy, true) : (r.genderPolicy || "—"),
-              status: isFullLock ? "occupied" : (r.status || "available"),
+              genderPolicy: genderPolicyLabel,
+              status: effectiveStatus,
             };
           });
 
@@ -1018,7 +1197,7 @@ export function useReportDataProcessor({
             }
 
             if (filterDepartment !== "all" && e.department !== filterDepartment) return false;
-            if (filterGender !== "all" && e.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterGender !== "all" && !matchesGender(e.gender, filterGender)) return false;
             if (filterNationality !== "all" && e.nationality !== filterNationality) return false;
             if (filterEmploymentType !== "all") {
               const et = e.employmentType || "INTERNAL";
@@ -1093,7 +1272,7 @@ export function useReportDataProcessor({
           .filter((p: any) => {
             if (p.employmentType === "THIRD_PARTY" || !p.contractEndDate) return false;
             if (filterDepartment !== "all" && p.department !== filterDepartment) return false;
-            if (filterGender !== "all" && p.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterGender !== "all" && !matchesGender(p.gender, filterGender)) return false;
             if (filterNationality !== "all" && p.nationality !== filterNationality) return false;
             
             const exp = new Date(p.contractEndDate);
@@ -1301,10 +1480,17 @@ export function useReportDataProcessor({
       case "housekeeping": {
         const list = rooms
           .filter((r: any) => {
-            if (filterBuilding !== "all" && !filteredBuildingIds.has(r.buildingId)) return false;
-            if (filterFloor !== "all" && !filteredFloorIds.has(r.floorId)) return false;
-            if (filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
-            if (filterGender !== "all" && r.genderPolicy?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterBuilding && filterBuilding !== "all" && String(r.buildingId) !== String(filterBuilding)) return false;
+            if (filterFloor && filterFloor !== "all" && String(r.floorId) !== String(filterFloor)) return false;
+            if (filterRoomType && filterRoomType !== "all" && !matchesRoomType(r, filterRoomType)) return false;
+            if (filterGender && filterGender !== "all") {
+              const fg = filterGender.toUpperCase().trim();
+              const rawGen = String(r.gender || r.genderPolicy || "").trim().toLowerCase();
+              const isMalePolicy = (rawGen.includes("male") && !rawGen.includes("fe")) || rawGen === "m" || rawGen.includes("ذكور") || rawGen.includes("ذكر");
+              const isFemalePolicy = rawGen.includes("female") || rawGen === "f" || rawGen.includes("إناث") || rawGen.includes("انثى") || rawGen.includes("بنات") || rawGen.includes("أنثى");
+              if (fg === "M" && isFemalePolicy) return false;
+              if (fg === "F" && isMalePolicy) return false;
+            }
             // Status filter: map housekeeping-relevant statuses
             if (filterStatus !== "all") {
               const s = r.status?.toLowerCase();
@@ -1829,7 +2015,7 @@ export function useReportDataProcessor({
             }
 
             if (filterDepartment !== "all" && emp?.department !== filterDepartment) return false;
-            if (filterGender !== "all" && emp?.gender?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterGender !== "all" && !matchesGender(emp?.gender, filterGender)) return false;
             if (filterNationality !== "all" && emp?.nationality !== filterNationality) return false;
             if (filterRoomType !== "all" && !matchesRoomType(room, filterRoomType)) return false;
             if (filterEmploymentType !== "all") {
@@ -1928,7 +2114,7 @@ export function useReportDataProcessor({
             const dept = emp.department || a.profileDepartment;
             if (filterDepartment !== "all" && dept !== filterDepartment) return false;
             const gen = emp.gender || a.profileGender;
-            if (filterGender !== "all" && gen?.toLowerCase() !== filterGender.toLowerCase()) return false;
+            if (filterGender !== "all" && !matchesGender(gen, filterGender)) return false;
             const nat = emp.nationality || a.profileNationality;
             if (filterNationality !== "all" && nat !== filterNationality) return false;
             return true;

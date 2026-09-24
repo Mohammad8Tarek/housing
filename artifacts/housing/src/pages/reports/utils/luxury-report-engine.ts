@@ -705,12 +705,16 @@ export function translateRoomType(val: string, ar: boolean): string {
 }
 
 export function translateGenderPolicy(val: string, ar: boolean): string {
-  if (!ar || !val || val === "—") return val || "—";
+  if (!val || val === "—") return ar ? "متاح للجميع / مختلط" : "Any / Mixed";
   const s = val.toLowerCase().trim();
-  if (s.includes("female") || s.includes("إناث") || s.includes("بنات")) return "إناث فقط";
-  if ((s.includes("male") && !s.includes("fe")) || s.includes("ذكور") || s.includes("شباب")) return "ذكور فقط";
-  if (s.includes("couple") || s.includes("أزواج")) return "أزواج";
-  if (s.includes("any") || s.includes("mix") || s.includes("مختلط")) return "متاح للجميع / مختلط";
+  if (s.includes("female") || s.includes("إناث") || s.includes("بنات") || s.includes("انثى") || s === "f") {
+    return ar ? "إناث فقط" : "Female";
+  }
+  if ((s.includes("male") && !s.includes("fe")) || s.includes("ذكور") || s.includes("شباب") || s.includes("ذكر") || s === "m") {
+    return ar ? "ذكور فقط" : "Male";
+  }
+  if (s.includes("couple") || s.includes("أزواج")) return ar ? "أزواج" : "Couples";
+  if (s.includes("any") || s.includes("mix") || s.includes("مختلط")) return ar ? "متاح للجميع / مختلط" : "Any / Mixed";
   return val;
 }
 
