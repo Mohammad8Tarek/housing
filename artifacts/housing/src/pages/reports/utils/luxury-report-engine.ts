@@ -2622,12 +2622,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     return baseRowHeightMm + (maxLines - 1) * extraLineHeightMm;
   };
 
-  // Hard safety ceiling: maximum rows physically permissible on a single page to prevent ANY bottom clipping
+  // Hard safety ceiling: maximum rows physically permissible on a single page to prevent ANY bottom clipping across any page
   const maxRowsAllowedOnPage = (pageNum: number): number => {
     if (orientation === "landscape") {
-      return pageNum === 1 ? (hasKpis ? 22 : 28) : 32;
+      return pageNum === 1 ? (hasKpis ? 20 : 27) : (hasSigs ? 25 : 29);
     } else {
-      return pageNum === 1 ? (hasKpis ? 34 : 42) : 46;
+      return pageNum === 1 ? (hasKpis ? 32 : 38) : (hasSigs ? 36 : 42);
     }
   };
 
@@ -2688,7 +2688,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
 
     // ── Phase 2: Last Page Health Check & Rebalancing (Requirement 7) ──
-    // If the last page has very few rows (< 6 rows) and there's a previous page:
+    // If the last page has very few rows (< 8 rows) and there's a previous page:
     if (pageChunks.length >= 2) {
       const lastIdx = pageChunks.length - 1;
       const prevIdx = lastIdx - 1;
@@ -2703,24 +2703,26 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
 
       const prevPageAvailableIfFinal = getAvailableTableHeightMm(prevIdx + 1, true);
-      if (combinedHeight <= prevPageAvailableIfFinal) {
+      const prevPageCap = maxRowsAllowedOnPage(prevIdx + 1);
+      if (combinedHeight <= prevPageAvailableIfFinal && combined.length <= prevPageCap) {
         // Merge into previous page and eliminate the orphan page completely!
         pageChunks[prevIdx] = combined;
         pageChunks.pop();
         pageStartIndexes.pop();
-      } else if (lastChunk.length < 6 && prevChunk.length > 10) {
+      } else if (lastChunk.length < 8 && prevChunk.length > 15) {
         // B. Rebalance: distribute rows naturally between the last two pages
-        const targetLastCount = Math.max(lastChunk.length, Math.min(10, Math.floor((prevChunk.length + lastChunk.length) / 2)));
+        const targetLastCount = Math.max(lastChunk.length, Math.min(12, Math.floor((prevChunk.length + lastChunk.length) / 2)));
         const shiftCount = targetLastCount - lastChunk.length;
 
-        if (shiftCount > 0 && prevChunk.length - shiftCount >= 8) {
+        if (shiftCount > 0 && prevChunk.length - shiftCount >= 10) {
           const shiftedRows = prevChunk.slice(prevChunk.length - shiftCount);
           let newLastPageHeight = 0;
           for (const r of [...shiftedRows, ...lastChunk]) {
             newLastPageHeight += estimateRowHeightMm(r);
           }
           const lastPageAvailableIfFinal = getAvailableTableHeightMm(lastIdx + 1, true);
-          if (newLastPageHeight <= lastPageAvailableIfFinal) {
+          const lastPageCap = maxRowsAllowedOnPage(lastIdx + 1);
+          if (newLastPageHeight <= lastPageAvailableIfFinal && (shiftedRows.length + lastChunk.length) <= lastPageCap) {
             pageChunks[prevIdx] = prevChunk.slice(0, prevChunk.length - shiftCount);
             pageChunks[lastIdx] = [...shiftedRows, ...lastChunk];
             pageStartIndexes[lastIdx] = pageStartIndexes[prevIdx] + pageChunks[prevIdx].length;
