@@ -655,10 +655,10 @@ router.get(
         res.status(404).json({ error: "Room not found" });
         return;
       }
-      res.json(GetRoomResponse.parse({ ...room, genderPolicy: room.gender, propertyId }));
+      res.json({ ...room, genderPolicy: room.gender, propertyId });
     } catch (err: any) {
       console.error("[rooms/get] Error:", err.message);
-      res.status(500).json({ error: "Failed to fetch room" });
+      res.status(500).json({ error: err.message || "Failed to fetch room" });
     }
   },
 );
