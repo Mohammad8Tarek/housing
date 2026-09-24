@@ -61,8 +61,8 @@ export function useReportData(
   const profiles: any[] = (_eData as any)?.data || _eData || [];
 
   const { data: _aData, isLoading: assLoad } = useListAssignments(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["assignments", propId, 5000], enabled: !!propId } },
+    { propertyId: propId, limit: 5000, status: "ALL" } as any,
+    { query: { queryKey: ["assignments", propId, 5000, "ALL"], enabled: !!propId } },
   );
   const assignments: any[] = (_aData as any)?.data || _aData || [];
 

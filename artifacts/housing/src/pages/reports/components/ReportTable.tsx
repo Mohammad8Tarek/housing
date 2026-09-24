@@ -2008,13 +2008,31 @@ export function ReportTable({
                         <Badge
                           variant="secondary"
                           className={
-                            row.approvalStatus?.includes("معتمد") || row.approvalStatus?.includes("Approved")
+                            row.isResolved
                               ? "bg-emerald-50 text-emerald-700 border-emerald-300 text-xs font-semibold dark:bg-emerald-950/40 dark:text-emerald-300"
-                              : "bg-muted text-muted-foreground text-xs"
+                              : row.isApproved || row.approvalStatus?.includes("معتمد") || row.approvalStatus?.includes("Approved")
+                              ? "bg-blue-50 text-blue-700 border-blue-300 text-xs font-semibold dark:bg-blue-950/40 dark:text-blue-300"
+                              : "bg-rose-50 text-rose-700 border-rose-300 text-xs font-semibold dark:bg-rose-950/40 dark:text-rose-300"
                           }
                         >
-                          {row.approvalStatus || (ar ? "في انتظار الاعتماد" : "Pending")}
+                          {row.approvalStatus || (ar ? "قيد المراجعة" : "Pending")}
                         </Badge>
+                      </TableCell>
+                    )}
+                    {isVis("resolvedAt") && (
+                      <TableCell className="text-center font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {row.resolvedAt ? formatDate(row.resolvedAt) : "—"}
+                      </TableCell>
+                    )}
+                    {isVis("resolutionDetails") && (
+                      <TableCell className="text-xs max-w-[220px] truncate" title={row.resolutionDetails}>
+                        {row.resolutionDetails ? (
+                          <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                            {row.resolutionDetails}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                     )}
                     {isVis("approvedBy") && (

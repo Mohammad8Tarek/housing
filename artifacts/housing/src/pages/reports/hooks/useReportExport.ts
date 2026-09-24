@@ -442,7 +442,9 @@ export function useReportExport({
           [ar ? "نوع المخالفة" : "Violation Type"]: ex.violationType,
           [ar ? "تفاصيل المخالفة والسياسة" : "Policy Details"]: ex.violationDetails,
           [ar ? "مستوى الأهمية" : "Severity"]: ex.severity,
-          [ar ? "حالة الاعتماد" : "Approval Status"]: ex.approvalStatus || (ar ? "في انتظار الاعتماد" : "Pending"),
+          [ar ? "موقف المخالفة والتصحيح" : "Status / Resolution"]: ex.approvalStatus || (ar ? "قيد المراجعة" : "Pending"),
+          [ar ? "تاريخ التصحيح" : "Resolution Date"]: ex.resolvedAt ? formatDate(ex.resolvedAt) : "—",
+          [ar ? "إجراء المعالجة والتصحيح" : "Resolution Action"]: ex.resolutionDetails || "—",
           [ar ? "المعتمد للطلب" : "Approved By"]: ex.approvedBy || "—",
           [ar ? "سبب ومسوغات الاستثناء" : "Override Reason"]: ex.overrideReason,
         }));

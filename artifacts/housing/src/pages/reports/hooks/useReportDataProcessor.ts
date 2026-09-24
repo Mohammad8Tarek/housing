@@ -1939,9 +1939,8 @@ export function useReportDataProcessor({
 
         const todayStr = new Date().toISOString().split("T")[0];
 
-        // 1. Audit active occupants
+        // 1. Audit active and historical occupants for violations & resolutions
         for (const a of assignments) {
-          if (a.status !== "ACTIVE" && a.status !== "VACATION") continue;
           const room = roomMap[a.roomId];
           const emp = empMap[a.profileId];
           if (!emp || !room) continue;
@@ -1950,9 +1949,53 @@ export function useReportDataProcessor({
           if (filterFloor !== "all" && !filteredFloorIds.has(room.floorId)) continue;
           if (filterDepartment !== "all" && emp.department !== filterDepartment) continue;
 
+          const isActive = (a.status === "ACTIVE" || a.status === "VACATION");
+          const isTransferred = a.status === "TRANSFERRED";
+          const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || a.status === "ENDED";
+          const isExplicitResolved = Boolean(
+            a.notes?.includes("[تم التصحيح]") || 
+            a.notes?.includes("[RESOLVED]") ||
+            (a as any).isResolved
+          );
+
+          // An assignment is resolved if it was closed/transferred/checked-out, or explicitly marked resolved
+          const isResolved = !isActive || isExplicitResolved;
+          const resolvedAt = !isActive
+            ? (a.transferDate || a.checkOutDate || a.actualCheckOutDate || (a as any).updatedAt || "")
+            : (isExplicitResolved ? ((a as any).updatedAt || "") : "");
+
+          const resolutionDetails = !isActive
+            ? (isTransferred
+                ? (ar ? "تم تصحيح ومعالجة المخالفة بنقل المقيم لغرفة/سرير آخر مطابق للسياسة" : "Resolved: Resident transferred to compliant room/bed")
+                : (ar ? "تم تصحيح ومعالجة المخالفة بإنهاء الإقامة وتسجيل مغادرة المقيم من السكن" : "Resolved: Resident checked out from housing"))
+            : (isExplicitResolved
+                ? (ar ? "تم تصحيح المخالفة واعتماد توفيق الأوضاع" : "Resolved: Corrected and compliant")
+                : "");
+
+          const isApprovedException = !isResolved && Boolean(
+            (a as any).hasPolicyException ||
+            (a.notes && (a.notes.includes("استثناء") || a.notes.includes("override")))
+          );
+
+          const exceptionApprover =
+            (a as any).policyApprovedBy ||
+            (a.notes?.match(/المعتمد:\s*([^\]|]+)/)?.[1]?.trim()) ||
+            (isApprovedException ? (ar ? "إدارة السكن" : "Housing Admin") : "—");
+
+          const exceptionReasonText =
+            (a as any).policyExceptionReason ||
+            a.notes ||
+            (ar ? "لا يوجد تصريح مسجل" : "No override noted");
+
+          const approvalStatusText = isResolved
+            ? (ar ? "✓ تم تصحيحها ومعالجتها" : "✓ Corrected & Resolved")
+            : isApprovedException
+            ? (ar ? "معتمد رسمياً (استثناء مصرح)" : "Approved (Authorized)")
+            : (ar ? "مخالفة قائمة (غير مصححة)" : "Active Violation (Unresolved)");
+
           const bName = buildingMap[room.buildingId] || "—";
           const roomCap = room.capacity || 1;
-          const roomOcc = activeByRoom.get(room.id)?.length || 1;
+          const roomOcc = isActive ? (activeByRoom.get(room.id)?.length || 1) : roomCap;
           const lvl = String(emp.level || "").trim().toLowerCase();
           const profileDept = (emp.department || "").trim().toLowerCase();
 
@@ -2047,21 +2090,6 @@ export function useReportDataProcessor({
           }
 
           const itemDate = a.startDate || a.createdAt || (a as any).policyExceptionDate || (a as any).updatedAt || "";
-          const isApprovedException = Boolean(
-            (a as any).hasPolicyException ||
-            (a.notes && (a.notes.includes("استثناء") || a.notes.includes("override")))
-          );
-          const exceptionApprover =
-            (a as any).policyApprovedBy ||
-            (a.notes?.match(/المعتمد:\s*([^\]|]+)/)?.[1]?.trim()) ||
-            (isApprovedException ? (ar ? "إدارة السكن" : "Housing Admin") : "—");
-          const exceptionReasonText =
-            (a as any).policyExceptionReason ||
-            a.notes ||
-            (ar ? "لا يوجد تصريح مسجل" : "No override noted");
-          const approvalStatusText = isApprovedException
-            ? (ar ? "معتمد رسمياً" : "Approved")
-            : (ar ? "غير معتمد / مخالفة" : "Unapproved");
 
           // Check A: Capacity Exceeded or Mismatched
           const isCapViolated = allowedCapacities && allowedCapacities.length > 0
@@ -2087,19 +2115,25 @@ export function useReportDataProcessor({
                 ? `المقيم من ${levelCategory} ومسكن بغرفة سعتها (${roomCap} أفراد) والسعات المعتمدة للسياسة (${(allowedCapacities || [maxAllowedCap]).join(" أو ")} سرير)`
                 : `Resident is ${levelCategory} in a room of ${roomCap} beds (policy allowed: ${(allowedCapacities || [maxAllowedCap]).join(", ")})`,
               severity: ar ? "مرتفعة" : "High",
+              isResolved,
+              isApproved: isApprovedException,
+              resolvedAt,
+              resolutionDetails,
               approvalStatus: approvalStatusText,
               approvedBy: exceptionApprover,
               overrideReason: exceptionReasonText,
             });
           }
 
-          // Check B: Department Segregation / Mixing
-          const roommates = (activeByRoom.get(room.id) || [])
-            .filter((x: any) => x.id !== a.id)
-            .map((x: any) => empMap[x.profileId])
-            .filter(Boolean);
+          // Check B: Department Segregation / Mixing (for active room sharing)
+          const roommates = isActive
+            ? (activeByRoom.get(room.id) || [])
+                .filter((x: any) => x.id !== a.id)
+                .map((x: any) => empMap[x.profileId])
+                .filter(Boolean)
+            : [];
 
-          if (profileDept && roommates.length > 0) {
+          if (isActive && profileDept && roommates.length > 0) {
             const diffDeptRoommates = roommates.filter(
               (rm: any) => (rm.department || "").trim().toLowerCase() !== profileDept && (rm.department || "").trim() !== ""
             );
@@ -2124,6 +2158,10 @@ export function useReportDataProcessor({
                   ? `الغرفة تضم أقساماً مختلفة: قسم (${emp.department}) مع قسم (${diffDeptRoommates.map((d: any) => d.department).join(", ")})`
                   : `Room contains mixed departments: (${emp.department}) with (${diffDeptRoommates.map((d: any) => d.department).join(", ")})`,
                 severity: strictSegregation ? (ar ? "حرجة" : "Critical") : (ar ? "متوسطة" : "Medium"),
+                isResolved,
+                isApproved: isApprovedException,
+                resolvedAt,
+                resolutionDetails,
                 approvalStatus: approvalStatusText,
                 approvedBy: exceptionApprover,
                 overrideReason: exceptionReasonText,
@@ -2174,6 +2212,10 @@ export function useReportDataProcessor({
                   ? `حجز غرفة متعددة الأسرة (${roomCap} سرير) بالكامل لشخص واحد غير مصرح له في السياسة`
                   : `Entire multi-bed room (${roomCap} beds) reserved by a single occupant not entitled in policy`,
                 severity: ar ? "مرتفعة" : "High",
+                isResolved,
+                isApproved: isApprovedException,
+                resolvedAt,
+                resolutionDetails,
                 approvalStatus: approvalStatusText,
                 approvedBy: exceptionApprover,
                 overrideReason: exceptionReasonText,
@@ -2194,15 +2236,17 @@ export function useReportDataProcessor({
                 ? `المقيم (${empGender === "female" ? "أنثى" : "ذكر"}) مسكن بغرفة مخصصة لـ (${roomGender === "female" ? "الإناث" : "الذكور"})`
                 : `Resident (${empGender}) assigned to (${roomGender}) room`;
             }
-            const conflictingRoommates = roommates.filter((rm: any) => {
-              const g = (rm.gender || "").trim().toLowerCase();
-              return g && g !== empGender;
-            });
-            if (conflictingRoommates.length > 0) {
-              genderViolation = true;
-              genderDetails = ar
-                ? `تسكين مشترك مختلط: تضم الغرفة ذكوراً وإناثاً (${conflictingRoommates.map((r: any) => r.firstName || r.name).join(", ")})`
-                : `Mixed gender sharing: Room houses opposite genders`;
+            if (isActive) {
+              const conflictingRoommates = roommates.filter((rm: any) => {
+                const g = (rm.gender || "").trim().toLowerCase();
+                return g && g !== empGender;
+              });
+              if (conflictingRoommates.length > 0) {
+                genderViolation = true;
+                genderDetails = ar
+                  ? `تسكين مشترك مختلط: تضم الغرفة ذكوراً وإناثاً (${conflictingRoommates.map((r: any) => r.firstName || r.name).join(", ")})`
+                  : `Mixed gender sharing: Room houses opposite genders`;
+              }
             }
 
             if (genderViolation) {
@@ -2222,6 +2266,10 @@ export function useReportDataProcessor({
                 violationType: ar ? "مخالفة فصل الجنسين الصارمة" : "Strict Gender Mixing Violation",
                 violationDetails: genderDetails,
                 severity: ar ? "حرجة" : "Critical",
+                isResolved,
+                isApproved: isApprovedException,
+                resolvedAt,
+                resolutionDetails,
                 approvalStatus: approvalStatusText,
                 approvedBy: exceptionApprover,
                 overrideReason: exceptionReasonText,
@@ -2262,38 +2310,79 @@ export function useReportDataProcessor({
                   ? "تسكين موظف فردي (أعزب) في جناح مخصص للعائلات بدون استثناء إداري مصرح"
                   : "Single resident assigned to family suite without approved exception",
                 severity: ar ? "مرتفعة" : "High",
+                isResolved,
+                isApproved: isApprovedException,
+                resolvedAt,
+                resolutionDetails,
                 approvalStatus: approvalStatusText,
                 approvedBy: exceptionApprover,
+                overrideReason: exceptionReasonText,
               });
             }
           }
 
           // Check F: Contract Expiry Overstay Alert (انتهاء عقد العمل مع استمرار الإقامة)
-          if (emp.contractEndDate && a.status === "ACTIVE") {
+          if (emp.contractEndDate) {
             const cEnd = comparableDate(emp.contractEndDate);
-            if (cEnd && cEnd < todayStr) {
-              exceptions.push({
-                id: `contract_${a.id}`,
-                categoryKey: "contract",
-                requestDate: itemDate,
-                profileName: getProfileDisplayName(emp, ar) || "—",
-                profileCode: emp.profileId || emp.code || "—",
-                nationalId: emp.nationalId || "—",
-                jobLevel: emp.level || levelCategory,
-                department: getProfileDisplayDepartment(emp, ar) || "—",
-                roomNumber: room.roomNumber || "—",
-                buildingName: bName,
-                roomCapacity: roomCap,
-                currentOccupancy: roomOcc,
-                violationType: ar ? "إقامة بعد انتهاء عقد العمل" : "Contract Expiry Overstay",
-                violationDetails: ar
-                  ? `المقيم مستمر في السكن رغم انتهاء عقد العمل بتاريخ ${formatDate(emp.contractEndDate)} دون تجديد رسمي معتمد من الموارد البشرية`
-                  : `Resident continuing in housing after contract expired on ${formatDate(emp.contractEndDate)} without approved HR renewal`,
-                severity: ar ? "مرتفعة" : "High",
-                approvalStatus: approvalStatusText,
-                approvedBy: exceptionApprover,
-                overrideReason: exceptionReasonText,
-              });
+            if (cEnd) {
+              if (isActive && cEnd < todayStr) {
+                exceptions.push({
+                  id: `contract_${a.id}`,
+                  categoryKey: "contract",
+                  requestDate: itemDate,
+                  profileName: getProfileDisplayName(emp, ar) || "—",
+                  profileCode: emp.profileId || emp.code || "—",
+                  nationalId: emp.nationalId || "—",
+                  jobLevel: emp.level || levelCategory,
+                  department: getProfileDisplayDepartment(emp, ar) || "—",
+                  roomNumber: room.roomNumber || "—",
+                  buildingName: bName,
+                  roomCapacity: roomCap,
+                  currentOccupancy: roomOcc,
+                  violationType: ar ? "إقامة بعد انتهاء عقد العمل" : "Contract Expiry Overstay",
+                  violationDetails: ar
+                    ? `المقيم مستمر في السكن رغم انتهاء عقد العمل بتاريخ ${formatDate(emp.contractEndDate)} دون تجديد رسمي معتمد من الموارد البشرية`
+                    : `Resident continuing in housing after contract expired on ${formatDate(emp.contractEndDate)} without approved HR renewal`,
+                  severity: ar ? "مرتفعة" : "High",
+                  isResolved,
+                  isApproved: isApprovedException,
+                  resolvedAt,
+                  resolutionDetails,
+                  approvalStatus: approvalStatusText,
+                  approvedBy: exceptionApprover,
+                  overrideReason: exceptionReasonText,
+                });
+              } else if (!isActive && (a.actualCheckOutDate || a.checkOutDate)) {
+                const outDate = comparableDate(a.actualCheckOutDate || a.checkOutDate);
+                if (outDate && outDate > cEnd) {
+                  exceptions.push({
+                    id: `contract_${a.id}`,
+                    categoryKey: "contract",
+                    requestDate: itemDate,
+                    profileName: getProfileDisplayName(emp, ar) || "—",
+                    profileCode: emp.profileId || emp.code || "—",
+                    nationalId: emp.nationalId || "—",
+                    jobLevel: emp.level || levelCategory,
+                    department: getProfileDisplayDepartment(emp, ar) || "—",
+                    roomNumber: room.roomNumber || "—",
+                    buildingName: bName,
+                    roomCapacity: roomCap,
+                    currentOccupancy: roomOcc,
+                    violationType: ar ? "إقامة بعد انتهاء عقد العمل (تمت معالجتها)" : "Contract Expiry Overstay (Resolved)",
+                    violationDetails: ar
+                      ? `أقام المقيم بالسكن بعد انتهاء عقده (${formatDate(emp.contractEndDate)}) وتمت معالجة المخالفة بإنهاء الإقامة والمغادرة بتاريخ ${formatDate(a.actualCheckOutDate || a.checkOutDate)}`
+                      : `Resident stayed past contract end date (${formatDate(emp.contractEndDate)}) and was resolved by checkout on ${formatDate(a.actualCheckOutDate || a.checkOutDate)}`,
+                    severity: ar ? "مرتفعة" : "High",
+                    isResolved: true,
+                    isApproved: false,
+                    resolvedAt: a.actualCheckOutDate || a.checkOutDate || a.updatedAt,
+                    resolutionDetails: ar ? "تم تصحيح ومعالجة المخالفة بإنهاء الإقامة وتسجيل المغادرة" : "Resolved by resident checkout",
+                    approvalStatus: ar ? "✓ تم تصحيحها ومعالجتها" : "✓ Corrected & Resolved",
+                    approvedBy: exceptionApprover,
+                    overrideReason: exceptionReasonText,
+                  });
+                }
+              }
             }
           }
 
@@ -2327,6 +2416,10 @@ export function useReportDataProcessor({
                 ? `المقيم مسجل كمدخن في غرفة مخصصة لغير المدخنين`
                 : `Resident is marked as smoker in a designated Non-Smoking room`,
               severity: ar ? "متوسطة" : "Medium",
+              isResolved,
+              isApproved: isApprovedException,
+              resolvedAt,
+              resolutionDetails,
               approvalStatus: approvalStatusText,
               approvedBy: exceptionApprover,
               overrideReason: exceptionReasonText,
@@ -2334,7 +2427,7 @@ export function useReportDataProcessor({
           }
 
           // Check H: Do Not Room Together / Mutual Exclusion (حظر الجمع بين نزلاء)
-          if (roommates.length > 0) {
+          if (isActive && roommates.length > 0) {
             const pNotes = String(emp.notes || "").toLowerCase();
             for (const rm of roommates) {
               const rmCode = String(rm.profileId || rm.code || "").toLowerCase();
@@ -2362,6 +2455,10 @@ export function useReportDataProcessor({
                     ? `توجد موانع إدارية أو خلافات سابقة تحظر تسكين المقيم مع (${rm.firstName || ""} ${rm.lastName || ""} #${rm.profileId || rm.code}) في نفس الغرفة`
                     : `Administrative restrictions prohibit housing resident with (${rm.firstName || ""} ${rm.lastName || ""} #${rm.profileId || rm.code}) in the same room`,
                   severity: ar ? "حرجة" : "Critical",
+                  isResolved,
+                  isApproved: isApprovedException,
+                  resolvedAt,
+                  resolutionDetails,
                   approvalStatus: approvalStatusText,
                   approvedBy: exceptionApprover,
                   overrideReason: exceptionReasonText,
@@ -2374,12 +2471,23 @@ export function useReportDataProcessor({
         // 2. Audit Family Visits overstay
         const maxNights = Number(policySettings?.visitMaxNights) || 7;
         for (const h of (hostings || [])) {
-          if (h.status === "ACTIVE" || h.status === "APPROVED") {
+          const isVisitActive = (h.status === "ACTIVE" || h.status === "APPROVED");
+          const isVisitCompleted = (h.status === "COMPLETED" || h.status === "CHECKED_OUT");
+          if (isVisitActive || isVisitCompleted) {
             const start = new Date(h.startDate || h.checkInDate || h.createdAt);
-            const end = h.endDate || h.checkOutDate ? new Date(h.endDate || h.checkOutDate) : new Date();
+            const end = h.endDate || h.checkOutDate || h.actualCheckOutDate ? new Date(h.endDate || h.checkOutDate || h.actualCheckOutDate) : new Date();
             const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
             if (days > maxNights) {
               const hostEmp = empMap[h.profileId];
+              const isVisitResolved = isVisitCompleted;
+              const visitResolvedAt = isVisitResolved ? (h.actualCheckOutDate || h.checkOutDate || h.updatedAt || "") : "";
+              const visitResolutionDetails = isVisitResolved
+                ? (ar ? "تم إنهاء الزيارة وتسجيل مغادرة الضيف رسمياً" : "Visit completed and guest checked out")
+                : "";
+              const visitApprovalStatus = isVisitResolved
+                ? (ar ? "✓ تم تصحيحها ومعالجتها" : "✓ Corrected & Resolved")
+                : (ar ? "معتمد (تجاوز مدة)" : "Approved (Overstay)");
+
               exceptions.push({
                 id: `host_${h.id}`,
                 categoryKey: "visit",
@@ -2398,7 +2506,11 @@ export function useReportDataProcessor({
                   ? `مدة الزيارة (${days} ليالٍ) تجاوزت الحد الأقصى المسموح (${maxNights} ليالٍ)`
                   : `Visit length (${days} nights) exceeded max allowed (${maxNights} nights)`,
                 severity: ar ? "مرتفعة" : "High",
-                approvalStatus: ar ? "معتمد (تجاوز مدة)" : "Approved (Overstay)",
+                isResolved: isVisitResolved,
+                isApproved: true,
+                resolvedAt: visitResolvedAt,
+                resolutionDetails: visitResolutionDetails,
+                approvalStatus: visitApprovalStatus,
                 approvedBy: h.approvedBy || "—",
                 overrideReason: h.notes || (ar ? "طلب استضافة معتمد" : "Approved hosting request"),
               });
@@ -2412,15 +2524,21 @@ export function useReportDataProcessor({
           filteredExceptions = filteredExceptions.filter((item) => item.categoryKey === filterCategory);
         }
 
-        // 4. Filter by Status (Approval Status or Severity / Risk Level)
+        // 4. Filter by Status (Approval Status, Resolution, or Severity / Risk Level)
         if (filterStatus && filterStatus !== "all") {
           filteredExceptions = filteredExceptions.filter((item) => {
             const fs = filterStatus.toUpperCase();
+            if (fs === "OPEN") {
+              return !item.isResolved && !item.isApproved;
+            }
+            if (fs === "RESOLVED") {
+              return Boolean(item.isResolved);
+            }
             if (fs === "APPROVED") {
-              return item.approvalStatus?.includes("معتمد") || item.approvalStatus?.includes("Approved");
+              return Boolean(item.isApproved);
             }
             if (fs === "UNAPPROVED") {
-              return !item.approvalStatus?.includes("معتمد") && !item.approvalStatus?.includes("Approved");
+              return !item.isApproved;
             }
             if (fs === "CRITICAL") {
               return item.severity === "حرجة" || item.severity === "Critical";
@@ -2446,6 +2564,8 @@ export function useReportDataProcessor({
           i.violationDetails,
           i.approvedBy,
           i.approvalStatus,
+          i.resolutionDetails,
+          i.resolvedAt,
           i.overrideReason,
           i.severity,
           i.requestDate,

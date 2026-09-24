@@ -181,11 +181,13 @@ export function ReportFilters({
         ];
       case "policy_exceptions":
         return [
-          { value: "APPROVED",   label: "Approved Exceptions Only",   labelAr: "استثناءات معتمدة رسمياً فقط" },
-          { value: "UNAPPROVED", label: "Unapproved Violations Only", labelAr: "مخالفات غير معتمدة فقط" },
-          { value: "CRITICAL",   label: "Critical Severity Only",     labelAr: "مستوى خطورة حرج فقط" },
-          { value: "HIGH",       label: "High Severity Only",         labelAr: "مستوى خطورة مرتفع" },
-          { value: "MEDIUM",     label: "Medium Severity Only",       labelAr: "مستوى خطورة متوسط" },
+          { value: "OPEN",        label: "Active Violations (Unresolved)", labelAr: "مخالفات قائمة حالياً (غير مصححة)" },
+          { value: "RESOLVED",    label: "Corrected & Resolved",          labelAr: "مخالفات تم تصحيحها ومعالجتها" },
+          { value: "APPROVED",    label: "Approved Exceptions Only",      labelAr: "استثناءات معتمدة رسمياً فقط" },
+          { value: "UNAPPROVED",  label: "All Unapproved Violations",     labelAr: "كافة المخالفات غير المعتمدة" },
+          { value: "CRITICAL",    label: "Critical Severity Only",        labelAr: "مستوى خطورة حرج فقط" },
+          { value: "HIGH",        label: "High Severity Only",            labelAr: "مستوى خطورة مرتفع" },
+          { value: "MEDIUM",      label: "Medium Severity Only",          labelAr: "مستوى خطورة متوسط" },
         ];
       case "vacations":
         return [
@@ -464,7 +466,7 @@ export function ReportFilters({
           <div className="space-y-1">
             <Label className="text-[11px] font-bold text-muted-foreground">
               {activeTab === "policy_exceptions"
-                ? ar ? "حالة الاعتماد / الخطورة" : "Approval & Risk"
+                ? ar ? "موقف المخالفة والتصحيح" : "Violation & Correction Status"
                 : ar ? "الحالة" : "Status"}
             </Label>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -472,7 +474,7 @@ export function ReportFilters({
                 <SelectValue
                   placeholder={
                     activeTab === "policy_exceptions"
-                      ? ar ? "الكل (معتمد ومخالف)" : "All Approvals & Risks"
+                      ? ar ? "الكل (المخالفات القائمة والمصححة)" : "All (Active & Resolved)"
                       : ar ? "كل الحالات" : "All Status"
                   }
                 />
@@ -480,7 +482,7 @@ export function ReportFilters({
               <SelectContent>
                 <SelectItem value="all">
                   {activeTab === "policy_exceptions"
-                    ? ar ? "كافة الحالات ومستويات الخطورة" : "All Approvals & Severities"
+                    ? ar ? "كافة الحالات (القائمة والمصححة والمعتمدة)" : "All (Active, Resolved & Approved)"
                     : ar ? "كل الحالات" : "All Status"}
                 </SelectItem>
                 {statusOptions.map((s) => (

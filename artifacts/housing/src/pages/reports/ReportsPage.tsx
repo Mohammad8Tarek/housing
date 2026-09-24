@@ -73,6 +73,7 @@ export default function Reports() {
 
   const filteredAssignmentsForAnalytics = useMemo(() => {
     return data.assignments.filter((a: any) => {
+      if (a.status !== "ACTIVE" && a.status !== "VACATION") return false;
       const room = data.roomMap[a.roomId];
       if (filters.filterBuilding !== "all" && filters.filterBuilding && (!room || room.buildingId !== Number(filters.filterBuilding))) return false;
       if (filters.filterFloor !== "all" && filters.filterFloor && (!room || room.floorId !== Number(filters.filterFloor))) return false;

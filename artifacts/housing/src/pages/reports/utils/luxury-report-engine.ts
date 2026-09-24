@@ -1204,41 +1204,46 @@ export function generateAutoKpis(
 
   if (activeTab === "policy_exceptions") {
     let criticalCount = 0;
-    let deptMixingCount = 0;
+    let resolvedCount = 0;
+    let openViolationsCount = 0;
     let documentedOverrideCount = 0;
 
     rows.forEach((r) => {
       const sev = String(r["مستوى الأهمية"] ?? r["Severity"] ?? "").toLowerCase();
-      const viol = String(r["نوع المخالفة"] ?? r["Violation Type"] ?? "").toLowerCase();
-      const over = String(r["سبب الاستثناء الإداري"] ?? r["Override Reason"] ?? "").toLowerCase();
+      const status = String(r["موقف المخالفة والتصحيح"] ?? r["Status / Resolution"] ?? r["حالة الاعتماد"] ?? r["Approval Status"] ?? "").toLowerCase();
 
       if (sev.includes("حرج") || sev.includes("critical")) criticalCount++;
-      if (viol.includes("أقسام") || viol.includes("department") || viol.includes("خلط")) deptMixingCount++;
-      if (over && !over.includes("لا يوجد") && !over.includes("no override") && over !== "—") documentedOverrideCount++;
+      if (status.includes("تصحيح") || status.includes("resolved") || status.includes("معالج")) {
+        resolvedCount++;
+      } else if (status.includes("معتمد") || status.includes("approved")) {
+        documentedOverrideCount++;
+      } else {
+        openViolationsCount++;
+      }
     });
 
     return [
       {
-        label: "Total Exceptions",
-        labelAr: "إجمالي المخالفات والاستثناءات",
+        label: "Total Audited",
+        labelAr: "إجمالي السجلات المدققة",
         value: total,
         color: "gold",
       },
       {
-        label: "Critical Violations",
-        labelAr: "مخالفات حرجة",
-        value: criticalCount,
-        color: criticalCount > 0 ? "red" : "green",
+        label: "Active Violations",
+        labelAr: "مخالفات قائمة غير مصححة",
+        value: openViolationsCount,
+        color: openViolationsCount > 0 ? "red" : "green",
       },
       {
-        label: "Dept Mixing",
-        labelAr: "خلط أقسام بالغرف",
-        value: deptMixingCount,
-        color: deptMixingCount > 0 ? "orange" : "green",
+        label: "Resolved Violations",
+        labelAr: "مخالفات تم تصحيحها",
+        value: resolvedCount,
+        color: "green",
       },
       {
         label: "Approved Overrides",
-        labelAr: "استثناءات بتصريح معتمد",
+        labelAr: "استثناءات معتمدة رسمياً",
         value: documentedOverrideCount,
         color: "blue",
       },

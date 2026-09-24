@@ -67,10 +67,12 @@ router.get(
     const limit = Math.max(1, parseInt(query.limit || "10"));
     const offset = (page - 1) * limit;
 
-    const conditions: SQL[] = [eq(assignmentsTable.status, "ACTIVE")];
+    const conditions: SQL[] = [];
 
-    if (query.status) {
+    if (query.status && String(query.status).toUpperCase() !== "ALL") {
       conditions.push(eq(assignmentsTable.status, query.status));
+    } else if (!query.status) {
+      conditions.push(eq(assignmentsTable.status, "ACTIVE"));
     }
     if (query.buildingId) {
       conditions.push(eq(roomsTable.buildingId, parseInt(query.buildingId)));
