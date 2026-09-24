@@ -2491,21 +2491,21 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const pageHeightMm = isLandscape ? 206.0 : 293.0;
   const topMarginMm = 4.0; // sheet padding top
   const bottomMarginMm = 4.0; // sheet padding bottom
-  const footerHeightMm = 5.5; // .opera-footer layout + border
-  const safetyBufferMm = isLandscape ? 3.5 : 4.0; // subpixel rendering tolerance + one-row guard band
+  const footerHeightMm = 7.0; // .opera-footer layout + border
+  const safetyBufferMm = isLandscape ? 3.0 : 4.0; // font metrics & rendering subpixel tolerance
 
-  // Net usable height inside sheet container (191.0mm in landscape, 277.5mm in portrait)
+  // Net usable height inside sheet container
   const usableHeightMm = pageHeightMm - topMarginMm - bottomMarginMm - footerHeightMm - safetyBufferMm;
 
   // Header, Components, and Table Header Heights in mm:
-  const p1HeaderHeightMm = (dateFrom || dateTo) ? 17.0 : 14.5; // Branded Letterhead Header on Page 1
-  const subsequentHeaderHeightMm = 7.5; // Compact Sub-Header on Page 2+
-  const theadHeightMm = 6.0; // Repeated table header row
+  const p1HeaderHeightMm = (dateFrom || dateTo) ? 26.0 : 23.0; // Branded Letterhead Header on Page 1
+  const subsequentHeaderHeightMm = 9.5; // Compact Sub-Header on Page 2+
+  const theadHeightMm = 7.5; // Repeated table header row
   const kpisHeightMm = hasKpis ? 26.0 : 0.0; // KPI Cards Grid
   const customSectionHeightMm = customSectionsHtml ? 35.0 : 0.0; // Custom top sections (if any)
   const customBottomSectionHeightMm = customBottomSectionsHtml ? 42.0 : 0.0; // Demographics / bottom section
   const sigsHeightMm = hasSigs ? 28.0 : 0.0; // Signatures Section on final page
-  const totalsRowHeightMm = 6.0; // Final totals row
+  const totalsRowHeightMm = 6.5; // Final totals row
 
   // Function to calculate available table height dynamically for ANY page
   const getAvailableTableHeightMm = (pageNum: number, isFinal: boolean): number => {
@@ -2532,12 +2532,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const baseRowHeightMm = isShortSingleDataset
     ? (isLandscape ? (tableRows.length <= 12 ? 8.0 : 6.4) : (tableRows.length <= 12 ? 8.6 : 7.0))
     : isLandscape
-      ? (colCount >= 14 ? 4.2 : colCount >= 10 ? 4.5 : 4.8)
-      : (colCount >= 14 ? 4.5 : colCount >= 10 ? 4.8 : 5.2);
+      ? (colCount >= 14 ? 4.9 : colCount >= 10 ? 5.2 : 5.4)
+      : (colCount >= 14 ? 5.2 : colCount >= 10 ? 5.5 : 5.8);
 
   const extraLineHeightMm = isShortSingleDataset
     ? (isLandscape ? 3.0 : 3.4)
-    : (isLandscape ? 2.3 : 2.6);
+    : (isLandscape ? 2.6 : 3.0);
 
   const calculateCellLines = (val: any, cpl: number): number => {
     if (val === null || val === undefined) return 1;
@@ -2622,6 +2622,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     return baseRowHeightMm + (maxLines - 1) * extraLineHeightMm;
   };
 
+  // Hard safety ceiling: maximum rows physically permissible on a single page to prevent ANY bottom clipping
+  const maxRowsAllowedOnPage = (pageNum: number): number => {
+    if (orientation === "landscape") {
+      return pageNum === 1 ? (hasKpis ? 22 : 28) : 32;
+    } else {
+      return pageNum === 1 ? (hasKpis ? 34 : 42) : 46;
+    }
+  };
+
   // ── Dynamic Page Allocation (Available Height Budgeting) ──
   const pageChunks: any[][][] = [];
   const pageStartIndexes: number[] = [];
@@ -2635,6 +2644,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
     while (cursor < totalRowsCount) {
       const pageNum = pageChunks.length + 1;
+      const pageCap = maxRowsAllowedOnPage(pageNum);
 
       // 1. Check if ALL remaining rows fit on this page as the FINAL page (with signatures & totals)
       let remainingTotalHeight = 0;
@@ -2643,7 +2653,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
 
       const availableIfFinal = getAvailableTableHeightMm(pageNum, true);
-      if (remainingTotalHeight <= availableIfFinal) {
+      const remainingCount = totalRowsCount - cursor;
+      if (remainingTotalHeight <= availableIfFinal && remainingCount <= pageCap) {
         // Fits entirely on this page!
         pageStartIndexes.push(cursor);
         pageChunks.push(tableRows.slice(cursor));
@@ -2656,7 +2667,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       let accumulatedHeight = 0;
       let count = 0;
 
-      while (cursor + count < totalRowsCount) {
+      while (cursor + count < totalRowsCount && count < pageCap) {
         const nextH = estimateRowHeightMm(tableRows[cursor + count]);
         // Break only when the next row physically cannot fit on this page
         if (accumulatedHeight + nextH > availableTableHeight && count >= 4) {
