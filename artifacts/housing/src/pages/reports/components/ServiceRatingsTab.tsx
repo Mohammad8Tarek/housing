@@ -11,8 +11,6 @@ import {
   Sparkles,
   Clock,
   Filter,
-  Download,
-  Printer,
   Calendar,
   Building2,
   CheckCircle2,
@@ -229,26 +227,6 @@ export function ServiceRatingsTab({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportExcel}
-            className="text-xs gap-1.5 font-semibold"
-          >
-            <Download className="w-4 h-4 text-emerald-600" />
-            <span>{ar ? "تصدير Excel" : "Export Excel"}</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrint}
-            className="text-xs gap-1.5 font-semibold print:hidden"
-          >
-            <Printer className="w-4 h-4 text-primary" />
-            <span>{ar ? "طباعة" : "Print Report"}</span>
-          </Button>
-        </div>
       </div>
 
       {/* Filter Toolbar */}

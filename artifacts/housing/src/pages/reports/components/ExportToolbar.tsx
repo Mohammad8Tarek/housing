@@ -92,14 +92,14 @@ export function ExportToolbar({
 
       {/* Unified Excel Button */}
       <Button
-        variant="outline"
+        variant="default"
         size="sm"
         onClick={handleExcelClick}
         disabled={isSmartExportingXlsx}
-        className="gap-2 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs font-semibold h-9"
+        className="gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs shadow-xs font-bold h-9 px-3.5 rounded-lg border-0 transition-all shrink-0 cursor-pointer"
         title={ar ? "تصدير البيانات الحالية كملف Excel" : "Export current dataset to Excel (.xlsx)"}
       >
-        <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <FileSpreadsheet className="w-4 h-4 text-white shrink-0" />
         <span>
           {isSmartExportingXlsx
             ? (ar ? "جاري التصدير..." : "Exporting...")
@@ -114,10 +114,10 @@ export function ExportToolbar({
           size="sm"
           onClick={handleSmartExportCsv}
           disabled={isSmartExportingCsv}
-          className="gap-2 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 text-xs font-semibold h-9"
+          className="gap-2 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 text-xs font-semibold h-9 px-3 rounded-lg shrink-0 cursor-pointer"
           title={ar ? "تصدير كملف CSV" : "Export as CSV"}
         >
-          <Download className="w-4 h-4" />
+          <Download className="w-4 h-4 shrink-0" />
           <span>
             {isSmartExportingCsv
               ? (ar ? "جاري التصدير..." : "Exporting...")
@@ -132,10 +132,10 @@ export function ExportToolbar({
         size="sm"
         onClick={handlePdfClick}
         disabled={isSmartExportingPdf}
-        className="gap-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs shadow-xs font-semibold h-9"
+        className="gap-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs shadow-xs font-bold h-9 px-3.5 rounded-lg border-0 transition-all shrink-0 cursor-pointer"
         title={ar ? "معاينة وطباعة التقرير الفاخر بصيغة PDF" : "Print luxury report as PDF"}
       >
-        <Printer className="w-4 h-4" />
+        <Printer className="w-4 h-4 text-white shrink-0" />
         <span>
           {isSmartExportingPdf
             ? (ar ? "جاري التجهيز..." : "Generating...")

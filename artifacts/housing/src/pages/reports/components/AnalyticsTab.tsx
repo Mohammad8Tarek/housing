@@ -167,17 +167,6 @@ export function AnalyticsTab({
             </p>
           </div>
         </div>
-
-        {onPrint && (
-          <Button
-            onClick={onPrint}
-            size="sm"
-            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-xs self-start sm:self-auto shrink-0"
-          >
-            <Printer className="w-4 h-4" />
-            {ar ? "طباعة التحليلات (نسخة PDF المعتمدة)" : "Print Analytics (PDF)"}
-          </Button>
-        )}
       </div>
 
       {/* 8 Compact KPI Cards Row */}

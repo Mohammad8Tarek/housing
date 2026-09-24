@@ -7,9 +7,7 @@ import {
   Building2,
   Calendar,
   Clock,
-  Download,
   Filter,
-  Printer,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -18,7 +16,6 @@ import {
   TrendingUp,
   Sparkles,
   BedDouble,
-  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -451,26 +448,6 @@ export function RoomMovesTab({
             >
               <RefreshCw className="w-3.5 h-3.5 me-1" />
               <span>{ar ? "إعادة ضبط" : "Reset"}</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportExcel}
-              className="text-xs h-9 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
-            >
-              <Download className="w-3.5 h-3.5 me-1" />
-              <span>{ar ? "تصدير إكسيل" : "Excel"}</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrintReport}
-              className="text-xs h-9 bg-primary/5 text-primary hover:bg-primary/10 border-primary/30"
-            >
-              <Printer className="w-3.5 h-3.5 me-1" />
-              <span>{ar ? "طباعة فاخرة (PDF)" : "Print PDF"}</span>
             </Button>
           </div>
         </div>

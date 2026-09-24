@@ -1159,10 +1159,9 @@ export default function ReportConfigurationPage() {
               onClick={handleExportExcel}
               disabled={isLoading || !reportRows.length}
               size="sm"
-              variant="outline"
-              className="rounded-xl border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 flex items-center gap-1.5"
+              className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-xs font-bold flex items-center gap-1.5 border-0"
             >
-              <FileSpreadsheet className="w-4 h-4" />
+              <FileSpreadsheet className="w-4 h-4 text-white" />
               <span>{ar ? "تصدير إكسيل" : "Export Excel (.xlsx)"}</span>
             </Button>
           </div>

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import * as React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import {
@@ -677,6 +677,13 @@ export function HousingMapReportTab({
     }
   };
 
+  useEffect(() => {
+    onRegisterExport?.({
+      exportExcel: handleExportExcel,
+      exportPDF: () => handlePrint("map"),
+    });
+  }, [handleExportExcel, onRegisterExport]);
+
   return (
     <div className="space-y-6 print:space-y-4">
       {/* Printable Header (Visible during Print only) */}
@@ -769,64 +776,6 @@ export function HousingMapReportTab({
               <span>{ar ? "جدول مفصل" : "Detailed Table"}</span>
             </button>
           </div>
-
-          {/* Excel Export Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportExcel}
-            className="h-9 gap-1.5 text-xs font-semibold rounded-xl border-border/60 hover:bg-muted"
-            title={ar ? "تصدير كملف إكسيل" : "Export to Excel"}
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{ar ? "إكسيل" : "Excel"}</span>
-          </Button>
-
-          {/* Print Button with Quick Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-1.5 text-xs font-semibold rounded-xl border-border/60 hover:bg-muted"
-                title={ar ? "طباعة خريطة وتفصيل السكن" : "Print Housing Map Report"}
-              >
-                <Printer className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "طباعة" : "Print"}</span>
-                <ChevronDown className="w-3 h-3 opacity-60" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60 text-xs p-1">
-              <DropdownMenuItem
-                onClick={() => handlePrint("map")}
-                className="cursor-pointer gap-2.5 py-2 px-2.5 rounded-lg"
-              >
-                <LayoutGrid className="w-4 h-4 text-indigo-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-foreground leading-tight">
-                    {ar ? "طباعة المخطط المعماري المرئي" : "Print Architectural Visual Map"}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {ar ? "توزيع الغرف والأسرة بالمباني والأدوار" : "Visual building & floor room cards"}
-                  </p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handlePrint("table")}
-                className="cursor-pointer gap-2.5 py-2 px-2.5 rounded-lg"
-              >
-                <TableIcon className="w-4 h-4 text-emerald-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-foreground leading-tight">
-                    {ar ? "طباعة الجدول التفصيلي للغرف" : "Print Detailed Room Ledger"}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {ar ? "كشف فندقي تفصيلي شامل المقيمين" : "Formal Opera PMS tabular ledger"}
-                  </p>
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           {/* Refresh Button */}
           <Button

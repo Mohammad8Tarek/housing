@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { printLuxuryReport } from "../utils/luxury-report-engine";
 import { formatNationality } from "@/lib/countries";
@@ -48,6 +48,7 @@ interface ManagerFlashTabProps {
   profiles: any[];
   onExportPDF?: () => void;
   onExportExcel?: () => void;
+  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
 }
 
 export function ManagerFlashTab({
@@ -64,6 +65,7 @@ export function ManagerFlashTab({
   profiles = [],
   onExportPDF,
   onExportExcel,
+  onRegisterExport,
 }: ManagerFlashTabProps) {
   const [reportDate, setReportDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState<string>(
@@ -445,6 +447,13 @@ export function ManagerFlashTab({
     });
   };
 
+  useEffect(() => {
+    onRegisterExport?.({
+      exportExcel: handleExcelExport,
+      exportPDF: handlePrint,
+    });
+  }, [handleExcelExport, handlePrint, onRegisterExport]);
+
   return (
     <div id="manager-flash-report" className="space-y-6 print:space-y-4 print:p-0">
       {/* ── Top Executive Header ── */}
@@ -512,28 +521,6 @@ export function ManagerFlashTab({
             className="text-xs h-8 bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700"
           >
             {ar ? "اليوم" : "Today"}
-          </Button>
-
-          {onExportExcel && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExcelExport}
-              className="text-xs h-8 gap-1.5 bg-emerald-950/60 text-emerald-200 border-emerald-700/50 hover:bg-emerald-900"
-            >
-              <FileBarChart2 className="w-3.5 h-3.5" />
-              Excel
-            </Button>
-          )}
-
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handlePrint}
-            className="h-8 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            {ar ? "طباعة التقرير" : "Print Report"}
           </Button>
         </div>
       </div>

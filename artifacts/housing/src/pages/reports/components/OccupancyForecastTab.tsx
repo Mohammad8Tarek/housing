@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   CalendarRange,
   TrendingUp,
@@ -7,8 +7,6 @@ import {
   BedDouble,
   ArrowUpRight,
   ArrowDownRight,
-  Printer,
-  FileSpreadsheet,
   Building,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +34,7 @@ interface OccupancyForecastTabProps {
   profiles?: any[];
   onExportPDF?: () => void;
   onExportExcel?: () => void;
+  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
 }
 
 export function OccupancyForecastTab({
@@ -49,7 +48,15 @@ export function OccupancyForecastTab({
   reservations = [],
   onExportPDF,
   onExportExcel,
+  onRegisterExport,
 }: OccupancyForecastTabProps) {
+  useEffect(() => {
+    onRegisterExport?.({
+      exportExcel: onExportExcel,
+      exportPDF: onExportPDF,
+    });
+  }, [onExportExcel, onExportPDF, onRegisterExport]);
+
   // Horizon: 7, 14, or 30 days
   const [horizonDays, setHorizonDays] = useState<number>(7);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("all");
@@ -285,26 +292,6 @@ export function OccupancyForecastTab({
                 {ar ? "30 يوماً" : "30 Days"}
               </button>
             </div>
-
-            {/* Export buttons */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onExportExcel}
-              className="gap-1.5 text-xs bg-violet-950/50 text-violet-100 border-violet-700/50 hover:bg-violet-800"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              Excel
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={onExportPDF}
-              className="gap-1.5 text-xs bg-violet-500 hover:bg-violet-600 text-white shadow-xs border-0"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              {ar ? "طباعة التوقعات PDF" : "Print PDF"}
-            </Button>
           </div>
         </div>
       </div>

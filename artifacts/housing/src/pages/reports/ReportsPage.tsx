@@ -280,6 +280,7 @@ export default function Reports() {
           profiles={data.profiles}
           onExportPDF={handleExportPDF}
           onExportExcel={handleExportExcel}
+          onRegisterExport={setCustomExportActions}
         />
       )}
 
@@ -308,6 +309,7 @@ export default function Reports() {
           reservations={data.reservations}
           onExportPDF={handleExportPDF}
           onExportExcel={handleExportExcel}
+          onRegisterExport={setCustomExportActions}
         />
       )}
 
