@@ -273,8 +273,11 @@ export function RoomSpaceViewTab({
           </button>
 
           {ROOM_STATUS_OPTIONS.map((opt) => {
+            // Widen to string: legacy aliases ("available", "vacant_beds")
+            // are also accepted by the server filter.
+            const optValue: string = opt.value;
             let count = 0;
-            if (opt.value === "room_and_bed_vacant") {
+            if (optValue === "room_and_bed_vacant") {
               count = rooms.filter((r) => {
                 const occ = (assignmentsByRoom[r.id] || []).length;
                 const cap = r.capacity || 1;
@@ -282,14 +285,14 @@ export function RoomSpaceViewTab({
                 const isDirty = statusNorm(r.status) === "dirty" || statusNorm(r.status) === "occupied_dirty";
                 return cap - occ > 0 && !isMaint && !isDirty;
               }).length;
-            } else if (opt.value === "room_vacant" || opt.value === "available") {
+            } else if (optValue === "room_vacant" || optValue === "available") {
               count = rooms.filter((r) => {
                 const occ = (assignmentsByRoom[r.id] || []).length;
                 const isMaint = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(r.status));
                 const isDirty = statusNorm(r.status) === "dirty" || statusNorm(r.status) === "occupied_dirty";
                 return occ === 0 && !isMaint && !isDirty && (statusNorm(r.status) === "available" || statusNorm(r.status) === "vacant" || statusNorm(r.status) === "room_vacant");
               }).length;
-            } else if (opt.value === "bed_vacant" || opt.value === "vacant_beds") {
+            } else if (optValue === "bed_vacant" || optValue === "vacant_beds") {
               count = rooms.filter((r) => {
                 const occ = (assignmentsByRoom[r.id] || []).length;
                 const cap = r.capacity || 1;

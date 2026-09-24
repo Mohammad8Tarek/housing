@@ -308,7 +308,7 @@ router.get(
             conditions.push(or(
               eq(roomsTable.status, "occupied"),
               sql`${roomsTable.currentOccupancy} >= ${roomsTable.capacity}`
-            ));
+            ) as SQL);
           } else {
             conditions.push(eq(roomsTable.status, query.data.status));
           }
