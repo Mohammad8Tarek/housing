@@ -2266,14 +2266,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const orientation = opts.orientation || autoOrientation;
   const isSinglePage = singlePage ?? (tableRows.length === 0 && Boolean(customSectionsHtml));
 
-  // Check if dataset is a small single-page batch (e.g. <= 22 rows) where generous executive row spacing is desirable
-  const isShortSingleDataset = tableRows.length <= 22 && tableRows.length > 0;
+  // Check if dataset is a small single-page batch (e.g. <= 14 rows) where generous executive row spacing is desirable
+  const isShortSingleDataset = tableRows.length <= 14 && tableRows.length > 0;
 
   // High-legibility, bold typography scaled by orientation and column density
   let baseFontSizePt = 9.8;
   let printFontSizePt = 9.2;
-  let cellPadding = "4.5px 6px";
-  let printPadding = "3.5px 5px";
+  let cellPadding = "3.2px 5px";
+  let printPadding = "2.8px 4.5px";
   let tableLetterSpacing = "normal";
 
   if (orientation === "landscape") {
@@ -2287,20 +2287,20 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     } else if (colCount >= 16) {
       baseFontSizePt = 6.4;
       printFontSizePt = 6.0;
-      cellPadding = "1.5px 2.2px";
-      printPadding = "1.2px 1.8px";
+      cellPadding = "1.6px 2.2px";
+      printPadding = "1.4px 1.8px";
       tableLetterSpacing = "-0.2px";
     } else if (colCount >= 13) {
       baseFontSizePt = 7.1;
       printFontSizePt = 6.7;
-      cellPadding = "2px 2.8px";
-      printPadding = "1.6px 2.2px";
+      cellPadding = "2.2px 3.0px";
+      printPadding = "1.8px 2.5px";
       tableLetterSpacing = "-0.1px";
     } else if (colCount >= 10) {
       baseFontSizePt = 7.8;
       printFontSizePt = 7.4;
-      cellPadding = "2.5px 3.5px";
-      printPadding = "2px 2.8px";
+      cellPadding = "2.8px 4.0px";
+      printPadding = "2.4px 3.5px";
       tableLetterSpacing = "normal";
     }
   } else {
@@ -2315,41 +2315,41 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     } else if (colCount >= 16) {
       baseFontSizePt = 5.8;
       printFontSizePt = 5.5;
-      cellPadding = "1.2px 1.8px";
-      printPadding = "1px 1.5px";
+      cellPadding = "1.4px 2.0px";
+      printPadding = "1.2px 1.6px";
       tableLetterSpacing = "-0.25px";
     } else if (colCount >= 13) {
       baseFontSizePt = 6.6;
       printFontSizePt = 6.2;
-      cellPadding = "1.8px 2.2px";
-      printPadding = "1.5px 1.8px";
+      cellPadding = "2.0px 2.6px";
+      printPadding = "1.6px 2.2px";
       tableLetterSpacing = "-0.15px";
     } else if (colCount >= 10) {
       baseFontSizePt = 7.2;
       printFontSizePt = 6.8;
-      cellPadding = "2px 2.8px";
-      printPadding = "1.8px 2.2px";
+      cellPadding = "2.4px 3.2px";
+      printPadding = "2.0px 2.8px";
       tableLetterSpacing = "normal";
     } else if (colCount >= 7) {
       baseFontSizePt = 8.2;
       printFontSizePt = 7.8;
-      cellPadding = "3px 4px";
-      printPadding = "2.5px 3.5px";
+      cellPadding = "3.2px 4.5px";
+      printPadding = "2.8px 4.0px";
       tableLetterSpacing = "normal";
     }
   }
 
   if (isShortSingleDataset) {
-    if (tableRows.length <= 12) {
-      cellPadding = orientation === "landscape" ? "6.5px 8px" : "7.5px 9px";
-      printPadding = orientation === "landscape" ? "5.5px 7px" : "6.5px 8px";
-      baseFontSizePt = Math.min(10.5, baseFontSizePt + 1.0);
-      printFontSizePt = Math.min(10.0, printFontSizePt + 1.0);
+    if (tableRows.length <= 10) {
+      cellPadding = orientation === "landscape" ? "5.5px 7px" : "6.5px 8px";
+      printPadding = orientation === "landscape" ? "4.5px 6px" : "5.5px 7px";
+      baseFontSizePt = Math.min(10.2, baseFontSizePt + 0.8);
+      printFontSizePt = Math.min(9.8, printFontSizePt + 0.8);
     } else {
-      cellPadding = orientation === "landscape" ? "4.5px 6.5px" : "5.5px 7.5px";
-      printPadding = orientation === "landscape" ? "4px 5.5px" : "5px 6.5px";
-      baseFontSizePt = Math.min(10.0, baseFontSizePt + 0.5);
-      printFontSizePt = Math.min(9.5, printFontSizePt + 0.5);
+      cellPadding = orientation === "landscape" ? "4.0px 5.5px" : "4.8px 6.5px";
+      printPadding = orientation === "landscape" ? "3.5px 5.0px" : "4.2px 5.8px";
+      baseFontSizePt = Math.min(9.8, baseFontSizePt + 0.4);
+      printFontSizePt = Math.min(9.4, printFontSizePt + 0.4);
     }
   }
 
@@ -2554,32 +2554,32 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const hasSigs = Boolean(initialShowSigs);
   const hasBottom = Boolean(customBottomSectionsHtml);
 
-  // Exact printable A4 heights in millimeters (matching print CSS: 206mm landscape, 293mm portrait)
-  const pageHeightMm = isLandscape ? 206.0 : 293.0;
-  const topMarginMm = 4.0; // sheet padding top
-  const bottomMarginMm = 4.0; // sheet padding bottom
-  const footerHeightMm = 7.0; // .opera-footer layout + border
-  const safetyBufferMm = isLandscape ? 3.0 : 4.0; // font metrics & rendering subpixel tolerance
+  // Exact printable A4 heights in millimeters (matching print CSS: 208mm landscape, 295mm portrait)
+  const pageHeightMm = isLandscape ? 208.0 : 295.0;
+  const topMarginMm = 3.5; // sheet padding top
+  const bottomMarginMm = 3.5; // sheet padding bottom
+  const footerHeightMm = 6.0; // .opera-footer layout + border
+  const safetyBufferMm = 2.0; // rendering subpixel tolerance
 
   // Net usable height inside sheet container
   const usableHeightMm = pageHeightMm - topMarginMm - bottomMarginMm - footerHeightMm - safetyBufferMm;
 
   // Header, Components, and Table Header Heights in mm:
-  const p1HeaderHeightMm = (dateFrom || dateTo) ? 26.0 : 23.0; // Branded Letterhead Header on Page 1
-  const subsequentHeaderHeightMm = 9.5; // Compact Sub-Header on Page 2+
-  const theadHeightMm = 7.5; // Repeated table header row
-  const kpisHeightMm = hasKpis ? 26.0 : 0.0; // KPI Cards Grid
-  const customSectionHeightMm = customSectionsHtml ? 35.0 : 0.0; // Custom top sections (if any)
-  const customBottomSectionHeightMm = customBottomSectionsHtml ? 42.0 : 0.0; // Demographics / bottom section
-  const sigsHeightMm = hasSigs ? 28.0 : 0.0; // Signatures Section on final page
-  const totalsRowHeightMm = 6.5; // Final totals row
+  const p1HeaderHeightMm = (dateFrom || dateTo) ? 21.0 : 18.5; // Branded Letterhead Header on Page 1
+  const subsequentHeaderHeightMm = 7.5; // Compact Sub-Header on Page 2+
+  const theadHeightMm = 6.5; // Repeated table header row
+  const kpisHeightMm = hasKpis ? 22.0 : 0.0; // KPI Cards Grid
+  const customSectionHeightMm = customSectionsHtml ? 32.0 : 0.0; // Custom top sections (if any)
+  const customBottomSectionHeightMm = customBottomSectionsHtml ? 38.0 : 0.0; // Demographics / bottom section
+  const sigsHeightMm = hasSigs ? 24.0 : 0.0; // Signatures Section on final page
+  const totalsRowHeightMm = hasAnyColTotal ? 5.5 : 0.0; // Final totals row
 
   // Function to calculate available table height dynamically for ANY page
   const getAvailableTableHeightMm = (pageNum: number, isFinal: boolean): number => {
     const isFirst = pageNum === 1;
     const headerH = isFirst ? (p1HeaderHeightMm + kpisHeightMm + customSectionHeightMm) : subsequentHeaderHeaderHeight(isFirst);
     const bottomH = isFinal ? (sigsHeightMm + totalsRowHeightMm + customBottomSectionHeightMm) : 0;
-    return Math.max(20.0, usableHeightMm - headerH - theadHeightMm - bottomH);
+    return Math.max(25.0, usableHeightMm - headerH - theadHeightMm - bottomH);
   };
 
   function subsequentHeaderHeaderHeight(isFirst: boolean): number {
@@ -2588,7 +2588,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // ── Dynamic Row Height Calculation ──
   const printableWidthMm = isLandscape ? 285.0 : 198.0;
-  // In Cairo / Arial fonts at 8pt, average character width is ~1.15mm (approx 0.40 * font size)
+  // In Cairo / Arial fonts at 8pt, average character width is ~1.15mm
   const avgCharWidthMm = (baseFontSizePt * 0.3528) * (isArabic ? 0.42 : 0.38);
   const colCharsCapacity = colWidthsPct.map((pct) => {
     const colWidthMm = printableWidthMm * (pct / 100);
@@ -2597,14 +2597,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Base row height in mm corresponding to CSS line-height + padding + border:
   const baseRowHeightMm = isShortSingleDataset
-    ? (isLandscape ? (tableRows.length <= 12 ? 8.0 : 6.4) : (tableRows.length <= 12 ? 8.6 : 7.0))
+    ? (isLandscape ? 5.6 : 6.0)
     : isLandscape
-      ? (colCount >= 14 ? 4.9 : colCount >= 10 ? 5.2 : 5.4)
-      : (colCount >= 14 ? 5.2 : colCount >= 10 ? 5.5 : 5.8);
+      ? (colCount >= 14 ? 4.4 : colCount >= 10 ? 4.7 : 4.9)
+      : (colCount >= 14 ? 4.7 : colCount >= 10 ? 4.9 : 5.1);
 
-  const extraLineHeightMm = isShortSingleDataset
-    ? (isLandscape ? 3.0 : 3.4)
-    : (isLandscape ? 2.6 : 3.0);
+  const extraLineHeightMm = 2.4;
 
   const calculateCellLines = (val: any, cpl: number): number => {
     if (val === null || val === undefined) return 1;
@@ -2649,26 +2647,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
       totalLines += lines;
     }
-    return Math.max(1, Math.min(4, totalLines));
+    return Math.max(1, Math.min(3, totalLines));
   };
 
+  // Only truly freeform multiline columns (notes, comments, reasons, addresses) expand row height
   const isWrappableHeader = (h: string): boolean => {
-    const norm = (h || "").toLowerCase();
-    // Identifiers, codes, phones, dates, single room numbers, checkboxes are nowrap
-    if (
-      norm === "#" ||
-      norm.includes("كود") || norm.includes("code") ||
-      norm.includes("قومي") || norm.includes("national") ||
-      norm.includes("هاتف") || norm.includes("phone") || norm.includes("mobile") ||
-      norm.includes("تاريخ") || norm.includes("date") ||
-      norm.includes("وقت") || norm.includes("time") ||
-      norm.includes("حالة") || norm.includes("status") ||
-      norm.includes("room no") || norm.includes("bed no") ||
-      norm === "غرفة" || norm === "سرير" || norm === "طابق" || norm === "floor"
-    ) {
-      return false;
-    }
-    return true;
+    return isMultiItemOrTextColumn(h);
   };
 
   const estimateRowHeightMm = (row: any[]): number => {
@@ -2689,12 +2673,20 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     return baseRowHeightMm + (maxLines - 1) * extraLineHeightMm;
   };
 
-  // Hard safety ceiling: maximum rows physically permissible on a single page to prevent ANY bottom clipping across any page
-  const maxRowsAllowedOnPage = (pageNum: number): number => {
+  // Maximum rows physically permissible on a single page allowing full-page utilization
+  const maxRowsAllowedOnPage = (pageNum: number, isFinal: boolean): number => {
     if (orientation === "landscape") {
-      return pageNum === 1 ? (hasKpis ? 20 : 27) : (hasSigs ? 25 : 29);
+      if (pageNum === 1) {
+        if (hasKpis) return isFinal ? 26 : 30;
+        return isFinal ? 33 : 37;
+      }
+      return isFinal ? 33 : 38;
     } else {
-      return pageNum === 1 ? (hasKpis ? 32 : 38) : (hasSigs ? 36 : 42);
+      if (pageNum === 1) {
+        if (hasKpis) return isFinal ? 38 : 44;
+        return isFinal ? 46 : 52;
+      }
+      return isFinal ? 48 : 56;
     }
   };
 
@@ -2711,7 +2703,6 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
     while (cursor < totalRowsCount) {
       const pageNum = pageChunks.length + 1;
-      const pageCap = maxRowsAllowedOnPage(pageNum);
 
       // 1. Check if ALL remaining rows fit on this page as the FINAL page (with signatures & totals)
       let remainingTotalHeight = 0;
@@ -2721,7 +2712,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
       const availableIfFinal = getAvailableTableHeightMm(pageNum, true);
       const remainingCount = totalRowsCount - cursor;
-      if (remainingTotalHeight <= availableIfFinal && remainingCount <= pageCap) {
+      const finalPageCap = maxRowsAllowedOnPage(pageNum, true);
+      if (remainingTotalHeight <= availableIfFinal && remainingCount <= finalPageCap) {
         // Fits entirely on this page!
         pageStartIndexes.push(cursor);
         pageChunks.push(tableRows.slice(cursor));
@@ -2729,15 +2721,16 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         break;
       }
 
-      // 2. Otherwise, fill this page to its maximum dynamic available height
+      // 2. Otherwise, fill this page completely to its maximum dynamic available height
       const availableTableHeight = getAvailableTableHeightMm(pageNum, false);
+      const normalPageCap = maxRowsAllowedOnPage(pageNum, false);
       let accumulatedHeight = 0;
       let count = 0;
 
-      while (cursor + count < totalRowsCount && count < pageCap) {
+      while (cursor + count < totalRowsCount && count < normalPageCap) {
         const nextH = estimateRowHeightMm(tableRows[cursor + count]);
         // Break only when the next row physically cannot fit on this page
-        if (accumulatedHeight + nextH > availableTableHeight && count >= 4) {
+        if (accumulatedHeight + nextH > availableTableHeight && count >= 5) {
           break;
         }
         accumulatedHeight += nextH;
@@ -2754,15 +2747,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       cursor += count;
     }
 
-    // ── Phase 2: Last Page Health Check & Rebalancing (Requirement 7) ──
-    // If the last page has very few rows (< 8 rows) and there's a previous page:
+    // ── Phase 2: Merge trailing orphan rows into previous page if possible ──
     if (pageChunks.length >= 2) {
       const lastIdx = pageChunks.length - 1;
       const prevIdx = lastIdx - 1;
       const lastChunk = pageChunks[lastIdx];
       const prevChunk = pageChunks[prevIdx];
 
-      // A. Can we completely merge the last page into the previous page?
+      // If the last page has few rows, check if it can merge cleanly into previous page
       const combined = [...prevChunk, ...lastChunk];
       let combinedHeight = 0;
       for (const r of combined) {
@@ -2770,31 +2762,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       }
 
       const prevPageAvailableIfFinal = getAvailableTableHeightMm(prevIdx + 1, true);
-      const prevPageCap = maxRowsAllowedOnPage(prevIdx + 1);
-      if (combinedHeight <= prevPageAvailableIfFinal && combined.length <= prevPageCap) {
-        // Merge into previous page and eliminate the orphan page completely!
+      const prevPageCap = maxRowsAllowedOnPage(prevIdx + 1, true);
+      // Allow slight 8% elasticity for merging trailing rows into 1 single page
+      if (combinedHeight <= prevPageAvailableIfFinal * 1.08 && combined.length <= prevPageCap + 3) {
         pageChunks[prevIdx] = combined;
         pageChunks.pop();
         pageStartIndexes.pop();
-      } else if (lastChunk.length < 8 && prevChunk.length > 15) {
-        // B. Rebalance: distribute rows naturally between the last two pages
-        const targetLastCount = Math.max(lastChunk.length, Math.min(12, Math.floor((prevChunk.length + lastChunk.length) / 2)));
-        const shiftCount = targetLastCount - lastChunk.length;
-
-        if (shiftCount > 0 && prevChunk.length - shiftCount >= 10) {
-          const shiftedRows = prevChunk.slice(prevChunk.length - shiftCount);
-          let newLastPageHeight = 0;
-          for (const r of [...shiftedRows, ...lastChunk]) {
-            newLastPageHeight += estimateRowHeightMm(r);
-          }
-          const lastPageAvailableIfFinal = getAvailableTableHeightMm(lastIdx + 1, true);
-          const lastPageCap = maxRowsAllowedOnPage(lastIdx + 1);
-          if (newLastPageHeight <= lastPageAvailableIfFinal && (shiftedRows.length + lastChunk.length) <= lastPageCap) {
-            pageChunks[prevIdx] = prevChunk.slice(0, prevChunk.length - shiftCount);
-            pageChunks[lastIdx] = [...shiftedRows, ...lastChunk];
-            pageStartIndexes[lastIdx] = pageStartIndexes[prevIdx] + pageChunks[prevIdx].length;
-          }
-        }
       }
     }
   }
@@ -3559,12 +3532,12 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       .sheet.opera-page {
         width: 100% !important;
         max-width: 100% !important;
-        height: ${orientation === "landscape" ? "206mm" : "293mm"} !important;
-        max-height: ${orientation === "landscape" ? "206mm" : "293mm"} !important;
-        min-height: ${orientation === "landscape" ? "206mm" : "293mm"} !important;
+        height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
+        max-height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
+        min-height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 4mm 6mm 4mm 6mm !important;
+        padding: 3.5mm 5mm 3.5mm 5mm !important;
         overflow: hidden !important;
         border-radius: 0 !important;
         display: flex !important;

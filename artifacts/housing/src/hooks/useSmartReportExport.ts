@@ -8,7 +8,7 @@
 // ════════════════════════════════════════════════════════════
 
 import { useState, useCallback } from 'react';
-import { generateReportPDF } from '@/lib/report/pdfGenerator';
+import { printLuxuryReport } from '@/pages/reports/utils/luxury-report-engine';
 import type { ReportMeta } from '@/lib/report/pdfGenerator';
 import type { ReportColumnDef } from '@/lib/report/columnTypes';
 import { formatValue } from '@/lib/report/columnTypes';
@@ -57,18 +57,23 @@ export function useSmartReportExport({
     setIsExportingPdf(true);
     try {
       const data = await getData();
-      generateReportPDF(
-        { ...meta, generatedBy },
-        columns,
-        data,
-        language
-      );
+      const exportCols = getExportCols();
+      const useAr = language === 'ar';
+      const headers = exportCols.map(c => (useAr && c.headerAr) ? c.headerAr : c.header);
+      const rows = data.map((row, rowIdx) => formatRow(row, rowIdx, exportCols));
+      await printLuxuryReport({
+        title: meta.title,
+        subtitle: meta.subtitle,
+        language: useAr ? 'ar' : 'en',
+        headers,
+        rows,
+      });
     } catch (err) {
       console.error('Smart PDF export failed:', err);
     } finally {
       setIsExportingPdf(false);
     }
-  }, [columns, getData, meta, generatedBy, language]);
+  }, [getData, getExportCols, formatRow, language, meta]);
 
   // ── 2. CSV Export ──
   const exportCsv = useCallback(async () => {
