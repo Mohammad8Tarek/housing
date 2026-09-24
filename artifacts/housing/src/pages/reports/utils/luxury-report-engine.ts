@@ -3335,6 +3335,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       background: #ffffff !important;
       color: #000000 !important;
       font-weight: 800 !important;
+      overflow: hidden !important;
+      overflow-wrap: anywhere !important;
+      word-break: normal;
       border-top: none !important;
       border-left: none !important;
       border-right: none !important;
@@ -3343,10 +3346,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       padding: ${cellPadding} !important;
       line-height: ${tableLineHeight} !important;
       vertical-align: middle;
-      overflow: visible !important;
+      overflow: hidden !important;
       text-overflow: clip !important;
       word-break: normal;
-      overflow-wrap: break-word;
+      overflow-wrap: anywhere !important;
       box-sizing: border-box !important;
       letter-spacing: ${tableLetterSpacing};
       hyphens: none !important;

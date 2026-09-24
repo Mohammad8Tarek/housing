@@ -1218,7 +1218,8 @@ export function useReportDataProcessor({
           .map((e: any) => {
             const asgn = activeAssByProfile.get(e.id);
             const room = asgn ? roomMap[asgn.roomId] : null;
-            const bld = room ? buildingMap[room.buildingId] : null;
+            // NOTE: buildingMap/floorMap values are plain name strings (see useReportData).
+            const bldName = room ? buildingMap[room.buildingId] || "" : "";
             const hasRoom = !!room;
             const isVacation = (e.status || "").toUpperCase() === "VACATION" || (asgn?.status || "").toUpperCase() === "VACATION";
             const rawStatus = isVacation ? "VACATION" : (hasRoom ? "ACTIVE" : (e.status === "INACTIVE" ? "INACTIVE" : "UNASSIGNED"));
@@ -1227,7 +1228,7 @@ export function useReportDataProcessor({
               : (rawStatus === "ACTIVE" ? "In-House" : rawStatus === "VACATION" ? "Vacation" : rawStatus === "UNASSIGNED" ? "Unassigned" : "Inactive");
 
             const assignedRoom = room
-              ? `${bld ? bld.name + " • " : ""}${room.roomNumber}${asgn?.bedNumber ? ` (${ar ? `سرير ${asgn.bedNumber}` : `Bed ${asgn.bedNumber}`})` : ""}`
+              ? `${bldName ? bldName + " • " : ""}${room.roomNumber}${asgn?.bedNumber ? ` (${ar ? `سرير ${asgn.bedNumber}` : `Bed ${asgn.bedNumber}`})` : ""}`
               : (ar ? "بدون غرفة" : "No Room");
 
             return {
