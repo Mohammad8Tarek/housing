@@ -30,14 +30,19 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
   const thirdNameAr = profile.thirdNameAr || profile.third_name_ar || "";
   const fourthNameAr = profile.fourthNameAr || profile.fourth_name_ar || "";
 
+  const defaultTokens = [firstName, lastName, thirdName, fourthName].filter(Boolean);
+  const defaultJoined = defaultTokens.join(" ").trim();
+
+  const arTokens = [firstNameAr, lastNameAr, thirdNameAr, fourthNameAr].filter(Boolean);
+  const arJoined = arTokens.join(" ").trim();
+
   const rawFullName = String(profile.fullName || profile.full_name || profile.name || "").trim();
   const rawFullNameAr = String(profile.fullNameAr || profile.full_name_ar || profile.nameAr || profile.name_ar || "").trim();
 
   if (ar) {
     // 1. Primary: Arabic fields (الاسم الأول + الثاني + الثالث + الرابع)
-    const arTokens = [firstNameAr, lastNameAr, thirdNameAr, fourthNameAr].filter(Boolean);
-    if (arTokens.length > 0) {
-      return arTokens.join(" ").trim();
+    if (arJoined) {
+      return arJoined;
     }
 
     if (rawFullNameAr && hasArabicCharacters(rawFullNameAr)) {
@@ -45,8 +50,6 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
     }
 
     // 2. Fallback: Check if default name is already Arabic
-    const defaultTokens = [firstName, lastName, thirdName, fourthName].filter(Boolean);
-    const defaultJoined = defaultTokens.join(" ").trim();
     if (defaultJoined && hasArabicCharacters(defaultJoined)) {
       return defaultJoined;
     }
@@ -66,11 +69,8 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
     return "—";
   } else {
     // 1. Primary: English default fields (First + Second + Third + Fourth)
-    const enTokens = [firstName, lastName, thirdName, fourthName].filter(Boolean);
-    const enJoined = enTokens.join(" ").trim();
-
-    if (enJoined && hasEnglishCharacters(enJoined)) {
-      return enJoined;
+    if (defaultJoined && hasEnglishCharacters(defaultJoined)) {
+      return defaultJoined;
     }
 
     if (rawFullName && hasEnglishCharacters(rawFullName)) {
@@ -78,12 +78,14 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
     }
 
     // 2. Fallback: If English has Arabic characters or is empty, check Arabic fields and transliterate to English
-    const arTokens = [firstNameAr, lastNameAr, thirdNameAr, fourthNameAr].filter(Boolean);
-    const arCandidate = arTokens.length > 0 ? arTokens.join(" ").trim() : (rawFullNameAr || defaultJoined || rawFullName);
+    const arCandidate = arJoined || rawFullNameAr || (hasArabicCharacters(defaultJoined) ? defaultJoined : "") || (hasArabicCharacters(rawFullName) ? rawFullName : "");
 
     if (arCandidate) {
       return transliterateFullName(arCandidate, "en");
     }
+
+    if (defaultJoined) return defaultJoined;
+    if (rawFullName) return rawFullName;
 
     return "—";
   }
