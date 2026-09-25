@@ -16,7 +16,7 @@ export interface ReportKpiItem {
   value: string | number;
   sublabel?: string;
   sublabelAr?: string;
-  color?: "blue" | "emerald" | "amber" | "rose" | "slate";
+  color?: "blue" | "emerald" | "amber" | "rose" | "slate" | "purple";
 }
 
 export interface PrintableReportDocumentProps {

@@ -1104,11 +1104,6 @@ router.post(
       return { assignment: updated, room };
     });
 
-    if (result.error) {
-      res.status(result.status).json({ error: result.error });
-      return;
-    }
-
     const s = su(req);
     const roomNum = result.room?.roomNumber ?? "";
     await logActivity({

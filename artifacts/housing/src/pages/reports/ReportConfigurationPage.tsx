@@ -605,7 +605,7 @@ export default function ReportConfigurationPage() {
   }, [studioRows, activeColumns, ar]);
 
   const studioCurrentPageRows = useMemo(() => {
-    return reportRows.map((r, idx) => {
+    return reportRows.map((r: any, idx: number) => {
       const obj: Record<string, any> = { "#": (page - 1) * limit + idx + 1 };
       activeColumns.forEach((col) => {
         let val = r[col.key];
@@ -1522,10 +1522,10 @@ export default function ReportConfigurationPage() {
         titleAr={customReportTitleAr || (ar ? currentSourceDef?.labelAr : currentSourceDef?.label) || "تقرير مخصص"}
         subtitle={customNotes || (ar ? "تقرير مخصص من إدارة السكن" : "Staff Housing Configured Report")}
         subtitleAr={customNotes || (ar ? "تقرير مخصص من إدارة السكن" : "Staff Housing Configured Report")}
-        propertyName={activePropObj?.displayName || activePropObj?.name}
-        propertyCode={activePropObj?.code}
-        systemLogoUrl={settings?.systemLogo}
-        propertyLogoUrl={activePropObj?.logo}
+        propertyName={activePropObj?.displayName || activePropObj?.name || undefined}
+        propertyCode={activePropObj?.code || undefined}
+        systemLogoUrl={(settings as any)?.systemLogo || undefined}
+        propertyLogoUrl={(activePropObj as any)?.logo || undefined}
         filtersSummary={{
           [ar ? "مصدر البيانات" : "Data Source"]: ar ? currentSourceDef?.labelAr : currentSourceDef?.label,
           ...(searchTerm ? { [ar ? "بحث" : "Search"]: searchTerm } : {}),

@@ -92,14 +92,14 @@ router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Pr
     }
 
     // RBAC & IDOR protection:
-    if (!pSess && req.session?.userId) {
+    if (!pSess && (req.session as any)?.userId) {
       // Admin session: verify gate.view or profiles.view permission
       const authUser = await loadAuthUser(req, res);
       if (!authUser || (!authUser.isSystemAdmin && !hasPermission(authUser, "gate", "view") && !hasPermission(authUser, "profiles", "view"))) {
         res.status(403).json({ error: "Permission denied. Requires gate.view or profiles.view" });
         return;
       }
-    } else if (pSess && !req.session?.userId) {
+    } else if (pSess && !(req.session as any)?.userId) {
       // Resident portal: only allowed to view own gate pass
       const isOwner = profileIdNum ? profileIdNum === pSess.profileDbId : employeeCodeStr === pSess.clockNumber;
       if (rawParam !== "me" && !isOwner) {

@@ -1052,10 +1052,10 @@ export default function HistoryPage() {
         titleAr="سجل التسكين وحركات الإقامة التاريخية"
         subtitle={ar ? "سجل تاريخي بكافة تسكينات ومغادرات الموظفين" : "Historical record of staff stays, movements and departures"}
         subtitleAr="سجل تاريخي بكافة تسكينات ومغادرات الموظفين"
-        propertyName={activePropObj?.displayName || activePropObj?.name}
-        propertyCode={activePropObj?.code}
-        systemLogoUrl={settings?.systemLogo}
-        propertyLogoUrl={activePropObj?.logo}
+        propertyName={activePropObj?.displayName || activePropObj?.name || undefined}
+        propertyCode={activePropObj?.code || undefined}
+        systemLogoUrl={(settings as any)?.systemLogo || undefined}
+        propertyLogoUrl={(activePropObj as any)?.logo || undefined}
         filtersSummary={{
           [ar ? "الحالة" : "Status"]: filterStatus === "ALL" ? (ar ? "كل الحالات" : "All Status") : formatStatus(filterStatus, ar),
           ...(debouncedSearch ? { [ar ? "البحث" : "Search"]: debouncedSearch } : {}),
