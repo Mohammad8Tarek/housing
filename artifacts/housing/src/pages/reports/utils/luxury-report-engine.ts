@@ -2859,8 +2859,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       </div>
     `;
 
-    const tableHtml = (tableRows.length > 0 || headers.length > 0)
-      ? `<table class="opera-table sunrise-report-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+    let pageContentHtml = "";
+    if (tableRows.length > 0 || headers.length > 0) {
+      pageContentHtml = `
+        <table class="opera-table sunrise-report-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
           <colgroup>
             <col class="opera-col-seq" style="width: ${seqWidthPct}%;" />
             ${headers.map((_, i) => `<col style="width: ${colWidthsPct[i]}%;" />`).join("")}
@@ -2897,13 +2899,45 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
               </td>
             </tr>
           </tfoot>
-        </table>`
-      : "";
+        </table>
+      `;
+    } else if (customSectionsHtml) {
+      pageContentHtml = `
+        <div class="opera-document-container" style="display: flex; flex-direction: column; width: 100%; min-height: 100%; justify-content: space-between;">
+          <div class="opera-document-top" style="width: 100%;">
+            ${pageHeaderHtml}
+            ${kpisHtml}
+            <div class="opera-custom-sections" style="margin: 6px 0; width: 100%;">
+              ${customSectionsHtml}
+            </div>
+          </div>
+          <div class="opera-document-bottom" style="margin-top: 8px; width: 100%; page-break-inside: avoid;">
+            ${customBottomSectionsHtml ? `<div style="margin-top: 8px;">${customBottomSectionsHtml}</div>` : ""}
+            ${sigsHtml}
+            ${pageFooterHtml}
+          </div>
+        </div>
+      `;
+    } else {
+      pageContentHtml = `
+        <div class="opera-document-container" style="display: flex; flex-direction: column; width: 100%; min-height: 100%; justify-content: space-between;">
+          <div class="opera-document-top" style="width: 100%;">
+            ${pageHeaderHtml}
+            <div style="text-align: center; padding: 40px 20px; font-weight: 700; color: #64748b;">
+              ${isArabic ? "لا توجد سجلات مطابقة للعرض" : "No records found matching criteria"}
+            </div>
+          </div>
+          <div class="opera-document-bottom" style="margin-top: 8px; width: 100%;">
+            ${pageFooterHtml}
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="sheet opera-page sunrise-sheet" data-page="${pageNumber}">
-        <div class="opera-page-main">
-          ${tableHtml}
+        <div class="opera-page-main" style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+          ${pageContentHtml}
         </div>
       </div>
     `;
@@ -3037,14 +3071,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     .sheet.opera-page {
       width: ${orientation === "landscape" ? "297mm" : "210mm"};
       max-width: ${orientation === "landscape" ? "297mm" : "210mm"};
-      height: ${orientation === "landscape" ? "210mm" : "297mm"};
-      max-height: ${orientation === "landscape" ? "210mm" : "297mm"};
+      min-height: ${orientation === "landscape" ? "210mm" : "297mm"};
+      height: ${tableRows.length === 0 && customSectionsHtml ? "auto" : (orientation === "landscape" ? "210mm" : "297mm")};
+      max-height: ${tableRows.length === 0 && customSectionsHtml ? "none" : (orientation === "landscape" ? "210mm" : "297mm")};
       background: #ffffff;
       padding: 4mm 6mm;
       box-shadow: 0 8px 30px rgba(0,0,0,0.3);
       position: relative;
       box-sizing: border-box;
-      overflow: hidden; /* STRICT CONTAINMENT: mathematically prevents table blowout beyond A4 */
+      overflow: ${tableRows.length === 0 && customSectionsHtml ? "visible" : "hidden"};
       display: flex;
       flex-direction: column;
       justify-content: space-between;

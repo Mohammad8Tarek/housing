@@ -700,12 +700,13 @@ export function PoliciesSection({
     setImportFileName("");
   };
 
-  const handleExportPolicyPdf = () => {
-    const values = form.getValues();
-    const resolvedPropObj = properties.find((p) => p.id === (propertyId ?? activeProperty?.id));
-    const propName = propertyName || resolvedPropObj?.displayName || resolvedPropObj?.name || (ar ? "سكن موظفي صن رايز" : "Sunrise Staff Housing");
+  const handleExportPolicyPdf = async () => {
+    try {
+      const values = form.getValues() || ({} as any);
+      const resolvedPropObj = properties.find((p) => p.id === (propertyId ?? activeProperty?.id));
+      const propName = propertyName || resolvedPropObj?.displayName || resolvedPropObj?.name || (ar ? "سكن موظفي صن رايز" : "Sunrise Staff Housing");
 
-    const policyContentHtml = `
+      const policyContentHtml = `
       <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; font-family: inherit; line-height: 1.4; color: #1e293b; padding: 0;">
         <!-- Preamble Bar -->
         <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1.5px solid #cbd5e1; border-inline-start: 5px solid #C9A24D; padding: 8px 14px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
@@ -785,10 +786,10 @@ export function PoliciesSection({
                 <span>${ar ? "2. سياسة وضوابط الزيارات العائلية" : "2. Family Visit Policy & Rules"}</span>
               </h4>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 10px; color: #334155; line-height: 1.55;">
-                <div>• ${ar ? "الحد الأقصى للزيارة:" : "Max nights:"} <strong>${values.visitMaxNights} ${ar ? "ليالٍ" : "nights"}</strong></div>
-                <div>• ${ar ? "الحد الأقصى سنوياً:" : "Max visits/yr:"} <strong>${values.visitMaxVisitsPerYear} ${ar ? "مرات" : "visits"}</strong></div>
-                <div>• ${ar ? "الحد الأدنى للخدمة:" : "Min service:"} <strong>${values.visitMinServiceMonths} ${ar ? "أشهر" : "months"}</strong></div>
-                <div>• ${ar ? "فترة التهدئة بين الزيارات:" : "Cooldown:"} <strong>${values.visitCooldownDays} ${ar ? "يوماً" : "days"}</strong></div>
+                <div>• ${ar ? "الحد الأقصى للزيارة:" : "Max nights:"} <strong>${values.visitMaxNights ?? 30} ${ar ? "ليالٍ" : "nights"}</strong></div>
+                <div>• ${ar ? "الحد الأقصى سنوياً:" : "Max visits/yr:"} <strong>${values.visitMaxVisitsPerYear ?? 2} ${ar ? "مرات" : "visits"}</strong></div>
+                <div>• ${ar ? "الحد الأدنى للخدمة:" : "Min service:"} <strong>${values.visitMinServiceMonths ?? 6} ${ar ? "أشهر" : "months"}</strong></div>
+                <div>• ${ar ? "فترة التهدئة بين الزيارات:" : "Cooldown:"} <strong>${values.visitCooldownDays ?? 60} ${ar ? "يوماً" : "days"}</strong></div>
                 <div style="grid-column: span 2;">• ${ar ? "إثبات هوية المرافقين:" : "Companions ID:"} <strong>${values.visitRequireNationalId ? `<span style="color:#0284c7; font-weight:700;">${ar ? "إلزامي لكافة الأفراد والمرافقين" : "Mandatory for all"}</span>` : (ar ? "اختياري" : "Optional")}</strong></div>
               </div>
               ${values.familyVisitPolicyText ? `<div style="background:#f8fafc; padding:6px 9px; border-inline-start:3px solid #C9A24D; font-size:9.5px; margin-top:6px; border-radius:4px; line-height:1.45; color:#334155;">${values.familyVisitPolicyText}</div>` : ""}
@@ -817,7 +818,7 @@ export function PoliciesSection({
               </h4>
               <div style="font-size: 10px; color: #334155; margin-bottom: 4px; line-height: 1.55;">
                 • ${ar ? "إغلاق البوابات وحظر الدخول (Curfew):" : "Curfew Policy:"}
-                ${values.curfewEnabled ? `<strong style="color:#b91c1c; font-weight:800;">${ar ? `مفعل — يغلق تمام الساعة ${values.curfewTime}` : `Enabled at ${values.curfewTime}`}</strong>` : `<strong>${ar ? "مفتوح على مدار الساعة (24/7)" : "Open 24/7"}</strong>`}
+                ${values.curfewEnabled ? `<strong style="color:#b91c1c; font-weight:800;">${ar ? `مفعل — يغلق تمام الساعة ${values.curfewTime || "23:00"}` : `Enabled at ${values.curfewTime || "23:00"}`}</strong>` : `<strong>${ar ? "مفتوح على مدار الساعة (24/7)" : "Open 24/7"}</strong>`}
               </div>
               ${values.housingRulesText ? `<div style="background:#f8fafc; padding:6px 9px; border-inline-start:3px solid #0F2A44; font-size:9.5px; border-radius:4px; line-height:1.45; margin-top:5px; color:#334155;">${values.housingRulesText}</div>` : ""}
               ${values.housingPolicyText ? `<div style="background:#fffbeb; padding:6px 9px; border-inline-start:3px solid #f59e0b; font-size:9.5px; border-radius:4px; line-height:1.45; margin-top:5px; color:#334155;">${values.housingPolicyText}</div>` : ""}
@@ -853,31 +854,35 @@ export function PoliciesSection({
       </div>
     `;
 
-    printLuxuryReport({
-      title: ar ? "وثيقة ولائحة سياسات السكن الرسمية" : "Official Housing Policy & Code of Conduct",
-      titleAr: "وثيقة ولائحة سياسات السكن الرسمية",
-      subtitle: propName,
-      subtitleAr: propName,
-      propId: currentPropId,
-      activePropertyId: currentPropId,
-      properties: properties,
-      settings: (settingsData || {}) as any,
-      language: ar ? "ar" : "en",
-      orientation: "portrait",
-      singlePage: true,
-      showKpis: false,
-      showSignatures: true,
-      signatures: {
-        role1: "Housing Manager",
-        role1Ar: "مدير السكن",
-        role2: "Human Resources Director",
-        role2Ar: "مدير الموارد البشرية",
-        role3: "General Manager",
-        role3Ar: "المدير العام",
-      },
-      rows: [],
-      customSectionsHtml: policyContentHtml,
-    });
+      await printLuxuryReport({
+        title: ar ? "وثيقة ولائحة سياسات السكن الرسمية" : "Official Housing Policy & Code of Conduct",
+        titleAr: "وثيقة ولائحة سياسات السكن الرسمية",
+        subtitle: propName,
+        subtitleAr: propName,
+        propId: currentPropId,
+        activePropertyId: currentPropId,
+        properties: properties,
+        settings: (settingsData || {}) as any,
+        language: ar ? "ar" : "en",
+        orientation: "portrait",
+        singlePage: true,
+        showKpis: false,
+        showSignatures: true,
+        signatures: {
+          role1: "Housing Manager",
+          role1Ar: "مدير السكن",
+          role2: "Human Resources Director",
+          role2Ar: "مدير الموارد البشرية",
+          role3: "General Manager",
+          role3Ar: "المدير العام",
+        },
+        rows: [],
+        customSectionsHtml: policyContentHtml,
+      });
+    } catch (err: any) {
+      console.error("Export Policy PDF error:", err);
+      toast.error(ar ? "حدث خطأ أثناء فتح وثيقة السياسات" : "Failed to open policy document");
+    }
   };
 
   return (
