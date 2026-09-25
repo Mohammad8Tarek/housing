@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { exportExcel, exportPDF, exportAnalyticsPDF, printArabicAnalyticsReport } from "../utils/export";
 import { formatDate } from "@/lib/date-utils";
 import {
@@ -11,11 +12,17 @@ import {
   translateMaintenanceStatus,
   translateHostingStatus,
   translateHostingRelation,
+  REPORT_TAB_TITLES,
+  generateAutoKpis,
 } from "../utils/luxury-report-engine";
 import { formatNationality } from "@/lib/countries";
 import { getProfileDisplayDepartment } from "@/lib/profile-display-utils";
 import { getRoomStatusLabel } from "@/pages/housing/utils";
 import { toast } from "sonner";
+import type {
+  ReportColumnConfig,
+  ReportKpiItem,
+} from "../components/PrintableReportDocument";
 
 export function useReportExport({
   ar = true,
@@ -509,6 +516,93 @@ export function useReportExport({
     exportExcel(activeTab, rows);
   };
 
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioScope, setStudioScope] = useState<"all" | "page">("all");
+
+  const printStudioProps = useMemo(() => {
+    const allRows = toExcelRows("all");
+    const currentPageRows = toExcelRows("page");
+    const firstRow = allRows[0] || {};
+    const availableColumns: ReportColumnConfig[] = Object.keys(firstRow).map((key) => {
+      const lower = key.toLowerCase();
+      let type: ReportColumnConfig["type"] = "text";
+      let align: ReportColumnConfig["align"] = ar ? "right" : "left";
+
+      if (/^#$|كود|رقم\s*الموظف|id|code|bed\s*no|room\s*no|رقم\s*الغرفة|رقم\s*السرير/i.test(lower)) {
+        type = "number";
+        align = "center";
+      } else if (/date|تاريخ|وصول|مغادرة|check.?in|check.?out/i.test(lower)) {
+        type = "date";
+        align = "center";
+      } else if (/status|حالة|موقف/i.test(lower)) {
+        type = "status";
+        align = "center";
+      } else if (/نسبة|rate|occupancy|إشغال|سعة|capacity|beds|rooms|أسرة|غرف|ليالي|nights|count|عدد/i.test(lower)) {
+        type = "number";
+        align = "center";
+      }
+
+      return {
+        key,
+        header: key,
+        headerAr: key,
+        type,
+        align,
+      };
+    });
+
+    const rawKpis = generateAutoKpis(activeTab, allRows, ar);
+    const kpis: ReportKpiItem[] = (rawKpis || []).map((k: any) => ({
+      label: k.label,
+      labelAr: k.labelAr,
+      value: k.value,
+      sublabel: k.subtext,
+      sublabelAr: k.subtext,
+      color: k.color === "gold" ? "amber" : k.color === "blue" ? "blue" : "slate",
+    }));
+
+    const activePropertyObj = (properties || []).find(
+      (p: any) => String(p.id) === String(activePropertyId || propId),
+    );
+
+    const filtersSummary: Record<string, string> = {};
+    if (dateFrom) filtersSummary[ar ? "من تاريخ" : "From Date"] = formatDate(dateFrom);
+    if (dateTo) filtersSummary[ar ? "إلى تاريخ" : "To Date"] = formatDate(dateTo);
+    if (search) filtersSummary[ar ? "بحث" : "Search"] = search;
+
+    const tabTitles = REPORT_TAB_TITLES[activeTab] || { ar: activeTab, en: activeTab };
+
+    return {
+      title: tabTitles.en,
+      titleAr: tabTitles.ar,
+      subtitle: activePropertyObj?.name,
+      subtitleAr: activePropertyObj?.nameAr || activePropertyObj?.name,
+      propertyName: activePropertyObj ? (ar ? activePropertyObj.nameAr || activePropertyObj.name : activePropertyObj.name) : undefined,
+      propertyCode: activePropertyObj?.code,
+      systemLogoUrl: settings?.systemLogo,
+      propertyLogoUrl: activePropertyObj?.logo,
+      filtersSummary,
+      kpis,
+      availableColumns,
+      allRows,
+      currentPageRows,
+      initialLanguage: ar ? ("ar" as const) : ("en" as const),
+    };
+  }, [
+    activeTab,
+    properties,
+    activePropertyId,
+    propId,
+    dateFrom,
+    dateTo,
+    search,
+    settings,
+    ar,
+    currentPageData,
+    currentData,
+    filterRow,
+  ]);
+
   const handleExportPDF = async (scope: "all" | "page" = "all") => {
     if (!canExportReports) {
       toast.error(ar ? "ليس لديك صلاحية تصدير التقارير" : "You do not have permission to export reports");
@@ -519,123 +613,8 @@ export function useReportExport({
       toast.warning(ar ? "لا توجد بيانات مطابقة لتصديرها كـ PDF" : "No matching data available to export as PDF");
       return;
     }
-    const isArabic = ar; // Direct language mode — zero popup prompting!
-    let extraOpts: any = {};
-
-    if (activeTab === "manager_flash" && profiles && profiles.length > 0) {
-      // Top Departments breakdown
-      const deptCounts: Record<string, number> = {};
-      profiles.forEach((p: any) => {
-        const dept = isArabic ? getProfileDisplayDepartment(p, true) : (p.department?.trim() || "Unassigned");
-        deptCounts[dept] = (deptCounts[dept] || 0) + 1;
-      });
-      const totalP = profiles.length || 1;
-      const deptList = Object.entries(deptCounts)
-        .map(([name, count]) => ({
-          name,
-          count,
-          percent: Math.round((count / totalP) * 100),
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 6);
-
-      // Top Nationalities breakdown
-      const natCounts: Record<string, number> = {};
-      profiles.forEach((p: any) => {
-        const nat = isArabic ? (formatNationality(p.nationality, true, false) || "غير مسجل") : (p.nationality?.trim() || "Other");
-        natCounts[nat] = (natCounts[nat] || 0) + 1;
-      });
-      const natList = Object.entries(natCounts)
-        .map(([name, count]) => ({
-          name,
-          count,
-          percent: Math.round((count / totalP) * 100),
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
-
-      extraOpts.customBottomSectionsHtml = `
-        <div class="demographics-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0 16px 0; page-break-inside: avoid;">
-          <!-- Top Occupying Departments -->
-          <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff;">
-            <div style="font-weight: 800; font-size: 8.5pt; color: #0f2a44; border-bottom: 1.5px solid #0f2a44; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-              <span>🏢 ${isArabic ? "أعلى الإدارات والأقسام إشغالاً بالسكن (Top Departments)" : "Top Occupying Departments"}</span>
-              <span style="font-size: 7.5pt; color: #64748b; font-weight: 600;">${profiles.length} ${isArabic ? "موظف مسجل" : "Registered Staff"}</span>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
-              <thead>
-                <tr style="border-bottom: 1px solid #cbd5e1; color: #334155; font-weight: 700;">
-                  <th style="text-align: ${isArabic ? "right" : "left"}; padding: 4px 5px;">${isArabic ? "الإدارة / القسم" : "Department"}</th>
-                  <th style="text-align: center; padding: 4px 5px; width: 60px;">${isArabic ? "العدد" : "Count"}</th>
-                  <th style="text-align: center; padding: 4px 5px; width: 60px;">${isArabic ? "النسبة" : "Percent"}</th>
-                  <th style="text-align: center; padding: 4px 5px; width: 90px;">${isArabic ? "التمثيل" : "Progress"}</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${deptList.map((d) => `
-                  <tr style="border-bottom: 0.5px solid #f1f5f9;">
-                    <td style="text-align: ${isArabic ? "right" : "left"}; padding: 4px 5px; font-weight: 600; color: #0f172a;">${d.name}</td>
-                    <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #0284c7;">${d.count}</td>
-                    <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #334155;">${d.percent}%</td>
-                    <td style="text-align: center; padding: 4px 5px;">
-                      <div style="background: #e2e8f0; border-radius: 3px; height: 6px; width: 100%; overflow: hidden;">
-                        <div style="background: #0284c7; height: 6px; width: ${Math.min(d.percent, 100)}%;"></div>
-                      </div>
-                    </td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Nationalities Distribution -->
-          <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff;">
-            <div style="font-weight: 800; font-size: 8.5pt; color: #0f2a44; border-bottom: 1.5px solid #0f2a44; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-              <span>🌍 ${isArabic ? "توزيع الجنسيات بالسكن (Nationalities Distribution)" : "Nationalities Distribution"}</span>
-              <span style="font-size: 7.5pt; color: #64748b; font-weight: 600;">${natList.length} ${isArabic ? "جنسيات" : "Nationalities"}</span>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
-              <thead>
-                <tr style="border-bottom: 1px solid #cbd5e1; color: #334155; font-weight: 700;">
-                  <th style="text-align: ${isArabic ? "right" : "left"}; padding: 4px 5px;">${isArabic ? "الجنسية" : "Nationality"}</th>
-                  <th style="text-align: center; padding: 4px 5px; width: 60px;">${isArabic ? "العدد" : "Count"}</th>
-                  <th style="text-align: center; padding: 4px 5px; width: 60px;">${isArabic ? "النسبة" : "Percent"}</th>
-                  <th style="text-align: center; padding: 4px 5px; width: 90px;">${isArabic ? "التمثيل" : "Progress"}</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${natList.map((n) => `
-                  <tr style="border-bottom: 0.5px solid #f1f5f9;">
-                    <td style="text-align: ${isArabic ? "right" : "left"}; padding: 4px 5px; font-weight: 600; color: #0f172a;">${n.name}</td>
-                    <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #059669;">${n.count}</td>
-                    <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #334155;">${n.percent}%</td>
-                    <td style="text-align: center; padding: 4px 5px;">
-                      <div style="background: #e2e8f0; border-radius: 3px; height: 6px; width: 100%; overflow: hidden;">
-                        <div style="background: #059669; height: 6px; width: ${Math.min(n.percent, 100)}%;"></div>
-                      </div>
-                    </td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    }
-
-    exportPDF(
-      activeTab,
-      rows,
-      properties,
-      propId,
-      activePropertyId,
-      dateFrom,
-      dateTo,
-      search,
-      settings,
-      isArabic ? "ar" : "en",
-      extraOpts,
-    );
+    setStudioScope(scope);
+    setIsStudioOpen(true);
   };
 
   const handleExportAnalyticsPDF = async () => {
@@ -661,5 +640,9 @@ export function useReportExport({
     handleExportExcel,
     handleExportPDF,
     handleExportAnalyticsPDF,
+    isStudioOpen,
+    setIsStudioOpen,
+    studioScope,
+    printStudioProps,
   };
 }

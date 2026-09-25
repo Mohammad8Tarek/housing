@@ -32,6 +32,7 @@ import { HousingMapReportTab } from "./components/HousingMapReportTab";
 import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTrackReportRibbon";
 import { HousingRatingsTab } from "./components/HousingRatingsTab";
 import { RoomMovesTab } from "./components/RoomMovesTab";
+import { ReportPrintStudioModal } from "./components/ReportPrintStudioModal";
 
 export default function Reports() {
   const { activePropertyId, propertySlug } = useProperty();
@@ -151,7 +152,7 @@ export default function Reports() {
     return sortedData.slice(startIndex, startIndex + filters.pageSize);
   }, [isInHouseGrouped, groupedInHouseRooms, sortedData, startIndex, filters.pageSize]);
 
-  const { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF } =
+  const exportActions =
     useReportExport({
       ar,
       activeTab: filters.activeTab,
@@ -179,6 +180,9 @@ export default function Reports() {
       inventoryViewMode: filters.inventoryViewMode,
       filterRow: reportCols.filterRow,
     });
+
+  const { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF } =
+    exportActions;
 
   // ── Smart Report Export (jsPDF + AutoTable column system) ──
   const smartDef = SMART_REPORT_TABS[filters.activeTab];
@@ -583,6 +587,13 @@ export default function Reports() {
         </>
       )}
 
+      {exportActions.printStudioProps && (
+        <ReportPrintStudioModal
+          open={exportActions.isStudioOpen}
+          onOpenChange={exportActions.setIsStudioOpen}
+          {...exportActions.printStudioProps}
+        />
+      )}
     </div>
   );
 }
