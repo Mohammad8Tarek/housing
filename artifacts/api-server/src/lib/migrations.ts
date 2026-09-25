@@ -2640,6 +2640,22 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       updated_at TIMESTAMPTZ DEFAULT now()
     );`,
   },
+  {
+    name: "tenant.assignments.profile_status_active_index",
+    q: `CREATE INDEX IF NOT EXISTS idx_assignments_profile_status_active ON assignments(profile_id, status) WHERE status = 'ACTIVE';`,
+  },
+  {
+    name: "tenant.reservations.checkin_status_index",
+    q: `CREATE INDEX IF NOT EXISTS idx_reservations_checkin_status ON reservations(check_in_date, status);`,
+  },
+  {
+    name: "tenant.activity_logs.property_timestamp_index",
+    q: `CREATE INDEX IF NOT EXISTS idx_activity_logs_property_timestamp ON activity_logs(property_id, "timestamp" DESC);`,
+  },
+  {
+    name: "tenant.profiles.national_id_btree_index",
+    q: `CREATE INDEX IF NOT EXISTS idx_profiles_national_id_btree ON profiles(national_id) WHERE national_id IS NOT NULL AND national_id != '';`,
+  },
 ];
 
 async function runForAllTenants(query: string): Promise<number> {

@@ -77,7 +77,7 @@ import { initWebSocket, closeWebSocket } from "./lib/websocket.js";
 import { runMigrations } from "./lib/migrations.js";
 import { runAutoSeeder } from "./lib/seeder.js";
 import { backfillBilingualProfiles } from "./lib/bilingual-backfill.js";
-import { pool, healthCheck } from "@workspace/db";
+import { pool, healthCheck, warmupPool, prewarmSchemaCache } from "@workspace/db";
 import { startAllPmsServers } from "./lib/pms-server.js";
 import { startAllWorkers, shutdownQueue } from "@workspace/queue";
 
@@ -298,6 +298,10 @@ async function start(): Promise<void> {
       { latency: `${dbCheck.latencyMs}ms` },
       "Database connection established",
     );
+    try {
+      await warmupPool(5);
+      await prewarmSchemaCache();
+    } catch {}
   }
   // Ping route moved to app.ts
 

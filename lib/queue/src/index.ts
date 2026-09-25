@@ -19,7 +19,7 @@ export function startAllWorkers(deps?: any): void {
   const exportWorker = createExportWorker();
   if (exportWorker) activeWorkers.push(exportWorker);
   
-  const auditWorker = createAuditWorker();
+  const auditWorker = createAuditWorker(deps?.auditHandler);
   if (auditWorker) activeWorkers.push(auditWorker);
   
   const notificationWorker = createNotificationWorker();

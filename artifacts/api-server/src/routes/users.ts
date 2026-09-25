@@ -22,7 +22,7 @@ import {
   UpdateUserResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requireAuth, requirePermission, hasPermission, loadAuthUser, effectivePermissions, normalizePermission } from "../middlewares/permissions.js";
+import { requireAuth, requirePermission, hasPermission, loadAuthUser, effectivePermissions, normalizePermission, invalidateAuthUserCache } from "../middlewares/permissions.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
 
@@ -670,6 +670,9 @@ router.patch(
       updated.property_id = primaryId;
     }
 
+    // إبطال كاش المستخدم فورياً ليعكس التحديث في نفس اللحظة
+    invalidateAuthUserCache(params.data.id);
+
     // Activity log...
     const actorUsername2 = (req.session as any)?.username ?? "system";
     const oldRoles: string[] = targetUser.roles ?? [];
@@ -843,6 +846,8 @@ router.delete(
         await tx.delete(usersTable).where(eq(usersTable.id, params.data.id));
       });
 
+      invalidateAuthUserCache(params.data.id);
+
       // Audit log
       const session = req.session as any;
       await logActivity({
@@ -987,6 +992,7 @@ router.post(
         return;
       }
 
+      invalidateAuthUserCache(ids);
       res.json({ success: true, updatedCount });
     } catch (err: any) {
       console.error("Bulk users operation failed:", err);

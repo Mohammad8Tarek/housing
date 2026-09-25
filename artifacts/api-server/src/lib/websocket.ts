@@ -687,6 +687,22 @@ export function broadcastSyncEverywhere(): void {
   logger.info({ recipients: sent }, "[WS] Global SYNC_DATA broadcast");
 }
 
+export function broadcastDataUpdatedAll(module: WsModule, action: WsAction): void {
+  const payload: WsPayload = {
+    type: "data_updated",
+    module,
+    action,
+    timestamp: new Date().toISOString(),
+  };
+  const serialized = JSON.stringify(payload);
+
+  let sent = 0;
+  for (const client of clients.values()) {
+    if (fastSend(client.ws, serialized)) sent++;
+  }
+  logger.info({ module, action, recipients: sent }, "[WS] Global data_updated broadcast");
+}
+
 /** Returns count of currently connected clients */
 export function getConnectedCount(): number {
   return clients.size;

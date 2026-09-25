@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { getRedisConnection } from '../connection.js';
 
-export function createAuditWorker(): Worker | null {
+export function createAuditWorker(handler?: (data: any) => Promise<void>): Worker | null {
   const connection = getRedisConnection();
   if (!connection) {
     return null;
@@ -10,8 +10,9 @@ export function createAuditWorker(): Worker | null {
   const worker = new Worker(
     'auditQueue',
     async (job: Job) => {
-      console.log(`Processing audit log job ${job.id}`);
-      // Fire-and-forget logic
+      if (handler) {
+        await handler(job.data);
+      }
       return Promise.resolve();
     },
     {

@@ -492,6 +492,44 @@ function requestedPropertyId(req: Request): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+import { getRedisConnection } from "@workspace/queue";
+
+// ─── Fast In-Memory L1 + Redis L2 User & Permissions Cache ──────────────────
+interface CachedUserData {
+  id: number;
+  username: string;
+  status: string;
+  roles: string[];
+  permissions: string[];
+  propertyId: number | null;
+  propertyIds: number[];
+  isSystemAdmin: boolean;
+  cachedAt: number;
+}
+
+const userMemoryCache = new Map<number, CachedUserData>();
+const USER_CACHE_TTL_MS = 60_000; // 60s in-memory TTL
+
+export function invalidateAuthUserCache(userId?: number | number[]): void {
+  if (typeof userId === "number") {
+    userMemoryCache.delete(userId);
+    try {
+      const redis = getRedisConnection();
+      if (redis) redis.del(`auth:user:${userId}`).catch(() => {});
+    } catch {}
+  } else if (Array.isArray(userId)) {
+    for (const id of userId) {
+      userMemoryCache.delete(id);
+      try {
+        const redis = getRedisConnection();
+        if (redis) redis.del(`auth:user:${id}`).catch(() => {});
+      } catch {}
+    }
+  } else {
+    userMemoryCache.clear();
+  }
+}
+
 export async function loadAuthUser(
   req: Request,
   res: Response,
@@ -506,33 +544,84 @@ export async function loadAuthUser(
     return null;
   }
 
-  const [userRow] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
+  const now = Date.now();
+  let cached = userMemoryCache.get(userId);
+  if (cached && now - cached.cachedAt > USER_CACHE_TTL_MS) {
+    userMemoryCache.delete(userId);
+    cached = undefined;
+  }
 
-  if (!userRow) {
+  // Try Redis L2 if L1 missed
+  if (!cached) {
+    try {
+      const redis = getRedisConnection();
+      if (redis) {
+        const raw = await redis.get(`auth:user:${userId}`);
+        if (raw) {
+          cached = JSON.parse(raw);
+          if (cached) userMemoryCache.set(userId, cached);
+        }
+      }
+    } catch {}
+  }
+
+  // Load from database if cache miss
+  if (!cached) {
+    const [userRow] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+
+    if (!userRow) {
+      req.session.destroy(() => {});
+      res.status(401).json({ error: "User not found" });
+      return null;
+    }
+
+    const roles = normalizeRoles((userRow as any).roles);
+    const propertyIds =
+      Array.isArray((userRow as any).propertyIds) &&
+      (userRow as any).propertyIds.length > 0
+        ? (userRow as any).propertyIds.map(Number).filter(Boolean)
+        : (userRow as any).propertyId
+          ? [Number((userRow as any).propertyId)]
+          : [];
+    const isSystemAdmin = roles.some(isSystemRole);
+
+    cached = {
+      id: Number(userRow.id),
+      username: String(userRow.username),
+      status: normalize((userRow as any).status),
+      roles,
+      permissions: normalizePermissions((userRow as any).permissions),
+      propertyId: (userRow as any).propertyId
+        ? Number((userRow as any).propertyId)
+        : null,
+      propertyIds,
+      isSystemAdmin,
+      cachedAt: now,
+    };
+
+    userMemoryCache.set(userId, cached);
+    try {
+      const redis = getRedisConnection();
+      if (redis) {
+        redis.setex(`auth:user:${userId}`, 300, JSON.stringify(cached)).catch(() => {});
+      }
+    } catch {}
+  }
+
+  if (cached.status === "inactive" || cached.status === "locked") {
+    userMemoryCache.delete(userId);
     req.session.destroy(() => {});
-    res.status(401).json({ error: "User not found" });
+    res.status(403).json({ error: "Account disabled or locked" });
     return null;
   }
 
-  if (normalize((userRow as any).status) === "inactive") {
-    req.session.destroy(() => {});
-    res.status(403).json({ error: "Account disabled" });
-    return null;
-  }
-
-  const roles = normalizeRoles((userRow as any).roles);
-  const propertyIds =
-    Array.isArray((userRow as any).propertyIds) &&
-    (userRow as any).propertyIds.length > 0
-      ? (userRow as any).propertyIds.map(Number).filter(Boolean)
-      : (userRow as any).propertyId
-        ? [Number((userRow as any).propertyId)]
-        : [];
-  const isSystemAdmin = roles.some(isSystemRole);
+  const roles = cached.roles;
+  const propertyIds = cached.propertyIds;
+  const isSystemAdmin = cached.isSystemAdmin;
 
   const currentSessionPropertyId = Number(session?.propertyId);
   if (
@@ -554,18 +643,16 @@ export async function loadAuthUser(
   }
 
   session.isSystemAdmin = isSystemAdmin;
-  session.username = (userRow as any).username;
+  session.username = cached.username;
   session.userRole = roles[0] ?? null;
 
   const authUser: AuthUser = {
-    id: Number((userRow as any).id),
-    propertyId: (userRow as any).propertyId
-      ? Number((userRow as any).propertyId)
-      : null,
+    id: cached.id,
+    propertyId: cached.propertyId,
     propertyIds,
-    username: (userRow as any).username,
+    username: cached.username,
     roles,
-    permissions: normalizePermissions((userRow as any).permissions),
+    permissions: cached.permissions,
     isSystemAdmin,
   };
 

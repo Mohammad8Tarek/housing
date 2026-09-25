@@ -27,8 +27,14 @@ import { sanitizeDates } from "./middlewares/sanitize-date.js";
 import { securityHeadersMiddleware } from "./middlewares/security-headers.js";
 import { pool } from "@workspace/db";
 // @sentry/node imported dynamically below to prevent crash if not installed
-import { setupSwagger } from "./lib/swagger.js";
-import { broadcastSyncAll, broadcastSyncEverywhere } from "./lib/websocket.js";
+import {
+  broadcastSyncAll,
+  broadcastSyncEverywhere,
+  broadcastToProperty,
+  broadcastDataUpdatedAll,
+  type WsModule,
+  type WsAction,
+} from "./lib/websocket.js";
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();
@@ -292,22 +298,74 @@ function collectSyncPropertyIds(req: Request): number[] {
   return [...ids];
 }
 
+function detectRouteModule(path: string): WsModule | null {
+  if (path.startsWith("/assignments")) return "accommodation";
+  if (path.startsWith("/reservations")) return "reservations";
+  if (path.startsWith("/rooms") || path.startsWith("/buildings") || path.startsWith("/floors")) return "housing";
+  if (path.startsWith("/profiles")) return "profiles";
+  if (path.startsWith("/maintenance")) return "maintenance";
+  if (path.startsWith("/housekeeping")) return "housekeeping";
+  if (path.startsWith("/hostings") || path.startsWith("/hosting-requests")) return "hosting-requests";
+  if (path.startsWith("/room-inventory")) return "housing";
+  if (path.startsWith("/workers")) return "workers";
+  if (path.startsWith("/evaluations")) return "evaluations";
+  if (path.startsWith("/activities")) return "activities";
+  if (path.startsWith("/users")) return "users";
+  if (path.startsWith("/settings") || path.startsWith("/lookup-values") || path.startsWith("/lookup_values")) return "settings";
+  if (path.startsWith("/properties")) return "properties";
+  return null;
+}
+
+function detectAction(method: string): WsAction {
+  switch (method) {
+    case "POST":
+      return "created";
+    case "PUT":
+    case "PATCH":
+      return "updated";
+    case "DELETE":
+      return "deleted";
+    default:
+      return "sync";
+  }
+}
+
 app.use("/api", (req, res, next) => {
   if (!MUTATING_METHODS.has(req.method)) return next();
 
   res.on("finish", () => {
     if (res.statusCode < 200 || res.statusCode >= 400) return;
 
+    const module = detectRouteModule(req.path);
+    const action = detectAction(req.method);
     const shouldGlobalSync = GLOBAL_SYNC_PATHS.some((path) =>
       req.path.startsWith(path),
     );
     const propertyIds = collectSyncPropertyIds(req);
 
-    if (shouldGlobalSync || propertyIds.length === 0) {
-      broadcastSyncEverywhere();
+    // 1. If property is known and module detected: Send targeted update to that property only!
+    if (module && propertyIds.length > 0) {
+      for (const propertyId of propertyIds) {
+        broadcastToProperty(propertyId, {
+          module,
+          action,
+        });
+      }
       return;
     }
 
+    // 2. If global setting/user changed or property is unknown:
+    if (shouldGlobalSync || propertyIds.length === 0) {
+      if (module) {
+        // Send module-targeted invalidation to all clients without nuclear full-refetch
+        broadcastDataUpdatedAll(module, action);
+      } else {
+        broadcastSyncEverywhere();
+      }
+      return;
+    }
+
+    // 3. Fallback: Broadcast property sync
     for (const propertyId of propertyIds) {
       broadcastSyncAll(propertyId);
     }
