@@ -35,6 +35,7 @@ import {
   type WsModule,
   type WsAction,
 } from "./lib/websocket.js";
+import { setupSwagger } from "./lib/swagger.js";
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();

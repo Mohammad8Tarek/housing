@@ -1355,7 +1355,7 @@ router.post(
         .update(roomsTable)
         .set({
           currentOccupancy: newOcc,
-          status: newOcc >= newRoom.capacity ? "occupied" : "available",
+          status: newOcc > 0 ? "occupied" : "available",
         })
         .where(eq(roomsTable.id, newRoom.id));
 
