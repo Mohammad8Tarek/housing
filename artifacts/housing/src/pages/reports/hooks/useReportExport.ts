@@ -607,8 +607,8 @@ export function useReportExport({
     return {
       title: tabTitles.en,
       titleAr: tabTitles.ar,
-      subtitle: activePropertyObj?.name,
-      subtitleAr: activePropertyObj?.nameAr || activePropertyObj?.name,
+      subtitle: undefined,
+      subtitleAr: undefined,
       propertyName: activePropertyObj ? (ar ? activePropertyObj.nameAr || activePropertyObj.name : activePropertyObj.name) : undefined,
       propertyCode: activePropertyObj?.code,
       systemLogoUrl: settings?.systemLogo,

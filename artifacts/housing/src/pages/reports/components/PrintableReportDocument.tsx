@@ -78,9 +78,13 @@ export const PrintableReportDocument = forwardRef<
 
   const isAr = language === "ar";
   const displayTitle = isAr ? titleAr || title : title;
-  const displaySubtitle = isAr
-    ? subtitleAr || subtitle || propertyName
-    : subtitle || propertyName;
+  const rawSubtitle = isAr ? subtitleAr || subtitle : subtitle;
+  const isSubtitleSameAsProperty =
+    Boolean(rawSubtitle) &&
+    Boolean(propertyName) &&
+    rawSubtitle?.trim().toLowerCase() === propertyName?.trim().toLowerCase();
+
+  const displaySubtitle = isSubtitleSameAsProperty ? undefined : rawSubtitle;
 
   const formattedDate =
     typeof generatedAt === "string"
@@ -90,13 +94,13 @@ export const PrintableReportDocument = forwardRef<
           { hour: "2-digit", minute: "2-digit" },
         )}`;
 
-  // Typography scaling
+  // Typography scaling - portrait has narrower horizontal space so title is scaled down cleanly
   const fontSizes = {
     compact: {
       body: "7pt",
       header: "7.5pt",
-      title: "10pt",
-      subtitle: "6.8pt",
+      title: orientation === "portrait" ? "8.5pt" : "9.5pt",
+      subtitle: "6.5pt",
       padding: "2.5px 4px",
       kpiVal: "10pt",
       kpiLabel: "6.5pt",
@@ -104,8 +108,8 @@ export const PrintableReportDocument = forwardRef<
     standard: {
       body: "8pt",
       header: "8.5pt",
-      title: "11.5pt",
-      subtitle: "7.2pt",
+      title: orientation === "portrait" ? "9.5pt" : "11pt",
+      subtitle: "7pt",
       padding: "3.5px 5px",
       kpiVal: "11pt",
       kpiLabel: "7pt",
@@ -113,8 +117,8 @@ export const PrintableReportDocument = forwardRef<
     large: {
       body: "9pt",
       header: "9.5pt",
-      title: "12.5pt",
-      subtitle: "7.8pt",
+      title: orientation === "portrait" ? "10.5pt" : "12pt",
+      subtitle: "7.5pt",
       padding: "4.5px 6px",
       kpiVal: "12pt",
       kpiLabel: "7.5pt",
