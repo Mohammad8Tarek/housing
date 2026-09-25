@@ -527,19 +527,34 @@ export function useReportExport({
       const lower = key.toLowerCase();
       let type: ReportColumnConfig["type"] = "text";
       let align: ReportColumnConfig["align"] = ar ? "right" : "left";
+      let width: string | undefined = undefined;
 
-      if (/^#$|كود|رقم\s*الموظف|id|code|bed\s*no|room\s*no|رقم\s*الغرفة|رقم\s*السرير/i.test(lower)) {
+      if (/^#$|seq|مسلسل/i.test(lower)) {
+        type = "index";
+        align = "center";
+        width = "38px";
+      } else if (/bed\s*no|room\s*no|السرير|الغرفة|كود|code|level/i.test(lower)) {
         type = "number";
         align = "center";
-      } else if (/date|تاريخ|وصول|مغادرة|check.?in|check.?out/i.test(lower)) {
+        width = "58px";
+      } else if (/date|تاريخ|وصول|مغادرة|check.?in|check.?out|hire|contract/i.test(lower)) {
         type = "date";
         align = "center";
+        width = "78px";
       } else if (/status|حالة|موقف/i.test(lower)) {
         type = "status";
         align = "center";
+        width = "72px";
+      } else if (/phone|هاتف|موبايل/i.test(lower)) {
+        type = "text";
+        align = "center";
+        width = "85px";
       } else if (/نسبة|rate|occupancy|إشغال|سعة|capacity|beds|rooms|أسرة|غرف|ليالي|nights|count|عدد/i.test(lower)) {
         type = "number";
         align = "center";
+        width = "55px";
+      } else if (/notes|ملاحظات|سبب|reason|تفاصيل/i.test(lower)) {
+        width = "110px";
       }
 
       return {
@@ -548,6 +563,7 @@ export function useReportExport({
         headerAr: key,
         type,
         align,
+        width,
       };
     });
 

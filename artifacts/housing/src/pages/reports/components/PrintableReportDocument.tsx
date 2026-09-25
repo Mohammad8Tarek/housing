@@ -593,6 +593,20 @@ export const PrintableReportDocument = forwardRef<
                       );
                     }
 
+                    let displayVal = "—";
+                    if (val !== null && val !== undefined && val !== "") {
+                      if (val instanceof Date) {
+                        displayVal = formatDate(val);
+                      } else if (
+                        typeof val === "string" &&
+                        /^\d{4}-\d{2}-\d{2}(T|\b)/.test(val.trim())
+                      ) {
+                        displayVal = formatDate(val.trim().slice(0, 10));
+                      } else {
+                        displayVal = String(val);
+                      }
+                    }
+
                     return (
                       <td
                         key={col.key || cIdx}
@@ -601,12 +615,8 @@ export const PrintableReportDocument = forwardRef<
                           textAlign,
                           borderRight: "1px solid #f1f5f9",
                           fontSize: fontSizes.body,
-                          fontWeight:
-                            col.type === "index" ? 700 : 500,
-                          color:
-                            col.type === "index"
-                              ? "#0f2a44"
-                              : "#1e293b",
+                          fontWeight: col.type === "index" ? 700 : 500,
+                          color: col.type === "index" ? "#0f2a44" : "#1e293b",
                           fontFamily:
                             col.type === "number" || col.type === "date"
                               ? "monospace"
@@ -614,7 +624,7 @@ export const PrintableReportDocument = forwardRef<
                           wordBreak: "break-word",
                         }}
                       >
-                        {String(val)}
+                        {displayVal}
                       </td>
                     );
                   })}
