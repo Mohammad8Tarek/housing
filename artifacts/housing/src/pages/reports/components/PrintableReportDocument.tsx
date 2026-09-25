@@ -95,25 +95,28 @@ export const PrintableReportDocument = forwardRef<
     compact: {
       body: "7pt",
       header: "7.5pt",
-      title: "13pt",
+      title: "10pt",
+      subtitle: "6.8pt",
       padding: "2.5px 4px",
-      kpiVal: "11pt",
+      kpiVal: "10pt",
       kpiLabel: "6.5pt",
     },
     standard: {
       body: "8pt",
       header: "8.5pt",
-      title: "15pt",
+      title: "11.5pt",
+      subtitle: "7.2pt",
       padding: "3.5px 5px",
-      kpiVal: "12pt",
+      kpiVal: "11pt",
       kpiLabel: "7pt",
     },
     large: {
       body: "9pt",
       header: "9.5pt",
-      title: "16pt",
+      title: "12.5pt",
+      subtitle: "7.8pt",
       padding: "4.5px 6px",
-      kpiVal: "13.5pt",
+      kpiVal: "12pt",
       kpiLabel: "7.5pt",
     },
   }[fontSize];
@@ -268,9 +271,10 @@ export const PrintableReportDocument = forwardRef<
                   <div
                     style={{
                       fontSize: fontSizes.title,
-                      fontWeight: 900,
+                      fontWeight: 800,
                       color: "#0f2a44",
-                      lineHeight: 1.15,
+                      lineHeight: 1.2,
+                      letterSpacing: "0.2px",
                     }}
                   >
                     {displayTitle}
@@ -278,10 +282,10 @@ export const PrintableReportDocument = forwardRef<
                   {displaySubtitle && (
                     <div
                       style={{
-                        fontSize: "8pt",
+                        fontSize: fontSizes.subtitle,
                         color: "#475569",
                         fontWeight: 600,
-                        marginTop: "2px",
+                        marginTop: "1.5px",
                       }}
                     >
                       {displaySubtitle}
