@@ -78,6 +78,7 @@ import { printLuxuryReport, ReportKpiCard } from "./utils/luxury-report-engine";
 import { formatDate } from "@/lib/date-utils";
 import { ReportPrintStudioModal } from "./components/ReportPrintStudioModal";
 import type { ReportColumnConfig, ReportKpiItem } from "./components/PrintableReportDocument";
+import { PermissionGate } from "@/components/ui/permission-gate";
 
 export default function ReportConfigurationPage() {
   const { propertySlug, properties, activePropertyId } = useProperty();
@@ -722,18 +723,20 @@ export default function ReportConfigurationPage() {
             )}
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setTemplateName(ar ? `تقرير ${currentSourceDef.labelAr} المخصص` : `${currentSourceDef.label} Custom`);
-              setIsSaveModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
-          >
-            <BookmarkPlus className="w-4 h-4" />
-            <span>{ar ? "حفظ كنموذج" : "Save as Template"}</span>
-          </Button>
+          <PermissionGate module="reports" action="create">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setTemplateName(ar ? `تقرير ${currentSourceDef.labelAr} المخصص` : `${currentSourceDef.label} Custom`);
+                setIsSaveModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
+            >
+              <BookmarkPlus className="w-4 h-4" />
+              <span>{ar ? "حفظ كنموذج" : "Save as Template"}</span>
+            </Button>
+          </PermissionGate>
 
           <Button
             variant="ghost"
@@ -1210,27 +1213,29 @@ export default function ReportConfigurationPage() {
           </div>
 
           {/* Export Toolbar */}
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={handleExportPDF}
-              disabled={isLoading || isFetchingStudio || !reportRows.length}
-              size="sm"
-              className="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl shadow-xs flex items-center gap-1.5"
-            >
-              <Printer className="w-4 h-4" />
-              <span>{ar ? "استوديو الطباعة و PDF" : "Print Studio & PDF"}</span>
-            </Button>
+          <PermissionGate module="reports" action="export">
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleExportPDF}
+                disabled={isLoading || isFetchingStudio || !reportRows.length}
+                size="sm"
+                className="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl shadow-xs flex items-center gap-1.5"
+              >
+                <Printer className="w-4 h-4" />
+                <span>{ar ? "استوديو الطباعة و PDF" : "Print Studio & PDF"}</span>
+              </Button>
 
-            <Button
-              onClick={handleExportExcel}
-              disabled={isLoading || !reportRows.length}
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-xs font-bold flex items-center gap-1.5 border-0"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-white" />
-              <span>{ar ? "تصدير إكسيل" : "Export Excel (.xlsx)"}</span>
-            </Button>
-          </div>
+              <Button
+                onClick={handleExportExcel}
+                disabled={isLoading || !reportRows.length}
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-xs font-bold flex items-center gap-1.5 border-0"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-white" />
+                <span>{ar ? "تصدير إكسيل" : "Export Excel (.xlsx)"}</span>
+              </Button>
+            </div>
+          </PermissionGate>
         </div>
 
         {/* Live Table Container */}
@@ -1417,14 +1422,16 @@ export default function ReportConfigurationPage() {
             <Button variant="ghost" size="sm" onClick={() => setIsSaveModalOpen(false)}>
               {ar ? "إلغاء" : "Cancel"}
             </Button>
-            <Button
-              size="sm"
-              onClick={handleSaveCurrentAsTemplate}
-              disabled={saveTemplateMutation.isPending || !templateName.trim()}
-              className="bg-primary text-primary-foreground font-bold"
-            >
-              {saveTemplateMutation.isPending ? (ar ? "جاري الحفظ..." : "Saving...") : (ar ? "حفظ النموذج" : "Save Template")}
-            </Button>
+            <PermissionGate module="reports" action="create">
+              <Button
+                size="sm"
+                onClick={handleSaveCurrentAsTemplate}
+                disabled={saveTemplateMutation.isPending || !templateName.trim()}
+                className="bg-primary text-primary-foreground font-bold"
+              >
+                {saveTemplateMutation.isPending ? (ar ? "جاري الحفظ..." : "Saving...") : (ar ? "حفظ النموذج" : "Save Template")}
+              </Button>
+            </PermissionGate>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1481,15 +1488,17 @@ export default function ReportConfigurationPage() {
                       >
                         {ar ? "تطبيق" : "Apply"}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteTemplateMutation.mutate(tmpl.id)}
-                        className="h-8 w-8 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
-                        title={ar ? "حذف النموذج" : "Delete"}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <PermissionGate module="reports" action="delete">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteTemplateMutation.mutate(tmpl.id)}
+                          className="h-8 w-8 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                          title={ar ? "حذف النموذج" : "Delete"}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </PermissionGate>
                     </div>
                   </div>
                 );

@@ -84,7 +84,7 @@ export const ACTIONS: Action[] = [
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
   dashboard: ["view"],
   housing: ["view", "create", "edit", "delete", "export"],
-  housekeeping: ["view", "edit", "export"],
+  housekeeping: ["view", "create", "edit", "delete", "export"],
   profiles: [
     "view",
     "create",
@@ -98,6 +98,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "view",
     "create",
     "edit",
+    "delete",
     "checkout",
     "transfer",
     "export",
@@ -117,6 +118,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "view",
     "create",
     "edit",
+    "approve",
     "checkin",
     "checkout",
     "delete",
@@ -131,7 +133,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "delete",
     "export",
   ],
-  reports: ["view", "export", "audit", "config"],
+  reports: ["view", "export", "create", "edit", "delete", "config", "audit"],
   users: [
     "view",
     "create",
@@ -146,6 +148,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "view",
     "create",
     "edit",
+    "export",
     "manage_policies",
     "manage_organization",
     "manage_room_types",
@@ -159,7 +162,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
   evaluations: ["view", "create", "edit", "delete", "export"],
   portal_content: ["view", "create", "edit", "delete"],
   activities: ["view", "create", "edit", "delete", "publish"],
-  smart_locks: ["view", "create", "edit", "unlock"],
+  smart_locks: ["view", "create", "edit", "delete", "unlock"],
   whatsapp: ["view", "create", "edit", "export"],
   inventory: ["view", "create", "edit", "delete", "export"],
   workers: ["view", "create", "edit", "delete", "export"],
@@ -376,6 +379,10 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "whatsapp.export",
     "reports.view",
     "reports.export",
+    "reports.create",
+    "reports.edit",
+    "reports.delete",
+    "reports.config",
   ],
   portal_admin: [
     "dashboard.view",
@@ -532,7 +539,7 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   create: { en: "Create & Add", ar: "إضافة وإنشاء" },
   edit: { en: "Edit & Update", ar: "تعديل وتحديث" },
   delete: { en: "Delete & Cancel", ar: "حذف وإلغاء" },
-  export: { en: "Export to Excel / CSV", ar: "تصدير إلى إكسيل" },
+  export: { en: "Export to Excel / CSV / Print", ar: "تصدير وطباعة التقارير" },
   checkin: { en: "Check-in Resident", ar: "تسجيل وصول وتسكين" },
   checkout: { en: "Check-out & Release Bed", ar: "تسجيل مغادرة وإخلاء السرير" },
   approve: { en: "Approve / Sign Request", ar: "اعتماد وتوقيع الطلب" },
@@ -576,8 +583,8 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
     ar: "إدارة إعدادات خادم البريد (SMTP)",
   },
   config: {
-    en: "Configuration Report Generator",
-    ar: "منشئ التقارير المخصصة (الكنفجريشن)",
+    en: "Custom Reports & Query Builder",
+    ar: "منشئ وبناء التقارير المخصصة",
   },
 };
 
