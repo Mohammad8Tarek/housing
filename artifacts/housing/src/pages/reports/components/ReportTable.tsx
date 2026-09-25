@@ -40,10 +40,12 @@ export function ReportTable({
   empMap,
   roomMap,
   visibleCols,
+  waterCheckState: externalWaterCheckState,
+  onToggleWaterCheck: externalToggleWaterCheck,
 }: any) {
   const isVis = (k: string) => !visibleCols || visibleCols.has(k);
   const [selectedItemRooms, setSelectedItemRooms] = useState<any | null>(null);
-  const [waterCheckState, setWaterCheckState] = useState<Record<string, boolean>>(() => {
+  const [internalWaterCheckState, setInternalWaterCheckState] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem("water_distribution_checks");
       return saved ? JSON.parse(saved) : {};
@@ -52,8 +54,14 @@ export function ReportTable({
     }
   });
 
+  const waterCheckState = externalWaterCheckState ?? internalWaterCheckState;
+
   const toggleWaterCheck = (key: string, val: boolean) => {
-    setWaterCheckState((prev) => {
+    if (externalToggleWaterCheck) {
+      externalToggleWaterCheck(key, val);
+      return;
+    }
+    setInternalWaterCheckState((prev) => {
       const next = { ...prev, [key]: val };
       try {
         localStorage.setItem("water_distribution_checks", JSON.stringify(next));

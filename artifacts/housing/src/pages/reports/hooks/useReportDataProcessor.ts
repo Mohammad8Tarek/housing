@@ -172,7 +172,7 @@ export function useReportDataProcessor({
   const filteredBuildingIds = useMemo(() => {
     return new Set(
       filterBuilding === "all" || !filterBuilding
-        ? buildings.map((b: any) => b.id)
+        ? buildings.map((b: any) => Number(b.id))
         : [Number(filterBuilding)],
     );
   }, [filterBuilding, buildings]);
@@ -181,11 +181,11 @@ export function useReportDataProcessor({
     return new Set(
       floors
         .filter((f: any) => {
-          if (!filteredBuildingIds.has(f.buildingId)) return false;
-          if (filterFloor !== "all" && filterFloor && f.id !== Number(filterFloor)) return false;
+          if (!filteredBuildingIds.has(Number(f.buildingId))) return false;
+          if (filterFloor !== "all" && filterFloor && Number(f.id) !== Number(filterFloor)) return false;
           return true;
         })
-        .map((f: any) => f.id),
+        .map((f: any) => Number(f.id)),
     );
   }, [floors, filteredBuildingIds, filterFloor]);
 
@@ -2110,6 +2110,11 @@ export function useReportDataProcessor({
             const rId = a.roomId ?? a.room_id;
             const room = roomMap[Number(rId)] || roomMap[rId] || {};
             const emp = empMap[Number(pId)] || empMap[pId] || {};
+            const floor = floors.find((f: any) => String(f.id) === String(room.floorId ?? a.floorId));
+
+            // Only active accommodation or vacation records
+            if (a.status && a.status !== "ACTIVE" && a.status !== "VACATION") return false;
+
             const isCheckedOut =
               a.status === "CHECKED_OUT" ||
               a.status === "LEFT" ||
@@ -2119,16 +2124,29 @@ export function useReportDataProcessor({
               a.profileStatus === "CHECKED_OUT";
             if (isCheckedOut) return false;
 
-            const bId = room.buildingId ?? a.buildingId;
-            const fId = room.floorId ?? a.floorId;
-            if (filterBuilding !== "all" && (!bId || !filteredBuildingIds.has(bId))) return false;
-            if (filterFloor !== "all" && (!fId || !filteredFloorIds.has(fId))) return false;
+            const bId = room.buildingId ?? a.buildingId ?? floor?.buildingId;
+            const fId = room.floorId ?? a.floorId ?? floor?.id;
+
+            if (filterBuilding && filterBuilding !== "all") {
+              if (!bId || String(bId) !== String(filterBuilding)) return false;
+            }
+            if (filterFloor && filterFloor !== "all") {
+              if (!fId || String(fId) !== String(filterFloor)) return false;
+            }
+
             const dept = emp.department || a.profileDepartment;
             if (filterDepartment !== "all" && dept !== filterDepartment) return false;
             const gen = emp.gender || a.profileGender;
             if (filterGender !== "all" && !matchesGender(gen, filterGender)) return false;
             const nat = emp.nationality || a.profileNationality;
             if (filterNationality !== "all" && nat !== filterNationality) return false;
+
+            if (filterEmploymentType && filterEmploymentType !== "all") {
+              const empType = String(emp.employmentType || a.employmentType || "INTERNAL").toUpperCase();
+              if (filterEmploymentType === "INTERNAL" && empType !== "INTERNAL") return false;
+              if (filterEmploymentType === "THIRD_PARTY" && empType !== "THIRD_PARTY") return false;
+            }
+
             return true;
           })
           .map((a: any) => {
@@ -2136,7 +2154,7 @@ export function useReportDataProcessor({
             const rId = a.roomId ?? a.room_id;
             const emp = empMap[Number(pId)] || empMap[pId] || {};
             const room = roomMap[Number(rId)] || roomMap[rId] || {};
-            const floor = floors.find((f: any) => f.id === (room.floorId ?? a.floorId));
+            const floor = floors.find((f: any) => String(f.id) === String(room.floorId ?? a.floorId));
             const isEntire = Boolean(
               a.isEntireRoom ||
               a.is_entire_room ||
@@ -2144,8 +2162,8 @@ export function useReportDataProcessor({
               a.notes?.includes("[تسكين الغرفة بالكامل]")
             );
             const bedNum = a.bedNumber ?? (isEntire ? 1 : null);
-            const bId = room.buildingId ?? a.buildingId;
-            const fId = room.floorId ?? a.floorId;
+            const bId = room.buildingId ?? a.buildingId ?? floor?.buildingId;
+            const fId = room.floorId ?? a.floorId ?? floor?.id;
 
             const pCode = emp.profileId || a.profileCode || `EMP-${pId}`;
             const fName =

@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
@@ -30,6 +30,7 @@ import { InHouseGroupedRoomsView } from "./components/InHouseGroupedRoomsView";
 import { ServiceRatingsTab } from "./components/ServiceRatingsTab";
 import { HousingMapReportTab } from "./components/HousingMapReportTab";
 import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTrackReportRibbon";
+import { WaterDistributionRibbon } from "./components/WaterDistributionRibbon";
 import { HousingRatingsTab } from "./components/HousingRatingsTab";
 import { RoomMovesTab } from "./components/RoomMovesTab";
 import { ReportPrintStudioModal } from "./components/ReportPrintStudioModal";
@@ -61,7 +62,7 @@ export default function Reports() {
     !filters.filterBuilding
       ? data.floors
       : data.floors.filter(
-          (f: any) => f.buildingId === Number(filters.filterBuilding),
+          (f: any) => String(f.buildingId) === String(filters.filterBuilding),
         );
 
   const filteredRoomsForAnalytics = useMemo(() => {
@@ -152,6 +153,39 @@ export default function Reports() {
     return sortedData.slice(startIndex, startIndex + filters.pageSize);
   }, [isInHouseGrouped, groupedInHouseRooms, sortedData, startIndex, filters.pageSize]);
 
+  // Real-time Water Distribution check state for ribbon & table synchronicity
+  const [waterCheckState, setWaterCheckState] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("water_distribution_checks");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleWaterCheck = useCallback((key: string, val: boolean) => {
+    setWaterCheckState((prev) => {
+      const next = { ...prev, [key]: val };
+      try {
+        localStorage.setItem("water_distribution_checks", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const batchWaterCheck = useCallback((keys: string[], val: boolean) => {
+    setWaterCheckState((prev) => {
+      const next = { ...prev };
+      keys.forEach((k) => {
+        next[k] = val;
+      });
+      try {
+        localStorage.setItem("water_distribution_checks", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
   const exportActions =
     useReportExport({
       ar,
@@ -165,6 +199,9 @@ export default function Reports() {
       dateFrom: filters.dateFrom,
       dateTo: filters.dateTo,
       search: filters.search,
+      filterBuilding: filters.filterBuilding,
+      filterFloor: filters.filterFloor,
+      filterDepartment: filters.filterDepartment,
       settings: data.settings,
       analytics,
       stats,
@@ -436,6 +473,25 @@ export default function Reports() {
             />
           )}
 
+          {filters.activeTab === "water_distribution" && (
+            <WaterDistributionRibbon
+              ar={ar}
+              buildings={data.buildings}
+              floors={data.floors}
+              filterBuilding={filters.filterBuilding}
+              setFilterBuilding={filters.setFilterBuilding}
+              filterFloor={filters.filterFloor}
+              setFilterFloor={filters.setFilterFloor}
+              data={sortedData}
+              allAssignments={data.assignments}
+              roomMap={data.roomMap}
+              onPrint={handleExportPDF}
+              waterCheckState={waterCheckState}
+              onToggleWaterCheck={toggleWaterCheck}
+              onBatchWaterCheck={batchWaterCheck}
+            />
+          )}
+
           {filters.activeTab === "housekeeping_sheet" && (
             <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-sky-900 dark:text-sky-200">
               <div className="flex items-center gap-2.5">
@@ -571,6 +627,8 @@ export default function Reports() {
                 empMap={data.empMap}
                 roomMap={data.roomMap}
                 visibleCols={reportCols.visible}
+                waterCheckState={waterCheckState}
+                onToggleWaterCheck={toggleWaterCheck}
               />
             </div>
           )}

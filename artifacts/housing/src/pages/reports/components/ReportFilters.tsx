@@ -382,9 +382,15 @@ export function ReportFilters({
               <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={ar ? "كل الطوابق" : "All Floors"} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{ar ? "كل الطوابق" : "All Floors"}</SelectItem>
-                {floorOptions.map((f: any) => (
-                  <SelectItem key={f.id} value={String(f.id)}>{f.name || `Floor ${f.floorNumber}`}</SelectItem>
-                ))}
+                {floorOptions.map((f: any) => {
+                  const bName = buildings.find((b: any) => String(b.id) === String(f.buildingId))?.name;
+                  return (
+                    <SelectItem key={f.id} value={String(f.id)}>
+                      {f.name || (ar ? `الدور ${f.floorNumber}` : `Floor ${f.floorNumber}`)}
+                      {filterBuilding === "all" && bName ? ` (${bName})` : ""}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

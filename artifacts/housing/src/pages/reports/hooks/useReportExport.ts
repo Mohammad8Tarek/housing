@@ -36,6 +36,9 @@ export function useReportExport({
   dateFrom,
   dateTo,
   search,
+  filterBuilding = "all",
+  filterFloor = "all",
+  filterDepartment = "all",
   settings,
   analytics,
   stats,
@@ -586,6 +589,19 @@ export function useReportExport({
     if (dateTo) filtersSummary[ar ? "إلى تاريخ" : "To Date"] = formatDate(dateTo);
     if (search) filtersSummary[ar ? "بحث" : "Search"] = search;
 
+    if (filterBuilding && filterBuilding !== "all") {
+      const bObj = buildings?.find((b: any) => String(b.id) === String(filterBuilding));
+      filtersSummary[ar ? "المبنى" : "Building"] = bObj?.name || buildingMap[Number(filterBuilding)] || String(filterBuilding);
+    }
+    if (filterFloor && filterFloor !== "all") {
+      const fObj = floors?.find((f: any) => String(f.id) === String(filterFloor));
+      const fName = fObj ? (fObj.name || (ar ? `الدور ${fObj.floorNumber}` : `Floor ${fObj.floorNumber}`)) : floorMap[Number(filterFloor)];
+      filtersSummary[ar ? "الدور / الطابق" : "Floor"] = fName || String(filterFloor);
+    }
+    if (filterDepartment && filterDepartment !== "all") {
+      filtersSummary[ar ? "القسم" : "Department"] = filterDepartment;
+    }
+
     const tabTitles = REPORT_TAB_TITLES[activeTab] || { ar: activeTab, en: activeTab };
 
     return {
@@ -612,6 +628,13 @@ export function useReportExport({
     dateFrom,
     dateTo,
     search,
+    filterBuilding,
+    filterFloor,
+    filterDepartment,
+    buildings,
+    floors,
+    buildingMap,
+    floorMap,
     settings,
     ar,
     currentPageData,
