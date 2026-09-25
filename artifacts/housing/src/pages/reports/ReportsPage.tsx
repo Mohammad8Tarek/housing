@@ -30,7 +30,6 @@ import { InHouseGroupedRoomsView } from "./components/InHouseGroupedRoomsView";
 import { ServiceRatingsTab } from "./components/ServiceRatingsTab";
 import { HousingMapReportTab } from "./components/HousingMapReportTab";
 import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTrackReportRibbon";
-import { WaterDistributionRibbon } from "./components/WaterDistributionRibbon";
 import { HousingRatingsTab } from "./components/HousingRatingsTab";
 import { RoomMovesTab } from "./components/RoomMovesTab";
 import { ReportPrintStudioModal } from "./components/ReportPrintStudioModal";
@@ -470,25 +469,6 @@ export default function Reports() {
               filterCategory={filters.filterCategory}
               setFilterCategory={filters.setFilterCategory}
               ticketsData={data.maintenance}
-            />
-          )}
-
-          {filters.activeTab === "water_distribution" && (
-            <WaterDistributionRibbon
-              ar={ar}
-              buildings={data.buildings}
-              floors={data.floors}
-              filterBuilding={filters.filterBuilding}
-              setFilterBuilding={filters.setFilterBuilding}
-              filterFloor={filters.filterFloor}
-              setFilterFloor={filters.setFilterFloor}
-              data={sortedData}
-              allAssignments={data.assignments}
-              roomMap={data.roomMap}
-              onPrint={handleExportPDF}
-              waterCheckState={waterCheckState}
-              onToggleWaterCheck={toggleWaterCheck}
-              onBatchWaterCheck={batchWaterCheck}
             />
           )}
 
