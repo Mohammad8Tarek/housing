@@ -2206,7 +2206,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const propName = (isArabic ? (opts.subtitleAr || opts.subtitle) : (opts.subtitle || opts.subtitleAr))
     || propObj?.displayName
     || propObj?.name
-    || (isArabic ? "سكن منتجعات وفنادق صن رايز" : "Sunrise Resorts Staff Housing");
+    || "";
 
   // 3. Resolve System Logo (Corporate Brand)
   let resolvedSysLogoUrl = settings?.systemLogo;
@@ -2721,15 +2721,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
             ${sysLogo
               ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
               : `<div class="opera-fallback-brand">
-                  <span style="font-weight: 900; font-size: 11pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
-                  <span class="opera-fallback-badge" style="letter-spacing: 1px;">RESORTS & CRUISES</span>
+                  <span style="font-weight: 900; font-size: 9.5pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
                  </div>`
             }
           </div>
 
           <!-- Center: Hotel Name & Report Title -->
           <div class="opera-header-center">
-            <div class="opera-hotel-name">${propName}</div>
+            ${propName ? `<div class="opera-hotel-name">${propName}</div>` : ""}
             <div class="opera-report-title">${reportTitle}</div>
             ${dateFrom || dateTo ? `
             <div class="opera-report-submeta">
@@ -2742,10 +2741,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           <div class="opera-header-right">
             ${propLogo
               ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
-              : `<div class="opera-fallback-brand right-brand">
-                  <span style="font-weight: 800; font-size: 9.5pt; color: #0F2A44;">${propName}</span>
-                  <span class="opera-fallback-badge" style="letter-spacing: 0.5px;">${isArabic ? "سكن الموظفين" : "STAFF HOUSING"}</span>
-                 </div>`
+              : propName ? `<div class="opera-fallback-brand right-brand">
+                  <span style="font-weight: 800; font-size: 8.5pt; color: #0F2A44;">${propName}</span>
+                 </div>` : ""
             }
             <div class="opera-meta-datetime">
               <span class="opera-meta-date">${operaDateStr}</span>
@@ -3071,13 +3069,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 3px;
-      min-height: 52px;
+      margin-bottom: 2px;
+      min-height: 28px;
       direction: ltr !important;
     }
     .opera-header-left {
       width: 25%;
-      min-width: 140px;
+      min-width: 100px;
       display: flex;
       align-items: center;
       justify-content: flex-start;
@@ -3087,39 +3085,36 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     .opera-header-center {
       width: 50%;
       text-align: center !important;
-      padding: 0 12px;
-      align-self: flex-start;
-      padding-top: 2px;
+      padding: 0 10px;
+      align-self: center;
     }
     .opera-hotel-name {
-      font-size: 10pt;
+      font-size: 8.5pt;
       font-weight: 700;
-      font-style: italic;
-      font-family: Georgia, "Times New Roman", serif;
-      color: #000000;
-      margin-bottom: 4px;
+      color: #334155;
+      margin-bottom: 1px;
       letter-spacing: 0.2px;
       line-height: 1.1;
     }
     .opera-report-title {
-      font-size: 11.5pt !important;
+      font-size: 11pt !important;
       font-weight: 800 !important;
       color: #0f2a44 !important;
       letter-spacing: 0.2px;
-      line-height: 1.2;
+      line-height: 1.15;
     }
     .opera-report-submeta {
-      font-size: 7.5pt;
+      font-size: 7pt;
       color: #475569;
-      margin-top: 2px;
+      margin-top: 1px;
     }
     .opera-header-right {
       width: 25%;
-      min-width: 140px;
+      min-width: 100px;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      justify-content: flex-start;
+      justify-content: center;
       direction: ltr !important;
       text-align: right !important;
     }
@@ -3127,13 +3122,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 4px;
-      min-height: 24px;
+      margin-bottom: 3px;
+      min-height: 20px;
       direction: ltr !important;
       padding: 0 2px;
     }
     .opera-sub-header-left {
-      font-size: 9.5pt;
+      font-size: 9pt;
       font-weight: 800;
       color: #000000;
       display: flex;
@@ -3157,7 +3152,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       font-weight: 800;
     }
     .opera-sub-header-right {
-      font-size: 7.2pt;
+      font-size: 7pt;
       font-family: "Courier New", monospace;
       font-weight: 700;
       color: #000000;
@@ -3168,17 +3163,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       padding-left: 8px;
     }
     .opera-logo {
-      max-height: 50px;
-      max-width: 150px;
+      max-height: 26px;
+      max-width: 110px;
       object-fit: contain;
     }
     .opera-syslogo {
-      max-width: 155px;
-      max-height: 50px;
+      max-width: 110px;
+      max-height: 26px;
     }
     .opera-proplogo {
-      max-width: 120px;
-      max-height: 48px;
+      max-width: 90px;
+      max-height: 26px;
     }
     .opera-meta-datetime {
       font-size: 6.8pt;

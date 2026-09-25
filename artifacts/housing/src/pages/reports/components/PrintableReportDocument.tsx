@@ -200,24 +200,25 @@ export const PrintableReportDocument = forwardRef<
                 background: "transparent",
               }}
             >
-              {/* Top Corporate Branding Bar */}
+              {/* Top Corporate Branding Bar — strictly direction: ltr so logos never flip in Arabic RTL */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  borderBottom: "2px solid #0f2a44",
-                  paddingBottom: "6px",
-                  marginBottom: "8px",
+                  borderBottom: "1.5px solid #0f2a44",
+                  paddingBottom: "4px",
+                  marginBottom: "5px",
+                  direction: "ltr",
                 }}
               >
-                {/* Brand / Hotel Logo */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {/* Left: System / Brand Logo */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", direction: "ltr" }}>
                   {systemLogoUrl ? (
                     <img
                       src={systemLogoUrl}
-                      alt="Logo"
-                      style={{ maxHeight: "36px", objectFit: "contain" }}
+                      alt="System Logo"
+                      style={{ maxHeight: "26px", maxWidth: "110px", objectFit: "contain" }}
                     />
                   ) : (
                     <div
@@ -225,55 +226,43 @@ export const PrintableReportDocument = forwardRef<
                         background: "#0f2a44",
                         color: "#ffffff",
                         fontWeight: 900,
-                        padding: "3px 8px",
-                        borderRadius: "4px",
-                        fontSize: "10pt",
+                        padding: "2px 6px",
+                        borderRadius: "3px",
+                        fontSize: "8.5pt",
                         letterSpacing: "0.5px",
                       }}
                     >
                       SUNRISE
                     </div>
                   )}
-                  <div>
+                  {propertyName && (
                     <div
                       style={{
-                        fontSize: "9pt",
-                        fontWeight: 800,
+                        fontSize: "7.5pt",
                         color: "#0f2a44",
+                        fontWeight: 700,
                         lineHeight: 1.2,
+                        textAlign: "left",
                       }}
                     >
-                      {isAr
-                        ? "منتجعات وفنادق صن رايز — إدارة سكن العاملين"
-                        : "Sunrise Resorts & Cruises — Staff Housing"}
+                      {propertyName}{" "}
+                      {propertyCode && (
+                        <span style={{ fontFamily: "monospace", fontSize: "7pt", color: "#64748b" }}>
+                          [{propertyCode}]
+                        </span>
+                      )}
                     </div>
-                    {propertyName && (
-                      <div
-                        style={{
-                          fontSize: "7.5pt",
-                          color: "#64748b",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {propertyName}{" "}
-                        {propertyCode && (
-                          <span style={{ fontFamily: "monospace" }}>
-                            [{propertyCode}]
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
-                {/* Report Title & Subtitle */}
+                {/* Center: Report Title & Subtitle */}
                 <div style={{ textAlign: "center", flex: 1, padding: "0 10px" }}>
                   <div
                     style={{
                       fontSize: fontSizes.title,
                       fontWeight: 800,
                       color: "#0f2a44",
-                      lineHeight: 1.2,
+                      lineHeight: 1.15,
                       letterSpacing: "0.2px",
                     }}
                   >
@@ -285,7 +274,8 @@ export const PrintableReportDocument = forwardRef<
                         fontSize: fontSizes.subtitle,
                         color: "#475569",
                         fontWeight: 600,
-                        marginTop: "1.5px",
+                        marginTop: "1px",
+                        lineHeight: 1.15,
                       }}
                     >
                       {displaySubtitle}
@@ -293,16 +283,17 @@ export const PrintableReportDocument = forwardRef<
                   )}
                 </div>
 
-                {/* Property Logo & Metadata */}
+                {/* Right: Metadata & Property Logo (Pinned strictly on the right) */}
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
-                    textAlign: isAr ? "left" : "right",
+                    direction: "ltr",
+                    justifyContent: "flex-end",
                   }}
                 >
-                  <div style={{ fontSize: "7pt", color: "#64748b", lineHeight: 1.3 }}>
+                  <div style={{ fontSize: "6.8pt", color: "#64748b", lineHeight: 1.25, textAlign: "right" }}>
                     <div>
                       <span style={{ fontWeight: 700 }}>
                         {isAr ? "التاريخ:" : "Date:"}
@@ -328,7 +319,7 @@ export const PrintableReportDocument = forwardRef<
                     <img
                       src={propertyLogoUrl}
                       alt="Property Logo"
-                      style={{ maxHeight: "34px", objectFit: "contain" }}
+                      style={{ maxHeight: "26px", maxWidth: "90px", objectFit: "contain" }}
                     />
                   )}
                 </div>
