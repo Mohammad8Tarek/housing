@@ -8,8 +8,8 @@ import { translateDepartment, translateJobTitle, translateLookup, hasArabic } fr
 
 const router: Router = Router();
 
-// ─── GET /lookup-values ───────────────────────────────────────────────────────
-router.get("/lookup-values", requireAuth, async (req, res): Promise<void> => {
+// ─── GET /lookup-values & /lookup_values ─────────────────────────────────────
+router.get(["/lookup-values", "/lookup_values"], requireAuth, async (req, res): Promise<void> => {
   const propertyId = getTenantId(req);
   const category = req.query.category as string | undefined;
   if (!propertyId) {
@@ -33,9 +33,9 @@ router.get("/lookup-values", requireAuth, async (req, res): Promise<void> => {
   res.json(values.map((v) => ({ ...v, propertyId })));
 });
 
-// ─── POST /lookup-values ──────────────────────────────────────────────────────
+// ─── POST /lookup-values & /lookup_values ────────────────────────────────────
 router.post(
-  "/lookup-values",
+  ["/lookup-values", "/lookup_values"],
   requireAnyPermission(
     ["settings", "create"],
     ["settings", "manage_organization"],
@@ -80,9 +80,9 @@ router.post(
   },
 );
 
-// ─── POST /lookup-values/bulk ────────────────────────────────────────────────
+// ─── POST /lookup-values/bulk & /lookup_values/bulk ───────────────────────────
 router.post(
-  "/lookup-values/bulk",
+  ["/lookup-values/bulk", "/lookup_values/bulk"],
   requireAnyPermission(
     ["settings", "create"],
     ["settings", "manage_organization"],
@@ -209,9 +209,9 @@ router.post(
   },
 );
 
-// ─── PATCH /lookup-values/:id ─────────────────────────────────────────────────
+// ─── PATCH /lookup-values/:id & /lookup_values/:id ───────────────────────────
 router.patch(
-  "/lookup-values/:id",
+  ["/lookup-values/:id", "/lookup_values/:id"],
   requireAnyPermission(
     ["settings", "edit"],
     ["settings", "manage_organization"],
@@ -277,9 +277,9 @@ router.patch(
   },
 );
 
-// ─── DELETE /lookup-values/:id ────────────────────────────────────────────────
+// ─── DELETE /lookup-values/:id & /lookup_values/:id ──────────────────────────
 router.delete(
-  "/lookup-values/:id",
+  ["/lookup-values/:id", "/lookup_values/:id"],
   requireAnyPermission(
     ["settings", "delete"],
     ["settings", "manage_organization"],

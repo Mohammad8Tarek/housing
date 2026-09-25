@@ -209,7 +209,7 @@ export default function ReportConfigurationPage() {
   const { data: departments = [] } = useQuery<string[]>({
     queryKey: ["lookup_departments", effectivePropId],
     queryFn: async () => {
-      const res = await fetch(`/api/lookup_values?propertyId=${effectivePropId}&category=department`, { credentials: "include" });
+      const res = await fetch(`/api/lookup-values?propertyId=${effectivePropId}&category=department`, { credentials: "include" });
       if (!res.ok) return [];
       const json = await res.json();
       return (json.data || json || []).map((v: any) => v.value || v);

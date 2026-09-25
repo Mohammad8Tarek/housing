@@ -264,6 +264,7 @@ const GLOBAL_SYNC_PATHS = [
   "/properties",
   "/settings",
   "/lookup-values",
+  "/lookup_values",
 ];
 
 function collectSyncPropertyIds(req: Request): number[] {
