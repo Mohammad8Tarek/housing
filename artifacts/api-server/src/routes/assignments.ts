@@ -18,7 +18,7 @@ import {
   TransferAssignmentResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requirePermission, hasPermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import {
@@ -26,6 +26,7 @@ import {
   closeSourceAssignmentOnTransfer,
   executeCrossPropertyTransfer,
   findProfileAcrossAllProperties,
+  findAssignmentAcrossAllProperties,
   deleteSourceProfileOnTransfer,
 } from "../lib/cross-property-service.js";
 import { sendCheckInWhatsAppNotification, sendWelcomeWhatsAppForAssignment } from "../lib/whatsapp-engine.js";
@@ -963,13 +964,9 @@ router.post(
 // ─── POST /assignments/:id/checkout ──────────────────────────────────────
 router.post(
   "/assignments/:id/checkout",
-  requirePermission("accommodation", "edit"),
+  requireAnyPermission(["accommodation", "checkout"], ["accommodation", "edit"]),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    let propertyId = getTenantId(req);
 
     const params = CheckoutAssignmentParams.safeParse(req.params);
     const parsed = CheckoutAssignmentBody.safeParse(req.body);
@@ -984,21 +981,64 @@ router.post(
       return;
     }
 
+    // Try finding assignment in propertyId first
+    let assignment: any = null;
+    if (propertyId) {
+      try {
+        [assignment] = await withTenant(propertyId, async (tenantDb) => {
+          return tenantDb
+            .select()
+            .from(assignmentsTable)
+            .where(eq(assignmentsTable.id, params.data.id))
+            .limit(1);
+        });
+      } catch (e) {
+        // Fall through to cross-property search
+      }
+    }
+
+    // If not found in propertyId or propertyId wasn't passed, search all properties
+    if (!assignment) {
+      const crossFound = await findAssignmentAcrossAllProperties(params.data.id);
+      if (crossFound) {
+        propertyId = crossFound.propertyId;
+        assignment = crossFound.assignment;
+      }
+    }
+
+    if (!assignment) {
+      res.status(404).json({ error: "Assignment not found" });
+      return;
+    }
+
+    const authUser = (req as any).authUser;
+    if (authUser && !authUser.isSystemAdmin && Array.isArray(authUser.propertyIds) && authUser.propertyIds.length > 0 && !authUser.propertyIds.includes(propertyId)) {
+      res.status(403).json({ error: "Access denied to the hotel where this resident is housed" });
+      return;
+    }
+
+    const statusUpper = String(assignment.status || "").toUpperCase();
+    if (!["ACTIVE", "VACATION", "OCCUPIED_VACATION"].includes(statusUpper)) {
+      res.status(409).json({
+        error: `لا يمكن تسجيل مغادرة للتسكين رقم #${assignment.id} لأن حالته الحالية هي (${assignment.status}). تسجيل الخروج متاح فقط للتسكين النشط أو المقيمين في إجازة.`,
+      });
+      return;
+    }
+
     const result = await withTenant(propertyId, async (tenantDb) => {
-      const [assignment] = await tenantDb
-        .select()
-        .from(assignmentsTable)
-        .where(eq(assignmentsTable.id, params.data.id));
-      if (!assignment) return { error: "Assignment not found", status: 404 };
-      if (assignment.status !== "ACTIVE")
-        return { error: "Assignment is not active", status: 409 };
+      const nowStr = new Date().toISOString();
+      const checkoutDateStr = parsed.data.checkOutDate || nowStr;
+      const combinedNotes = parsed.data.notes
+        ? `${assignment.notes ? `${assignment.notes} | ` : ""}${parsed.data.notes}`
+        : (assignment.notes || "");
 
       const [updated] = await tenantDb
         .update(assignmentsTable)
         .set({
           status: "CHECKED_OUT",
-          checkOutDate: parsed.data.checkOutDate,
+          checkOutDate: checkoutDateStr,
           checkOutReason: rawReason,
+          notes: combinedNotes,
         })
         .where(eq(assignmentsTable.id, params.data.id))
         .returning();
@@ -1014,7 +1054,7 @@ router.post(
           .where(
             and(
               eq(assignmentsTable.roomId, room.id),
-              sql`lower(${assignmentsTable.status}) = 'active'`,
+              sql`upper(${assignmentsTable.status}) IN ('ACTIVE', 'VACATION', 'OCCUPIED_VACATION')`,
               not(eq(assignmentsTable.id, params.data.id)),
             ),
           );
@@ -1035,7 +1075,7 @@ router.post(
             .where(
               and(
                 eq(assignmentsTable.roomId, room.id),
-                eq(assignmentsTable.status, "ACTIVE"),
+                sql`upper(${assignmentsTable.status}) IN ('ACTIVE', 'VACATION', 'OCCUPIED_VACATION')`,
                 not(eq(assignmentsTable.id, params.data.id))
               )
             );
@@ -1118,18 +1158,58 @@ router.post(
 // ─── POST /assignments/:id/transfer ──────────────────────────────────────
 router.post(
   "/assignments/:id/transfer",
-  requirePermission("accommodation", "edit"),
+  requireAnyPermission(["accommodation", "transfer"], ["accommodation", "edit"]),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    let propertyId = getTenantId(req);
 
     const params = TransferAssignmentParams.safeParse(req.params);
     const parsed = TransferAssignmentBody.safeParse(req.body);
     if (!params.success || !parsed.success) {
       res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+
+    // Try finding assignment in propertyId first
+    let assignment: any = null;
+    if (propertyId) {
+      try {
+        [assignment] = await withTenant(propertyId, async (tenantDb) => {
+          return tenantDb
+            .select()
+            .from(assignmentsTable)
+            .where(eq(assignmentsTable.id, params.data.id))
+            .limit(1);
+        });
+      } catch (e) {
+        // Fall through
+      }
+    }
+
+    // If not found in propertyId or propertyId wasn't passed, search all properties
+    if (!assignment) {
+      const crossFound = await findAssignmentAcrossAllProperties(params.data.id);
+      if (crossFound) {
+        propertyId = crossFound.propertyId;
+        assignment = crossFound.assignment;
+      }
+    }
+
+    if (!assignment) {
+      res.status(404).json({ error: "Assignment not found" });
+      return;
+    }
+
+    const authUser = (req as any).authUser;
+    if (authUser && !authUser.isSystemAdmin && Array.isArray(authUser.propertyIds) && authUser.propertyIds.length > 0 && !authUser.propertyIds.includes(propertyId)) {
+      res.status(403).json({ error: "Access denied to the hotel where this resident is housed" });
+      return;
+    }
+
+    const asgnStatusUpper = String(assignment.status || "").toUpperCase();
+    if (!["ACTIVE", "VACATION", "OCCUPIED_VACATION"].includes(asgnStatusUpper)) {
+      res.status(409).json({ 
+        error: `لا يمكن نقل الموظف لأن حالة الإقامة الحالية هي (${assignment.status}). النقل متاح فقط للتسكين النشط أو المقيمين في إجازة.` 
+      });
       return;
     }
 
@@ -1172,12 +1252,6 @@ router.post(
     }
 
     const result = await withTenant(propertyId, async (tenantDb) => {
-      const [assignment] = await tenantDb
-        .select()
-        .from(assignmentsTable)
-        .where(eq(assignmentsTable.id, params.data.id));
-      if (!assignment) return { error: "Assignment not found", status: 404 };
-
       const [newRoom] = await tenantDb
         .select()
         .from(roomsTable)
@@ -1322,7 +1396,7 @@ router.post(
           .where(
             and(
               eq(assignmentsTable.roomId, oldRoom.id),
-              sql`lower(${assignmentsTable.status}) = 'active'`,
+              sql`upper(${assignmentsTable.status}) IN ('ACTIVE', 'VACATION', 'OCCUPIED_VACATION')`,
               not(eq(assignmentsTable.id, assignment.id)),
             ),
           );
@@ -1344,7 +1418,7 @@ router.post(
         .where(
           and(
             eq(assignmentsTable.roomId, newRoom.id),
-            sql`lower(${assignmentsTable.status}) = 'active'`,
+            sql`upper(${assignmentsTable.status}) IN ('ACTIVE', 'VACATION', 'OCCUPIED_VACATION')`,
           ),
         );
       const newOcc = isEntireRoomRequested
@@ -1519,13 +1593,9 @@ router.post(
 // ─── PATCH /assignments/:id ───────────────────────────────────────────────
 router.patch(
   "/assignments/:id",
-  requirePermission("accommodation", "edit"),
+  requireAnyPermission(["accommodation", "edit"], ["accommodation", "create"]),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    let propertyId = getTenantId(req);
 
     const params = UpdateAssignmentParams.safeParse(req.params);
     const parsed = UpdateAssignmentBody.safeParse(req.body);
@@ -1534,13 +1604,38 @@ router.patch(
       return;
     }
 
-    const [updated] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .update(assignmentsTable)
-        .set(parsed.data as any)
-        .where(eq(assignmentsTable.id, params.data.id))
-        .returning();
-    });
+    if (!propertyId) {
+      propertyId = (await findPropertyByAssignmentId(params.data.id)) || 0;
+    }
+
+    let updated: any = null;
+    if (propertyId) {
+      try {
+        [updated] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .update(assignmentsTable)
+            .set(parsed.data as any)
+            .where(eq(assignmentsTable.id, params.data.id))
+            .returning();
+        });
+      } catch (err) {
+        // Fall through
+      }
+    }
+
+    if (!updated) {
+      const autoPid = await findPropertyByAssignmentId(params.data.id);
+      if (autoPid && autoPid !== propertyId) {
+        propertyId = autoPid;
+        [updated] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .update(assignmentsTable)
+            .set(parsed.data as any)
+            .where(eq(assignmentsTable.id, params.data.id))
+            .returning();
+        });
+      }
+    }
 
     if (!updated) {
       res.status(404).json({ error: "Assignment not found" });

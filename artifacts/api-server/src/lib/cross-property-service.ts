@@ -234,7 +234,7 @@ export async function archiveSourceProfileOnTransfer(
       .where(
         and(
           eq(assignmentsTable.profileId, sourceProfileId),
-          eq(assignmentsTable.status, "ACTIVE"),
+          sql`upper(${assignmentsTable.status}) IN ('ACTIVE', 'VACATION', 'OCCUPIED_VACATION')`,
         ),
       );
 
@@ -264,7 +264,7 @@ export async function archiveSourceProfileOnTransfer(
           .where(
             and(
               eq(assignmentsTable.roomId, room.id),
-              sql`lower(${assignmentsTable.status}) = 'active'`,
+              sql`upper(${assignmentsTable.status}) IN ('ACTIVE', 'VACATION', 'OCCUPIED_VACATION')`,
               not(eq(assignmentsTable.id, oldAssignment.id)),
             ),
           );
@@ -375,7 +375,8 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
   } = params;
 
   // 1. Fetch source assignment & old room
-  const sourceData = await withTenant(sourcePropertyId, async (srcDb) => {
+  let actualSourcePropertyId = sourcePropertyId;
+  let sourceData = await withTenant(actualSourcePropertyId, async (srcDb) => {
     const [assignment] = await srcDb
       .select()
       .from(assignmentsTable)
@@ -389,6 +390,21 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
 
     return { assignment, oldRoom };
   });
+
+  if (!sourceData || !sourceData.assignment) {
+    const crossFound = await findAssignmentAcrossAllProperties(assignmentId);
+    if (crossFound) {
+      actualSourcePropertyId = crossFound.propertyId;
+      sourceData = await withTenant(actualSourcePropertyId, async (srcDb) => {
+        const assignment = crossFound.assignment;
+        const [oldRoom] = await srcDb
+          .select()
+          .from(roomsTable)
+          .where(eq(roomsTable.id, assignment.roomId));
+        return { assignment, oldRoom };
+      });
+    }
+  }
 
   if (!sourceData || !sourceData.assignment) {
     return { error: "Assignment not found in source property", status: 404, code: "ASSIGNMENT_NOT_FOUND" };
@@ -722,6 +738,38 @@ export async function findProfileAcrossAllProperties(sourceProfileId: number): P
     } catch (err) {
       // Continue searching next property
     }
+  }
+
+  return null;
+}
+
+/**
+ * Locate an assignment by primary key ID across any property tenant schema.
+ */
+export async function findAssignmentAcrossAllProperties(assignmentId: number): Promise<{ propertyId: number; assignment: any } | null> {
+  try {
+    const allProperties = await db
+      .select({ id: propertiesTable.id, name: propertiesTable.name })
+      .from(propertiesTable);
+
+    for (const prop of allProperties) {
+      try {
+        const [found] = await withTenant(prop.id, async (tenantDb) => {
+          return tenantDb
+            .select()
+            .from(assignmentsTable)
+            .where(eq(assignmentsTable.id, assignmentId))
+            .limit(1);
+        });
+        if (found) {
+          return { propertyId: prop.id, assignment: found };
+        }
+      } catch {
+        // Continue searching next property
+      }
+    }
+  } catch (err: any) {
+    console.error("[cross-property] Error in findAssignmentAcrossAllProperties:", err?.message || err);
   }
 
   return null;

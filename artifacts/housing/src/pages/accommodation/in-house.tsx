@@ -167,6 +167,7 @@ export default function InHouse() {
     open: boolean;
     id: number | null;
     emp?: any;
+    propertyId?: number;
   }>({ open: false, id: null });
   const [vacationDialog, setVacationDialog] = useState<{
     open: boolean;
@@ -192,6 +193,7 @@ export default function InHouse() {
     open: boolean;
     id: number | null;
     emp?: any;
+    sourcePropertyId?: number;
   }>({ open: false, id: null });
   const [checkoutDate, setCheckoutDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -771,11 +773,17 @@ export default function InHouse() {
       onSuccess: () => {
         invalidate();
         toast.success(ar ? "تم تسجيل الخروج" : "Checked out successfully");
-        setCheckoutDialog({ open: false, id: null });
+        setCheckoutDialog({ open: false, id: null, propertyId: undefined });
         setCheckoutNotes("");
+        setCheckoutReason("");
       },
-      onError: (e: any) => {
-        toast.error(e.message || (ar ? "خطأ" : "Error"));
+      onError: async (e: any) => {
+        let msg = e?.message;
+        try {
+          const body = e?.data || (await e?.response?.clone?.()?.json?.().catch(() => null)) || {};
+          if (body?.error) msg = body.error;
+        } catch {}
+        toast.error(msg || (ar ? "فشل تسجيل الخروج" : "Failed to check out"));
       },
     },
   });
@@ -918,12 +926,14 @@ export default function InHouse() {
       toast.error(ar ? "يرجى اختيار سبب المغادرة (إلزامي)" : "Checkout reason is mandatory");
       return;
     }
+    const propId = checkoutDialog.propertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
     checkoutMutation.mutate({
       id: checkoutDialog.id,
       data: {
         checkOutDate: new Date(checkoutDate).toISOString(),
         checkOutReason: checkoutReason,
         notes: checkoutNotes || undefined,
+        propertyId: propId,
       } as any,
     });
   };
@@ -1076,12 +1086,15 @@ export default function InHouse() {
     let successCount = 0;
     for (const id of ids) {
       try {
+        const item = (assignments || []).find((x: any) => x.id === id);
+        const itemPropId = item?.propertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
         await checkoutMutation.mutateAsync({
           id,
           data: {
             checkOutDate: new Date().toISOString(),
             checkOutReason: bulkCheckoutReason,
             notes: bulkCheckoutNotes || (ar ? "خروج جماعي" : "Bulk Checkout"),
+            propertyId: itemPropId,
           } as any,
         });
         successCount++;
@@ -1188,7 +1201,8 @@ export default function InHouse() {
     }
 
     const targetPropId = transferPropertyId ? parseInt(transferPropertyId) : undefined;
-    const isCross = Boolean(targetPropId && targetPropId !== Number(activePropertyId));
+    const effectiveSourcePropId = transferDialog.sourcePropertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
+    const isCross = Boolean(targetPropId && effectiveSourcePropId && targetPropId !== effectiveSourcePropId);
     transferMutation.mutate({
       id: transferDialog.id,
       data: {
@@ -1198,6 +1212,7 @@ export default function InHouse() {
           : undefined,
         transferDate: new Date().toISOString(),
         transferReason: transferReason || undefined,
+        propertyId: effectiveSourcePropId,
         targetPropertyId: targetPropId,
         archiveSourceProfile: isCross ? transferArchiveSource : undefined,
         hasPolicyException: Boolean(policyException),
@@ -1348,7 +1363,7 @@ export default function InHouse() {
                 {ar ? "تمديد إقامة جماعي" : "Bulk Extend"}
               </Button>
             </PermissionGate>
-            <PermissionGate module="accommodation" action="checkout">
+            <PermissionGate anyPermission={[["accommodation", "checkout"], ["accommodation", "edit"]]}>
               <Button
                 variant="destructive"
                 size="sm"
@@ -1766,7 +1781,7 @@ export default function InHouse() {
                                 {ar ? "إرسال تفاصيل التسكين (واتساب)" : "Send WhatsApp Welcome"}
                               </DropdownMenuItem>
                             </PermissionGate>
-                            <PermissionGate module="accommodation" action="checkout">
+                            <PermissionGate anyPermission={[["accommodation", "checkout"], ["accommodation", "edit"]]}>
                               <DropdownMenuItem
                                 onClick={() => {
                                   setCheckoutDate(
@@ -1778,6 +1793,7 @@ export default function InHouse() {
                                     open: true,
                                     id: a.id,
                                     emp: emp || { id: a.profileId, firstName: a.profileFirstName, lastName: a.profileLastName },
+                                    propertyId: a.propertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined),
                                   });
                                 }}
                               >
@@ -1785,20 +1801,22 @@ export default function InHouse() {
                                 {ar ? "خروج" : "Checkout"}
                               </DropdownMenuItem>
                             </PermissionGate>
-                            <PermissionGate module="accommodation" action="transfer">
+                            <PermissionGate anyPermission={[["accommodation", "transfer"], ["accommodation", "edit"]]}>
                               <DropdownMenuItem
                                 onClick={() => {
                                   setTransferRoomId("");
                                   setSelectedTransferBed("");
                                   setTransferReason("");
                                   setRoomSearch("");
+                                  const effectiveItemPropId = a.propertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
                                   setTransferPropertyId(
-                                    String(activePropertyId ?? ""),
+                                    String(effectiveItemPropId || activePropertyId || ""),
                                   );
                                   setTransferDialog({
                                     open: true,
                                     id: a.id,
                                     emp: emp || { id: a.profileId, firstName: a.profileFirstName, lastName: a.profileLastName },
+                                    sourcePropertyId: effectiveItemPropId,
                                   });
                                 }}
                               >
