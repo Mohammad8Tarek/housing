@@ -28,7 +28,7 @@ import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
-import { findProfileAcrossAllProperties } from "../lib/cross-property-service.js";
+import { findProfileAcrossAllProperties, findRoomAcrossAllProperties } from "../lib/cross-property-service.js";
 
 const router: Router = Router();
 
@@ -632,26 +632,33 @@ router.get(
   ),
   async (req, res): Promise<void> => {
     try {
-      const propertyId = getTenantId(req);
-      if (!propertyId) {
-        res.status(400).json({ error: "propertyId is required" });
-        return;
-      }
-
+      let propertyId = getTenantId(req);
       const params = GetRoomParams.safeParse(req.params);
       if (!params.success) {
         res.status(400).json({ error: params.error.message });
         return;
       }
 
-      const [room] = await withTenant(propertyId, async (tenantDb) => {
-        return await tenantDb
-          .select()
-          .from(roomsTable)
-          .where(eq(roomsTable.id, params.data.id));
-      });
+      let room: any = null;
+      if (propertyId) {
+        const [found] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select()
+            .from(roomsTable)
+            .where(eq(roomsTable.id, params.data.id));
+        });
+        if (found) room = found;
+      }
 
       if (!room) {
+        const cross = await findRoomAcrossAllProperties(params.data.id);
+        if (cross) {
+          room = cross.room;
+          propertyId = cross.propertyId;
+        }
+      }
+
+      if (!room || !propertyId) {
         res.status(404).json({ error: "Room not found" });
         return;
       }
@@ -676,12 +683,23 @@ router.patch(
         return;
       }
 
-    if (!propertyId) {
+    if (propertyId) {
+      const [exists] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select({ id: roomsTable.id })
+          .from(roomsTable)
+          .where(eq(roomsTable.id, params.data.id))
+          .limit(1);
+      });
+      if (!exists) {
+        propertyId = (await findPropertyByRoomId(params.data.id)) || 0;
+      }
+    } else {
       propertyId = (await findPropertyByRoomId(params.data.id)) || 0;
     }
 
     if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
+      res.status(404).json({ error: "Room not found" });
       return;
     }
 
@@ -900,14 +918,30 @@ router.patch(
   requirePermission("housing", "edit"),
   async (req, res): Promise<void> => {
     try {
-      const propertyId = getTenantId(req);
-      if (!propertyId) {
-        res.status(400).json({ error: "propertyId is required" });
-        return;
-      }
+      let propertyId = getTenantId(req);
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) {
         res.status(400).json({ error: "Invalid room id" });
+        return;
+      }
+
+      if (propertyId) {
+        const [exists] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: roomsTable.id })
+            .from(roomsTable)
+            .where(eq(roomsTable.id, id))
+            .limit(1);
+        });
+        if (!exists) {
+          propertyId = (await findPropertyByRoomId(id)) || 0;
+        }
+      } else {
+        propertyId = (await findPropertyByRoomId(id)) || 0;
+      }
+
+      if (!propertyId) {
+        res.status(404).json({ error: "Room not found" });
         return;
       }
       const { features, featuresList } = req.body;
@@ -970,14 +1004,30 @@ router.patch(
   },
   async (req, res): Promise<void> => {
     try {
-      const propertyId = getTenantId(req);
-      if (!propertyId) {
-        res.status(400).json({ error: "propertyId is required" });
-        return;
-      }
+      let propertyId = getTenantId(req);
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) {
         res.status(400).json({ error: "Invalid room id" });
+        return;
+      }
+
+      if (propertyId) {
+        const [exists] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: roomsTable.id })
+            .from(roomsTable)
+            .where(eq(roomsTable.id, id))
+            .limit(1);
+        });
+        if (!exists) {
+          propertyId = (await findPropertyByRoomId(id)) || 0;
+        }
+      } else {
+        propertyId = (await findPropertyByRoomId(id)) || 0;
+      }
+
+      if (!propertyId) {
+        res.status(404).json({ error: "Room not found" });
         return;
       }
       const { status } = req.body;

@@ -27,8 +27,9 @@ import {
   CheckoutHostingResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requirePermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import { findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
 
 const router: Router = Router();
 const MAX_DOCUMENT_IMAGE_LENGTH = 7 * 1024 * 1024;
@@ -408,15 +409,32 @@ router.get(
   "/hostings/:id",
   requirePermission("guest_hosting", "view"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     const hostingId = parseInt(req.params.id as string);
     if (isNaN(hostingId)) {
       res.status(400).json({ error: "Invalid hosting ID" });
+      return;
+    }
+
+    if (propertyId) {
+      const [exists] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select({ id: hostingsTable.id })
+          .from(hostingsTable)
+          .where(eq(hostingsTable.id, hostingId))
+          .limit(1);
+      });
+      if (!exists) {
+        const cross = await findHostingAcrossAllProperties(hostingId);
+        if (cross) propertyId = cross.propertyId;
+      }
+    } else {
+      const cross = await findHostingAcrossAllProperties(hostingId);
+      if (cross) propertyId = cross.propertyId;
+    }
+
+    if (!propertyId) {
+      res.status(404).json({ error: "Hosting not found" });
       return;
     }
 
@@ -500,12 +518,7 @@ router.patch(
   "/hostings/:id",
   requirePermission("guest_hosting", "edit"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     try {
       const params = UpdateHostingParams.safeParse(req.params);
       if (!params.success) {
@@ -516,6 +529,28 @@ router.patch(
       const parsed = UpdateHostingBody.safeParse(req.body);
       if (!parsed.success) {
         res.status(400).json({ error: parsed.error.message });
+        return;
+      }
+
+      if (propertyId) {
+        const [exists] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: hostingsTable.id })
+            .from(hostingsTable)
+            .where(eq(hostingsTable.id, params.data.id))
+            .limit(1);
+        });
+        if (!exists) {
+          const cross = await findHostingAcrossAllProperties(params.data.id);
+          if (cross) propertyId = cross.propertyId;
+        }
+      } else {
+        const cross = await findHostingAcrossAllProperties(params.data.id);
+        if (cross) propertyId = cross.propertyId;
+      }
+
+      if (!propertyId) {
+        res.status(404).json({ error: "Hosting not found" });
         return;
       }
 
@@ -588,15 +623,32 @@ router.delete(
   "/hostings/:id",
   requirePermission("guest_hosting", "delete"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     const params = DeleteHostingParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    if (propertyId) {
+      const [exists] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select({ id: hostingsTable.id })
+          .from(hostingsTable)
+          .where(eq(hostingsTable.id, params.data.id))
+          .limit(1);
+      });
+      if (!exists) {
+        const cross = await findHostingAcrossAllProperties(params.data.id);
+        if (cross) propertyId = cross.propertyId;
+      }
+    } else {
+      const cross = await findHostingAcrossAllProperties(params.data.id);
+      if (cross) propertyId = cross.propertyId;
+    }
+
+    if (!propertyId) {
+      res.status(404).json({ error: "Hosting not found" });
       return;
     }
 
@@ -636,16 +688,33 @@ router.post(
   "/hostings/:id/approve",
   requirePermission("guest_hosting", "approve"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     try {
       const params = ApproveHostingParams.safeParse(req.params);
       if (!params.success) {
         res.status(400).json({ error: params.error.message });
+        return;
+      }
+
+      if (propertyId) {
+        const [exists] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: hostingsTable.id })
+            .from(hostingsTable)
+            .where(eq(hostingsTable.id, params.data.id))
+            .limit(1);
+        });
+        if (!exists) {
+          const cross = await findHostingAcrossAllProperties(params.data.id);
+          if (cross) propertyId = cross.propertyId;
+        }
+      } else {
+        const cross = await findHostingAcrossAllProperties(params.data.id);
+        if (cross) propertyId = cross.propertyId;
+      }
+
+      if (!propertyId) {
+        res.status(404).json({ error: "Hosting not found" });
         return;
       }
 
@@ -714,14 +783,9 @@ router.post(
 
 router.post(
   "/hostings/:id/checkin",
-  requirePermission("guest_hosting", "checkin"),
+  requireAnyPermission(["guest_hosting", "checkin"], ["guest_hosting", "edit"]),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     try {
       const params = CheckinHostingParams.safeParse(req.params);
       if (!params.success) {
@@ -732,6 +796,28 @@ router.post(
       const parsed = CheckinHostingBody.safeParse(req.body);
       if (!parsed.success) {
         res.status(400).json({ error: parsed.error.message });
+        return;
+      }
+
+      if (propertyId) {
+        const [exists] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: hostingsTable.id })
+            .from(hostingsTable)
+            .where(eq(hostingsTable.id, params.data.id))
+            .limit(1);
+        });
+        if (!exists) {
+          const cross = await findHostingAcrossAllProperties(params.data.id);
+          if (cross) propertyId = cross.propertyId;
+        }
+      } else {
+        const cross = await findHostingAcrossAllProperties(params.data.id);
+        if (cross) propertyId = cross.propertyId;
+      }
+
+      if (!propertyId) {
+        res.status(404).json({ error: "Hosting not found" });
         return;
       }
 
@@ -850,18 +936,40 @@ router.post(
 
 router.post(
   "/hostings/:id/checkout",
-  requirePermission("guest_hosting", "checkout"),
+  requireAnyPermission(
+    ["guest_hosting", "checkout"],
+    ["guest_hosting", "edit"],
+    ["accommodation", "checkout"],
+    ["accommodation", "edit"]
+  ),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     try {
       const params = CheckoutHostingParams.safeParse(req.params);
       if (!params.success) {
         res.status(400).json({ error: params.error.message });
+        return;
+      }
+
+      if (propertyId) {
+        const [exists] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: hostingsTable.id })
+            .from(hostingsTable)
+            .where(eq(hostingsTable.id, params.data.id))
+            .limit(1);
+        });
+        if (!exists) {
+          const cross = await findHostingAcrossAllProperties(params.data.id);
+          if (cross) propertyId = cross.propertyId;
+        }
+      } else {
+        const cross = await findHostingAcrossAllProperties(params.data.id);
+        if (cross) propertyId = cross.propertyId;
+      }
+
+      if (!propertyId) {
+        res.status(404).json({ error: "Hosting not found" });
         return;
       }
 

@@ -36,11 +36,31 @@ import {
 import { getTenantId, su } from "../lib/request-utils.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { enrichProfileBilingual } from "../lib/bilingual-translator.js";
+import { findProfileAcrossAllProperties } from "../lib/cross-property-service.js";
 
 const router: Router = Router();
 const MAX_PROFILE_LIST_ROWS = Number(
   process.env["API_MAX_PROFILE_LIST_ROWS"] ?? 2000,
 );
+
+export async function resolveProfileTenant(
+  profileId: number,
+  preferredPropertyId?: number,
+): Promise<{ propertyId: number; profile: any } | null> {
+  if (preferredPropertyId && preferredPropertyId > 0) {
+    try {
+      const [found] = await withTenant(preferredPropertyId, async (tenantDb) => {
+        return tenantDb
+          .select()
+          .from(profilesTable)
+          .where(eq(profilesTable.id, profileId))
+          .limit(1);
+      });
+      if (found) return { propertyId: preferredPropertyId, profile: found };
+    } catch {}
+  }
+  return await findProfileAcrossAllProperties(profileId);
+}
 
 // Fields considered personally identifiable / sensitive
 const SENSITIVE_FIELDS = [
@@ -1365,17 +1385,20 @@ router.delete(
   "/profiles/:id",
   requirePermission("profiles", "delete"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    let propertyId = getTenantId(req);
 
     const params = DeleteProfileParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
       return;
     }
+
+    const resolved = await resolveProfileTenant(params.data.id, propertyId);
+    if (!resolved) {
+      res.status(404).json({ error: "Profile not found" });
+      return;
+    }
+    propertyId = resolved.propertyId;
 
     const result = await withTenant(propertyId, async (tenantDb) => {
       // 1. Fetch employee
@@ -1562,17 +1585,19 @@ router.patch(
   "/profiles/:id/id-image",
   requirePermission("profiles", "edit"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     const id = Number(req.params.id);
     if (!id) {
       res.status(400).json({ error: "Invalid id" });
       return;
     }
+
+    const resolved = await resolveProfileTenant(id, propertyId);
+    if (!resolved) {
+      res.status(404).json({ error: "Profile not found" });
+      return;
+    }
+    propertyId = resolved.propertyId;
 
     let idImage: string | null;
     try {
@@ -1580,7 +1605,7 @@ router.patch(
         (req.body as { idImage?: string })?.idImage,
       );
     } catch (error: any) {
-      res.status(400).json({ error: error.message || "Invalid image" });
+      res.status(400).json({ error: error.message || "Invalid ID image" });
       return;
     }
 
@@ -1604,7 +1629,7 @@ router.patch(
         username: s.username,
         userId: s.userId,
         userRole: s.userRole,
-        action: `OO-O_USO OU^OOc O U,U.U^O,U?: ${emp.firstName} ${emp.lastName}`,
+        action: `تحديث صورة بطاقة الموظف: ${emp.firstName} ${emp.lastName}`,
         actionType: "UPDATE",
         module: "profiles",
         entityType: "profile",
@@ -1620,13 +1645,20 @@ router.get(
   "/profiles/:id/photo",
   requirePermission("profiles", "view"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
+    let propertyId = getTenantId(req);
+    const id = Number(req.params.id);
+    if (!id) {
+      res.status(400).json({ error: "Invalid id" });
       return;
     }
 
-    const id = Number(req.params.id);
+    const resolved = await resolveProfileTenant(id, propertyId);
+    if (!resolved) {
+      res.status(404).json({ error: "Profile not found" });
+      return;
+    }
+    propertyId = resolved.propertyId;
+
     const row = await withTenant(propertyId, async (tenantDb) => {
       const [r] = await tenantDb
         .select({ photoUrl: profilesTable.photoUrl })
@@ -1644,18 +1676,25 @@ router.post(
   "/profiles/:id/vacation",
   requirePermission("profiles", "edit"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
+    let propertyId = getTenantId(req);
+    const id = Number(req.params.id);
+    if (!id) {
+      res.status(400).json({ error: "Invalid id" });
       return;
     }
 
-    const id = Number(req.params.id);
     const { startDate, endDate, notes } = req.body;
     if (!startDate || !endDate) {
       res.status(400).json({ error: "تاريخ البدء وتاريخ الانتهاء مطلوبان" });
       return;
     }
+
+    const resolved = await resolveProfileTenant(id, propertyId);
+    if (!resolved) {
+      res.status(404).json({ error: "الموظف غير موجود" });
+      return;
+    }
+    propertyId = resolved.propertyId;
 
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [emp] = await tenantDb
@@ -1733,13 +1772,20 @@ router.post(
   "/profiles/:id/return-vacation",
   requirePermission("profiles", "edit"),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
+    let propertyId = getTenantId(req);
+    const id = Number(req.params.id);
+    if (!id) {
+      res.status(400).json({ error: "Invalid id" });
       return;
     }
 
-    const id = Number(req.params.id);
+    const resolved = await resolveProfileTenant(id, propertyId);
+    if (!resolved) {
+      res.status(404).json({ error: "الموظف غير موجود" });
+      return;
+    }
+    propertyId = resolved.propertyId;
+
     const returnDate = req.body.returnDate || new Date().toISOString().split("T")[0];
 
     const result = await withTenant(propertyId, async (tenantDb) => {

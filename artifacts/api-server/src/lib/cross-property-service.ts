@@ -10,6 +10,7 @@ import {
   maintenanceTable,
   roomLocksTable,
   hostingsTable,
+  reservationsTable,
   profilePortalAccountsTable,
   activityRegistrationsTable,
   evaluationsTable,
@@ -770,6 +771,102 @@ export async function findAssignmentAcrossAllProperties(assignmentId: number): P
     }
   } catch (err: any) {
     console.error("[cross-property] Error in findAssignmentAcrossAllProperties:", err?.message || err);
+  }
+
+  return null;
+}
+
+/**
+ * Locate a room by primary key ID across any property tenant schema.
+ */
+export async function findRoomAcrossAllProperties(roomId: number): Promise<{ propertyId: number; room: any } | null> {
+  try {
+    const allProperties = await db
+      .select({ id: propertiesTable.id, name: propertiesTable.name })
+      .from(propertiesTable);
+
+    for (const prop of allProperties) {
+      try {
+        const [found] = await withTenant(prop.id, async (tenantDb) => {
+          return tenantDb
+            .select()
+            .from(roomsTable)
+            .where(eq(roomsTable.id, roomId))
+            .limit(1);
+        });
+        if (found) {
+          return { propertyId: prop.id, room: found };
+        }
+      } catch {
+        // Continue searching next property
+      }
+    }
+  } catch (err: any) {
+    console.error("[cross-property] Error in findRoomAcrossAllProperties:", err?.message || err);
+  }
+
+  return null;
+}
+
+/**
+ * Locate a reservation by primary key ID across any property tenant schema.
+ */
+export async function findReservationAcrossAllProperties(reservationId: number): Promise<{ propertyId: number; reservation: any } | null> {
+  try {
+    const allProperties = await db
+      .select({ id: propertiesTable.id, name: propertiesTable.name })
+      .from(propertiesTable);
+
+    for (const prop of allProperties) {
+      try {
+        const [found] = await withTenant(prop.id, async (tenantDb) => {
+          return tenantDb
+            .select()
+            .from(reservationsTable)
+            .where(eq(reservationsTable.id, reservationId))
+            .limit(1);
+        });
+        if (found) {
+          return { propertyId: prop.id, reservation: found };
+        }
+      } catch {
+        // Continue searching next property
+      }
+    }
+  } catch (err: any) {
+    console.error("[cross-property] Error in findReservationAcrossAllProperties:", err?.message || err);
+  }
+
+  return null;
+}
+
+/**
+ * Locate a guest hosting by primary key ID across any property tenant schema.
+ */
+export async function findHostingAcrossAllProperties(hostingId: number): Promise<{ propertyId: number; hosting: any } | null> {
+  try {
+    const allProperties = await db
+      .select({ id: propertiesTable.id, name: propertiesTable.name })
+      .from(propertiesTable);
+
+    for (const prop of allProperties) {
+      try {
+        const [found] = await withTenant(prop.id, async (tenantDb) => {
+          return tenantDb
+            .select()
+            .from(hostingsTable)
+            .where(eq(hostingsTable.id, hostingId))
+            .limit(1);
+        });
+        if (found) {
+          return { propertyId: prop.id, hosting: found };
+        }
+      } catch {
+        // Continue searching next property
+      }
+    }
+  } catch (err: any) {
+    console.error("[cross-property] Error in findHostingAcrossAllProperties:", err?.message || err);
   }
 
   return null;

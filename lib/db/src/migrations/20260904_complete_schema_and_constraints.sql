@@ -441,6 +441,7 @@ BEGIN
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "target_property_ids" JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "sources" JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "esign_config" JSONB DEFAULT '{}'::jsonb;
+    ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "esign_configs" JSONB DEFAULT '[]'::jsonb;
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "hr_sync_config" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
 

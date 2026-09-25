@@ -17,9 +17,10 @@ import {
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission, hasPermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { sendCheckInWhatsAppNotification, sendReservationConfirmationWhatsApp } from "../lib/whatsapp-engine.js";
+import { findReservationAcrossAllProperties } from "../lib/cross-property-service.js";
 
 const router: Router = Router();
 
@@ -420,24 +421,31 @@ router.get(
   requirePermission("reservations", "view"),
   async (req, res): Promise<void> => {
     try {
-      const propertyId = getTenantId(req);
-      if (!propertyId) {
-        res.status(400).json({ error: "propertyId is required" });
-        return;
-      }
-
+      let propertyId = getTenantId(req);
       const params = GetReservationParams.safeParse(req.params);
       if (!params.success) {
         res.status(400).json({ error: params.error.message });
         return;
       }
 
-      const [reservation] = await withTenant(propertyId, async (tenantDb) => {
-        return await tenantDb
-          .select()
-          .from(reservationsTable)
-          .where(eq(reservationsTable.id, params.data.id));
-      });
+      let reservation: any = null;
+      if (propertyId) {
+        const [found] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select()
+            .from(reservationsTable)
+            .where(eq(reservationsTable.id, params.data.id));
+        });
+        if (found) reservation = found;
+      }
+
+      if (!reservation) {
+        const cross = await findReservationAcrossAllProperties(params.data.id);
+        if (cross) {
+          reservation = cross.reservation;
+          propertyId = cross.propertyId;
+        }
+      }
 
       if (!reservation) {
         res.status(404).json({ error: "Reservation not found" });
@@ -459,16 +467,35 @@ router.patch(
   requirePermission("reservations", "edit"),
   async (req, res): Promise<void> => {
     try {
-      const propertyId = getTenantId(req);
-      if (!propertyId) {
-        res.status(400).json({ error: "propertyId is required" });
-        return;
-      }
-
+      let propertyId = getTenantId(req);
       const params = UpdateReservationParams.safeParse(req.params);
       const parsed = UpdateReservationBody.safeParse(req.body);
       if (!params.success || !parsed.success) {
         res.status(400).json({ error: "Invalid request" });
+        return;
+      }
+
+      let existingReservation: any = null;
+      if (propertyId) {
+        const [found] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: reservationsTable.id })
+            .from(reservationsTable)
+            .where(eq(reservationsTable.id, params.data.id));
+        });
+        if (found) existingReservation = found;
+      }
+
+      if (!existingReservation) {
+        const cross = await findReservationAcrossAllProperties(params.data.id);
+        if (cross) {
+          existingReservation = cross.reservation;
+          propertyId = cross.propertyId;
+        }
+      }
+
+      if (!existingReservation || !propertyId) {
+        res.status(404).json({ error: "Reservation not found" });
         return;
       }
 
@@ -537,28 +564,41 @@ router.delete(
   requirePermission("reservations", "delete"),
   async (req, res): Promise<void> => {
     try {
-      const propertyId = getTenantId(req);
-      if (!propertyId) {
-        res.status(400).json({ error: "propertyId is required" });
-        return;
-      }
-
+      let propertyId = getTenantId(req);
       const params = DeleteReservationParams.safeParse(req.params);
       if (!params.success) {
         res.status(400).json({ error: params.error.message });
         return;
       }
 
-      const existing = await withTenant(propertyId, async (tenantDb) => {
-        const [r] = await tenantDb
-          .select()
-          .from(reservationsTable)
-          .where(eq(reservationsTable.id, params.data.id));
-        if (r)
-          await tenantDb
-            .delete(reservationsTable)
+      let existing: any = null;
+      if (propertyId) {
+        const [r] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select()
+            .from(reservationsTable)
             .where(eq(reservationsTable.id, params.data.id));
-        return r;
+        });
+        if (r) existing = r;
+      }
+
+      if (!existing) {
+        const cross = await findReservationAcrossAllProperties(params.data.id);
+        if (cross) {
+          existing = cross.reservation;
+          propertyId = cross.propertyId;
+        }
+      }
+
+      if (!existing || !propertyId) {
+        res.status(404).json({ error: "Reservation not found" });
+        return;
+      }
+
+      await withTenant(propertyId, async (tenantDb) => {
+        await tenantDb
+          .delete(reservationsTable)
+          .where(eq(reservationsTable.id, params.data.id));
       });
 
       if (existing) {
@@ -593,14 +633,9 @@ router.delete(
 
 router.post(
   "/reservations/:id/checkin",
-  requirePermission("reservations", "edit"),
+  requireAnyPermission(["reservations", "checkin"], ["reservations", "edit"]),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     const params = CheckinReservationParams.safeParse(req.params);
     const parsed = CheckinReservationBody.safeParse(req.body);
     if (!params.success || !parsed.success) {
@@ -612,6 +647,28 @@ router.post(
       const resId = params.data.id;
       const roomId = parsed.data.roomId;
       const cin = parsed.data.actualCheckInDate ?? new Date().toISOString();
+
+      if (propertyId) {
+        const [exists] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: reservationsTable.id })
+            .from(reservationsTable)
+            .where(eq(reservationsTable.id, resId))
+            .limit(1);
+        });
+        if (!exists) {
+          const cross = await findReservationAcrossAllProperties(resId);
+          if (cross) propertyId = cross.propertyId;
+        }
+      } else {
+        const cross = await findReservationAcrossAllProperties(resId);
+        if (cross) propertyId = cross.propertyId;
+      }
+
+      if (!propertyId) {
+        res.status(404).json({ error: "Reservation not found" });
+        return;
+      }
 
       const result = await withTenant(propertyId, async (tenantDb) => {
         const [current] = await tenantDb
@@ -904,17 +961,39 @@ router.post(
 
 router.patch(
   "/reservations/:id/checkout",
-  requirePermission("reservations", "edit"),
+  requireAnyPermission(
+    ["reservations", "checkout"],
+    ["reservations", "edit"],
+    ["accommodation", "checkout"],
+    ["accommodation", "edit"]
+  ),
   async (req, res): Promise<void> => {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
-
+    let propertyId = getTenantId(req);
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+
+    if (propertyId) {
+      const [exists] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select({ id: reservationsTable.id })
+          .from(reservationsTable)
+          .where(eq(reservationsTable.id, id))
+          .limit(1);
+      });
+      if (!exists) {
+        const cross = await findReservationAcrossAllProperties(id);
+        if (cross) propertyId = cross.propertyId;
+      }
+    } else {
+      const cross = await findReservationAcrossAllProperties(id);
+      if (cross) propertyId = cross.propertyId;
+    }
+
+    if (!propertyId) {
+      res.status(404).json({ error: "Reservation not found" });
       return;
     }
 
@@ -1020,16 +1099,33 @@ router.patch(
 );
 
 const handleCancelReservation = async (req: any, res: any): Promise<void> => {
-  const propertyId = getTenantId(req);
-  if (!propertyId) {
-    res.status(400).json({ error: "propertyId is required" });
-    return;
-  }
-
+  let propertyId = getTenantId(req);
   try {
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+
+    if (propertyId) {
+      const [exists] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select({ id: reservationsTable.id })
+          .from(reservationsTable)
+          .where(eq(reservationsTable.id, id))
+          .limit(1);
+      });
+      if (!exists) {
+        const cross = await findReservationAcrossAllProperties(id);
+        if (cross) propertyId = cross.propertyId;
+      }
+    } else {
+      const cross = await findReservationAcrossAllProperties(id);
+      if (cross) propertyId = cross.propertyId;
+    }
+
+    if (!propertyId) {
+      res.status(404).json({ error: "Reservation not found" });
       return;
     }
 

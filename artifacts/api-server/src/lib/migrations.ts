@@ -67,6 +67,10 @@ const MIGRATIONS = [
     q: `ALTER TABLE public.hr_sync_config ADD COLUMN IF NOT EXISTS "esign_config" JSONB DEFAULT '{}'::jsonb;`,
   },
   {
+    name: "public.hr_sync_config.esign_configs",
+    q: `ALTER TABLE public.hr_sync_config ADD COLUMN IF NOT EXISTS "esign_configs" JSONB DEFAULT '[]'::jsonb;`,
+  },
+  {
     name: "public.custom_report_templates",
     q: `CREATE TABLE IF NOT EXISTS public.custom_report_templates (
       id SERIAL PRIMARY KEY,
