@@ -1,5 +1,6 @@
 import { Building2, Wand2, Loader2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -224,33 +225,35 @@ export function BuildingModals({
             >
               {ar ? "إلغاء" : "Cancel"}
             </Button>
-            <Button
-              onClick={saveBuildingHandler}
-              disabled={isSaving || isBuildingGenerating}
-            >
-              {isBuildingGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {ar ? "جاري الإنشاء..." : "Generating..."}
-                </>
-              ) : editBuilding ? (
-                ar ? (
-                  "حفظ"
+            <PermissionGate module="housing" action={editBuilding ? "edit" : "create"}>
+              <Button
+                onClick={saveBuildingHandler}
+                disabled={isSaving || isBuildingGenerating}
+              >
+                {isBuildingGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {ar ? "جاري الإنشاء..." : "Generating..."}
+                  </>
+                ) : editBuilding ? (
+                  ar ? (
+                    "حفظ"
+                  ) : (
+                    "Save"
+                  )
+                ) : smartMode ? (
+                  ar ? (
+                    `إنشاء ذكي (${smartTotalRooms} غرفة)`
+                  ) : (
+                    `Smart Create (${smartTotalRooms} rooms)`
+                  )
+                ) : ar ? (
+                  "إنشاء"
                 ) : (
-                  "Save"
-                )
-              ) : smartMode ? (
-                ar ? (
-                  `إنشاء ذكي (${smartTotalRooms} غرفة)`
-                ) : (
-                  `Smart Create (${smartTotalRooms} rooms)`
-                )
-              ) : ar ? (
-                "إنشاء"
-              ) : (
-                "Create"
-              )}
-            </Button>
+                  "Create"
+                )}
+              </Button>
+            </PermissionGate>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -272,13 +275,15 @@ export function BuildingModals({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={confirmDeleteBuilding}
-              disabled={isDeleting}
-            >
-              {ar ? "حذف" : "Delete"}
-            </AlertDialogAction>
+            <PermissionGate module="housing" action="delete">
+              <AlertDialogAction
+                className="bg-destructive hover:bg-destructive/90"
+                onClick={confirmDeleteBuilding}
+                disabled={isDeleting}
+              >
+                {ar ? "حذف" : "Delete"}
+              </AlertDialogAction>
+            </PermissionGate>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

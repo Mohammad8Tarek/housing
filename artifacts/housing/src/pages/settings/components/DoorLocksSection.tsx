@@ -28,6 +28,7 @@ import {
 import { CheckCircle2, Loader2, Save, Server, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useEncoderStatus } from "@workspace/api-client-react";
+import { PermissionGate } from "@/components/ui/permission-gate";
 
 type PropertyId = number | "all" | null | undefined;
 
@@ -424,33 +425,35 @@ export function DoorLocksSection({
                 {selectedServer.lastError}
               </span>
             )}
-            <div className="ml-auto flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={testServer}
-                disabled={!selectedServer || testingServer}
-              >
-                {testingServer ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4" />
-                )}
-                {ar ? "فحص" : "Check"}
-              </Button>
-              <Button
-                type="button"
-                onClick={saveServer}
-                disabled={savingServer}
-              >
-                {savingServer ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                {ar ? "حفظ" : "Save"}
-              </Button>
-            </div>
+            <PermissionGate module="smart_locks" action="edit">
+              <div className="ml-auto flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={testServer}
+                  disabled={!selectedServer || testingServer}
+                >
+                  {testingServer ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  {ar ? "فحص" : "Check"}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={saveServer}
+                  disabled={savingServer}
+                >
+                  {savingServer ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {ar ? "حفظ" : "Save"}
+                </Button>
+              </div>
+            </PermissionGate>
           </div>
         </div>
       </CardContent>

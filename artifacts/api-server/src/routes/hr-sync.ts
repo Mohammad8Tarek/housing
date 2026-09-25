@@ -17,7 +17,7 @@ import { eq, and, inArray, desc } from "drizzle-orm";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { ensureProfilePortalAccount } from "../lib/portal-accounts.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { requirePermission, requireAnyPermission, loadAuthUser, hasPermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import {
   enrichProfileBilingual,
@@ -1501,7 +1501,13 @@ router.post("/receive", async (req, res): Promise<void> => {
   const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
   const providedKey = String(req.headers["x-api-key"] || "").trim();
   const isAdmin = Boolean((req as any).session?.userId);
-  if (!isAdmin) {
+  if (isAdmin) {
+    const authUser = await loadAuthUser(req, res);
+    if (!authUser || (!authUser.isSystemAdmin && !hasPermission(authUser, "hr_sync", "edit") && !hasPermission(authUser, "profiles", "create"))) {
+      res.status(403).json({ success: false, error: "Permission denied. Requires hr_sync.edit or profiles.create" });
+      return;
+    }
+  } else {
     if (expectedKey) {
       if (providedKey !== expectedKey) {
         console.warn("[HR_SYNC_AUTH_FAIL]", { expectedKey, providedKey });
@@ -2343,7 +2349,13 @@ router.get("/profiles/:profileId", async (req, res): Promise<void> => {
   const expectedKey = process.env["HR_SYNC_API_KEY"];
   const providedKey = req.headers["x-api-key"];
   const isAdmin = Boolean((req as any).session?.userId);
-  if (!isAdmin) {
+  if (isAdmin) {
+    const authUser = await loadAuthUser(req, res);
+    if (!authUser || (!authUser.isSystemAdmin && !hasPermission(authUser, "hr_sync", "view") && !hasPermission(authUser, "profiles", "view"))) {
+      res.status(403).json({ success: false, error: "Permission denied. Requires hr_sync.view or profiles.view" });
+      return;
+    }
+  } else {
     if (expectedKey) {
       if (providedKey !== expectedKey) {
         res.status(401).json({ success: false, error: "Unauthorized" });

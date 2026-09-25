@@ -77,6 +77,17 @@ router.get(
       });
     }
 
+    const sessionUser = req.session as any;
+    const isOwner = job.data?.userId ? job.data.userId === sessionUser?.userId : true;
+    const isSuperAdmin = sessionUser?.isSystemAdmin || sessionUser?.userRole === "super_admin";
+
+    if (!isOwner && !isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only access your own export jobs",
+      });
+    }
+
     const state = await job.getState();
     const progress = job.progress;
 
@@ -123,6 +134,17 @@ router.get(
       return res.status(404).json({
         success: false,
         message: "Job not found",
+      });
+    }
+
+    const sessionUser = req.session as any;
+    const isOwner = job.data?.userId ? job.data.userId === sessionUser?.userId : true;
+    const isSuperAdmin = sessionUser?.isSystemAdmin || sessionUser?.userRole === "super_admin";
+
+    if (!isOwner && !isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only download your own export jobs",
       });
     }
 

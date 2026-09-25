@@ -13,7 +13,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, sql, or, ilike } from "drizzle-orm";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requireAuth, loadAuthUser, requirePermission } from "../middlewares/permissions.js";
+import { requireAuth, loadAuthUser, requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { portalSession } from "./portal-auth.js";
 import { logActivity } from "../lib/activity-logger.js";
 
@@ -88,6 +88,23 @@ router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Pr
         profileIdNum = parsedNum;
       } else {
         employeeCodeStr = rawParam;
+      }
+    }
+
+    // RBAC & IDOR protection:
+    if (!pSess && req.session?.userId) {
+      // Admin session: verify gate.view or profiles.view permission
+      const authUser = await loadAuthUser(req, res);
+      if (!authUser || (!authUser.isSystemAdmin && !hasPermission(authUser, "gate", "view") && !hasPermission(authUser, "profiles", "view"))) {
+        res.status(403).json({ error: "Permission denied. Requires gate.view or profiles.view" });
+        return;
+      }
+    } else if (pSess && !req.session?.userId) {
+      // Resident portal: only allowed to view own gate pass
+      const isOwner = profileIdNum ? profileIdNum === pSess.profileDbId : employeeCodeStr === pSess.clockNumber;
+      if (rawParam !== "me" && !isOwner) {
+        res.status(403).json({ error: "Access denied. You can only view your own gate pass." });
+        return;
       }
     }
 

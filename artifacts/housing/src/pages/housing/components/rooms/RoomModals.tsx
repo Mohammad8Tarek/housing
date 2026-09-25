@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -599,13 +600,15 @@ export function RoomModals({
             <Button variant="ghost" onClick={() => setRoomModal(false)}>
               {ar ? "إلغاء" : "Cancel"}
             </Button>
-            <Button onClick={saveRoomHandler} disabled={isSaving || isDuplicateRoomNumber}>
-              {isSaving
-                ? ar ? "جاري الحفظ..." : "Saving..."
-                : editRoom
-                ? ar ? "حفظ التعديلات" : "Save Changes"
-                : ar ? "إضافة الغرفة" : "Add Room"}
-            </Button>
+            <PermissionGate module="housing" action={editRoom ? "edit" : "create"}>
+              <Button onClick={saveRoomHandler} disabled={isSaving || isDuplicateRoomNumber}>
+                {isSaving
+                  ? ar ? "جاري الحفظ..." : "Saving..."
+                  : editRoom
+                  ? ar ? "حفظ التعديلات" : "Save Changes"
+                  : ar ? "إضافة الغرفة" : "Add Room"}
+              </Button>
+            </PermissionGate>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -624,13 +627,15 @@ export function RoomModals({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteRoom}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? (ar ? "جاري الحذف..." : "Deleting...") : (ar ? "حذف" : "Delete")}
-            </AlertDialogAction>
+            <PermissionGate module="housing" action="delete">
+              <AlertDialogAction
+                onClick={confirmDeleteRoom}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? (ar ? "جاري الحذف..." : "Deleting...") : (ar ? "حذف" : "Delete")}
+              </AlertDialogAction>
+            </PermissionGate>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

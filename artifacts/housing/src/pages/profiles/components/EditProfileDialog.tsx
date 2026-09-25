@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useUpdateProfile,
@@ -12,6 +12,7 @@ import { FormRow } from "./FormRow";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import { NationalitySelect } from "@/components/ui/nationality-select";
 import {
   Dialog,
@@ -1157,19 +1158,21 @@ export function EditProfileDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               {ar ? "إلغاء" : "Cancel"}
             </Button>
-            <Button
-              type="submit"
-              disabled={updateMutation.isPending || hasDuplicates}
-              className="font-semibold"
-            >
-              {updateMutation.isPending
-                ? ar
-                  ? "جاري الحفظ..."
-                  : "Saving..."
-                : ar
-                  ? "حفظ التعديلات"
-                  : "Save Changes"}
-            </Button>
+            <PermissionGate module="profiles" action="edit">
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending || hasDuplicates}
+                className="font-semibold"
+              >
+                {updateMutation.isPending
+                  ? ar
+                    ? "جاري الحفظ..."
+                    : "Saving..."
+                  : ar
+                    ? "حفظ التعديلات"
+                    : "Save Changes"}
+              </Button>
+            </PermissionGate>
           </div>
         </form>
       </DialogContent>

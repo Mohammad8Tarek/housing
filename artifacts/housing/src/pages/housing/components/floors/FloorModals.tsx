@@ -1,4 +1,5 @@
 import { useLanguage } from "@/context/LanguageContext";
+import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -135,9 +136,11 @@ export function FloorModals({
             <Button variant="outline" onClick={() => setFloorModal(false)}>
               {ar ? "إلغاء" : "Cancel"}
             </Button>
-            <Button onClick={saveFloorHandler} disabled={isSaving}>
-              {editFloor ? (ar ? "حفظ" : "Save") : ar ? "إنشاء" : "Create"}
-            </Button>
+            <PermissionGate module="housing" action={editFloor ? "edit" : "create"}>
+              <Button onClick={saveFloorHandler} disabled={isSaving}>
+                {editFloor ? (ar ? "حفظ" : "Save") : ar ? "إنشاء" : "Create"}
+              </Button>
+            </PermissionGate>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -159,13 +162,15 @@ export function FloorModals({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={confirmDeleteFloor}
-              disabled={isDeleting}
-            >
-              {ar ? "حذف" : "Delete"}
-            </AlertDialogAction>
+            <PermissionGate module="housing" action="delete">
+              <AlertDialogAction
+                className="bg-destructive hover:bg-destructive/90"
+                onClick={confirmDeleteFloor}
+                disabled={isDeleting}
+              >
+                {ar ? "حذف" : "Delete"}
+              </AlertDialogAction>
+            </PermissionGate>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
+import { PermissionGate } from "@/components/ui/permission-gate";
 
 interface WhatsAppSettingsSectionProps {
   propertyId: number | null;
@@ -543,40 +544,42 @@ export function WhatsAppSettingsSection({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              {status === "connected" ? (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDisconnect}
-                  className="gap-1.5"
-                >
-                  <XCircle className="w-4 h-4" />
-                  {ar ? "قطع الاتصال" : "Disconnect"}
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={() => handleConnect()}
-                  disabled={connecting}
-                  className="text-white gap-1.5 shadow-sm"
-                  style={{ backgroundColor: "#00a884" }}
-                >
-                  {connecting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <QrCode className="w-4 h-4" />
-                  )}
-                  {status === "pairing"
-                    ? ar
-                      ? "تحديث رمز QR"
-                      : "Refresh QR"
-                    : ar
-                    ? "ربط رقم واتساب جديد"
-                    : "Connect WhatsApp"}
-                </Button>
-              )}
-            </div>
+            <PermissionGate module="whatsapp" action="edit">
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                {status === "connected" ? (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDisconnect}
+                    className="gap-1.5"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    {ar ? "قطع الاتصال" : "Disconnect"}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => handleConnect()}
+                    disabled={connecting}
+                    className="text-white gap-1.5 shadow-sm"
+                    style={{ backgroundColor: "#00a884" }}
+                  >
+                    {connecting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <QrCode className="w-4 h-4" />
+                    )}
+                    {status === "pairing"
+                      ? ar
+                        ? "تحديث رمز QR"
+                        : "Refresh QR"
+                      : ar
+                      ? "ربط رقم واتساب جديد"
+                      : "Connect WhatsApp"}
+                  </Button>
+                )}
+              </div>
+            </PermissionGate>
           </div>
         </CardHeader>
 
@@ -1051,15 +1054,17 @@ export function WhatsAppSettingsSection({
                 <RotateCcw className="w-3.5 h-3.5" />
                 {ar ? "استعادة الافتراضي" : "Reset"}
               </Button>
-              <Button
-                size="sm"
-                onClick={handleSaveConfig}
-                disabled={saving}
-                className="gap-1.5 font-semibold text-xs"
-              >
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                {ar ? "حفظ القوالب والإعدادات" : "Save All Templates"}
-              </Button>
+              <PermissionGate module="whatsapp" action="edit">
+                <Button
+                  size="sm"
+                  onClick={handleSaveConfig}
+                  disabled={saving}
+                  className="gap-1.5 font-semibold text-xs"
+                >
+                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  {ar ? "حفظ القوالب والإعدادات" : "Save All Templates"}
+                </Button>
+              </PermissionGate>
             </div>
           </div>
 
@@ -1269,21 +1274,23 @@ export function WhatsAppSettingsSection({
               </p>
             </div>
 
-            <Button
-              onClick={handleSendTest}
-              disabled={testing || status !== "connected"}
-              className="w-full text-white font-semibold gap-2 shadow-sm"
-              style={{ backgroundColor: status === "connected" ? "#00a884" : undefined }}
-            >
-              {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {status !== "connected"
-                ? ar
-                  ? "يجب ربط الواتساب أولاً"
-                  : "Connect WhatsApp First"
-                : ar
-                ? "إرسال الرسالة التجريبية الآن"
-                : "Send Test Message Now"}
-            </Button>
+            <PermissionGate module="whatsapp" action="edit">
+              <Button
+                onClick={handleSendTest}
+                disabled={testing || status !== "connected"}
+                className="w-full text-white font-semibold gap-2 shadow-sm"
+                style={{ backgroundColor: status === "connected" ? "#00a884" : undefined }}
+              >
+                {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {status !== "connected"
+                  ? ar
+                    ? "يجب ربط الواتساب أولاً"
+                    : "Connect WhatsApp First"
+                  : ar
+                  ? "إرسال الرسالة التجريبية الآن"
+                  : "Send Test Message Now"}
+              </Button>
+            </PermissionGate>
           </CardContent>
         </Card>
 
