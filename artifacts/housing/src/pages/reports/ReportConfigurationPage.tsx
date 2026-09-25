@@ -605,7 +605,7 @@ export default function ReportConfigurationPage() {
 
   const studioCurrentPageRows = useMemo(() => {
     return reportRows.map((r, idx) => {
-      const obj: Record<string, any> = { "#": (page - 1) * pageSize + idx + 1 };
+      const obj: Record<string, any> = { "#": (page - 1) * limit + idx + 1 };
       activeColumns.forEach((col) => {
         let val = r[col.key];
         if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) {
@@ -621,7 +621,7 @@ export default function ReportConfigurationPage() {
       });
       return obj;
     });
-  }, [reportRows, activeColumns, page, pageSize, ar]);
+  }, [reportRows, activeColumns, page, limit, ar]);
 
   const studioKpis: ReportKpiItem[] = useMemo(() => {
     if (!showStats) return [];
